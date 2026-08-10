@@ -10,20 +10,30 @@ import 'providers/mechanic_provider.dart';
 import 'providers/review_provider.dart';
 import 'router/app_router.dart';
 import 'services/storage_service.dart';
+import 'backend/backend_bootstrap.dart';
+import 'backend/backend_status.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await StorageService.init();
-  runApp(const MovikApp());
+
+  // Tentative d'initialisation Firebase, sans jamais faire crasher l'app si
+  // aucun projet réel n'est encore configuré (voir backend_bootstrap.dart).
+  final backendStatus = await BackendBootstrap.initialize();
+
+  runApp(MovikApp(backendStatus: backendStatus));
 }
 
 class MovikApp extends StatelessWidget {
-  const MovikApp({super.key});
+  final BackendStatus backendStatus;
+
+  const MovikApp({super.key, required this.backendStatus});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<BackendStatus>.value(value: backendStatus),
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
