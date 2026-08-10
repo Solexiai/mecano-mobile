@@ -240,7 +240,7 @@ class _Step1ItemInfo extends StatelessWidget {
             runSpacing: 8,
             children: categories
                 .map((c) => ChoiceChip(
-                      label: Text(c),
+                      label: Text(t(c)),
                       selected: selectedCategory == c,
                       onSelected: (_) => onCategorySelected(c),
                     ))
@@ -521,7 +521,7 @@ class _Step4Booking extends StatelessWidget {
             ),
             const Divider(height: 32),
           ],
-          _SummaryRow(label: t('delivery_item_category'), value: request.itemCategory),
+          _SummaryRow(label: t('delivery_item_category'), value: request.itemCategory.isEmpty ? '' : t(request.itemCategory)),
           _SummaryRow(label: t('delivery_pickup_address'), value: request.pickupAddress),
           _SummaryRow(label: t('delivery_dropoff_address'), value: request.deliveryAddress),
           _SummaryRow(label: t('delivery_pref_date'), value: request.preferredDate != null ? '${request.preferredDate!.day}/${request.preferredDate!.month}/${request.preferredDate!.year}' : '—'),

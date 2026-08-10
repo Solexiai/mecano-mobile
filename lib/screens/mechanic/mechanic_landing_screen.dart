@@ -69,7 +69,7 @@ class MechanicLandingScreen extends StatelessWidget {
                     spacing: 12,
                     runSpacing: 12,
                     children: DemoDataService.mechanicServices
-                        .map((c) => Chip(avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.success), label: Text(c)))
+                        .map((c) => Chip(avatar: const Icon(Icons.check_circle, size: 16, color: AppColors.success), label: Text(t(c))))
                         .toList(),
                   ),
                   const SizedBox(height: 32),

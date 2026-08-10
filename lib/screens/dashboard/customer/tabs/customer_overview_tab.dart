@@ -14,7 +14,9 @@ class CustomerOverviewTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final locale = context.watch<LocaleProvider>().locale;
+    final localeProvider = context.watch<LocaleProvider>();
+    final locale = localeProvider.locale;
+    final t = localeProvider.t;
     final deliveries = context.watch<DeliveryProvider>().forCustomer(auth.currentUser!.id);
     final mechanicJobs = context.watch<MechanicRequestProvider>().forCustomer(auth.currentUser!.id);
     final total = deliveries.length + mechanicJobs.length;
@@ -74,13 +76,13 @@ class CustomerOverviewTab extends StatelessWidget {
             ...[
               ...deliveries.take(3).map((d) => _RequestPreviewTile(
                     icon: Icons.local_shipping_outlined,
-                    title: d.itemCategory.isEmpty ? 'Livraison' : d.itemCategory,
+                    title: d.itemCategory.isEmpty ? 'Livraison' : t(d.itemCategory),
                     subtitle: '${d.pickupAddress} → ${d.deliveryAddress}',
                     status: d.status.name,
                   )),
               ...mechanicJobs.take(3).map((m) => _RequestPreviewTile(
                     icon: Icons.build_outlined,
-                    title: m.selectedServices.isEmpty ? 'Service mécanique' : m.selectedServices.first,
+                    title: m.selectedServices.isEmpty ? 'Service mécanique' : t(m.selectedServices.first),
                     subtitle: '${m.vehicleMake} ${m.vehicleModel}',
                     status: m.status.name,
                   )),

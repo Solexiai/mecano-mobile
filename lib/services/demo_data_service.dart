@@ -165,39 +165,46 @@ class DemoDataService {
 
   static List<ProviderProfile> get allProviders => [...drivers, ...mechanics];
 
+  /// Canonical, locale-independent keys for item categories. These are the
+  /// values stored on requests (`itemCategory`) and provider profiles; use
+  /// `LocaleProvider.t(key)` / `AppStrings.t(key, locale)` to render the
+  /// translated label for the active locale.
   static const deliveryCategories = [
-    'Meubles',
-    'Appareils électroménagers',
-    'Achats Marketplace',
-    'Achats Costco',
-    'Achats Home Depot',
-    'Matériaux de construction',
-    'Palettes',
-    'Équipement',
-    'BBQ',
-    'Grand téléviseur',
-    'Boîtes',
-    'Moto',
-    'VTT',
-    'Petit déménagement',
+    'cat_furniture',
+    'cat_appliances',
+    'cat_marketplace',
+    'cat_costco',
+    'cat_home_depot',
+    'cat_building_materials',
+    'cat_pallets',
+    'cat_equipment',
+    'cat_bbq',
+    'cat_tv',
+    'cat_boxes',
+    'cat_motorcycle',
+    'cat_atv',
+    'cat_small_move',
   ];
 
+  /// Canonical, locale-independent keys for mechanic services. Stored on
+  /// requests (`selectedServices`) and provider profiles; translate for
+  /// display via `LocaleProvider.t(key)` / `AppStrings.t(key, locale)`.
   static const mechanicServices = [
-    'Survoltage de batterie',
-    'Remplacement de batterie',
-    "Changement d'huile",
-    'Freins',
-    'Pneus',
-    'Suspension',
-    'Démarreur',
-    'Alternateur',
-    'Diagnostic OBD',
-    'Voyant lumineux',
-    'Ne démarre pas',
-    'Bruit ou vibration',
-    'Inspection pré-achat',
-    'Urgence routière',
-    'Autre',
+    'svc_battery_boost',
+    'svc_battery_replacement',
+    'svc_oil_change',
+    'svc_brakes',
+    'svc_tires',
+    'svc_suspension',
+    'svc_starter',
+    'svc_alternator',
+    'svc_obd_diagnostic',
+    'svc_warning_light',
+    'svc_wont_start',
+    'svc_noise_vibration',
+    'svc_pre_purchase_inspection',
+    'svc_roadside_emergency',
+    'svc_other',
   ];
 
   static final List<Review> testimonials = [

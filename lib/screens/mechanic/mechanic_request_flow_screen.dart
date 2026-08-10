@@ -300,12 +300,12 @@ class _Step2Problem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Sélectionnez le(s) service(s)', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(t('mechanic_select_services_title'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: services.map((s) => FilterChip(label: Text(s), selected: selected.contains(s), onSelected: (_) => onToggle(s))).toList(),
+            children: services.map((s) => FilterChip(label: Text(t(s)), selected: selected.contains(s), onSelected: (_) => onToggle(s))).toList(),
           ),
           const SizedBox(height: 20),
           TextField(controller: problemController, maxLines: 4, decoration: const InputDecoration(labelText: 'Description du problème')),
@@ -566,7 +566,7 @@ class _Step5Summary extends StatelessWidget {
             ]),
             const Divider(height: 32),
           ],
-          Text('Services: ${selectedServices.join(', ')}', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('${t('mechanic_services_label')} ${selectedServices.map(t).join(', ')}', style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           Text('Véhicule: ${request.vehicleMake} ${request.vehicleModel} (${request.vehicleYear})', style: const TextStyle(color: AppColors.textSecondary)),
           const Divider(height: 32),

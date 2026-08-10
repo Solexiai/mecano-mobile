@@ -125,7 +125,7 @@ class _MechanicOnboardingScreenState extends State<MechanicOnboardingScreen> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text('Spécialités mécaniques', style: const TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
-                            Wrap(spacing: 8, runSpacing: 8, children: DemoDataService.mechanicServices.map((s) => FilterChip(label: Text(s), selected: _specialties.contains(s), onSelected: (_) => setState(() => _specialties.contains(s) ? _specialties.remove(s) : _specialties.add(s)))).toList()),
+                            Wrap(spacing: 8, runSpacing: 8, children: DemoDataService.mechanicServices.map((s) => FilterChip(label: Text(t(s)), selected: _specialties.contains(s), onSelected: (_) => setState(() => _specialties.contains(s) ? _specialties.remove(s) : _specialties.add(s)))).toList()),
                             const SizedBox(height: 16),
                             TextField(controller: _experienceController, decoration: const InputDecoration(labelText: "Années d'expérience"), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),

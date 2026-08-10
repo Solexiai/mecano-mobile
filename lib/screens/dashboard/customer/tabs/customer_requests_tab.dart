@@ -5,6 +5,7 @@ import '../../../../models/enums.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../providers/delivery_provider.dart';
 import '../../../../providers/mechanic_provider.dart';
+import '../../../../providers/locale_provider.dart';
 
 class CustomerRequestsTab extends StatefulWidget {
   const CustomerRequestsTab({super.key});
@@ -19,6 +20,7 @@ class _CustomerRequestsTabState extends State<CustomerRequestsTab> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final t = context.watch<LocaleProvider>().t;
     final deliveries = context.watch<DeliveryProvider>().forCustomer(auth.currentUser!.id);
     final mechanicJobs = context.watch<MechanicRequestProvider>().forCustomer(auth.currentUser!.id);
 
@@ -39,9 +41,9 @@ class _CustomerRequestsTabState extends State<CustomerRequestsTab> {
           ),
           const SizedBox(height: 20),
           if (_filter != 2)
-            ...deliveries.map((d) => _DeliveryTile(request: d)),
+            ...deliveries.map((d) => _DeliveryTile(request: d, t: t)),
           if (_filter != 1)
-            ...mechanicJobs.map((m) => _MechanicTile(request: m)),
+            ...mechanicJobs.map((m) => _MechanicTile(request: m, t: t)),
           if (deliveries.isEmpty && mechanicJobs.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
@@ -55,7 +57,8 @@ class _CustomerRequestsTabState extends State<CustomerRequestsTab> {
 
 class _DeliveryTile extends StatelessWidget {
   final dynamic request;
-  const _DeliveryTile({required this.request});
+  final String Function(String) t;
+  const _DeliveryTile({required this.request, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +82,7 @@ class _DeliveryTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.itemCategory.isEmpty ? 'Livraison' : request.itemCategory, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(request.itemCategory.isEmpty ? 'Livraison' : t(request.itemCategory), style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text('${request.pickupAddress} → ${request.deliveryAddress}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
@@ -96,7 +99,8 @@ class _DeliveryTile extends StatelessWidget {
 
 class _MechanicTile extends StatelessWidget {
   final dynamic request;
-  const _MechanicTile({required this.request});
+  final String Function(String) t;
+  const _MechanicTile({required this.request, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +124,7 @@ class _MechanicTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(request.selectedServices.isEmpty ? 'Service mécanique' : request.selectedServices.join(', '), style: const TextStyle(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(request.selectedServices.isEmpty ? 'Service mécanique' : (request.selectedServices as List<String>).map(t).join(', '), style: const TextStyle(fontWeight: FontWeight.w700), maxLines: 1, overflow: TextOverflow.ellipsis),
                     Text('${request.vehicleMake} ${request.vehicleModel} (${request.vehicleYear})', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                   ],
                 ),

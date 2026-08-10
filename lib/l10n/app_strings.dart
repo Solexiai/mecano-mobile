@@ -214,6 +214,8 @@ class AppStrings {
     },
 
     'mechanic_send_request': {'fr': 'Envoyer la demande de réservation', 'en': 'Send Booking Request', 'es': 'Enviar solicitud de reserva'},
+    'mechanic_services_label': {'fr': 'Services :', 'en': 'Services:', 'es': 'Servicios:'},
+    'mechanic_select_services_title': {'fr': 'Sélectionnez le(s) service(s)', 'en': 'Select service(s)', 'es': 'Seleccione el/los servicio(s)'},
 
     'mechanic_status_submitted': {'fr': 'Demande envoyée', 'en': 'Request submitted', 'es': 'Solicitud enviada'},
     'mechanic_status_awaiting': {'fr': 'En attente de réponse du mécanicien', 'en': 'Awaiting mechanic response', 'es': 'Esperando respuesta del mecánico'},
@@ -227,6 +229,39 @@ class AppStrings {
     'mechanic_status_completed': {'fr': 'Terminé', 'en': 'Completed', 'es': 'Completado'},
     'mechanic_status_cancelled': {'fr': 'Annulée', 'en': 'Cancelled', 'es': 'Cancelada'},
     'mechanic_status_disputed': {'fr': 'En litige', 'en': 'Disputed', 'es': 'En disputa'},
+
+    // ---------- Item categories (delivery) ----------
+    'cat_furniture': {'fr': 'Meubles', 'en': 'Furniture', 'es': 'Muebles'},
+    'cat_appliances': {'fr': 'Appareils électroménagers', 'en': 'Appliances', 'es': 'Electrodomésticos'},
+    'cat_marketplace': {'fr': 'Achats Marketplace', 'en': 'Marketplace purchases', 'es': 'Compras de Marketplace'},
+    'cat_costco': {'fr': 'Achats Costco', 'en': 'Costco purchases', 'es': 'Compras de Costco'},
+    'cat_home_depot': {'fr': 'Achats Home Depot', 'en': 'Home Depot purchases', 'es': 'Compras de Home Depot'},
+    'cat_building_materials': {'fr': 'Matériaux de construction', 'en': 'Building materials', 'es': 'Materiales de construcción'},
+    'cat_pallets': {'fr': 'Palettes', 'en': 'Pallets', 'es': 'Palets'},
+    'cat_equipment': {'fr': 'Équipement', 'en': 'Equipment', 'es': 'Equipo'},
+    'cat_bbq': {'fr': 'BBQ', 'en': 'BBQ', 'es': 'Parrilla (BBQ)'},
+    'cat_tv': {'fr': 'Grand téléviseur', 'en': 'Large TV', 'es': 'Televisor grande'},
+    'cat_boxes': {'fr': 'Boîtes', 'en': 'Boxes', 'es': 'Cajas'},
+    'cat_motorcycle': {'fr': 'Moto', 'en': 'Motorcycle', 'es': 'Motocicleta'},
+    'cat_atv': {'fr': 'VTT', 'en': 'ATV', 'es': 'Cuatrimoto (VTT)'},
+    'cat_small_move': {'fr': 'Petit déménagement', 'en': 'Small move', 'es': 'Mudanza pequeña'},
+
+    // ---------- Mechanic services ----------
+    'svc_battery_boost': {'fr': 'Survoltage de batterie', 'en': 'Battery boost', 'es': 'Arranque de batería'},
+    'svc_battery_replacement': {'fr': 'Remplacement de batterie', 'en': 'Battery replacement', 'es': 'Reemplazo de batería'},
+    'svc_oil_change': {'fr': "Changement d'huile", 'en': 'Oil change', 'es': 'Cambio de aceite'},
+    'svc_brakes': {'fr': 'Freins', 'en': 'Brakes', 'es': 'Frenos'},
+    'svc_tires': {'fr': 'Pneus', 'en': 'Tires', 'es': 'Neumáticos'},
+    'svc_suspension': {'fr': 'Suspension', 'en': 'Suspension', 'es': 'Suspensión'},
+    'svc_starter': {'fr': 'Démarreur', 'en': 'Starter', 'es': 'Motor de arranque'},
+    'svc_alternator': {'fr': 'Alternateur', 'en': 'Alternator', 'es': 'Alternador'},
+    'svc_obd_diagnostic': {'fr': 'Diagnostic OBD', 'en': 'OBD diagnostic', 'es': 'Diagnóstico OBD'},
+    'svc_warning_light': {'fr': 'Voyant lumineux', 'en': 'Warning light', 'es': 'Luz testigo'},
+    'svc_wont_start': {'fr': 'Ne démarre pas', 'en': "Won't start", 'es': 'No arranca'},
+    'svc_noise_vibration': {'fr': 'Bruit ou vibration', 'en': 'Noise or vibration', 'es': 'Ruido o vibración'},
+    'svc_pre_purchase_inspection': {'fr': 'Inspection pré-achat', 'en': 'Pre-purchase inspection', 'es': 'Inspección previa a la compra'},
+    'svc_roadside_emergency': {'fr': 'Urgence routière', 'en': 'Roadside emergency', 'es': 'Emergencia en carretera'},
+    'svc_other': {'fr': 'Autre', 'en': 'Other', 'es': 'Otro'},
 
     // ---------- Driver recruitment ----------
     'driver_hero_headline': {'fr': 'Transformez votre véhicule en revenu.', 'en': 'Turn your vehicle into income.', 'es': 'Convierte tu vehículo en ingresos.'},
