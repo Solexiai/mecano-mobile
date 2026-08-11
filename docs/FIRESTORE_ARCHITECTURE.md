@@ -671,4 +671,41 @@ completed_missions/documents_all_valid/current_geohash` (champs spécifiques)
 · `driver_documents.status` (champ spécifique) · `delivery_requests.driver_id/
 status/accepted_at/driver_offer_amount/customer_total/payment_status`
 (champs spécifiques) · `delivery_offers` (write) · `delivery_quotes` (write)
-· `users.roles` (champ spécifique) · `notifications/*/items` (create).
+· `users.roles` (champ spécifique) · `notifications/*/items` (create) ·
+`promo_codes` (write).
+
+---
+
+## Addendum (Étape 12) — `promo_codes/{code}` et `customer_discount`
+
+Ajouté lors de la rédaction des tests unitaires du moteur financier (test
+« customer promotion »). Le champ `customer_discount` de `FinancialSnapshot`
+(section 14) existait déjà dans le modèle mais n'était jusqu'ici jamais
+calculé par aucun moteur — cet addendum documente le mécanisme complet.
+
+| Champ | Type | Oblig. | Description |
+|---|---|---|---|
+| `code` | string | ✅ | = ID du document (ex: `BIENVENUE10`) |
+| `discount_mode` | string | ✅ | `fixed_amount` \| `percentage` |
+| `discount_value` | number | ✅ | Montant $ ou fraction (0.10 = 10%) selon `discount_mode` |
+| `max_discount_amount` | number? | ❌ | Plafond $ de la remise (utile surtout en mode `percentage`) |
+| `is_active` | bool | ✅ | |
+| `starts_at` | timestamp? | ❌ | |
+| `ends_at` | timestamp? | ❌ | |
+
+**Écriture** : 🔒 Cloud Functions only / console admin — non exposé par une
+Cloud Function callable dédiée dans cette étape (création de codes hors
+scope de l'étape 11 ; les tests de l'étape 12 créent les documents
+directement via l'Admin SDK de l'émulateur).
+
+**Flux** : le client envoie uniquement un `promoCode` (chaîne) à
+`calculateDeliveryQuote()`. Le MONTANT de la remise est résolu
+EXCLUSIVEMENT côté serveur (lecture de `promo_codes/{code}`, vérification
+`is_active`/fenêtre de validité, calcul borné par `max_discount_amount`) —
+un montant envoyé directement par le client dans la requête est
+structurellement impossible à exploiter puisque `CalculateDeliveryQuoteRequest`
+ne contient aucun champ de montant, uniquement `promoCode: string`. Le
+montant résolu est ensuite dénormalisé sur la mission
+(`delivery_requests.customer_discount_amount`) pour que `acceptDelivery()`
+et `createFinancialSnapshot()` recalculent avec EXACTEMENT la même remise
+que celle affichée au client dans son devis.

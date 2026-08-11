@@ -93,6 +93,10 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       pricing_version: quote.pricing_version,
       driver_offer_amount: 0, // fixé par acceptDelivery()/createFinancialSnapshot()
       customer_total: quote.customer_total,
+      // Dénormalisé depuis le devis pour que acceptDelivery() recalcule avec
+      // EXACTEMENT la même remise (jamais un montant client) — voir
+      // resolvePromoDiscountAmount() dans calculateDeliveryQuote.ts.
+      customer_discount_amount: quote.quote_breakdown?.customerDiscountAmount ?? 0,
       payment_status: "pending",
       active_quote_id: input.quoteId,
       active_financial_snapshot_id: null,

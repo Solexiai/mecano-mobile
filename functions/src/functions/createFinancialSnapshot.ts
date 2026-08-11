@@ -70,6 +70,7 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       vehicleCategory: mission.required_vehicle_category,
       distanceKm: mission.distance_km,
       estimatedDurationMinutes: mission.estimated_duration_minutes,
+      customerDiscountAmount: mission.customer_discount_amount ?? 0,
     });
 
     const resolved = resolveCommission({
@@ -101,7 +102,7 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       platform_commission_amount: compensation.platformCommissionAmount,
       customer_service_fee: pricingResult.customerServiceFee,
       customer_fees: pricingResult.handlingFeesTotal + pricingResult.waitingFee + pricingResult.additionalStopsFee,
-      customer_discount: 0,
+      customer_discount: pricingResult.customerDiscountAmount,
       customer_tax: pricingResult.taxAmount,
       driver_bonus: 0,
       tip_amount: 0,

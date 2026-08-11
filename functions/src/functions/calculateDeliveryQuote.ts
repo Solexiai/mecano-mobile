@@ -6,6 +6,13 @@
 // fourni par le client). Écrit `delivery_quotes/{id}` (🔒 write côté client
 // interdit par firestore.rules) avec une durée de validité issue de
 // `quote_config.quote_validity_minutes`.
+//
+// 🔒 Remise client (code promo) : le client envoie UNIQUEMENT un `promoCode`
+// (chaîne). Le MONTANT de la remise n'est JAMAIS accepté depuis le client —
+// il est résolu ici en lisant `promo_codes/{code}` côté serveur (existence,
+// `is_active`, fenêtre de validité, `max_discount_amount`). Voir test
+// "customer promotion" (Étape 12) qui vérifie précisément qu'un montant
+// envoyé directement par le client est ignoré.
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
@@ -30,6 +37,36 @@ export interface CalculateDeliveryQuoteRequest {
   totalWaitingMinutes?: number;
   additionalStopsCount?: number;
   applicableSurchargeIds?: string[];
+  /** Code promo optionnel — le MONTANT est résolu côté serveur, jamais accepté du client. */
+  promoCode?: string;
+}
+
+/**
+ * Résout le montant de remise à partir d'un code promo, en lisant
+ * `promo_codes/{code}` côté serveur. Retourne 0 si le code est absent,
+ * inconnu, inactif ou hors fenêtre de validité — ne lève JAMAIS d'erreur
+ * pour un code invalide (dégrade silencieusement à "pas de remise") afin de
+ * ne pas bloquer un devis pour une simple faute de frappe du client.
+ */
+async function resolvePromoDiscountAmount(
+  promoCode: string | undefined,
+  rawSubtotal: number
+): Promise<number> {
+  if (!promoCode) return 0;
+  const snap = await db.collection("promo_codes").doc(promoCode).get();
+  if (!snap.exists) return 0;
+  const promo = snap.data()!;
+  const now = admin.firestore.Timestamp.now();
+  if (!promo.is_active) return 0;
+  if (promo.starts_at && now.toMillis() < promo.starts_at.toMillis()) return 0;
+  if (promo.ends_at && now.toMillis() >= promo.ends_at.toMillis()) return 0;
+
+  const rawAmount =
+    promo.discount_mode === "percentage"
+      ? rawSubtotal * (promo.discount_value as number)
+      : (promo.discount_value as number);
+  const maxAmount = (promo.max_discount_amount as number | undefined) ?? rawAmount;
+  return Math.min(rawAmount, maxAmount);
 }
 
 export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(async (request) => {
@@ -60,8 +97,10 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     throw failedPrecondition("La pricing_version active pointée n'est plus marquée is_active.");
   }
 
-  // 2. Calcul du devis (moteur PUR, rejoué ici avec les données serveur).
-  const pricingResult = calculateCustomerQuote(config, {
+  // 2. Premier passage SANS remise — nécessaire pour connaître le subtotal
+  // brut (base de calcul d'une remise en pourcentage), sans jamais faire
+  // confiance à un montant envoyé par le client.
+  const baseArgs = {
     vehicleCategory: input.vehicleCategory,
     distanceKm: input.distanceKm,
     estimatedDurationMinutes: input.estimatedDurationMinutes,
@@ -69,6 +108,19 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     totalWaitingMinutes: input.totalWaitingMinutes,
     additionalStopsCount: input.additionalStopsCount,
     applicableSurchargeIds: input.applicableSurchargeIds,
+  };
+  const unDiscountedResult = calculateCustomerQuote(config, baseArgs);
+
+  // 3. Résolution serveur du montant de remise (jamais un montant client).
+  const customerDiscountAmount = await resolvePromoDiscountAmount(
+    input.promoCode,
+    unDiscountedResult.subtotal // == rawSubtotal ici puisqu'aucune remise n'a encore été appliquée
+  );
+
+  // 4. Calcul final du devis avec la remise résolue côté serveur.
+  const pricingResult = calculateCustomerQuote(config, {
+    ...baseArgs,
+    customerDiscountAmount,
   });
 
   // 3. Écriture du devis avec durée de validité configurée.

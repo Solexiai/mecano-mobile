@@ -105,6 +105,10 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
       vehicleCategory: mission.required_vehicle_category,
       distanceKm: mission.distance_km,
       estimatedDurationMinutes: mission.estimated_duration_minutes,
+      // Remise dénormalisée depuis le devis d'origine (résolue côté serveur
+      // par calculateDeliveryQuote(), jamais un montant client) — garantit
+      // que le snapshot final reflète EXACTEMENT le devis affiché au client.
+      customerDiscountAmount: mission.customer_discount_amount ?? 0,
     });
 
     // Résolution de commission : Founding Driver > promo > standard.
@@ -179,7 +183,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
       customer_service_fee: pricingResult.customerServiceFee,
       customer_fees:
         pricingResult.handlingFeesTotal + pricingResult.waitingFee + pricingResult.additionalStopsFee,
-      customer_discount: 0,
+      customer_discount: pricingResult.customerDiscountAmount,
       customer_tax: pricingResult.taxAmount,
       driver_bonus: 0,
       tip_amount: 0,

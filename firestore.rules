@@ -325,6 +325,17 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // promo_codes/{code} — codes promo client (montant JAMAIS accepté du
+    // client ; calculateDeliveryQuote() lit ce document pour résoudre le
+    // montant de remise réel côté serveur). Ajouté à l'étape 12 (tests
+    // "customer promotion") — voir docs/FIRESTORE_ARCHITECTURE.md addendum.
+    // -------------------------------------------------------------------
+    match /promo_codes/{code} {
+      allow read: if isSignedIn(); // le client peut vérifier l'existence/validité d'un code
+      allow write: if false; // 🔒 Cloud Functions only / admin console (hors scope étape 11).
+    }
+
+    // -------------------------------------------------------------------
     // driver_pricing_profiles/{driverId}
     // -------------------------------------------------------------------
     match /driver_pricing_profiles/{driverId} {

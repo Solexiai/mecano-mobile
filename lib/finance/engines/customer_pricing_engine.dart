@@ -46,6 +46,13 @@ class CustomerPricingInput {
   /// config.
   final List<String> applicableSurchargeIds;
 
+  /// Remise client (ex: code promo) déjà VALIDÉE en amont (jamais un montant
+  /// arbitraire saisi par le client) — voir `customer_discount` dans
+  /// FinancialSnapshot. Montant fixe en $, appliqué avant frais de service et
+  /// taxes (réduit la base taxable, cohérent avec les règles fiscales QC/CA
+  /// applicables aux remises). Jamais négatif après application (plancher 0).
+  final double customerDiscountAmount;
+
   const CustomerPricingInput({
     required this.vehicleCategory,
     required this.distanceKm,
@@ -54,6 +61,7 @@ class CustomerPricingInput {
     this.totalWaitingMinutes = 0,
     this.additionalStopsCount = 0,
     this.applicableSurchargeIds = const [],
+    this.customerDiscountAmount = 0,
   });
 }
 
@@ -64,7 +72,8 @@ class CustomerPricingResult {
   final double waitingFee;
   final double additionalStopsFee;
   final double surchargesTotal;
-  final double subtotal; // somme de tout ce qui précède
+  final double subtotal; // somme de tout ce qui précède, APRÈS remise client
+  final double customerDiscountAmount; // remise appliquée (>= 0, plafonnée au subtotal brut)
   final double customerServiceFee;
   final double taxAmount;
   final double customerTotal;
@@ -77,6 +86,7 @@ class CustomerPricingResult {
     required this.additionalStopsFee,
     required this.surchargesTotal,
     required this.subtotal,
+    this.customerDiscountAmount = 0,
     required this.customerServiceFee,
     required this.taxAmount,
     required this.customerTotal,
@@ -91,6 +101,7 @@ class CustomerPricingResult {
       additionalStopsFee: 0,
       surchargesTotal: 0,
       subtotal: 0,
+      customerDiscountAmount: 0,
       customerServiceFee: 0,
       taxAmount: 0,
       customerTotal: 0,
@@ -105,6 +116,7 @@ class CustomerPricingResult {
         'additional_stops_fee': additionalStopsFee,
         'surcharges_total': surchargesTotal,
         'subtotal': subtotal,
+        'customer_discount_amount': customerDiscountAmount,
         'customer_service_fee': customerServiceFee,
         'tax_amount': taxAmount,
         'customer_total': customerTotal,
@@ -165,15 +177,24 @@ class CustomerPricingEngine {
       }
     }
 
-    // 6. Sous-total avant frais de service et taxes.
-    final subtotal = missionBaseValue +
+    // 6. Sous-total avant remise, frais de service et taxes.
+    final rawSubtotal = missionBaseValue +
         handlingFeesTotal +
         waitingFee +
         additionalStopsFee +
         surchargesTotal;
 
+    // 6bis. Remise client (code promo déjà validé) — plancher à 0, jamais
+    // négative, jamais supérieure au subtotal brut (une remise ne peut pas
+    // transformer une mission en revenu négatif pour la plateforme).
+    final customerDiscountAmount =
+        input.customerDiscountAmount <= 0
+            ? 0.0
+            : (input.customerDiscountAmount > rawSubtotal ? rawSubtotal : input.customerDiscountAmount);
+    final subtotal = rawSubtotal - customerDiscountAmount;
+
     // 7. Frais de service client (revenu plateforme distinct de la
-    // commission chauffeur).
+    // commission chauffeur), calculé sur le subtotal APRÈS remise.
     final customerServiceFee = config.customerServiceFee.compute(subtotal);
 
     // 8. Taxes (appliquées sur subtotal + frais de service, selon la
@@ -192,6 +213,7 @@ class CustomerPricingEngine {
       additionalStopsFee: additionalStopsFee,
       surchargesTotal: surchargesTotal,
       subtotal: subtotal,
+      customerDiscountAmount: customerDiscountAmount,
       customerServiceFee: customerServiceFee,
       taxAmount: taxAmount,
       customerTotal: customerTotal,
