@@ -34,22 +34,22 @@ class VehiclePricingRule {
 
   Map<String, dynamic> toJson() => {
         'category': category.name,
-        'baseFare': baseFare,
-        'ratePerKm': ratePerKm,
-        'ratePerMinute': ratePerMinute,
-        'minimumCharge': minimumCharge,
-        'maxPayloadKg': maxPayloadKg,
-        'surchargeFixedAmount': surchargeFixedAmount,
+        'base_fare': baseFare,
+        'rate_per_km': ratePerKm,
+        'rate_per_minute': ratePerMinute,
+        'minimum_charge': minimumCharge,
+        'max_payload_kg': maxPayloadKg,
+        'surcharge_fixed_amount': surchargeFixedAmount,
       };
 
   factory VehiclePricingRule.fromJson(Map<String, dynamic> json) => VehiclePricingRule(
         category: VehicleCategory.values.firstWhere((c) => c.name == json['category'], orElse: () => VehicleCategory.other),
-        baseFare: (json['baseFare'] as num?)?.toDouble() ?? 0,
-        ratePerKm: (json['ratePerKm'] as num?)?.toDouble() ?? 0,
-        ratePerMinute: (json['ratePerMinute'] as num?)?.toDouble() ?? 0,
-        minimumCharge: (json['minimumCharge'] as num?)?.toDouble() ?? 0,
-        maxPayloadKg: (json['maxPayloadKg'] as num?)?.toDouble(),
-        surchargeFixedAmount: (json['surchargeFixedAmount'] as num?)?.toDouble(),
+        baseFare: (json['base_fare'] as num?)?.toDouble() ?? 0,
+        ratePerKm: (json['rate_per_km'] as num?)?.toDouble() ?? 0,
+        ratePerMinute: (json['rate_per_minute'] as num?)?.toDouble() ?? 0,
+        minimumCharge: (json['minimum_charge'] as num?)?.toDouble() ?? 0,
+        maxPayloadKg: (json['max_payload_kg'] as num?)?.toDouble(),
+        surchargeFixedAmount: (json['surcharge_fixed_amount'] as num?)?.toDouble(),
       );
 }
 
@@ -76,25 +76,25 @@ class HandlingFeeConfig {
   });
 
   Map<String, dynamic> toJson() => {
-        'loadingFee': loadingFee,
-        'unloadingFee': unloadingFee,
-        'heavyItemFee': heavyItemFee,
-        'bulkyItemFee': bulkyItemFee,
-        'stairsFee': stairsFee,
-        'noElevatorFee': noElevatorFee,
-        'secondHandlerFee': secondHandlerFee,
-        'specialEquipmentFee': specialEquipmentFee,
+        'loading_fee': loadingFee,
+        'unloading_fee': unloadingFee,
+        'heavy_item_fee': heavyItemFee,
+        'bulky_item_fee': bulkyItemFee,
+        'stairs_fee': stairsFee,
+        'no_elevator_fee': noElevatorFee,
+        'second_handler_fee': secondHandlerFee,
+        'special_equipment_fee': specialEquipmentFee,
       };
 
   factory HandlingFeeConfig.fromJson(Map<String, dynamic> json) => HandlingFeeConfig(
-        loadingFee: (json['loadingFee'] as num?)?.toDouble() ?? 0,
-        unloadingFee: (json['unloadingFee'] as num?)?.toDouble() ?? 0,
-        heavyItemFee: (json['heavyItemFee'] as num?)?.toDouble() ?? 0,
-        bulkyItemFee: (json['bulkyItemFee'] as num?)?.toDouble() ?? 0,
-        stairsFee: (json['stairsFee'] as num?)?.toDouble() ?? 0,
-        noElevatorFee: (json['noElevatorFee'] as num?)?.toDouble() ?? 0,
-        secondHandlerFee: (json['secondHandlerFee'] as num?)?.toDouble() ?? 0,
-        specialEquipmentFee: (json['specialEquipmentFee'] as num?)?.toDouble() ?? 0,
+        loadingFee: (json['loading_fee'] as num?)?.toDouble() ?? 0,
+        unloadingFee: (json['unloading_fee'] as num?)?.toDouble() ?? 0,
+        heavyItemFee: (json['heavy_item_fee'] as num?)?.toDouble() ?? 0,
+        bulkyItemFee: (json['bulky_item_fee'] as num?)?.toDouble() ?? 0,
+        stairsFee: (json['stairs_fee'] as num?)?.toDouble() ?? 0,
+        noElevatorFee: (json['no_elevator_fee'] as num?)?.toDouble() ?? 0,
+        secondHandlerFee: (json['second_handler_fee'] as num?)?.toDouble() ?? 0,
+        specialEquipmentFee: (json['special_equipment_fee'] as num?)?.toDouble() ?? 0,
       );
 }
 
@@ -111,11 +111,11 @@ class WaitingFeeConfig {
     return extra * waitingRatePerMinute;
   }
 
-  Map<String, dynamic> toJson() => {'freeWaitingMinutes': freeWaitingMinutes, 'waitingRatePerMinute': waitingRatePerMinute};
+  Map<String, dynamic> toJson() => {'free_waiting_minutes': freeWaitingMinutes, 'waiting_rate_per_minute': waitingRatePerMinute};
 
   factory WaitingFeeConfig.fromJson(Map<String, dynamic> json) => WaitingFeeConfig(
-        freeWaitingMinutes: (json['freeWaitingMinutes'] as num?)?.toInt() ?? 10,
-        waitingRatePerMinute: (json['waitingRatePerMinute'] as num?)?.toDouble() ?? 0.5,
+        freeWaitingMinutes: (json['free_waiting_minutes'] as num?)?.toInt() ?? 10,
+        waitingRatePerMinute: (json['waiting_rate_per_minute'] as num?)?.toDouble() ?? 0.5,
       );
 }
 
@@ -124,9 +124,9 @@ class AdditionalStopFeeConfig {
   final double feePerStop;
   const AdditionalStopFeeConfig({this.feePerStop = 0});
 
-  Map<String, dynamic> toJson() => {'feePerStop': feePerStop};
+  Map<String, dynamic> toJson() => {'fee_per_stop': feePerStop};
   factory AdditionalStopFeeConfig.fromJson(Map<String, dynamic> json) =>
-      AdditionalStopFeeConfig(feePerStop: (json['feePerStop'] as num?)?.toDouble() ?? 0);
+      AdditionalStopFeeConfig(feePerStop: (json['fee_per_stop'] as num?)?.toDouble() ?? 0);
 }
 
 /// Section 21: configurable surcharges (fixed or percentage).
@@ -167,11 +167,11 @@ class CustomerServiceFeeConfig {
     return raw < minimumServiceFee ? minimumServiceFee : raw;
   }
 
-  Map<String, dynamic> toJson() => {'serviceFeeRate': serviceFeeRate, 'minimumServiceFee': minimumServiceFee};
+  Map<String, dynamic> toJson() => {'service_fee_rate': serviceFeeRate, 'minimum_service_fee': minimumServiceFee};
 
   factory CustomerServiceFeeConfig.fromJson(Map<String, dynamic> json) => CustomerServiceFeeConfig(
-        serviceFeeRate: (json['serviceFeeRate'] as num?)?.toDouble() ?? 0,
-        minimumServiceFee: (json['minimumServiceFee'] as num?)?.toDouble() ?? 0,
+        serviceFeeRate: (json['service_fee_rate'] as num?)?.toDouble() ?? 0,
+        minimumServiceFee: (json['minimum_service_fee'] as num?)?.toDouble() ?? 0,
       );
 }
 
@@ -190,15 +190,15 @@ class CommissionConfig {
   });
 
   Map<String, dynamic> toJson() => {
-        'standardCommissionRate': standardCommissionRate,
-        'minimumPlatformCommission': minimumPlatformCommission,
-        'maximumEffectiveCommissionRate': maximumEffectiveCommissionRate,
+        'standard_commission_rate': standardCommissionRate,
+        'minimum_platform_commission': minimumPlatformCommission,
+        'maximum_effective_commission_rate': maximumEffectiveCommissionRate,
       };
 
   factory CommissionConfig.fromJson(Map<String, dynamic> json) => CommissionConfig(
-        standardCommissionRate: (json['standardCommissionRate'] as num?)?.toDouble() ?? 0.15,
-        minimumPlatformCommission: (json['minimumPlatformCommission'] as num?)?.toDouble() ?? 0,
-        maximumEffectiveCommissionRate: (json['maximumEffectiveCommissionRate'] as num?)?.toDouble() ?? 0.30,
+        standardCommissionRate: (json['standard_commission_rate'] as num?)?.toDouble() ?? 0.15,
+        minimumPlatformCommission: (json['minimum_platform_commission'] as num?)?.toDouble() ?? 0,
+        maximumEffectiveCommissionRate: (json['maximum_effective_commission_rate'] as num?)?.toDouble() ?? 0.30,
       );
 }
 
@@ -210,10 +210,10 @@ class TipPolicyConfig {
 
   const TipPolicyConfig({this.driverTipPercentage = 100.0});
 
-  Map<String, dynamic> toJson() => {'driverTipPercentage': driverTipPercentage};
+  Map<String, dynamic> toJson() => {'driver_tip_percentage': driverTipPercentage};
 
   factory TipPolicyConfig.fromJson(Map<String, dynamic> json) => TipPolicyConfig(
-        driverTipPercentage: (json['driverTipPercentage'] as num?)?.toDouble() ?? 100.0,
+        driverTipPercentage: (json['driver_tip_percentage'] as num?)?.toDouble() ?? 100.0,
       );
 }
 
@@ -222,9 +222,9 @@ class QuoteConfig {
   final int quoteValidityMinutes;
   const QuoteConfig({this.quoteValidityMinutes = 15});
 
-  Map<String, dynamic> toJson() => {'quoteValidityMinutes': quoteValidityMinutes};
+  Map<String, dynamic> toJson() => {'quote_validity_minutes': quoteValidityMinutes};
   factory QuoteConfig.fromJson(Map<String, dynamic> json) =>
-      QuoteConfig(quoteValidityMinutes: (json['quoteValidityMinutes'] as num?)?.toInt() ?? 15);
+      QuoteConfig(quoteValidityMinutes: (json['quote_validity_minutes'] as num?)?.toInt() ?? 15);
 }
 
 /// Aggregate root: one versioned pricing configuration document.
@@ -272,35 +272,35 @@ class PricingConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'pricingVersion': pricingVersion,
-        'isActive': isActive,
-        'effectiveFrom': effectiveFrom.toIso8601String(),
-        'vehicleRules': vehicleRules.map((r) => r.toJson()).toList(),
-        'handlingFees': handlingFees.toJson(),
-        'waitingFee': waitingFee.toJson(),
-        'additionalStopFee': additionalStopFee.toJson(),
+        'pricing_version': pricingVersion,
+        'is_active': isActive,
+        'effective_from': effectiveFrom.toIso8601String(),
+        'vehicle_rules': vehicleRules.map((r) => r.toJson()).toList(),
+        'handling_fees': handlingFees.toJson(),
+        'waiting_fee': waitingFee.toJson(),
+        'additional_stop_fee': additionalStopFee.toJson(),
         'surcharges': surcharges.map((s) => s.toJson()).toList(),
-        'customerServiceFee': customerServiceFee.toJson(),
+        'customer_service_fee': customerServiceFee.toJson(),
         'commission': commission.toJson(),
-        'tipPolicy': tipPolicy.toJson(),
-        'quoteConfig': quoteConfig.toJson(),
-        'taxRate': taxRate,
+        'tip_policy': tipPolicy.toJson(),
+        'quote_config': quoteConfig.toJson(),
+        'tax_rate': taxRate,
       };
 
   factory PricingConfig.fromJson(Map<String, dynamic> json) => PricingConfig(
-        pricingVersion: json['pricingVersion'] as String,
-        isActive: json['isActive'] as bool? ?? false,
-        effectiveFrom: DateTime.tryParse(json['effectiveFrom'] as String? ?? '') ?? DateTime.now(),
-        vehicleRules: (json['vehicleRules'] as List? ?? []).map((r) => VehiclePricingRule.fromJson(Map<String, dynamic>.from(r))).toList(),
-        handlingFees: HandlingFeeConfig.fromJson(Map<String, dynamic>.from(json['handlingFees'] ?? {})),
-        waitingFee: WaitingFeeConfig.fromJson(Map<String, dynamic>.from(json['waitingFee'] ?? {})),
-        additionalStopFee: AdditionalStopFeeConfig.fromJson(Map<String, dynamic>.from(json['additionalStopFee'] ?? {})),
+        pricingVersion: json['pricing_version'] as String,
+        isActive: json['is_active'] as bool? ?? false,
+        effectiveFrom: DateTime.tryParse(json['effective_from'] as String? ?? '') ?? DateTime.now(),
+        vehicleRules: (json['vehicle_rules'] as List? ?? []).map((r) => VehiclePricingRule.fromJson(Map<String, dynamic>.from(r))).toList(),
+        handlingFees: HandlingFeeConfig.fromJson(Map<String, dynamic>.from(json['handling_fees'] ?? {})),
+        waitingFee: WaitingFeeConfig.fromJson(Map<String, dynamic>.from(json['waiting_fee'] ?? {})),
+        additionalStopFee: AdditionalStopFeeConfig.fromJson(Map<String, dynamic>.from(json['additional_stop_fee'] ?? {})),
         surcharges: (json['surcharges'] as List? ?? []).map((s) => SurchargeRule.fromJson(Map<String, dynamic>.from(s))).toList(),
-        customerServiceFee: CustomerServiceFeeConfig.fromJson(Map<String, dynamic>.from(json['customerServiceFee'] ?? {})),
+        customerServiceFee: CustomerServiceFeeConfig.fromJson(Map<String, dynamic>.from(json['customer_service_fee'] ?? {})),
         commission: CommissionConfig.fromJson(Map<String, dynamic>.from(json['commission'] ?? {})),
-        tipPolicy: TipPolicyConfig.fromJson(Map<String, dynamic>.from(json['tipPolicy'] ?? {})),
-        quoteConfig: QuoteConfig.fromJson(Map<String, dynamic>.from(json['quoteConfig'] ?? {})),
-        taxRate: (json['taxRate'] as num?)?.toDouble() ?? 0,
+        tipPolicy: TipPolicyConfig.fromJson(Map<String, dynamic>.from(json['tip_policy'] ?? {})),
+        quoteConfig: QuoteConfig.fromJson(Map<String, dynamic>.from(json['quote_config'] ?? {})),
+        taxRate: (json['tax_rate'] as num?)?.toDouble() ?? 0,
       );
 
   /// A safe, explicit "not configured" default used ONLY so the app never

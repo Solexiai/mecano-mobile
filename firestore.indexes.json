@@ -1,0 +1,171 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "driver_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "online_status", "order": "ASCENDING" },
+        { "fieldPath": "documents_all_valid", "order": "ASCENDING" },
+        { "fieldPath": "current_geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driver_documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driver_documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expires_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "delivery_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customer_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "delivery_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "delivery_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "required_vehicle_category", "order": "ASCENDING" },
+        { "fieldPath": "dispatch_zone_geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "delivery_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "delivery_offers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "expires_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driver_promotions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "ends_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driver_promotions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "ends_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "qualifications",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "promotional_period_ends_at", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "financial_snapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "financial_snapshots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transaction_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mission_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transaction_ledger",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "driver_payouts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "driver_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ratings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "rated_user_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "admin_reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "audit_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "action", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "history",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "recorded_at", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

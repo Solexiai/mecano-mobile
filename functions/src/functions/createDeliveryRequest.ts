@@ -1,0 +1,130 @@
+// -----------------------------------------------------------------------------
+// createDeliveryRequest — Cloud Function callable (customer).
+//
+// 🔒 Seul point d'entrée pour créer une mission. Garantit la cohérence
+// devis → mission (le devis doit exister, appartenir au client, être non
+// expiré et non consommé). Crée le document condensé `delivery_requests/{id}`
+// + les stops en sous-collection. firestore.rules interdit `create` direct
+// sur `delivery_requests` (allow create: if false).
+// -----------------------------------------------------------------------------
+
+import { onCall } from "firebase-functions/v2/https";
+import { admin, db } from "../lib/admin";
+import { requireSignedIn } from "../lib/auth";
+import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
+import { encodeGeohash } from "../lib/geohash";
+import { MissionStatuses } from "../lib/types";
+
+export interface StopInput {
+  type: "pickup" | "dropoff";
+  address: {
+    line1: string;
+    city: string;
+    postal_code: string;
+    lat: number;
+    lng: number;
+  };
+  contactInstructions?: string;
+  accessDetails?: string;
+}
+
+export interface CreateDeliveryRequestRequest {
+  quoteId: string;
+  itemCategoryKey: string;
+  description: string;
+  requiredVehicleCategory: string;
+  distanceKm: number;
+  estimatedDurationMinutes: number;
+  stops: StopInput[]; // stops[0] doit être le pickup
+  customerDisplayName: string;
+}
+
+export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
+  const ctx = requireSignedIn(request);
+  const input = request.data;
+
+  if (!input.quoteId) throw invalidArgument("quoteId est requis.");
+  if (!input.stops || input.stops.length < 2) {
+    throw invalidArgument("Au moins 2 stops sont requis (1 pickup + 1 dropoff minimum).");
+  }
+  if (input.stops[0].type !== "pickup") {
+    throw invalidArgument("stops[0] doit être de type 'pickup'.");
+  }
+
+  const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
+
+  const missionRef = db.collection("delivery_requests").doc();
+
+  await db.runTransaction(async (tx) => {
+    const quoteSnap = await tx.get(quoteRef);
+    if (!quoteSnap.exists) {
+      throw notFound(`delivery_quotes/${input.quoteId} introuvable.`);
+    }
+    const quote = quoteSnap.data()!;
+
+    if (quote.customer_id !== ctx.uid) {
+      throw permissionDenied("Ce devis n'appartient pas à l'utilisateur courant.");
+    }
+    if (quote.is_consumed) {
+      throw failedPrecondition("Ce devis a déjà été consommé par une autre mission.");
+    }
+    const now = admin.firestore.Timestamp.now();
+    if (quote.expires_at.toMillis() < now.toMillis()) {
+      throw failedPrecondition("Ce devis a expiré. Merci de recalculer un nouveau devis.");
+    }
+
+    const pickup = input.stops[0];
+    const lastStop = input.stops[input.stops.length - 1];
+    const dispatchGeohash = encodeGeohash(pickup.address.lat, pickup.address.lng, 5);
+
+    tx.set(missionRef, {
+      customer_id: ctx.uid,
+      customer_display_name: input.customerDisplayName,
+      driver_id: null,
+      driver_display_name: null,
+      status: MissionStatuses.SEARCHING_DRIVER,
+      item_category_key: input.itemCategoryKey,
+      description: input.description,
+      required_vehicle_category: input.requiredVehicleCategory,
+      pickup_address: pickup.address,
+      dropoff_address: lastStop.address,
+      distance_km: input.distanceKm,
+      estimated_duration_minutes: input.estimatedDurationMinutes,
+      pricing_version: quote.pricing_version,
+      driver_offer_amount: 0, // fixé par acceptDelivery()/createFinancialSnapshot()
+      customer_total: quote.customer_total,
+      payment_status: "pending",
+      active_quote_id: input.quoteId,
+      active_financial_snapshot_id: null,
+      created_at: now,
+      accepted_at: null,
+      completed_at: null,
+      cancelled_at: null,
+      cancellation_reason: null,
+      dispatch_zone_geohash: dispatchGeohash,
+    });
+
+    input.stops.forEach((stop, index) => {
+      const stopRef = missionRef.collection("stops").doc();
+      tx.set(stopRef, {
+        sequence: index,
+        type: stop.type,
+        address: stop.address,
+        contact_instructions: stop.contactInstructions ?? null,
+        access_details: stop.accessDetails ?? null,
+        completed_at: null,
+      });
+    });
+
+    tx.update(quoteRef, { is_consumed: true, mission_id: missionRef.id });
+
+    const eventRef = missionRef.collection("tracking_events").doc();
+    tx.set(eventRef, {
+      event_type: "mission_created",
+      occurred_at: now,
+      metadata: {},
+    });
+  });
+
+  return { missionId: missionRef.id };
+});

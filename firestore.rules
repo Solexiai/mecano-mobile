@@ -1,0 +1,459 @@
+rules_version = '2';
+
+// =============================================================================
+// Movi-K — Firestore Security Rules (Étape 9)
+//
+// PRINCIPE : DENY BY DEFAULT.
+// Rien n'est lisible ni écrivable sans une règle explicite ci-dessous.
+// La règle finale du fichier bloque tout le reste.
+//
+// RÔLES : lus EXCLUSIVEMENT depuis les Firebase Auth Custom Claims
+// (request.auth.token.role / request.auth.token.roles), JAMAIS depuis un
+// champ Firestore (users/{uid}.roles n'est qu'un miroir d'affichage et
+// n'est jamais utilisé ici pour autoriser une action).
+//
+// Voir docs/FIRESTORE_ARCHITECTURE.md pour le schéma complet et la
+// justification de chaque règle.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Rôle principal, injecté comme custom claim au login (ex: 'driver').
+    function role() {
+      return isSignedIn() ? request.auth.token.role : null;
+    }
+
+    // Certains comptes peuvent cumuler plusieurs rôles (ex: customer + driver).
+    // roles est un tableau de custom claim, fallback sur [role()] si absent.
+    function roles() {
+      return isSignedIn()
+        ? (('roles' in request.auth.token) ? request.auth.token.roles : [request.auth.token.role])
+        : [];
+    }
+
+    function hasRole(r) {
+      return isSignedIn() && r in roles();
+    }
+
+    function isAnalystOrAbove() {
+      return hasRole('analyst') || hasRole('admin') || hasRole('super_admin');
+    }
+
+    function isAdminOrAbove() {
+      return hasRole('admin') || hasRole('super_admin');
+    }
+
+    function isSuperAdmin() {
+      return hasRole('super_admin');
+    }
+
+    function isDriver() {
+      return hasRole('driver');
+    }
+
+    function isCustomer() {
+      return hasRole('customer');
+    }
+
+    // Un chauffeur "approuvé" est déterminé UNIQUEMENT en lisant son propre
+    // document driver_profiles (jamais un claim, ce statut évolue trop
+    // souvent et doit rester server-authoritative dans Firestore).
+    function isApprovedDriver(driverId) {
+      return exists(/databases/$(database)/documents/driver_profiles/$(driverId)) &&
+        get(/databases/$(database)/documents/driver_profiles/$(driverId)).data.status == 'approved';
+    }
+
+    // -------------------------------------------------------------------
+    // users/{userId}
+    // -------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isSignedIn() && (uid() == userId || isAnalystOrAbove());
+
+      // Le propriétaire peut modifier ses champs déclaratifs, JAMAIS `roles`,
+      // `uid`, `created_at`, `is_disabled`, `email_verified`.
+      allow update: if isSignedIn() && uid() == userId &&
+        request.resource.data.roles == resource.data.roles &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.created_at == resource.data.created_at &&
+        request.resource.data.is_disabled == resource.data.is_disabled &&
+        request.resource.data.email_verified == resource.data.email_verified;
+
+      // Création initiale du profil (ex: juste après inscription) — rôle
+      // forcé à ['customer'] uniquement ; toute élévation passe ensuite par
+      // la Cloud Function setUserRole() (jamais par ce create).
+      allow create: if isSignedIn() && uid() == userId &&
+        request.resource.data.uid == userId &&
+        request.resource.data.roles == ['customer'];
+
+      // 🔒 roles: Cloud Functions only (setUserRole). Aucune règle 'update'
+      // ci-dessus n'autorise un changement de roles — la contrainte
+      // request.resource.data.roles == resource.data.roles le garantit.
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // driver_profiles/{driverId}
+    // -------------------------------------------------------------------
+    match /driver_profiles/{driverId} {
+      allow read: if isSignedIn() && (uid() == driverId || isAnalystOrAbove());
+      // Un client NE PEUT PAS lire directement le profil d'un autre
+      // chauffeur : il voit uniquement la vue dénormalisée
+      // (driver_display_name) copiée dans sa propre mission.
+
+      allow create: if isSignedIn() && uid() == driverId && isDriver() &&
+        request.resource.data.status == 'registration_incomplete';
+
+      // Le chauffeur peut modifier SES champs déclaratifs uniquement.
+      // Tous les champs sensibles doivent rester strictement inchangés.
+      allow update: if isSignedIn() && uid() == driverId && isDriver() &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.approved_at == resource.data.approved_at &&
+        request.resource.data.approved_by_user_id == resource.data.approved_by_user_id &&
+        request.resource.data.rejection_reason == resource.data.rejection_reason &&
+        request.resource.data.identity_verified == resource.data.identity_verified &&
+        request.resource.data.vehicle_verified == resource.data.vehicle_verified &&
+        request.resource.data.rating == resource.data.rating &&
+        request.resource.data.completed_missions == resource.data.completed_missions &&
+        request.resource.data.documents_all_valid == resource.data.documents_all_valid &&
+        request.resource.data.current_geohash == resource.data.current_geohash &&
+        // online_status ne peut être changé par le chauffeur lui-même QUE
+        // s'il est déjà approuvé (empêche un chauffeur non approuvé de se
+        // déclarer "online" et d'apparaître dans le dispatch).
+        (request.resource.data.online_status == resource.data.online_status ||
+         resource.data.status == 'approved');
+
+      // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
+      // rejection_reason, identity_verified, vehicle_verified, rating,
+      // completed_missions, documents_all_valid, current_geohash) ne sont
+      // JAMAIS modifiables par un client, y compris analyst/admin : ils
+      // passent exclusivement par les Cloud Functions approveDriver() /
+      // rejectDriver() (qui s'exécutent avec les privilèges Admin SDK côté
+      // serveur, hors du chemin des Security Rules client). Aucune règle
+      // "allow update: if isAnalystOrAbove()" n'existe donc ici
+      // volontairement — le portail analyste n'écrit jamais Firestore
+      // directement, il appelle toujours une Cloud Function callable.
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // driver_documents/{documentId}
+    // -------------------------------------------------------------------
+    match /driver_documents/{documentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+
+      // Le chauffeur peut créer un document en statut 'uploaded' uniquement.
+      allow create: if isSignedIn() && isDriver() &&
+        request.resource.data.driver_id == uid() &&
+        request.resource.data.status == 'uploaded';
+
+      // 🔒 Le changement de `status` (approved/rejected/replacement_required)
+      // est exclusivement Cloud Functions only (validateDriverDocument(),
+      // appelée par un analyste authentifié — la fonction vérifie le rôle
+      // puis écrit avec les privilèges Admin SDK et journalise dans
+      // audit_logs). Aucune règle client, même analyst/admin, n'autorise
+      // ici de update direct.
+      allow update: if false;
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // driver_vehicles/{vehicleId}
+    // -------------------------------------------------------------------
+    match /driver_vehicles/{vehicleId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+
+      allow create: if isSignedIn() && isDriver() &&
+        request.resource.data.driver_id == uid() &&
+        request.resource.data.is_verified == false;
+
+      allow update: if isSignedIn() && (
+        (resource.data.driver_id == uid() &&
+         request.resource.data.driver_id == resource.data.driver_id &&
+         request.resource.data.is_verified == resource.data.is_verified) ||
+        isAnalystOrAbove()
+      );
+
+      allow delete: if resource.data.driver_id == uid() && isDriver();
+    }
+
+    // -------------------------------------------------------------------
+    // driver_locations/{driverId} — position actuelle
+    // -------------------------------------------------------------------
+    match /driver_locations/{driverId} {
+      allow read: if isSignedIn() && (
+        uid() == driverId ||
+        isAnalystOrAbove() ||
+        // Client : uniquement s'il a une mission active avec CE chauffeur.
+        (isCustomer() &&
+         resource.data.active_delivery_id != null &&
+         exists(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)) &&
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.customer_id == uid() &&
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.driver_id == driverId)
+      );
+
+      // Le chauffeur écrit sa propre position uniquement.
+      allow write: if isSignedIn() && uid() == driverId && isDriver();
+
+      match /history/{eventId} {
+        allow read: if isSignedIn() && (
+          uid() == driverId ||
+          isAnalystOrAbove() ||
+          (isCustomer() &&
+           exists(/databases/$(database)/documents/delivery_requests/$(resource.data.delivery_id)) &&
+           get(/databases/$(database)/documents/delivery_requests/$(resource.data.delivery_id)).data.customer_id == uid())
+        );
+        // 🔒 Cloud Functions only (recordTrackingPoint).
+        allow write: if false;
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // delivery_requests/{missionId}
+    // -------------------------------------------------------------------
+    match /delivery_requests/{missionId} {
+      allow read: if isSignedIn() && (
+        resource.data.customer_id == uid() ||
+        resource.data.driver_id == uid() ||
+        isAnalystOrAbove() ||
+        // Chauffeur approuvé peut voir les missions ouvertes de sa
+        // catégorie/zone (le filtrage précis se fait côté requête + index,
+        // la règle vérifie seulement que la mission est bien "ouverte").
+        (isDriver() && isApprovedDriver(uid()) &&
+         resource.data.status in ['searching_driver', 'offered'])
+      );
+
+      // Création directe désactivée : la création DOIT passer par la Cloud
+      // Function createDeliveryRequest() pour garantir la cohérence avec un
+      // devis (delivery_quotes) valide et non expiré.
+      allow create: if false;
+
+      // Le client peut modifier UNIQUEMENT des champs non sensibles tant
+      // qu'aucun chauffeur n'est assigné, ou annuler après assignation.
+      allow update: if isSignedIn() && resource.data.customer_id == uid() && (
+        (resource.data.driver_id == null &&
+         request.resource.data.driver_id == resource.data.driver_id &&
+         request.resource.data.status == resource.data.status &&
+         request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
+         request.resource.data.customer_total == resource.data.customer_total &&
+         request.resource.data.payment_status == resource.data.payment_status &&
+         request.resource.data.pricing_version == resource.data.pricing_version) ||
+        // Annulation : seul le champ status -> 'cancelled' + cancellation_reason.
+        (request.resource.data.status == 'cancelled' &&
+         request.resource.data.driver_id == resource.data.driver_id &&
+         request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
+         request.resource.data.customer_total == resource.data.customer_total &&
+         request.resource.data.pricing_version == resource.data.pricing_version)
+      );
+
+      // 🔒 Toute écriture impliquant driver_id, status (hors annulation
+      // client), accepted_at, driver_offer_amount, customer_total,
+      // payment_status, completed_at est exclusivement Cloud Functions
+      // only (acceptDelivery, completePickup, completeDelivery, etc.).
+      // Aucune règle client, même analyst/admin, n'autorise ce chemin —
+      // le portail analyste agit toujours via une Cloud Function callable
+      // pour garantir l'audit_log et la cohérence transactionnelle.
+
+      allow delete: if false;
+
+      match /stops/{stopId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.driver_id == uid() ||
+          isAnalystOrAbove()
+        );
+        // completed_at est 🔒 Cloud Functions only ; la création initiale
+        // des arrêts se fait aussi via createDeliveryRequest().
+        allow write: if false;
+      }
+
+      match /tracking_events/{eventId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.driver_id == uid() ||
+          isAnalystOrAbove()
+        );
+        allow write: if false; // 🔒 Cloud Functions only.
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // delivery_offers/{offerId}
+    // -------------------------------------------------------------------
+    match /delivery_offers/{offerId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+      allow write: if false; // 🔒 Cloud Functions only (dispatch + acceptDelivery).
+    }
+
+    // -------------------------------------------------------------------
+    // delivery_quotes/{quoteId}
+    // -------------------------------------------------------------------
+    match /delivery_quotes/{quoteId} {
+      allow read: if isSignedIn() &&
+        (resource.data.customer_id == uid() || isAnalystOrAbove());
+      allow write: if false; // 🔒 Cloud Functions only (calculateDeliveryQuote).
+    }
+
+    // -------------------------------------------------------------------
+    // pricing_configs/{singleton} & pricing_versions/{version}
+    // -------------------------------------------------------------------
+    match /pricing_configs/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false; // 🔒 Cloud Functions only (updatePricingConfiguration).
+    }
+
+    match /pricing_versions/{version} {
+      allow read: if isSignedIn();
+      allow write: if false; // 🔒 Cloud Functions only, immuable une fois publiée.
+    }
+
+    // -------------------------------------------------------------------
+    // driver_pricing_profiles/{driverId}
+    // -------------------------------------------------------------------
+    match /driver_pricing_profiles/{driverId} {
+      allow read: if isSignedIn() && (uid() == driverId || isAnalystOrAbove());
+      allow write: if false; // 🔒 Cloud Functions only (cache, recalculé serveur).
+    }
+
+    // -------------------------------------------------------------------
+    // driver_promotions/{promoId}
+    // -------------------------------------------------------------------
+    match /driver_promotions/{promoId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+      allow write: if false; // 🔒 Cloud Functions only (applyDriverPromotion).
+    }
+
+    // -------------------------------------------------------------------
+    // founding_driver_programs/{programId}
+    // -------------------------------------------------------------------
+    match /founding_driver_programs/{programId} {
+      allow read: if isSignedIn(); // config publique (places restantes, etc.)
+      allow write: if false; // 🔒 Cloud Functions only.
+
+      match /qualifications/{driverId} {
+        allow read: if isSignedIn() && (uid() == driverId || isAnalystOrAbove());
+        allow write: if false; // 🔒 qualifyFoundingDriver / revokeFoundingDriverStatus only.
+      }
+    }
+
+    // -------------------------------------------------------------------
+    // financial_snapshots/{id} — IMMUABLE, Cloud Functions only
+    // -------------------------------------------------------------------
+    match /financial_snapshots/{snapshotId} {
+      allow read: if isSignedIn() && (
+        resource.data.customer_id == uid() ||
+        resource.data.driver_id == uid() ||
+        isAnalystOrAbove()
+      );
+      // Aucune écriture cliente, jamais, quel que soit le rôle.
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // transaction_ledger/{id} — APPEND-ONLY, Cloud Functions only
+    // -------------------------------------------------------------------
+    match /transaction_ledger/{entryId} {
+      allow read: if isSignedIn() && (
+        isAnalystOrAbove() ||
+        (resource.data.party == 'customer' &&
+         exists(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)) &&
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)).data.customer_id == uid()) ||
+        (resource.data.party == 'driver' &&
+         exists(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)) &&
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)).data.driver_id == uid())
+      );
+      // Aucune écriture cliente. Corrections = nouvelle entrée compensatoire
+      // créée par Cloud Function, jamais un update/delete.
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // payments/{id} & driver_payouts/{id} — Cloud Functions only
+    // -------------------------------------------------------------------
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.customer_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+
+    match /driver_payouts/{payoutId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // ratings/{id}
+    // -------------------------------------------------------------------
+    match /ratings/{ratingId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+        request.resource.data.rater_id == uid() &&
+        request.resource.data.stars >= 1 && request.resource.data.stars <= 5 &&
+        exists(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)) &&
+        get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.status == 'completed' &&
+        (
+          (get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.customer_id == uid() &&
+           request.resource.data.rater_role == 'customer') ||
+          (get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.driver_id == uid() &&
+           request.resource.data.rater_role == 'driver')
+        );
+
+      allow update: if false; // immuable après création
+      allow delete: if isAdminOrAbove(); // modération uniquement
+    }
+
+    // -------------------------------------------------------------------
+    // users/{uid}/notifications/items/{notificationId}
+    // -------------------------------------------------------------------
+    match /users/{userId}/notifications/items/{notificationId} {
+      allow read: if isSignedIn() && uid() == userId;
+      // Seul is_read peut être modifié par le propriétaire.
+      allow update: if isSignedIn() && uid() == userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['is_read']);
+      allow create: if false; // 🔒 Cloud Functions only.
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // admin_reviews/{id}
+    // -------------------------------------------------------------------
+    match /admin_reviews/{reviewId} {
+      allow read, write: if isAnalystOrAbove();
+    }
+
+    // -------------------------------------------------------------------
+    // audit_logs/{id} — IMMUABLE, lecture admin/super_admin uniquement
+    // -------------------------------------------------------------------
+    match /audit_logs/{logId} {
+      allow read: if isAdminOrAbove();
+      allow write: if false; // 🔒 Cloud Functions only.
+    }
+
+    // -------------------------------------------------------------------
+    // DENY BY DEFAULT — tout le reste est bloqué.
+    // -------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
