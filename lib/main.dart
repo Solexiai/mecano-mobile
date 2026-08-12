@@ -5,6 +5,7 @@ import 'core/app_theme.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/firebase_auth_provider.dart';
 import 'providers/delivery_provider.dart';
 import 'providers/mechanic_provider.dart';
 import 'providers/review_provider.dart';
@@ -37,6 +38,11 @@ class MovikApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (_) => FirebaseAuthProvider(
+            backendConfigured: backendStatus.isConfigured,
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
         ChangeNotifierProvider(create: (_) => MechanicRequestProvider()),
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
