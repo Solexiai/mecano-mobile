@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:provider/provider.dart';
 
 import 'core/app_theme.dart';
@@ -16,6 +17,15 @@ import 'backend/backend_status.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Utilise de vraies URLs de chemin (/fr/admin) au lieu du routage par
+  // hash (#/fr/admin) sur Flutter Web. Sans ceci, un accès direct à
+  // /fr/admin (rechargement de page, lien partagé, bouton "Accès
+  // administration") est ignoré par go_router : seul le fragment après le
+  // `#` compte, donc l'app retombe systématiquement sur la route par
+  // défaut (accueil) au lieu de l'écran de connexion admin demandé.
+  setUrlStrategy(PathUrlStrategy());
+
   await StorageService.init();
 
   // Tentative d'initialisation Firebase, sans jamais faire crasher l'app si

@@ -20,15 +20,22 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _restoreSession() {
-    final sessionBox = StorageService.box(StorageService.sessionBox);
-    final uid = sessionBox.get('currentUserId');
-    if (uid != null) {
-      final usersBox = StorageService.box(StorageService.usersBox);
-      final data = usersBox.get(uid);
-      if (data != null) {
-        _currentUser = AppUser.fromJson(Map<String, dynamic>.from(data));
-        notifyListeners();
+    try {
+      final sessionBox = StorageService.box(StorageService.sessionBox);
+      final uid = sessionBox.get('currentUserId');
+      if (uid != null) {
+        final usersBox = StorageService.box(StorageService.usersBox);
+        final data = usersBox.get(uid);
+        if (data != null) {
+          _currentUser = AppUser.fromJson(Map<String, dynamic>.from(data));
+          notifyListeners();
+        }
       }
+    } catch (_) {
+      // Session démo locale corrompue/legacy (ex. après un changement de
+      // structure de données) : on repart simplement sans session restaurée
+      // plutôt que de faire planter le démarrage de l'application.
+      _currentUser = null;
     }
   }
 
