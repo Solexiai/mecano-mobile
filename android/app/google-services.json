@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624917306908",
+    "project_id": "movik-connect-prod",
+    "storage_bucket": "movik-connect-prod.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624917306908:android:e232a482baf94425e489d9",
+        "android_client_info": {
+          "package_name": "com.movik.movik_connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyeE27sZvhp4fD2tExHLN8sBmeZJXD-2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -10,11 +10,9 @@
 //
 // ÉTAT ACTUEL : projet réel "movik-connect-prod" connecté (Étape 13).
 // - Config WEB : renseignée ci-dessous (Firebase Console > App Web).
-// - Config ANDROID : EN ATTENTE de google-services.json (Firebase Console >
-//   App Android > Télécharger google-services.json). Tant que la section
-//   `android` ci-dessous contient encore des valeurs 'UNCONFIGURED', c'est
-//   uniquement la plateforme Android qui restera en mode `not_configured`
-//   (le Web fonctionne déjà). Voir README_FIREBASE_SETUP.md.
+// - Config ANDROID : renseignée ci-dessous (issue de
+//   android/app/google-services.json, également copié dans le projet pour
+//   le build Gradle natif — voir android/app/build.gradle.kts).
 // ---------------------------------------------------------------------------
 
 import 'package:firebase_core/firebase_core.dart';
@@ -49,14 +47,14 @@ class DefaultFirebaseOptions {
     measurementId: 'G-T9ST69R3R6',
   );
 
-  /// À remplacer par la config Android réelle (issue de google-services.json,
-  /// Firebase Console > App Android com.movik.movik_connect).
+  /// Config Android réelle — issue de android/app/google-services.json
+  /// (App Android com.movik.movik_connect, identifiants publics de projet).
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'UNCONFIGURED',
-    appId: 'UNCONFIGURED',
-    messagingSenderId: 'UNCONFIGURED',
+    apiKey: 'AIzaSyAyeE27sZvhp4fD2tExHLN8sBmeZJXD-2w',
+    appId: '1:624917306908:android:e232a482baf94425e489d9',
+    messagingSenderId: '624917306908',
     projectId: projectId,
-    storageBucket: 'UNCONFIGURED',
+    storageBucket: 'movik-connect-prod.firebasestorage.app',
   );
 
   static bool get isPlaceholder => projectId == 'UNCONFIGURED';
