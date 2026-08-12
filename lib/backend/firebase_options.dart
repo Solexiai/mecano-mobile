@@ -8,12 +8,13 @@
 // Rules + App Check). Elles ne remplacent JAMAIS une clé Admin SDK privée,
 // qui elle ne doit jamais apparaître dans ce projet Flutter.
 //
-// ÉTAT ACTUEL : PLACEHOLDER — aucun projet Firebase n'a encore été fourni
-// par l'utilisateur. `FirebaseBootstrap.isConfigured` restera `false` et
-// `Firebase.initializeApp()` ne sera pas appelé, tant que les valeurs
-// ci-dessous ne sont pas remplacées par les vraies valeurs du projet
-// Firebase Console (voir README_FIREBASE_SETUP.md à la racine du projet
-// pour les instructions étape par étape).
+// ÉTAT ACTUEL : projet réel "movik-connect-prod" connecté (Étape 13).
+// - Config WEB : renseignée ci-dessous (Firebase Console > App Web).
+// - Config ANDROID : EN ATTENTE de google-services.json (Firebase Console >
+//   App Android > Télécharger google-services.json). Tant que la section
+//   `android` ci-dessous contient encore des valeurs 'UNCONFIGURED', c'est
+//   uniquement la plateforme Android qui restera en mode `not_configured`
+//   (le Web fonctionne déjà). Voir README_FIREBASE_SETUP.md.
 // ---------------------------------------------------------------------------
 
 import 'package:firebase_core/firebase_core.dart';
@@ -21,10 +22,8 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, Tar
 
 /// Renseigne ici les valeurs obtenues depuis Firebase Console > Paramètres
 /// du projet > Vos applications, pour chaque plateforme (Web et Android).
-/// Tant que `projectId` vaut 'UNCONFIGURED', le bootstrap ne tentera pas de
-/// se connecter et l'application fonctionnera en mode `not_configured`.
 class DefaultFirebaseOptions {
-  static const String projectId = 'UNCONFIGURED';
+  static const String projectId = 'movik-connect-prod';
 
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -38,17 +37,20 @@ class DefaultFirebaseOptions {
     }
   }
 
-  /// À remplacer par la config Web réelle (Firebase Console > Web app).
+  /// Config Web réelle — Firebase Console > Paramètres du projet > App Web
+  /// "movik-connect-prod" (identifiants publics de projet, voir en-tête).
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'UNCONFIGURED',
-    appId: 'UNCONFIGURED',
-    messagingSenderId: 'UNCONFIGURED',
+    apiKey: 'AIzaSyCLIvf9Ql4MZvsKGinjnT1caNfj8Ba6oaE',
+    appId: '1:624917306908:web:6e357be752bd9ad1e489d9',
+    messagingSenderId: '624917306908',
     projectId: projectId,
-    authDomain: 'UNCONFIGURED',
-    storageBucket: 'UNCONFIGURED',
+    authDomain: 'movik-connect-prod.firebaseapp.com',
+    storageBucket: 'movik-connect-prod.firebasestorage.app',
+    measurementId: 'G-T9ST69R3R6',
   );
 
-  /// À remplacer par la config Android réelle (issue de google-services.json).
+  /// À remplacer par la config Android réelle (issue de google-services.json,
+  /// Firebase Console > App Android com.movik.movik_connect).
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'UNCONFIGURED',
     appId: 'UNCONFIGURED',
@@ -58,4 +60,8 @@ class DefaultFirebaseOptions {
   );
 
   static bool get isPlaceholder => projectId == 'UNCONFIGURED';
+
+  /// Indique si la plateforme Android spécifiquement est encore en attente
+  /// de configuration (indépendant du Web, qui peut déjà être opérationnel).
+  static bool get isAndroidPlaceholder => android.apiKey == 'UNCONFIGURED';
 }
