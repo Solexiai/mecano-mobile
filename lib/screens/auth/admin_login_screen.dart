@@ -173,20 +173,37 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     if (auth.isAdminOrAbove) {
       context.go('/fr/admin');
-    } else {
-      // Compte valide mais sans rôle privilégié : on refuse l'accès admin
-      // et on déconnecte immédiatement pour éviter toute confusion — cet
-      // écran est réservé au personnel autorisé.
-      await auth.signOut();
+      return;
+    }
+
+    if (auth.claimsFetchFailed) {
+      // Échec RÉSEAU/temporaire de lecture des custom claims (pas un
+      // problème de droits) : on NE déconnecte PAS le compte, on laisse
+      // l'utilisateur réessayer sans perdre sa session.
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Ce compte n\'a pas les droits d\'administration requis.',
+            'Connexion réussie mais impossible de vérifier vos droits '
+            'pour le moment. Veuillez réessayer dans quelques secondes.',
           ),
         ),
       );
+      return;
     }
+
+    // Compte valide, claims lus avec succès, mais réellement sans rôle
+    // privilégié : on refuse l'accès admin et on déconnecte pour éviter
+    // toute confusion — cet écran est réservé au personnel autorisé.
+    await auth.signOut();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Ce compte n\'a pas les droits d\'administration requis.',
+        ),
+      ),
+    );
   }
 
   @override
@@ -251,11 +268,49 @@ class AdminAuthGate extends StatelessWidget {
 
     final auth = context.watch<FirebaseAuthProvider>();
 
+    if (!auth.isSignedIn) {
+      return const AdminLoginScreen();
+    }
+
     if (!auth.claimsLoaded) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (!auth.isSignedIn || !auth.isAdminOrAbove) {
+    if (auth.claimsFetchFailed && !auth.isAdminOrAbove) {
+      // Utilisateur bien connecté, mais impossible de confirmer ses droits
+      // (échec réseau/temporaire) : on propose un nouvel essai plutôt que
+      // de le renvoyer silencieusement vers l'écran de connexion.
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off_rounded, size: 40),
+                const SizedBox(height: 16),
+                const Text(
+                  'Impossible de vérifier vos droits d\'accès pour le '
+                  'moment. Vérifiez votre connexion et réessayez.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => auth.refreshClaims(),
+                  child: const Text('Réessayer'),
+                ),
+                TextButton(
+                  onPressed: () => auth.signOut(),
+                  child: const Text('Se déconnecter'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!auth.isAdminOrAbove) {
       return const AdminLoginScreen();
     }
 

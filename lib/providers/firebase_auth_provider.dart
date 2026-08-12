@@ -31,6 +31,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _lastError;
   bool _claimsLoaded = false;
+  bool _claimsFetchFailed = false;
 
   FirebaseAuthProvider({required bool backendConfigured})
     : _backendConfigured = backendConfigured {
@@ -53,6 +54,12 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// authStateChanges()).
   bool get claimsLoaded => _claimsLoaded;
 
+  /// true si la dernière tentative de lecture des custom claims a échoué
+  /// (erreur réseau/interop transitoire), PAS si l'utilisateur n'a
+  /// simplement aucun rôle. Permet à l'UI/AdminLoginScreen de proposer un
+  /// nouvel essai plutôt que de déconnecter à tort un compte légitime.
+  bool get claimsFetchFailed => _claimsFetchFailed;
+
   bool hasRole(PlatformRole role) => _roles.contains(role);
   bool get isAdminOrAbove =>
       hasRole(PlatformRole.admin) || hasRole(PlatformRole.superAdmin);
@@ -63,6 +70,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
     _claimsLoaded = false;
     if (user == null) {
       _roles = [];
+      _claimsFetchFailed = false;
       _claimsLoaded = true;
     } else {
       await _refreshClaims(force: true);
@@ -70,25 +78,42 @@ class FirebaseAuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Lit les custom claims via getIdTokenResult(), avec retries courts pour
+  /// absorber les erreurs transitoires (réseau, interop JS juste après un
+  /// signIn/signOut sur Flutter Web). Ne met JAMAIS `_roles = []` sur simple
+  /// échec réseau : dans ce cas `_claimsFetchFailed` est levé pour que
+  /// l'appelant sache qu'il doit réessayer plutôt que conclure "pas de rôle".
   Future<void> _refreshClaims({bool force = false}) async {
     if (_user == null) return;
-    try {
-      final tokenResult = await _user!.getIdTokenResult(force);
-      final claims = tokenResult.claims;
-      final rawRoles = (claims?['roles'] as List?)
-          ?.map((e) => e.toString())
-          .toList();
-      if (rawRoles != null && rawRoles.isNotEmpty) {
-        _roles = rawRoles.map(PlatformRoleX.fromClaim).toList();
-      } else if (claims?['role'] != null) {
-        _roles = [PlatformRoleX.fromClaim(claims!['role'] as String)];
-      } else {
-        _roles = [];
+    const maxAttempts = 3;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        final tokenResult = await _user!.getIdTokenResult(force);
+        final claims = tokenResult.claims;
+        final rawRoles = (claims?['roles'] as List?)
+            ?.map((e) => e.toString())
+            .toList();
+        if (rawRoles != null && rawRoles.isNotEmpty) {
+          _roles = rawRoles.map(PlatformRoleX.fromClaim).toList();
+        } else if (claims?['role'] != null) {
+          _roles = [PlatformRoleX.fromClaim(claims!['role'] as String)];
+        } else {
+          _roles = [];
+        }
+        _claimsFetchFailed = false;
+        _claimsLoaded = true;
+        return;
+      } catch (_) {
+        if (attempt == maxAttempts) {
+          // Échec persistant après plusieurs tentatives : on ne vide PAS
+          // les rôles déjà connus (le cas échéant), on signale juste
+          // l'échec pour que l'UI puisse réagir sans déconnecter le compte.
+          _claimsFetchFailed = true;
+          _claimsLoaded = true;
+          return;
+        }
+        await Future.delayed(Duration(milliseconds: 300 * attempt));
       }
-    } catch (_) {
-      _roles = [];
-    } finally {
-      _claimsLoaded = true;
     }
   }
 
@@ -119,6 +144,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
         password: password,
       );
       _user = cred.user;
+      _claimsLoaded = false;
       await _refreshClaims(force: true);
       _isLoading = false;
       notifyListeners();
@@ -160,6 +186,13 @@ class FirebaseAuthProvider extends ChangeNotifier {
     await fb.FirebaseAuth.instance.signOut();
     _user = null;
     _roles = [];
+    _lastError = null;
+    _claimsFetchFailed = false;
+    // authStateChanges() va aussi émettre `null` et repasser par
+    // _onAuthChanged, mais on met à jour l'état tout de suite ici pour un
+    // retour visuel instantané ; _claimsLoaded reste `true` (aucun claim à
+    // charger pour un utilisateur déconnecté).
+    _claimsLoaded = true;
     notifyListeners();
   }
 
