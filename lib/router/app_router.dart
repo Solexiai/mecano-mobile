@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screens/home/home_screen.dart';
@@ -22,6 +23,8 @@ import '../screens/legal/legal_screen.dart';
 import '../screens/dashboard/customer/customer_dashboard_shell.dart';
 import '../screens/dashboard/provider/provider_dashboard_shell.dart';
 import '../screens/dashboard/admin/admin_dashboard_shell.dart';
+import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
+import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 
 /// Locale-prefixed routing (/fr, /en, /es) as required for SEO-friendly
 /// multilingual URLs. The locale segment is informational for routing;
@@ -245,10 +248,34 @@ class AppRouter {
               builder: (c, s) => const ProviderDashboardShell(),
             ),
 
+            // Portail admin — architecture forward-compatible : `/admin` est
+            // le tableau de bord (résumé), et chaque domaine métier a sa
+            // propre route dédiée en enfant, ex. `admin/chauffeurs`.
+            // Prévu pour accueillir prochainement (sans casser cette
+            // structure) : admin/missions, admin/paiements, admin/pricing,
+            // admin/founding-drivers, admin/analytics.
             GoRoute(
               path: 'admin',
               builder: (c, s) =>
                   const AdminAuthGate(child: AdminDashboardShell()),
+              routes: [
+                GoRoute(
+                  path: 'chauffeurs',
+                  builder: (c, s) => const AdminAuthGate(
+                    child: Scaffold(body: AdminDriversListScreen()),
+                  ),
+                  routes: [
+                    GoRoute(
+                      path: ':driverId',
+                      builder: (c, s) => AdminAuthGate(
+                        child: AdminDriverDetailScreen(
+                          driverId: s.pathParameters['driverId']!,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),

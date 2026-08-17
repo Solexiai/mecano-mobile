@@ -171,8 +171,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     );
     if (!ok || !mounted) return;
 
-    if (auth.isAdminOrAbove) {
-      context.go('/fr/admin');
+    if (auth.isAnalystOrAbove) {
+      context.go('/fr/admin/chauffeurs');
       return;
     }
 
@@ -276,7 +276,7 @@ class AdminAuthGate extends StatelessWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (auth.claimsFetchFailed && !auth.isAdminOrAbove) {
+    if (auth.claimsFetchFailed && !auth.isAnalystOrAbove) {
       // Utilisateur bien connecté, mais impossible de confirmer ses droits
       // (échec réseau/temporaire) : on propose un nouvel essai plutôt que
       // de le renvoyer silencieusement vers l'écran de connexion.

@@ -5,11 +5,18 @@ import '../../../core/app_colors.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../services/demo_data_service.dart';
 import '../../../widgets/coming_soon_badge.dart';
-import 'drivers/admin_drivers_list_screen.dart';
 
-/// Admin dashboard — demo overview only. Real moderation actions
-/// (approve/reject providers, disputes, settings) require a connected
-/// backend; UI is provided but clearly scoped as an MVP preview.
+/// Admin dashboard — écran d'accueil `/admin` (résumé du marché +
+/// navigation vers les portails dédiés par domaine métier).
+///
+/// Architecture forward-compatible : chaque domaine (chauffeurs, missions,
+/// paiements, pricing, founding-drivers, analytics) a sa propre route
+/// dédiée sous `/admin/...` (voir app_router.dart). Ce shell n'affiche
+/// QUE le résumé (`_AdminOverviewTab`) et les paramètres plateforme
+/// (`_AdminSettingsTab`) ; le portail "Chauffeurs" navigue vers la vraie
+/// route `/admin/chauffeurs` au lieu d'être un onglet embarqué, afin que
+/// l'URL reflète toujours l'état réel (partage de lien, retour arrière,
+/// deep-linking analyste).
 class AdminDashboardShell extends StatefulWidget {
   const AdminDashboardShell({super.key});
 
@@ -27,14 +34,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
 
     final tabs = [
       const _AdminOverviewTab(),
-      const AdminDriversListScreen(),
       const _AdminSettingsTab(),
     ];
-    final navItems = const [
-      (Icons.dashboard_outlined, 'Vue d\'ensemble'),
-      (Icons.verified_user_outlined, 'Chauffeurs'),
-      (Icons.settings_outlined, 'Paramètres'),
-    ];
+
+    void openDrivers() => context.go('/$locale/admin/chauffeurs');
 
     return Scaffold(
       appBar: AppBar(
@@ -50,9 +53,28 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
               children: [
                 NavigationRail(
                   selectedIndex: _tab,
-                  onDestinationSelected: (i) => setState(() => _tab = i),
+                  onDestinationSelected: (i) {
+                    if (i == 1) {
+                      openDrivers();
+                      return;
+                    }
+                    setState(() => _tab = i == 2 ? 1 : 0);
+                  },
                   labelType: NavigationRailLabelType.all,
-                  destinations: navItems.map((n) => NavigationRailDestination(icon: Icon(n.$1), label: Text(n.$2))).toList(),
+                  destinations: const [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      label: Text('Vue d\'ensemble'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.verified_user_outlined),
+                      label: Text('Chauffeurs'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      label: Text('Paramètres'),
+                    ),
+                  ],
                 ),
                 const VerticalDivider(width: 1),
                 Expanded(child: tabs[_tab]),
@@ -63,8 +85,27 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
                 Expanded(child: tabs[_tab]),
                 BottomNavigationBar(
                   currentIndex: _tab,
-                  onTap: (i) => setState(() => _tab = i),
-                  items: navItems.map((n) => BottomNavigationBarItem(icon: Icon(n.$1), label: n.$2)).toList(),
+                  onTap: (i) {
+                    if (i == 1) {
+                      openDrivers();
+                      return;
+                    }
+                    setState(() => _tab = i == 2 ? 1 : 0);
+                  },
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.dashboard_outlined),
+                      label: 'Vue d\'ensemble',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.verified_user_outlined),
+                      label: 'Chauffeurs',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.settings_outlined),
+                      label: 'Paramètres',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -139,74 +180,6 @@ class _AdminOverviewTab extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AdminValidationsTab extends StatefulWidget {
-  const _AdminValidationsTab();
-
-  @override
-  State<_AdminValidationsTab> createState() => _AdminValidationsTabState();
-}
-
-class _AdminValidationsTabState extends State<_AdminValidationsTab> {
-  final Set<String> _approved = {};
-  final Set<String> _rejected = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final demoQueue = DemoDataService.allProviders.take(2).toList();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Validations de fournisseurs', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
-          const Text('File de démonstration — en production, cette liste proviendrait des inscriptions réelles en attente.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
-          const SizedBox(height: 20),
-          ...demoQueue.map((p) {
-            final isApproved = _approved.contains(p.id);
-            final isRejected = _rejected.contains(p.id);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    CircleAvatar(backgroundImage: NetworkImage(p.profilePhotoUrl)),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text(p.type.name == 'driver' ? 'Chauffeur' : 'Mécanicien mobile', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ]),
-                  const SizedBox(height: 12),
-                  if (isApproved)
-                    const Text('Approuvé', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w700))
-                  else if (isRejected)
-                    const Text('Rejeté', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700))
-                  else
-                    Row(children: [
-                      Expanded(child: OutlinedButton(onPressed: () => setState(() => _rejected.add(p.id)), child: const Text('Rejeter'))),
-                      const SizedBox(width: 10),
-                      Expanded(child: ElevatedButton(onPressed: () => setState(() => _approved.add(p.id)), child: const Text('Approuver'))),
-                    ]),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );
