@@ -1,0 +1,305 @@
+{
+  "startedAt": "2026-08-17T20:46:26.988Z",
+  "projectId": "movik-connect-prod",
+  "environment": "movik-connect-prod (seul projet Firebase existant)",
+  "accounts": {
+    "driver1": {
+      "email": "e2e-test-driver1-1786999586990@movik-test.invalid",
+      "uid": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+    },
+    "driver2": {
+      "email": "e2e-test-driver2-1786999586990@movik-test.invalid",
+      "uid": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+    },
+    "customer": {
+      "email": "e2e-test-customer-1786999586990@movik-test.invalid",
+      "uid": "4cIQ2ZhQxDMQSfxRHEImNuQnOB43"
+    },
+    "analyst": {
+      "email": "e2e-test-analyst-1786999586990@movik-test.invalid",
+      "uid": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+    }
+  },
+  "steps": [
+    {
+      "step": "A1_driver1_bootstrapped_to_pending_review",
+      "ok": true,
+      "details": {
+        "uid": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+      },
+      "at": "2026-08-17T20:46:30.882Z"
+    },
+    {
+      "step": "A2_driver2_bootstrapped_to_pending_review",
+      "ok": true,
+      "details": {
+        "uid": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+      },
+      "at": "2026-08-17T20:46:32.355Z"
+    },
+    {
+      "step": "B_customer_account_created",
+      "ok": true,
+      "details": {
+        "uid": "4cIQ2ZhQxDMQSfxRHEImNuQnOB43"
+      },
+      "at": "2026-08-17T20:46:32.845Z"
+    },
+    {
+      "step": "C1_analyst_claim_assigned_via_oauth_cli",
+      "ok": true,
+      "details": {
+        "uid": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+      },
+      "at": "2026-08-17T20:46:33.908Z"
+    },
+    {
+      "step": "C2_analyst_claim_visible_after_refresh",
+      "ok": true,
+      "details": {
+        "role": "analyst",
+        "roles": [
+          "analyst"
+        ]
+      },
+      "at": "2026-08-17T20:46:33.958Z"
+    },
+    {
+      "step": "N1_unauthenticated_cannot_call_approveDriver",
+      "ok": true,
+      "details": {
+        "status": 401,
+        "error": {
+          "message": "Authentification requise.",
+          "status": "UNAUTHENTICATED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.069Z"
+    },
+    {
+      "step": "N2_customer_cannot_call_approveDriver",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.230Z"
+    },
+    {
+      "step": "N3_driver_cannot_call_approveDriver_on_self",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.293Z"
+    },
+    {
+      "step": "N4_customer_cannot_call_requestDriverDocuments",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.483Z"
+    },
+    {
+      "step": "N5_customer_cannot_call_addDriverInternalNote",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.699Z"
+    },
+    {
+      "step": "N6_driver_cannot_call_rejectDriver_on_another_driver",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T20:46:34.884Z"
+    },
+    {
+      "step": "D1_analyst_adds_internal_note",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "result": {
+          "success": true,
+          "noteId": "0T5pBTWTM6Z2VKzqJDmY"
+        },
+        "error": null
+      },
+      "at": "2026-08-17T20:46:36.031Z"
+    },
+    {
+      "step": "D2_negative_driver_cannot_read_own_internal_note",
+      "ok": true,
+      "details": {
+        "status": 403
+      },
+      "at": "2026-08-17T20:46:36.217Z"
+    },
+    {
+      "step": "D3_analyst_approves_driver1",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "result": {
+          "success": true,
+          "driverId": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+        },
+        "error": null
+      },
+      "at": "2026-08-17T20:46:37.230Z"
+    },
+    {
+      "step": "D4_driver1_status_is_approved",
+      "ok": true,
+      "details": {
+        "status": "approved",
+        "approved_by_user_id": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+      },
+      "at": "2026-08-17T20:46:37.305Z"
+    },
+    {
+      "step": "N7_negative_double_approve_blocked",
+      "ok": true,
+      "details": {
+        "status": 400,
+        "error": {
+          "message": "Ce chauffeur est déjà approuvé.",
+          "status": "FAILED_PRECONDITION"
+        }
+      },
+      "at": "2026-08-17T20:46:37.407Z"
+    },
+    {
+      "step": "D5_approved_driver1_can_go_online",
+      "ok": false,
+      "details": {
+        "status": 403
+      },
+      "at": "2026-08-17T20:46:37.518Z"
+    },
+    {
+      "step": "E1_analyst_rejects_driver2",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "result": {
+          "success": true,
+          "driverId": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+        },
+        "error": null
+      },
+      "at": "2026-08-17T20:46:38.468Z"
+    },
+    {
+      "step": "E2_driver2_status_is_rejected_with_reason",
+      "ok": true,
+      "details": {
+        "status": "rejected",
+        "rejection_reason": "Photo du permis illisible — E2E test."
+      },
+      "at": "2026-08-17T20:46:38.548Z"
+    },
+    {
+      "step": "N8_negative_requestDriverDocuments_from_rejected_blocked",
+      "ok": true,
+      "details": {
+        "status": 400,
+        "error": {
+          "message": "Impossible de demander des documents depuis le statut actuel (rejected).",
+          "status": "FAILED_PRECONDITION"
+        }
+      },
+      "at": "2026-08-17T20:46:39.399Z"
+    },
+    {
+      "step": "Z1_cleanup_driver1_vehicle_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:39.501Z"
+    },
+    {
+      "step": "Z2_cleanup_driver1_auth_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:39.746Z"
+    },
+    {
+      "step": "Z3_cleanup_driver2_vehicle_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:39.814Z"
+    },
+    {
+      "step": "Z4_cleanup_driver2_auth_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:40.020Z"
+    },
+    {
+      "step": "Z5_cleanup_customer_auth_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:40.240Z"
+    },
+    {
+      "step": "Z6_cleanup_analyst_auth_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T20:46:40.452Z"
+    },
+    {
+      "step": "Z7_cleanup_firestore_residuals_via_oauth_cli",
+      "ok": true,
+      "details": {
+        "collections_cleaned": [
+          "users",
+          "driver_profiles",
+          "driver_internal_notes"
+        ],
+        "uids": [
+          "NV9MBUPcTcPJbmKbWWy45XTyqCD3",
+          "H1RxPYlSpaawcvRe0fRr9rJFlHi2",
+          "4cIQ2ZhQxDMQSfxRHEImNuQnOB43",
+          "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+        ]
+      },
+      "at": "2026-08-17T20:46:42.442Z"
+    }
+  ],
+  "finalStatus": "SOME_FAILED",
+  "finishedAt": "2026-08-17T20:46:42.442Z"
+}

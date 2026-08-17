@@ -482,6 +482,307 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
 });
 
 // -----------------------------------------------------------------------
+// driver_documents/{documentId}
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_documents/{documentId}", () => {
+  it("un chauffeur peut créer SON propre document en statut 'uploaded'", async () => {
+    const driver = testEnv.authenticatedContext("driver_100", { role: "driver" });
+    await assertSucceeds(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_100"), {
+        driver_id: "driver_100",
+        status: "uploaded",
+        type: "drivers_license",
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un document pour un AUTRE chauffeur (driver_id falsifié)", async () => {
+    const driver = testEnv.authenticatedContext("driver_101", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_101"), {
+        driver_id: "driver_999",
+        status: "uploaded",
+        type: "drivers_license",
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un document déjà en statut 'approved' (bypass validation)", async () => {
+    const driver = testEnv.authenticatedContext("driver_102", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_102"), {
+        driver_id: "driver_102",
+        status: "approved",
+        type: "drivers_license",
+      })
+    );
+  });
+
+  it("un chauffeur NE PEUT PAS changer le status de son document (Cloud Function only : validateDriverDocument)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_103"), {
+        driver_id: "driver_103",
+        status: "uploaded",
+        type: "drivers_license",
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_103", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(driver.firestore(), "driver_documents/doc_103"), { status: "approved" })
+    );
+  });
+
+  it("un analyst NE PEUT PAS non plus modifier directement le status (même règle : Cloud Functions only)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_104"), {
+        driver_id: "driver_104",
+        status: "uploaded",
+        type: "drivers_license",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertFails(
+      updateDoc(doc(analyst.firestore(), "driver_documents/doc_104"), { status: "approved" })
+    );
+  });
+
+  it("le chauffeur propriétaire et un analyst peuvent LIRE le document ; un tiers customer ne peut pas", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_105"), {
+        driver_id: "driver_105",
+        status: "uploaded",
+        type: "drivers_license",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_105", { role: "driver" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "driver_documents/doc_105")));
+
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_documents/doc_105")));
+
+    const stranger = testEnv.authenticatedContext("customer_999", { role: "customer" });
+    await assertFails(getDoc(doc(stranger.firestore(), "driver_documents/doc_105")));
+  });
+
+  it("aucun rôle ne peut SUPPRIMER un document chauffeur (immuable, même admin)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_106"), {
+        driver_id: "driver_106",
+        status: "uploaded",
+        type: "drivers_license",
+      });
+    });
+
+    const admin = testEnv.authenticatedContext("admin_001", { role: "admin" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "driver_documents/doc_106")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// driver_vehicles/{vehicleId}
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_vehicles/{vehicleId}", () => {
+  it("un chauffeur peut créer SON propre véhicule avec is_verified: false", async () => {
+    const driver = testEnv.authenticatedContext("driver_200", { role: "driver" });
+    await assertSucceeds(
+      setDoc(doc(driver.firestore(), "driver_vehicles/veh_200"), {
+        driver_id: "driver_200",
+        is_verified: false,
+        plate: "ABC-123",
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un véhicule déjà 'is_verified: true' (auto-vérification interdite)", async () => {
+    const driver = testEnv.authenticatedContext("driver_201", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_vehicles/veh_201"), {
+        driver_id: "driver_201",
+        is_verified: true,
+        plate: "ABC-124",
+      })
+    );
+  });
+
+  it("le propriétaire peut MODIFIER les infos de son véhicule (ex: plate) mais PAS is_verified", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_202"), {
+        driver_id: "driver_202",
+        is_verified: false,
+        plate: "OLD-000",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_202", { role: "driver" });
+    // Modification d'un champ non protégé : autorisée.
+    await assertSucceeds(
+      updateDoc(doc(owner.firestore(), "driver_vehicles/veh_202"), {
+        driver_id: "driver_202",
+        is_verified: false,
+        plate: "NEW-999",
+      })
+    );
+    // Tentative de s'auto-vérifier le véhicule : interdite.
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "driver_vehicles/veh_202"), {
+        driver_id: "driver_202",
+        is_verified: true,
+        plate: "NEW-999",
+      })
+    );
+  });
+
+  it("un analyst PEUT modifier (ex: vérifier) le véhicule d'un chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_203"), {
+        driver_id: "driver_203",
+        is_verified: false,
+        plate: "XYZ-000",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertSucceeds(
+      updateDoc(doc(analyst.firestore(), "driver_vehicles/veh_203"), { is_verified: true })
+    );
+  });
+
+  it("un tiers chauffeur ne peut ni lire, ni modifier, ni supprimer le véhicule d'un autre chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_204"), {
+        driver_id: "driver_204",
+        is_verified: true,
+        plate: "AAA-111",
+      });
+    });
+
+    const stranger = testEnv.authenticatedContext("driver_999", { role: "driver" });
+    await assertFails(getDoc(doc(stranger.firestore(), "driver_vehicles/veh_204")));
+    await assertFails(
+      updateDoc(doc(stranger.firestore(), "driver_vehicles/veh_204"), { plate: "HACKED" })
+    );
+    await assertFails(deleteDoc(doc(stranger.firestore(), "driver_vehicles/veh_204")));
+  });
+
+  it("le propriétaire PEUT supprimer son propre véhicule", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_205"), {
+        driver_id: "driver_205",
+        is_verified: false,
+        plate: "BBB-222",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_205", { role: "driver" });
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), "driver_vehicles/veh_205")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// driver_internal_notes/{noteId} — Cloud Functions only (addDriverInternalNote)
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_internal_notes/{noteId}", () => {
+  it("un analyst PEUT lire les notes internes d'un chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_001"), {
+        driver_id: "driver_300",
+        author_user_id: "analyst_001",
+        author_role: "analyst",
+        text: "Permis vérifié en personne.",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_internal_notes/note_001")));
+  });
+
+  it("le chauffeur CONCERNÉ par la note NE PEUT PAS la lire (confidentialité analyste stricte)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_002"), {
+        driver_id: "driver_301",
+        author_user_id: "analyst_001",
+        author_role: "analyst",
+        text: "Comportement suspect signalé par un client.",
+      });
+    });
+
+    const concernedDriver = testEnv.authenticatedContext("driver_301", { role: "driver" });
+    await assertFails(getDoc(doc(concernedDriver.firestore(), "driver_internal_notes/note_002")));
+  });
+
+  it("un customer ne peut évidemment pas lire une note interne", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_003"), {
+        driver_id: "driver_302",
+        author_user_id: "analyst_001",
+        author_role: "analyst",
+        text: "Note test.",
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_internal_notes/note_003")));
+  });
+
+  it("aucun rôle, même analyst/admin/super_admin, ne peut créer une note directement depuis le client (Cloud Function only)", async () => {
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "driver_internal_notes/note_fake_001"), {
+        driver_id: "driver_303",
+        author_user_id: "analyst_001",
+        author_role: "analyst",
+        text: "Tentative de bypass de addDriverInternalNote.",
+      })
+    );
+
+    const admin = testEnv.authenticatedContext("admin_001", { role: "admin" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "driver_internal_notes/note_fake_002"), {
+        driver_id: "driver_303",
+        author_user_id: "admin_001",
+        author_role: "admin",
+        text: "Tentative de bypass.",
+      })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_001", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "driver_internal_notes/note_fake_003"), {
+        driver_id: "driver_303",
+        author_user_id: "super_admin_001",
+        author_role: "super_admin",
+        text: "Tentative de bypass.",
+      })
+    );
+  });
+
+  it("aucun rôle ne peut MODIFIER ou SUPPRIMER une note existante (immuable, même l'auteur)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_004"), {
+        driver_id: "driver_304",
+        author_user_id: "analyst_001",
+        author_role: "analyst",
+        text: "Note originale.",
+      });
+    });
+
+    const author = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertFails(
+      updateDoc(doc(author.firestore(), "driver_internal_notes/note_004"), {
+        text: "Note modifiée après coup.",
+      })
+    );
+    await assertFails(deleteDoc(doc(author.firestore(), "driver_internal_notes/note_004")));
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_001", { role: "super_admin" });
+    await assertFails(deleteDoc(doc(superAdmin.firestore(), "driver_internal_notes/note_004")));
+  });
+});
+
+// -----------------------------------------------------------------------
 // promo_codes/{code} — nouvelle collection Étape 12
 // -----------------------------------------------------------------------
 describe("Security Rules — promo_codes/{code}", () => {
@@ -514,6 +815,298 @@ describe("Security Rules — promo_codes/{code}", () => {
 
     const unauthed = testEnv.unauthenticatedContext();
     await assertFails(getDoc(doc(unauthed.firestore(), "promo_codes/WELCOME10")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// driver_documents/{documentId} — upload chauffeur, validation Cloud Function only
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_documents/{documentId}", () => {
+  it("un chauffeur peut créer SON document en statut 'uploaded'", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_001", { role: "driver" });
+    await assertSucceeds(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_001"), {
+        driver_id: "driver_doc_001",
+        type: "drivers_licence",
+        status: "uploaded",
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un document avec un statut différent de 'uploaded' (ex: 'approved')", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_002"), {
+        driver_id: "driver_doc_002",
+        type: "insurance",
+        status: "approved", // tentative d'auto-validation
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un document pour un AUTRE chauffeur", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_003", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_documents/doc_003"), {
+        driver_id: "driver_doc_999", // usurpation
+        type: "identity",
+        status: "uploaded",
+      })
+    );
+  });
+
+  it("un chauffeur NE PEUT PAS modifier le statut de son propre document (Cloud Function only : validateDriverDocument)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_004"), {
+        driver_id: "driver_doc_004",
+        type: "vehicle_registration",
+        status: "uploaded",
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_doc_004", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(driver.firestore(), "driver_documents/doc_004"), { status: "approved" })
+    );
+  });
+
+  it("un analyste NE PEUT PAS non plus modifier directement le statut (même privilégié, doit passer par la Cloud Function)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_005"), {
+        driver_id: "driver_doc_005",
+        type: "identity",
+        status: "uploaded",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_doc_001", { role: "analyst" });
+    await assertFails(
+      updateDoc(doc(analyst.firestore(), "driver_documents/doc_005"), { status: "approved" })
+    );
+  });
+
+  it("un analyste PEUT lire n'importe quel document chauffeur ; un autre chauffeur ne peut PAS (accès croisé bloqué)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_006"), {
+        driver_id: "driver_doc_006",
+        type: "insurance",
+        status: "uploaded",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_doc_002", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_documents/doc_006")));
+
+    const otherDriver = testEnv.authenticatedContext("driver_doc_stranger", { role: "driver" });
+    await assertFails(getDoc(doc(otherDriver.firestore(), "driver_documents/doc_006")));
+  });
+
+  it("suppression toujours interdite, même pour le chauffeur propriétaire ou un admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_documents/doc_007"), {
+        driver_id: "driver_doc_007",
+        type: "identity",
+        status: "uploaded",
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_doc_007", { role: "driver" });
+    await assertFails(deleteDoc(doc(driver.firestore(), "driver_documents/doc_007")));
+
+    const admin = testEnv.authenticatedContext("admin_doc_001", { role: "admin" });
+    await assertFails(deleteDoc(doc(admin.firestore(), "driver_documents/doc_007")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// driver_vehicles/{vehicleId} — véhicule chauffeur, vérification analyste
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_vehicles/{vehicleId}", () => {
+  it("un chauffeur peut créer SON véhicule en is_verified=false", async () => {
+    const driver = testEnv.authenticatedContext("driver_veh_001", { role: "driver" });
+    await assertSucceeds(
+      setDoc(doc(driver.firestore(), "driver_vehicles/veh_001"), {
+        driver_id: "driver_veh_001",
+        plate: "ABC-123",
+        is_verified: false,
+      })
+    );
+  });
+
+  it("un chauffeur ne peut PAS créer un véhicule déjà 'is_verified: true' (auto-vérification interdite)", async () => {
+    const driver = testEnv.authenticatedContext("driver_veh_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_vehicles/veh_002"), {
+        driver_id: "driver_veh_002",
+        plate: "XYZ-999",
+        is_verified: true,
+      })
+    );
+  });
+
+  it("un chauffeur peut modifier ses propres champs non protégés (ex: plate) tant que is_verified/driver_id restent inchangés", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_003"), {
+        driver_id: "driver_veh_003",
+        plate: "OLD-000",
+        is_verified: false,
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_veh_003", { role: "driver" });
+    await assertSucceeds(
+      updateDoc(doc(driver.firestore(), "driver_vehicles/veh_003"), {
+        driver_id: "driver_veh_003",
+        plate: "NEW-111",
+        is_verified: false,
+      })
+    );
+  });
+
+  it("un chauffeur NE PEUT PAS s'auto-vérifier son véhicule (is_verified false -> true)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_004"), {
+        driver_id: "driver_veh_004",
+        plate: "SELF-001",
+        is_verified: false,
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_veh_004", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(driver.firestore(), "driver_vehicles/veh_004"), {
+        driver_id: "driver_veh_004",
+        plate: "SELF-001",
+        is_verified: true, // tentative d'auto-vérification
+      })
+    );
+  });
+
+  it("un analyste PEUT vérifier le véhicule d'un chauffeur (is_verified -> true)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_005"), {
+        driver_id: "driver_veh_005",
+        plate: "APPROVE-001",
+        is_verified: false,
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_veh_001", { role: "analyst" });
+    await assertSucceeds(
+      updateDoc(doc(analyst.firestore(), "driver_vehicles/veh_005"), { is_verified: true })
+    );
+  });
+
+  it("le chauffeur propriétaire peut supprimer son véhicule ; un autre chauffeur ne peut pas", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_006"), {
+        driver_id: "driver_veh_006",
+        plate: "DELETE-001",
+        is_verified: false,
+      });
+    });
+
+    const stranger = testEnv.authenticatedContext("driver_veh_stranger", { role: "driver" });
+    await assertFails(deleteDoc(doc(stranger.firestore(), "driver_vehicles/veh_006")));
+
+    const owner = testEnv.authenticatedContext("driver_veh_006", { role: "driver" });
+    await assertSucceeds(deleteDoc(doc(owner.firestore(), "driver_vehicles/veh_006")));
+  });
+
+  it("un customer ne peut ni lire ni écrire un véhicule chauffeur (accès croisé de rôle bloqué)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_vehicles/veh_007"), {
+        driver_id: "driver_veh_007",
+        plate: "CUST-BLOCK",
+        is_verified: true,
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_veh_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_vehicles/veh_007")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// driver_internal_notes/{noteId} — Cloud Function only, jamais visible au chauffeur
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_internal_notes/{noteId} : write Cloud Functions only", () => {
+  it("un analyste PEUT lire les notes internes", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_001"), {
+        driver_id: "driver_note_001",
+        author_user_id: "analyst_note_001",
+        text: "Note de test",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_note_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_internal_notes/note_001")));
+  });
+
+  it("le chauffeur CONCERNÉ par la note NE PEUT PAS la lire (jamais visible au chauffeur)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_002"), {
+        driver_id: "driver_note_002",
+        author_user_id: "analyst_note_002",
+        text: "Note confidentielle",
+      });
+    });
+
+    const concernedDriver = testEnv.authenticatedContext("driver_note_002", { role: "driver" });
+    await assertFails(getDoc(doc(concernedDriver.firestore(), "driver_internal_notes/note_002")));
+  });
+
+  it("un customer ne peut pas lire les notes internes", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_003"), {
+        driver_id: "driver_note_003",
+        text: "Note",
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_note_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_internal_notes/note_003")));
+  });
+
+  it("aucun rôle, même super_admin, ne peut écrire une note interne directement (Cloud Function only : addDriverInternalNote)", async () => {
+    const superAdmin = testEnv.authenticatedContext("super_admin_note_001", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "driver_internal_notes/note_fake_001"), {
+        driver_id: "driver_note_004",
+        author_user_id: "super_admin_note_001",
+        author_role: "super_admin",
+        text: "Note falsifiée créée directement depuis le client",
+      })
+    );
+  });
+
+  it("une note interne existante ne peut pas être modifiée (immuabilité, même par un admin)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_005"), {
+        driver_id: "driver_note_005",
+        text: "Texte original",
+      });
+    });
+
+    const admin = testEnv.authenticatedContext("admin_note_001", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "driver_internal_notes/note_005"), {
+        text: "Texte modifié frauduleusement",
+      })
+    );
+  });
+
+  it("une note interne ne peut pas être supprimée, même par un super_admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_internal_notes/note_006"), {
+        driver_id: "driver_note_006",
+        text: "Note",
+      });
+    });
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_note_002", { role: "super_admin" });
+    await assertFails(deleteDoc(doc(superAdmin.firestore(), "driver_internal_notes/note_006")));
   });
 });
 
