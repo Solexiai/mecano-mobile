@@ -335,6 +335,361 @@ class AppStrings {
       'es': 'Vehículo comercial ligero',
     },
     'vehicle_cat_other': {'fr': 'Autre', 'en': 'Other', 'es': 'Otro'},
+
+    // ---------- Statuts chauffeur (DriverStatus enum) ----------
+    'driver_status_registration_incomplete': {
+      'fr': 'Inscription incomplète',
+      'en': 'Registration incomplete',
+      'es': 'Registro incompleto',
+    },
+    'driver_status_pending_review': {
+      'fr': 'En attente de révision',
+      'en': 'Pending review',
+      'es': 'Pendiente de revisión',
+    },
+    'driver_status_documents_required': {
+      'fr': 'Documents requis',
+      'en': 'Documents required',
+      'es': 'Documentos requeridos',
+    },
+    'driver_status_approved': {'fr': 'Approuvé', 'en': 'Approved', 'es': 'Aprobado'},
+    'driver_status_rejected': {'fr': 'Refusé', 'en': 'Rejected', 'es': 'Rechazado'},
+    'driver_status_suspended': {'fr': 'Suspendu', 'en': 'Suspended', 'es': 'Suspendido'},
+    'driver_status_inactive': {'fr': 'Inactif', 'en': 'Inactive', 'es': 'Inactivo'},
+
+    // ---------- Statuts document (DriverDocumentStatus enum) ----------
+    'doc_status_missing': {'fr': 'Manquant', 'en': 'Missing', 'es': 'Faltante'},
+    'doc_status_uploaded': {'fr': 'Téléversé', 'en': 'Uploaded', 'es': 'Cargado'},
+    'doc_status_pending_review': {
+      'fr': 'En attente de révision',
+      'en': 'Pending review',
+      'es': 'Pendiente de revisión',
+    },
+    'doc_status_approved': {'fr': 'Approuvé', 'en': 'Approved', 'es': 'Aprobado'},
+    'doc_status_rejected': {'fr': 'Refusé', 'en': 'Rejected', 'es': 'Rechazado'},
+    'doc_status_expired': {'fr': 'Expiré', 'en': 'Expired', 'es': 'Vencido'},
+    'doc_status_replacement_required': {
+      'fr': 'Remplacement requis',
+      'en': 'Replacement required',
+      'es': 'Reemplazo requerido',
+    },
+
+    // ---------- Types de document (DriverDocumentType enum) ----------
+    'doc_type_drivers_licence': {
+      'fr': 'Permis de conduire',
+      'en': "Driver's licence",
+      'es': 'Licencia de conducir',
+    },
+    'doc_type_vehicle_registration': {
+      'fr': 'Immatriculation',
+      'en': 'Vehicle registration',
+      'es': 'Matrícula del vehículo',
+    },
+    'doc_type_insurance': {'fr': 'Assurance', 'en': 'Insurance', 'es': 'Seguro'},
+    'doc_type_identity': {
+      'fr': "Pièce d'identité",
+      'en': 'Identity document',
+      'es': 'Documento de identidad',
+    },
+    'doc_type_vehicle_photo': {
+      'fr': 'Photo du véhicule',
+      'en': 'Vehicle photo',
+      'es': 'Foto del vehículo',
+    },
+    'doc_type_other': {'fr': 'Autre document', 'en': 'Other document', 'es': 'Otro documento'},
+
+    // ---------- Portail analyste /admin/chauffeurs (Phase 2) ----------
+    'admin_drivers_title': {
+      'fr': 'Dossiers chauffeurs',
+      'en': 'Driver applications',
+      'es': 'Expedientes de conductores',
+    },
+    'admin_drivers_filter_all': {'fr': 'Tous', 'en': 'All', 'es': 'Todos'},
+    'admin_drivers_filter_pending_review': {
+      'fr': 'En attente',
+      'en': 'Pending review',
+      'es': 'Pendientes',
+    },
+    'admin_drivers_filter_documents_required': {
+      'fr': 'Documents requis',
+      'en': 'Documents required',
+      'es': 'Documentos requeridos',
+    },
+    'admin_drivers_filter_approved': {'fr': 'Approuvés', 'en': 'Approved', 'es': 'Aprobados'},
+    'admin_drivers_filter_rejected': {'fr': 'Refusés', 'en': 'Rejected', 'es': 'Rechazados'},
+    'admin_drivers_filter_suspended': {'fr': 'Suspendus', 'en': 'Suspended', 'es': 'Suspendidos'},
+
+    'admin_drivers_col_name': {'fr': 'Nom', 'en': 'Name', 'es': 'Nombre'},
+    'admin_drivers_col_email': {'fr': 'Courriel', 'en': 'Email', 'es': 'Correo electrónico'},
+    'admin_drivers_col_submitted_at': {
+      'fr': 'Date de soumission',
+      'en': 'Submission date',
+      'es': 'Fecha de envío',
+    },
+    'admin_drivers_col_vehicle': {'fr': 'Véhicule', 'en': 'Vehicle', 'es': 'Vehículo'},
+    'admin_drivers_col_status': {'fr': 'Statut', 'en': 'Status', 'es': 'Estado'},
+    'admin_drivers_col_missing_docs': {
+      'fr': 'Documents manquants',
+      'en': 'Missing documents',
+      'es': 'Documentos faltantes',
+    },
+    'admin_drivers_col_pending_docs': {
+      'fr': 'Documents en attente',
+      'en': 'Pending documents',
+      'es': 'Documentos pendientes',
+    },
+    'admin_drivers_col_updated_at': {
+      'fr': 'Dernière mise à jour',
+      'en': 'Last update',
+      'es': 'Última actualización',
+    },
+
+    'admin_drivers_loading': {
+      'fr': 'Chargement des dossiers…',
+      'en': 'Loading applications…',
+      'es': 'Cargando expedientes…',
+    },
+    'admin_drivers_empty': {
+      'fr': 'Aucun dossier chauffeur pour ce filtre.',
+      'en': 'No driver applications for this filter.',
+      'es': 'No hay expedientes de conductores para este filtro.',
+    },
+    'admin_drivers_error': {
+      'fr': 'Impossible de charger les dossiers chauffeurs.',
+      'en': 'Unable to load driver applications.',
+      'es': 'No se pudieron cargar los expedientes de conductores.',
+    },
+
+    'admin_driver_detail_title': {
+      'fr': 'Dossier chauffeur',
+      'en': 'Driver application',
+      'es': 'Expediente del conductor',
+    },
+    'admin_driver_section_profile': {'fr': 'Profil', 'en': 'Profile', 'es': 'Perfil'},
+    'admin_driver_section_vehicle': {'fr': 'Véhicule', 'en': 'Vehicle', 'es': 'Vehículo'},
+    'admin_driver_section_documents': {'fr': 'Documents', 'en': 'Documents', 'es': 'Documentos'},
+    'admin_driver_section_notes': {
+      'fr': 'Notes internes',
+      'en': 'Internal notes',
+      'es': 'Notas internas',
+    },
+
+    'admin_driver_field_first_name': {'fr': 'Prénom', 'en': 'First name', 'es': 'Nombre'},
+    'admin_driver_field_last_name': {'fr': 'Nom', 'en': 'Last name', 'es': 'Apellido'},
+    'admin_driver_field_phone': {'fr': 'Téléphone', 'en': 'Phone', 'es': 'Teléfono'},
+    'admin_driver_field_email': {'fr': 'Courriel', 'en': 'Email', 'es': 'Correo electrónico'},
+    'admin_driver_field_address': {'fr': 'Adresse', 'en': 'Address', 'es': 'Dirección'},
+    'admin_driver_field_city': {'fr': 'Ville', 'en': 'City', 'es': 'Ciudad'},
+    'admin_driver_field_province': {'fr': 'Province', 'en': 'Province', 'es': 'Provincia'},
+    'admin_driver_field_postal_code': {
+      'fr': 'Code postal',
+      'en': 'Postal code',
+      'es': 'Código postal',
+    },
+    'admin_driver_field_not_available': {
+      'fr': 'Non renseigné',
+      'en': 'Not provided',
+      'es': 'No proporcionado',
+    },
+
+    'admin_driver_field_category': {'fr': 'Catégorie', 'en': 'Category', 'es': 'Categoría'},
+    'admin_driver_field_make': {'fr': 'Marque', 'en': 'Make', 'es': 'Marca'},
+    'admin_driver_field_model': {'fr': 'Modèle', 'en': 'Model', 'es': 'Modelo'},
+    'admin_driver_field_year': {'fr': 'Année', 'en': 'Year', 'es': 'Año'},
+    'admin_driver_field_color': {'fr': 'Couleur', 'en': 'Color', 'es': 'Color'},
+    'admin_driver_field_plate': {'fr': 'Plaque', 'en': 'Plate', 'es': 'Placa'},
+    'admin_driver_field_capacity': {'fr': 'Capacité', 'en': 'Capacity', 'es': 'Capacidad'},
+    'admin_driver_field_vehicle_verified': {
+      'fr': 'Statut de vérification',
+      'en': 'Verification status',
+      'es': 'Estado de verificación',
+    },
+    'admin_driver_verified': {'fr': 'Vérifié', 'en': 'Verified', 'es': 'Verificado'},
+    'admin_driver_not_verified': {'fr': 'Non vérifié', 'en': 'Not verified', 'es': 'No verificado'},
+
+    'admin_driver_doc_uploaded_at': {
+      'fr': 'Date de téléversement',
+      'en': 'Upload date',
+      'es': 'Fecha de carga',
+    },
+    'admin_driver_doc_expires_at': {
+      'fr': "Date d'expiration",
+      'en': 'Expiration date',
+      'es': 'Fecha de vencimiento',
+    },
+    'admin_driver_doc_no_documents': {
+      'fr': 'Aucun document téléversé.',
+      'en': 'No documents uploaded.',
+      'es': 'No se han cargado documentos.',
+    },
+    'admin_driver_doc_view': {
+      'fr': 'Voir le document',
+      'en': 'View document',
+      'es': 'Ver documento',
+    },
+    'admin_driver_doc_comment': {
+      'fr': 'Commentaire analyste',
+      'en': 'Analyst comment',
+      'es': 'Comentario del analista',
+    },
+
+    'admin_action_approve': {'fr': 'Approuver', 'en': 'Approve', 'es': 'Aprobar'},
+    'admin_action_reject': {'fr': 'Refuser', 'en': 'Reject', 'es': 'Rechazar'},
+    'admin_action_request_documents': {
+      'fr': 'Demander un nouveau document',
+      'en': 'Request a new document',
+      'es': 'Solicitar un nuevo documento',
+    },
+    'admin_action_suspend': {'fr': 'Suspendre', 'en': 'Suspend', 'es': 'Suspender'},
+    'admin_action_reactivate': {'fr': 'Réactiver', 'en': 'Reactivate', 'es': 'Reactivar'},
+    'admin_action_add_note': {
+      'fr': 'Ajouter une note',
+      'en': 'Add a note',
+      'es': 'Agregar una nota',
+    },
+
+    'admin_confirm_approve_title': {
+      'fr': 'Confirmer l\'approbation',
+      'en': 'Confirm approval',
+      'es': 'Confirmar aprobación',
+    },
+    'admin_confirm_approve_body': {
+      'fr': 'Ce chauffeur sera notifié et pourra ensuite décider lui-même de se mettre en ligne.',
+      'en': 'The driver will be notified and can then decide themselves when to go online.',
+      'es': 'Se notificará al conductor, quien luego decidirá por sí mismo cuándo conectarse.',
+    },
+    'admin_reason_reject_label': {
+      'fr': 'Motif du refus',
+      'en': 'Rejection reason',
+      'es': 'Motivo del rechazo',
+    },
+    'admin_reason_reject_hint': {
+      'fr': 'Expliquez pourquoi ce dossier est refusé…',
+      'en': 'Explain why this application is being rejected…',
+      'es': 'Explique por qué se rechaza este expediente…',
+    },
+    'admin_reason_request_documents_label': {
+      'fr': 'Document(s) concerné(s) et motif',
+      'en': 'Document(s) concerned and reason',
+      'es': 'Documento(s) en cuestión y motivo',
+    },
+    'admin_reason_request_documents_hint': {
+      'fr': 'Ex : permis illisible, assurance expirée…',
+      'en': 'E.g.: illegible licence, expired insurance…',
+      'es': 'Ej.: licencia ilegible, seguro vencido…',
+    },
+    'admin_reason_suspend_label': {
+      'fr': 'Motif de la suspension',
+      'en': 'Suspension reason',
+      'es': 'Motivo de la suspensión',
+    },
+    'admin_note_hint': {
+      'fr': 'Note interne (jamais visible au chauffeur)…',
+      'en': 'Internal note (never visible to the driver)…',
+      'es': 'Nota interna (nunca visible para el conductor)…',
+    },
+    'admin_note_empty': {
+      'fr': 'Aucune note interne pour ce dossier.',
+      'en': 'No internal notes for this application.',
+      'es': 'No hay notas internas para este expediente.',
+    },
+    'admin_reason_required_error': {
+      'fr': 'Un motif est requis (minimum 3 caractères).',
+      'en': 'A reason is required (minimum 3 characters).',
+      'es': 'Se requiere un motivo (mínimo 3 caracteres).',
+    },
+
+    'admin_action_success_approve': {
+      'fr': 'Dossier approuvé avec succès.',
+      'en': 'Application approved successfully.',
+      'es': 'Expediente aprobado con éxito.',
+    },
+    'admin_action_success_reject': {
+      'fr': 'Dossier refusé.',
+      'en': 'Application rejected.',
+      'es': 'Expediente rechazado.',
+    },
+    'admin_action_success_request_documents': {
+      'fr': 'Demande de document envoyée au chauffeur.',
+      'en': 'Document request sent to the driver.',
+      'es': 'Solicitud de documento enviada al conductor.',
+    },
+    'admin_action_success_suspend': {
+      'fr': 'Chauffeur suspendu.',
+      'en': 'Driver suspended.',
+      'es': 'Conductor suspendido.',
+    },
+    'admin_action_success_reactivate': {
+      'fr': 'Chauffeur réactivé.',
+      'en': 'Driver reactivated.',
+      'es': 'Conductor reactivado.',
+    },
+    'admin_action_success_note': {
+      'fr': 'Note ajoutée.',
+      'en': 'Note added.',
+      'es': 'Nota agregada.',
+    },
+    'admin_action_error': {
+      'fr': "L'action a échoué. Veuillez réessayer.",
+      'en': 'The action failed. Please try again.',
+      'es': 'La acción falló. Por favor, inténtelo de nuevo.',
+    },
+
+    'admin_no_access_title': {
+      'fr': 'Accès refusé',
+      'en': 'Access denied',
+      'es': 'Acceso denegado',
+    },
+    'admin_no_access_body': {
+      'fr': 'Vous n\'avez pas les droits nécessaires pour consulter cette page.',
+      'en': 'You do not have the required permissions to view this page.',
+      'es': 'No tiene los permisos necesarios para ver esta página.',
+    },
+
+    'admin_notes_author_you': {'fr': 'Vous', 'en': 'You', 'es': 'Usted'},
+
+    // ---------- Statut chauffeur — vue chauffeur (point 14) ----------
+    'driver_status_view_title': {
+      'fr': 'Statut de mon dossier',
+      'en': 'My application status',
+      'es': 'Estado de mi expediente',
+    },
+    'driver_status_pending_message': {
+      'fr': 'Votre dossier est en cours d\'analyse. Nous vous contacterons dès qu\'une décision sera prise.',
+      'en': 'Your application is under review. We will contact you as soon as a decision is made.',
+      'es': 'Su expediente está siendo revisado. Nos pondremos en contacto tan pronto como se tome una decisión.',
+    },
+    'driver_status_approved_message': {
+      'fr': 'Félicitations, votre compte chauffeur est approuvé! Vous pouvez maintenant décider quand vous mettre en ligne.',
+      'en': 'Congratulations, your driver account is approved! You can now decide when to go online.',
+      'es': '¡Felicidades, su cuenta de conductor ha sido aprobada! Ahora puede decidir cuándo conectarse.',
+    },
+    'driver_status_rejected_message': {
+      'fr': 'Votre dossier a été refusé.',
+      'en': 'Your application has been rejected.',
+      'es': 'Su expediente ha sido rechazado.',
+    },
+    'driver_status_documents_required_message': {
+      'fr': 'Un ou plusieurs documents doivent être corrigés ou remplacés avant de continuer.',
+      'en': 'One or more documents need to be corrected or replaced before continuing.',
+      'es': 'Uno o más documentos deben ser corregidos o reemplazados antes de continuar.',
+    },
+    'driver_status_suspended_message': {
+      'fr': 'Votre compte chauffeur est temporairement suspendu.',
+      'en': 'Your driver account is temporarily suspended.',
+      'es': 'Su cuenta de conductor está temporalmente suspendida.',
+    },
+    'driver_status_reason_label': {'fr': 'Motif', 'en': 'Reason', 'es': 'Motivo'},
+    'driver_status_go_to_dashboard': {
+      'fr': 'Voir mon tableau de bord',
+      'en': 'Go to my dashboard',
+      'es': 'Ir a mi panel',
+    },
+    'driver_status_refresh': {
+      'fr': 'Actualiser',
+      'en': 'Refresh',
+      'es': 'Actualizar',
+    },
   };
 
   static String t(String key, String locale) {

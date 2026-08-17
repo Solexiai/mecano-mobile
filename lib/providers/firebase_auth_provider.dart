@@ -66,6 +66,14 @@ class FirebaseAuthProvider extends ChangeNotifier {
       hasRole(PlatformRole.admin) || hasRole(PlatformRole.superAdmin);
   bool get isSuperAdmin => hasRole(PlatformRole.superAdmin);
 
+  /// Phase 2 — portail analyste : un analyste doit pouvoir accéder à
+  /// `/admin/chauffeurs` (consulter/approuver/refuser des dossiers) sans
+  /// pour autant avoir les droits admin/super_admin complets. Reflète
+  /// exactement `PlatformRoleX.canReviewDrivers` côté serveur
+  /// (functions/src/lib/auth.ts: requireAnalystOrAbove).
+  bool get isAnalystOrAbove =>
+      hasRole(PlatformRole.analyst) || isAdminOrAbove;
+
   Future<void> _onAuthChanged(fb.User? user) async {
     _user = user;
     _claimsLoaded = false;

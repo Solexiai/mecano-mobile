@@ -8,11 +8,21 @@
 // Cloud Functions (voir lib/backend/repositories/cloud_functions_gateway.dart,
 // à créer lors du branchement Firebase réel). Ce repository n'expose que de
 // la LECTURE et des écritures non sensibles (ex: soumettre des documents).
+//
+// PHASE 2 — portail analyste `/admin/chauffeurs` : les nouvelles méthodes
+// ci-dessous (approveDriver, rejectDriver, requestDriverDocuments,
+// suspendDriver, reactivateDriver, addDriverInternalNote,
+// watchDriverInternalNotes, logDriverReviewOpened, watchDriversByStatus)
+// suivent STRICTEMENT le même principe : chaque écriture sensible passe par
+// une Cloud Function callable (jamais une écriture Firestore directe depuis
+// ce repository), voir firebase_driver_repository.dart pour l'implémentation.
 // ---------------------------------------------------------------------------
 
 import '../models/driver_profile_v2.dart';
 import '../models/driver_document.dart';
 import '../models/driver_vehicle.dart';
+import '../models/driver_internal_note.dart';
+import '../../models/enums.dart';
 import '../backend_exceptions.dart';
 
 abstract class DriverRepository {
@@ -54,6 +64,50 @@ abstract class DriverRepository {
   /// Nécessite le rôle analyst/admin/super_admin côté serveur (Security
   /// Rules) — cette interface ne fait qu'exposer l'appel.
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers();
+
+  /// Liste filtrable des chauffeurs par statut (portail analyste — liste
+  /// `/admin/chauffeurs` avec filtres pending_review/documents_required/
+  /// approved/rejected/suspended, point 4 du cahier des charges Phase 2).
+  /// `null` = tous les statuts confondus (à utiliser avec prudence, coûteux
+  /// sur une base de données volumineuse : privilégier un statut explicite).
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status);
+
+  // -------------------------------------------------------------------
+  // Actions analyste — Cloud Functions ONLY (voir en-tête de fichier).
+  // -------------------------------------------------------------------
+
+  /// Approuve un dossier chauffeur via la Cloud Function `approveDriver`.
+  /// Ne rend PAS le chauffeur `online` automatiquement (point 13).
+  Future<void> approveDriver(String driverId);
+
+  /// Refuse un dossier chauffeur via la Cloud Function `rejectDriver`.
+  /// `reason` est obligatoire (min 3 caractères côté serveur).
+  Future<void> rejectDriver(String driverId, String reason);
+
+  /// Demande un nouveau document / correction via la Cloud Function
+  /// `requestDriverDocuments` (statut `documents_required`).
+  Future<void> requestDriverDocuments(String driverId, String reason);
+
+  /// Suspend un chauffeur (admin/super_admin uniquement côté serveur) via
+  /// la Cloud Function `suspendDriver`.
+  Future<void> suspendDriver(String driverId, String reason);
+
+  /// Réactive un chauffeur suspendu (admin/super_admin uniquement côté
+  /// serveur) via la Cloud Function `reactivateDriver`.
+  Future<void> reactivateDriver(String driverId);
+
+  /// Ajoute une note interne analyste/admin sur un dossier (jamais visible
+  /// au chauffeur) via la Cloud Function `addDriverInternalNote`.
+  Future<void> addDriverInternalNote(String driverId, String text);
+
+  /// Flux temps réel des notes internes d'un dossier chauffeur (lecture
+  /// directe Firestore, protégée par firestore.rules : analyst+ uniquement).
+  Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId);
+
+  /// Journalise l'ouverture d'un dossier par un analyste (audit_logs,
+  /// action `driver_review_opened`) via la Cloud Function
+  /// `logDriverReviewOpened`. N'écrit aucune donnée Firestore hors audit.
+  Future<void> logDriverReviewOpened(String driverId);
 }
 
 /// Implémentation sûre utilisée quand Firebase n'est pas configuré.
@@ -103,4 +157,50 @@ class NotConfiguredDriverRepository implements DriverRepository {
 
   @override
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => Stream.value(const []);
+
+  @override
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) =>
+      Stream.value(const []);
+
+  @override
+  Future<void> approveDriver(String driverId) {
+    throw BackendNotConfiguredException('approveDriver: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> rejectDriver(String driverId, String reason) {
+    throw BackendNotConfiguredException('rejectDriver: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> requestDriverDocuments(String driverId, String reason) {
+    throw BackendNotConfiguredException(
+        'requestDriverDocuments: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> suspendDriver(String driverId, String reason) {
+    throw BackendNotConfiguredException('suspendDriver: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> reactivateDriver(String driverId) {
+    throw BackendNotConfiguredException('reactivateDriver: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> addDriverInternalNote(String driverId, String text) {
+    throw BackendNotConfiguredException(
+        'addDriverInternalNote: Firebase Functions non configuré.');
+  }
+
+  @override
+  Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Future<void> logDriverReviewOpened(String driverId) {
+    throw BackendNotConfiguredException(
+        'logDriverReviewOpened: Firebase Functions non configuré.');
+  }
 }

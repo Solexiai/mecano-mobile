@@ -12,6 +12,11 @@
 export { approveDriver } from "./functions/approveDriver";
 export { rejectDriver } from "./functions/rejectDriver";
 export { validateDriverDocument } from "./functions/validateDriverDocument";
+export { requestDriverDocuments } from "./functions/requestDriverDocuments";
+export { suspendDriver } from "./functions/suspendDriver";
+export { reactivateDriver } from "./functions/reactivateDriver";
+export { addDriverInternalNote } from "./functions/addDriverInternalNote";
+export { logDriverReviewOpened } from "./functions/logDriverReviewOpened";
 
 // ---- Devis, missions, dispatch, acceptation ----
 export { calculateDeliveryQuote } from "./functions/calculateDeliveryQuote";

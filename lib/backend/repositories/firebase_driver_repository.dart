@@ -27,6 +27,7 @@ import '../../models/enums.dart';
 import '../models/driver_profile_v2.dart';
 import '../models/driver_document.dart';
 import '../models/driver_vehicle.dart';
+import '../models/driver_internal_note.dart';
 import '../backend_exceptions.dart';
 import 'driver_repository.dart';
 
@@ -44,6 +45,8 @@ class FirebaseDriverRepository implements DriverRepository {
       _db.collection('driver_documents');
   CollectionReference<Map<String, dynamic>> get _driverVehicles =>
       _db.collection('driver_vehicles');
+  CollectionReference<Map<String, dynamic>> get _driverInternalNotes =>
+      _db.collection('driver_internal_notes');
 
   @override
   Future<DriverProfileV2?> getDriverProfile(String driverId) async {
@@ -178,5 +181,110 @@ class FirebaseDriverRepository implements DriverRepository {
         .where('status', isEqualTo: DriverStatus.pendingReview.firestoreValue)
         .snapshots()
         .map((snap) => snap.docs.map((d) => DriverProfileV2.fromJson(d.id, d.data())).toList());
+  }
+
+  // -------------------------------------------------------------------
+  // Phase 2 — portail analyste `/admin/chauffeurs`.
+  // -------------------------------------------------------------------
+
+  @override
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) {
+    // Requête volontairement SIMPLE (un seul .where(), pas de .orderBy())
+    // pour éviter toute dépendance à un index composite Firestore — le tri
+    // (le cas échéant) doit être fait en mémoire côté UI. Voir section
+    // "Firebase Data Type Consistency" des consignes du sandbox.
+    final query = status == null
+        ? _driverProfiles
+        : _driverProfiles.where('status', isEqualTo: status.firestoreValue);
+    return query.snapshots().map(
+          (snap) => snap.docs.map((d) => DriverProfileV2.fromJson(d.id, d.data())).toList(),
+        );
+  }
+
+  @override
+  Future<void> approveDriver(String driverId) async {
+    try {
+      await _functions.httpsCallable('approveDriver').call({'driverId': driverId});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'approveDriver a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> rejectDriver(String driverId, String reason) async {
+    try {
+      await _functions
+          .httpsCallable('rejectDriver')
+          .call({'driverId': driverId, 'reason': reason});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'rejectDriver a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> requestDriverDocuments(String driverId, String reason) async {
+    try {
+      await _functions
+          .httpsCallable('requestDriverDocuments')
+          .call({'driverId': driverId, 'reason': reason});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'requestDriverDocuments a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> suspendDriver(String driverId, String reason) async {
+    try {
+      await _functions
+          .httpsCallable('suspendDriver')
+          .call({'driverId': driverId, 'reason': reason});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'suspendDriver a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> reactivateDriver(String driverId) async {
+    try {
+      await _functions.httpsCallable('reactivateDriver').call({'driverId': driverId});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'reactivateDriver a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Future<void> addDriverInternalNote(String driverId, String text) async {
+    try {
+      await _functions
+          .httpsCallable('addDriverInternalNote')
+          .call({'driverId': driverId, 'text': text});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'addDriverInternalNote a échoué (${e.code}): ${e.message}');
+    }
+  }
+
+  @override
+  Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId) {
+    // Pas de .orderBy() ici non plus (voir watchDriversByStatus) : tri par
+    // date en mémoire côté UI pour éviter un index composite.
+    return _driverInternalNotes.where('driver_id', isEqualTo: driverId).snapshots().map(
+          (snap) => snap.docs.map((d) => DriverInternalNote.fromJson(d.id, d.data())).toList(),
+        );
+  }
+
+  @override
+  Future<void> logDriverReviewOpened(String driverId) async {
+    try {
+      await _functions.httpsCallable('logDriverReviewOpened').call({'driverId': driverId});
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'logDriverReviewOpened a échoué (${e.code}): ${e.message}');
+    }
   }
 }

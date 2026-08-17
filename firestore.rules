@@ -129,6 +129,17 @@ service cloud.firestore {
         request.resource.data.completed_missions == resource.data.completed_missions &&
         request.resource.data.documents_all_valid == resource.data.documents_all_valid &&
         request.resource.data.current_geohash == resource.data.current_geohash &&
+        // Champs écrits exclusivement par requestDriverDocuments() /
+        // suspendDriver() / reactivateDriver() (Phase 2 — portail analyste) :
+        // même protection que les champs historiques ci-dessus.
+        request.resource.data.documents_required_reason == resource.data.documents_required_reason &&
+        request.resource.data.documents_required_at == resource.data.documents_required_at &&
+        request.resource.data.documents_required_by_user_id == resource.data.documents_required_by_user_id &&
+        request.resource.data.suspended_at == resource.data.suspended_at &&
+        request.resource.data.suspended_by_user_id == resource.data.suspended_by_user_id &&
+        request.resource.data.suspension_reason == resource.data.suspension_reason &&
+        request.resource.data.reactivated_at == resource.data.reactivated_at &&
+        request.resource.data.reactivated_by_user_id == resource.data.reactivated_by_user_id &&
         // online_status ne peut être changé par le chauffeur lui-même QUE
         // s'il est déjà approuvé (empêche un chauffeur non approuvé de se
         // déclarer "online" et d'apparaître dans le dispatch).
@@ -137,12 +148,14 @@ service cloud.firestore {
 
       // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
       // rejection_reason, identity_verified, vehicle_verified, rating,
-      // completed_missions, documents_all_valid, current_geohash) ne sont
-      // JAMAIS modifiables par un client, y compris analyst/admin : ils
-      // passent exclusivement par les Cloud Functions approveDriver() /
-      // rejectDriver() (qui s'exécutent avec les privilèges Admin SDK côté
-      // serveur, hors du chemin des Security Rules client). Aucune règle
-      // "allow update: if isAnalystOrAbove()" n'existe donc ici
+      // completed_missions, documents_all_valid, current_geohash,
+      // documents_required_*, suspended_*, suspension_reason, reactivated_*)
+      // ne sont JAMAIS modifiables par un client, y compris analyst/admin :
+      // ils passent exclusivement par les Cloud Functions approveDriver() /
+      // rejectDriver() / requestDriverDocuments() / suspendDriver() /
+      // reactivateDriver() (qui s'exécutent avec les privilèges Admin SDK
+      // côté serveur, hors du chemin des Security Rules client). Aucune
+      // règle "allow update: if isAnalystOrAbove()" n'existe donc ici
       // volontairement — le portail analyste n'écrit jamais Firestore
       // directement, il appelle toujours une Cloud Function callable.
 
@@ -191,6 +204,20 @@ service cloud.firestore {
       );
 
       allow delete: if resource.data.driver_id == uid() && isDriver();
+    }
+
+    // -------------------------------------------------------------------
+    // driver_internal_notes/{noteId} — notes internes analyste/admin
+    // (Phase 2 — portail analyste). JAMAIS visibles au chauffeur concerné.
+    // Immuables après création (même pattern que audit_logs) : aucune
+    // règle update/delete n'est exposée, pour qu'une note ne puisse jamais
+    // être supprimée silencieusement. Écriture exclusivement via la Cloud
+    // Function addDriverInternalNote() (garantit author_user_id/author_role
+    // non falsifiables).
+    // -------------------------------------------------------------------
+    match /driver_internal_notes/{noteId} {
+      allow read: if isAnalystOrAbove();
+      allow write: if false; // 🔒 Cloud Functions only (addDriverInternalNote).
     }
 
     // -------------------------------------------------------------------

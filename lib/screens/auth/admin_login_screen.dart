@@ -310,7 +310,7 @@ class AdminAuthGate extends StatelessWidget {
       );
     }
 
-    if (!auth.isAdminOrAbove) {
+    if (!auth.isAnalystOrAbove) {
       return const AdminLoginScreen();
     }
 

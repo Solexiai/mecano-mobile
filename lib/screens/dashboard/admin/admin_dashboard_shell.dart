@@ -5,6 +5,7 @@ import '../../../core/app_colors.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../services/demo_data_service.dart';
 import '../../../widgets/coming_soon_badge.dart';
+import 'drivers/admin_drivers_list_screen.dart';
 
 /// Admin dashboard — demo overview only. Real moderation actions
 /// (approve/reject providers, disputes, settings) require a connected
@@ -26,12 +27,12 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
 
     final tabs = [
       const _AdminOverviewTab(),
-      const _AdminValidationsTab(),
+      const AdminDriversListScreen(),
       const _AdminSettingsTab(),
     ];
     final navItems = const [
       (Icons.dashboard_outlined, 'Vue d\'ensemble'),
-      (Icons.verified_user_outlined, 'Validations'),
+      (Icons.verified_user_outlined, 'Chauffeurs'),
       (Icons.settings_outlined, 'Paramètres'),
     ];
 
