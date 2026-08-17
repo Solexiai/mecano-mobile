@@ -139,6 +139,30 @@ class FirebaseDriverRepository implements DriverRepository {
   }
 
   @override
+  Future<void> submitDriverVehicle(DriverVehicle vehicle) async {
+    // Garde-fou défensif : la règle `create` de driver_vehicles exige
+    // is_verified == false (seule une Cloud Function/analyste peut vérifier
+    // un véhicule ensuite) — on ne fait jamais confiance à une valeur
+    // `true` qui viendrait du modèle passé en paramètre.
+    final safeVehicle = DriverVehicle(
+      id: vehicle.id,
+      driverId: vehicle.driverId,
+      category: vehicle.category,
+      makeModel: vehicle.makeModel,
+      year: vehicle.year,
+      plate: vehicle.plate,
+      maxPayloadKg: vehicle.maxPayloadKg,
+      isVerified: false,
+      createdAt: vehicle.createdAt,
+    );
+    try {
+      await _driverVehicles.doc(safeVehicle.id).set(safeVehicle.toJson(), SetOptions(merge: true));
+    } catch (e) {
+      throw BackendNotConfiguredException('submitDriverVehicle a échoué: $e');
+    }
+  }
+
+  @override
   Future<void> submitForReview() async {
     try {
       await _functions.httpsCallable('submitDriverForReview').call();

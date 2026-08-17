@@ -21,7 +21,7 @@ class ProviderProfile {
   final bool vehicleVerified;
 
   // Driver-specific
-  final VehicleType? vehicleType;
+  final VehicleCategory? vehicleType;
   final String? vehicleMakeModel;
   final int? vehicleYear;
   final double? maxPayloadKg;

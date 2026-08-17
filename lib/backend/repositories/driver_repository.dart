@@ -39,6 +39,11 @@ abstract class DriverRepository {
   /// Cloud Function approveDriver()).
   Future<void> submitDriverOnboarding(DriverProfileV2 profile);
 
+  /// Crée le véhicule déclaré par le chauffeur pendant l'onboarding
+  /// (`driver_vehicles/{id}`, `is_verified: false` — seule valeur permise
+  /// par la règle `create` de `driver_vehicles`, voir firestore.rules).
+  Future<void> submitDriverVehicle(DriverVehicle vehicle);
+
   /// Fait transitionner le profil de registration_incomplete/
   /// documents_required vers pending_review, via la Cloud Function
   /// `submitDriverForReview` (le client ne peut jamais écrire `status`
@@ -83,6 +88,11 @@ class NotConfiguredDriverRepository implements DriverRepository {
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) {
     throw BackendNotConfiguredException(
         'submitDriverOnboarding: Firebase Firestore non configuré.');
+  }
+
+  @override
+  Future<void> submitDriverVehicle(DriverVehicle vehicle) {
+    throw BackendNotConfiguredException('submitDriverVehicle: Firebase Firestore non configuré.');
   }
 
   @override

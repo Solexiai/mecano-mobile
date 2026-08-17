@@ -314,6 +314,27 @@ class AppStrings {
       'en': 'Example testimonial — replace with verified customer review',
       'es': 'Testimonio de ejemplo — reemplazar con reseña de cliente verificada',
     },
+
+    // ---------- Vehicle categories (VehicleCategory enum) ----------
+    'vehicle_cat_car': {'fr': 'Voiture', 'en': 'Car', 'es': 'Auto'},
+    'vehicle_cat_suv': {'fr': 'VUS', 'en': 'SUV', 'es': 'Camioneta SUV'},
+    'vehicle_cat_minivan': {'fr': 'Fourgonnette', 'en': 'Minivan', 'es': 'Minivan'},
+    'vehicle_cat_cargo_van': {'fr': 'Fourgon cargo', 'en': 'Cargo Van', 'es': 'Furgoneta de carga'},
+    'vehicle_cat_pickup_truck': {'fr': 'Camionnette', 'en': 'Pickup Truck', 'es': 'Camioneta pickup'},
+    'vehicle_cat_cube_truck': {'fr': 'Camion cube', 'en': 'Cube Truck', 'es': 'Camión cubo'},
+    'vehicle_cat_truck': {'fr': 'Camion', 'en': 'Truck', 'es': 'Camión'},
+    'vehicle_cat_trailer': {'fr': 'Remorque', 'en': 'Trailer', 'es': 'Remolque'},
+    'vehicle_cat_suv_with_trailer': {
+      'fr': 'VUS + remorque',
+      'en': 'SUV + Trailer',
+      'es': 'SUV + remolque',
+    },
+    'vehicle_cat_small_commercial': {
+      'fr': 'Véhicule commercial léger',
+      'en': 'Small Commercial Vehicle',
+      'es': 'Vehículo comercial ligero',
+    },
+    'vehicle_cat_other': {'fr': 'Autre', 'en': 'Other', 'es': 'Otro'},
   };
 
   static String t(String key, String locale) {

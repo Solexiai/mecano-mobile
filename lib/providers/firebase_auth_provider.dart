@@ -17,6 +17,7 @@
 
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 
@@ -143,6 +144,62 @@ class FirebaseAuthProvider extends ChangeNotifier {
         email: email.trim(),
         password: password,
       );
+      _user = cred.user;
+      _claimsLoaded = false;
+      await _refreshClaims(force: true);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on fb.FirebaseAuthException catch (e) {
+      _lastError = _mapErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _lastError = 'Une erreur inattendue est survenue. Réessayez.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Crée un nouveau compte Firebase Auth (email/password) et un document
+  /// `users/{uid}` initial avec `roles: ['customer']` (seule valeur permise
+  /// par la règle `create` de `users/{userId}` — voir firestore.rules).
+  /// Toute élévation de rôle ultérieure (ex: `driver`) passe par une Cloud
+  /// Function dédiée (`registerAsDriver`), jamais par une écriture directe.
+  Future<bool> signUpWithEmailPassword({
+    required String email,
+    required String password,
+    required String fullName,
+  }) async {
+    if (!_backendConfigured) {
+      _lastError = 'Backend Firebase non configuré sur cet environnement.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _lastError = null;
+    notifyListeners();
+
+    try {
+      final cred = await fb.FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      await cred.user?.updateDisplayName(fullName.trim());
+
+      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
+        'uid': cred.user!.uid,
+        'email': email.trim(),
+        'full_name': fullName.trim(),
+        'roles': ['customer'],
+        'created_at': DateTime.now().toIso8601String(),
+        'is_disabled': false,
+        'email_verified': false,
+      });
+
       _user = cred.user;
       _claimsLoaded = false;
       await _refreshClaims(force: true);

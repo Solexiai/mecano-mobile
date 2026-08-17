@@ -189,7 +189,16 @@ extension DriverDocumentStatusX on DriverDocumentStatus {
 }
 
 // =====================================================================
-// VEHICLE CATEGORY (extended set per new spec — superset of VehicleType)
+// VEHICLE CATEGORY — source unique de vérité pour tout type de véhicule
+// dans l'application (démo ET architecture Firebase réelle).
+//
+// HISTORIQUE : un enum `VehicleType` distinct existait en parallèle
+// (utilisé uniquement par les écrans démo ProviderProfile/DemoDataService/
+// driver_onboarding_screen). Les deux nomenclatures se recoupaient à 100%
+// sauf `suvWithTrailer`/`smallCommercial`, absents ici. Plutôt que de
+// maintenir deux enums parallèles indéfiniment, `VehicleType` a été
+// supprimé et ces deux valeurs ajoutées ci-dessous : `VehicleCategory` est
+// désormais la SEULE nomenclature de véhicule dans tout le projet.
 // =====================================================================
 
 enum VehicleCategory {
@@ -201,6 +210,8 @@ enum VehicleCategory {
   cubeTruck,
   truck,
   trailer,
+  suvWithTrailer,
+  smallCommercial,
   other,
 }
 
@@ -230,6 +241,10 @@ extension VehicleCategoryX on VehicleCategory {
         return 'vehicle_cat_truck';
       case VehicleCategory.trailer:
         return 'vehicle_cat_trailer';
+      case VehicleCategory.suvWithTrailer:
+        return 'vehicle_cat_suv_with_trailer';
+      case VehicleCategory.smallCommercial:
+        return 'vehicle_cat_small_commercial';
       case VehicleCategory.other:
         return 'vehicle_cat_other';
     }
@@ -438,8 +453,6 @@ enum MechanicJobStatus {
 }
 
 enum PaymentMethod { cash, interac, arrangement }
-
-enum VehicleType { pickupTruck, cargoVan, cubeTruck, trailer, suvWithTrailer, smallCommercial }
 
 extension DeliveryStatusX on DeliveryStatus {
   String get key {
