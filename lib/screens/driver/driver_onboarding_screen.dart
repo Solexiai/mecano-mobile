@@ -1,9 +1,38 @@
+// ---------------------------------------------------------------------------
+// DriverOnboardingScreen — inscription chauffeur RÉELLE, branchée sur
+// FirebaseAuthProvider (compte) + FirebaseDriverRepository (profil/véhicule
+// Firestore + Cloud Functions registerAsDriver/submitDriverForReview).
+//
+// Flux exécuté par _handleSubmit() :
+//   1. Créer le compte Firebase Auth (signUpWithEmailPassword) si l'usager
+//      n'est pas déjà connecté — écrit users/{uid} avec roles=['customer'].
+//   2. Appeler submitDriverOnboarding() : celui-ci invoque la Cloud Function
+//      registerAsDriver (ajoute le custom claim `driver`) PUIS crée/MAJ
+//      driver_profiles/{uid} avec un statut sûr (jamais approved/rejected).
+//   3. Appeler submitDriverVehicle() pour persister le véhicule déclaré à
+//      l'étape 2 du formulaire (driver_vehicles/{id}, is_verified=false).
+//   4. Rafraîchir le token (refreshClaims) pour que le rôle driver soit
+//      visible immédiatement dans cette session.
+//   5. Appeler submitForReview() (Cloud Function submitDriverForReview) pour
+//      transitionner le profil vers pending_review.
+//   6. Afficher _PendingVerificationView.
+//
+// Si le backend n'est pas configuré (BackendStatus.notConfigured), l'écran
+// affiche un message explicite au lieu de simuler un succès.
+// ---------------------------------------------------------------------------
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../backend/backend_locator.dart';
+import '../../backend/backend_status.dart';
+import '../../backend/models/driver_profile_v2.dart';
+import '../../backend/models/driver_vehicle.dart';
 import '../../core/app_colors.dart';
 import '../../models/enums.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
@@ -20,30 +49,43 @@ class DriverOnboardingScreen extends StatefulWidget {
 class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _cityController = TextEditingController(text: 'Montréal, QC');
   final _vehicleMakeController = TextEditingController();
   final _vehicleYearController = TextEditingController();
+  final _plateController = TextEditingController();
   final _payloadController = TextEditingController();
   final _hourlyController = TextEditingController();
   final _perKmController = TextEditingController();
 
-  VehicleType _vehicleType = VehicleType.pickupTruck;
+  VehicleCategory _vehicleCategory = VehicleCategory.pickupTruck;
   double _radius = 25;
-  final Set<String> _categories = {};
+  final Set<String> _categoryKeys = {}; // clés i18n cat_*
   final Set<String> _languages = {'Français'};
   bool _loadingAssistance = false;
   bool _consentVerification = false;
   bool _agreedTerms = false;
   bool _submitted = false;
+  bool _submitting = false;
+  String? _submitError;
 
-  static const _allCategories = ['Meubles', 'Électroménagers', 'Matériaux', 'Palettes', 'Motos/VTT', 'Petits déménagements'];
+  static const _allCategoryKeys = [
+    'cat_furniture',
+    'cat_appliances',
+    'cat_building_materials',
+    'cat_pallets',
+    'cat_motorcycle',
+    'cat_atv',
+    'cat_small_move',
+  ];
   static const _allLanguages = ['Français', 'English', 'Español'];
 
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
+    final backendStatus = context.watch<BackendStatus>();
 
     if (_submitted) {
       return AppShell(
@@ -63,22 +105,46 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SectionTitle(title: 'Inscription chauffeur', subtitle: 'Complétez votre profil pour commencer à recevoir des demandes.'),
-              const SizedBox(height: 28),
+              const SizedBox(height: 12),
+              if (!backendStatus.isConfigured)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                  child: const Row(children: [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
+                    SizedBox(width: 10),
+                    Expanded(child: Text('Backend Firebase non configuré sur cet environnement : l\'inscription réelle est indisponible.', style: TextStyle(fontSize: 12.5))),
+                  ]),
+                ),
+              if (_submitError != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(_submitError!, style: const TextStyle(fontSize: 12.5, color: AppColors.error))),
+                  ]),
+                ),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 880),
                 child: StepProgressForm(
                   stepTitles: const ['Profil', 'Véhicule', 'Tarification', 'Documents'],
                   nextLabel: t('common_next'),
                   backLabel: t('common_back'),
-                  submitLabel: 'Soumettre mon inscription',
+                  submitLabel: _submitting ? 'Envoi en cours...' : 'Soumettre mon inscription',
                   onStepChanged: (_) {},
-                  onComplete: () => _handleSubmit(auth),
+                  onComplete: _submitting ? () {} : () => _handleSubmit(auth, backendStatus),
                   stepBuilders: [
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             TextField(controller: _nameController, decoration: InputDecoration(labelText: t('auth_full_name'))),
                             const SizedBox(height: 16),
-                            TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email'))),
+                            TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email')), keyboardType: TextInputType.emailAddress),
+                            const SizedBox(height: 16),
+                            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Mot de passe (min. 6 caractères)'), obscureText: true),
                             const SizedBox(height: 16),
                             TextField(controller: _phoneController, decoration: InputDecoration(labelText: t('auth_phone'))),
                             const SizedBox(height: 16),
@@ -87,32 +153,51 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                             Text('Rayon de service maximal: ${_radius.round()} km', style: const TextStyle(fontWeight: FontWeight.w600)),
                             Slider(value: _radius, min: 5, max: 100, divisions: 19, activeColor: AppColors.primary, onChanged: (v) => setState(() => _radius = v)),
                             const SizedBox(height: 12),
-                            Text('Langues parlées', style: const TextStyle(fontWeight: FontWeight.w700)),
+                            const Text('Langues parlées', style: TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(spacing: 8, children: _allLanguages.map((l) => FilterChip(label: Text(l), selected: _languages.contains(l), onSelected: (_) => setState(() => _languages.contains(l) ? _languages.remove(l) : _languages.add(l)))).toList()),
                           ]),
                         ),
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('Type de véhicule', style: const TextStyle(fontWeight: FontWeight.w700)),
+                            const Text('Type de véhicule', style: TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: VehicleType.values.map((v) => ChoiceChip(label: Text(_vehicleLabel(v)), selected: _vehicleType == v, onSelected: (_) => setState(() => _vehicleType = v))).toList(),
+                              children: VehicleCategory.values
+                                  .where((v) => v != VehicleCategory.other)
+                                  .map((v) => ChoiceChip(
+                                        label: Text(t(v.key)),
+                                        selected: _vehicleCategory == v,
+                                        onSelected: (_) => setState(() => _vehicleCategory = v),
+                                      ))
+                                  .toList(),
                             ),
                             const SizedBox(height: 16),
                             TextField(controller: _vehicleMakeController, decoration: const InputDecoration(labelText: 'Marque et modèle')),
                             const SizedBox(height: 16),
                             TextField(controller: _vehicleYearController, decoration: const InputDecoration(labelText: 'Année'), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
+                            TextField(controller: _plateController, decoration: const InputDecoration(labelText: 'Plaque d\'immatriculation')),
+                            const SizedBox(height: 16),
                             TextField(controller: _payloadController, decoration: const InputDecoration(labelText: 'Charge utile maximale (kg)'), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
                             OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.camera_alt_outlined), label: const Text('Photos du véhicule')),
                             const SizedBox(height: 20),
-                            Text("Types d'objets acceptés", style: const TextStyle(fontWeight: FontWeight.w700)),
+                            const Text("Types d'objets acceptés", style: TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
-                            Wrap(spacing: 8, runSpacing: 8, children: _allCategories.map((c) => FilterChip(label: Text(c), selected: _categories.contains(c), onSelected: (_) => setState(() => _categories.contains(c) ? _categories.remove(c) : _categories.add(c)))).toList()),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _allCategoryKeys
+                                  .map((k) => FilterChip(
+                                        label: Text(t(k)),
+                                        selected: _categoryKeys.contains(k),
+                                        onSelected: (_) => setState(() => _categoryKeys.contains(k) ? _categoryKeys.remove(k) : _categoryKeys.add(k)),
+                                      ))
+                                  .toList(),
+                            ),
                             const SizedBox(height: 12),
                             SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text("Aide au chargement disponible", style: TextStyle(fontSize: 14)), value: _loadingAssistance, onChanged: (v) => setState(() => _loadingAssistance = v), activeThumbColor: AppColors.primary),
                           ]),
@@ -158,7 +243,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                         ),
                   ],
                   canProceed: (step) {
-                    if (step == 0) return _nameController.text.trim().isNotEmpty && _emailController.text.trim().isNotEmpty;
+                    if (step == 0) {
+                      return _nameController.text.trim().isNotEmpty &&
+                          _emailController.text.trim().isNotEmpty &&
+                          _passwordController.text.trim().length >= 6;
+                    }
                     if (step == 3) return _consentVerification && _agreedTerms;
                     return true;
                   },
@@ -171,41 +260,96 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     );
   }
 
-  String _vehicleLabel(VehicleType v) {
-    switch (v) {
-      case VehicleType.pickupTruck:
-        return 'Camionnette';
-      case VehicleType.cargoVan:
-        return 'Fourgon cargo';
-      case VehicleType.cubeTruck:
-        return 'Camion cube';
-      case VehicleType.trailer:
-        return 'Remorque';
-      case VehicleType.suvWithTrailer:
-        return 'VUS + remorque';
-      case VehicleType.smallCommercial:
-        return 'Véhicule commercial léger';
+  Future<void> _handleSubmit(FirebaseAuthProvider auth, BackendStatus backendStatus) async {
+    if (!backendStatus.isConfigured) {
+      setState(() => _submitError = 'Backend Firebase non configuré sur cet environnement.');
+      return;
     }
-  }
 
-  Future<void> _handleSubmit(AuthProvider auth) async {
-    await auth.signInOrRegister(
-      email: _emailController.text.trim().isEmpty ? 'demo.driver@movi-k.com' : _emailController.text.trim(),
-      fullName: _nameController.text.trim().isEmpty ? 'Nouveau chauffeur' : _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      role: UserRole.driver,
-    );
-    setState(() => _submitted = true);
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    try {
+      // 1. Créer le compte Firebase Auth s'il n'existe pas encore de session.
+      if (!auth.isSignedIn) {
+        final ok = await auth.signUpWithEmailPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+          fullName: _nameController.text.trim(),
+        );
+        if (!ok) {
+          throw Exception(auth.lastError ?? 'La création du compte a échoué.');
+        }
+      }
+
+      final uid = auth.user?.uid;
+      if (uid == null) {
+        throw Exception('Session invalide après inscription.');
+      }
+
+      // 2. Créer/mettre à jour le profil d'onboarding (registerAsDriver +
+      //    écriture driver_profiles/{uid} avec un statut sûr, jamais approved).
+      final profile = DriverProfileV2(
+        uid: uid,
+        fullName: _nameController.text.trim(),
+        city: _cityController.text.trim(),
+        status: DriverStatus.registrationIncomplete,
+        serviceRadiusKm: _radius,
+        acceptedVehicleCategories: [_vehicleCategory],
+        acceptedItemCategoryKeys: _categoryKeys.toList(),
+        createdAt: DateTime.now(),
+      );
+      await BackendLocator.driverRepository.submitDriverOnboarding(profile);
+
+      // 3. Persister le véhicule déclaré à l'étape 2.
+      final vehicle = DriverVehicle(
+        id: const Uuid().v4(),
+        driverId: uid,
+        category: _vehicleCategory,
+        makeModel: _vehicleMakeController.text.trim(),
+        year: int.tryParse(_vehicleYearController.text.trim()) ?? 0,
+        plate: _plateController.text.trim(),
+        maxPayloadKg: double.tryParse(_payloadController.text.trim()),
+        isVerified: false,
+        createdAt: DateTime.now(),
+      );
+      await BackendLocator.driverRepository.submitDriverVehicle(vehicle);
+
+      // 4. Rafraîchir le token pour que le custom claim `driver` (ajouté par
+      //    registerAsDriver côté serveur) soit visible immédiatement.
+      await auth.refreshClaims();
+
+      // 5. Transitionner le profil vers pending_review (Cloud Function
+      //    submitDriverForReview — le client ne peut jamais écrire ce champ
+      //    directement, voir firestore.rules).
+      await BackendLocator.driverRepository.submitForReview();
+
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _submitted = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _submitError = 'L\'inscription a échoué : $e';
+      });
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
     _phoneController.dispose();
     _cityController.dispose();
     _vehicleMakeController.dispose();
     _vehicleYearController.dispose();
+    _plateController.dispose();
     _payloadController.dispose();
     _hourlyController.dispose();
     _perKmController.dispose();
