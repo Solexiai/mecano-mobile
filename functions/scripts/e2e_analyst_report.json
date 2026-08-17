@@ -1,23 +1,23 @@
 {
-  "startedAt": "2026-08-17T20:46:26.988Z",
+  "startedAt": "2026-08-17T20:57:32.063Z",
   "projectId": "movik-connect-prod",
   "environment": "movik-connect-prod (seul projet Firebase existant)",
   "accounts": {
     "driver1": {
-      "email": "e2e-test-driver1-1786999586990@movik-test.invalid",
-      "uid": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+      "email": "e2e-test-driver1-1787000252064@movik-test.invalid",
+      "uid": "N7J2WnfgtvSnttR2wEQXMSHymjc2"
     },
     "driver2": {
-      "email": "e2e-test-driver2-1786999586990@movik-test.invalid",
-      "uid": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+      "email": "e2e-test-driver2-1787000252064@movik-test.invalid",
+      "uid": "P8k0vEJYVDYSVvSrtPqjVOaQJU63"
     },
     "customer": {
-      "email": "e2e-test-customer-1786999586990@movik-test.invalid",
-      "uid": "4cIQ2ZhQxDMQSfxRHEImNuQnOB43"
+      "email": "e2e-test-customer-1787000252064@movik-test.invalid",
+      "uid": "snyR1ehNqSVVshiVtjV4BIF7Tfp2"
     },
     "analyst": {
-      "email": "e2e-test-analyst-1786999586990@movik-test.invalid",
-      "uid": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+      "email": "e2e-test-analyst-1787000252064@movik-test.invalid",
+      "uid": "YFmFyhhghdc4u8yMC0k891DoCOw1"
     }
   },
   "steps": [
@@ -25,33 +25,33 @@
       "step": "A1_driver1_bootstrapped_to_pending_review",
       "ok": true,
       "details": {
-        "uid": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+        "uid": "N7J2WnfgtvSnttR2wEQXMSHymjc2"
       },
-      "at": "2026-08-17T20:46:30.882Z"
+      "at": "2026-08-17T20:57:34.613Z"
     },
     {
       "step": "A2_driver2_bootstrapped_to_pending_review",
       "ok": true,
       "details": {
-        "uid": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+        "uid": "P8k0vEJYVDYSVvSrtPqjVOaQJU63"
       },
-      "at": "2026-08-17T20:46:32.355Z"
+      "at": "2026-08-17T20:57:36.008Z"
     },
     {
       "step": "B_customer_account_created",
       "ok": true,
       "details": {
-        "uid": "4cIQ2ZhQxDMQSfxRHEImNuQnOB43"
+        "uid": "snyR1ehNqSVVshiVtjV4BIF7Tfp2"
       },
-      "at": "2026-08-17T20:46:32.845Z"
+      "at": "2026-08-17T20:57:36.654Z"
     },
     {
       "step": "C1_analyst_claim_assigned_via_oauth_cli",
       "ok": true,
       "details": {
-        "uid": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+        "uid": "YFmFyhhghdc4u8yMC0k891DoCOw1"
       },
-      "at": "2026-08-17T20:46:33.908Z"
+      "at": "2026-08-17T20:57:37.568Z"
     },
     {
       "step": "C2_analyst_claim_visible_after_refresh",
@@ -62,7 +62,7 @@
           "analyst"
         ]
       },
-      "at": "2026-08-17T20:46:33.958Z"
+      "at": "2026-08-17T20:57:37.619Z"
     },
     {
       "step": "N1_unauthenticated_cannot_call_approveDriver",
@@ -74,7 +74,7 @@
           "status": "UNAUTHENTICATED"
         }
       },
-      "at": "2026-08-17T20:46:34.069Z"
+      "at": "2026-08-17T20:57:37.691Z"
     },
     {
       "step": "N2_customer_cannot_call_approveDriver",
@@ -86,7 +86,7 @@
           "status": "PERMISSION_DENIED"
         }
       },
-      "at": "2026-08-17T20:46:34.230Z"
+      "at": "2026-08-17T20:57:37.778Z"
     },
     {
       "step": "N3_driver_cannot_call_approveDriver_on_self",
@@ -98,7 +98,7 @@
           "status": "PERMISSION_DENIED"
         }
       },
-      "at": "2026-08-17T20:46:34.293Z"
+      "at": "2026-08-17T20:57:37.841Z"
     },
     {
       "step": "N4_customer_cannot_call_requestDriverDocuments",
@@ -110,7 +110,7 @@
           "status": "PERMISSION_DENIED"
         }
       },
-      "at": "2026-08-17T20:46:34.483Z"
+      "at": "2026-08-17T20:57:37.915Z"
     },
     {
       "step": "N5_customer_cannot_call_addDriverInternalNote",
@@ -122,7 +122,7 @@
           "status": "PERMISSION_DENIED"
         }
       },
-      "at": "2026-08-17T20:46:34.699Z"
+      "at": "2026-08-17T20:57:37.985Z"
     },
     {
       "step": "N6_driver_cannot_call_rejectDriver_on_another_driver",
@@ -134,7 +134,7 @@
           "status": "PERMISSION_DENIED"
         }
       },
-      "at": "2026-08-17T20:46:34.884Z"
+      "at": "2026-08-17T20:57:38.057Z"
     },
     {
       "step": "D1_analyst_adds_internal_note",
@@ -143,11 +143,11 @@
         "status": 200,
         "result": {
           "success": true,
-          "noteId": "0T5pBTWTM6Z2VKzqJDmY"
+          "noteId": "6xG2FUdKhScbLd3grVHn"
         },
         "error": null
       },
-      "at": "2026-08-17T20:46:36.031Z"
+      "at": "2026-08-17T20:57:38.973Z"
     },
     {
       "step": "D2_negative_driver_cannot_read_own_internal_note",
@@ -155,7 +155,7 @@
       "details": {
         "status": 403
       },
-      "at": "2026-08-17T20:46:36.217Z"
+      "at": "2026-08-17T20:57:39.054Z"
     },
     {
       "step": "D3_analyst_approves_driver1",
@@ -164,20 +164,20 @@
         "status": 200,
         "result": {
           "success": true,
-          "driverId": "NV9MBUPcTcPJbmKbWWy45XTyqCD3"
+          "driverId": "N7J2WnfgtvSnttR2wEQXMSHymjc2"
         },
         "error": null
       },
-      "at": "2026-08-17T20:46:37.230Z"
+      "at": "2026-08-17T20:57:39.313Z"
     },
     {
       "step": "D4_driver1_status_is_approved",
       "ok": true,
       "details": {
         "status": "approved",
-        "approved_by_user_id": "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+        "approved_by_user_id": "YFmFyhhghdc4u8yMC0k891DoCOw1"
       },
-      "at": "2026-08-17T20:46:37.305Z"
+      "at": "2026-08-17T20:57:39.390Z"
     },
     {
       "step": "N7_negative_double_approve_blocked",
@@ -189,15 +189,15 @@
           "status": "FAILED_PRECONDITION"
         }
       },
-      "at": "2026-08-17T20:46:37.407Z"
+      "at": "2026-08-17T20:57:39.515Z"
     },
     {
       "step": "D5_approved_driver1_can_go_online",
-      "ok": false,
+      "ok": true,
       "details": {
-        "status": 403
+        "status": 200
       },
-      "at": "2026-08-17T20:46:37.518Z"
+      "at": "2026-08-17T20:57:39.605Z"
     },
     {
       "step": "E1_analyst_rejects_driver2",
@@ -206,11 +206,11 @@
         "status": 200,
         "result": {
           "success": true,
-          "driverId": "H1RxPYlSpaawcvRe0fRr9rJFlHi2"
+          "driverId": "P8k0vEJYVDYSVvSrtPqjVOaQJU63"
         },
         "error": null
       },
-      "at": "2026-08-17T20:46:38.468Z"
+      "at": "2026-08-17T20:57:39.913Z"
     },
     {
       "step": "E2_driver2_status_is_rejected_with_reason",
@@ -219,7 +219,7 @@
         "status": "rejected",
         "rejection_reason": "Photo du permis illisible — E2E test."
       },
-      "at": "2026-08-17T20:46:38.548Z"
+      "at": "2026-08-17T20:57:40.017Z"
     },
     {
       "step": "N8_negative_requestDriverDocuments_from_rejected_blocked",
@@ -231,7 +231,7 @@
           "status": "FAILED_PRECONDITION"
         }
       },
-      "at": "2026-08-17T20:46:39.399Z"
+      "at": "2026-08-17T20:57:40.162Z"
     },
     {
       "step": "Z1_cleanup_driver1_vehicle_deleted",
@@ -239,7 +239,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:39.501Z"
+      "at": "2026-08-17T20:57:40.421Z"
     },
     {
       "step": "Z2_cleanup_driver1_auth_deleted",
@@ -247,7 +247,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:39.746Z"
+      "at": "2026-08-17T20:57:40.678Z"
     },
     {
       "step": "Z3_cleanup_driver2_vehicle_deleted",
@@ -255,7 +255,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:39.814Z"
+      "at": "2026-08-17T20:57:40.770Z"
     },
     {
       "step": "Z4_cleanup_driver2_auth_deleted",
@@ -263,7 +263,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:40.020Z"
+      "at": "2026-08-17T20:57:41.036Z"
     },
     {
       "step": "Z5_cleanup_customer_auth_deleted",
@@ -271,7 +271,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:40.240Z"
+      "at": "2026-08-17T20:57:41.298Z"
     },
     {
       "step": "Z6_cleanup_analyst_auth_deleted",
@@ -279,7 +279,7 @@
       "details": {
         "status": 200
       },
-      "at": "2026-08-17T20:46:40.452Z"
+      "at": "2026-08-17T20:57:41.546Z"
     },
     {
       "step": "Z7_cleanup_firestore_residuals_via_oauth_cli",
@@ -291,15 +291,15 @@
           "driver_internal_notes"
         ],
         "uids": [
-          "NV9MBUPcTcPJbmKbWWy45XTyqCD3",
-          "H1RxPYlSpaawcvRe0fRr9rJFlHi2",
-          "4cIQ2ZhQxDMQSfxRHEImNuQnOB43",
-          "3Lv2L21Kc8Z8QkfXw1HjZUvZNHB3"
+          "N7J2WnfgtvSnttR2wEQXMSHymjc2",
+          "P8k0vEJYVDYSVvSrtPqjVOaQJU63",
+          "snyR1ehNqSVVshiVtjV4BIF7Tfp2",
+          "YFmFyhhghdc4u8yMC0k891DoCOw1"
         ]
       },
-      "at": "2026-08-17T20:46:42.442Z"
+      "at": "2026-08-17T20:57:43.298Z"
     }
   ],
-  "finalStatus": "SOME_FAILED",
-  "finishedAt": "2026-08-17T20:46:42.442Z"
+  "finalStatus": "ALL_PASSED",
+  "finishedAt": "2026-08-17T20:57:43.298Z"
 }
