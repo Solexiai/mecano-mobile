@@ -1,0 +1,241 @@
+{
+  "startedAt": "2026-08-17T18:56:50.372Z",
+  "projectId": "movik-connect-prod",
+  "environment": "movik-connect-prod (seul projet Firebase existant — voir roadmap dev/staging)",
+  "testAccount": {
+    "email": "e2e-test-driver-1786993010373@movik-test.invalid",
+    "environment": "movik-connect-prod",
+    "createdAtStep": "1. Firebase Authentication signUp",
+    "uid": "JezyliC2ucVfu4KLamIXSyFeXO12",
+    "vehicleId": "aed3000c-df15-45e3-809f-0f3050393290",
+    "finalDriverStatus": "pending_review",
+    "authAccountDeleted": true,
+    "firestoreDocsRemainingForManualCleanup": [
+      "users/JezyliC2ucVfu4KLamIXSyFeXO12",
+      "driver_profiles/JezyliC2ucVfu4KLamIXSyFeXO12"
+    ]
+  },
+  "steps": [
+    {
+      "step": "1_auth_signup",
+      "ok": true,
+      "details": {
+        "uid": "JezyliC2ucVfu4KLamIXSyFeXO12",
+        "emailVerified": false,
+        "hasIdToken": true,
+        "hasRefreshToken": true
+      },
+      "at": "2026-08-17T18:56:50.909Z"
+    },
+    {
+      "step": "2_negative_user_self_escalation_blocked",
+      "ok": true,
+      "details": {
+        "expected": 403,
+        "got": 403,
+        "body": {
+          "code": 403,
+          "message": "Missing or insufficient permissions.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T18:56:51.105Z"
+    },
+    {
+      "step": "3_user_document_created",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "error": null
+      },
+      "at": "2026-08-17T18:56:51.256Z"
+    },
+    {
+      "step": "3b_user_document_verified",
+      "ok": true,
+      "details": {
+        "uid": "JezyliC2ucVfu4KLamIXSyFeXO12",
+        "email": "e2e-test-driver-1786993010373@movik-test.invalid",
+        "roles": [
+          "customer"
+        ],
+        "created_at": "2026-08-17T18:56:51.105Z"
+      },
+      "at": "2026-08-17T18:56:51.366Z"
+    },
+    {
+      "step": "4_negative_driver_profile_without_claim_blocked",
+      "ok": true,
+      "details": {
+        "expected": 403,
+        "got": 403
+      },
+      "at": "2026-08-17T18:56:51.659Z"
+    },
+    {
+      "step": "5_registerAsDriver",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "result": {
+          "success": true,
+          "roles": [
+            "customer",
+            "driver"
+          ],
+          "note": "Le client doit appeler getIdTokenResult(forceRefresh: true) avant de créer driver_profiles."
+        },
+        "error": null
+      },
+      "at": "2026-08-17T18:56:53.057Z"
+    },
+    {
+      "step": "5b_negative_registerAsDriver_unauthenticated_blocked",
+      "ok": true,
+      "details": {
+        "status": 401,
+        "error": {
+          "message": "Authentification requise.",
+          "status": "UNAUTHENTICATED"
+        }
+      },
+      "at": "2026-08-17T18:56:53.139Z"
+    },
+    {
+      "step": "6_refresh_claims",
+      "ok": true,
+      "details": {
+        "role": "customer",
+        "roles": [
+          "customer",
+          "driver"
+        ]
+      },
+      "at": "2026-08-17T18:56:53.217Z"
+    },
+    {
+      "step": "7_negative_self_approve_blocked",
+      "ok": true,
+      "details": {
+        "expected": 403,
+        "got": 403
+      },
+      "at": "2026-08-17T18:56:53.328Z"
+    },
+    {
+      "step": "8_driver_profile_created",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "error": null
+      },
+      "at": "2026-08-17T18:56:53.458Z"
+    },
+    {
+      "step": "9_negative_vehicle_self_verify_blocked",
+      "ok": true,
+      "details": {
+        "expected": 403,
+        "got": 403
+      },
+      "at": "2026-08-17T18:56:53.588Z"
+    },
+    {
+      "step": "10_driver_vehicle_created",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "error": null
+      },
+      "at": "2026-08-17T18:56:53.716Z"
+    },
+    {
+      "step": "10b_driver_vehicle_verified",
+      "ok": true,
+      "details": {
+        "category": "pickup_truck",
+        "is_verified": false
+      },
+      "at": "2026-08-17T18:56:53.798Z"
+    },
+    {
+      "step": "11_negative_driver_cannot_approve",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T18:56:56.750Z"
+    },
+    {
+      "step": "12_negative_driver_cannot_reject",
+      "ok": true,
+      "details": {
+        "status": 403,
+        "error": {
+          "message": "Rôle analyst/admin/super_admin requis.",
+          "status": "PERMISSION_DENIED"
+        }
+      },
+      "at": "2026-08-17T18:56:58.590Z"
+    },
+    {
+      "step": "13_submitDriverForReview",
+      "ok": true,
+      "details": {
+        "status": 200,
+        "result": {
+          "success": true,
+          "status": "pending_review"
+        },
+        "error": null
+      },
+      "at": "2026-08-17T18:57:01.053Z"
+    },
+    {
+      "step": "14_negative_resubmit_from_pending_review_blocked",
+      "ok": true,
+      "details": {
+        "status": 400,
+        "error": {
+          "message": "Impossible de soumettre pour révision depuis le statut actuel (pending_review).",
+          "status": "FAILED_PRECONDITION"
+        }
+      },
+      "at": "2026-08-17T18:57:01.312Z"
+    },
+    {
+      "step": "15_final_status_verified",
+      "ok": true,
+      "details": {
+        "status": "pending_review",
+        "submitted_for_review_at": "2026-08-17T18:57:00.924Z",
+        "accepted_vehicle_categories": [
+          "pickup_truck"
+        ]
+      },
+      "at": "2026-08-17T18:57:01.486Z"
+    },
+    {
+      "step": "16_cleanup_vehicle_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T18:57:01.604Z"
+    },
+    {
+      "step": "17_cleanup_auth_account_deleted",
+      "ok": true,
+      "details": {
+        "status": 200
+      },
+      "at": "2026-08-17T18:57:01.849Z"
+    }
+  ],
+  "finalStatus": "ALL_PASSED",
+  "finishedAt": "2026-08-17T18:57:01.849Z"
+}
