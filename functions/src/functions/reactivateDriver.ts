@@ -55,6 +55,7 @@ export const reactivateDriver = onCall<ReactivateDriverRequest>(async (request) 
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "driver_reactivated",
+      sourceFunction: "reactivateDriver",
       targetId: driverId,
       metadata: { previous_status: data.status },
     });

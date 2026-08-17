@@ -45,7 +45,8 @@ export const rejectDriver = onCall<RejectDriverRequest>(async (request) => {
     writeAuditLog({
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
-      action: "rejectDriver",
+      action: "driver_rejected",
+      sourceFunction: "rejectDriver",
       targetId: driverId,
       metadata: { previous_status: data.status, reason },
     });

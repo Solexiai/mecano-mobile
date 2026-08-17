@@ -98,6 +98,7 @@ export const transitionFoundingDriverPeriods = onSchedule(
       actorUserId: "system",
       actorRole: "system",
       action: "transitionFoundingDriverPeriods",
+      sourceFunction: "transitionFoundingDriverPeriods",
       metadata: { transitionedDriverIds: transitioned },
     });
   }

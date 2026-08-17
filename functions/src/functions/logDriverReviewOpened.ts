@@ -28,6 +28,7 @@ export const logDriverReviewOpened = onCall<LogDriverReviewOpenedRequest>(async 
     actorUserId: ctx.uid,
     actorRole: ctx.role ?? "unknown",
     action: "driver_review_opened",
+    sourceFunction: "logDriverReviewOpened",
     targetId: driverId,
     metadata: {},
   });

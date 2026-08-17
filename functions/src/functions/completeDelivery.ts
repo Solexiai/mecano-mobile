@@ -128,6 +128,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
       actorUserId: ctx.uid,
       actorRole: "driver",
       action: "completeDelivery",
+      sourceFunction: "completeDelivery",
       targetId: missionId,
       metadata: { snapshotId: mission.active_financial_snapshot_id },
     });

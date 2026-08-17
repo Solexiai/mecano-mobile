@@ -95,6 +95,7 @@ export const detectExpiringDocuments = onSchedule(
       actorUserId: "system",
       actorRole: "system",
       action: "detectExpiringDocuments",
+      sourceFunction: "detectExpiringDocuments",
       metadata: { expiredCount, warnedCount, scannedCount: snap.size },
     });
   }

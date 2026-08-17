@@ -690,6 +690,51 @@ class AppStrings {
       'en': 'Refresh',
       'es': 'Actualizar',
     },
+    'driver_status_registration_incomplete_message': {
+      'fr': 'Votre inscription est incomplète. Terminez votre profil pour soumettre votre candidature.',
+      'en': 'Your registration is incomplete. Complete your profile to submit your application.',
+      'es': 'Su registro está incompleto. Complete su perfil para enviar su solicitud.',
+    },
+    'driver_status_inactive_message': {
+      'fr': 'Votre compte chauffeur est actuellement inactif.',
+      'en': 'Your driver account is currently inactive.',
+      'es': 'Su cuenta de conductor está actualmente inactiva.',
+    },
+    'driver_status_error': {
+      'fr': 'Impossible de charger le statut de votre dossier pour le moment.',
+      'en': 'Unable to load your application status at the moment.',
+      'es': 'No se pudo cargar el estado de su expediente en este momento.',
+    },
+    'driver_status_no_profile': {
+      'fr': 'Aucun dossier chauffeur trouvé pour ce compte.',
+      'en': 'No driver application found for this account.',
+      'es': 'No se encontró ningún expediente de conductor para esta cuenta.',
+    },
+    'driver_status_complete_registration': {
+      'fr': 'Compléter mon inscription',
+      'en': 'Complete my registration',
+      'es': 'Completar mi inscripción',
+    },
+    'driver_status_resubmit': {
+      'fr': 'Soumettre à nouveau mon dossier',
+      'en': 'Resubmit my application',
+      'es': 'Volver a enviar mi expediente',
+    },
+    'driver_status_go_home': {
+      'fr': 'Retour à l\'accueil',
+      'en': 'Back to home',
+      'es': 'Volver al inicio',
+    },
+    'driver_status_online_label': {
+      'fr': 'Vous êtes en ligne',
+      'en': 'You are online',
+      'es': 'Está en línea',
+    },
+    'driver_status_offline_label': {
+      'fr': 'Vous êtes hors ligne',
+      'en': 'You are offline',
+      'es': 'Está desconectado',
+    },
   };
 
   static String t(String key, String locale) {

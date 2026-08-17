@@ -59,6 +59,7 @@ export const submitDriverForReview = onCall(async (request) => {
       actorUserId: ctx.uid,
       actorRole: "driver",
       action: "submitDriverForReview",
+      sourceFunction: "submitDriverForReview",
       targetId: ctx.uid,
       metadata: { previous_status: data.status },
     });

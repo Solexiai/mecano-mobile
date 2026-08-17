@@ -382,7 +382,7 @@ class _PendingVerificationView extends StatelessWidget {
               style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
             ),
             const SizedBox(height: 28),
-            ElevatedButton(onPressed: () => context.go('/$locale/fournisseur/tableau-de-bord'), child: const Text('Voir mon tableau de bord')),
+            ElevatedButton(onPressed: () => context.go('/$locale/devenir-chauffeur/statut'), child: Text(t('driver_status_go_to_dashboard'))),
             const SizedBox(height: 12),
             TextButton(onPressed: () => context.go('/$locale'), child: Text(t('nav_home'))),
             const SizedBox(height: 40),

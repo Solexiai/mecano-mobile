@@ -61,6 +61,7 @@ export const suspendDriver = onCall<SuspendDriverRequest>(async (request) => {
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "driver_suspended",
+      sourceFunction: "suspendDriver",
       targetId: driverId,
       metadata: { previous_status: data.status, reason },
     });

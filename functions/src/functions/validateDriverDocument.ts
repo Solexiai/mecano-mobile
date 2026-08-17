@@ -87,6 +87,7 @@ export const validateDriverDocument = onCall<ValidateDriverDocumentRequest>(asyn
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "validateDriverDocument",
+      sourceFunction: "validateDriverDocument",
       targetId: documentId,
       metadata: { newStatus, driverId: doc.driver_id, documentsAllValid: allValid },
     });

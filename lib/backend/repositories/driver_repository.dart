@@ -108,6 +108,16 @@ abstract class DriverRepository {
   /// action `driver_review_opened`) via la Cloud Function
   /// `logDriverReviewOpened`. N'écrit aucune donnée Firestore hors audit.
   Future<void> logDriverReviewOpened(String driverId);
+
+  /// Change `online_status` (online/offline) du chauffeur COURANT.
+  /// Écriture Firestore DIRECTE autorisée par firestore.rules UNIQUEMENT
+  /// lorsque `status == 'approved'` (voir règle `driver_profiles.update`) :
+  /// le serveur re-vérifie systématiquement cette condition, ce champ
+  /// n'étant pas dans la liste des champs protégés (contrairement à
+  /// `status`, `approved_at`, etc.). Un chauffeur non approuvé qui tente
+  /// cet appel se heurte à un refus Security Rules (PERMISSION_DENIED),
+  /// jamais à un faux succès.
+  Future<void> setDriverOnlineStatus(String driverId, bool online);
 }
 
 /// Implémentation sûre utilisée quand Firebase n'est pas configuré.
@@ -202,5 +212,11 @@ class NotConfiguredDriverRepository implements DriverRepository {
   Future<void> logDriverReviewOpened(String driverId) {
     throw BackendNotConfiguredException(
         'logDriverReviewOpened: Firebase Functions non configuré.');
+  }
+
+  @override
+  Future<void> setDriverOnlineStatus(String driverId, bool online) {
+    throw BackendNotConfiguredException(
+        'setDriverOnlineStatus: Firebase Firestore non configuré.');
   }
 }

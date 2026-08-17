@@ -124,6 +124,7 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "createFinancialSnapshot",
+      sourceFunction: "createFinancialSnapshot",
       targetId: missionId,
       metadata: { reason, snapshotId: snapshotRef.id },
     });

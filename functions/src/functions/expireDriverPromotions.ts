@@ -67,6 +67,7 @@ export const expireDriverPromotions = onSchedule(
       actorUserId: "system",
       actorRole: "system",
       action: "expireDriverPromotions",
+      sourceFunction: "expireDriverPromotions",
       metadata: { expiredCount: snap.size, driverIds: affectedDriverIds },
     });
   }

@@ -74,6 +74,7 @@ export const requestDriverDocuments = onCall<RequestDriverDocumentsRequest>(asyn
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "driver_documents_requested",
+      sourceFunction: "requestDriverDocuments",
       targetId: driverId,
       metadata: { previous_status: data.status, reason },
     });

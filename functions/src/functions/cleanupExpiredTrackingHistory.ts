@@ -59,6 +59,7 @@ export const cleanupExpiredTrackingHistory = onSchedule(
         actorUserId: "system",
         actorRole: "system",
         action: "cleanupExpiredTrackingHistory",
+        sourceFunction: "cleanupExpiredTrackingHistory",
         metadata: { totalDeleted, retentionDays: RETENTION_DAYS },
       });
     }

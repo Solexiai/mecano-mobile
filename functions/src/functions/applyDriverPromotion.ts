@@ -61,6 +61,7 @@ export const applyDriverPromotion = onCall<ApplyDriverPromotionRequest>(async (r
     actorUserId: ctx.uid,
     actorRole: ctx.role ?? "unknown",
     action: "applyDriverPromotion",
+    sourceFunction: "applyDriverPromotion",
     targetId: input.driverId,
     metadata: { promoId: promoRef.id, ...input },
   });

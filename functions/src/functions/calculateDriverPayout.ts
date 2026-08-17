@@ -88,6 +88,7 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "calculateDriverPayout",
+      sourceFunction: "calculateDriverPayout",
       targetId: driverId,
       metadata: { payoutId: payoutRef.id, amount: totalAmount, snapshotCount: eligibleSnapshots.length },
     });

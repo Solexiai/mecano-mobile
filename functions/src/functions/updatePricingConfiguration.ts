@@ -66,6 +66,7 @@ export const updatePricingConfiguration = onCall<UpdatePricingConfigurationReque
         actorUserId: ctx.uid,
         actorRole: ctx.role ?? "unknown",
         action: "updatePricingConfiguration",
+        sourceFunction: "updatePricingConfiguration",
         targetId: newPricingVersion,
         metadata: { vehicleRuleCount: config.vehicle_rules.length },
       });

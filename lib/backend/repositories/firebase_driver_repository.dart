@@ -287,4 +287,21 @@ class FirebaseDriverRepository implements DriverRepository {
           'logDriverReviewOpened a échoué (${e.code}): ${e.message}');
     }
   }
+
+  @override
+  Future<void> setDriverOnlineStatus(String driverId, bool online) async {
+    try {
+      // Écriture Firestore directe (pas de Cloud Function dédiée) : ce
+      // champ n'est PAS protégé par firestore.rules, mais la règle
+      // `update` exige `resource.data.status == 'approved'` pour
+      // l'autoriser — voir en-tête de driver_repository.dart. Un chauffeur
+      // non approuvé reçoit donc un PERMISSION_DENIED natif Firestore.
+      await _driverProfiles.doc(driverId).update({
+        'online_status': (online ? DriverOnlineStatus.online : DriverOnlineStatus.offline)
+            .firestoreValue,
+      });
+    } catch (e) {
+      throw BackendNotConfiguredException('setDriverOnlineStatus a échoué: $e');
+    }
+  }
 }

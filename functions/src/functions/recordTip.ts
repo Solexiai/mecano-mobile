@@ -87,6 +87,7 @@ export const recordTip = onCall<RecordTipRequest>(async (request) => {
       actorUserId: ctx.uid,
       actorRole: "customer",
       action: "recordTip",
+      sourceFunction: "recordTip",
       targetId: missionId,
       metadata: { tipAmount, driverShare },
     });

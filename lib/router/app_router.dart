@@ -8,6 +8,7 @@ import '../screens/mechanic/mechanic_landing_screen.dart';
 import '../screens/mechanic/mechanic_request_flow_screen.dart';
 import '../screens/driver/driver_landing_screen.dart';
 import '../screens/driver/driver_onboarding_screen.dart';
+import '../screens/driver/driver_status_screen.dart';
 import '../screens/mechanic_provider/mechanic_provider_landing_screen.dart';
 import '../screens/mechanic_provider/mechanic_onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
@@ -112,6 +113,18 @@ class AppRouter {
             GoRoute(
               path: 'become-driver/onboarding',
               builder: (c, s) => DriverOnboardingScreen(locale: loc),
+            ),
+            GoRoute(
+              path: 'devenir-chauffeur/statut',
+              builder: (c, s) => DriverStatusScreen(locale: loc),
+            ),
+            GoRoute(
+              path: 'become-driver/status',
+              builder: (c, s) => DriverStatusScreen(locale: loc),
+            ),
+            GoRoute(
+              path: 'convertirse-conductor/estado',
+              builder: (c, s) => DriverStatusScreen(locale: loc),
             ),
 
             GoRoute(

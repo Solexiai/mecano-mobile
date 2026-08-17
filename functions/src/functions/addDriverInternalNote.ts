@@ -15,6 +15,7 @@
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
+import { writeAuditLog } from "../lib/audit";
 import { invalidArgument, notFound } from "../lib/errors";
 
 export interface AddDriverInternalNoteRequest {
@@ -50,6 +51,19 @@ export const addDriverInternalNote = onCall<AddDriverInternalNoteRequest>(async 
     author_role: ctx.role ?? "unknown",
     text: text.trim(),
     created_at: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  // Traçabilité : une note interne influence potentiellement une décision
+  // (approve/reject/documents_required) — on la journalise comme les autres
+  // actions analyste, sans dupliquer le texte complet (déjà stocké de façon
+  // immuable dans driver_internal_notes) pour éviter la redondance.
+  await writeAuditLog({
+    actorUserId: ctx.uid,
+    actorRole: ctx.role ?? "unknown",
+    action: "driver_internal_note_added",
+    sourceFunction: "addDriverInternalNote",
+    targetId: driverId,
+    metadata: { noteId: ref.id },
   });
 
   return { success: true, noteId: ref.id };

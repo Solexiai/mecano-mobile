@@ -74,6 +74,7 @@ export const qualifyFoundingDriver = onCall<QualifyFoundingDriverRequest>(async 
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "qualifyFoundingDriver",
+      sourceFunction: "qualifyFoundingDriver",
       targetId: driverId,
       metadata: { programId },
     });
@@ -119,6 +120,7 @@ export const revokeFoundingDriverStatus = onCall<RevokeFoundingDriverStatusReque
         actorUserId: ctx.uid,
         actorRole: ctx.role ?? "unknown",
         action: "revokeFoundingDriverStatus",
+        sourceFunction: "revokeFoundingDriverStatus",
         targetId: driverId,
         metadata: { programId, reason },
       });

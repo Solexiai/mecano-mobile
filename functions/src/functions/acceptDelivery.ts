@@ -208,6 +208,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
       actorUserId: driverId,
       actorRole: "driver",
       action: "acceptDelivery",
+      sourceFunction: "acceptDelivery",
       targetId: missionId,
       metadata: { snapshotId: snapshotRef.id },
     });

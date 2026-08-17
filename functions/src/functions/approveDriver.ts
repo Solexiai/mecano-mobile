@@ -63,7 +63,8 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
     writeAuditLog({
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
-      action: "approveDriver",
+      action: "driver_approved",
+      sourceFunction: "approveDriver",
       targetId: driverId,
       metadata: { previous_status: data.status },
     });

@@ -48,6 +48,7 @@ export const registerAsDriver = onCall(async (request) => {
     actorUserId: ctx.uid,
     actorRole: ctx.role ?? "unknown",
     action: "registerAsDriver",
+    sourceFunction: "registerAsDriver",
     targetId: ctx.uid,
     metadata: { newRoles },
   });

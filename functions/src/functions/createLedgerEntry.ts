@@ -82,6 +82,7 @@ export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request
       actorUserId: ctx.uid,
       actorRole: ctx.role ?? "unknown",
       action: "createLedgerEntry",
+      sourceFunction: "createLedgerEntry",
       targetId: entryRef.id,
       metadata: { ...input },
     });

@@ -51,6 +51,7 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
     actorUserId: ctx.uid,
     actorRole: "super_admin",
     action: "setUserRole",
+    sourceFunction: "setUserRole",
     targetId: targetUid,
     metadata: { newRoles: roles },
   });
