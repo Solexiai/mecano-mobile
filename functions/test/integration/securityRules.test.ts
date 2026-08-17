@@ -182,6 +182,34 @@ describe("Security Rules — driver_profiles/{driverId} : auto-approbation inter
     );
   });
 
+  it("un chauffeur APPROUVÉ peut passer online_status -> 'online' même si les champs optionnels (documents_required_*/suspended_*/reactivated_*) sont ABSENTS du document (régression réelle détectée par l'E2E analyste : resource.data.X sur un champ absent levait une erreur d'évaluation Security Rules, refusant silencieusement toute mise à jour légitime)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_profiles/driver_online_repro"), {
+        uid: "driver_online_repro",
+        status: "approved",
+        approved_at: "2024-01-01",
+        approved_by_user_id: "analyst_x",
+        rejection_reason: null,
+        identity_verified: false,
+        vehicle_verified: false,
+        rating: 0,
+        completed_missions: 0,
+        online_status: "offline",
+        // Volontairement ABSENTS (jamais écrits par approveDriver ni par le
+        // flux d'onboarding normal) : documents_required_reason/_at/_by_user_id,
+        // suspended_at/_by_user_id, suspension_reason, reactivated_at/_by_user_id,
+        // documents_all_valid, current_geohash.
+      });
+    });
+
+    const driver = testEnv.authenticatedContext("driver_online_repro", { role: "driver" });
+    await assertSucceeds(
+      updateDoc(doc(driver.firestore(), "driver_profiles/driver_online_repro"), {
+        online_status: "online",
+      })
+    );
+  });
+
   it("un customer ne peut PAS lire le profil complet d'un chauffeur qui n'est pas le sien", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "driver_profiles/driver_003"), {

@@ -118,32 +118,47 @@ service cloud.firestore {
 
       // Le chauffeur peut modifier SES champs déclaratifs uniquement.
       // Tous les champs sensibles doivent rester strictement inchangés.
+      //
+      // 🔒 CORRECTIF (audit Phase 2, E2E réel movik-connect-prod) : ces
+      // champs sont écrits progressivement par différentes Cloud Functions
+      // (approveDriver n'écrit jamais documents_required_*/suspended_*/
+      // reactivated_*, requestDriverDocuments n'écrit jamais suspended_*,
+      // etc.) — un chauffeur qui n'a jamais transité par un statut donné
+      // n'a donc AUCUNE de ces clés présentes dans son document Firestore
+      // (absent, pas `null`). Accéder à un champ absent via la notation
+      // pointée (`resource.data.X`) lève une ERREUR D'ÉVALUATION dans les
+      // Security Rules (pas juste `false`), ce qui refusait silencieusement
+      // TOUTE mise à jour légitime (ex: chauffeur approuvé tentant de passer
+      // `online_status` à `online`) dès qu'un seul de ces champs optionnels
+      // manquait. `resource.data.get(path, default)` tolère l'absence de
+      // clé et retourne `default` au lieu de lever une erreur — comparaison
+      // égale de chaque côté (get(...) == get(...)) donc toujours sûre.
       allow update: if isSignedIn() && uid() == driverId && isDriver() &&
         request.resource.data.status == resource.data.status &&
-        request.resource.data.approved_at == resource.data.approved_at &&
-        request.resource.data.approved_by_user_id == resource.data.approved_by_user_id &&
-        request.resource.data.rejection_reason == resource.data.rejection_reason &&
-        request.resource.data.identity_verified == resource.data.identity_verified &&
-        request.resource.data.vehicle_verified == resource.data.vehicle_verified &&
-        request.resource.data.rating == resource.data.rating &&
-        request.resource.data.completed_missions == resource.data.completed_missions &&
-        request.resource.data.documents_all_valid == resource.data.documents_all_valid &&
-        request.resource.data.current_geohash == resource.data.current_geohash &&
+        request.resource.data.get('approved_at', null) == resource.data.get('approved_at', null) &&
+        request.resource.data.get('approved_by_user_id', null) == resource.data.get('approved_by_user_id', null) &&
+        request.resource.data.get('rejection_reason', null) == resource.data.get('rejection_reason', null) &&
+        request.resource.data.get('identity_verified', null) == resource.data.get('identity_verified', null) &&
+        request.resource.data.get('vehicle_verified', null) == resource.data.get('vehicle_verified', null) &&
+        request.resource.data.get('rating', null) == resource.data.get('rating', null) &&
+        request.resource.data.get('completed_missions', null) == resource.data.get('completed_missions', null) &&
+        request.resource.data.get('documents_all_valid', null) == resource.data.get('documents_all_valid', null) &&
+        request.resource.data.get('current_geohash', null) == resource.data.get('current_geohash', null) &&
         // Champs écrits exclusivement par requestDriverDocuments() /
         // suspendDriver() / reactivateDriver() (Phase 2 — portail analyste) :
         // même protection que les champs historiques ci-dessus.
-        request.resource.data.documents_required_reason == resource.data.documents_required_reason &&
-        request.resource.data.documents_required_at == resource.data.documents_required_at &&
-        request.resource.data.documents_required_by_user_id == resource.data.documents_required_by_user_id &&
-        request.resource.data.suspended_at == resource.data.suspended_at &&
-        request.resource.data.suspended_by_user_id == resource.data.suspended_by_user_id &&
-        request.resource.data.suspension_reason == resource.data.suspension_reason &&
-        request.resource.data.reactivated_at == resource.data.reactivated_at &&
-        request.resource.data.reactivated_by_user_id == resource.data.reactivated_by_user_id &&
+        request.resource.data.get('documents_required_reason', null) == resource.data.get('documents_required_reason', null) &&
+        request.resource.data.get('documents_required_at', null) == resource.data.get('documents_required_at', null) &&
+        request.resource.data.get('documents_required_by_user_id', null) == resource.data.get('documents_required_by_user_id', null) &&
+        request.resource.data.get('suspended_at', null) == resource.data.get('suspended_at', null) &&
+        request.resource.data.get('suspended_by_user_id', null) == resource.data.get('suspended_by_user_id', null) &&
+        request.resource.data.get('suspension_reason', null) == resource.data.get('suspension_reason', null) &&
+        request.resource.data.get('reactivated_at', null) == resource.data.get('reactivated_at', null) &&
+        request.resource.data.get('reactivated_by_user_id', null) == resource.data.get('reactivated_by_user_id', null) &&
         // online_status ne peut être changé par le chauffeur lui-même QUE
         // s'il est déjà approuvé (empêche un chauffeur non approuvé de se
         // déclarer "online" et d'apparaître dans le dispatch).
-        (request.resource.data.online_status == resource.data.online_status ||
+        (request.resource.data.get('online_status', null) == resource.data.get('online_status', null) ||
          resource.data.status == 'approved');
 
       // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
