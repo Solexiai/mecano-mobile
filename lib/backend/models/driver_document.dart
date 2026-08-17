@@ -51,8 +51,8 @@ class DriverDocument {
   Map<String, dynamic> toJson() => {
         'id': id,
         'driver_id': driverId,
-        'type': type.name,
-        'status': status.name,
+        'type': type.firestoreValue,
+        'status': status.firestoreValue,
         'storage_bucket_path': storageBucketPath,
         'uploaded_at': uploadedAt.toIso8601String(),
         'reviewed_at': reviewedAt?.toIso8601String(),
@@ -65,14 +65,8 @@ class DriverDocument {
     return DriverDocument(
       id: id,
       driverId: json['driver_id'] as String,
-      type: DriverDocumentType.values.firstWhere(
-        (t) => t.name == json['type'],
-        orElse: () => DriverDocumentType.other,
-      ),
-      status: DriverDocumentStatus.values.firstWhere(
-        (s) => s.name == json['status'],
-        orElse: () => DriverDocumentStatus.missing,
-      ),
+      type: DriverDocumentTypeX.fromFirestoreValue(json['type'] as String?),
+      status: DriverDocumentStatusX.fromFirestoreValue(json['status'] as String?),
       storageBucketPath: json['storage_bucket_path'] as String? ?? '',
       uploadedAt: json['uploaded_at'] != null
           ? DateTime.parse(json['uploaded_at'] as String)

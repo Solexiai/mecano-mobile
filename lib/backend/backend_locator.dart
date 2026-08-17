@@ -16,6 +16,7 @@
 
 import 'backend_bootstrap.dart';
 import 'repositories/driver_repository.dart';
+import 'repositories/firebase_driver_repository.dart';
 import 'repositories/mission_repository.dart';
 import 'repositories/finance_repository.dart';
 import 'repositories/location_repository.dart';
@@ -26,9 +27,7 @@ class BackendLocator {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredDriverRepository();
     }
-    // TODO(firebase-migration): retourner FirebaseDriverRepository() une
-    // fois le projet Firebase connecté et l'implémentation créée.
-    return const NotConfiguredDriverRepository();
+    return FirebaseDriverRepository();
   }
 
   static MissionRepository get missionRepository {

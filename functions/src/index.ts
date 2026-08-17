@@ -37,6 +37,8 @@ export { updatePricingConfiguration } from "./functions/updatePricingConfigurati
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";
+export { registerAsDriver } from "./functions/registerAsDriver";
+export { submitDriverForReview } from "./functions/submitDriverForReview";
 
 // ---- Cron / fonctions planifiées ----
 export { detectExpiringDocuments } from "./functions/detectExpiringDocuments";

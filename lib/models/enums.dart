@@ -1,3 +1,28 @@
+// -----------------------------------------------------------------------------
+// firestoreValue helper — convertit un nom d'enum Dart camelCase (ex:
+// `registrationIncomplete`) en la valeur snake_case attendue par
+// `functions/src/lib/types.ts` et `firestore.rules` (ex:
+// `registration_incomplete`).
+//
+// CONTEXTE (voir audit Movi-K) : les Cloud Functions et les Security Rules
+// écrivent/comparent EXCLUSIVEMENT des valeurs snake_case. Les modèles Dart
+// sérialisaient jusqu'ici via `.name` (camelCase), ce qui aurait créé un
+// écart silencieux entre ce que Flutter écrit et ce que le serveur attend.
+// `firestoreValue` doit être utilisé pour TOUTE sérialisation Firestore ;
+// `.name` reste utilisable pour l'affichage/debug interne uniquement.
+// -----------------------------------------------------------------------------
+String _camelToSnake(String input) {
+  final buffer = StringBuffer();
+  for (var i = 0; i < input.length; i++) {
+    final char = input[i];
+    if (char.toUpperCase() == char && char.toLowerCase() != char && i > 0) {
+      buffer.write('_');
+    }
+    buffer.write(char.toLowerCase());
+  }
+  return buffer.toString();
+}
+
 /// Shared enums for Movi-k marketplace.
 ///
 /// NOTE ON ROLES: `UserRole` is retained for backward compatibility with the
@@ -54,6 +79,15 @@ enum DriverStatus {
 }
 
 extension DriverStatusX on DriverStatus {
+  /// Valeur snake_case attendue par Firestore/Cloud Functions/Security
+  /// Rules (ex: `registrationIncomplete` -> `registration_incomplete`).
+  String get firestoreValue => _camelToSnake(name);
+
+  static DriverStatus fromFirestoreValue(String? value) => DriverStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => DriverStatus.registrationIncomplete,
+      );
+
   String get key {
     switch (this) {
       case DriverStatus.registrationIncomplete:
@@ -91,6 +125,13 @@ enum DriverDocumentType {
 }
 
 extension DriverDocumentTypeX on DriverDocumentType {
+  String get firestoreValue => _camelToSnake(name);
+
+  static DriverDocumentType fromFirestoreValue(String? value) => DriverDocumentType.values.firstWhere(
+        (t) => t.firestoreValue == value,
+        orElse: () => DriverDocumentType.other,
+      );
+
   String get key {
     switch (this) {
       case DriverDocumentType.driversLicence:
@@ -120,6 +161,13 @@ enum DriverDocumentStatus {
 }
 
 extension DriverDocumentStatusX on DriverDocumentStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static DriverDocumentStatus fromFirestoreValue(String? value) => DriverDocumentStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => DriverDocumentStatus.missing,
+      );
+
   String get key {
     switch (this) {
       case DriverDocumentStatus.missing:
@@ -157,6 +205,13 @@ enum VehicleCategory {
 }
 
 extension VehicleCategoryX on VehicleCategory {
+  String get firestoreValue => _camelToSnake(name);
+
+  static VehicleCategory fromFirestoreValue(String? value) => VehicleCategory.values.firstWhere(
+        (c) => c.firestoreValue == value,
+        orElse: () => VehicleCategory.other,
+      );
+
   String get key {
     switch (this) {
       case VehicleCategory.car:
@@ -208,6 +263,16 @@ enum MissionStatus {
 }
 
 extension MissionStatusX on MissionStatus {
+  /// Valeur snake_case attendue côté serveur (ex: `searchingDriver` ->
+  /// `searching_driver`), conforme à `MissionStatuses` dans
+  /// `functions/src/lib/types.ts`.
+  String get firestoreValue => _camelToSnake(name);
+
+  static MissionStatus fromFirestoreValue(String? value) => MissionStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => MissionStatus.draft,
+      );
+
   String get key => 'mission_status_${name.toLowerCase()}';
 
   /// Statuses at which a mission is still open for offer/acceptance.
@@ -221,6 +286,13 @@ extension MissionStatusX on MissionStatus {
 enum FoundingDriverStatus { candidate, qualified, suspended, revoked, expired }
 
 extension FoundingDriverStatusX on FoundingDriverStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static FoundingDriverStatus fromFirestoreValue(String? value) => FoundingDriverStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => FoundingDriverStatus.candidate,
+      );
+
   String get key => 'founding_driver_status_${name.toLowerCase()}';
 }
 
@@ -229,6 +301,17 @@ extension FoundingDriverStatusX on FoundingDriverStatus {
 // =====================================================================
 
 enum CommissionProgramType { foundingPreferred, promotional, standard }
+
+extension CommissionProgramTypeX on CommissionProgramType {
+  /// `foundingPreferred` -> `founding_preferred` (cohérent avec
+  /// `CommissionProgramTypes` dans `functions/src/lib/types.ts`).
+  String get firestoreValue => _camelToSnake(name);
+
+  static CommissionProgramType fromFirestoreValue(String? value) => CommissionProgramType.values.firstWhere(
+        (t) => t.firestoreValue == value,
+        orElse: () => CommissionProgramType.standard,
+      );
+}
 
 // =====================================================================
 // SURCHARGE MODES
@@ -259,11 +342,47 @@ enum LedgerEntryType {
   driverPayout,
 }
 
+extension LedgerEntryTypeX on LedgerEntryType {
+  String get firestoreValue => _camelToSnake(name);
+
+  static LedgerEntryType fromFirestoreValue(String? value) => LedgerEntryType.values.firstWhere(
+        (t) => t.firestoreValue == value,
+        orElse: () => LedgerEntryType.driverAdjustment,
+      );
+}
+
 enum LedgerDirection { credit, debit }
+
+extension LedgerDirectionX on LedgerDirection {
+  String get firestoreValue => name; // déjà snake_case (mot unique)
+
+  static LedgerDirection fromFirestoreValue(String? value) => LedgerDirection.values.firstWhere(
+        (d) => d.firestoreValue == value,
+        orElse: () => LedgerDirection.credit,
+      );
+}
 
 enum LedgerParty { customer, driver, platform }
 
+extension LedgerPartyX on LedgerParty {
+  String get firestoreValue => name; // déjà snake_case (mot unique)
+
+  static LedgerParty fromFirestoreValue(String? value) => LedgerParty.values.firstWhere(
+        (p) => p.firestoreValue == value,
+        orElse: () => LedgerParty.platform,
+      );
+}
+
 enum LedgerEntryStatus { pending, confirmed, reversed, compensated }
+
+extension LedgerEntryStatusX on LedgerEntryStatus {
+  String get firestoreValue => name; // déjà snake_case (mot unique)
+
+  static LedgerEntryStatus fromFirestoreValue(String? value) => LedgerEntryStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => LedgerEntryStatus.pending,
+      );
+}
 
 // =====================================================================
 // PAYMENT
@@ -271,7 +390,25 @@ enum LedgerEntryStatus { pending, confirmed, reversed, compensated }
 
 enum PaymentStatus { pending, authorized, captured, failed, refunded, partiallyRefunded, disputed }
 
+extension PaymentStatusX on PaymentStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static PaymentStatus fromFirestoreValue(String? value) => PaymentStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => PaymentStatus.pending,
+      );
+}
+
 enum DriverOnlineStatus { offline, online, onMission }
+
+extension DriverOnlineStatusX on DriverOnlineStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static DriverOnlineStatus fromFirestoreValue(String? value) => DriverOnlineStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => DriverOnlineStatus.offline,
+      );
+}
 
 enum DeliveryStatus {
   submitted,

@@ -30,7 +30,7 @@ class DriverVehicle {
   Map<String, dynamic> toJson() => {
         'id': id,
         'driver_id': driverId,
-        'category': category.name,
+        'category': category.firestoreValue,
         'make_model': makeModel,
         'year': year,
         'plate': plate,
@@ -43,10 +43,7 @@ class DriverVehicle {
     return DriverVehicle(
       id: id,
       driverId: json['driver_id'] as String,
-      category: VehicleCategory.values.firstWhere(
-        (c) => c.name == json['category'],
-        orElse: () => VehicleCategory.other,
-      ),
+      category: VehicleCategoryX.fromFirestoreValue(json['category'] as String?),
       makeModel: json['make_model'] as String? ?? '',
       year: json['year'] as int? ?? 0,
       plate: json['plate'] as String? ?? '',

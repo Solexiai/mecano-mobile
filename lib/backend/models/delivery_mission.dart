@@ -53,8 +53,8 @@ class DeliveryMission {
         'customer_id': customerId,
         'item_category_key': itemCategoryKey,
         'description': description,
-        'required_vehicle_category': requiredVehicleCategory.name,
-        'status': status.name,
+        'required_vehicle_category': requiredVehicleCategory.firestoreValue,
+        'status': status.firestoreValue,
         'driver_id': driverId,
         'accepted_at': acceptedAt?.toIso8601String(),
         'pricing_version': pricingVersion,
@@ -72,14 +72,8 @@ class DeliveryMission {
       customerId: json['customer_id'] as String? ?? '',
       itemCategoryKey: json['item_category_key'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      requiredVehicleCategory: VehicleCategory.values.firstWhere(
-        (c) => c.name == json['required_vehicle_category'],
-        orElse: () => VehicleCategory.other,
-      ),
-      status: MissionStatus.values.firstWhere(
-        (s) => s.name == json['status'],
-        orElse: () => MissionStatus.draft,
-      ),
+      requiredVehicleCategory: VehicleCategoryX.fromFirestoreValue(json['required_vehicle_category'] as String?),
+      status: MissionStatusX.fromFirestoreValue(json['status'] as String?),
       driverId: json['driver_id'] as String?,
       acceptedAt:
           json['accepted_at'] != null ? DateTime.parse(json['accepted_at'] as String) : null,

@@ -52,9 +52,9 @@ class DriverProfileV2 {
         'uid': uid,
         'full_name': fullName,
         'city': city,
-        'status': status.name,
+        'status': status.firestoreValue,
         'service_radius_km': serviceRadiusKm,
-        'accepted_vehicle_categories': acceptedVehicleCategories.map((c) => c.name).toList(),
+        'accepted_vehicle_categories': acceptedVehicleCategories.map((c) => c.firestoreValue).toList(),
         'accepted_item_category_keys': acceptedItemCategoryKeys,
         'rating': rating,
         'completed_missions': completedMissions,
@@ -64,7 +64,7 @@ class DriverProfileV2 {
         'rejection_reason': rejectionReason,
         'identity_verified': identityVerified,
         'vehicle_verified': vehicleVerified,
-        'online_status': onlineStatus.name,
+        'online_status': onlineStatus.firestoreValue,
       };
 
   factory DriverProfileV2.fromJson(String uid, Map<String, dynamic> json) {
@@ -72,16 +72,10 @@ class DriverProfileV2 {
       uid: uid,
       fullName: json['full_name'] as String? ?? '',
       city: json['city'] as String? ?? '',
-      status: DriverStatus.values.firstWhere(
-        (s) => s.name == json['status'],
-        orElse: () => DriverStatus.registrationIncomplete,
-      ),
+      status: DriverStatusX.fromFirestoreValue(json['status'] as String?),
       serviceRadiusKm: (json['service_radius_km'] as num? ?? 0).toDouble(),
       acceptedVehicleCategories: ((json['accepted_vehicle_categories'] as List?) ?? [])
-          .map((v) => VehicleCategory.values.firstWhere(
-                (c) => c.name == v,
-                orElse: () => VehicleCategory.other,
-              ))
+          .map((v) => VehicleCategoryX.fromFirestoreValue(v as String?))
           .toList(),
       acceptedItemCategoryKeys:
           (json['accepted_item_category_keys'] as List?)?.cast<String>() ?? const [],
@@ -96,10 +90,7 @@ class DriverProfileV2 {
       rejectionReason: json['rejection_reason'] as String?,
       identityVerified: json['identity_verified'] as bool? ?? false,
       vehicleVerified: json['vehicle_verified'] as bool? ?? false,
-      onlineStatus: DriverOnlineStatus.values.firstWhere(
-        (s) => s.name == json['online_status'],
-        orElse: () => DriverOnlineStatus.offline,
-      ),
+      onlineStatus: DriverOnlineStatusX.fromFirestoreValue(json['online_status'] as String?),
     );
   }
 }

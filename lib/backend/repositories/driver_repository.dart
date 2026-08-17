@@ -39,6 +39,12 @@ abstract class DriverRepository {
   /// Cloud Function approveDriver()).
   Future<void> submitDriverOnboarding(DriverProfileV2 profile);
 
+  /// Fait transitionner le profil de registration_incomplete/
+  /// documents_required vers pending_review, via la Cloud Function
+  /// `submitDriverForReview` (le client ne peut jamais écrire `status`
+  /// directement — voir firestore.rules).
+  Future<void> submitForReview();
+
   /// Liste des chauffeurs en attente de revue (pour le portail analyste).
   /// Nécessite le rôle analyst/admin/super_admin côté serveur (Security
   /// Rules) — cette interface ne fait qu'exposer l'appel.
@@ -77,6 +83,12 @@ class NotConfiguredDriverRepository implements DriverRepository {
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) {
     throw BackendNotConfiguredException(
         'submitDriverOnboarding: Firebase Firestore non configuré.');
+  }
+
+  @override
+  Future<void> submitForReview() {
+    throw BackendNotConfiguredException(
+        'submitForReview: Firebase Functions non configuré.');
   }
 
   @override
