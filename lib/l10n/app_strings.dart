@@ -163,6 +163,12 @@ class AppStrings {
     'delivery_item_stairs': {'fr': 'Escaliers, ascenseur ou manutention spéciale', 'en': 'Stairs, elevator or special handling', 'es': 'Escaleras, ascensor o manejo especial'},
     'delivery_item_loading_help': {'fr': "Aide au chargement nécessaire", 'en': 'Loading assistance needed', 'es': 'Ayuda de carga necesaria'},
     'delivery_item_unloading_help': {'fr': 'Aide au déchargement nécessaire', 'en': 'Unloading assistance needed', 'es': 'Ayuda de descarga necesaria'},
+    'delivery_item_heavy': {'fr': 'Objet lourd (+50 kg)', 'en': 'Heavy item (50+ kg)', 'es': 'Objeto pesado (+50 kg)'},
+    'delivery_item_bulky': {'fr': 'Objet volumineux', 'en': 'Bulky item', 'es': 'Objeto voluminoso'},
+    'delivery_breakdown_base': {'fr': 'Valeur de base de la mission', 'en': 'Mission base value', 'es': 'Valor base de la misión'},
+    'delivery_breakdown_service_fee': {'fr': 'Frais de service', 'en': 'Service fee', 'es': 'Tarifa de servicio'},
+    'delivery_breakdown_tax': {'fr': 'Taxes', 'en': 'Taxes', 'es': 'Impuestos'},
+    'delivery_breakdown_discount': {'fr': 'Remise', 'en': 'Discount', 'es': 'Descuento'},
 
     'delivery_pickup_address': {'fr': "Adresse d'enlèvement", 'en': 'Pickup address', 'es': 'Dirección de recogida'},
     'delivery_dropoff_address': {'fr': 'Adresse de livraison', 'en': 'Delivery address', 'es': 'Dirección de entrega'},
@@ -241,6 +247,18 @@ class AppStrings {
     'requests_retry': {'fr': 'Réessayer', 'en': 'Retry', 'es': 'Reintentar'},
     'requests_empty': {'fr': 'Rien à afficher pour l\'instant', 'en': 'Nothing to show yet', 'es': 'Nada que mostrar todavía'},
 
+    'overview_greeting': {'fr': 'Bonjour', 'en': 'Hello', 'es': 'Hola'},
+    'overview_subtitle': {'fr': 'Voici un résumé de votre activité sur Movi-K.', 'en': 'Here is a summary of your activity on Movi-K.', 'es': 'Aquí tienes un resumen de tu actividad en Movi-K.'},
+    'overview_stat_total': {'fr': 'Demandes totales', 'en': 'Total requests', 'es': 'Solicitudes totales'},
+    'overview_stat_active': {'fr': 'Actives', 'en': 'Active', 'es': 'Activas'},
+    'overview_new_delivery': {'fr': 'Nouvelle livraison', 'en': 'New delivery', 'es': 'Nueva entrega'},
+    'overview_new_mechanic': {'fr': 'Nouveau service mécanique', 'en': 'New mechanic service', 'es': 'Nuevo servicio mecánico'},
+    'overview_recent_title': {'fr': 'Demandes récentes', 'en': 'Recent requests', 'es': 'Solicitudes recientes'},
+    'overview_see_all': {'fr': 'Tout voir', 'en': 'See all', 'es': 'Ver todo'},
+    'overview_empty_title': {'fr': 'Aucune demande pour le moment', 'en': 'No requests yet', 'es': 'Aún no hay solicitudes'},
+    'overview_empty_cta': {'fr': 'Créer ma première demande', 'en': 'Create my first request', 'es': 'Crear mi primera solicitud'},
+    'overview_loading': {'fr': 'Chargement…', 'en': 'Loading…', 'es': 'Cargando…'},
+
     // ---------- Driver jobs / active mission (Firebase réel) ----------
     'driver_jobs_title': {'fr': 'Demandes disponibles', 'en': 'Available requests', 'es': 'Solicitudes disponibles'},
     'driver_jobs_loading': {'fr': 'Recherche de missions disponibles…', 'en': 'Looking for available missions…', 'es': 'Buscando misiones disponibles…'},
@@ -268,6 +286,19 @@ class AppStrings {
     'earnings_total_label': {'fr': 'Total des gains confirmés', 'en': 'Total confirmed earnings', 'es': 'Total de ganancias confirmadas'},
     'earnings_pending_label': {'fr': 'En attente de confirmation', 'en': 'Pending confirmation', 'es': 'Pendiente de confirmación'},
     'earnings_history_title': {'fr': 'Historique des transactions', 'en': 'Transaction history', 'es': 'Historial de transacciones'},
+    'earnings_status_pending': {'fr': 'En attente', 'en': 'Pending', 'es': 'Pendiente'},
+    'earnings_status_confirmed': {'fr': 'Confirmée', 'en': 'Confirmed', 'es': 'Confirmada'},
+    'earnings_status_reversed': {'fr': 'Annulée', 'en': 'Reversed', 'es': 'Anulada'},
+    'earnings_status_compensated': {'fr': 'Compensée', 'en': 'Compensated', 'es': 'Compensada'},
+
+    'ledger_type_driver_earning': {'fr': 'Rémunération de mission', 'en': 'Mission earning', 'es': 'Ganancia de misión'},
+    'ledger_type_driver_tip': {'fr': 'Pourboire', 'en': 'Tip', 'es': 'Propina'},
+    'ledger_type_driver_bonus': {'fr': 'Bonus', 'en': 'Bonus', 'es': 'Bono'},
+    'ledger_type_driver_payout': {'fr': 'Versement', 'en': 'Payout', 'es': 'Pago'},
+    'ledger_type_driver_adjustment': {'fr': 'Ajustement', 'en': 'Adjustment', 'es': 'Ajuste'},
+    'ledger_type_refund': {'fr': 'Remboursement', 'en': 'Refund', 'es': 'Reembolso'},
+    'ledger_type_partial_refund': {'fr': 'Remboursement partiel', 'en': 'Partial refund', 'es': 'Reembolso parcial'},
+    'ledger_type_chargeback': {'fr': 'Rétrofacturation', 'en': 'Chargeback', 'es': 'Contracargo'},
 
     // ---------- Mechanic ----------
     'mechanic_hero_headline': {'fr': 'Un mécanicien qui se déplace chez vous.', 'en': 'A mechanic who comes to you.', 'es': 'Un mecánico que viene a ti.'},

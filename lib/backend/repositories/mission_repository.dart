@@ -111,6 +111,16 @@ abstract class MissionRepository {
   Future<void> markPickupCompleted(String missionId);
 
   Future<void> markDeliveryCompleted(String missionId);
+
+  /// Transitions intermédiaires du trajet (sans impact financier) :
+  /// assigned -> driverToPickup -> arrivedAtPickup, puis (après
+  /// markPickupCompleted -> pickedUp) pickedUp -> inTransit ->
+  /// arrivedAtDropoff. Appelle la Cloud Function
+  /// `updateMissionTrackingStatus()` — jamais un `.update()` direct.
+  Future<void> updateTrackingStatus({
+    required String missionId,
+    required MissionStatus targetStatus,
+  });
 }
 
 class NotConfiguredMissionRepository implements MissionRepository {
@@ -157,5 +167,10 @@ class NotConfiguredMissionRepository implements MissionRepository {
   @override
   Future<void> markDeliveryCompleted(String missionId) {
     throw BackendNotConfiguredException('markDeliveryCompleted: backend Firebase non configuré.');
+  }
+
+  @override
+  Future<void> updateTrackingStatus({required String missionId, required MissionStatus targetStatus}) {
+    throw BackendNotConfiguredException('updateTrackingStatus: backend Firebase non configuré.');
   }
 }

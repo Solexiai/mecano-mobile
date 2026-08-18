@@ -24,6 +24,7 @@ export { createDeliveryRequest } from "./functions/createDeliveryRequest";
 export { acceptDelivery } from "./functions/acceptDelivery";
 export { completePickup } from "./functions/completePickup";
 export { completeDelivery } from "./functions/completeDelivery";
+export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";
 export { onMissionCreatedDispatch, onMissionReopenedDispatch } from "./functions/dispatchMissionToDrivers";
 
 // ---- GPS ----

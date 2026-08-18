@@ -244,4 +244,19 @@ class FirebaseMissionRepository implements MissionRepository {
       throw CloudFunctionException(e.code, e.message ?? 'completeDelivery a échoué.');
     }
   }
+
+  @override
+  Future<void> updateTrackingStatus({
+    required String missionId,
+    required MissionStatus targetStatus,
+  }) async {
+    try {
+      await _functions.httpsCallable('updateMissionTrackingStatus').call({
+        'missionId': missionId,
+        'targetStatus': targetStatus.firestoreValue,
+      });
+    } on FirebaseFunctionsException catch (e) {
+      throw CloudFunctionException(e.code, e.message ?? 'updateMissionTrackingStatus a échoué.');
+    }
+  }
 }
