@@ -231,3 +231,129 @@ describe("acceptDelivery — double acceptation simultanée (premier commit gagn
     }
   );
 });
+
+// ---------------------------------------------------------------------------
+// Tests négatifs — acceptDelivery() (Phase 3, point 15).
+//
+// Couvre les rejets explicites du handler (voir src/functions/acceptDelivery.ts) :
+// chauffeur non-approuvé, documents invalides, catégorie de véhicule non
+// acceptée, mission déjà assignée à un autre chauffeur, mission introuvable.
+// ---------------------------------------------------------------------------
+describe("acceptDelivery — cas négatifs (chauffeur non éligible / mission non disponible)", () => {
+  beforeEach(async () => {
+    await Promise.all([seedOpenMission(), seedPricingVersion()]);
+  });
+
+  afterEach(async () => {
+    await cleanupSeed();
+    await db.collection("driver_profiles").doc(DRIVER_A_ID).delete().catch(() => undefined);
+  });
+
+  it("un chauffeur au statut 'pending_review' (non approuvé) ne peut PAS accepter", async () => {
+    await db.collection("driver_profiles").doc(DRIVER_A_ID).set({
+      uid: DRIVER_A_ID,
+      full_name: "Chauffeur Non Approuvé",
+      city: "Montréal",
+      status: "pending_review",
+      service_radius_km: 25,
+      accepted_vehicle_categories: ["cargoVan"],
+      accepted_item_category_keys: ["furniture"],
+      created_at: admin.firestore.Timestamp.now(),
+      online_status: "offline",
+      documents_all_valid: true,
+    });
+
+    await expect(acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+
+    const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
+    expect(missionSnap.data()!.status).toBe("searching_driver");
+  });
+
+  it("un chauffeur suspendu ne peut PAS accepter (status != approved)", async () => {
+    await db.collection("driver_profiles").doc(DRIVER_A_ID).set({
+      uid: DRIVER_A_ID,
+      full_name: "Chauffeur Suspendu",
+      city: "Montréal",
+      status: "suspended",
+      service_radius_km: 25,
+      accepted_vehicle_categories: ["cargoVan"],
+      accepted_item_category_keys: ["furniture"],
+      created_at: admin.firestore.Timestamp.now(),
+      online_status: "offline",
+      documents_all_valid: true,
+      suspended_at: admin.firestore.Timestamp.now(),
+      suspended_by_user_id: "admin_seed",
+      suspension_reason: "Test négatif acceptDelivery",
+    });
+
+    await expect(acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+  });
+
+  it("un chauffeur approuvé avec des documents invalides/expirés ne peut PAS accepter", async () => {
+    await db.collection("driver_profiles").doc(DRIVER_A_ID).set({
+      uid: DRIVER_A_ID,
+      full_name: "Chauffeur Documents Invalides",
+      city: "Montréal",
+      status: "approved",
+      service_radius_km: 25,
+      accepted_vehicle_categories: ["cargoVan"],
+      accepted_item_category_keys: ["furniture"],
+      created_at: admin.firestore.Timestamp.now(),
+      approved_at: admin.firestore.Timestamp.now(),
+      approved_by_user_id: "admin_seed",
+      online_status: "online",
+      documents_all_valid: false,
+    });
+
+    await expect(acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))).rejects.toMatchObject({
+      code: "failed-precondition",
+    });
+  });
+
+  it("un chauffeur approuvé mais dont la catégorie de véhicule ne correspond pas ne peut PAS accepter", async () => {
+    await db.collection("driver_profiles").doc(DRIVER_A_ID).set({
+      uid: DRIVER_A_ID,
+      full_name: "Chauffeur Mauvaise Catégorie",
+      city: "Montréal",
+      status: "approved",
+      service_radius_km: 25,
+      accepted_vehicle_categories: ["sedan"], // mission exige 'cargoVan'
+      accepted_item_category_keys: ["furniture"],
+      created_at: admin.firestore.Timestamp.now(),
+      approved_at: admin.firestore.Timestamp.now(),
+      approved_by_user_id: "admin_seed",
+      online_status: "online",
+      documents_all_valid: true,
+    });
+
+    await expect(acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))).rejects.toMatchObject({
+      code: "permission-denied",
+    });
+  });
+
+  it("un chauffeur approuvé et éligible ne peut PAS accepter une mission déjà 'assigned' à un autre", async () => {
+    await seedApprovedDriver(DRIVER_A_ID);
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      status: "assigned",
+      driver_id: DRIVER_B_ID,
+    });
+
+    await expect(acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))).rejects.toMatchObject({
+      code: "failed-precondition",
+    });
+  });
+
+  it("acceptDelivery sur une mission inexistante échoue avec 'not-found'", async () => {
+    await seedApprovedDriver(DRIVER_A_ID);
+    const request = buildDriverRequest(DRIVER_A_ID);
+    request.data = { missionId: "mission_qui_nexiste_pas" };
+
+    await expect(acceptDelivery.run(request)).rejects.toMatchObject({
+      code: "not-found",
+    });
+  });
+});
