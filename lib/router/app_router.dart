@@ -9,6 +9,7 @@ import '../screens/mechanic/mechanic_request_flow_screen.dart';
 import '../screens/driver/driver_landing_screen.dart';
 import '../screens/driver/driver_onboarding_screen.dart';
 import '../screens/driver/driver_status_screen.dart';
+import '../screens/driver/driver_active_mission_screen.dart';
 import '../screens/mechanic_provider/mechanic_provider_landing_screen.dart';
 import '../screens/mechanic_provider/mechanic_onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
@@ -259,6 +260,19 @@ class AppRouter {
             GoRoute(
               path: 'provider/dashboard',
               builder: (c, s) => const ProviderDashboardShell(),
+            ),
+
+            // Mission Active Chauffeur — route dédiée (paramétrée par
+            // missionId), distincte du shell à onglets : une mission
+            // active est un contexte de navigation ponctuel, pas un onglet
+            // persistant.
+            GoRoute(
+              path: 'fournisseur/mission/:missionId',
+              builder: (c, s) => DriverActiveMissionScreen(missionId: s.pathParameters['missionId']!),
+            ),
+            GoRoute(
+              path: 'provider/mission/:missionId',
+              builder: (c, s) => DriverActiveMissionScreen(missionId: s.pathParameters['missionId']!),
             ),
 
             // Portail admin — architecture forward-compatible : `/admin` est

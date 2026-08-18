@@ -134,6 +134,32 @@ class FirebaseMissionRepository implements MissionRepository {
   }
 
   @override
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) {
+    // Requête simple (un seul .where()) : le filtrage par statut "en
+    // trajet" (assigned -> arrived_at_dropoff) se fait en mémoire pour ne
+    // dépendre d'aucun index composite driver_id+status. Une mission
+    // `completed`/`cancelled` récente reste dans le résultat brut mais est
+    // exclue ici — c'est cette méthode qui décide de la mission "active".
+    const activeStatuses = {
+      MissionStatus.assigned,
+      MissionStatus.driverToPickup,
+      MissionStatus.arrivedAtPickup,
+      MissionStatus.pickedUp,
+      MissionStatus.inTransit,
+      MissionStatus.arrivedAtDropoff,
+    };
+    return _missions.where('driver_id', isEqualTo: driverId).snapshots().map((snap) {
+      final candidates = snap.docs
+          .map((d) => DeliveryMission.fromJson(d.id, d.data()))
+          .where((m) => activeStatuses.contains(m.status))
+          .toList();
+      if (candidates.isEmpty) return null;
+      candidates.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return candidates.first;
+    });
+  }
+
+  @override
   Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) {
     // Requête simple (un seul .where()) : le tri par date se fait en
     // mémoire côté UI pour ne dépendre d'aucun index composite, même si

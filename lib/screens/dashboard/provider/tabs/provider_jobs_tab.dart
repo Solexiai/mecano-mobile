@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../backend/backend_locator.dart';
@@ -43,6 +44,13 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           _acceptErrors[mission.id] = result.errorCode ?? 'unknown_error';
         }
       });
+      // Acceptation réussie : le chauffeur est redirigé directement vers
+      // l'écran Mission Active (source de vérité temps réel
+      // `watchMission()`), sans jamais décider localement du statut.
+      if (result.success && mounted) {
+        final locale = context.read<LocaleProvider>().locale;
+        context.push('/$locale/provider/mission/${mission.id}');
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -74,7 +82,56 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(t('driver_jobs_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          // Bannière de reprise : si ce chauffeur a déjà une mission en
+          // trajet (assigned -> arrived_at_dropoff), on lui permet d'y
+          // revenir directement plutôt que de la laisser invisible parmi
+          // les jobs disponibles.
+          StreamBuilder<DeliveryMission?>(
+            stream: BackendLocator.missionRepository.watchActiveMissionForDriver(driverId),
+            builder: (context, snap) {
+              final active = snap.data;
+              if (active == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      final locale = context.read<LocaleProvider>().locale;
+                      context.push('/$locale/provider/mission/${active.id}');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.deliveryGradient,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_shipping, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(t('driver_active_mission_resume_banner'),
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 2),
+                                Text(t(active.status.key), style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           StreamBuilder<List<DeliveryMission>>(
             stream: BackendLocator.missionRepository.watchAvailableMissionsForDriver(driverId),
             builder: (context, snapshot) {

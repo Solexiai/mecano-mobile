@@ -93,6 +93,16 @@ abstract class MissionRepository {
 
   Stream<DeliveryMission?> watchMission(String missionId);
 
+  /// Découverte de la mission active en cours pour ce chauffeur (une seule à
+  /// la fois en pratique : `driver_id == driverId` et statut dans l'un des
+  /// états de trajet assigné/en cours). Requête volontairement SIMPLE (un
+  /// seul `.where()`) — le filtrage par statut et le tri se font en mémoire
+  /// pour rester cohérent avec la convention du reste du repository et ne
+  /// dépendre d'aucun index composite. Sert uniquement de point d'entrée
+  /// (bannière, reprise d'app) ; l'écran Mission Active utilise ensuite
+  /// `watchMission(missionId)` comme unique source de vérité temps réel.
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId);
+
   Stream<List<DeliveryMission>> watchCustomerMissions(String customerId);
 
   /// Missions ouvertes à l'acceptation, visibles par un chauffeur candidat
@@ -143,6 +153,9 @@ class NotConfiguredMissionRepository implements MissionRepository {
 
   @override
   Stream<DeliveryMission?> watchMission(String missionId) => Stream.value(null);
+
+  @override
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
 
   @override
   Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => Stream.value(const []);

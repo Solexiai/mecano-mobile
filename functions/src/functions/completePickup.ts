@@ -33,12 +33,16 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
     }
 
     const now = admin.firestore.Timestamp.now();
-    tx.update(missionRef, { status: MissionStatuses.PICKED_UP });
 
-    // Marque le stop pickup (sequence 0) comme complété.
+    // IMPORTANT: Firestore exige que TOUTES les lectures d'une transaction
+    // précèdent TOUTES les écritures. On lit donc le stop pickup (sequence 0)
+    // AVANT le premier tx.update() sur la mission.
     const stopsSnap = await tx.get(
       missionRef.collection("stops").where("sequence", "==", 0).limit(1)
     );
+
+    tx.update(missionRef, { status: MissionStatuses.PICKED_UP });
+
     if (!stopsSnap.empty) {
       tx.update(stopsSnap.docs[0].ref, { completed_at: now });
     }
