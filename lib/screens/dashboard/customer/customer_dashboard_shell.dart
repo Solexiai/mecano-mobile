@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
-import '../../../providers/auth_provider.dart';
+import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../widgets/language_selector.dart';
 import 'tabs/customer_overview_tab.dart';
@@ -22,11 +22,11 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
     final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
 
-    if (!auth.isLoggedIn) {
+    if (!auth.isSignedIn) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -68,7 +68,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
         actions: [
           const LanguageSelector(compact: true),
           const SizedBox(width: 8),
-          IconButton(onPressed: () => auth.logout(), icon: const Icon(Icons.logout)),
+          IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
           const SizedBox(width: 8),
         ],
       ),

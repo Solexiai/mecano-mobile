@@ -3,7 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/app_colors.dart';
 import '../providers/locale_provider.dart';
-import '../providers/auth_provider.dart';
+import '../providers/firebase_auth_provider.dart';
+import '../models/enums.dart';
 import 'language_selector.dart';
 
 /// Shared public-page shell: responsive header with nav + footer.
@@ -74,7 +75,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
 
     return AppBar(
       toolbarHeight: 72,
@@ -107,7 +108,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (isDesktop) const LanguageSelector(),
         const SizedBox(width: 8),
         if (isDesktop)
-          if (auth.isLoggedIn)
+          if (auth.isSignedIn)
             _AccountMenu(locale: locale)
           else ...[
             OutlinedButton(
@@ -150,27 +151,28 @@ class _AccountMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
+    final displayName = auth.user?.displayName ?? auth.user?.email ?? '';
+    final isCustomerOnly = auth.roles.length == 1 && auth.roles.first == PlatformRole.customer;
     return PopupMenuButton<String>(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) {
         if (value == 'dashboard') context.go('/$locale/tableau-de-bord');
         if (value == 'provider') context.go('/$locale/fournisseur/tableau-de-bord');
         if (value == 'admin') context.go('/$locale/admin');
-        if (value == 'logout') auth.logout();
+        if (value == 'logout') auth.signOut();
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'dashboard', child: Text(t('nav_dashboard'))),
-        if (auth.currentUser?.roles.length != 1 || auth.currentUser!.roles.first.name != 'customer')
-          PopupMenuItem(value: 'provider', child: Text('Espace fournisseur')),
-        const PopupMenuItem(value: 'admin', child: Text('Admin (démo)')),
+        if (!isCustomerOnly) PopupMenuItem(value: 'provider', child: Text('Espace fournisseur')),
+        if (auth.isAnalystOrAbove) const PopupMenuItem(value: 'admin', child: Text('Admin')),
         PopupMenuItem(value: 'logout', child: Text(t('nav_logout'))),
       ],
       child: CircleAvatar(
         radius: 18,
         backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         child: Text(
-          (auth.currentUser?.fullName.isNotEmpty == true ? auth.currentUser!.fullName.substring(0, 1) : '?').toUpperCase(),
+          (displayName.isNotEmpty ? displayName.substring(0, 1) : '?').toUpperCase(),
           style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
         ),
       ),
@@ -185,7 +187,7 @@ class _MobileDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
           leading: Icon(icon, color: AppColors.primary),
           title: Text(label),
@@ -215,9 +217,9 @@ class _MobileDrawer extends StatelessWidget {
             item(Icons.help_outline, t('nav_faq'), () => context.go('/$locale/faq')),
             item(Icons.mail_outline, t('nav_contact'), () => context.go('/$locale/contact')),
             const Divider(),
-            if (auth.isLoggedIn) ...[
+            if (auth.isSignedIn) ...[
               item(Icons.dashboard_outlined, t('nav_dashboard'), () => context.go('/$locale/tableau-de-bord')),
-              item(Icons.logout, t('nav_logout'), () => auth.logout()),
+              item(Icons.logout, t('nav_logout'), () => auth.signOut()),
             ] else
               item(Icons.login, t('nav_sign_in'), () => context.go('/$locale/connexion')),
           ],

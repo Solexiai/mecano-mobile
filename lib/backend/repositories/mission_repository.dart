@@ -14,7 +14,10 @@ import '../../models/enums.dart';
 import '../models/delivery_mission.dart';
 import '../models/delivery_quote.dart';
 import '../models/delivery_offer.dart';
+import '../models/mission_address.dart';
 import '../backend_exceptions.dart';
+
+export '../models/mission_address.dart' show MissionAddress;
 
 /// Résultat renvoyé après une tentative d'acceptation de mission.
 class AcceptMissionResult {
@@ -23,32 +26,6 @@ class AcceptMissionResult {
   final DeliveryMission? mission;
 
   const AcceptMissionResult({required this.success, this.errorCode, this.mission});
-}
-
-/// Une adresse structurée pour un stop (pickup ou dropoff). Miroir exact de
-/// `StopInput.address` dans `functions/src/functions/createDeliveryRequest.ts`.
-class MissionAddress {
-  final String line1;
-  final String city;
-  final String postalCode;
-  final double lat;
-  final double lng;
-
-  const MissionAddress({
-    required this.line1,
-    required this.city,
-    required this.postalCode,
-    required this.lat,
-    required this.lng,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'line1': line1,
-        'city': city,
-        'postal_code': postalCode,
-        'lat': lat,
-        'lng': lng,
-      };
 }
 
 /// Un stop (pickup ou dropoff) — miroir exact de `StopInput` dans

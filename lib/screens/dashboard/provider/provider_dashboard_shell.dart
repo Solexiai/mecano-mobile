@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
-import '../../../providers/auth_provider.dart';
+import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../widgets/language_selector.dart';
+import '../../../backend/backend_locator.dart';
+import '../../../backend/models/driver_profile_v2.dart';
+import '../../../models/enums.dart';
 import 'tabs/provider_jobs_tab.dart';
 import 'tabs/provider_calendar_tab.dart';
 import 'tabs/provider_earnings_tab.dart';
@@ -19,15 +22,30 @@ class ProviderDashboardShell extends StatefulWidget {
 
 class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   int _index = 0;
-  bool _available = true;
+  bool _togglingAvailability = false;
+
+  Future<void> _toggleAvailability(String driverId, bool goOnline) async {
+    setState(() => _togglingAvailability = true);
+    try {
+      await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, goOnline);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible de changer votre statut de disponibilité.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _togglingAvailability = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<FirebaseAuthProvider>();
     final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
 
-    if (!auth.isLoggedIn) {
+    if (!auth.isSignedIn) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -43,6 +61,8 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
         ),
       );
     }
+
+    final driverId = auth.user!.uid;
 
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final tabs = [
@@ -66,13 +86,34 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           const Text('Espace fournisseur', style: TextStyle(fontWeight: FontWeight.w700)),
         ]),
         actions: [
-          Row(children: [
-            Text(_available ? 'Disponible' : 'Hors ligne', style: TextStyle(fontSize: 12, color: _available ? AppColors.success : AppColors.textSecondary, fontWeight: FontWeight.w600)),
-            Switch(value: _available, onChanged: (v) => setState(() => _available = v), activeThumbColor: AppColors.success),
-          ]),
+          StreamBuilder<DriverProfileV2?>(
+            stream: BackendLocator.driverRepository.watchDriverProfile(driverId),
+            builder: (context, snap) {
+              final profile = snap.data;
+              final online = profile?.onlineStatus == DriverOnlineStatus.online;
+              final canGoOnline = profile?.status.canGoOnline ?? false;
+              return Row(children: [
+                Text(
+                  online ? 'Disponible' : 'Hors ligne',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: online ? AppColors.success : AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Switch(
+                  value: online,
+                  onChanged: (!canGoOnline || _togglingAvailability)
+                      ? null
+                      : (v) => _toggleAvailability(driverId, v),
+                  activeThumbColor: AppColors.success,
+                ),
+              ]);
+            },
+          ),
           const LanguageSelector(compact: true),
           const SizedBox(width: 8),
-          IconButton(onPressed: () => auth.logout(), icon: const Icon(Icons.logout)),
+          IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
           const SizedBox(width: 8),
         ],
       ),
