@@ -18,8 +18,11 @@ import 'backend_bootstrap.dart';
 import 'repositories/driver_repository.dart';
 import 'repositories/firebase_driver_repository.dart';
 import 'repositories/mission_repository.dart';
+import 'repositories/firebase_mission_repository.dart';
 import 'repositories/finance_repository.dart';
+import 'repositories/firebase_finance_repository.dart';
 import 'repositories/location_repository.dart';
+import 'repositories/firebase_location_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
@@ -34,24 +37,21 @@ class BackendLocator {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredMissionRepository();
     }
-    // TODO(firebase-migration): FirebaseMissionRepository()
-    return const NotConfiguredMissionRepository();
+    return FirebaseMissionRepository();
   }
 
   static FinanceRepository get financeRepository {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredFinanceRepository();
     }
-    // TODO(firebase-migration): FirebaseFinanceRepository()
-    return const NotConfiguredFinanceRepository();
+    return FirebaseFinanceRepository();
   }
 
   static LocationRepository get locationRepository {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredLocationRepository();
     }
-    // TODO(firebase-migration): FirebaseLocationRepository()
-    return const NotConfiguredLocationRepository();
+    return FirebaseLocationRepository();
   }
 
   static PaymentProvider get paymentProvider {

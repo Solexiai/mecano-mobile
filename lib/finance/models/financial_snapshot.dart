@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
+import '../../backend/models/firestore_date.dart';
 
 class FinancialSnapshot {
   final String snapshotId;
@@ -157,10 +158,12 @@ class FinancialSnapshot {
       driverGrossEarnings: (json['driver_gross_earnings'] as num? ?? 0).toDouble(),
       driverOfferAmount: (json['driver_offer_amount'] as num? ?? 0).toDouble(),
       commissionRate: (json['commission_rate'] as num? ?? 0).toDouble(),
-      commissionProgram: CommissionProgramType.values.firstWhere(
-        (c) => c.name == json['commission_program'],
-        orElse: () => CommissionProgramType.standard,
-      ),
+      // Le champ est écrit côté serveur en snake_case (ex: 'founding_preferred',
+      // voir functions/src/lib/pricingEngine.ts resolveCommission()) — on
+      // utilise donc fromFirestoreValue(), jamais une comparaison directe à
+      // enum.name (camelCase).
+      commissionProgram:
+          CommissionProgramTypeX.fromFirestoreValue(json['commission_program'] as String?),
       minimumPlatformCommission: (json['minimum_platform_commission'] as num? ?? 0).toDouble(),
       maximumEffectiveCommissionRate:
           (json['maximum_effective_commission_rate'] as num? ?? 0).toDouble(),
@@ -178,9 +181,8 @@ class FinancialSnapshot {
       customerTotal: (json['customer_total'] as num? ?? 0).toDouble(),
       platformGrossRevenue: (json['platform_gross_revenue'] as num? ?? 0).toDouble(),
       contributionMargin: (json['contribution_margin'] as num? ?? 0).toDouble(),
-      createdAt: DateTime.parse(json['created_at'] as String),
-      confirmedAt:
-          json['confirmed_at'] != null ? DateTime.parse(json['confirmed_at'] as String) : null,
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
+      confirmedAt: parseFirestoreDate(json['confirmed_at']),
       status: json['status'] as String? ?? 'pending',
     );
   }

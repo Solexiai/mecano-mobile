@@ -5,6 +5,8 @@
 // candidats pendant la phase de dispatch (avant acceptation atomique).
 // ---------------------------------------------------------------------------
 
+import 'firestore_date.dart';
+
 class DeliveryOffer {
   final String id;
   final String missionId;
@@ -39,12 +41,8 @@ class DeliveryOffer {
       id: id,
       missionId: json['mission_id'] as String? ?? '',
       driverId: json['driver_id'] as String? ?? '',
-      offeredAt: json['offered_at'] != null
-          ? DateTime.parse(json['offered_at'] as String)
-          : DateTime.now(),
-      expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
-          : DateTime.now(),
+      offeredAt: parseFirestoreDate(json['offered_at']) ?? DateTime.now(),
+      expiresAt: parseFirestoreDate(json['expires_at']) ?? DateTime.now(),
       status: json['status'] as String? ?? 'pending',
     );
   }

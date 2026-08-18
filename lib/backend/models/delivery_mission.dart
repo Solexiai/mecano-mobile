@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
+import 'firestore_date.dart';
 
 class DeliveryMission {
   final String id;
@@ -75,18 +76,13 @@ class DeliveryMission {
       requiredVehicleCategory: VehicleCategoryX.fromFirestoreValue(json['required_vehicle_category'] as String?),
       status: MissionStatusX.fromFirestoreValue(json['status'] as String?),
       driverId: json['driver_id'] as String?,
-      acceptedAt:
-          json['accepted_at'] != null ? DateTime.parse(json['accepted_at'] as String) : null,
+      acceptedAt: parseFirestoreDate(json['accepted_at']),
       pricingVersion: json['pricing_version'] as String? ?? 'UNCONFIGURED',
       activeQuoteId: json['active_quote_id'] as String?,
       activeFinancialSnapshotId: json['active_financial_snapshot_id'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-      completedAt:
-          json['completed_at'] != null ? DateTime.parse(json['completed_at'] as String) : null,
-      cancelledAt:
-          json['cancelled_at'] != null ? DateTime.parse(json['cancelled_at'] as String) : null,
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
+      completedAt: parseFirestoreDate(json['completed_at']),
+      cancelledAt: parseFirestoreDate(json['cancelled_at']),
       cancellationReason: json['cancellation_reason'] as String?,
     );
   }

@@ -11,6 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
+import '../../backend/models/firestore_date.dart';
 
 class LedgerEntry {
   final String ledgerEntryId;
@@ -90,7 +91,7 @@ class LedgerEntry {
         (p) => p.name == json['party'],
         orElse: () => LedgerParty.platform,
       ),
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       createdBy: json['created_by'] as String? ?? 'unknown',
       sourceEvent: json['source_event'] as String? ?? 'unknown',
       status: LedgerEntryStatus.values.firstWhere(

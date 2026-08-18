@@ -10,6 +10,7 @@
 // `.set()`/`.update()` direct sur le document mission.
 // ---------------------------------------------------------------------------
 
+import '../../models/enums.dart';
 import '../models/delivery_mission.dart';
 import '../models/delivery_quote.dart';
 import '../models/delivery_offer.dart';
@@ -24,6 +25,83 @@ class AcceptMissionResult {
   const AcceptMissionResult({required this.success, this.errorCode, this.mission});
 }
 
+/// Une adresse structurée pour un stop (pickup ou dropoff). Miroir exact de
+/// `StopInput.address` dans `functions/src/functions/createDeliveryRequest.ts`.
+class MissionAddress {
+  final String line1;
+  final String city;
+  final String postalCode;
+  final double lat;
+  final double lng;
+
+  const MissionAddress({
+    required this.line1,
+    required this.city,
+    required this.postalCode,
+    required this.lat,
+    required this.lng,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'line1': line1,
+        'city': city,
+        'postal_code': postalCode,
+        'lat': lat,
+        'lng': lng,
+      };
+}
+
+/// Un stop (pickup ou dropoff) — miroir exact de `StopInput` dans
+/// `createDeliveryRequest.ts`. `stops[0]` DOIT être de type `pickup`.
+class MissionStopInput {
+  final String type; // 'pickup' | 'dropoff'
+  final MissionAddress address;
+  final String? contactInstructions;
+  final String? accessDetails;
+
+  const MissionStopInput({
+    required this.type,
+    required this.address,
+    this.contactInstructions,
+    this.accessDetails,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'address': address.toJson(),
+        if (contactInstructions != null) 'contactInstructions': contactInstructions,
+        if (accessDetails != null) 'accessDetails': accessDetails,
+      };
+}
+
+/// Requête complète de création de mission à partir d'un devis valide.
+/// Regroupe TOUTES les données requises par la Cloud Function
+/// `createDeliveryRequest()` — le devis seul (quoteId) ne suffit pas à créer
+/// le document `delivery_requests` complet (adresses, description, etc.).
+class CreateMissionRequest {
+  final String quoteId;
+  final String itemCategoryKey;
+  final String description;
+  final VehicleCategory requiredVehicleCategory;
+  final double distanceKm;
+  final double estimatedDurationMinutes;
+
+  /// stops[0] DOIT être le pickup ; le dernier élément est le dropoff final.
+  final List<MissionStopInput> stops;
+  final String customerDisplayName;
+
+  const CreateMissionRequest({
+    required this.quoteId,
+    required this.itemCategoryKey,
+    required this.description,
+    required this.requiredVehicleCategory,
+    required this.distanceKm,
+    required this.estimatedDurationMinutes,
+    required this.stops,
+    required this.customerDisplayName,
+  });
+}
+
 abstract class MissionRepository {
   Future<DeliveryQuote> requestQuote({
     required String customerId,
@@ -34,7 +112,7 @@ abstract class MissionRepository {
 
   /// Crée la mission à partir d'un devis valide (Cloud Function
   /// createDeliveryRequest()).
-  Future<DeliveryMission> createMissionFromQuote(String quoteId);
+  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request);
 
   Stream<DeliveryMission?> watchMission(String missionId);
 
@@ -72,7 +150,7 @@ class NotConfiguredMissionRepository implements MissionRepository {
   }
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(String quoteId) {
+  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) {
     throw BackendNotConfiguredException('createMissionFromQuote: backend Firebase non configuré.');
   }
 

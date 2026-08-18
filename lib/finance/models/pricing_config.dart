@@ -11,6 +11,7 @@
 library;
 
 import '../../models/enums.dart';
+import '../../backend/models/firestore_date.dart';
 
 /// Per-vehicle-category pricing rule (section 17: `vehicle_pricing_rules`).
 class VehiclePricingRule {
@@ -290,7 +291,7 @@ class PricingConfig {
   factory PricingConfig.fromJson(Map<String, dynamic> json) => PricingConfig(
         pricingVersion: json['pricing_version'] as String,
         isActive: json['is_active'] as bool? ?? false,
-        effectiveFrom: DateTime.tryParse(json['effective_from'] as String? ?? '') ?? DateTime.now(),
+        effectiveFrom: parseFirestoreDate(json['effective_from']) ?? DateTime.now(),
         vehicleRules: (json['vehicle_rules'] as List? ?? []).map((r) => VehiclePricingRule.fromJson(Map<String, dynamic>.from(r))).toList(),
         handlingFees: HandlingFeeConfig.fromJson(Map<String, dynamic>.from(json['handling_fees'] ?? {})),
         waitingFee: WaitingFeeConfig.fromJson(Map<String, dynamic>.from(json['waiting_fee'] ?? {})),

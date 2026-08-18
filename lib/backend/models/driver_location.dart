@@ -11,6 +11,8 @@
 // customer_id). Jamais un accès global aux positions de tous les chauffeurs.
 // ---------------------------------------------------------------------------
 
+import 'firestore_date.dart';
+
 class DriverLocation {
   final String driverId;
   final double latitude;
@@ -51,7 +53,7 @@ class DriverLocation {
       accuracy: (json['accuracy'] as num?)?.toDouble(),
       heading: (json['heading'] as num?)?.toDouble(),
       speed: (json['speed'] as num?)?.toDouble(),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      updatedAt: parseFirestoreDate(json['updated_at']) ?? DateTime.now(),
       activeDeliveryId: json['active_delivery_id'] as String?,
     );
   }

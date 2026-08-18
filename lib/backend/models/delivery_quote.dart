@@ -6,6 +6,8 @@
 // `expiresAt` et ne peut plus servir de base à une acceptation.
 // ---------------------------------------------------------------------------
 
+import 'firestore_date.dart';
+
 class DeliveryQuote {
   final String id;
   final String missionId;
@@ -43,12 +45,8 @@ class DeliveryQuote {
       missionId: json['mission_id'] as String? ?? '',
       pricingVersion: json['pricing_version'] as String? ?? 'UNCONFIGURED',
       customerTotal: (json['customer_total'] as num? ?? 0).toDouble(),
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-      expiresAt: json['expires_at'] != null
-          ? DateTime.parse(json['expires_at'] as String)
-          : DateTime.now(),
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
+      expiresAt: parseFirestoreDate(json['expires_at']) ?? DateTime.now(),
       isConsumed: json['is_consumed'] as bool? ?? false,
     );
   }
