@@ -28,3 +28,29 @@ export async function createTestEnv(): Promise<RulesTestEnvironment> {
     },
   });
 }
+
+// Variante incluant l'émulateur Storage (utilisée par storageRules.test.ts).
+// Les règles Storage référencent Firestore (`firestore.get(...)`) pour
+// vérifier la propriété d'une mission — les DEUX émulateurs doivent donc
+// être actifs simultanément (voir package.json script "test:integration"
+// qui démarre déjà firestore + auth + storage).
+export async function createTestEnvWithStorage(): Promise<RulesTestEnvironment> {
+  const firestoreRulesPath = path.resolve(__dirname, "../../../firestore.rules");
+  const firestoreRules = fs.readFileSync(firestoreRulesPath, "utf8");
+  const storageRulesPath = path.resolve(__dirname, "../../../storage.rules");
+  const storageRules = fs.readFileSync(storageRulesPath, "utf8");
+
+  return initializeTestEnvironment({
+    projectId: PROJECT_ID,
+    firestore: {
+      rules: firestoreRules,
+      host: "127.0.0.1",
+      port: 8080,
+    },
+    storage: {
+      rules: storageRules,
+      host: "127.0.0.1",
+      port: 9199,
+    },
+  });
+}

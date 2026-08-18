@@ -1,0 +1,146 @@
+rules_version = '2';
+
+// =============================================================================
+// Movi-K — Firebase Storage Security Rules (Phase 3)
+//
+// PRINCIPE : DENY BY DEFAULT, identique à firestore.rules.
+//
+// RÔLES : lus EXCLUSIVEMENT depuis les Firebase Auth Custom Claims
+// (request.auth.token.role / request.auth.token.roles), JAMAIS depuis un
+// champ Firestore — cohérent avec firestore.rules.
+//
+// Trois espaces de noms couvrent l'intégralité des usages Storage actuels
+// de l'app (voir docs/FIRESTORE_ARCHITECTURE.md pour le schéma des
+// métadonnées Firestore correspondantes) :
+//   1. driver_documents/{driverId}/{fileName}  — documents d'onboarding
+//      chauffeur (permis, assurance, immatriculation, identité, photo
+//      véhicule). Miroir du champ `driver_documents/{id}.storage_bucket_path`
+//      (Firestore) — le fichier physique vit ici, les métadonnées de
+//      validation vivent dans Firestore.
+//   2. profile_photos/{userId}/{fileName}      — avatar utilisateur, non
+//      sensible, référencé par `users/{uid}.profile_photo_url` (URL
+//      publique par design, voir docs/FIRESTORE_ARCHITECTURE.md §users).
+//   3. delivery_proofs/{missionId}/{fileName}  — preuve de livraison
+//      (photo) référencée par `proofOfDeliveryUrl` dans la Cloud Function
+//      completeDelivery().
+// =============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // -------------------------------------------------------------------
+    // Helpers (miroir de firestore.rules pour cohérence des rôles)
+    // -------------------------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    function roles() {
+      return isSignedIn()
+        ? (('roles' in request.auth.token) ? request.auth.token.roles : [request.auth.token.role])
+        : [];
+    }
+
+    function hasRole(r) {
+      return isSignedIn() && r in roles();
+    }
+
+    function isAnalystOrAbove() {
+      return hasRole('analyst') || hasRole('admin') || hasRole('super_admin');
+    }
+
+    function isDriver() {
+      return hasRole('driver');
+    }
+
+    // Documents (permis, assurance, etc.) : images ou PDF, 10 Mo max.
+    function isValidDocumentUpload() {
+      return request.resource.size < 10 * 1024 * 1024 &&
+        (request.resource.contentType.matches('image/.*') ||
+         request.resource.contentType == 'application/pdf');
+    }
+
+    // Photos (avatar, preuve de livraison) : images uniquement, 5 Mo max.
+    function isValidImageUpload() {
+      return request.resource.size < 5 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+    }
+
+    // -------------------------------------------------------------------
+    // driver_documents/{driverId}/{fileName}
+    // -------------------------------------------------------------------
+    // Lecture : le chauffeur propriétaire ou analyst/admin/super_admin
+    // (même politique de lecture que Firestore driver_documents/{id}).
+    // Écriture : le chauffeur peut UNIQUEMENT créer (upload initial) un
+    // fichier sous son propre uid — jamais écraser ni supprimer un
+    // document déjà téléversé (immutabilité, cohérent avec la règle
+    // Firestore `storage_bucket_path` immuable). Un remplacement doit
+    // passer par un nouveau nom de fichier + un nouveau document Firestore
+    // `driver_documents/{id}` (status=uploaded), jamais un overwrite.
+    // 🔒 Aucun rôle, même analyst/admin/super_admin, ne peut écrire ici —
+    // seul le chauffeur propriétaire peut uploader son propre document.
+    match /driver_documents/{driverId}/{fileName} {
+      allow read: if isSignedIn() && (uid() == driverId || isAnalystOrAbove());
+      // 🔒 Immutabilité : dans Cloud Storage, un ré-upload de CONTENU sur un
+      // chemin déjà occupé est catégorisé `create` (et non `update` — ce
+      // dernier ne concerne que updateMetadata()). Le simple couple
+      // `allow create / allow update: if false` ne suffit donc PAS à bloquer
+      // un écrasement : il faut explicitement exiger `resource == null`
+      // (aucun objet vivant à ce chemin) dans la règle `create`.
+      allow create: if isSignedIn() && isDriver() && uid() == driverId &&
+        isValidDocumentUpload() && resource == null;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // profile_photos/{userId}/{fileName}
+    // -------------------------------------------------------------------
+    // Lecture publique par design (avatar non sensible, voir
+    // docs/FIRESTORE_ARCHITECTURE.md : "URL Storage publique (avatar, non
+    // sensible)"). Écriture/suppression réservées au propriétaire.
+    match /profile_photos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() && uid() == userId && isValidImageUpload();
+      allow delete: if isSignedIn() && uid() == userId;
+    }
+
+    // -------------------------------------------------------------------
+    // delivery_proofs/{missionId}/{fileName}
+    // -------------------------------------------------------------------
+    // Preuve de livraison : uploadée exclusivement par le chauffeur
+    // assigné à la mission (vérifié via lookup Firestore de
+    // delivery_requests/{missionId}.driver_id — cohérent avec la
+    // protection 🔒 Cloud Functions only de ce champ côté Firestore).
+    // Lecture : client de la mission, chauffeur assigné, ou
+    // analyst/admin/super_admin. Immutable une fois uploadée (preuve
+    // légale — pas de remplacement silencieux possible).
+    match /delivery_proofs/{missionId}/{fileName} {
+      allow read: if isSignedIn() && (
+        firestore.get(/databases/(default)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+        firestore.get(/databases/(default)/documents/delivery_requests/$(missionId)).data.driver_id == uid() ||
+        isAnalystOrAbove()
+      );
+      // 🔒 Immutabilité (preuve légale) : même remarque que driver_documents
+      // ci-dessus — `resource == null` est requis pour bloquer un
+      // écrasement, qui serait sinon catégorisé `create` par Cloud Storage.
+      allow create: if isSignedIn() && isDriver() &&
+        firestore.get(/databases/(default)/documents/delivery_requests/$(missionId)).data.driver_id == uid() &&
+        isValidImageUpload() && resource == null;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------
+    // Deny-by-default : tout chemin non déclaré ci-dessus est bloqué.
+    // -------------------------------------------------------------------
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

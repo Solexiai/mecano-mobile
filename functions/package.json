@@ -16,7 +16,7 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "test:unit": "jest --testPathPatterns=test/unit",
-    "test:integration": "firebase emulators:exec --only firestore,auth --project demo-movik-test \"jest --testPathPatterns=test/integration --runInBand\"",
+    "test:integration": "firebase emulators:exec --only firestore,auth,storage --project demo-movik-test \"jest --testPathPatterns=test/integration --runInBand\"",
     "test": "npm run test:unit"
   },
   "dependencies": {
