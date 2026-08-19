@@ -27,6 +27,7 @@ export { completeDelivery } from "./functions/completeDelivery";
 export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";
 export { onMissionCreatedDispatch, onMissionReopenedDispatch } from "./functions/dispatchMissionToDrivers";
 export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
+export { onMissionStatusChangeNotifyCustomer } from "./functions/onMissionStatusChangeNotifyCustomer";
 
 // ---- GPS ----
 export { recordTrackingPoint } from "./functions/recordTrackingPoint";

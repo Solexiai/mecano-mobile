@@ -102,10 +102,16 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       active_financial_snapshot_id: null,
       created_at: now,
       accepted_at: null,
+      driver_to_pickup_at: null,
+      arrived_at_pickup_at: null,
+      picked_up_at: null,
+      in_transit_at: null,
+      arrived_at_dropoff_at: null,
       completed_at: null,
       cancelled_at: null,
       cancellation_reason: null,
       dispatch_zone_geohash: dispatchGeohash,
+      proof_of_delivery_url: null,
     });
 
     input.stops.forEach((stop, index) => {
@@ -125,6 +131,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {
       event_type: "mission_created",
+      actor_uid: ctx.uid,
       occurred_at: now,
       metadata: {},
     });

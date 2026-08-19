@@ -11,7 +11,10 @@
 // calcul financier — il se contente de :
 //   1. rafraîchir le cache d'affichage `driver_pricing_profiles` (taux
 //      préférentiel affiché à l'écran chauffeur) ;
-//   2. créer une notification d'information pour le chauffeur ;
+//   2. créer une notification d'information pour le chauffeur (chemin
+//      canonique `users/{uid}/notifications/{id}` — voir la note détaillée
+//      dans detectExpiringDocuments.ts sur les 2 bugs de chemin corrigés en
+//      Phase 5, partie 3) ;
 //   3. marquer la qualification `preferred_rate_notified = true` pour ne
 //      traiter chaque transition qu'une seule fois (idempotence du cron).
 //
@@ -78,14 +81,15 @@ export const transitionFoundingDriverPeriods = onSchedule(
         }
       }
 
-      const notifRef = db.collection("notifications").doc(driverId).collection("items").doc();
+      const notifRef = db.collection("users").doc(driverId).collection("notifications").doc();
       batch.set(notifRef, {
         id: notifRef.id,
         type: "founding_driver_preferred_rate_active",
-        title: "Votre taux préférentiel Founding Driver est actif",
-        body: "Votre période promotionnelle Founding Driver est terminée. Votre taux préférentiel s'applique désormais.",
+        title_key: "notif_founding_preferred_rate_title",
+        body_key: "notif_founding_preferred_rate_body",
+        is_read: false,
         created_at: now,
-        read: false,
+        related_mission_id: null,
         metadata: { programId },
       });
 

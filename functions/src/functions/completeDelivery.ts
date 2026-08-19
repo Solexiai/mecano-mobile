@@ -6,6 +6,16 @@
 // du `transaction_ledger` correspondantes (customer_charge, platform_commission,
 // driver_earning, customer_service_fee, tax) — voir createLedgerEntry() pour
 // la primitive réutilisable.
+//
+// PREUVE DE LIVRAISON (Phase 5, partie 3) : `proofOfDeliveryUrl` est
+// OBLIGATOIRE — une mission ne peut devenir `completed` sans une preuve de
+// livraison valide (photo uploadée dans Firebase Storage sous
+// `delivery_proofs/{missionId}/{fileName}`, voir storage.rules). L'URL est
+// à la fois :
+//   1. dénormalisée sur le document mission (`proof_of_delivery_url`) pour
+//      un affichage client trivial sans lecture de sous-collection ;
+//   2. tracée dans `tracking_events` (event_type: "delivered",
+//      metadata.proof_of_delivery_url) pour l'historique/timeline.
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
@@ -17,13 +27,16 @@ import { LedgerDirections, LedgerEntryStatuses, LedgerEntryTypes, LedgerParties,
 
 export interface CompleteDeliveryRequest {
   missionId: string;
-  proofOfDeliveryUrl?: string;
+  proofOfDeliveryUrl: string;
 }
 
 export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   const { missionId, proofOfDeliveryUrl } = request.data;
   if (!missionId) throw invalidArgument("missionId est requis.");
+  if (!proofOfDeliveryUrl || typeof proofOfDeliveryUrl !== "string" || !proofOfDeliveryUrl.trim()) {
+    throw invalidArgument("proofOfDeliveryUrl est requis pour compléter la livraison (preuve de livraison obligatoire).");
+  }
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
@@ -53,8 +66,12 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
 
     const now = admin.firestore.Timestamp.now();
 
-    // 1. Mission -> completed.
-    tx.update(missionRef, { status: MissionStatuses.COMPLETED, completed_at: now });
+    // 1. Mission -> completed (avec dénormalisation de la preuve de livraison).
+    tx.update(missionRef, {
+      status: MissionStatuses.COMPLETED,
+      completed_at: now,
+      proof_of_delivery_url: proofOfDeliveryUrl,
+    });
 
     // 2. Snapshot -> confirmed. 🔒 Dernière écriture possible sur ce document.
     tx.update(snapshotRef, { status: "confirmed", confirmed_at: now });
@@ -129,8 +146,9 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {
       event_type: "delivered",
+      actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: proofOfDeliveryUrl ? { proof_of_delivery_url: proofOfDeliveryUrl } : {},
+      metadata: { proof_of_delivery_url: proofOfDeliveryUrl },
     });
 
     writeAuditLogInTransaction(tx, {

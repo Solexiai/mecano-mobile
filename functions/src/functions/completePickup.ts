@@ -41,7 +41,7 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
       missionRef.collection("stops").where("sequence", "==", 0).limit(1)
     );
 
-    tx.update(missionRef, { status: MissionStatuses.PICKED_UP });
+    tx.update(missionRef, { status: MissionStatuses.PICKED_UP, picked_up_at: now });
 
     if (!stopsSnap.empty) {
       tx.update(stopsSnap.docs[0].ref, { completed_at: now });
@@ -50,6 +50,7 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {
       event_type: "picked_up",
+      actor_uid: ctx.uid,
       occurred_at: now,
       metadata: proofOfPickupUrl ? { proof_of_pickup_url: proofOfPickupUrl } : {},
     });

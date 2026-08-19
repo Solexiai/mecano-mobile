@@ -55,7 +55,7 @@ les Cloud Functions (`functions/`).
 | 19 | `payments` | racine | 🔒 Paiements clients (état, provider-agnostic) |
 | 20 | `driver_payouts` | racine | 🔒 Versements aux chauffeurs |
 | 21 | `ratings` | racine | Évaluations client ↔ chauffeur |
-| 22 | `notifications` | racine (`/users/{uid}/notifications` en sous-coll.) | Notifications utilisateur |
+| 22 | `notifications` | sous-collection de `users/{uid}` (`users/{uid}/notifications`) | Notifications utilisateur |
 | 23 | `admin_reviews` | racine | File d'attente + décisions analyste/admin |
 | 24 | `audit_logs` | racine | 🔒 Trace immuable de toute action sensible |
 
@@ -552,25 +552,39 @@ champs (`mission_base_value`, `driver_gross_earnings`, `driver_offer_amount`,
 
 ---
 
-## 19. `notifications/{uid}/items/{notificationId}` (sous-collection de `users`)
+## 19. `users/{uid}/notifications/{notificationId}` (sous-collection de `users`)
 
-**Changement proposé** : sous-collection de `users/{uid}` plutôt que
-collection racine `notifications` — accès toujours scoping par utilisateur,
-jamais de requête transversale, donc le pattern sous-collection est idéal et
-simplifie les Security Rules (`request.auth.uid == uid` suffit).
+**Chemin canonique (Phase 5, partie 3)** : `users/{uid}/notifications/{notificationId}`
+— 4 segments (valide). Sous-collection de `users/{uid}` plutôt que collection
+racine `notifications` — accès toujours scoping par utilisateur, jamais de
+requête transversale, donc le pattern sous-collection est idéal et simplifie
+les Security Rules (`request.auth.uid == uid` suffit).
+
+**⚠️ Historique de bug corrigé** : une version antérieure de ce document et
+des Security Rules utilisait le chemin `users/{uid}/notifications/items/{id}`
+(5 segments — nombre IMPAIR, donc structurellement invalide : un chemin de
+document Firestore doit toujours alterner collection/document et compter un
+nombre PAIR de segments). Ce chemin ne pouvait matcher aucun document réel,
+indépendamment du fait que certaines Cloud Functions écrivaient par ailleurs
+sur un chemin racine `notifications/{uid}/items` tout aussi incorrect. Les
+deux bugs ont été corrigés ensemble : toutes les Cloud Functions écrivent
+désormais sur `users/{uid}/notifications/{id}` et la règle Firestore a été
+alignée sur ce même chemin à 4 segments.
 
 | Champ | Type | Oblig. | Description |
 |---|---|---|---|
-| `type` | string | ✅ | ex: `mission_accepted`, `document_rejected` |
-| `title` | string | ✅ | |
-| `body` | string | ✅ | |
+| `id` | string | ✅ | égal à l'id du document (facilite les lectures dénormalisées) |
+| `type` | string | ✅ | ex: `mission_accepted`, `driver_to_pickup`, `document_expiring_soon` |
+| `title_key` | string | ✅ | clé i18n (FR/EN/ES) résolue côté client — pas de texte figé côté serveur |
+| `body_key` | string | ✅ | clé i18n (FR/EN/ES) résolue côté client — pas de texte figé côté serveur |
 | `is_read` | bool | ✅ (default false) | |
 | `created_at` | timestamp | ✅ | |
 | `related_mission_id` | string? | ❌ | |
+| `metadata` | map? | ❌ | données contextuelles pour interpoler les clés i18n (ex: `documentType`, `programId`) |
 
 **Lecture/Écriture(`is_read`)** : l'utilisateur propriétaire uniquement.
 **Création** : 🔒 Cloud Functions only.
-**Rétention** : purge automatique après 90 jours (Cloud Function planifiée).
+**Rétention** : purge automatique après 90 jours (Cloud Function planifiée — pas encore implémentée, à prévoir dans une phase future).
 
 ---
 
@@ -671,7 +685,7 @@ completed_missions/documents_all_valid/current_geohash` (champs spécifiques)
 · `driver_documents.status` (champ spécifique) · `delivery_requests.driver_id/
 status/accepted_at/driver_offer_amount/customer_total/payment_status`
 (champs spécifiques) · `delivery_offers` (write) · `delivery_quotes` (write)
-· `users.roles` (champ spécifique) · `notifications/*/items` (create) ·
+· `users.roles` (champ spécifique) · `users/*/notifications` (create) ·
 `promo_codes` (write).
 
 ---

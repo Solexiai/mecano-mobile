@@ -212,7 +212,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
     tx.update(missionRef, { active_financial_snapshot_id: snapshotRef.id });
 
     const eventRef = missionRef.collection("tracking_events").doc();
-    tx.set(eventRef, { event_type: "driver_assigned", occurred_at: now, metadata: { driverId } });
+    tx.set(eventRef, { event_type: "driver_assigned", actor_uid: driverId, occurred_at: now, metadata: { driverId } });
 
     writeAuditLogInTransaction(tx, {
       actorUserId: driverId,

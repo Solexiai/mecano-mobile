@@ -327,6 +327,136 @@ class AppStrings {
       'es': 'Ruta recorrida',
     },
 
+    // ---------- Timeline client (Phase 5, partie 3) ----------
+    'tracking_timeline_title': {'fr': 'Étapes de la livraison', 'en': 'Delivery steps', 'es': 'Etapas de la entrega'},
+
+    // ---------- Preuve de livraison (Phase 5, partie 3) ----------
+    'driver_active_mission_capture_photo': {
+      'fr': 'Prendre une photo de livraison',
+      'en': 'Take a delivery photo',
+      'es': 'Tomar una foto de la entrega',
+    },
+    'driver_active_mission_photo_required_error': {
+      'fr': 'Une photo de livraison est requise pour confirmer la livraison.',
+      'en': 'A delivery photo is required to confirm the delivery.',
+      'es': 'Se requiere una foto de la entrega para confirmar la entrega.',
+    },
+    'driver_active_mission_uploading_proof': {
+      'fr': 'Téléversement de la preuve de livraison…',
+      'en': 'Uploading delivery proof…',
+      'es': 'Subiendo la prueba de entrega…',
+    },
+    'driver_active_mission_proof_upload_error': {
+      'fr': 'Impossible de téléverser la photo. Réessayez.',
+      'en': 'Unable to upload the photo. Please try again.',
+      'es': 'No se pudo subir la foto. Inténtelo de nuevo.',
+    },
+    'customer_tracking_completed_title': {
+      'fr': 'Livraison complétée',
+      'en': 'Delivery completed',
+      'es': 'Entrega completada',
+    },
+    'customer_tracking_completed_message': {
+      'fr': 'Votre objet a été livré avec succès.',
+      'en': 'Your item has been successfully delivered.',
+      'es': 'Su artículo ha sido entregado con éxito.',
+    },
+    'customer_tracking_proof_title': {
+      'fr': 'Preuve de livraison',
+      'en': 'Proof of delivery',
+      'es': 'Prueba de entrega',
+    },
+    'customer_tracking_proof_unavailable': {
+      'fr': 'Aucune preuve de livraison disponible pour cette mission.',
+      'en': 'No proof of delivery available for this mission.',
+      'es': 'No hay prueba de entrega disponible para esta misión.',
+    },
+
+    // ---------- Notifications (Phase 5, partie 3) ----------
+    'notifications_title': {'fr': 'Notifications', 'en': 'Notifications', 'es': 'Notificaciones'},
+    'notifications_empty': {
+      'fr': 'Aucune notification pour le moment.',
+      'en': 'No notifications yet.',
+      'es': 'No hay notificaciones por el momento.',
+    },
+    'notifications_loading': {'fr': 'Chargement des notifications…', 'en': 'Loading notifications…', 'es': 'Cargando notificaciones…'},
+    'notifications_error': {
+      'fr': 'Impossible de charger les notifications.',
+      'en': 'Unable to load notifications.',
+      'es': 'No se pudieron cargar las notificaciones.',
+    },
+    'notifications_open_tooltip': {'fr': 'Notifications', 'en': 'Notifications', 'es': 'Notificaciones'},
+
+    // Notification content — resolved client-side via title_key/body_key.
+    'notif_driver_assigned_title': {'fr': 'Chauffeur assigné', 'en': 'Driver assigned', 'es': 'Conductor asignado'},
+    'notif_driver_assigned_body': {
+      'fr': 'Un chauffeur a été assigné à votre livraison.',
+      'en': 'A driver has been assigned to your delivery.',
+      'es': 'Se ha asignado un conductor a su entrega.',
+    },
+    'notif_driver_to_pickup_title': {'fr': 'En route vers le ramassage', 'en': 'On the way to pickup', 'es': 'En camino a la recogida'},
+    'notif_driver_to_pickup_body': {
+      'fr': 'Votre chauffeur est en route vers le ramassage.',
+      'en': 'Your driver is on the way to the pickup.',
+      'es': 'Su conductor está en camino a la recogida.',
+    },
+    'notif_arrived_at_pickup_title': {'fr': 'Arrivé au ramassage', 'en': 'Arrived at pickup', 'es': 'Llegó a la recogida'},
+    'notif_arrived_at_pickup_body': {
+      'fr': 'Votre chauffeur est arrivé au point de ramassage.',
+      'en': 'Your driver has arrived at the pickup point.',
+      'es': 'Su conductor ha llegado al punto de recogida.',
+    },
+    'notif_picked_up_title': {'fr': 'Objet récupéré', 'en': 'Item picked up', 'es': 'Artículo recogido'},
+    'notif_picked_up_body': {
+      'fr': 'Votre objet a été récupéré. La livraison est en cours.',
+      'en': 'Your item has been picked up. Delivery is in progress.',
+      'es': 'Su artículo ha sido recogido. La entrega está en curso.',
+    },
+    'notif_in_transit_title': {'fr': 'Livraison en cours', 'en': 'Delivery in progress', 'es': 'Entrega en curso'},
+    'notif_in_transit_body': {
+      'fr': 'Votre livraison est en route vers sa destination.',
+      'en': 'Your delivery is on its way to its destination.',
+      'es': 'Su entrega está en camino a su destino.',
+    },
+    'notif_arrived_at_dropoff_title': {'fr': 'Arrivé à destination', 'en': 'Arrived at destination', 'es': 'Llegó al destino'},
+    'notif_arrived_at_dropoff_body': {
+      'fr': 'Votre chauffeur est arrivé à destination.',
+      'en': 'Your driver has arrived at the destination.',
+      'es': 'Su conductor ha llegado al destino.',
+    },
+    'notif_completed_title': {'fr': 'Livraison complétée', 'en': 'Delivery completed', 'es': 'Entrega completada'},
+    'notif_completed_body': {
+      'fr': 'Votre livraison est complétée.',
+      'en': 'Your delivery is completed.',
+      'es': 'Su entrega está completada.',
+    },
+    'notif_cancelled_title': {'fr': 'Mission annulée', 'en': 'Mission cancelled', 'es': 'Misión cancelada'},
+    'notif_cancelled_body': {
+      'fr': 'Votre demande de livraison a été annulée.',
+      'en': 'Your delivery request has been cancelled.',
+      'es': 'Su solicitud de entrega ha sido cancelada.',
+    },
+    'notif_document_expiring_soon_title': {
+      'fr': 'Document bientôt expiré',
+      'en': 'Document expiring soon',
+      'es': 'Documento por vencer',
+    },
+    'notif_document_expiring_soon_body': {
+      'fr': 'Un de vos documents chauffeur arrive bientôt à expiration. Pensez à le renouveler.',
+      'en': 'One of your driver documents is expiring soon. Please renew it.',
+      'es': 'Uno de sus documentos de conductor está por vencer. Renuévelo pronto.',
+    },
+    'notif_founding_preferred_rate_title': {
+      'fr': 'Tarif préférentiel activé',
+      'en': 'Preferred rate activated',
+      'es': 'Tarifa preferencial activada',
+    },
+    'notif_founding_preferred_rate_body': {
+      'fr': 'Votre tarif préférentiel de chauffeur fondateur est maintenant actif.',
+      'en': 'Your founding driver preferred rate is now active.',
+      'es': 'Su tarifa preferencial de conductor fundador ya está activa.',
+    },
+
     // ---------- Driver earnings (Firebase réel — lecture seule) ----------
     'earnings_title': {'fr': 'Revenus', 'en': 'Earnings', 'es': 'Ganancias'},
     'earnings_loading': {'fr': 'Chargement de vos revenus…', 'en': 'Loading your earnings…', 'es': 'Cargando tus ganancias…'},

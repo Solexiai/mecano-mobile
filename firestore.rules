@@ -476,9 +476,24 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
-    // users/{uid}/notifications/items/{notificationId}
+    // users/{uid}/notifications/{notificationId}
+    //
+    // 🔒 CHEMIN CANONIQUE (Phase 5, partie 3) — CORRIGÉ.
+    // Cette règle contenait auparavant un segment `items` en trop
+    // (`users/{userId}/notifications/items/{notificationId}`, 5 segments —
+    // un nombre IMPAIR ne pouvant JAMAIS matcher un document Firestore réel,
+    // l'alternance collection/document exigeant un nombre pair de segments).
+    // Cette règle n'avait donc jamais pu s'appliquer à un document existant,
+    // et les Cloud Functions qui écrivaient par ailleurs dans une collection
+    // racine `notifications/{uid}/items` (chemin différent) créaient des
+    // documents totalement dépourvus de règle de sécurité (illisibles par
+    // quiconque, deny-by-default). Corrigé : chemin unique et cohérent —
+    // `users/{uid}/notifications/{notificationId}` (4 segments, valide) —
+    // utilisé par TOUTES les Cloud Functions créant des notifications
+    // (detectExpiringDocuments, transitionFoundingDriverPeriods,
+    // onMissionStatusChangeNotifyCustomer).
     // -------------------------------------------------------------------
-    match /users/{userId}/notifications/items/{notificationId} {
+    match /users/{userId}/notifications/{notificationId} {
       allow read: if isSignedIn() && uid() == userId;
       // Seul is_read peut être modifié par le propriétaire.
       allow update: if isSignedIn() && uid() == userId &&

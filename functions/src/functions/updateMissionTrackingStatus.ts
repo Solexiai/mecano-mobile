@@ -45,6 +45,19 @@ const EVENT_TYPE_BY_STATUS: Partial<Record<MissionStatus, string>> = {
   [MissionStatuses.ARRIVED_AT_DROPOFF]: "arrived_at_dropoff",
 };
 
+/**
+ * Champ de timestamp métier dédié à écrire sur le document mission pour
+ * chaque statut cible (Phase 5, partie 3 — "STATUTS TERRAIN"). Distinct de
+ * tout `updated_at` générique pour permettre de reconstituer précisément le
+ * parcours d'une mission (ETA futur, analytics, résolution de litige).
+ */
+const TIMESTAMP_FIELD_BY_STATUS: Partial<Record<MissionStatus, string>> = {
+  [MissionStatuses.DRIVER_TO_PICKUP]: "driver_to_pickup_at",
+  [MissionStatuses.ARRIVED_AT_PICKUP]: "arrived_at_pickup_at",
+  [MissionStatuses.IN_TRANSIT]: "in_transit_at",
+  [MissionStatuses.ARRIVED_AT_DROPOFF]: "arrived_at_dropoff_at",
+};
+
 export const updateMissionTrackingStatus = onCall<UpdateMissionTrackingStatusRequest>(
   async (request) => {
     const ctx = requireSignedIn(request);
@@ -75,11 +88,13 @@ export const updateMissionTrackingStatus = onCall<UpdateMissionTrackingStatusReq
       }
 
       const now = admin.firestore.Timestamp.now();
-      tx.update(missionRef, { status: targetStatus });
+      const timestampField = TIMESTAMP_FIELD_BY_STATUS[targetStatus]!;
+      tx.update(missionRef, { status: targetStatus, [timestampField]: now });
 
       const eventRef = missionRef.collection("tracking_events").doc();
       tx.set(eventRef, {
         event_type: EVENT_TYPE_BY_STATUS[targetStatus],
+        actor_uid: ctx.uid,
         occurred_at: now,
         metadata: {},
       });
