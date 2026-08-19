@@ -42,6 +42,8 @@ export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 export { createCustomerPaymentProfile } from "./functions/createCustomerPaymentProfile";
 export { attachCustomerPaymentMethod } from "./functions/attachCustomerPaymentMethod";
 export { createDriverStripeAccount } from "./functions/createDriverStripeAccount";
+export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyConfiguration";
+export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
 
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";

@@ -30,11 +30,14 @@
 import { admin, db } from "../lib/admin";
 import { buildIdempotencyKey } from "../lib/idempotency";
 import { assertValidPaymentTransition } from "../lib/paymentStateMachine";
+import { assertValidPayoutTransition } from "../lib/payoutStateMachine";
 import {
+  DriverPayoutDoc,
   DriverProfileDoc,
   MissionStatuses,
   PaymentDoc,
   PaymentStatuses,
+  PayoutStatuses,
 } from "../lib/types";
 import { getPaymentProvider } from "./paymentProviderFactory";
 import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
@@ -358,4 +361,149 @@ export async function captureMissionPayment(
   });
 
   return { success: result.success, status: result.status, failureMessage: result.failureMessage };
+}
+
+// -----------------------------------------------------------------------------
+// Versement chauffeur — appelée par calculateDriverPayout.ts UNIQUEMENT quand
+// le versement est déjà ELIGIBLE (payout_eligible_at <= now) et possède un
+// connected_account_id valide. Suit le même schéma en 3 temps que
+// createAndAuthorizeMissionPayment / captureMissionPayment ci-dessus :
+// jamais d'appel PaymentProvider DANS une transaction Firestore.
+// -----------------------------------------------------------------------------
+
+export interface SubmitDriverPayoutOutcome {
+  success: boolean;
+  status: string;
+  providerPayoutId?: string | null;
+  failureMessage?: string | null;
+}
+
+/**
+ * Fait transiter driver_payouts/{payoutId} de ELIGIBLE -> SCHEDULED ->
+ * PROCESSING -> (PAID | FAILED), en appelant réellement
+ * `PaymentProvider.createDriverPayout()` HORS transaction. Si
+ * `connected_account_id` est absent (chauffeur pas encore onboardé Stripe
+ * Connect), échoue proprement en FAILED sans jamais tenter l'appel —
+ * jamais de simulation silencieuse d'un versement réussi.
+ */
+export async function submitDriverPayout(payoutId: string): Promise<SubmitDriverPayoutOutcome> {
+  const payoutRef = db.collection("driver_payouts").doc(payoutId);
+
+  // ---- Étape 1 : transaction — ELIGIBLE -> SCHEDULED -> PROCESSING ----
+  type PreparedPayout = {
+    amountMinor: number;
+    currency: string;
+    connectedAccountId: string;
+    idempotencyKey: string;
+  };
+  let prepared: PreparedPayout | null = null;
+  try {
+    prepared = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(payoutRef);
+      if (!snap.exists) throw new Error(`driver_payouts/${payoutId} introuvable.`);
+      const payout = snap.data() as DriverPayoutDoc;
+
+      if (!payout.connected_account_id) {
+        assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
+        const now = admin.firestore.Timestamp.now();
+        tx.update(payoutRef, {
+          status: PayoutStatuses.FAILED,
+          failed_at: now,
+          failure_reason: "missing_connected_account",
+        });
+        throw new Error("MISSING_CONNECTED_ACCOUNT");
+      }
+
+      assertValidPayoutTransition(payout.status, PayoutStatuses.SCHEDULED);
+      assertValidPayoutTransition(PayoutStatuses.SCHEDULED, PayoutStatuses.PROCESSING);
+
+      const now = admin.firestore.Timestamp.now();
+      tx.update(payoutRef, {
+        status: PayoutStatuses.PROCESSING,
+        scheduled_at: now,
+        processing_at: now,
+      });
+
+      return {
+        amountMinor: payout.amount_minor,
+        currency: payout.currency,
+        connectedAccountId: payout.connected_account_id,
+        idempotencyKey: payout.idempotency_key,
+      };
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "MISSING_CONNECTED_ACCOUNT") {
+      return {
+        success: false,
+        status: PayoutStatuses.FAILED,
+        failureMessage: "Aucun compte de versement connecté pour ce chauffeur.",
+      };
+    }
+    throw err;
+  }
+
+  const { amountMinor, currency, connectedAccountId, idempotencyKey } = prepared;
+
+  // ---- Étape 2 : appel Stripe réel, hors transaction ----
+  const provider = getPaymentProvider();
+  let result;
+  try {
+    result = await provider.createDriverPayout({
+      connectedAccountId,
+      amountMinor,
+      currency: currency as typeof DEFAULT_CURRENCY,
+      idempotencyKey,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(payoutRef);
+      if (!snap.exists) return;
+      const payout = snap.data() as DriverPayoutDoc;
+      if (isTerminalPayout(payout.status)) return;
+      assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
+      tx.update(payoutRef, {
+        status: PayoutStatuses.FAILED,
+        failed_at: admin.firestore.Timestamp.now(),
+        failure_reason: message,
+      });
+    });
+    return { success: false, status: PayoutStatuses.FAILED, failureMessage: message };
+  }
+
+  // ---- Étape 3 : transaction — applique le résultat ----
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(payoutRef);
+    if (!snap.exists) return;
+    const payout = snap.data() as DriverPayoutDoc;
+    const now = admin.firestore.Timestamp.now();
+
+    if (result.success) {
+      assertValidPayoutTransition(payout.status, PayoutStatuses.PAID);
+      tx.update(payoutRef, {
+        status: PayoutStatuses.PAID,
+        provider_payout_id: result.providerPayoutId,
+        paid_at: now,
+      });
+    } else {
+      assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
+      tx.update(payoutRef, {
+        status: PayoutStatuses.FAILED,
+        provider_payout_id: result.providerPayoutId,
+        failed_at: now,
+        failure_reason: result.failureCode ?? "provider_payout_failed",
+      });
+    }
+  });
+
+  return {
+    success: result.success,
+    status: result.success ? PayoutStatuses.PAID : PayoutStatuses.FAILED,
+    providerPayoutId: result.providerPayoutId,
+    failureMessage: result.success ? null : (result.failureCode ?? "Versement refusé par le fournisseur."),
+  };
+}
+
+function isTerminalPayout(status: string): boolean {
+  return status === PayoutStatuses.PAID || status === PayoutStatuses.REVERSED;
 }

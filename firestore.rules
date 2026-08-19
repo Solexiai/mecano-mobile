@@ -454,6 +454,71 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------
+    // PHASE 6 — collections financières additionnelles, toutes
+    // Cloud-Functions-only en écriture (le SDK Admin contourne les Rules ;
+    // ces blocs ne servent qu'à scoper la LECTURE côté client / analyste,
+    // suivant le même schéma que payments/driver_payouts ci-dessus).
+    // -------------------------------------------------------------------
+
+    // refunds/{id} — remboursements (points 19-20).
+    match /refunds/{refundId} {
+      allow read: if isSignedIn() && (
+        isAnalystOrAbove() ||
+        (exists(/databases/$(database)/documents/payments/$(resource.data.payment_id)) &&
+         get(/databases/$(database)/documents/payments/$(resource.data.payment_id)).data.customer_id == uid())
+      );
+      allow write: if false;
+    }
+
+    // disputes/{id} — litiges / chargebacks (point 21).
+    match /disputes/{disputeId} {
+      allow read: if isSignedIn() && isAnalystOrAbove();
+      allow write: if false;
+    }
+
+    // provider_webhook_events/{id} — évènements Stripe entrants (point 11).
+    // Jamais lisible côté client, uniquement debug interne admin.
+    match /provider_webhook_events/{eventId} {
+      allow read: if isAdminOrAbove();
+      allow write: if false;
+    }
+
+    // reconciliation_reports/{id} — moteur de réconciliation (point 27).
+    match /reconciliation_reports/{reportId} {
+      allow read: if isAdminOrAbove();
+      allow write: if false;
+    }
+
+    // payment_profiles/{customerId} — référence Stripe client (aucune
+    // donnée de carte sensible), lisible uniquement par son propriétaire.
+    match /payment_profiles/{customerId} {
+      allow read: if isSignedIn() && (uid() == customerId || isAnalystOrAbove());
+      allow write: if false;
+    }
+
+    // idempotency_keys/{key} — verrous internes, jamais exposés au client.
+    match /idempotency_keys/{key} {
+      allow read, write: if false;
+    }
+
+    // tax_configs/{jurisdiction} — moteur de taxes configurable (point 16).
+    // Lecture publique (affichage de la ventilation des taxes côté client),
+    // écriture Cloud-Functions-only (admin uniquement, via fonction dédiée).
+    match /tax_configs/{jurisdiction} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // payout_policy_configs/{id} — politique de rétention des versements
+    // chauffeur (point 9). Lecture réservée aux admins (paramètre interne,
+    // pas d'affichage client), écriture via updatePayoutPolicyConfiguration
+    // uniquement.
+    match /payout_policy_configs/{configId} {
+      allow read: if isAdminOrAbove();
+      allow write: if false;
+    }
+
+    // -------------------------------------------------------------------
     // ratings/{id}
     // -------------------------------------------------------------------
     match /ratings/{ratingId} {
