@@ -21,6 +21,7 @@ const MISSION_ID = "delivery_mission_001";
 const DRIVER_ID = "delivery_driver_a";
 const OTHER_DRIVER_ID = "delivery_driver_b";
 const SNAPSHOT_ID = "delivery_snapshot_001";
+const PROOF_URL = "https://storage.googleapis.com/movik-test/delivery_proofs/delivery_mission_001/proof.jpg";
 
 function buildRequest(driverId: string, data: CompleteDeliveryRequest): CallableRequest<CompleteDeliveryRequest> {
   return {
@@ -96,12 +97,17 @@ describe("completeDelivery — transitions valides depuis les 3 prédécesseurs 
     async (fromStatus) => {
       await Promise.all([seedMission(fromStatus), seedSnapshot("pending"), seedDriverProfile()]);
 
-      const result = await completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }));
+      const result = await completeDelivery.run(
+        buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL })
+      );
       expect(result).toMatchObject({ success: true, missionId: MISSION_ID });
 
       const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.COMPLETED);
       expect(missionSnap.data()!.completed_at).not.toBeNull();
+      // La preuve de livraison est dénormalisée sur le document mission pour
+      // un affichage client trivial (Phase 5, partie 3).
+      expect(missionSnap.data()!.proof_of_delivery_url).toBe(PROOF_URL);
 
       const snapshotSnap = await db.collection("financial_snapshots").doc(SNAPSHOT_ID).get();
       expect(snapshotSnap.data()!.status).toBe("confirmed");
@@ -149,6 +155,8 @@ describe("completeDelivery — transitions valides depuis les 3 prédécesseurs 
         .where("event_type", "==", "delivered")
         .get();
       expect(events.size).toBe(1);
+      expect(events.docs[0].data().metadata.proof_of_delivery_url).toBe(PROOF_URL);
+      expect(events.docs[0].data().actor_uid).toBe(DRIVER_ID);
     }
   );
 });
@@ -159,7 +167,7 @@ describe("completeDelivery — cas négatifs", () => {
   it("un chauffeur qui n'est pas celui assigné ne peut PAS confirmer la livraison", async () => {
     await Promise.all([seedMission(MissionStatuses.IN_TRANSIT), seedSnapshot("pending")]);
     await expect(
-      completeDelivery.run(buildRequest(OTHER_DRIVER_ID, { missionId: MISSION_ID }))
+      completeDelivery.run(buildRequest(OTHER_DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "permission-denied" });
 
     const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
@@ -169,14 +177,14 @@ describe("completeDelivery — cas négatifs", () => {
   it("depuis 'assigned' (avant même le ramassage) échoue avec failed-precondition", async () => {
     await Promise.all([seedMission(MissionStatuses.ASSIGNED), seedSnapshot("pending")]);
     await expect(
-      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 
   it("un financial_snapshot déjà 'confirmed' (double appel) est REJETÉ — immutabilité garantie", async () => {
     await Promise.all([seedMission(MissionStatuses.IN_TRANSIT), seedSnapshot("confirmed")]);
     await expect(
-      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
 
     // Aucune nouvelle entrée de ledger n'a été créée par cette tentative.
@@ -190,13 +198,36 @@ describe("completeDelivery — cas négatifs", () => {
   it("aucun financial_snapshot actif rattaché à la mission échoue avec failed-precondition", async () => {
     await seedMission(MissionStatuses.IN_TRANSIT, { snapshotId: null });
     await expect(
-      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 
   it("mission introuvable échoue avec not-found", async () => {
     await expect(
-      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante" }))
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante", proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "not-found" });
+  });
+});
+
+describe("completeDelivery — preuve de livraison obligatoire (Phase 5, partie 3)", () => {
+  afterEach(cleanup);
+
+  it("proofOfDeliveryUrl manquant échoue avec invalid-argument — la mission ne devient PAS completed", async () => {
+    await Promise.all([seedMission(MissionStatuses.IN_TRANSIT), seedSnapshot("pending")]);
+    await expect(
+      // @ts-expect-error — test volontaire d'un payload sans le champ requis, comme le ferait un client non à jour.
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+
+    const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
+    expect(missionSnap.data()!.status).toBe(MissionStatuses.IN_TRANSIT);
+    expect(missionSnap.data()!.proof_of_delivery_url).toBeUndefined();
+  });
+
+  it("proofOfDeliveryUrl vide (chaîne blanche) échoue avec invalid-argument", async () => {
+    await Promise.all([seedMission(MissionStatuses.IN_TRANSIT), seedSnapshot("pending")]);
+    await expect(
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: "   " }))
+    ).rejects.toMatchObject({ code: "invalid-argument" });
   });
 });

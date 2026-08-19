@@ -270,16 +270,19 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.ARRIVED_AT_DROPOFF);
 
-      // ---- 9. Confirmation finale de la livraison ----
+      // ---- 9. Prise de la photo de preuve de livraison + confirmation finale ----
+      const PROOF_URL =
+        "https://storage.googleapis.com/movik-test/delivery_proofs/" + id + "/proof.jpg";
       const completed = await completeDelivery.run(
-        authedRequest<CompleteDeliveryRequest>(DRIVER_ID, { missionId: id })
+        authedRequest<CompleteDeliveryRequest>(DRIVER_ID, { missionId: id, proofOfDeliveryUrl: PROOF_URL })
       );
       expect(completed.success).toBe(true);
 
-      // ==== ÉTAT FINAL — "le client voit completed" ====
+      // ==== ÉTAT FINAL — "le client voit completed" ET "le client voit la preuve" ====
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.COMPLETED);
       expect(missionSnap.data()!.completed_at).not.toBeNull();
+      expect(missionSnap.data()!.proof_of_delivery_url).toBe(PROOF_URL);
 
       // ==== ÉTAT FINAL — le financial_snapshot est confirmé (immuable) ====
       const snapshotSnap = await db.collection("financial_snapshots").doc(snapshotId).get();
@@ -345,7 +348,12 @@ describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois as
     missionId = await runHappyPathUntilAssigned();
 
     await expect(
-      completeDelivery.run(authedRequest<CompleteDeliveryRequest>(DRIVER_ID, { missionId: missionId! }))
+      completeDelivery.run(
+        authedRequest<CompleteDeliveryRequest>(DRIVER_ID, {
+          missionId: missionId!,
+          proofOfDeliveryUrl: "https://storage.googleapis.com/movik-test/delivery_proofs/x/proof.jpg",
+        })
+      )
     ).rejects.toMatchObject({ code: "failed-precondition" });
 
     const missionSnap = await db.collection("delivery_requests").doc(missionId).get();
