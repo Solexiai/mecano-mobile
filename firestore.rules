@@ -518,6 +518,21 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // mission_financial_balance/{missionId} — état financier dérivé du
+    // ledger (point 7, directive 38 points). Lisible par le client et le
+    // chauffeur de LEUR PROPRE mission (UI client/chauffeur, points 22/24),
+    // et par analyst/admin/super_admin. Jamais écrit par le client — le
+    // seul écrivain est recalculateMissionFinancialBalance() (SDK Admin).
+    match /mission_financial_balance/{missionId} {
+      allow read: if isSignedIn() && (
+        isAnalystOrAbove() ||
+        (exists(/databases/$(database)/documents/delivery_requests/$(missionId)) &&
+         (get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.driver_id == uid()))
+      );
+      allow write: if false;
+    }
+
     // -------------------------------------------------------------------
     // ratings/{id}
     // -------------------------------------------------------------------

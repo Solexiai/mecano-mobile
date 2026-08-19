@@ -39,6 +39,14 @@ const TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
     PaymentStatuses.DISPUTED,
   ],
   [PaymentStatuses.PARTIALLY_REFUNDED]: [
+    // 🔒 Self-loop EXPLICITE et LÉGITIME (Phase 6, points 1/2 de la
+    // directive 38 points) : plusieurs remboursements partiels successifs
+    // sur le MÊME paiement restent tous à l'état macro PARTIALLY_REFUNDED
+    // tant que le cumul n'atteint pas amount_captured_minor (voir
+    // refundPayment() dans paymentOrchestration.ts, qui recalcule
+    // isFullRefund à chaque appel). Sans cette entrée, un 2e remboursement
+    // partiel lèverait à tort InvalidPaymentTransitionError.
+    PaymentStatuses.PARTIALLY_REFUNDED,
     PaymentStatuses.REFUNDED,
     PaymentStatuses.DISPUTED,
   ],

@@ -45,6 +45,7 @@ export { createDriverStripeAccount } from "./functions/createDriverStripeAccount
 export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyConfiguration";
 export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
 export { refundPayment } from "./functions/refundPayment";
+export { updateDisputeStatus } from "./functions/updateDisputeStatus";
 
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
