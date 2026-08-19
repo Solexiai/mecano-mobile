@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import '../models/driver_location.dart';
+import '../models/driver_location_history_point.dart';
 import '../backend_exceptions.dart';
 
 abstract class LocationRepository {
@@ -15,6 +16,16 @@ abstract class LocationRepository {
   /// Utilisé par le client pour suivre le chauffeur de SA mission active
   /// uniquement.
   Stream<DriverLocation?> watchDriverLocation(String driverId);
+
+  /// Historique GPS du chauffeur (Phase 5, partie 2 — trajet réellement
+  /// parcouru). Retourne TOUS les points connus pour ce chauffeur (toutes
+  /// missions confondues, non triés) — le filtrage par mission active
+  /// courante ET le tri chronologique sont effectués côté appelant
+  /// (`LiveTrackingMap`), conformément à la convention du projet
+  /// "requête simple + tri en mémoire" (évite un index composite dédié).
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId,
+  );
 }
 
 class NotConfiguredLocationRepository implements LocationRepository {
@@ -27,4 +38,9 @@ class NotConfiguredLocationRepository implements LocationRepository {
 
   @override
   Stream<DriverLocation?> watchDriverLocation(String driverId) => Stream.value(null);
+
+  @override
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId,
+  ) => Stream.value(const []);
 }

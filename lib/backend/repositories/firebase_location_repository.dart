@@ -24,6 +24,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../models/driver_location.dart';
+import '../models/driver_location_history_point.dart';
 import '../backend_exceptions.dart';
 import 'location_repository.dart';
 
@@ -63,6 +64,26 @@ class FirebaseLocationRepository implements LocationRepository {
     return _locations.doc(driverId).snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) return null;
       return DriverLocation.fromJson(snap.data()!);
+    });
+  }
+
+  @override
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId,
+  ) {
+    // Requête SIMPLE (pas de where/orderBy composite) : lit toute la
+    // sous-collection `history` de ce chauffeur — protégée par
+    // firestore.rules (driver lui-même / analyste-admin / client avec
+    // mission active dont delivery_id correspond). Tri + filtrage par
+    // mission active courante effectués côté appelant, conformément à la
+    // convention "requête simple + tri en mémoire" du projet (évite tout
+    // besoin d'index composite dédié sur cette sous-collection).
+    return _locations.doc(driverId).collection('history').snapshots().map((
+      snap,
+    ) {
+      return snap.docs
+          .map((d) => DriverLocationHistoryPoint.fromJson(d.data()))
+          .toList();
     });
   }
 }

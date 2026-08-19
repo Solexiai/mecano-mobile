@@ -445,6 +445,7 @@ class _MissionCard extends StatelessWidget {
           driverId: mission.driverId ?? '',
           pickup: pickup,
           dropoff: dropoff,
+          missionId: mission.id,
           t: t,
         ),
 

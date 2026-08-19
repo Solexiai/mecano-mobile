@@ -321,6 +321,11 @@ class AppStrings {
       'es': 'Esperando la señal GPS del conductor…',
     },
     'tracking_driver_fallback': {'fr': 'Votre chauffeur', 'en': 'Your driver', 'es': 'Su conductor'},
+    'tracking_route_legend': {
+      'fr': 'Trajet parcouru',
+      'en': 'Traveled route',
+      'es': 'Ruta recorrida',
+    },
 
     // ---------- Driver earnings (Firebase réel — lecture seule) ----------
     'earnings_title': {'fr': 'Revenus', 'en': 'Earnings', 'es': 'Ganancias'},

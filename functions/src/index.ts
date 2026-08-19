@@ -26,6 +26,7 @@ export { completePickup } from "./functions/completePickup";
 export { completeDelivery } from "./functions/completeDelivery";
 export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";
 export { onMissionCreatedDispatch, onMissionReopenedDispatch } from "./functions/dispatchMissionToDrivers";
+export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
 
 // ---- GPS ----
 export { recordTrackingPoint } from "./functions/recordTrackingPoint";

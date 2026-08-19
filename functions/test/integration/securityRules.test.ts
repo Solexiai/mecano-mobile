@@ -1139,6 +1139,279 @@ describe("Security Rules — driver_internal_notes/{noteId} : write Cloud Functi
 });
 
 // -----------------------------------------------------------------------
+// driver_locations/{driverId} + driver_locations/{driverId}/history/{eventId}
+// (Phase 5, partie 2 — trajet réellement parcouru).
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_locations/{driverId} : position courante", () => {
+  it("le chauffeur PEUT lire ET écrire sa propre position", async () => {
+    const driver = testEnv.authenticatedContext("track_driver_001", { role: "driver" });
+    await assertSucceeds(
+      setDoc(doc(driver.firestore(), "driver_locations/track_driver_001"), {
+        driver_id: "track_driver_001",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: null,
+      })
+    );
+    await assertSucceeds(getDoc(doc(driver.firestore(), "driver_locations/track_driver_001")));
+  });
+
+  it("[négatif] un chauffeur NE PEUT PAS écrire la position d'un AUTRE chauffeur", async () => {
+    const driver = testEnv.authenticatedContext("track_driver_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_locations/track_driver_other"), {
+        driver_id: "track_driver_other",
+        latitude: 45.5,
+        longitude: -73.5,
+      })
+    );
+  });
+
+  it("[négatif] un client SANS mission active avec ce chauffeur NE PEUT PAS lire sa position", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_003"), {
+        driver_id: "track_driver_003",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
+    const customer = testEnv.authenticatedContext("track_customer_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_locations/track_driver_003")));
+  });
+
+  it("un client AVEC une mission active assignée à ce chauffeur PEUT lire sa position", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/track_mission_001"), {
+        customer_id: "track_customer_002",
+        driver_id: "track_driver_004",
+        status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_004"), {
+        driver_id: "track_driver_004",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: "track_mission_001",
+      });
+    });
+    const customer = testEnv.authenticatedContext("track_customer_002", { role: "customer" });
+    await assertSucceeds(getDoc(doc(customer.firestore(), "driver_locations/track_driver_004")));
+  });
+
+  it("[négatif] un client AVEC une mission active mais pour un AUTRE chauffeur NE PEUT PAS lire cette position", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/track_mission_002"), {
+        customer_id: "track_customer_003",
+        driver_id: "track_driver_005",
+        status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_006"), {
+        driver_id: "track_driver_006",
+        latitude: 45.5,
+        longitude: -73.5,
+        // active_delivery_id pointe vers une mission dont ce client N'EST
+        // PAS le customer_id.
+        active_delivery_id: "track_mission_002",
+      });
+    });
+    const stranger = testEnv.authenticatedContext("track_customer_999", { role: "customer" });
+    await assertFails(getDoc(doc(stranger.firestore(), "driver_locations/track_driver_006")));
+  });
+
+  it("[négatif] un client dont la mission active n'est PLUS liée à ce chauffeur (active_delivery_id null après annulation) NE PEUT PLUS lire sa position", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/track_mission_003"), {
+        customer_id: "track_customer_004",
+        driver_id: "track_driver_007",
+        status: "cancelled",
+      });
+      // Simule le nettoyage effectué par onMissionEndedClearTracking après
+      // l'annulation : active_delivery_id remis à null.
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_007"), {
+        driver_id: "track_driver_007",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
+    const customer = testEnv.authenticatedContext("track_customer_004", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_locations/track_driver_007")));
+  });
+
+  it("un analyste peut lire la position de N'IMPORTE QUEL chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_008"), {
+        driver_id: "track_driver_008",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
+    const analyst = testEnv.authenticatedContext("track_analyst_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_locations/track_driver_008")));
+  });
+
+  it("[négatif] un utilisateur NON authentifié ne peut ni lire ni écrire une position", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_009"), {
+        driver_id: "track_driver_009",
+        latitude: 45.5,
+        longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(anon.firestore(), "driver_locations/track_driver_009")));
+    await assertFails(
+      setDoc(doc(anon.firestore(), "driver_locations/track_driver_010"), {
+        driver_id: "track_driver_010",
+        latitude: 45.5,
+        longitude: -73.5,
+      })
+    );
+  });
+});
+
+describe("Security Rules — driver_locations/{driverId}/history/{eventId} : trajet parcouru (Phase 5, partie 2)", () => {
+  it("[négatif] écriture DIRECTE (bypass recordTrackingPoint) est TOUJOURS interdite, même pour le chauffeur propriétaire", async () => {
+    const driver = testEnv.authenticatedContext("hist_driver_001", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "driver_locations/hist_driver_001/history/point_001"), {
+        delivery_id: "hist_mission_001",
+        latitude: 45.5,
+        longitude: -73.5,
+      })
+    );
+  });
+
+  it("[négatif] écriture DIRECTE est interdite même pour un super_admin (Cloud Functions only)", async () => {
+    const superAdmin = testEnv.authenticatedContext("hist_super_admin_001", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "driver_locations/hist_driver_002/history/point_002"), {
+        delivery_id: "hist_mission_002",
+        latitude: 45.5,
+        longitude: -73.5,
+      })
+    );
+  });
+
+  it("le chauffeur PEUT lire son PROPRE historique de trajet", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_003/history/point_003"), {
+        delivery_id: "hist_mission_003",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const driver = testEnv.authenticatedContext("hist_driver_003", { role: "driver" });
+    await assertSucceeds(
+      getDoc(doc(driver.firestore(), "driver_locations/hist_driver_003/history/point_003"))
+    );
+  });
+
+  it("[négatif] un AUTRE chauffeur NE PEUT PAS lire l'historique d'un chauffeur tiers", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_004/history/point_004"), {
+        delivery_id: "hist_mission_004",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const otherDriver = testEnv.authenticatedContext("hist_driver_005", { role: "driver" });
+    await assertFails(
+      getDoc(doc(otherDriver.firestore(), "driver_locations/hist_driver_004/history/point_004"))
+    );
+  });
+
+  it("un client PROPRIÉTAIRE de la mission référencée par delivery_id PEUT lire ce point d'historique", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_mission_005"), {
+        customer_id: "hist_customer_001",
+        driver_id: "hist_driver_006",
+        status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_006/history/point_005"), {
+        delivery_id: "hist_mission_005",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const customer = testEnv.authenticatedContext("hist_customer_001", { role: "customer" });
+    await assertSucceeds(
+      getDoc(doc(customer.firestore(), "driver_locations/hist_driver_006/history/point_005"))
+    );
+  });
+
+  it("[négatif] un client qui N'EST PAS le customer_id de la mission référencée NE PEUT PAS lire ce point", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_mission_006"), {
+        customer_id: "hist_customer_002",
+        driver_id: "hist_driver_007",
+        status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_007/history/point_006"), {
+        delivery_id: "hist_mission_006",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const stranger = testEnv.authenticatedContext("hist_customer_999", { role: "customer" });
+    await assertFails(
+      getDoc(doc(stranger.firestore(), "driver_locations/hist_driver_007/history/point_006"))
+    );
+  });
+
+  it("un analyste peut lire N'IMPORTE QUEL point d'historique", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_008/history/point_007"), {
+        delivery_id: "hist_mission_007",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const analyst = testEnv.authenticatedContext("hist_analyst_001", { role: "analyst" });
+    await assertSucceeds(
+      getDoc(doc(analyst.firestore(), "driver_locations/hist_driver_008/history/point_007"))
+    );
+  });
+
+  it("[négatif] un utilisateur NON authentifié ne peut ni lire ni écrire un point d'historique", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_009/history/point_008"), {
+        delivery_id: "hist_mission_008",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(
+      getDoc(doc(anon.firestore(), "driver_locations/hist_driver_009/history/point_008"))
+    );
+    await assertFails(
+      setDoc(doc(anon.firestore(), "driver_locations/hist_driver_009/history/point_009"), {
+        delivery_id: "hist_mission_008",
+        latitude: 45.5,
+        longitude: -73.5,
+      })
+    );
+  });
+
+  it("[négatif] même le chauffeur propriétaire NE PEUT PAS supprimer un point d'historique (immuable, Cloud Functions only)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/hist_driver_010/history/point_010"), {
+        delivery_id: "hist_mission_009",
+        latitude: 45.5,
+        longitude: -73.5,
+      });
+    });
+    const driver = testEnv.authenticatedContext("hist_driver_010", { role: "driver" });
+    await assertFails(
+      deleteDoc(doc(driver.firestore(), "driver_locations/hist_driver_010/history/point_010"))
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
 // DENY BY DEFAULT — collection inconnue
 // -----------------------------------------------------------------------
 describe("Security Rules — deny-by-default", () => {
