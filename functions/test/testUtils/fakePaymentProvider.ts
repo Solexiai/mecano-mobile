@@ -47,9 +47,11 @@ export interface FakePaymentProviderOptions {
   forceAuthorizeFailure?: boolean;
   /** Si vrai, `capturePayment()` renvoie un échec déterministe. */
   forceCaptureFailure?: boolean;
-  /** Code d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure` est actif. */
+  /** Si vrai, `refundPayment()` renvoie un échec déterministe (refus provider simulé). */
+  forceRefundFailure?: boolean;
+  /** Code d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
   failureCode?: string;
-  /** Message d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure` est actif. */
+  /** Message d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
   failureMessage?: string;
 }
 
@@ -121,6 +123,14 @@ export class FakePaymentProvider extends PaymentProvider {
   }
 
   async refundPayment(_params: RefundPaymentParams): Promise<RefundPaymentResult> {
+    if (this.options.forceRefundFailure) {
+      return {
+        success: false,
+        providerRefundId: null,
+        status: "failed",
+        failureCode: this.options.failureCode ?? "refund_failed",
+      };
+    }
     return {
       success: true,
       providerRefundId: nextId("re"),

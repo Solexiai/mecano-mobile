@@ -31,16 +31,26 @@ import { admin, db } from "../lib/admin";
 import { buildIdempotencyKey } from "../lib/idempotency";
 import { assertValidPaymentTransition } from "../lib/paymentStateMachine";
 import { assertValidPayoutTransition } from "../lib/payoutStateMachine";
+import { assertValidRefundTransition } from "../lib/refundStateMachine";
+import { aborted } from "../lib/errors";
 import {
   DriverPayoutDoc,
   DriverProfileDoc,
+  LedgerDirections,
+  LedgerEntryStatuses,
+  LedgerEntryTypes,
+  LedgerParties,
   MissionStatuses,
   PaymentDoc,
   PaymentStatuses,
   PayoutStatuses,
+  RefundDoc,
+  RefundReason,
+  RefundStatuses,
 } from "../lib/types";
 import { getPaymentProvider } from "./paymentProviderFactory";
-import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
+import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
+import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 
 export interface CreateAndAuthorizePaymentInput {
   missionId: string;
@@ -506,4 +516,319 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
 
 function isTerminalPayout(status: string): boolean {
   return status === PayoutStatuses.PAID || status === PayoutStatuses.REVERSED;
+}
+
+// -----------------------------------------------------------------------------
+// Remboursement — point 1 de la directive 38 points Phase 6.
+//
+// Supporte : remboursement complet, partiel, plusieurs remboursements
+// partiels dans la limite du montant capturé, remboursement avant/après
+// payout, remboursement administratif. MÊME schéma en 3 temps que les
+// fonctions ci-dessus — AUCUN appel PaymentProvider dans une transaction
+// Firestore.
+//
+//   1. Transaction Firestore n°1 — valide le solde remboursable
+//      (amount_captured_minor - somme des refunds déjà SUCCEEDED/PROCESSING
+//      >= montant demandé), crée refunds/{id} en REQUESTED puis
+//      immédiatement PROCESSING, fige idempotencyKey déterministe basé sur
+//      refundId (PAS sur paymentId seul — plusieurs refunds partiels
+//      distincts doivent avoir des clés distinctes).
+//   2. Appel Stripe réel (provider.refundPayment()), HORS transaction.
+//   3. Transaction Firestore n°2 — applique SUCCEEDED|FAILED, incrémente
+//      payments/{id}.amount_refunded_minor, transitionne le PaymentDoc vers
+//      PARTIALLY_REFUNDED ou REFUNDED (assertValidPaymentTransition), crée
+//      les entrées ledger compensatoires (REFUND/PARTIAL_REFUND).
+//
+// Recalcule ensuite mission_financial_balance/{missionId} (point 7), HORS
+// de la transaction n°2 elle-même (lecture multi-collections, voir
+// missionFinancialBalance.ts).
+// -----------------------------------------------------------------------------
+
+export interface RefundPaymentInput {
+  paymentId: string;
+  amountMinor: number; // montant à rembourser, en cents entiers (peut être partiel)
+  reason: RefundReason;
+  initiatedByUserId: string;
+  initiatedByRole: string;
+  isAdminInitiated: boolean;
+  /** Clé de déduplication CLIENT (ex: bouton "rembourser" cliqué 2x) — voir
+   *  refundPayment.ts (Cloud Function) pour la construction déterministe. */
+  requestKey: string;
+}
+
+export interface RefundPaymentOutcome {
+  success: boolean;
+  refundId: string;
+  status: string;
+  providerRefundId?: string | null;
+  failureMessage?: string | null;
+  alreadyProcessed?: boolean;
+}
+
+export async function refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutcome> {
+  const { paymentId, amountMinor, reason, initiatedByUserId, initiatedByRole, isAdminInitiated, requestKey } =
+    input;
+
+  const payRef = db.collection("payments").doc(paymentId);
+  // 🔒 Idempotence déterministe basée sur requestKey (fourni par l'appelant,
+  // construit à partir de paymentId + un identifiant stable de la DEMANDE,
+  // ex: un id de bouton/action client généré une seule fois côté Flutter et
+  // réutilisé lors d'un retry réseau) — PAS un id aléatoire régénéré à
+  // chaque tentative. Deux appels avec le MÊME requestKey ne créent jamais
+  // deux RefundDoc distincts : le second lit le premier et renvoie son
+  // résultat (ou attend/échoue proprement s'il est encore en cours).
+  const refundRef = db.collection("refunds").doc(requestKey);
+
+  type PreparedRefund = {
+    refundId: string;
+    providerPaymentIntentId: string;
+    amountToRefundMinor: number;
+    reverseTransfer: boolean;
+    refundApplicationFee: boolean;
+    idempotencyKey: string;
+    missionId: string;
+    isPostPayout: boolean;
+    relatedPayoutId: string | null;
+  };
+
+  // 🔒 La transaction RETOURNE son résultat (union discriminée) au lieu de
+  // muter des `let` externes par fermeture — c'est le pattern déjà validé
+  // et stable de submitDriverPayout() ci-dessus. Toute autre approche
+  // (assignation à une variable capturée) casse l'inférence de type
+  // TypeScript après la transaction (narrowing en `never`).
+  type TxOutcome =
+    | { kind: "already_terminal"; outcome: RefundPaymentOutcome }
+    | { kind: "prepared"; data: PreparedRefund };
+
+  let txResult: TxOutcome;
+  try {
+    txResult = await db.runTransaction(async (tx): Promise<TxOutcome> => {
+      const [paySnap, existingRefundSnap] = await Promise.all([
+        tx.get(payRef),
+        tx.get(refundRef),
+      ]);
+      if (!paySnap.exists) throw new Error(`payments/${paymentId} introuvable.`);
+      const payment = paySnap.data() as PaymentDoc;
+
+      // ---- Idempotence : requête déjà traitée (même requestKey) ----
+      if (existingRefundSnap.exists) {
+        const existing = existingRefundSnap.data() as RefundDoc;
+        if (existing.status === RefundStatuses.SUCCEEDED || existing.status === RefundStatuses.FAILED) {
+          return {
+            kind: "already_terminal",
+            outcome: {
+              success: existing.status === RefundStatuses.SUCCEEDED,
+              refundId: existing.refund_id,
+              status: existing.status,
+              providerRefundId: existing.provider_refund_id,
+              failureMessage: existing.failed_reason ?? null,
+              alreadyProcessed: true,
+            },
+          };
+        }
+        if (existing.status === RefundStatuses.PROCESSING) {
+          // Une exécution concurrente est déjà en train de traiter EXACTEMENT
+          // cette demande (même requestKey) — on ne relance jamais un second
+          // appel provider. L'appelant doit réessayer plus tard.
+          throw new Error("REFUND_ALREADY_IN_PROGRESS");
+        }
+        // REQUESTED : ne devrait jamais être observable en dehors de cette
+        // même transaction (REQUESTED->PROCESSING est écrit atomiquement
+        // ci-dessous) — traité comme in_progress par prudence.
+        throw new Error("REFUND_ALREADY_IN_PROGRESS");
+      }
+
+    // ---- Validation du solde remboursable (points 1, 2, 5, 6) ----
+    if (!payment.provider_payment_intent_id) {
+      throw new Error("PAYMENT_NOT_CAPTURABLE");
+    }
+    if (payment.status !== PaymentStatuses.CAPTURED && payment.status !== PaymentStatuses.PARTIALLY_REFUNDED) {
+      throw new Error("PAYMENT_NOT_REFUNDABLE_STATUS");
+    }
+
+    // Somme des refunds déjà SUCCEEDED ou PROCESSING pour ce paiement
+    // (empêche un dépassement du montant capturé même avec plusieurs
+    // remboursements partiels concurrents — voir point 4, test de
+    // concurrence : la lecture DANS la transaction garantit la
+    // sérialisation Firestore standard sur les documents lus).
+    const existingRefundsQuery = await tx.get(
+      db.collection("refunds").where("payment_id", "==", paymentId)
+    );
+    let alreadyRefundedOrInFlightMinor = 0;
+    for (const doc of existingRefundsQuery.docs) {
+      const r = doc.data() as RefundDoc;
+      if (r.status === RefundStatuses.SUCCEEDED || r.status === RefundStatuses.PROCESSING) {
+        alreadyRefundedOrInFlightMinor = addMinor(alreadyRefundedOrInFlightMinor, r.amount_minor);
+      }
+    }
+    const remainingRefundableMinor = subtractMinor(
+      payment.amount_captured_minor,
+      alreadyRefundedOrInFlightMinor
+    );
+    if (amountMinor <= 0 || amountMinor > remainingRefundableMinor) {
+      throw new Error(
+        `REFUND_AMOUNT_EXCEEDS_REFUNDABLE_BALANCE: demandé=${amountMinor}, disponible=${remainingRefundableMinor}`
+      );
+    }
+
+    // ---- Détection remboursement post-payout (point 6) ----
+    // Un remboursement est "post-payout" si un driver_payouts PAID inclut
+    // déjà un financial_snapshot de cette mission — dans ce cas, on NE
+    // MODIFIE JAMAIS ce payout historique (voir missionFinancialBalance.ts,
+    // qui expose outstanding_driver_balance_minor pour tracer l'écart).
+    const snapshotsQuery = await tx.get(
+      db.collection("financial_snapshots").where("mission_id", "==", payment.mission_id)
+    );
+    const snapshotIds = snapshotsQuery.docs.map((d) => d.id);
+    let isPostPayout = false;
+    let relatedPayoutId: string | null = null;
+    if (snapshotIds.length > 0) {
+      const paidPayoutsQuery = await tx.get(
+        db.collection("driver_payouts").where("driver_id", "==", payment.driver_id).where("status", "==", "paid")
+      );
+      for (const doc of paidPayoutsQuery.docs) {
+        const includedIds: string[] = doc.data().financial_snapshot_ids ?? [];
+        if (snapshotIds.some((id) => includedIds.includes(id))) {
+          isPostPayout = true;
+          relatedPayoutId = doc.id;
+          break;
+        }
+      }
+    }
+
+    const now = admin.firestore.Timestamp.now();
+    const idempotencyKey = buildIdempotencyKey("refundPayment", refundRef.id);
+
+    const refundDoc: RefundDoc = {
+      refund_id: refundRef.id,
+      mission_id: payment.mission_id,
+      payment_id: paymentId,
+      amount_minor: amountMinor,
+      reason,
+      initiated_by_user_id: initiatedByUserId,
+      initiated_by_role: initiatedByRole,
+      is_admin_initiated: isAdminInitiated,
+      is_post_payout: isPostPayout,
+      related_payout_id: relatedPayoutId,
+      status: RefundStatuses.PROCESSING,
+      provider_refund_id: null,
+      reverse_transfer: !!payment.connected_account_id,
+      refund_application_fee: !!payment.connected_account_id,
+      idempotency_key: idempotencyKey,
+      created_at: now,
+      processing_at: now,
+      completed_at: null,
+      failed_reason: null,
+    };
+    // REQUESTED->PROCESSING appliqué en une seule écriture atomique (jamais
+    // observable en REQUESTED depuis l'extérieur de cette transaction) —
+    // voir refundStateMachine.ts, transition valide.
+      assertValidRefundTransition(RefundStatuses.REQUESTED, RefundStatuses.PROCESSING);
+      tx.set(refundRef, refundDoc);
+
+      return {
+        kind: "prepared",
+        data: {
+          refundId: refundRef.id,
+          providerPaymentIntentId: payment.provider_payment_intent_id,
+          amountToRefundMinor: amountMinor,
+          reverseTransfer: refundDoc.reverse_transfer,
+          refundApplicationFee: refundDoc.refund_application_fee,
+          idempotencyKey,
+          missionId: payment.mission_id,
+          isPostPayout,
+          relatedPayoutId,
+        },
+      };
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message === "REFUND_ALREADY_IN_PROGRESS") {
+      throw aborted(
+        "Une demande de remboursement identique est déjà en cours de traitement. Veuillez réessayer dans quelques instants."
+      );
+    }
+    throw err;
+  }
+
+  if (txResult.kind === "already_terminal") return txResult.outcome;
+  const p = txResult.data;
+
+  // ---- Étape 2 : appel Stripe réel, hors transaction ----
+  const provider = getPaymentProvider();
+  const result = await provider.refundPayment({
+    providerPaymentIntentId: p.providerPaymentIntentId,
+    amountMinor: p.amountToRefundMinor,
+    reverseTransfer: p.reverseTransfer,
+    refundApplicationFee: p.refundApplicationFee,
+    idempotencyKey: p.idempotencyKey,
+  });
+
+  // ---- Étape 3 : transaction — applique le résultat ----
+  await db.runTransaction(async (tx) => {
+    const [refundSnap, paySnap] = await Promise.all([tx.get(refundRef), tx.get(payRef)]);
+    if (!refundSnap.exists || !paySnap.exists) return;
+    const refundData = refundSnap.data() as RefundDoc;
+    const payment = paySnap.data() as PaymentDoc;
+    const now = admin.firestore.Timestamp.now();
+
+    if (result.success) {
+      assertValidRefundTransition(refundData.status, RefundStatuses.SUCCEEDED);
+      tx.update(refundRef, {
+        status: RefundStatuses.SUCCEEDED,
+        provider_refund_id: result.providerRefundId,
+        completed_at: now,
+      });
+
+      const newAmountRefundedMinor = addMinor(payment.amount_refunded_minor, p.amountToRefundMinor);
+      const isFullRefund = newAmountRefundedMinor >= payment.amount_captured_minor;
+      const nextPaymentStatus = isFullRefund
+        ? PaymentStatuses.REFUNDED
+        : PaymentStatuses.PARTIALLY_REFUNDED;
+      assertValidPaymentTransition(payment.status, nextPaymentStatus);
+      tx.update(payRef, {
+        amount_refunded_minor: newAmountRefundedMinor,
+        status: nextPaymentStatus,
+        updated_at: now,
+      });
+
+      // ---- Écriture ledger compensatoire (REFUND ou PARTIAL_REFUND) ----
+      const ledgerRef = db.collection("transaction_ledger").doc();
+      tx.set(ledgerRef, {
+        ledger_entry_id: ledgerRef.id,
+        mission_id: p.missionId,
+        transaction_id: paymentId,
+        type: isFullRefund ? LedgerEntryTypes.REFUND : LedgerEntryTypes.PARTIAL_REFUND,
+        amount: p.amountToRefundMinor / 100, // 🔒 legacy ledger en dollars, voir money.ts
+        amount_minor: p.amountToRefundMinor,
+        currency: DEFAULT_CURRENCY,
+        direction: LedgerDirections.DEBIT,
+        party: LedgerParties.CUSTOMER,
+        created_at: now,
+        created_by: "refundPayment",
+        source_event: p.isPostPayout ? "refund_after_payout" : "refund_before_payout",
+        status: LedgerEntryStatuses.CONFIRMED,
+        reference_id: p.relatedPayoutId,
+      });
+    } else {
+      assertValidRefundTransition(refundData.status, RefundStatuses.FAILED);
+      tx.update(refundRef, {
+        status: RefundStatuses.FAILED,
+        provider_refund_id: result.providerRefundId,
+        failed_reason: result.failureCode ?? "provider_refund_failed",
+        completed_at: now,
+      });
+    }
+  });
+
+  // Recalcul mission_financial_balance HORS transaction (lecture
+  // multi-collections, voir missionFinancialBalance.ts en-tête).
+  await recalculateMissionFinancialBalance(p.missionId);
+
+  return {
+    success: result.success,
+    refundId: p.refundId,
+    status: result.success ? RefundStatuses.SUCCEEDED : RefundStatuses.FAILED,
+    providerRefundId: result.providerRefundId,
+    failureMessage: result.success ? null : (result.failureCode ?? "Remboursement refusé par le fournisseur."),
+  };
 }

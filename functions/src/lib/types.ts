@@ -142,6 +142,15 @@ export const LedgerEntryTypes = {
   PARTIAL_REFUND: "partial_refund",
   CHARGEBACK: "chargeback",
   CHARGEBACK_REVERSAL: "chargeback_reversal",
+  // PHASE 6 (directive 38 points, point 9) — granularité additionnelle des
+  // effets ledger d'un chargeback selon la capacité du provider (Stripe) :
+  // frais fixes prélevés par Stripe lors de l'ouverture du litige, et
+  // issue win/lost distincte de la réouverture de fonds (CHARGEBACK_REVERSAL
+  // reste réservé au late-win/résolution comptable après un CHARGEBACK deja
+  // appliqué ; CHARGEBACK_WON/LOST documentent l'issue elle-même).
+  CHARGEBACK_FEE: "chargeback_fee",
+  CHARGEBACK_WON: "chargeback_won",
+  CHARGEBACK_LOST: "chargeback_lost",
   DRIVER_ADJUSTMENT: "driver_adjustment",
   CUSTOMER_ADJUSTMENT: "customer_adjustment",
   DRIVER_PAYOUT: "driver_payout",
@@ -199,8 +208,35 @@ export const DisputeStatuses = {
   WON: "won",
   LOST: "lost",
   REVERSED: "reversed",
+  // PHASE 6 (point 8 de la directive 38 points) — statut terminal explicite
+  // distinct de won/lost/reversed : un litige "closed" est un litige dont
+  // le cycle de vie provider est terminé ET dont les effets ledger/finance
+  // ont été appliqués côté Movi-K (voir updateDisputeStatus.ts). won/lost/
+  // reversed décrivent l'ISSUE ; closed décrit la CLÔTURE ADMINISTRATIVE.
+  CLOSED: "closed",
 } as const;
 export type DisputeStatus = (typeof DisputeStatuses)[keyof typeof DisputeStatuses];
+
+// -----------------------------------------------------------------------------
+// PHASE 6 (directive 38 points) — Refund state machine.
+//
+//   REQUESTED -> PROCESSING -> SUCCEEDED
+//   REQUESTED -> PROCESSING -> FAILED
+//   FAILED -> PROCESSING (nouvelle tentative, même idempotency_key logique
+//     de remboursement mais un nouveau RefundDoc — voir refundPayment.ts)
+//
+// Naming aligné sur la directive utilisateur (REQUESTED, pas "pending") —
+// remplace la version antérieure `pending|processing|succeeded|failed` de
+// RefundDoc.status (aucun code de production ne dépendait encore de
+// l'ancien naming, voir audit — donc renommage sûr, pas juste extension).
+// -----------------------------------------------------------------------------
+export const RefundStatuses = {
+  REQUESTED: "requested",
+  PROCESSING: "processing",
+  SUCCEEDED: "succeeded",
+  FAILED: "failed",
+} as const;
+export type RefundStatus = (typeof RefundStatuses)[keyof typeof RefundStatuses];
 
 export const TaxTypes = {
   GST: "gst",
@@ -493,19 +529,67 @@ export interface PayoutPolicyConfigDoc {
   updated_by_user_id: string;
 }
 
-/** tax_configs/{jurisdiction} — architecture configurable, règles NON inventées. */
+/**
+ * tax_configs/{jurisdiction}_{taxCode}_v{version} — architecture
+ * configurable, règles fiscales NON inventées (point 14 de la directive
+ * 38 points). Chaque écriture crée une NOUVELLE version — jamais un
+ * overwrite (voir updateTaxConfiguration.ts). Le document
+ * `tax_configs/{jurisdiction}_{taxCode}_current` (alias mutable) pointe
+ * vers la version active pour permettre une lecture O(1) par le moteur de
+ * taxes sans scanner tout l'historique.
+ */
 export interface TaxConfigDoc {
   jurisdiction: string; // ex: 'QC', 'CA', 'ON'
-  tax_type: TaxType;
+  tax_code: string; // ex: 'GST', 'QST', 'HST' — identifiant STABLE indépendant du taux
+  tax_type: TaxType; // catégorie technique (gst/qst/hst/other_tax/tax_exempt)
+  display_name: string; // ex: "TPS (5%)" — affiché au client/admin
   rate: number; // ex: 0.05 pour GST 5%
-  applies_to_transport: boolean;
-  applies_to_platform_fees: boolean;
-  is_active: boolean;
+  taxable_components: TaxableComponent[]; // ex: ['transport','platform_fees']
+  applies_to_transport: boolean; // 🔒 conservé pour rétro-compatibilité calculateTaxes()
+  applies_to_platform_fees: boolean; // 🔒 conservé pour rétro-compatibilité calculateTaxes()
+  effective_from: admin_Timestamp;
+  effective_until?: admin_Timestamp | null; // null = toujours active depuis effective_from
+  enabled: boolean;
+  version: number; // 1, 2, 3... jamais réutilisé pour une même (jurisdiction, tax_code)
+  is_active: boolean; // 🔒 conservé (alias de enabled) pour rétro-compatibilité calculateTaxes()
   tax_registration_owner: "platform" | "driver" | "not_applicable";
+  created_at: admin_Timestamp;
   updated_at: admin_Timestamp;
+  updated_by_user_id: string;
 }
 
-/** refunds/{refundId} — append-only, jamais modifié après création. */
+export const TaxableComponents = {
+  TRANSPORT: "transport",
+  PLATFORM_FEES: "platform_fees",
+  TIP: "tip", // présent pour complétude ; le pourboire n'est PAS taxé par défaut (point 23)
+} as const;
+export type TaxableComponent = (typeof TaxableComponents)[keyof typeof TaxableComponents];
+
+/**
+ * missions/{missionId} (champ dénormalisé, PAS une collection séparée) —
+ * SNAPSHOT FISCAL figé au moment où le devis est accepté (point 15 de la
+ * directive 38 points). Écrit UNE SEULE FOIS par createAndAuthorizeMissionPayment
+ * (ou l'équivalent acceptDelivery), jamais modifié ensuite même si la
+ * configuration fiscale change — garantit qu'une mission déjà tarifée ne
+ * change jamais rétroactivement.
+ */
+export interface TaxSnapshot {
+  tax_jurisdiction: string;
+  tax_version_ids: string[]; // ids des TaxConfigDoc figés (jurisdiction_taxCode_vN)
+  tax_rates: Array<{ tax_code: string; rate: number }>;
+  taxable_base_minor: number;
+  tax_amounts_minor: Array<{ tax_code: string; amount_minor: number }>;
+  total_tax_minor: number;
+  snapshotted_at: admin_Timestamp;
+}
+
+/**
+ * refunds/{refundId} — append-only, jamais modifié après création
+ * (sauf transition de statut REQUESTED->PROCESSING->SUCCEEDED|FAILED via
+ * refundPayment.ts, qui reste le SEUL écrivain). Un remboursement partiel
+ * supplémentaire crée un NOUVEAU RefundDoc, jamais une modification d'un
+ * refund existant.
+ */
 export interface RefundDoc {
   refund_id: string;
   mission_id: string;
@@ -514,17 +598,30 @@ export interface RefundDoc {
   reason: RefundReason;
   initiated_by_user_id: string;
   initiated_by_role: string;
-  status: "pending" | "processing" | "succeeded" | "failed";
+  is_admin_initiated: boolean;
+  // true si ce refund a été demandé APRÈS qu'un driver_payouts lié à cette
+  // mission soit déjà passé en statut PAID — determine si une compensation
+  // (mission_financial_balance.outstanding_driver_balance) doit être créée
+  // plutôt qu'un simple recalcul du montant encore payable (point 5 vs 6).
+  is_post_payout: boolean;
+  related_payout_id: string | null; // rempli uniquement si is_post_payout
+  status: RefundStatus;
   provider_refund_id: string | null;
   reverse_transfer: boolean;
   refund_application_fee: boolean;
   idempotency_key: string;
   created_at: admin_Timestamp;
+  processing_at?: admin_Timestamp | null;
   completed_at?: admin_Timestamp | null;
   failed_reason?: string | null;
 }
 
-/** disputes/{disputeId} — chargebacks / litiges, liés à la preuve de livraison. */
+/**
+ * disputes/{disputeId} — chargebacks / litiges, liés à la preuve de
+ * livraison. Statuts étendus (point 8) : opened/under_review/won/lost/
+ * reversed/closed. Immuable sauf transitions de statut via
+ * updateDisputeStatus.ts (webhook ou action admin).
+ */
 export interface DisputeDoc {
   dispute_id: string;
   mission_id: string;
@@ -536,58 +633,99 @@ export interface DisputeDoc {
   status: DisputeStatus;
   evidence_due_at?: admin_Timestamp | null;
   proof_of_delivery_url?: string | null; // dénormalisé depuis la mission (Phase 5)
+  provider_metadata?: Record<string, unknown> | null; // métadonnées utiles brutes du provider
   created_at: admin_Timestamp;
+  updated_at: admin_Timestamp;
   resolved_at?: admin_Timestamp | null;
+  closed_at?: admin_Timestamp | null;
 }
 
-/** provider_webhook_events/{eventId} — idempotence + traçabilité des webhooks. */
+/**
+ * provider_webhook_events/{provider_event_id} — idempotence + traçabilité
+ * des webhooks (point 11). L'ID de document EST le `provider_event_id`
+ * (verrou d'idempotence naturel — voir isProviderEventAlreadyProcessed()).
+ * Ne stocke JAMAIS le payload brut complet (peut contenir des données
+ * sensibles au-delà du strict nécessaire) — uniquement les identifiants
+ * liés utiles à la traçabilité/reconciliation.
+ */
 export interface ProviderWebhookEventDoc {
+  provider: "stripe";
   provider_event_id: string;
   event_type: string;
   received_at: admin_Timestamp;
   processed_at?: admin_Timestamp | null;
   processing_status: WebhookProcessingStatus;
-  processing_attempts: number;
+  attempt_count: number;
+  // 🔒 conservé pour rétro-compatibilité (alias historique d'attempt_count).
+  processing_attempts?: number;
   last_error?: string | null;
+  error_code?: string | null;
   related_payment_id?: string | null;
+  related_payout_id?: string | null;
+  related_refund_id?: string | null;
+  related_dispute_id?: string | null;
   related_mission_id?: string | null;
 }
 
 /**
- * mission_financial_balance/{missionId} — vue consolidée en temps réel du
- * solde financier d'une mission (point 10 du cahier des charges). Recalculée
- * par les Cloud Functions à chaque mouvement pertinent, jamais par Flutter.
+ * mission_financial_balance/{missionId} — état synthétique SERVEUR dérivé
+ * du ledger (point 7 de la directive 38 points). Le ledger reste la source
+ * historique ; ce document est un CACHE recalculé, jamais lu comme source
+ * de vérité pour un audit financier strict (voir reconciliationEngine.ts
+ * qui compare toujours au ledger, pas seulement à ce cache).
  */
 export interface MissionFinancialBalanceDoc {
   mission_id: string;
-  customer_amount_authorized_minor: number;
-  customer_amount_captured_minor: number;
-  customer_amount_refunded_minor: number;
-  platform_amount_earned_minor: number;
-  driver_amount_earned_minor: number;
-  driver_amount_paid_minor: number;
-  driver_amount_held_minor: number;
-  outstanding_balance_minor: number;
+  customer_charged_minor: number; // = amount_captured_minor du PaymentDoc
+  customer_refunded_minor: number; // somme des RefundDoc SUCCEEDED liés
+  platform_commission_minor: number;
+  customer_service_fee_minor: number;
+  driver_earned_minor: number; // gain net chauffeur avant versement (hors tip/bonus)
+  driver_paid_minor: number; // somme des driver_payouts PAID incluant cette mission
+  driver_tip_minor: number; // 100% chauffeur — jamais dans platform_commission_minor
+  driver_bonus_minor: number;
+  adjustments_minor: number; // somme des ajustements manuels (createLedgerEntry compensatoires)
+  outstanding_driver_balance_minor: number; // driver_earned+tip+bonus+adjustments - driver_paid
+  outstanding_customer_balance_minor: number; // customer_charged - customer_refunded, vue solde
+  provider_processing_cost_minor: number; // frais Stripe estimés/réels (payment_processing_fee ledger)
+  contribution_margin_minor: number; // platform_commission + service_fee - provider_processing_cost
+  // 🔒 conservés pour rétro-compatibilité avec le nommage précédent (Phase 6 point 9).
+  customer_amount_authorized_minor?: number;
+  customer_amount_captured_minor?: number;
+  customer_amount_refunded_minor?: number;
+  platform_amount_earned_minor?: number;
+  driver_amount_earned_minor?: number;
+  driver_amount_paid_minor?: number;
+  driver_amount_held_minor?: number;
+  outstanding_balance_minor?: number;
   updated_at: admin_Timestamp;
 }
 
 /** reconciliation_reports/{reportId} — sorties de la fonction de réconciliation. */
+export interface ReconciliationAnomaly {
+  severity: "info" | "warning" | "critical";
+  type: string;
+  mission_id?: string | null;
+  payment_id?: string | null;
+  payout_id?: string | null;
+  refund_id?: string | null;
+  expected_amount_minor?: number | null;
+  actual_amount_minor?: number | null;
+  description: string;
+  detected_at: admin_Timestamp;
+  status: "open" | "acknowledged" | "resolved";
+  resolution_notes?: string | null;
+}
+
 export interface ReconciliationReportDoc {
   report_id: string;
   period_start: admin_Timestamp;
   period_end: admin_Timestamp;
   status: ReconciliationStatus;
-  anomalies: Array<{
-    type: string;
-    payment_id?: string | null;
-    mission_id?: string | null;
-    payout_id?: string | null;
-    expected_amount_minor?: number | null;
-    actual_amount_minor?: number | null;
-    description: string;
-  }>;
+  anomalies: ReconciliationAnomaly[];
   total_payments_checked: number;
   total_payouts_checked: number;
+  total_refunds_checked: number;
   reconciliation_difference_minor: number;
   created_at: admin_Timestamp;
   last_reconciled_at: admin_Timestamp;
