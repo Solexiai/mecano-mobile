@@ -38,6 +38,11 @@ export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 export { createLedgerEntry } from "./functions/createLedgerEntry";
 export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 
+// ---- Paiements (Phase 6 — infrastructure financière réelle) ----
+export { createCustomerPaymentProfile } from "./functions/createCustomerPaymentProfile";
+export { attachCustomerPaymentMethod } from "./functions/attachCustomerPaymentMethod";
+export { createDriverStripeAccount } from "./functions/createDriverStripeAccount";
+
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
 export { qualifyFoundingDriver, revokeFoundingDriverStatus } from "./functions/qualifyFoundingDriver";

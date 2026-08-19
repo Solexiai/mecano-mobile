@@ -30,6 +30,10 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 import { acceptDelivery, AcceptDeliveryRequest } from "../../src/functions/acceptDelivery";
 import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
+import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
+import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+
+const CUSTOMER_ID = "concurrency_customer_001";
 
 const MISSION_ID = "concurrency_mission_001";
 const DRIVER_A_ID = "concurrency_driver_a";
@@ -107,35 +111,56 @@ async function seedPricingVersion(): Promise<void> {
     .set(buildPricingConfig({ pricing_version: PRICING_VERSION }));
 }
 
+async function seedPaymentProfile(): Promise<void> {
+  await db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID));
+}
+
 async function cleanupSeed(): Promise<void> {
   await Promise.all([
     db.collection("delivery_requests").doc(MISSION_ID).delete(),
     db.collection("driver_profiles").doc(DRIVER_A_ID).delete(),
     db.collection("driver_profiles").doc(DRIVER_B_ID).delete(),
     db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
+    db.collection("payment_profiles").doc(CUSTOMER_ID).delete(),
   ]);
   // Nettoyage des sous-collections/documents annexes créés par la fonction
-  // (financial_snapshots, audit_logs, tracking_events) pour ne rien laisser
-  // fuiter vers d'autres fichiers de test partageant le même émulateur.
-  const [snapshots, auditLogs, events] = await Promise.all([
+  // (financial_snapshots, audit_logs, tracking_events, payments) pour ne
+  // rien laisser fuiter vers d'autres fichiers de test partageant le même
+  // émulateur.
+  const [snapshots, auditLogs, events, payments] = await Promise.all([
     db.collection("financial_snapshots").where("mission_id", "==", MISSION_ID).get(),
     db.collection("audit_logs").where("target_id", "==", MISSION_ID).get(),
     db.collection("delivery_requests").doc(MISSION_ID).collection("tracking_events").get(),
+    db.collection("payments").where("mission_id", "==", MISSION_ID).get(),
   ]);
   await Promise.all([
     ...snapshots.docs.map((d) => d.ref.delete()),
     ...auditLogs.docs.map((d) => d.ref.delete()),
     ...events.docs.map((d) => d.ref.delete()),
+    ...payments.docs.map((d) => d.ref.delete()),
   ]);
 }
 
 describe("acceptDelivery — double acceptation simultanée (premier commit gagnant)", () => {
+  // PHASE 6 — acceptDelivery() appelle désormais createAndAuthorizeMissionPayment()
+  // après le commit de sa transaction. En environnement de test (émulateur,
+  // aucune vraie clé Stripe), on injecte un FakePaymentProvider déterministe
+  // pour que le VRAI chemin de code d'orchestration (transactions + machine
+  // d'état + idempotence) soit exercé sans jamais toucher le réseau Stripe.
+  beforeAll(() => {
+    setPaymentProviderForTesting(new FakePaymentProvider());
+  });
+  afterAll(() => {
+    setPaymentProviderForTesting(null);
+  });
+
   beforeEach(async () => {
     await Promise.all([
       seedApprovedDriver(DRIVER_A_ID),
       seedApprovedDriver(DRIVER_B_ID),
       seedOpenMission(),
       seedPricingVersion(),
+      seedPaymentProfile(),
     ]);
   });
 

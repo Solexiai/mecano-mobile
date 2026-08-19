@@ -16,10 +16,24 @@ import {
   StopInput,
 } from "../../src/functions/createDeliveryRequest";
 import { admin, db } from "../../src/lib/admin";
+import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 
 const CUSTOMER_ID = "create_customer_001";
 const OTHER_CUSTOMER_ID = "create_customer_002";
 const QUOTE_ID = "create_quote_001";
+
+// PHASE 6, point 1/4 — createDeliveryRequest() exige désormais un moyen de
+// paiement par défaut enregistré (payment_profiles/{uid}.default_payment_method_id)
+// AVANT de créer une mission. Les tests ci-dessous (qui ne testent PAS cette
+// précondition elle-même) doivent donc seeder un profil de paiement valide
+// pour ne pas régresser sur le comportement Phase 4 déjà validé.
+async function seedPaymentProfile(customerId: string): Promise<void> {
+  await db.collection("payment_profiles").doc(customerId).set(buildFakePaymentProfile(customerId));
+}
+
+async function cleanupPaymentProfile(customerId: string): Promise<void> {
+  await db.collection("payment_profiles").doc(customerId).delete();
+}
 
 function buildRequest(
   customerId: string,
@@ -87,7 +101,11 @@ async function cleanup(): Promise<void> {
 }
 
 describe("createDeliveryRequest — cas nominal", () => {
-  afterEach(cleanup);
+  beforeEach(() => seedPaymentProfile(CUSTOMER_ID));
+  afterEach(async () => {
+    await cleanup();
+    await cleanupPaymentProfile(CUSTOMER_ID);
+  });
 
   it("crée la mission à partir d'un devis valide, marque le devis consommé, crée les stops et un tracking_event", async () => {
     await seedQuote();
@@ -125,7 +143,17 @@ describe("createDeliveryRequest — cas nominal", () => {
 });
 
 describe("createDeliveryRequest — cas négatifs", () => {
-  afterEach(cleanup);
+  // Ces tests négatifs couvrent des rejets AUTRES que l'absence de moyen de
+  // paiement (devis introuvable/expiré/consommé, stops invalides) — on
+  // seed donc un profil de paiement valide pour CUSTOMER_ID et
+  // OTHER_CUSTOMER_ID afin d'isoler la précondition testée par chaque `it()`
+  // (voir describe dédié plus bas pour le test de la précondition
+  // "moyen de paiement manquant" elle-même, Phase 6 point 1/4).
+  beforeEach(() => Promise.all([seedPaymentProfile(CUSTOMER_ID), seedPaymentProfile(OTHER_CUSTOMER_ID)]));
+  afterEach(async () => {
+    await cleanup();
+    await Promise.all([cleanupPaymentProfile(CUSTOMER_ID), cleanupPaymentProfile(OTHER_CUSTOMER_ID)]);
+  });
 
   it("devis introuvable échoue avec not-found", async () => {
     await expect(
@@ -178,5 +206,49 @@ describe("createDeliveryRequest — cas négatifs", () => {
       // @ts-expect-error payload volontairement invalide
       createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { ...baseInput }))
     ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PHASE 6, point 1/4 — précondition « moyen de paiement sécurisé AVANT la
+// création de la mission ». Décrit dans un describe() séparé (SANS
+// seedPaymentProfile en beforeEach) pour isoler explicitement ce cas.
+// ---------------------------------------------------------------------------
+describe("createDeliveryRequest — Phase 6 : précondition moyen de paiement", () => {
+  afterEach(async () => {
+    await cleanup();
+    await Promise.all([cleanupPaymentProfile(CUSTOMER_ID), cleanupPaymentProfile(OTHER_CUSTOMER_ID)]);
+  });
+
+  it("un client SANS aucun payment_profiles enregistré ne peut PAS créer de mission (failed-precondition)", async () => {
+    await seedQuote();
+    await expect(
+      createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("un client avec un payment_profiles existant mais SANS default_payment_method_id ne peut PAS créer de mission", async () => {
+    await seedQuote();
+    await db.collection("payment_profiles").doc(CUSTOMER_ID).set({
+      customer_id: CUSTOMER_ID,
+      provider: "stripe",
+      provider_customer_id: `fake_cus_${CUSTOMER_ID}`,
+      default_payment_method_id: null,
+      created_at: admin.firestore.Timestamp.now(),
+      updated_at: admin.firestore.Timestamp.now(),
+    });
+    await expect(
+      createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("un client AVEC un moyen de paiement par défaut enregistré peut créer une mission normalement", async () => {
+    await seedQuote();
+    await seedPaymentProfile(CUSTOMER_ID);
+    const result = await createDeliveryRequest.run(
+      buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput })
+    );
+    expect(result.missionId).toBeTruthy();
+    createdMissionIds.push(result.missionId);
   });
 });

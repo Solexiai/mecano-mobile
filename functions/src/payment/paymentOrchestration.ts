@@ -102,12 +102,20 @@ export async function createAndAuthorizeMissionPayment(
     if (!missionSnap.exists) throw new Error(`Mission ${missionId} introuvable.`);
 
     const now = admin.firestore.Timestamp.now();
+    // 🔒 Le document est créé DIRECTEMENT en AUTHORIZATION_PENDING (et non
+    // CREATED) car l'étape 2 ci-dessous va IMMÉDIATEMENT tenter l'appel
+    // provider.createPayment()+authorizePayment() — voir la machine d'état
+    // (paymentStateMachine.ts) : CREATED n'autorise PAS de transition directe
+    // vers AUTHORIZED (elle doit transiter par AUTHORIZATION_PENDING).
+    // AUTHORIZATION_PENDING -> AUTHORIZED et AUTHORIZATION_PENDING -> FAILED
+    // sont toutes deux des transitions valides, ce qui couvre les deux
+    // issues possibles de l'étape 2.
     const payment: PaymentDoc = {
       payment_id: paymentId,
       mission_id: missionId,
       customer_id: customerId,
       driver_id: driverId,
-      status: PaymentStatuses.CREATED,
+      status: PaymentStatuses.AUTHORIZATION_PENDING,
       currency: DEFAULT_CURRENCY,
       amount_authorized_minor: 0,
       amount_captured_minor: 0,
@@ -131,7 +139,10 @@ export async function createAndAuthorizeMissionPayment(
       updated_at: now,
     };
     tx.set(paymentRef, payment);
-    tx.update(missionRef, { active_payment_id: paymentId, payment_status: PaymentStatuses.CREATED });
+    tx.update(missionRef, {
+      active_payment_id: paymentId,
+      payment_status: PaymentStatuses.AUTHORIZATION_PENDING,
+    });
   });
 
   // ---- Étape 2 : appels Stripe RÉELS, hors transaction ----

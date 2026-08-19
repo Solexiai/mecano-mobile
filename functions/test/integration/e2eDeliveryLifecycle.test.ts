@@ -45,6 +45,8 @@ import type { Change, FirestoreEvent, QueryDocumentSnapshot } from "firebase-fun
 import { admin, db } from "../../src/lib/admin";
 import { LedgerEntryTypes, MissionStatuses } from "../../src/lib/types";
 import { buildPricingConfig } from "../unit/fixtures";
+import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
+import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 
 // ---------------------------------------------------------------------------
 // NOTE D'ARCHITECTURE — pourquoi le trigger de notification est invoqué
@@ -129,6 +131,14 @@ async function seedPricing(): Promise<void> {
     .set(buildPricingConfig({ pricing_version: PRICING_VERSION }));
 }
 
+// PHASE 6, point 1/4 — createDeliveryRequest() exige un moyen de paiement
+// par défaut enregistré. La chaîne E2E complète (accept + capture) exerce
+// aussi createAndAuthorizeMissionPayment()/captureMissionPayment() — voir
+// FakePaymentProvider injecté via setPaymentProviderForTesting() ci-dessous.
+async function seedPaymentProfile(): Promise<void> {
+  await db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID));
+}
+
 async function seedApprovedDriver(): Promise<void> {
   await db.collection("driver_profiles").doc(DRIVER_ID).set({
     uid: DRIVER_ID,
@@ -161,7 +171,7 @@ const dropoffStop: StopInput = {
 
 /** Rejoue les 4 premières étapes du scénario nominal et retourne le missionId. */
 async function runHappyPathUntilAssigned(): Promise<string> {
-  await Promise.all([seedPricing(), seedApprovedDriver()]);
+  await Promise.all([seedPricing(), seedApprovedDriver(), seedPaymentProfile()]);
 
   const quote = await calculateDeliveryQuote.run(
     authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
@@ -193,22 +203,25 @@ async function runHappyPathUntilAssigned(): Promise<string> {
 async function cleanupAll(missionId: string | null): Promise<void> {
   if (!missionId) return;
   const missionRef = db.collection("delivery_requests").doc(missionId);
-  const [stops, events, ledger, snapshots] = await Promise.all([
+  const [stops, events, ledger, snapshots, payments] = await Promise.all([
     missionRef.collection("stops").get(),
     missionRef.collection("tracking_events").get(),
     db.collection("transaction_ledger").where("mission_id", "==", missionId).get(),
     db.collection("financial_snapshots").where("mission_id", "==", missionId).get(),
+    db.collection("payments").where("mission_id", "==", missionId).get(),
   ]);
   await Promise.all([
     ...stops.docs.map((d) => d.ref.delete()),
     ...events.docs.map((d) => d.ref.delete()),
     ...ledger.docs.map((d) => d.ref.delete()),
     ...snapshots.docs.map((d) => d.ref.delete()),
+    ...payments.docs.map((d) => d.ref.delete()),
     missionRef.delete(),
     db.collection("pricing_configs").doc("active").delete(),
     db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
     db.collection("driver_profiles").doc(DRIVER_ID).delete(),
     db.collection("driver_locations").doc(DRIVER_ID).delete(),
+    db.collection("payment_profiles").doc(CUSTOMER_ID).delete(),
     db.collection("audit_logs").where("target_id", "==", missionId).get().then((s) =>
       Promise.all(s.docs.map((d) => d.ref.delete()))
     ),
@@ -226,6 +239,19 @@ async function cleanupAll(missionId: string | null): Promise<void> {
 describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> completed)", () => {
   let missionId: string | null = null;
 
+  // PHASE 6 — acceptDelivery()/completeDelivery() appellent désormais
+  // createAndAuthorizeMissionPayment()/captureMissionPayment(). En
+  // environnement de test (émulateur, aucune vraie clé Stripe), on injecte
+  // un FakePaymentProvider déterministe pour exercer le VRAI chemin
+  // d'orchestration (transactions + machine d'état + idempotence) sans
+  // jamais toucher le réseau Stripe réel.
+  beforeAll(() => {
+    setPaymentProviderForTesting(new FakePaymentProvider());
+  });
+  afterAll(() => {
+    setPaymentProviderForTesting(null);
+  });
+
   afterEach(async () => {
     await cleanupAll(missionId);
     missionId = null;
@@ -237,7 +263,7 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       "et vérifie l'état final côté client (completed) ET côté chauffeur (revenu au ledger)",
     async () => {
       // ---- 1. Client demande un devis ----
-      await Promise.all([seedPricing(), seedApprovedDriver()]);
+      await Promise.all([seedPricing(), seedApprovedDriver(), seedPaymentProfile()]);
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
@@ -491,6 +517,14 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
 describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois assigned)", () => {
   let missionId: string | null = null;
 
+  // Voir commentaire équivalent dans le describe() précédent — même raison.
+  beforeAll(() => {
+    setPaymentProviderForTesting(new FakePaymentProvider());
+  });
+  afterAll(() => {
+    setPaymentProviderForTesting(null);
+  });
+
   afterEach(async () => {
     await cleanupAll(missionId);
     missionId = null;
@@ -540,7 +574,7 @@ describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois as
   });
 
   it("un devis déjà consommé par cette mission ne peut pas servir à créer une seconde mission (createDeliveryRequest rejoué)", async () => {
-    await Promise.all([seedPricing(), seedApprovedDriver()]);
+    await Promise.all([seedPricing(), seedApprovedDriver(), seedPaymentProfile()]);
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
