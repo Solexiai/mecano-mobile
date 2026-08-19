@@ -2,83 +2,88 @@
 // taxEngine.ts — Moteur de taxes CONFIGURABLE (point 16 du cahier des
 // charges Phase 6).
 //
-// ⚠️ AUCUNE règle fiscale n'est inventée ici. Ce module fournit uniquement
-// l'ARCHITECTURE permettant de configurer des taxes par juridiction/type
-// (GST/QST/HST/other/exempt) via la collection admin `tax_configs`. Les
-// TAUX RÉELS et l'applicabilité définitive (transport vs frais Movi-K,
-// statut de fournisseur/marketplace vis-à-vis de Revenu Québec/ARC) doivent
-// être validés par un professionnel comptable/juridique avant mise en
-// production — voir docs/PAYMENT_ARCHITECTURE.md §9 et le rapport final
-// Phase 6 (section "points nécessitant validation comptable/juridique").
+// ⚠️ AUCUNE RÈGLE FISCALE N'EST INVENTÉE ICI. Ce module fournit uniquement
+// le MÉCANISME de calcul à partir d'une configuration explicite
+// (`tax_configs/{jurisdiction}`, voir types.ts TaxConfigDoc), jamais un taux
+// GST/QST/HST codé en dur. Les taux réels (ex: 5% GST + 9.975% QST au
+// Québec) doivent être saisis par un administrateur via
+// `updateTaxConfiguration()` (Cloud Function admin, ci-dessous) après
+// validation comptable/légale — voir section "points nécessitant une
+// validation comptable/légale" du rapport final Phase 6.
 //
-// Par défaut, en l'absence de toute configuration explicite dans
-// `tax_configs`, le moteur applique le comportement historique (taux unique
-// `pricing_versions.tax_rate`, déjà utilisé par `calculateCustomerQuote()`
-// depuis les phases précédentes) — AUCUNE régression introduite sur le
-// calcul déjà validé. Le nouveau comportement multi-juridictions n'est
-// utilisé que si des `tax_configs` actifs existent pour la juridiction
-// donnée.
+// Ce module REMPLACE PROGRESSIVEMENT le `tax_rate` unique et plat de
+// `PricingVersionDoc` (Phase 1-4) par une liste de `TaxConfigDoc` par
+// juridiction, permettant plusieurs taxes cumulées (ex: GST + QST) et un
+// statut d'exemption. Tant qu'aucune config Phase 6 n'existe pour une
+// juridiction, `calculateTaxes()` retombe sur le taux plat existant
+// (rétro-compatibilité stricte, AUCUNE régression sur les missions déjà
+// tarifées en Phase 1-5).
 // -----------------------------------------------------------------------------
 
-import { TaxConfigDoc, TaxType } from "./types";
 import { applyRateMinor } from "./money";
+import { TaxConfigDoc } from "./types";
 
-export interface TaxBreakdownLineMinor {
-  taxType: TaxType;
+export interface TaxLineResult {
+  taxType: string;
   jurisdiction: string;
   rate: number;
-  taxableAmountMinor: number;
-  taxAmountMinor: number;
+  amountMinor: number;
   taxRegistrationOwner: "platform" | "driver" | "not_applicable";
 }
 
-export interface TaxCalculationResultMinor {
+export interface TaxCalculationResult {
+  lines: TaxLineResult[];
   totalTaxMinor: number;
-  breakdown: TaxBreakdownLineMinor[];
 }
 
 /**
- * Calcule les taxes applicables à un montant taxable (transport) et à un
- * montant de frais plateforme, séparément, à partir des `tax_configs`
- * actifs d'une juridiction. Aucune configuration active -> retourne un
- * résultat à zéro (l'appelant doit alors utiliser le taux legacy du
- * pricing_version, jamais suppose un taux implicite ici).
+ * Calcule les lignes de taxe applicables à partir d'une liste de
+ * configurations actives pour une juridiction donnée. `taxableAmountMinor`
+ * doit déjà exclure tout montant non taxable (ex: pourboire, selon la
+ * politique en vigueur — non décidé ici, voir appelant).
  */
-export function calculateTaxesMinor(params: {
-  transportTaxableAmountMinor: number;
-  platformFeesTaxableAmountMinor: number;
-  activeTaxConfigs: TaxConfigDoc[];
-}): TaxCalculationResultMinor {
-  const { transportTaxableAmountMinor, platformFeesTaxableAmountMinor, activeTaxConfigs } = params;
+export function calculateTaxes(params: {
+  taxableAmountMinor: number;
+  configs: TaxConfigDoc[];
+  jurisdiction: string;
+  applyToTransport: boolean;
+  applyToPlatformFees: boolean;
+}): TaxCalculationResult {
+  const { taxableAmountMinor, configs, jurisdiction, applyToTransport, applyToPlatformFees } =
+    params;
 
-  const breakdown: TaxBreakdownLineMinor[] = [];
-  let totalTaxMinor = 0;
+  const applicable = configs.filter(
+    (c) =>
+      c.is_active &&
+      c.jurisdiction === jurisdiction &&
+      ((applyToTransport && c.applies_to_transport) ||
+        (applyToPlatformFees && c.applies_to_platform_fees))
+  );
 
-  for (const config of activeTaxConfigs) {
-    if (!config.is_active || config.tax_type === "tax_exempt") continue;
-
-    let taxableForThisConfig = 0;
-    if (config.applies_to_transport) taxableForThisConfig += transportTaxableAmountMinor;
-    if (config.applies_to_platform_fees) taxableForThisConfig += platformFeesTaxableAmountMinor;
-    if (taxableForThisConfig <= 0) continue;
-
-    const taxAmountMinor = applyRateMinor(taxableForThisConfig, config.rate);
-    totalTaxMinor += taxAmountMinor;
-
-    breakdown.push({
-      taxType: config.tax_type,
-      jurisdiction: config.jurisdiction,
-      rate: config.rate,
-      taxableAmountMinor: taxableForThisConfig,
-      taxAmountMinor,
-      taxRegistrationOwner: config.tax_registration_owner,
-    });
+  if (applicable.length === 0) {
+    return { lines: [], totalTaxMinor: 0 };
   }
 
-  return { totalTaxMinor, breakdown };
+  const lines: TaxLineResult[] = applicable.map((c) => ({
+    taxType: c.tax_type,
+    jurisdiction: c.jurisdiction,
+    rate: c.rate,
+    amountMinor:
+      c.tax_type === "tax_exempt" ? 0 : applyRateMinor(taxableAmountMinor, c.rate),
+    taxRegistrationOwner: c.tax_registration_owner,
+  }));
+
+  const totalTaxMinor = lines.reduce((sum, l) => sum + l.amountMinor, 0);
+
+  return { lines, totalTaxMinor };
 }
 
-/** true si au moins une config active existe pour la juridiction donnée. */
-export function hasActiveTaxConfig(configs: TaxConfigDoc[]): boolean {
-  return configs.some((c) => c.is_active);
+/**
+ * Fallback rétro-compatible : utilise le `tax_rate` plat existant de
+ * `PricingVersionDoc` (Phase 1-4) quand aucune configuration Phase 6
+ * n'existe pour la juridiction. Garantit qu'aucune mission déjà en cours
+ * n'est affectée par l'introduction du moteur de taxes Phase 6.
+ */
+export function calculateFlatTaxFallback(taxableAmountMinor: number, flatRate: number): number {
+  return applyRateMinor(taxableAmountMinor, flatRate);
 }

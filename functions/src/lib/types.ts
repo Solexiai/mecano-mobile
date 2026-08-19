@@ -75,6 +75,13 @@ export const MissionStatuses = {
   CANCELLED: "cancelled",
   DISPUTED: "disputed",
   REFUNDED: "refunded",
+  // PHASE 6 — ajout additif (aucune valeur existante modifiée) : signale au
+  // client qu'une mission n'a pas pu être assignée car l'autorisation de
+  // paiement a échoué (carte refusée, etc. — point 5 du cahier des charges).
+  // Le client doit corriger son moyen de paiement puis peut relancer une
+  // nouvelle demande (createDeliveryRequest) ; aucune reprise automatique
+  // n'est faite sur CETTE mission pour rester explicite et auditable.
+  PAYMENT_FAILED: "payment_failed",
 } as const;
 export type MissionStatus = (typeof MissionStatuses)[keyof typeof MissionStatuses];
 
@@ -341,6 +348,25 @@ export interface DriverProfileDoc {
   suspension_reason?: string | null;
   reactivated_at?: admin_Timestamp | null;
   reactivated_by_user_id?: string | null;
+  // ---- PHASE 6 — Stripe Connect (compte de versement chauffeur) ----
+  stripe_connected_account_id?: string | null;
+  stripe_onboarding_url?: string | null;
+  stripe_charges_enabled?: boolean;
+  stripe_payouts_enabled?: boolean;
+}
+
+/**
+ * payment_profiles/{customerId} — référence Stripe du client. AUCUNE
+ * donnée de carte sensible ; uniquement l'identifiant client fournisseur et
+ * la référence de moyen de paiement par défaut (jeton opaque).
+ */
+export interface PaymentProfileDoc {
+  customer_id: string;
+  provider: "stripe";
+  provider_customer_id: string;
+  default_payment_method_id: string | null;
+  created_at: admin_Timestamp;
+  updated_at: admin_Timestamp;
 }
 
 export interface DeliveryMissionDoc {
@@ -363,6 +389,11 @@ export interface DeliveryMissionDoc {
   payment_status: PaymentStatus;
   active_quote_id?: string | null;
   active_financial_snapshot_id?: string | null;
+  // PHASE 6 — référence du payments/{id} rattaché à cette mission (créé par
+  // acceptDelivery(), capturé par completeDelivery()). Absent sur les
+  // missions antérieures à Phase 6 (rétro-compatibilité intentionnelle,
+  // voir completeDelivery.ts).
+  active_payment_id?: string | null;
   created_at: admin_Timestamp;
   accepted_at?: admin_Timestamp | null;
   // Timestamps métier "statuts terrain" (Phase 5, partie 3) — un champ dédié

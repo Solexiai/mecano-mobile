@@ -1,250 +1,261 @@
 // -----------------------------------------------------------------------------
-// PaymentProvider (serveur) — abstraction provider-agnostic, PHASE 6.
+// paymentProvider.ts — Abstraction PaymentProvider CÔTÉ SERVEUR (point 2 du
+// cahier des charges Phase 6).
 //
-// Équivalent server-side de `lib/backend/payment/payment_provider.dart`
-// (qui documente le CONTRAT côté client, jamais instancié avec une vraie
-// clé). CETTE interface, elle, EST implémentée réellement côté serveur
-// (voir `stripeProvider.ts`), et c'est la SEULE porte d'entrée que les
-// Cloud Functions utilisent pour tout mouvement d'argent réel.
+// 13 méthodes explicitement requises :
+//  1. createCustomer
+//  2. attachPaymentMethod
+//  3. createPayment
+//  4. authorizePayment
+//  5. capturePayment
+//  6. cancelAuthorization
+//  7. refundPayment
+//  8. createDriverAccount
+//  9. createDriverPayout
+// 10. getPaymentStatus
+// 11. getPayoutStatus
+// 12. processWebhook
+// 13. reconcileTransaction
 //
-// Changer de fournisseur de paiement plus tard = écrire une nouvelle classe
-// qui implémente `PaymentProvider`, sans toucher à la logique métier des
-// Cloud Functions (acceptDelivery, completeDelivery, processRefund, etc.).
+// Toutes les montants en paramètre/retour sont en UNITÉS MINEURES ENTIÈRES
+// (cents) — voir lib/money.ts. Aucune implémentation ne doit jamais stocker
+// de données de carte sensibles (numéro complet, CVC) — uniquement des
+// références opaques fournies par le fournisseur (point 4).
 //
-// Toutes les valeurs monétaires sont en UNITÉS MINEURES ENTIÈRES (cents) —
-// voir `lib/money.ts`. Aucune méthode ne prend/retourne un montant flottant.
+// Cette interface est l'équivalent serveur EXACT de
+// `lib/backend/payment/payment_provider.dart` (qui documente le contrat
+// côté Flutter, jamais instancié avec une vraie clé secrète). Toute
+// implémentation réelle (StripeProvider) vit exclusivement ici.
 // -----------------------------------------------------------------------------
 
+import { Currency } from "../lib/money";
+
+export interface CreateCustomerParams {
+  userId: string;
+  email: string;
+  displayName: string;
+}
 export interface CreateCustomerResult {
-  success: boolean;
-  providerCustomerId?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  providerCustomerId: string;
 }
 
+export interface AttachPaymentMethodParams {
+  providerCustomerId: string;
+  providerPaymentMethodId: string;
+}
 export interface AttachPaymentMethodResult {
   success: boolean;
-  providerPaymentMethodId?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  providerPaymentMethodId: string;
 }
 
+export interface CreatePaymentParams {
+  providerCustomerId: string;
+  providerPaymentMethodId: string;
+  amountMinor: number;
+  currency: Currency;
+  connectedAccountId: string | null;
+  applicationFeeMinor: number;
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
 export interface CreatePaymentResult {
-  success: boolean;
-  providerPaymentIntentId?: string;
-  status?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  providerPaymentIntentId: string;
+  status: string; // statut brut du provider, mappé par l'appelant vers PaymentStatus
 }
 
+export interface AuthorizePaymentParams {
+  providerPaymentIntentId: string;
+  idempotencyKey: string;
+}
 export interface AuthorizePaymentResult {
   success: boolean;
-  providerPaymentIntentId?: string;
-  status?: string;
-  authorizationExpiresAtMillis?: number;
-  errorCode?: string;
-  errorMessage?: string;
+  status: string;
+  authorizationExpiresAt: Date | null;
+  failureCode?: string | null;
+  failureMessage?: string | null;
 }
 
+export interface CapturePaymentParams {
+  providerPaymentIntentId: string;
+  amountToCaptureMinor: number; // peut être <= montant autorisé (capture partielle)
+  idempotencyKey: string;
+}
 export interface CapturePaymentResult {
   success: boolean;
-  providerChargeId?: string;
-  amountCapturedMinor?: number;
-  status?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  status: string;
+  amountCapturedMinor: number;
+  providerChargeId: string | null;
+  failureCode?: string | null;
+  failureMessage?: string | null;
 }
 
+export interface CancelAuthorizationParams {
+  providerPaymentIntentId: string;
+  idempotencyKey: string;
+}
 export interface CancelAuthorizationResult {
   success: boolean;
-  errorCode?: string;
-  errorMessage?: string;
+  status: string;
 }
 
+export interface RefundPaymentParams {
+  providerPaymentIntentId: string;
+  amountMinor: number;
+  reverseTransfer: boolean;
+  refundApplicationFee: boolean;
+  idempotencyKey: string;
+}
 export interface RefundPaymentResult {
   success: boolean;
-  providerRefundId?: string;
-  amountRefundedMinor?: number;
-  errorCode?: string;
-  errorMessage?: string;
+  providerRefundId: string | null;
+  status: string;
+  failureCode?: string | null;
 }
 
+export interface CreateDriverAccountParams {
+  driverId: string;
+  email: string;
+  country: string; // 'CA'
+}
 export interface CreateDriverAccountResult {
-  success: boolean;
-  connectedAccountId?: string;
-  onboardingUrl?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  connectedAccountId: string;
+  onboardingUrl: string | null; // lien d'onboarding hébergé Stripe (Express)
 }
 
+export interface CreateDriverPayoutParams {
+  connectedAccountId: string;
+  amountMinor: number;
+  currency: Currency;
+  idempotencyKey: string;
+}
 export interface CreateDriverPayoutResult {
   success: boolean;
-  providerPayoutId?: string;
-  status?: string;
-  errorCode?: string;
-  errorMessage?: string;
+  providerPayoutId: string | null;
+  status: string;
+  failureCode?: string | null;
 }
 
 export interface PaymentStatusResult {
   status: string;
-  amountCapturedMinor?: number;
-  amountRefundedMinor?: number;
-  raw?: unknown;
+  amountAuthorizedMinor: number;
+  amountCapturedMinor: number;
+  amountRefundedMinor: number;
 }
 
 export interface PayoutStatusResult {
   status: string;
-  raw?: unknown;
+  arrivalDate: Date | null;
+  failureCode?: string | null;
 }
 
-export interface ReconcileTransactionResult {
-  matches: boolean;
-  providerAmountMinor?: number;
-  ledgerAmountMinor?: number;
-  discrepancyMinor?: number;
-  details?: string;
-}
-
-export interface WebhookProcessResult {
+export interface ProcessWebhookResult {
+  eventId: string;
   eventType: string;
-  providerEventId: string;
   handled: boolean;
-  relatedPaymentId?: string | null;
-  relatedMissionId?: string | null;
+}
+
+export interface ReconcileTransactionParams {
+  providerPaymentIntentId?: string | null;
+  providerPayoutId?: string | null;
+}
+export interface ReconcileTransactionResult {
+  providerAmountMinor: number | null;
+  providerStatus: string | null;
+  found: boolean;
+}
+
+export abstract class PaymentProvider {
+  abstract createCustomer(params: CreateCustomerParams): Promise<CreateCustomerResult>;
+
+  abstract attachPaymentMethod(
+    params: AttachPaymentMethodParams
+  ): Promise<AttachPaymentMethodResult>;
+
+  abstract createPayment(params: CreatePaymentParams): Promise<CreatePaymentResult>;
+
+  abstract authorizePayment(params: AuthorizePaymentParams): Promise<AuthorizePaymentResult>;
+
+  abstract capturePayment(params: CapturePaymentParams): Promise<CapturePaymentResult>;
+
+  abstract cancelAuthorization(
+    params: CancelAuthorizationParams
+  ): Promise<CancelAuthorizationResult>;
+
+  abstract refundPayment(params: RefundPaymentParams): Promise<RefundPaymentResult>;
+
+  abstract createDriverAccount(
+    params: CreateDriverAccountParams
+  ): Promise<CreateDriverAccountResult>;
+
+  abstract createDriverPayout(
+    params: CreateDriverPayoutParams
+  ): Promise<CreateDriverPayoutResult>;
+
+  abstract getPaymentStatus(providerPaymentIntentId: string): Promise<PaymentStatusResult>;
+
+  abstract getPayoutStatus(providerPayoutId: string): Promise<PayoutStatusResult>;
+
+  abstract processWebhook(rawBody: Buffer, signatureHeader: string): Promise<ProcessWebhookResult>;
+
+  abstract reconcileTransaction(
+    params: ReconcileTransactionParams
+  ): Promise<ReconcileTransactionResult>;
 }
 
 /**
- * Contrat complet requis par la Phase 6 (point 2 du cahier des charges) —
- * 13 méthodes minimum.
+ * Erreur explicite levée quand aucun fournisseur n'est configuré
+ * (STRIPE_SECRET_KEY absent de Secret Manager). Toute tentative
+ * d'utilisation échoue PROPREMENT — jamais de simulation silencieuse d'un
+ * paiement réussi. Voir docs/PAYMENT_ARCHITECTURE.md §9.
  */
-export interface PaymentProvider {
-  createCustomer(params: {
-    customerId: string;
-    email?: string;
-    fullName?: string;
-  }): Promise<CreateCustomerResult>;
-
-  attachPaymentMethod(params: {
-    providerCustomerId: string;
-    paymentMethodToken: string; // token opaque généré côté client par le SDK fournisseur, jamais une carte brute
-  }): Promise<AttachPaymentMethodResult>;
-
-  createPayment(params: {
-    missionId: string;
-    customerId: string;
-    providerCustomerId: string;
-    providerPaymentMethodId: string;
-    amountMinor: number;
-    currency: string;
-    connectedAccountId: string;
-    applicationFeeMinor: number;
-    idempotencyKey: string;
-  }): Promise<CreatePaymentResult>;
-
-  authorizePayment(params: {
-    providerPaymentIntentId: string;
-    idempotencyKey: string;
-  }): Promise<AuthorizePaymentResult>;
-
-  capturePayment(params: {
-    providerPaymentIntentId: string;
-    amountToCaptureMinor: number;
-    idempotencyKey: string;
-  }): Promise<CapturePaymentResult>;
-
-  cancelAuthorization(params: {
-    providerPaymentIntentId: string;
-    idempotencyKey: string;
-  }): Promise<CancelAuthorizationResult>;
-
-  refundPayment(params: {
-    providerChargeId: string;
-    amountMinor: number;
-    reverseTransfer: boolean;
-    refundApplicationFee: boolean;
-    idempotencyKey: string;
-  }): Promise<RefundPaymentResult>;
-
-  createDriverAccount(params: {
-    driverId: string;
-    email?: string;
-    country?: string;
-  }): Promise<CreateDriverAccountResult>;
-
-  createDriverPayout(params: {
-    connectedAccountId: string;
-    amountMinor: number;
-    currency: string;
-    idempotencyKey: string;
-  }): Promise<CreateDriverPayoutResult>;
-
-  getPaymentStatus(providerPaymentIntentId: string): Promise<PaymentStatusResult>;
-
-  getPayoutStatus(providerPayoutId: string): Promise<PayoutStatusResult>;
-
-  processWebhook(rawBody: Buffer | string, signatureHeader: string): Promise<WebhookProcessResult>;
-
-  reconcileTransaction(params: {
-    providerPaymentIntentId: string;
-    ledgerAmountMinor: number;
-  }): Promise<ReconcileTransactionResult>;
+export class PaymentProviderNotConfiguredError extends Error {
+  constructor() {
+    super(
+      "Aucun fournisseur de paiement n'est configuré (STRIPE_SECRET_KEY absent). " +
+        "Aucune opération financière réelle ne peut être exécutée."
+    );
+    this.name = "PaymentProviderNotConfiguredError";
+  }
 }
 
-/**
- * Stub explicite — utilisé si aucune clé Stripe n'est configurée dans
- * Secret Manager. Échoue proprement (jamais de simulation de succès).
- */
-export class NotConfiguredPaymentProvider implements PaymentProvider {
-  private fail<T extends { success?: boolean }>(): Promise<T> {
-    return Promise.resolve({
-      success: false,
-      errorCode: "payment_provider_not_configured",
-      errorMessage:
-        "Aucune clé Stripe configurée dans Secret Manager (STRIPE_SECRET_KEY). Voir docs/PAYMENT_ARCHITECTURE.md §9.",
-    } as unknown as T);
+export class NotConfiguredPaymentProvider extends PaymentProvider {
+  async createCustomer(): Promise<CreateCustomerResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-
-  createCustomer() {
-    return this.fail<CreateCustomerResult>();
+  async attachPaymentMethod(): Promise<AttachPaymentMethodResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  attachPaymentMethod() {
-    return this.fail<AttachPaymentMethodResult>();
+  async createPayment(): Promise<CreatePaymentResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  createPayment() {
-    return this.fail<CreatePaymentResult>();
+  async authorizePayment(): Promise<AuthorizePaymentResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  authorizePayment() {
-    return this.fail<AuthorizePaymentResult>();
+  async capturePayment(): Promise<CapturePaymentResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  capturePayment() {
-    return this.fail<CapturePaymentResult>();
+  async cancelAuthorization(): Promise<CancelAuthorizationResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  cancelAuthorization() {
-    return this.fail<CancelAuthorizationResult>();
+  async refundPayment(): Promise<RefundPaymentResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  refundPayment() {
-    return this.fail<RefundPaymentResult>();
+  async createDriverAccount(): Promise<CreateDriverAccountResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  createDriverAccount() {
-    return this.fail<CreateDriverAccountResult>();
+  async createDriverPayout(): Promise<CreateDriverPayoutResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  createDriverPayout() {
-    return this.fail<CreateDriverPayoutResult>();
+  async getPaymentStatus(): Promise<PaymentStatusResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  getPaymentStatus(): Promise<PaymentStatusResult> {
-    return Promise.resolve({ status: "unknown" });
+  async getPayoutStatus(): Promise<PayoutStatusResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  getPayoutStatus(): Promise<PayoutStatusResult> {
-    return Promise.resolve({ status: "unknown" });
+  async processWebhook(): Promise<ProcessWebhookResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
-  processWebhook(): Promise<WebhookProcessResult> {
-    return Promise.resolve({
-      eventType: "unknown",
-      providerEventId: "unknown",
-      handled: false,
-    });
-  }
-  reconcileTransaction(): Promise<ReconcileTransactionResult> {
-    return Promise.resolve({ matches: false, details: "payment_provider_not_configured" });
+  async reconcileTransaction(): Promise<ReconcileTransactionResult> {
+    throw new PaymentProviderNotConfiguredError();
   }
 }

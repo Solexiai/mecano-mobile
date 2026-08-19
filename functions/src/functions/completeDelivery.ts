@@ -24,13 +24,17 @@ import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { LedgerDirections, LedgerEntryStatuses, LedgerEntryTypes, LedgerParties, MissionStatuses } from "../lib/types";
+import { captureMissionPayment } from "../payment/paymentOrchestration";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 export interface CompleteDeliveryRequest {
   missionId: string;
   proofOfDeliveryUrl: string;
 }
 
-export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) => {
+export const completeDelivery = onCall<CompleteDeliveryRequest>(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (request) => {
   const ctx = requireSignedIn(request);
   const { missionId, proofOfDeliveryUrl } = request.data;
   if (!missionId) throw invalidArgument("missionId est requis.");
@@ -40,7 +44,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
-  await db.runTransaction(async (tx) => {
+  const paymentId: string | null = await db.runTransaction(async (tx) => {
     const missionSnap = await tx.get(missionRef);
     if (!missionSnap.exists) throw notFound(`delivery_requests/${missionId} introuvable.`);
     const mission = missionSnap.data()!;
@@ -159,7 +163,31 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
       targetId: missionId,
       metadata: { snapshotId: mission.active_financial_snapshot_id },
     });
+
+    return (mission.active_payment_id as string | null | undefined) ?? null;
   });
 
-  return { success: true, missionId };
-});
+  // ---- PHASE 6, point 5 : capture RÉELLE du paiement -------------------
+  // Exécutée APRÈS le commit de la transaction ci-dessus (jamais dedans —
+  // même raison que dans acceptDelivery : un appel Stripe ne doit jamais
+  // pouvoir être ré-exécuté par un retry de contention Firestore). Si
+  // `active_payment_id` est absent (mission antérieure à Phase 6, ou
+  // fournisseur non configuré au moment de acceptDelivery), on ne capture
+  // rien — rétro-compatibilité intentionnelle, déjà documentée dans
+  // types.ts. Si la capture échoue (carte finalement invalide, litige
+  // réseau), l'échec est enregistré sur `payments/{id}` (status FAILED) et
+  // remonté comme anomalie de réconciliation — la mission RESTE `completed`
+  // (la livraison a eu lieu ; le recouvrement du paiement est un problème
+  // financier distinct traité via le tableau de bord admin, jamais en
+  // ré-annulant une livraison déjà effectuée).
+  let captureFailureMessage: string | null = null;
+  if (paymentId) {
+    const captureResult = await captureMissionPayment(missionId, paymentId);
+    if (!captureResult.success) {
+      captureFailureMessage = captureResult.failureMessage ?? "Capture refusée par le fournisseur.";
+    }
+  }
+
+  return { success: true, missionId, paymentCaptured: !captureFailureMessage, captureFailureMessage };
+  }
+);

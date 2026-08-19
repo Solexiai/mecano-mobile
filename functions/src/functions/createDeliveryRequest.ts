@@ -51,6 +51,21 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     throw invalidArgument("stops[0] doit être de type 'pickup'.");
   }
 
+  // PHASE 6, point 1/4 — « le moyen de paiement doit être sécurisé AVANT ou
+  // PENDANT la mission, jamais seulement après. » On refuse la création
+  // d'une mission si le client n'a pas encore de moyen de paiement par
+  // défaut enregistré (createCustomerPaymentProfile() +
+  // attachCustomerPaymentMethod() doivent avoir été appelés en amont côté
+  // UI, typiquement à l'écran de devis). Ceci NE déclenche PAS encore
+  // l'autorisation réelle — celle-ci n'a lieu qu'à acceptDelivery(), une
+  // fois le chauffeur connu et le montant final recalculé serveur.
+  const paymentProfileSnap = await db.collection("payment_profiles").doc(ctx.uid).get();
+  if (!paymentProfileSnap.exists || !paymentProfileSnap.data()?.default_payment_method_id) {
+    throw failedPrecondition(
+      "Aucun moyen de paiement enregistré. Veuillez ajouter une carte avant de créer une demande de livraison."
+    );
+  }
+
   const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
 
   const missionRef = db.collection("delivery_requests").doc();

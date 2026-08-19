@@ -38,12 +38,16 @@ import {
   OPEN_FOR_ACCEPTANCE_STATUSES,
   PricingVersionDoc,
 } from "../lib/types";
+import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
 }
 
-export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
+export const acceptDelivery = onCall<AcceptDeliveryRequest>(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (request) => {
   const ctx = requireSignedIn(request);
   const driverId = ctx.uid;
   const { missionId } = request.data;
@@ -223,8 +227,46 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
       metadata: { snapshotId: snapshotRef.id },
     });
 
-    return { missionId, driverOfferAmount: compensation.driverOfferAmount, snapshotId: snapshotRef.id };
+    return {
+      missionId,
+      driverOfferAmount: compensation.driverOfferAmount,
+      snapshotId: snapshotRef.id,
+      customerId: mission.customer_id as string,
+      customerTotal: pricingResult.customerTotal,
+      applicationFee: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
+    };
   });
 
-  return { success: true, ...result };
-});
+  // ---- PHASE 6, point 1/5 : sécurisation RÉELLE du paiement -----------------
+  // Exécuté APRÈS le commit de la transaction ci-dessus (jamais À L'INTÉRIEUR
+  // — voir paymentOrchestration.ts pour la justification : un appel Stripe
+  // dans une transaction Firestore pourrait être ré-exécuté par un retry de
+  // contention). Un échec d'autorisation bascule la mission en
+  // `payment_failed` et la désassigne (compensation gérée par
+  // createAndAuthorizeMissionPayment lui-même) — le chauffeur reçoit alors
+  // une erreur explicite plutôt qu'une mission fantôme non payée.
+  const paymentOutcome = await createAndAuthorizeMissionPayment({
+    missionId: result.missionId,
+    customerId: result.customerId,
+    driverId,
+    customerTotalMajor: result.customerTotal,
+    applicationFeeMajor: result.applicationFee,
+  });
+
+  if (!paymentOutcome.success) {
+    throw failedPrecondition(
+      `Autorisation de paiement refusée (${paymentOutcome.status}): ${
+        paymentOutcome.failureMessage ?? "raison inconnue"
+      }. La mission est passée en statut 'payment_failed' et n'est plus assignée ; le client doit corriger son moyen de paiement puis soumettre une nouvelle demande.`
+    );
+  }
+
+  return {
+    success: true,
+    missionId: result.missionId,
+    driverOfferAmount: result.driverOfferAmount,
+    snapshotId: result.snapshotId,
+    paymentId: paymentOutcome.paymentId,
+  };
+  }
+);
