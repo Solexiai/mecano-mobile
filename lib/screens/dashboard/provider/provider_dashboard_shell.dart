@@ -25,14 +25,14 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   int _index = 0;
   bool _togglingAvailability = false;
 
-  Future<void> _toggleAvailability(String driverId, bool goOnline) async {
+  Future<void> _toggleAvailability(String driverId, bool goOnline, String Function(String) t) async {
     setState(() => _togglingAvailability = true);
     try {
       await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, goOnline);
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impossible de changer votre statut de disponibilité.')),
+          SnackBar(content: Text(t('provider_availability_toggle_error'))),
         );
       }
     } finally {
@@ -54,9 +54,9 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
             children: [
               const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 16),
-              const Text('Connectez-vous à votre espace fournisseur.'),
+              Text(t('provider_dashboard_locked_message')),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: const Text('Se connecter')),
+              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: Text(t('delivery_sign_in_button'))),
             ],
           ),
         ),
@@ -106,7 +106,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                   value: online,
                   onChanged: (!canGoOnline || _togglingAvailability)
                       ? null
-                      : (v) => _toggleAvailability(driverId, v),
+                      : (v) => _toggleAvailability(driverId, v, t),
                   activeThumbColor: AppColors.success,
                 ),
               ]);

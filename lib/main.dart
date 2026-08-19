@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:provider/provider.dart';
+
+import 'core/url_strategy_stub.dart' if (dart.library.html) 'core/url_strategy_web.dart';
 
 import 'core/app_theme.dart';
 import 'providers/locale_provider.dart';
@@ -18,13 +19,16 @@ import 'backend/backend_status.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Utilise de vraies URLs de chemin (/fr/admin) au lieu du routage par
-  // hash (#/fr/admin) sur Flutter Web. Sans ceci, un accès direct à
-  // /fr/admin (rechargement de page, lien partagé, bouton "Accès
-  // administration") est ignoré par go_router : seul le fragment après le
-  // `#` compte, donc l'app retombe systématiquement sur la route par
-  // défaut (accueil) au lieu de l'écran de connexion admin demandé.
-  setUrlStrategy(PathUrlStrategy());
+  // Configure le routage par chemin réel sur Flutter Web uniquement (voir
+  // core/url_strategy_web.dart) ; no-op sur mobile/VM (voir
+  // core/url_strategy_stub.dart, sélectionné par l'import conditionnel
+  // ci-dessus). Ce détour évite d'importer `flutter_web_plugins`
+  // (qui dépend de `dart:ui_web`, absente de la plateforme VM utilisée par
+  // `flutter test`) de façon inconditionnelle depuis main.dart, ce qui
+  // faisait échouer TOUTE la suite de tests widget (`flutter test`) avec
+  // une erreur de compilation "Dart library 'dart:ui_web' is not available
+  // on this platform".
+  configureUrlStrategy();
 
   await StorageService.init();
 

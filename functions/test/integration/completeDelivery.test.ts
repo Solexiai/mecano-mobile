@@ -207,6 +207,24 @@ describe("completeDelivery — cas négatifs", () => {
       completeDelivery.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante", proofOfDeliveryUrl: PROOF_URL }))
     ).rejects.toMatchObject({ code: "not-found" });
   });
+
+  it("une mission déjà 'completed' (double appel) est REJETÉE avec failed-precondition — pas de nouvelle écriture", async () => {
+    await Promise.all([seedMission(MissionStatuses.COMPLETED), seedSnapshot("confirmed"), seedDriverProfile()]);
+    await expect(
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfDeliveryUrl: PROOF_URL }))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    // Le statut reste 'completed' (inchangé), aucune nouvelle entrée de
+    // ledger ni de tracking_event n'a été créée par cette tentative.
+    const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
+    expect(missionSnap.data()!.status).toBe(MissionStatuses.COMPLETED);
+
+    const ledgerEntries = await db
+      .collection("transaction_ledger")
+      .where("mission_id", "==", MISSION_ID)
+      .get();
+    expect(ledgerEntries.size).toBe(0);
+  });
 });
 
 describe("completeDelivery — preuve de livraison obligatoire (Phase 5, partie 3)", () => {

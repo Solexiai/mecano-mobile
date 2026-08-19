@@ -194,6 +194,86 @@ describe("Storage Rules — delivery_proofs/{missionId}/{fileName}", () => {
     await assertFails(uploadBytes(fileRef, smallImage, { contentType: "image/jpeg" }));
     await assertFails(deleteObject(fileRef));
   });
+
+  // 10. Un utilisateur NON authentifié ne peut ni uploader ni lire la preuve.
+  it("10. un utilisateur NON authentifié ne peut PAS uploader la preuve de livraison", async () => {
+    await seedMission("mission_proof_unauth", {
+      customer_id: "customer_proof_unauth",
+      driver_id: "driver_proof_unauth",
+    });
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(
+      uploadBytes(ref(anon.storage(), "delivery_proofs/mission_proof_unauth/pod.jpg"), smallImage, {
+        contentType: "image/jpeg",
+      })
+    );
+    await assertFails(getBytes(ref(anon.storage(), "delivery_proofs/mission_proof_unauth/pod.jpg")));
+  });
+
+  // 11. Un type de fichier non autorisé (ex: text/plain) est rejeté même
+  //     pour le chauffeur assigné.
+  it("11. un type de fichier non autorisé (ex: text/plain) est rejeté même pour le chauffeur assigné", async () => {
+    await seedMission("mission_proof_badtype", {
+      customer_id: "customer_proof_badtype",
+      driver_id: "driver_proof_badtype",
+    });
+    const driver = testEnv.authenticatedContext("driver_proof_badtype", { role: "driver" });
+    await assertFails(
+      uploadBytes(
+        ref(driver.storage(), "delivery_proofs/mission_proof_badtype/notes.txt"),
+        new Uint8Array([1, 2, 3]),
+        { contentType: "text/plain" }
+      )
+    );
+  });
+
+  // 12. Le CLIENT (customer) de la mission ne peut PAS uploader la preuve —
+  //     seul le chauffeur assigné le peut (voir test 8).
+  it("12. le client de la mission ne peut PAS uploader la preuve de livraison", async () => {
+    await seedMission("mission_proof_customer_upload", {
+      customer_id: "customer_proof_uploader",
+      driver_id: "driver_proof_customer_upload",
+    });
+    const customer = testEnv.authenticatedContext("customer_proof_uploader", { role: "customer" });
+    await assertFails(
+      uploadBytes(
+        ref(customer.storage(), "delivery_proofs/mission_proof_customer_upload/pod.jpg"),
+        smallImage,
+        { contentType: "image/jpeg" }
+      )
+    );
+  });
+
+  // 13. Le CLIENT propriétaire de la mission peut lire la preuve une fois
+  //     téléversée (déjà couvert par le test 9, réaffirmé explicitement ici
+  //     avec un scénario dédié pour la clarté de la couverture demandée).
+  it("13. le client propriétaire de la mission peut lire la preuve de livraison une fois téléversée", async () => {
+    await seedMission("mission_proof_owner_read", {
+      customer_id: "customer_proof_owner",
+      driver_id: "driver_proof_owner_read",
+    });
+    const driver = testEnv.authenticatedContext("driver_proof_owner_read", { role: "driver" });
+    const fileRef = ref(driver.storage(), "delivery_proofs/mission_proof_owner_read/pod.jpg");
+    await uploadBytes(fileRef, smallImage, { contentType: "image/jpeg" });
+
+    const owner = testEnv.authenticatedContext("customer_proof_owner", { role: "customer" });
+    await assertSucceeds(getBytes(ref(owner.storage(), fileRef.fullPath)));
+  });
+
+  // 14. Un AUTRE client (n'ayant aucun lien avec cette mission) ne peut PAS
+  //     lire la preuve de livraison (accès croisé bloqué).
+  it("14. un autre client sans lien avec la mission ne peut PAS lire la preuve de livraison", async () => {
+    await seedMission("mission_proof_other_customer", {
+      customer_id: "customer_proof_real_owner",
+      driver_id: "driver_proof_other_customer",
+    });
+    const driver = testEnv.authenticatedContext("driver_proof_other_customer", { role: "driver" });
+    const fileRef = ref(driver.storage(), "delivery_proofs/mission_proof_other_customer/pod.jpg");
+    await uploadBytes(fileRef, smallImage, { contentType: "image/jpeg" });
+
+    const otherCustomer = testEnv.authenticatedContext("customer_proof_intruder", { role: "customer" });
+    await assertFails(getBytes(ref(otherCustomer.storage(), fileRef.fullPath)));
+  });
 });
 
 describe("Storage Rules — deny-by-default", () => {

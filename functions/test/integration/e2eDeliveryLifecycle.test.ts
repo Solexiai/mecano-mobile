@@ -40,9 +40,73 @@ import {
 } from "../../src/functions/updateMissionTrackingStatus";
 import { completePickup, CompletePickupRequest } from "../../src/functions/completePickup";
 import { completeDelivery, CompleteDeliveryRequest } from "../../src/functions/completeDelivery";
+import { onMissionStatusChangeNotifyCustomer } from "../../src/functions/onMissionStatusChangeNotifyCustomer";
+import type { Change, FirestoreEvent, QueryDocumentSnapshot } from "firebase-functions/v2/firestore";
 import { admin, db } from "../../src/lib/admin";
 import { LedgerEntryTypes, MissionStatuses } from "../../src/lib/types";
 import { buildPricingConfig } from "../unit/fixtures";
+
+// ---------------------------------------------------------------------------
+// NOTE D'ARCHITECTURE — pourquoi le trigger de notification est invoqué
+// manuellement dans ce fichier E2E :
+//
+// `npm run test:integration` démarre l'émulateur avec
+// `--only firestore,auth,storage` (voir package.json) — l'émulateur
+// `functions` n'est PAS démarré. Le vrai trigger Firestore
+// `onDocumentUpdated` (onMissionStatusChangeNotifyCustomer) ne se déclenche
+// donc PAS automatiquement quand les Cloud Functions ci-dessus
+// (acceptDelivery.run(), updateMissionTrackingStatus.run(), etc.) écrivent
+// dans Firestore via `.run()`. Pour vérifier fidèlement, à chaque palier du
+// VRAI scénario E2E, qu'une notification client est bien créée, on invoque
+// donc le handler du trigger directement (`.run(event)`), avec un
+// FirestoreEvent avant/après reconstruit à partir de l'état RÉEL du document
+// lu à cette étape — exactement la même approche que
+// `onMissionStatusChangeNotifyCustomer.test.ts` (qui couvre le trigger de
+// façon isolée et exhaustive), mais ici enchaînée à l'intérieur du VRAI
+// scénario continu pour garantir que chaque transition métier réelle produit
+// bien la notification attendue.
+// ---------------------------------------------------------------------------
+
+function fakeNotifySnap(data: Record<string, unknown> | undefined): QueryDocumentSnapshot {
+  return { data: () => data } as unknown as QueryDocumentSnapshot;
+}
+
+function buildNotifyEvent(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined,
+  missionId: string
+): FirestoreEvent<Change<QueryDocumentSnapshot> | undefined, { missionId: string }> {
+  return {
+    data: {
+      before: fakeNotifySnap(before),
+      after: fakeNotifySnap(after),
+    } as unknown as Change<QueryDocumentSnapshot>,
+    params: { missionId },
+  } as unknown as FirestoreEvent<Change<QueryDocumentSnapshot> | undefined, { missionId: string }>;
+}
+
+/** Rejoue manuellement le trigger de notification (voir note d'architecture ci-dessus), puis vérifie qu'une notification unique du type attendu a bien été créée pour ce client pour cette mission. */
+async function fireNotifyTriggerAndAssert(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+  missionId: string,
+  customerId: string,
+  expectedType: string
+): Promise<void> {
+  await onMissionStatusChangeNotifyCustomer.run(buildNotifyEvent(before, after, missionId));
+  const notifs = await db
+    .collection("users")
+    .doc(customerId)
+    .collection("notifications")
+    .where("type", "==", expectedType)
+    .get();
+  expect(notifs.size).toBe(1);
+  const data = notifs.docs[0].data();
+  expect(data.related_mission_id).toBe(missionId);
+  expect(data.is_read).toBe(false);
+  expect(data.title_key).toBeTruthy();
+  expect(data.body_key).toBeTruthy();
+}
 
 const CUSTOMER_ID = "e2e_customer_001";
 const DRIVER_ID = "e2e_driver_001";
@@ -151,6 +215,12 @@ async function cleanupAll(missionId: string | null): Promise<void> {
   ]);
   const quotes = await db.collection("delivery_quotes").where("customer_id", "==", CUSTOMER_ID).get();
   await Promise.all(quotes.docs.map((d) => d.ref.delete()));
+
+  // Notifications créées par les invocations manuelles du trigger
+  // (onMissionStatusChangeNotifyCustomer) dans le scénario E2E principal —
+  // nettoyées ici pour éviter toute fuite entre `it()` de ce fichier.
+  const notifs = await db.collection("users").doc(CUSTOMER_ID).collection("notifications").get();
+  await Promise.all(notifs.docs.map((d) => d.ref.delete()));
 }
 
 describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> completed)", () => {
@@ -216,6 +286,15 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       const snapshotId = missionSnap.data()!.active_financial_snapshot_id as string;
       expect(snapshotId).toBeTruthy();
 
+      // ---- Notification : driver assigned -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.SEARCHING_DRIVER, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.ASSIGNED, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "driver_assigned"
+      );
+
       // ---- 4. Chauffeur voit "Mission Active" et démarre son trajet ----
       await updateMissionTrackingStatus.run(
         authedRequest<UpdateMissionTrackingStatusRequest>(DRIVER_ID, {
@@ -225,6 +304,15 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       );
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.DRIVER_TO_PICKUP);
+
+      // ---- Notification : driver_to_pickup -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.ASSIGNED, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.DRIVER_TO_PICKUP, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "driver_to_pickup"
+      );
 
       // ---- 5. Arrivée au point de ramassage ----
       await updateMissionTrackingStatus.run(
@@ -236,10 +324,28 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.ARRIVED_AT_PICKUP);
 
+      // ---- Notification : arrived_at_pickup -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.DRIVER_TO_PICKUP, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.ARRIVED_AT_PICKUP, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "arrived_at_pickup"
+      );
+
       // ---- 6. Confirmation du ramassage (fonction dédiée, pas updateMissionTrackingStatus) ----
       await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, { missionId: id }));
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.PICKED_UP);
+
+      // ---- Notification : picked_up -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.ARRIVED_AT_PICKUP, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.PICKED_UP, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "picked_up"
+      );
 
       const pickupStopSnap = await db
         .collection("delivery_requests")
@@ -260,6 +366,15 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.IN_TRANSIT);
 
+      // ---- Notification : in_transit -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.PICKED_UP, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.IN_TRANSIT, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "in_transit"
+      );
+
       // ---- 8. Arrivée à destination ----
       await updateMissionTrackingStatus.run(
         authedRequest<UpdateMissionTrackingStatusRequest>(DRIVER_ID, {
@@ -269,6 +384,15 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       );
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.ARRIVED_AT_DROPOFF);
+
+      // ---- Notification : arrived_at_dropoff -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.IN_TRANSIT, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.ARRIVED_AT_DROPOFF, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "arrived_at_dropoff"
+      );
 
       // ---- 9. Prise de la photo de preuve de livraison + confirmation finale ----
       const PROOF_URL =
@@ -283,6 +407,34 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       expect(missionSnap.data()!.status).toBe(MissionStatuses.COMPLETED);
       expect(missionSnap.data()!.completed_at).not.toBeNull();
       expect(missionSnap.data()!.proof_of_delivery_url).toBe(PROOF_URL);
+
+      // ---- Notification : completed -> notification créée ----
+      await fireNotifyTriggerAndAssert(
+        { status: MissionStatuses.ARRIVED_AT_DROPOFF, customer_id: CUSTOMER_ID },
+        { status: MissionStatuses.COMPLETED, customer_id: CUSTOMER_ID },
+        id,
+        CUSTOMER_ID,
+        "completed"
+      );
+
+      // ==== ÉTAT FINAL — le client a reçu EXACTEMENT les 7 notifications attendues, une par étape ====
+      const allCustomerNotifs = await db
+        .collection("users")
+        .doc(CUSTOMER_ID)
+        .collection("notifications")
+        .get();
+      const notifTypes = allCustomerNotifs.docs.map((d) => d.data().type).sort();
+      expect(notifTypes).toEqual(
+        [
+          "driver_assigned",
+          "driver_to_pickup",
+          "arrived_at_pickup",
+          "picked_up",
+          "in_transit",
+          "arrived_at_dropoff",
+          "completed",
+        ].sort()
+      );
 
       // ==== ÉTAT FINAL — le financial_snapshot est confirmé (immuable) ====
       const snapshotSnap = await db.collection("financial_snapshots").doc(snapshotId).get();

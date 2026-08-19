@@ -246,15 +246,18 @@ class _MovikFooter extends StatelessWidget {
           ),
         );
 
-    Widget column(String title, List<Widget> links) => Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
-              const SizedBox(height: 10),
-              ...links,
-            ],
-          ),
+    // Retourne le contenu "nu" de la colonne (sans Expanded) : c'est
+    // l'appelant qui décide comment l'envelopper selon le layout
+    // (Expanded direct dans le Row desktop ; Padding simple dans la Column
+    // mobile — Expanded exige un ancêtre Flex DIRECT, donc ne doit jamais
+    // être enveloppé par un Padding).
+    Widget column(String title, List<Widget> links) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 10),
+            ...links,
+          ],
         );
 
     final columns = [
@@ -302,7 +305,10 @@ class _MovikFooter extends StatelessWidget {
           Text(t('tagline'), style: const TextStyle(color: AppColors.textOnDarkSecondary)),
           const SizedBox(height: 28),
           if (isDesktop)
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: columns)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: columns.map((c) => Expanded(child: c)).toList(),
+            )
           else
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

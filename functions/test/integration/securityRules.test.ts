@@ -1412,6 +1412,133 @@ describe("Security Rules — driver_locations/{driverId}/history/{eventId} : tra
 });
 
 // -----------------------------------------------------------------------
+// users/{uid}/notifications/{notificationId} (Phase 5, partie 3)
+// -----------------------------------------------------------------------
+describe("Security Rules — users/{uid}/notifications/{notificationId}", () => {
+  async function seedNotification(userId: string, notifId: string, overrides: Record<string, unknown> = {}) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `users/${userId}/notifications/${notifId}`), {
+        id: notifId,
+        type: "driver_assigned",
+        title_key: "notif_driver_assigned_title",
+        body_key: "notif_driver_assigned_body",
+        is_read: false,
+        created_at: 1,
+        related_mission_id: "notif_mission_001",
+        metadata: {},
+        ...overrides,
+      });
+    });
+  }
+
+  it("un utilisateur peut lire ses PROPRES notifications", async () => {
+    await seedNotification("notif_user_001", "notif_a");
+    const owner = testEnv.authenticatedContext("notif_user_001", { role: "customer" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "users/notif_user_001/notifications/notif_a")));
+  });
+
+  it("un AUTRE utilisateur ne peut PAS lire les notifications d'un autre (accès croisé bloqué)", async () => {
+    await seedNotification("notif_user_002", "notif_b");
+    const intruder = testEnv.authenticatedContext("notif_user_003", { role: "customer" });
+    await assertFails(getDoc(doc(intruder.firestore(), "users/notif_user_002/notifications/notif_b")));
+  });
+
+  it("un utilisateur NON authentifié ne peut PAS lire une notification", async () => {
+    await seedNotification("notif_user_004", "notif_c");
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(anon.firestore(), "users/notif_user_004/notifications/notif_c")));
+  });
+
+  it("le propriétaire PEUT marquer sa notification comme lue (is_read uniquement)", async () => {
+    await seedNotification("notif_user_005", "notif_d");
+    const owner = testEnv.authenticatedContext("notif_user_005", { role: "customer" });
+    await assertSucceeds(
+      updateDoc(doc(owner.firestore(), "users/notif_user_005/notifications/notif_d"), {
+        is_read: true,
+      })
+    );
+  });
+
+  it("un AUTRE utilisateur ne peut PAS marquer comme lue la notification de quelqu'un d'autre", async () => {
+    await seedNotification("notif_user_006", "notif_e");
+    const intruder = testEnv.authenticatedContext("notif_user_007", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(intruder.firestore(), "users/notif_user_006/notifications/notif_e"), {
+        is_read: true,
+      })
+    );
+  });
+
+  it("le propriétaire ne peut PAS modifier un champ métier sensible (title_key, body_key, related_mission_id, type)", async () => {
+    await seedNotification("notif_user_008", "notif_f");
+    const owner = testEnv.authenticatedContext("notif_user_008", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/notif_user_008/notifications/notif_f"), {
+        title_key: "notif_completed_title",
+      })
+    );
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/notif_user_008/notifications/notif_f"), {
+        related_mission_id: "some_other_mission",
+      })
+    );
+    // Une écriture combinant is_read + un champ sensible doit AUSSI être
+    // refusée (affectedKeys().hasOnly(['is_read']) échoue dès qu'une autre
+    // clé est modifiée simultanément).
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/notif_user_008/notifications/notif_f"), {
+        is_read: true,
+        type: "cancelled",
+      })
+    );
+  });
+
+  it("un client ne peut PAS fabriquer arbitrairement une notification serveur (create direct interdit, Cloud Functions only)", async () => {
+    const attacker = testEnv.authenticatedContext("notif_user_009", { role: "customer" });
+    await assertFails(
+      setDoc(doc(attacker.firestore(), "users/notif_user_009/notifications/fake_notif"), {
+        id: "fake_notif",
+        type: "completed",
+        title_key: "notif_completed_title",
+        body_key: "notif_completed_body",
+        is_read: false,
+        created_at: 1,
+        related_mission_id: "fake_mission",
+        metadata: {},
+      })
+    );
+  });
+
+  it("un client ne peut PAS changer le userId effectif d'une notification en la recréant sous un autre uid après suppression, ni la supprimer directement", async () => {
+    await seedNotification("notif_user_010", "notif_g");
+    const owner = testEnv.authenticatedContext("notif_user_010", { role: "customer" });
+    // Suppression interdite (Cloud Functions only également).
+    await assertFails(deleteDoc(doc(owner.firestore(), "users/notif_user_010/notifications/notif_g")));
+    // Un autre utilisateur ne peut pas non plus créer un document dans la
+    // sous-collection d'un tiers pour usurper un "userId" logique.
+    const intruder = testEnv.authenticatedContext("notif_user_011", { role: "customer" });
+    await assertFails(
+      setDoc(doc(intruder.firestore(), "users/notif_user_010/notifications/notif_h"), {
+        id: "notif_h",
+        type: "completed",
+        title_key: "notif_completed_title",
+        body_key: "notif_completed_body",
+        is_read: false,
+        created_at: 1,
+        related_mission_id: "fake_mission",
+        metadata: {},
+      })
+    );
+  });
+
+  it("analyst/admin n'ont PAS de droit de lecture spécial sur les notifications d'un tiers (contrairement à users/{uid} — règle notifications strictement propriétaire)", async () => {
+    await seedNotification("notif_user_012", "notif_i");
+    const analyst = testEnv.authenticatedContext("notif_analyst_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "users/notif_user_012/notifications/notif_i")));
+  });
+});
+
+// -----------------------------------------------------------------------
 // DENY BY DEFAULT — collection inconnue
 // -----------------------------------------------------------------------
 describe("Security Rules — deny-by-default", () => {

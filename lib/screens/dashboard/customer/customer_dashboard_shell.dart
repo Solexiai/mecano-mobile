@@ -35,9 +35,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
             children: [
               const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 16),
-              const Text('Connectez-vous pour accéder à votre tableau de bord.'),
+              Text(t('customer_dashboard_locked_message')),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: const Text('Se connecter')),
+              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: Text(t('delivery_sign_in_button'))),
             ],
           ),
         ),

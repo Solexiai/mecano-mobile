@@ -413,6 +413,23 @@ class AppStrings {
     },
     'notifications_just_now': {'fr': 'À l\'instant', 'en': 'Just now', 'es': 'Justo ahora'},
 
+    // ---------- Audit i18n final (Phase 5, partie 3) : messages "non connecté" des dashboards ----------
+    'customer_dashboard_locked_message': {
+      'fr': 'Connectez-vous pour accéder à votre tableau de bord.',
+      'en': 'Sign in to access your dashboard.',
+      'es': 'Inicia sesión para acceder a tu panel.',
+    },
+    'provider_dashboard_locked_message': {
+      'fr': 'Connectez-vous à votre espace fournisseur.',
+      'en': 'Sign in to access your provider workspace.',
+      'es': 'Inicia sesión para acceder a tu espacio de proveedor.',
+    },
+    'provider_availability_toggle_error': {
+      'fr': 'Impossible de changer votre statut de disponibilité.',
+      'en': 'Unable to change your availability status.',
+      'es': 'No se pudo cambiar tu estado de disponibilidad.',
+    },
+
     // Notification content — resolved client-side via title_key/body_key.
     'notif_driver_assigned_title': {'fr': 'Chauffeur assigné', 'en': 'Driver assigned', 'es': 'Conductor asignado'},
     'notif_driver_assigned_body': {
