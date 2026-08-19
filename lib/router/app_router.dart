@@ -10,6 +10,7 @@ import '../screens/driver/driver_landing_screen.dart';
 import '../screens/driver/driver_onboarding_screen.dart';
 import '../screens/driver/driver_status_screen.dart';
 import '../screens/driver/driver_active_mission_screen.dart';
+import '../screens/customer/customer_tracking_screen.dart';
 import '../screens/mechanic_provider/mechanic_provider_landing_screen.dart';
 import '../screens/mechanic_provider/mechanic_onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
@@ -253,6 +254,28 @@ class AppRouter {
               builder: (c, s) => const CustomerDashboardShell(),
             ),
 
+            // Suivi GPS temps réel du chauffeur (Phase 5) — route dédiée
+            // côté client, paramétrée par missionId, symétrique de
+            // `fournisseur/mission/:missionId` côté chauffeur.
+            GoRoute(
+              path: 'livraison/suivi/:missionId',
+              builder: (c, s) => CustomerTrackingScreen(
+                missionId: s.pathParameters['missionId']!,
+              ),
+            ),
+            GoRoute(
+              path: 'delivery/track/:missionId',
+              builder: (c, s) => CustomerTrackingScreen(
+                missionId: s.pathParameters['missionId']!,
+              ),
+            ),
+            GoRoute(
+              path: 'entrega/seguimiento/:missionId',
+              builder: (c, s) => CustomerTrackingScreen(
+                missionId: s.pathParameters['missionId']!,
+              ),
+            ),
+
             GoRoute(
               path: 'fournisseur/tableau-de-bord',
               builder: (c, s) => const ProviderDashboardShell(),
@@ -268,11 +291,15 @@ class AppRouter {
             // persistant.
             GoRoute(
               path: 'fournisseur/mission/:missionId',
-              builder: (c, s) => DriverActiveMissionScreen(missionId: s.pathParameters['missionId']!),
+              builder: (c, s) => DriverActiveMissionScreen(
+                missionId: s.pathParameters['missionId']!,
+              ),
             ),
             GoRoute(
               path: 'provider/mission/:missionId',
-              builder: (c, s) => DriverActiveMissionScreen(missionId: s.pathParameters['missionId']!),
+              builder: (c, s) => DriverActiveMissionScreen(
+                missionId: s.pathParameters['missionId']!,
+              ),
             ),
 
             // Portail admin — architecture forward-compatible : `/admin` est

@@ -246,6 +246,7 @@ class AppStrings {
     'requests_error': {'fr': 'Impossible de charger vos demandes.', 'en': 'Unable to load your requests.', 'es': 'No se pudieron cargar tus solicitudes.'},
     'requests_retry': {'fr': 'Réessayer', 'en': 'Retry', 'es': 'Reintentar'},
     'requests_empty': {'fr': 'Rien à afficher pour l\'instant', 'en': 'Nothing to show yet', 'es': 'Nada que mostrar todavía'},
+    'requests_track_driver': {'fr': 'Suivre le chauffeur', 'en': 'Track driver', 'es': 'Seguir al conductor'},
 
     'overview_greeting': {'fr': 'Bonjour', 'en': 'Hello', 'es': 'Hola'},
     'overview_subtitle': {'fr': 'Voici un résumé de votre activité sur Movi-K.', 'en': 'Here is a summary of your activity on Movi-K.', 'es': 'Aquí tienes un resumen de tu actividad en Movi-K.'},
@@ -291,6 +292,35 @@ class AppStrings {
     'driver_active_mission_start_transit': {'fr': 'Commencer le transport', 'en': 'Start transport', 'es': 'Iniciar transporte'},
     'driver_active_mission_arrived_at_dropoff': {'fr': 'Je suis arrivé à la livraison', 'en': 'I have arrived at dropoff', 'es': 'He llegado a la entrega'},
     'driver_active_mission_resume_banner': {'fr': 'Mission en cours — reprendre', 'en': 'Mission in progress — resume', 'es': 'Misión en curso — reanudar'},
+
+    // ---------- Tracking GPS temps réel (Phase 5) ----------
+    'driver_active_mission_gps_disabled': {
+      'fr': 'Votre GPS est désactivé. Activez-le pour que le client puisse vous suivre.',
+      'en': 'Your GPS is disabled. Turn it on so the customer can track you.',
+      'es': 'Su GPS está desactivado. Actívelo para que el cliente pueda seguirlo.',
+    },
+    'driver_active_mission_gps_permission_denied': {
+      'fr': 'Autorisez la localisation pour que le client puisse suivre votre trajet.',
+      'en': 'Allow location access so the customer can track your trip.',
+      'es': 'Permita el acceso a la ubicación para que el cliente pueda seguir su viaje.',
+    },
+    'driver_active_mission_gps_report_failed': {
+      'fr': 'Impossible d\'envoyer votre position pour le moment.',
+      'en': 'Unable to send your position right now.',
+      'es': 'No se pudo enviar su posición en este momento.',
+    },
+    'tracking_title': {'fr': 'Suivi en direct', 'en': 'Live tracking', 'es': 'Seguimiento en vivo'},
+    'tracking_not_available': {
+      'fr': 'Le suivi en direct sera disponible dès qu\'un chauffeur sera en route.',
+      'en': 'Live tracking will be available once a driver is on the way.',
+      'es': 'El seguimiento en vivo estará disponible en cuanto un conductor esté en camino.',
+    },
+    'tracking_waiting_for_signal': {
+      'fr': 'En attente du signal GPS du chauffeur…',
+      'en': 'Waiting for the driver\'s GPS signal…',
+      'es': 'Esperando la señal GPS del conductor…',
+    },
+    'tracking_driver_fallback': {'fr': 'Votre chauffeur', 'en': 'Your driver', 'es': 'Su conductor'},
 
     // ---------- Driver earnings (Firebase réel — lecture seule) ----------
     'earnings_title': {'fr': 'Revenus', 'en': 'Earnings', 'es': 'Ganancias'},

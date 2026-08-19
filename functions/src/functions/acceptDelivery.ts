@@ -164,6 +164,16 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(async (request) => {
 
     tx.update(driverRef, { online_status: "on_mission" });
 
+    // Active le tracking GPS temps réel pour cette mission (Phase 5) :
+    // recordTrackingPoint() lit ce champ pour savoir sur quelle mission
+    // rattacher l'historique, et firestore.rules l'utilise pour autoriser
+    // le client à lire la position du chauffeur pendant SA mission active.
+    tx.set(
+      db.collection("driver_locations").doc(driverId),
+      { active_delivery_id: missionId },
+      { merge: true }
+    );
+
     const snapshotRef = db.collection("financial_snapshots").doc();
     tx.set(snapshotRef, {
       snapshot_id: snapshotRef.id,

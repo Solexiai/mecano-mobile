@@ -35,6 +35,16 @@ dependencies:
   cloud_functions: 5.1.3
   firebase_app_check: 0.3.1+4
 
+  # --- Tracking GPS temps réel (Phase 5) ---
+  # flutter_map (OpenStreetMap) choisi plutôt que google_maps_flutter :
+  # aucune clé API / facturation Google Cloud requise côté Daniel, ce qui
+  # permet de livrer la Phase 5 de façon 100% autonome (voir directive
+  # MODE AUTONOME). Compatible Web + Android.
+  flutter_map: 7.0.2
+  latlong2: 0.9.1
+  geolocator: 13.0.2
+  permission_handler: 11.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

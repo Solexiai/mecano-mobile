@@ -144,6 +144,7 @@ async function cleanupAll(missionId: string | null): Promise<void> {
     db.collection("pricing_configs").doc("active").delete(),
     db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
     db.collection("driver_profiles").doc(DRIVER_ID).delete(),
+    db.collection("driver_locations").doc(DRIVER_ID).delete(),
     db.collection("audit_logs").where("target_id", "==", missionId).get().then((s) =>
       Promise.all(s.docs.map((d) => d.ref.delete()))
     ),
@@ -300,6 +301,14 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       const driverSnap = await db.collection("driver_profiles").doc(DRIVER_ID).get();
       expect(driverSnap.data()!.completed_missions).toBe(4); // 3 (seed) + 1
       expect(driverSnap.data()!.online_status).toBe("online");
+
+      // ==== Phase 5 — le tracking GPS a été activé PUIS désactivé ====
+      // acceptDelivery() doit avoir mis active_delivery_id = missionId, et
+      // completeDelivery() doit l'avoir remis à null (fin du droit de
+      // suivi client pour cette mission terminée).
+      const locationSnap = await db.collection("driver_locations").doc(DRIVER_ID).get();
+      expect(locationSnap.exists).toBe(true);
+      expect(locationSnap.data()!.active_delivery_id).toBeNull();
 
       // ==== Traçabilité complète : un tracking_event par étape franchie ====
       const events = await db

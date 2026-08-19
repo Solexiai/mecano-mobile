@@ -66,6 +66,15 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(async (request) 
       online_status: "online",
     });
 
+    // Désactive le tracking GPS temps réel (Phase 5) : la mission est
+    // terminée, plus aucun client ne doit pouvoir suivre ce chauffeur via
+    // cette mission, et recordTrackingPoint() cesse d'écrire l'historique.
+    tx.set(
+      db.collection("driver_locations").doc(mission.driver_id),
+      { active_delivery_id: null },
+      { merge: true }
+    );
+
     // 4. Entrées du ledger — append-only, créées ici DANS la même transaction
     // que la confirmation du snapshot pour garantir la cohérence comptable.
     const ledgerEntries: Array<Record<string, unknown>> = [
