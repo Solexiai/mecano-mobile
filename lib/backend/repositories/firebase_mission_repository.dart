@@ -263,9 +263,12 @@ class FirebaseMissionRepository implements MissionRepository {
   }
 
   @override
-  Future<void> markDeliveryCompleted(String missionId) async {
+  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {
     try {
-      await _functions.httpsCallable('completeDelivery').call({'missionId': missionId});
+      await _functions.httpsCallable('completeDelivery').call({
+        'missionId': missionId,
+        'proofOfDeliveryUrl': proofOfDeliveryUrl,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw CloudFunctionException(e.code, e.message ?? 'completeDelivery a échoué.');
     }

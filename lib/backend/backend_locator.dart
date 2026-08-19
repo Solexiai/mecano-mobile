@@ -23,6 +23,8 @@ import 'repositories/finance_repository.dart';
 import 'repositories/firebase_finance_repository.dart';
 import 'repositories/location_repository.dart';
 import 'repositories/firebase_location_repository.dart';
+import 'repositories/notification_repository.dart';
+import 'repositories/firebase_notification_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
@@ -52,6 +54,13 @@ class BackendLocator {
       return const NotConfiguredLocationRepository();
     }
     return FirebaseLocationRepository();
+  }
+
+  static NotificationRepository get notificationRepository {
+    if (!BackendBootstrap.status.isConfigured) {
+      return const NotConfiguredNotificationRepository();
+    }
+    return FirebaseNotificationRepository();
   }
 
   static PaymentProvider get paymentProvider {

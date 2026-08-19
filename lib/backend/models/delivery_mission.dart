@@ -42,9 +42,22 @@ class DeliveryMission {
   final String? activeQuoteId;
   final String? activeFinancialSnapshotId;
   final DateTime createdAt;
+  // Timestamps métier par statut (Phase 5, partie 3) — un champ dédié par
+  // transition, distinct de tout `updated_at` générique. Tous nullable :
+  // les missions créées avant cette phase n'ont pas ces champs (aucune
+  // migration rétrospective des documents existants n'est requise).
+  final DateTime? driverToPickupAt;
+  final DateTime? arrivedAtPickupAt;
+  final DateTime? pickedUpAt;
+  final DateTime? inTransitAt;
+  final DateTime? arrivedAtDropoffAt;
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+  // Preuve de livraison (Phase 5, partie 3) — dénormalisée sur le document
+  // mission par completeDelivery(). Null pour toute mission pas encore
+  // (ou jamais) complétée, ou complétée avant l'introduction de ce champ.
+  final String? proofOfDeliveryUrl;
 
   // Champs dénormalisés écrits par createDeliveryRequest() — lecture seule,
   // jamais recalculés côté Flutter.
@@ -70,9 +83,15 @@ class DeliveryMission {
     this.activeQuoteId,
     this.activeFinancialSnapshotId,
     required this.createdAt,
+    this.driverToPickupAt,
+    this.arrivedAtPickupAt,
+    this.pickedUpAt,
+    this.inTransitAt,
+    this.arrivedAtDropoffAt,
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.proofOfDeliveryUrl,
     this.pickupAddress,
     this.dropoffAddress,
     this.distanceKm,
@@ -99,9 +118,15 @@ class DeliveryMission {
         'active_quote_id': activeQuoteId,
         'active_financial_snapshot_id': activeFinancialSnapshotId,
         'created_at': createdAt.toIso8601String(),
+        'driver_to_pickup_at': driverToPickupAt?.toIso8601String(),
+        'arrived_at_pickup_at': arrivedAtPickupAt?.toIso8601String(),
+        'picked_up_at': pickedUpAt?.toIso8601String(),
+        'in_transit_at': inTransitAt?.toIso8601String(),
+        'arrived_at_dropoff_at': arrivedAtDropoffAt?.toIso8601String(),
         'completed_at': completedAt?.toIso8601String(),
         'cancelled_at': cancelledAt?.toIso8601String(),
         'cancellation_reason': cancellationReason,
+        'proof_of_delivery_url': proofOfDeliveryUrl,
         'distance_km': distanceKm,
         'estimated_duration_minutes': estimatedDurationMinutes,
         'driver_offer_amount': driverOfferAmount,
@@ -124,9 +149,15 @@ class DeliveryMission {
       activeQuoteId: json['active_quote_id'] as String?,
       activeFinancialSnapshotId: json['active_financial_snapshot_id'] as String?,
       createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
+      driverToPickupAt: parseFirestoreDate(json['driver_to_pickup_at']),
+      arrivedAtPickupAt: parseFirestoreDate(json['arrived_at_pickup_at']),
+      pickedUpAt: parseFirestoreDate(json['picked_up_at']),
+      inTransitAt: parseFirestoreDate(json['in_transit_at']),
+      arrivedAtDropoffAt: parseFirestoreDate(json['arrived_at_dropoff_at']),
       completedAt: parseFirestoreDate(json['completed_at']),
       cancelledAt: parseFirestoreDate(json['cancelled_at']),
       cancellationReason: json['cancellation_reason'] as String?,
+      proofOfDeliveryUrl: json['proof_of_delivery_url'] as String?,
       pickupAddress: _parseAddress(json['pickup_address']),
       dropoffAddress: _parseAddress(json['dropoff_address']),
       distanceKm: (json['distance_km'] as num?)?.toDouble(),

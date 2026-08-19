@@ -5,6 +5,7 @@ import '../../../core/app_colors.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../widgets/language_selector.dart';
+import '../../../widgets/notification_bell.dart';
 import '../../../backend/backend_locator.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
@@ -111,6 +112,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
               ]);
             },
           ),
+          NotificationBell(userId: driverId),
           const LanguageSelector(compact: true),
           const SizedBox(width: 8),
           IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),

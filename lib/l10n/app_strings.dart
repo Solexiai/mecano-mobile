@@ -351,6 +351,26 @@ class AppStrings {
       'en': 'Unable to upload the photo. Please try again.',
       'es': 'No se pudo subir la foto. Inténtelo de nuevo.',
     },
+    'driver_active_mission_retake_photo': {
+      'fr': 'Reprendre la photo',
+      'en': 'Retake photo',
+      'es': 'Volver a tomar la foto',
+    },
+    'driver_active_mission_confirm_proof': {
+      'fr': 'Confirmer la livraison',
+      'en': 'Confirm delivery',
+      'es': 'Confirmar la entrega',
+    },
+    'driver_active_mission_capture_error': {
+      'fr': 'Impossible d\'accéder à la caméra. Réessayez.',
+      'en': 'Unable to access the camera. Please try again.',
+      'es': 'No se pudo acceder a la cámara. Inténtelo de nuevo.',
+    },
+    'driver_active_mission_proof_preview_title': {
+      'fr': 'Photo de livraison',
+      'en': 'Delivery photo',
+      'es': 'Foto de la entrega',
+    },
     'customer_tracking_completed_title': {
       'fr': 'Livraison complétée',
       'en': 'Delivery completed',
@@ -386,6 +406,12 @@ class AppStrings {
       'es': 'No se pudieron cargar las notificaciones.',
     },
     'notifications_open_tooltip': {'fr': 'Notifications', 'en': 'Notifications', 'es': 'Notificaciones'},
+    'notifications_mark_all_read': {
+      'fr': 'Tout marquer comme lu',
+      'en': 'Mark all as read',
+      'es': 'Marcar todo como leído',
+    },
+    'notifications_just_now': {'fr': 'À l\'instant', 'en': 'Just now', 'es': 'Justo ahora'},
 
     // Notification content — resolved client-side via title_key/body_key.
     'notif_driver_assigned_title': {'fr': 'Chauffeur assigné', 'en': 'Driver assigned', 'es': 'Conductor asignado'},

@@ -26,8 +26,12 @@
 //   informations d'un autre chauffeur.
 // ---------------------------------------------------------------------------
 
+import 'dart:typed_data';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../backend/backend_locator.dart';
@@ -66,6 +70,10 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
   String? _actionErrorKey;
   final DriverLocationReporter _locationReporter = DriverLocationReporter();
   String? _gpsWarningKey;
+  // Preuve de livraison (Phase 5, partie 3) : distinct de _actionInProgress
+  // pour afficher un message spécifique ("Téléversement de la preuve…")
+  // pendant l'upload Storage, avant même l'appel à completeDelivery().
+  bool _uploadingProof = false;
 
   @override
   void dispose() {
@@ -111,6 +119,85 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       setState(() => _actionErrorKey = 'driver_active_mission_action_error');
     } finally {
       if (mounted) setState(() => _actionInProgress = false);
+    }
+  }
+
+  /// Workflow obligatoire de complétion de livraison (Phase 5, partie 3) :
+  /// arrivé à destination -> prendre une photo -> prévisualiser -> confirmer
+  /// -> upload Firebase Storage (`delivery_proofs/{missionId}/{fileName}`)
+  /// -> `markDeliveryCompleted(missionId, proofOfDeliveryUrl: url)`.
+  ///
+  /// À AUCUN moment la mission ne passe à `completed` sans upload réussi :
+  /// toute erreur (annulation, caméra indisponible, échec réseau, échec
+  /// Cloud Function) laisse la mission dans son statut courant et permet de
+  /// réessayer depuis le début.
+  Future<void> _capturePhotoAndCompleteDelivery(DeliveryMission mission) async {
+    if (_actionInProgress || _uploadingProof) return;
+
+    // 1. Capture caméra.
+    final XFile? photo;
+    try {
+      final picker = ImagePicker();
+      photo = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _actionErrorKey = 'driver_active_mission_capture_error');
+      return;
+    }
+    if (photo == null || !mounted) return; // annulé par le chauffeur
+
+    final bytes = await photo.readAsBytes();
+    if (!mounted) return;
+
+    // 2. Prévisualisation + confirmation explicite (jamais d'upload
+    // automatique sans validation du chauffeur).
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _ProofPreviewDialog(
+        imageBytes: bytes,
+        t: context.read<LocaleProvider>().t,
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    // 3. Upload Storage puis appel Cloud Function — jamais de saut d'étape.
+    setState(() {
+      _actionErrorKey = null;
+      _uploadingProof = true;
+    });
+    try {
+      // Nom de fichier généré côté client à partir d'un timestamp — jamais
+      // un chemin arbitraire transmis par un tiers ; la structure du
+      // dossier (`delivery_proofs/{missionId}/`) est fixe et validée par
+      // storage.rules (seul le chauffeur assigné peut y écrire).
+      final fileName =
+          'delivery_proof_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('delivery_proofs')
+          .child(mission.id)
+          .child(fileName);
+      await ref.putData(
+        Uint8List.fromList(bytes),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      final url = await ref.getDownloadURL();
+
+      final repo = BackendLocator.missionRepository;
+      await repo.markDeliveryCompleted(mission.id, proofOfDeliveryUrl: url);
+    } on CloudFunctionException {
+      if (!mounted) return;
+      setState(() => _actionErrorKey = 'driver_active_mission_cf_error');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _actionErrorKey = 'driver_active_mission_proof_upload_error');
+    } finally {
+      if (mounted) setState(() => _uploadingProof = false);
     }
   }
 
@@ -247,6 +334,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
           mission: mission,
           t: t,
           busy: _actionInProgress,
+          uploadingProof: _uploadingProof,
           errorKey: _actionErrorKey,
           gpsWarningKey: _gpsWarningKey,
           onStartToPickup: () => _runAction(
@@ -275,8 +363,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
               targetStatus: MissionStatus.arrivedAtDropoff,
             ),
           ),
-          onCompleteDelivery: () =>
-              _runAction(() => repo.markDeliveryCompleted(mission.id)),
+          onCompleteDelivery: () => _capturePhotoAndCompleteDelivery(mission),
         );
       },
     );
@@ -301,6 +388,7 @@ class _MissionCard extends StatelessWidget {
   final DeliveryMission mission;
   final String Function(String) t;
   final bool busy;
+  final bool uploadingProof;
   final String? errorKey;
   final String? gpsWarningKey;
   final VoidCallback onStartToPickup;
@@ -314,6 +402,7 @@ class _MissionCard extends StatelessWidget {
     required this.mission,
     required this.t,
     required this.busy,
+    this.uploadingProof = false,
     required this.errorKey,
     this.gpsWarningKey,
     required this.onStartToPickup,
@@ -512,10 +601,11 @@ class _MissionCard extends StatelessWidget {
   }
 
   List<Widget> _buildActions(BuildContext context) {
-    Widget button(String labelKey, VoidCallback onPressed) => SizedBox(
+    Widget button(String labelKey, VoidCallback onPressed, {bool disabled = false}) =>
+        SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: busy ? null : onPressed,
+        onPressed: (busy || disabled) ? null : onPressed,
         child: busy
             ? const SizedBox(
                 width: 18,
@@ -550,12 +640,70 @@ class _MissionCard extends StatelessWidget {
           ),
         ];
       case MissionStatus.arrivedAtDropoff:
+        if (uploadingProof) {
+          return [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(t('driver_active_mission_uploading_proof')),
+                ],
+              ),
+            ),
+          ];
+        }
         return [
-          button('driver_active_mission_mark_delivered', onCompleteDelivery),
+          button(
+            'driver_active_mission_capture_photo',
+            onCompleteDelivery,
+            disabled: uploadingProof,
+          ),
         ];
       default:
         return const [];
     }
+  }
+}
+
+/// Boîte de dialogue de prévisualisation de la preuve de livraison — le
+/// chauffeur DOIT confirmer explicitement avant que l'upload ne commence
+/// (jamais d'upload automatique dès la capture caméra).
+class _ProofPreviewDialog extends StatelessWidget {
+  final Uint8List imageBytes;
+  final String Function(String) t;
+
+  const _ProofPreviewDialog({required this.imageBytes, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(t('driver_active_mission_proof_preview_title')),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 320),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(imageBytes, fit: BoxFit.cover),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: Text(t('driver_active_mission_retake_photo')),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(t('driver_active_mission_confirm_proof')),
+        ),
+      ],
+    );
   }
 }
 

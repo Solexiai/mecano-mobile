@@ -120,7 +120,16 @@ abstract class MissionRepository {
 
   Future<void> markPickupCompleted(String missionId);
 
-  Future<void> markDeliveryCompleted(String missionId);
+  /// Confirme la livraison finale (Cloud Function `completeDelivery()`).
+  /// `proofOfDeliveryUrl` est OBLIGATOIRE (Phase 5, partie 3) — la Cloud
+  /// Function rejette avec `invalid-argument` toute tentative sans preuve de
+  /// livraison valide. Doit pointer vers un fichier déjà uploadé dans
+  /// Firebase Storage sous `delivery_proofs/{missionId}/{fileName}` (voir
+  /// storage.rules).
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  });
 
   /// Transitions intermédiaires du trajet (sans impact financier) :
   /// assigned -> driverToPickup -> arrivedAtPickup, puis (après
@@ -178,7 +187,7 @@ class NotConfiguredMissionRepository implements MissionRepository {
   }
 
   @override
-  Future<void> markDeliveryCompleted(String missionId) {
+  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) {
     throw BackendNotConfiguredException('markDeliveryCompleted: backend Firebase non configuré.');
   }
 
