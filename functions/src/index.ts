@@ -46,6 +46,7 @@ export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyC
 export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
 export { refundPayment } from "./functions/refundPayment";
 export { updateDisputeStatus } from "./functions/updateDisputeStatus";
+export { processStripeWebhook } from "./functions/processStripeWebhook";
 
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
