@@ -153,6 +153,18 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
       },
     });
 
+    // 🔒 BLOC H (catalogue d'évènements financiers) — action métier normalisée
+    // distincte de l'action technique `calculateDriverPayout` ci-dessus (jamais
+    // renommée pour ne pas casser les tests existants qui la référencent).
+    writeAuditLogInTransaction(tx, {
+      actorUserId: ctx.uid,
+      actorRole: ctx.role ?? "unknown",
+      action: "payout_created",
+      sourceFunction: "calculateDriverPayout",
+      targetId: payoutRef.id,
+      metadata: { driverId, amountMinor, snapshotCount: eligibleSnapshots.length, initialStatus: initial },
+    });
+
     return { payoutId: payoutRef.id, initialStatus: initial };
   });
 

@@ -32,7 +32,7 @@ import { buildIdempotencyKey } from "../lib/idempotency";
 import { assertValidPaymentTransition } from "../lib/paymentStateMachine";
 import { assertValidPayoutTransition } from "../lib/payoutStateMachine";
 import { assertValidRefundTransition } from "../lib/refundStateMachine";
-import { aborted } from "../lib/errors";
+import { aborted, notFound } from "../lib/errors";
 import {
   DriverPayoutDoc,
   DriverProfileDoc,
@@ -51,6 +51,7 @@ import {
 import { getPaymentProvider } from "./paymentProviderFactory";
 import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
+import { writeAuditLog, writeAuditLogInTransaction } from "../lib/audit";
 
 export interface CreateAndAuthorizePaymentInput {
   missionId: string;
@@ -172,6 +173,19 @@ export async function createAndAuthorizeMissionPayment(
       metadata: { movik_mission_id: missionId, movik_payment_id: paymentId },
     });
 
+    // 🔒 BLOC H (catalogue d'évènements financiers) — journalise la création
+    // RÉELLE du PaymentIntent côté provider (distinct de `payment_captured`/
+    // `payment_failed` déjà audités via processStripeWebhook.ts). N'est
+    // JAMAIS le déclencheur d'un effet financier — purement traçabilité.
+    await writeAuditLog({
+      actorUserId: customerId,
+      actorRole: "customer",
+      action: "payment_created",
+      sourceFunction: "createAndAuthorizeMissionPayment",
+      targetId: paymentId,
+      metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor },
+    });
+
     const authorized = await provider.authorizePayment({
       providerPaymentIntentId: created.providerPaymentIntentId,
       idempotencyKey: authorizeIdempotencyKey,
@@ -207,6 +221,15 @@ export async function createAndAuthorizeMissionPayment(
       if (missionSnap.exists) {
         tx.update(missionRef, { payment_status: PaymentStatuses.AUTHORIZED });
       }
+    });
+
+    await writeAuditLog({
+      actorUserId: customerId,
+      actorRole: "customer",
+      action: "payment_authorized",
+      sourceFunction: "createAndAuthorizeMissionPayment",
+      targetId: paymentId,
+      metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor },
     });
 
     return { paymentId, status: PaymentStatuses.AUTHORIZED, success: true };
@@ -460,6 +483,18 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
 
   const { amountMinor, currency, connectedAccountId, idempotencyKey } = prepared;
 
+  // 🔒 BLOC H — journalise la soumission RÉELLE au fournisseur (distinct de
+  // `payout_created`, journalisé par calculateDriverPayout.ts au moment de
+  // l'agrégation des snapshots, AVANT tout appel provider).
+  await writeAuditLog({
+    actorUserId: "system",
+    actorRole: "system",
+    action: "payout_submitted",
+    sourceFunction: "submitDriverPayout",
+    targetId: payoutId,
+    metadata: { amountMinor, connectedAccountId },
+  });
+
   // ---- Étape 2 : appel Stripe réel, hors transaction ----
   const provider = getPaymentProvider();
   let result;
@@ -544,6 +579,118 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
 
 function isTerminalPayout(status: string): boolean {
   return status === PayoutStatuses.PAID || status === PayoutStatuses.REVERSED;
+}
+
+// -----------------------------------------------------------------------------
+// Reversal administratif de versement — point 20 (voir payoutStateMachine.ts,
+// transition PAID -> REVERSED). Contrairement à un refund de charge, un
+// versement Stripe déjà PAID ne peut PAS être annulé via l'API Stripe elle-
+// même (les fonds ont quitté le compte connecté) — cette fonction N'INVENTE
+// PAS un appel provider inexistant. Elle documente une COMPENSATION
+// COMPTABLE administrative (ex: recouvrement négocié hors-bande avec le
+// chauffeur, retenue sur un versement futur) : marque driver_payouts/{id}
+// REVERSED et crée une entrée ledger DRIVER_PAYOUT_REVERSAL pour CHAQUE
+// mission dont un financial_snapshot est inclus dans ce payout — jamais un
+// second appel PaymentProvider.
+// -----------------------------------------------------------------------------
+
+export interface ReverseDriverPayoutInput {
+  payoutId: string;
+  reason: string;
+  initiatedByUserId: string;
+  initiatedByRole: string;
+}
+
+export interface ReverseDriverPayoutOutcome {
+  payoutId: string;
+  status: string;
+  missionIds: string[];
+}
+
+export async function reverseDriverPayout(
+  input: ReverseDriverPayoutInput
+): Promise<ReverseDriverPayoutOutcome> {
+  const { payoutId, reason, initiatedByUserId, initiatedByRole } = input;
+  const payoutRef = db.collection("driver_payouts").doc(payoutId);
+
+  const { missionIds } = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(payoutRef);
+    if (!snap.exists) throw notFound(`driver_payouts/${payoutId} introuvable.`);
+    const payout = snap.data() as DriverPayoutDoc;
+    assertValidPayoutTransition(payout.status, PayoutStatuses.REVERSED);
+
+    // 🔒 Lecture des snapshots DANS la même transaction (plusieurs lectures
+    // sont autorisées dans une transaction Firestore) pour attribuer le
+    // MONTANT RÉELLEMENT gagné par mission (driver_net_mission_earnings),
+    // jamais une répartition arbitraire du total du payout — cohérent avec
+    // `computeMissionFinancialBalance()` qui recalculera automatiquement
+    // `driver_paid_minor` à 0 pour ces missions dès que ce payout n'est
+    // plus filtré par `status == "paid"`.
+    const snapshotRefs = payout.financial_snapshot_ids.map((id) =>
+      db.collection("financial_snapshots").doc(id)
+    );
+    const snapshotSnaps = await Promise.all(snapshotRefs.map((ref) => tx.get(ref)));
+
+    const now = admin.firestore.Timestamp.now();
+    tx.update(payoutRef, {
+      status: PayoutStatuses.REVERSED,
+      reversed_at: now,
+      reversal_reason: reason,
+    });
+
+    const missionIdsFound: string[] = [];
+    for (const snapDoc of snapshotSnaps) {
+      if (!snapDoc.exists) continue;
+      const snapshot = snapDoc.data()!;
+      const missionId = snapshot.mission_id as string | undefined;
+      if (!missionId) continue;
+      missionIdsFound.push(missionId);
+
+      const earnedMajor = (snapshot.driver_net_mission_earnings as number) ?? 0;
+      const earnedMinor = toMinorUnits(earnedMajor, DEFAULT_CURRENCY);
+
+      const ledgerRef = db.collection("transaction_ledger").doc();
+      tx.set(ledgerRef, {
+        ledger_entry_id: ledgerRef.id,
+        mission_id: missionId,
+        transaction_id: payoutId,
+        type: LedgerEntryTypes.DRIVER_PAYOUT_REVERSAL,
+        amount: earnedMajor,
+        amount_minor: earnedMinor,
+        currency: payout.currency,
+        direction: LedgerDirections.DEBIT,
+        party: LedgerParties.DRIVER,
+        created_at: now,
+        created_by: `reverseDriverPayout:${initiatedByUserId}`,
+        source_event: "payout_reversed",
+        status: LedgerEntryStatuses.CONFIRMED,
+        reference_id: payoutId,
+      });
+    }
+
+    writeAuditLogInTransaction(tx, {
+      actorUserId: initiatedByUserId,
+      actorRole: initiatedByRole,
+      action: "payout_reversed",
+      sourceFunction: "reverseDriverPayout",
+      targetId: payoutId,
+      metadata: {
+        reason,
+        amountMinor: payout.amount_minor,
+        snapshotCount: payout.financial_snapshot_ids.length,
+        missionIds: missionIdsFound,
+      },
+    });
+
+    return { missionIds: missionIdsFound };
+  });
+
+  // Recalcul HORS transaction (lecture multi-collections, voir
+  // missionFinancialBalance.ts en-tête) — `driver_paid_minor` retombe à 0
+  // pour ces missions car le payout n'est plus `status == "paid"`.
+  await Promise.all(missionIds.map((mId) => recalculateMissionFinancialBalance(mId)));
+
+  return { payoutId, status: PayoutStatuses.REVERSED, missionIds };
 }
 
 // -----------------------------------------------------------------------------

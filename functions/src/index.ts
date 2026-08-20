@@ -54,6 +54,7 @@ export { updateTaxConfiguration } from "./functions/updateTaxConfiguration";
 // ---- Réconciliation (Phase 6, bloc G — moteur de réconciliation réel) ----
 export { runReconciliationNow, runDailyReconciliation } from "./functions/runReconciliation";
 export { resolveReconciliationAnomaly } from "./functions/resolveReconciliationAnomaly";
+export { reverseDriverPayout } from "./functions/reverseDriverPayout";
 
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
