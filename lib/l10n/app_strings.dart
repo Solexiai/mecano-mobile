@@ -3165,6 +3165,275 @@ class AppStrings {
       'en': 'Payout policy updated.',
       'es': 'Política de pagos actualizada.',
     },
+
+    // ---- Bloc L (étape 2/N) — statuts détaillés admin, non résumés ----
+    // (contrairement à `finance_status_*`, ces clés couvrent la machine
+    // d'état SERVEUR complète, réservée à l'affichage admin.)
+    'admin_payment_status_pending': {
+      'fr': 'En attente',
+      'en': 'Pending',
+      'es': 'Pendiente',
+    },
+    'admin_payment_status_created': {
+      'fr': 'Créé',
+      'en': 'Created',
+      'es': 'Creado',
+    },
+    'admin_payment_status_requires_payment_method': {
+      'fr': 'Moyen de paiement requis',
+      'en': 'Requires payment method',
+      'es': 'Requiere método de pago',
+    },
+    'admin_payment_status_authorization_pending': {
+      'fr': 'Autorisation en cours',
+      'en': 'Authorization pending',
+      'es': 'Autorización pendiente',
+    },
+    'admin_payment_status_authorized': {
+      'fr': 'Autorisé',
+      'en': 'Authorized',
+      'es': 'Autorizado',
+    },
+    'admin_payment_status_capture_pending': {
+      'fr': 'Capture en cours',
+      'en': 'Capture pending',
+      'es': 'Captura pendiente',
+    },
+    'admin_payment_status_captured': {
+      'fr': 'Capturé',
+      'en': 'Captured',
+      'es': 'Capturado',
+    },
+    'admin_payment_status_failed': {
+      'fr': 'Échoué',
+      'en': 'Failed',
+      'es': 'Fallido',
+    },
+    'admin_payment_status_cancelled': {
+      'fr': 'Annulé',
+      'en': 'Cancelled',
+      'es': 'Cancelado',
+    },
+    'admin_payment_status_refunded': {
+      'fr': 'Remboursé',
+      'en': 'Refunded',
+      'es': 'Reembolsado',
+    },
+    'admin_payment_status_partially_refunded': {
+      'fr': 'Partiellement remboursé',
+      'en': 'Partially refunded',
+      'es': 'Parcialmente reembolsado',
+    },
+    'admin_payment_status_disputed': {
+      'fr': 'En litige',
+      'en': 'Disputed',
+      'es': 'En disputa',
+    },
+    'admin_payment_status_chargeback': {
+      'fr': 'Rétrofacturation',
+      'en': 'Chargeback',
+      'es': 'Contracargo',
+    },
+
+    'admin_refund_status_requested': {
+      'fr': 'Demandé',
+      'en': 'Requested',
+      'es': 'Solicitado',
+    },
+    'admin_refund_status_processing': {
+      'fr': 'En traitement',
+      'en': 'Processing',
+      'es': 'En proceso',
+    },
+    'admin_refund_status_succeeded': {
+      'fr': 'Réussi',
+      'en': 'Succeeded',
+      'es': 'Exitoso',
+    },
+    'admin_refund_status_failed': {
+      'fr': 'Échoué',
+      'en': 'Failed',
+      'es': 'Fallido',
+    },
+
+    'admin_refund_reason_customer_request': {
+      'fr': 'Demande du client',
+      'en': 'Customer request',
+      'es': 'Solicitud del cliente',
+    },
+    'admin_refund_reason_cancelled_before_pickup': {
+      'fr': 'Annulé avant la collecte',
+      'en': 'Cancelled before pickup',
+      'es': 'Cancelado antes de la recogida',
+    },
+    'admin_refund_reason_cancelled_after_pickup': {
+      'fr': 'Annulé après la collecte',
+      'en': 'Cancelled after pickup',
+      'es': 'Cancelado después de la recogida',
+    },
+    'admin_refund_reason_payment_error': {
+      'fr': 'Erreur de paiement',
+      'en': 'Payment error',
+      'es': 'Error de pago',
+    },
+    'admin_refund_reason_goodwill': {
+      'fr': 'Geste commercial',
+      'en': 'Goodwill',
+      'es': 'Gesto comercial',
+    },
+    'admin_refund_reason_administrative': {
+      'fr': 'Administratif',
+      'en': 'Administrative',
+      'es': 'Administrativo',
+    },
+    'admin_refund_reason_mission_impossible': {
+      'fr': 'Mission impossible',
+      'en': 'Mission impossible',
+      'es': 'Misión imposible',
+    },
+    'admin_refund_reason_partial_delivery': {
+      'fr': 'Livraison partielle',
+      'en': 'Partial delivery',
+      'es': 'Entrega parcial',
+    },
+    'admin_refund_reason_no_show': {
+      'fr': 'Absence au rendez-vous',
+      'en': 'No-show',
+      'es': 'No presentado',
+    },
+
+    // ---- Ledger : types manquants (complète ledger_type_* du Bloc K) ----
+    'ledger_type_customer_charge': {
+      'fr': 'Charge client',
+      'en': 'Customer charge',
+      'es': 'Cargo al cliente',
+    },
+    'ledger_type_customer_service_fee': {
+      'fr': 'Frais de service client',
+      'en': 'Customer service fee',
+      'es': 'Tarifa de servicio al cliente',
+    },
+    'ledger_type_platform_commission': {
+      'fr': 'Commission plateforme',
+      'en': 'Platform commission',
+      'es': 'Comisión de la plataforma',
+    },
+    'ledger_type_tax': {'fr': 'Taxe', 'en': 'Tax', 'es': 'Impuesto'},
+    'ledger_type_payment_processing_fee': {
+      'fr': 'Frais de traitement du paiement',
+      'en': 'Payment processing fee',
+      'es': 'Tarifa de procesamiento de pago',
+    },
+    'ledger_type_payout_processing_fee': {
+      'fr': 'Frais de traitement du versement',
+      'en': 'Payout processing fee',
+      'es': 'Tarifa de procesamiento de pago a conductor',
+    },
+    'ledger_type_insurance_cost': {
+      'fr': 'Coût d\'assurance',
+      'en': 'Insurance cost',
+      'es': 'Costo de seguro',
+    },
+    'ledger_type_customer_adjustment': {
+      'fr': 'Ajustement client',
+      'en': 'Customer adjustment',
+      'es': 'Ajuste del cliente',
+    },
+
+    'admin_ledger_party_customer': {
+      'fr': 'Client',
+      'en': 'Customer',
+      'es': 'Cliente',
+    },
+    'admin_ledger_party_driver': {
+      'fr': 'Chauffeur',
+      'en': 'Driver',
+      'es': 'Conductor',
+    },
+    'admin_ledger_party_platform': {
+      'fr': 'Plateforme',
+      'en': 'Platform',
+      'es': 'Plataforma',
+    },
+    'admin_ledger_direction_credit': {
+      'fr': 'Crédit',
+      'en': 'Credit',
+      'es': 'Crédito',
+    },
+    'admin_ledger_direction_debit': {
+      'fr': 'Débit',
+      'en': 'Debit',
+      'es': 'Débito',
+    },
+
+    'admin_tax_type_gst': {'fr': 'TPS', 'en': 'GST', 'es': 'GST'},
+    'admin_tax_type_qst': {'fr': 'TVQ', 'en': 'QST', 'es': 'QST'},
+    'admin_tax_type_hst': {'fr': 'TVH', 'en': 'HST', 'es': 'HST'},
+    'admin_tax_type_other_tax': {
+      'fr': 'Autre taxe',
+      'en': 'Other tax',
+      'es': 'Otro impuesto',
+    },
+    'admin_tax_type_tax_exempt': {
+      'fr': 'Exonéré de taxe',
+      'en': 'Tax exempt',
+      'es': 'Exento de impuestos',
+    },
+    'admin_tax_owner_platform': {
+      'fr': 'Plateforme',
+      'en': 'Platform',
+      'es': 'Plataforma',
+    },
+    'admin_tax_owner_driver': {
+      'fr': 'Chauffeur',
+      'en': 'Driver',
+      'es': 'Conductor',
+    },
+    'admin_tax_owner_not_applicable': {
+      'fr': 'Non applicable',
+      'en': 'Not applicable',
+      'es': 'No aplicable',
+    },
+
+    // ---- Nav Finance (shell 8 sections) ----
+    'admin_nav_finance': {
+      'fr': 'Finance',
+      'en': 'Finance',
+      'es': 'Finanzas',
+    },
+    'admin_finance_filter_mission': {
+      'fr': 'Filtrer par ID mission',
+      'en': 'Filter by mission ID',
+      'es': 'Filtrar por ID de misión',
+    },
+    'admin_finance_filter_customer': {
+      'fr': 'Filtrer par ID client',
+      'en': 'Filter by customer ID',
+      'es': 'Filtrar por ID de cliente',
+    },
+    'admin_finance_filter_date_from': {
+      'fr': 'Depuis le',
+      'en': 'From',
+      'es': 'Desde el',
+    },
+    'admin_finance_filter_date_to': {
+      'fr': 'Jusqu\'au',
+      'en': 'To',
+      'es': 'Hasta el',
+    },
+    'admin_finance_filter_clear': {
+      'fr': 'Réinitialiser les filtres',
+      'en': 'Clear filters',
+      'es': 'Restablecer filtros',
+    },
+    'admin_finance_no_sensitive_data': {
+      'fr':
+          'Aucune donnée sensible du fournisseur de paiement (clés secrètes, données de carte) n\'est jamais affichée ici.',
+      'en':
+          'No sensitive payment provider data (secret keys, card data) is ever displayed here.',
+      'es':
+          'Ningún dato sensible del proveedor de pago (claves secretas, datos de tarjeta) se muestra aquí.',
+    },
   };
 
   static String t(String key, String locale) {
