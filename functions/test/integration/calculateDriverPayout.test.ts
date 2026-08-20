@@ -82,20 +82,41 @@ async function seedDriverProfile(
 }
 
 async function cleanup(driverId: string): Promise<void> {
-  const [snapshots, payouts, driverDoc] = await Promise.all([
+  const [snapshots, payouts, driverDoc, auditSnap] = await Promise.all([
     db.collection("financial_snapshots").where("driver_id", "==", driverId).get(),
     db.collection("driver_payouts").where("driver_id", "==", driverId).get(),
     db.collection("driver_profiles").doc(driverId).get(),
+    db
+      .collection("audit_logs")
+      .where("source_function", "in", ["calculateDriverPayout", "submitDriverPayout"])
+      .get(),
   ]);
   const batch = db.batch();
   snapshots.docs.forEach((d) => batch.delete(d.ref));
+  const payoutIds = payouts.docs.map((d) => d.id);
   payouts.docs.forEach((d) => batch.delete(d.ref));
   if (driverDoc.exists) batch.delete(driverDoc.ref);
+  auditSnap.docs.forEach((d) => {
+    const targetId = d.data().target_id as string | undefined;
+    // `calculateDriverPayout` action technique cible driverId ; `payout_created`
+    // (évènement métier) et `payout_submitted` ciblent payoutId — les trois
+    // doivent être nettoyés pour éviter toute fuite entre `it()`.
+    if (targetId === driverId || (targetId && payoutIds.includes(targetId))) {
+      batch.delete(d.ref);
+    }
+  });
   await batch.commit();
 }
 
 async function cleanupPayoutPolicy(): Promise<void> {
   await db.collection("payout_policy_configs").doc("default").delete();
+  const auditSnap = await db
+    .collection("audit_logs")
+    .where("source_function", "==", "updatePayoutPolicyConfiguration")
+    .get();
+  const batch = db.batch();
+  auditSnap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
 }
 
 describe("calculateDriverPayout — agrégation, cents, rétention configurable", () => {
@@ -129,6 +150,18 @@ describe("calculateDriverPayout — agrégation, cents, rétention configurable"
     const payout = payoutSnap.data()!;
     expect(payout.amount_minor).toBe(5975);
     expect(typeof payout.amount).toBe("undefined"); // plus de champ legacy flottant
+
+    // BLOC H (Tâche 4) — vérifie explicitement que l'événement métier
+    // `payout_created` existe RÉELLEMENT (distinct de l'action technique
+    // `calculateDriverPayout`), pas seulement une couverture indirecte.
+    const businessAudit = await db
+      .collection("audit_logs")
+      .where("action", "==", "payout_created")
+      .where("target_id", "==", result.payoutId)
+      .get();
+    expect(businessAudit.size).toBe(1);
+    expect(businessAudit.docs[0].data().source_function).toBe("calculateDriverPayout");
+    expect(businessAudit.docs[0].data().metadata.amountMinor).toBe(5975);
   });
 
   it("marque les snapshots agrégés avec included_in_payout_id (jamais réutilisés)", async () => {
@@ -259,6 +292,17 @@ describe("calculateDriverPayout — agrégation, cents, rétention configurable"
       expect(payout.status).toBe(PayoutStatuses.PAID);
       expect(payout.provider_payout_id).toBeTruthy();
       expect(payout.paid_at).toBeTruthy();
+
+      // BLOC H (Tâche 4) — vérifie explicitement que `payout_submitted`
+      // (journalisé par submitDriverPayout(), déclenché automatiquement ici
+      // car le versement démarre ELIGIBLE) existe RÉELLEMENT.
+      const submittedAudit = await db
+        .collection("audit_logs")
+        .where("action", "==", "payout_submitted")
+        .where("target_id", "==", result.payoutId)
+        .get();
+      expect(submittedAudit.size).toBe(1);
+      expect(submittedAudit.docs[0].data().source_function).toBe("submitDriverPayout");
     }
   );
 
@@ -308,6 +352,74 @@ describe("updatePayoutPolicyConfiguration", () => {
     expect(config.risky_driver_hold_period_hours).toBe(240);
     expect(config.updated_by_user_id).toBe(ADMIN_ID);
   });
+
+  it(
+    "BLOC H (Tâche 2/4) — journalise explicitement l'événement métier `payout_policy_changed` avec " +
+      "old/new configuration, effective_at, configuration id, timestamp et correlation_id — SANS " +
+      "ancienne configuration au premier appel (aucun document préexistant), PUIS avec l'ancienne " +
+      "configuration correctement capturée lors d'un second appel qui la modifie",
+    async () => {
+      // ---- Premier appel : aucun document payout_policy_configs/default
+      // préexistant -> oldConfiguration doit être explicitement null.
+      await updatePayoutPolicyConfiguration.run(
+        buildAdminRequest<UpdatePayoutPolicyConfigurationRequest>(ADMIN_ID, "admin", {
+          defaultHoldPeriodHours: 10,
+          newDriverHoldPeriodHours: 20,
+          riskyDriverHoldPeriodHours: 30,
+          correlationId: "corr_policy_first",
+        })
+      );
+
+      const firstAudit = await db
+        .collection("audit_logs")
+        .where("action", "==", "payout_policy_changed")
+        .where("metadata.correlationId", "==", "corr_policy_first")
+        .get();
+      expect(firstAudit.size).toBe(1);
+      const firstEntry = firstAudit.docs[0].data();
+      expect(firstEntry.actor_user_id).toBe(ADMIN_ID); // actor admin
+      expect(firstEntry.source_function).toBe("updatePayoutPolicyConfiguration");
+      expect(firstEntry.metadata.oldConfiguration).toBeNull(); // ancienne config absente
+      expect(firstEntry.metadata.newConfiguration).toEqual({
+        defaultHoldPeriodHours: 10,
+        newDriverHoldPeriodHours: 20,
+        riskyDriverHoldPeriodHours: 30,
+      });
+      expect(firstEntry.metadata.effectiveAt).toBeTruthy();
+      expect(firstEntry.metadata.configurationId).toBe("payout_policy_configs/default");
+      expect(firstEntry.metadata.timestamp).toBeTruthy();
+      expect(firstEntry.metadata.correlationId).toBe("corr_policy_first");
+
+      // ---- Second appel : modifie la configuration déjà existante ->
+      // oldConfiguration doit refléter fidèlement les valeurs du PREMIER appel.
+      await updatePayoutPolicyConfiguration.run(
+        buildAdminRequest<UpdatePayoutPolicyConfigurationRequest>(ADMIN_ID, "admin", {
+          defaultHoldPeriodHours: 15,
+          newDriverHoldPeriodHours: 25,
+          riskyDriverHoldPeriodHours: 35,
+          correlationId: "corr_policy_second",
+        })
+      );
+
+      const secondAudit = await db
+        .collection("audit_logs")
+        .where("action", "==", "payout_policy_changed")
+        .where("metadata.correlationId", "==", "corr_policy_second")
+        .get();
+      expect(secondAudit.size).toBe(1);
+      const secondEntry = secondAudit.docs[0].data();
+      expect(secondEntry.metadata.oldConfiguration).toEqual({
+        defaultHoldPeriodHours: 10,
+        newDriverHoldPeriodHours: 20,
+        riskyDriverHoldPeriodHours: 30,
+      });
+      expect(secondEntry.metadata.newConfiguration).toEqual({
+        defaultHoldPeriodHours: 15,
+        newDriverHoldPeriodHours: 25,
+        riskyDriverHoldPeriodHours: 35,
+      });
+    }
+  );
 
   it("refuse (permission-denied) si l'appelant n'est pas admin/super_admin", async () => {
     await expect(

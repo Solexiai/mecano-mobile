@@ -23,6 +23,12 @@ export interface UpdatePayoutPolicyConfigurationRequest {
   defaultHoldPeriodHours: number;
   newDriverHoldPeriodHours: number;
   riskyDriverHoldPeriodHours: number;
+  /**
+   * Identifiant de corrélation optionnel (traçabilité pure, jamais utilisé
+   * pour la logique métier). Propagé dans l'événement d'audit
+   * `payout_policy_changed`.
+   */
+  correlationId?: string;
 }
 
 function assertNonNegativeHours(value: unknown, label: string): void {
@@ -36,8 +42,12 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
     const ctx = requireSignedIn(request);
     requireAdminOrAbove(ctx);
 
-    const { defaultHoldPeriodHours, newDriverHoldPeriodHours, riskyDriverHoldPeriodHours } =
-      request.data;
+    const {
+      defaultHoldPeriodHours,
+      newDriverHoldPeriodHours,
+      riskyDriverHoldPeriodHours,
+      correlationId,
+    } = request.data;
 
     assertNonNegativeHours(defaultHoldPeriodHours, "defaultHoldPeriodHours");
     assertNonNegativeHours(newDriverHoldPeriodHours, "newDriverHoldPeriodHours");
@@ -47,6 +57,16 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
 
     await db.runTransaction(async (tx) => {
       const now = admin.firestore.Timestamp.now();
+
+      // 🔒 BLOC H : lire l'ANCIENNE configuration (si présente) AVANT de
+      // l'écraser, pour permettre un audit avec "old configuration si
+      // disponible" — jamais reconstituée après-coup depuis l'historique
+      // d'audit (qui n'est pas une source de vérité pour la config active).
+      const previousSnap = await tx.get(configRef);
+      const previousConfig = previousSnap.exists
+        ? (previousSnap.data() as PayoutPolicyConfigDoc)
+        : null;
+
       const config: PayoutPolicyConfigDoc = {
         default_hold_period_hours: defaultHoldPeriodHours,
         new_driver_hold_period_hours: newDriverHoldPeriodHours,
@@ -66,6 +86,37 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
           defaultHoldPeriodHours,
           newDriverHoldPeriodHours,
           riskyDriverHoldPeriodHours,
+        },
+      });
+
+      // 🔒 BLOC H (catalogue d'évènements financiers) — évènement métier
+      // normalisé distinct de l'action technique ci-dessus (jamais renommée).
+      // N'expose QUE les champs de configuration nécessaires (périodes de
+      // rétention en heures + métadonnées d'audit) — aucune information
+      // sensible additionnelle n'existe sur ce document.
+      writeAuditLogInTransaction(tx, {
+        actorUserId: ctx.uid,
+        actorRole: ctx.role ?? "unknown",
+        action: "payout_policy_changed",
+        sourceFunction: "updatePayoutPolicyConfiguration",
+        targetId: "payout_policy_configs/default",
+        metadata: {
+          oldConfiguration: previousConfig
+            ? {
+                defaultHoldPeriodHours: previousConfig.default_hold_period_hours,
+                newDriverHoldPeriodHours: previousConfig.new_driver_hold_period_hours,
+                riskyDriverHoldPeriodHours: previousConfig.risky_driver_hold_period_hours,
+              }
+            : null,
+          newConfiguration: {
+            defaultHoldPeriodHours,
+            newDriverHoldPeriodHours,
+            riskyDriverHoldPeriodHours,
+          },
+          effectiveAt: now,
+          configurationId: "payout_policy_configs/default",
+          timestamp: now,
+          correlationId: correlationId ?? null,
         },
       });
     });

@@ -17,6 +17,7 @@ import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
+import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import {
   LedgerDirection,
   LedgerEntryStatuses,
@@ -33,6 +34,19 @@ export interface CreateLedgerEntryRequest {
   party: LedgerParty;
   sourceEvent: string;
   referenceId?: string; // si correction d'une entrée existante
+  /**
+   * Motif métier de l'ajustement manuel (ex: "correction suite litige #123").
+   * Optionnel mais recommandé — utilisé par l'événement d'audit
+   * `financial_adjustment_created` (champ reason). Si absent, `sourceEvent`
+   * est utilisé comme repli.
+   */
+  reason?: string;
+  /**
+   * Identifiant de corrélation optionnel (ex: propagé depuis un flux appelant
+   * — support ticket, script d'ajustement en lot). Purement traçabilité,
+   * jamais utilisé pour la logique métier.
+   */
+  correlationId?: string;
 }
 
 export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request) => {
@@ -86,6 +100,32 @@ export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request
       sourceFunction: "createLedgerEntry",
       targetId: entryRef.id,
       metadata: { ...input },
+    });
+
+    // 🔒 BLOC H (catalogue d'évènements financiers) — évènement métier
+    // normalisé distinct de l'action technique `createLedgerEntry` ci-dessus
+    // (jamais renommée, pour ne pas casser les tests existants qui la
+    // référencent). Cette entrée d'audit documente explicitement la
+    // création d'un AJUSTEMENT FINANCIER MANUEL, sans jamais modifier
+    // l'entrée ledger existante elle-même pour "corriger" l'audit — seule
+    // une NOUVELLE entrée ledger (déjà créée ci-dessus) et une NOUVELLE
+    // entrée d'audit documentent la correction.
+    writeAuditLogInTransaction(tx, {
+      actorUserId: ctx.uid,
+      actorRole: ctx.role ?? "unknown",
+      action: "financial_adjustment_created",
+      sourceFunction: "createLedgerEntry",
+      targetId: entryRef.id,
+      metadata: {
+        missionId: input.missionId ?? null,
+        amountMinor: toMinorUnits(input.amount, DEFAULT_CURRENCY),
+        ledgerEntryId: entryRef.id,
+        type: input.type,
+        reason: input.reason ?? input.sourceEvent,
+        createdAt: now,
+        correlationId: input.correlationId ?? null,
+        referenceId: input.referenceId ?? null,
+      },
     });
 
     return entryRef.id;

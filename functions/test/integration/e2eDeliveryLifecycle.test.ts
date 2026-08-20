@@ -210,6 +210,7 @@ async function cleanupAll(missionId: string | null): Promise<void> {
     db.collection("financial_snapshots").where("mission_id", "==", missionId).get(),
     db.collection("payments").where("mission_id", "==", missionId).get(),
   ]);
+  const paymentIds = payments.docs.map((d) => d.id);
   await Promise.all([
     ...stops.docs.map((d) => d.ref.delete()),
     ...events.docs.map((d) => d.ref.delete()),
@@ -224,6 +225,15 @@ async function cleanupAll(missionId: string | null): Promise<void> {
     db.collection("payment_profiles").doc(CUSTOMER_ID).delete(),
     db.collection("audit_logs").where("target_id", "==", missionId).get().then((s) =>
       Promise.all(s.docs.map((d) => d.ref.delete()))
+    ),
+    // BLOC H — nettoie aussi les audit_logs ciblant les paymentIds (payment_created/
+    // payment_authorized ciblent le paymentId, pas le missionId).
+    ...paymentIds.map((pid) =>
+      db
+        .collection("audit_logs")
+        .where("target_id", "==", pid)
+        .get()
+        .then((s) => Promise.all(s.docs.map((d) => d.ref.delete())))
     ),
   ]);
   const quotes = await db.collection("delivery_quotes").where("customer_id", "==", CUSTOMER_ID).get();
@@ -311,6 +321,30 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       expect(missionSnap.data()!.driver_id).toBe(DRIVER_ID);
       const snapshotId = missionSnap.data()!.active_financial_snapshot_id as string;
       expect(snapshotId).toBeTruthy();
+
+      // BLOC H (Tâche 4) — vérifie explicitement que `payment_created` et
+      // `payment_authorized` (journalisés par createAndAuthorizeMissionPayment(),
+      // déclenché ici par acceptDelivery()) existent RÉELLEMENT, pas seulement
+      // une couverture indirecte.
+      const activePaymentId = missionSnap.data()!.active_payment_id as string;
+      expect(activePaymentId).toBeTruthy();
+      const [createdAudit, authorizedAudit] = await Promise.all([
+        db
+          .collection("audit_logs")
+          .where("action", "==", "payment_created")
+          .where("target_id", "==", activePaymentId)
+          .get(),
+        db
+          .collection("audit_logs")
+          .where("action", "==", "payment_authorized")
+          .where("target_id", "==", activePaymentId)
+          .get(),
+      ]);
+      expect(createdAudit.size).toBe(1);
+      expect(createdAudit.docs[0].data().source_function).toBe("createAndAuthorizeMissionPayment");
+      expect(createdAudit.docs[0].data().metadata.missionId).toBe(id);
+      expect(authorizedAudit.size).toBe(1);
+      expect(authorizedAudit.docs[0].data().source_function).toBe("createAndAuthorizeMissionPayment");
 
       // ---- Notification : driver assigned -> notification créée ----
       await fireNotifyTriggerAndAssert(
