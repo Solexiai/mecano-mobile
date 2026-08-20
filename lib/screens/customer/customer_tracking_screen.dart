@@ -31,6 +31,7 @@ import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/live_tracking_map.dart';
+import 'mission_finance_section.dart';
 
 class CustomerTrackingScreen extends StatelessWidget {
   final String missionId;
@@ -207,11 +208,17 @@ class _CompletedMissionView extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: AppColors.success.withValues(alpha: 0.4),
+              ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 32),
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.success,
+                  size: 32,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -275,6 +282,13 @@ class _CompletedMissionView extends StatelessWidget {
                   '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
             ),
           ],
+          const SizedBox(height: 20),
+          // Bloc J — vue financière client (résumé, paiement, remboursement,
+          // historique). Intégrée directement au détail de la mission plutôt
+          // que dans un onglet global dédié : les données financières sont
+          // naturellement scopées par mission (voir décision technique
+          // Bloc J point 7).
+          MissionFinanceSection(missionId: mission.id, t: t),
         ],
       ),
     );
@@ -345,7 +359,10 @@ class _ProofOfDeliveryView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -366,10 +383,22 @@ class _DeliveryTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final steps = <_TimelineStep>[
       _TimelineStep(t('mission_status_assigned'), mission.acceptedAt),
-      _TimelineStep(t('mission_status_drivertopickup'), mission.driverToPickupAt),
-      _TimelineStep(t('mission_status_arrivedatpickup'), mission.arrivedAtPickupAt),
-      _TimelineStep(t('mission_status_pickedup'), mission.pickedUpAt ?? mission.inTransitAt),
-      _TimelineStep(t('mission_status_arrivedatdropoff'), mission.arrivedAtDropoffAt),
+      _TimelineStep(
+        t('mission_status_drivertopickup'),
+        mission.driverToPickupAt,
+      ),
+      _TimelineStep(
+        t('mission_status_arrivedatpickup'),
+        mission.arrivedAtPickupAt,
+      ),
+      _TimelineStep(
+        t('mission_status_pickedup'),
+        mission.pickedUpAt ?? mission.inTransitAt,
+      ),
+      _TimelineStep(
+        t('mission_status_arrivedatdropoff'),
+        mission.arrivedAtDropoffAt,
+      ),
       _TimelineStep(t('mission_status_completed'), mission.completedAt),
     ];
 
@@ -440,7 +469,9 @@ class _TimelineRow extends StatelessWidget {
               Icon(
                 reached
                     ? Icons.check_circle
-                    : (isCurrent ? Icons.radio_button_checked : Icons.radio_button_unchecked),
+                    : (isCurrent
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked),
                 size: 18,
                 color: color,
               ),
@@ -449,7 +480,9 @@ class _TimelineRow extends StatelessWidget {
                   child: Container(
                     width: 2,
                     margin: const EdgeInsets.symmetric(vertical: 2),
-                    color: reached ? AppColors.success.withValues(alpha: 0.4) : AppColors.border,
+                    color: reached
+                        ? AppColors.success.withValues(alpha: 0.4)
+                        : AppColors.border,
                   ),
                 ),
             ],
@@ -462,10 +495,14 @@ class _TimelineRow extends StatelessWidget {
                 step.label,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: reached || isCurrent ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: reached || isCurrent
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: reached
                       ? AppColors.textPrimary
-                      : (isCurrent ? AppColors.textPrimary : AppColors.textSecondary),
+                      : (isCurrent
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary),
                 ),
               ),
             ),
