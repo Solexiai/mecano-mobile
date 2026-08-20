@@ -1907,6 +1907,329 @@ describe("Security Rules — users/{uid}/notifications/{notificationId}", () => 
 });
 
 // -----------------------------------------------------------------------
+// disputes/{disputeId} — Bloc L : lecture analyst ou supérieur uniquement,
+// aucune écriture cliente (point 21, Phase 6).
+// -----------------------------------------------------------------------
+describe("Security Rules — disputes/{disputeId} (Bloc L)", () => {
+  async function seedDispute(disputeId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `disputes/${disputeId}`), {
+        dispute_id: disputeId,
+        payment_id: "payment_dispute_001",
+        mission_id: "mission_dispute_001",
+        status: "opened",
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire un litige", async () => {
+    await seedDispute("dispute_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "disputes/dispute_001")));
+  });
+
+  it("un customer ne peut PAS lire un litige", async () => {
+    await seedDispute("dispute_002");
+    const customer = testEnv.authenticatedContext("customer_dispute_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "disputes/dispute_002")));
+  });
+
+  it("un driver ne peut PAS lire un litige", async () => {
+    await seedDispute("dispute_003");
+    const driver = testEnv.authenticatedContext("driver_dispute_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "disputes/dispute_003")));
+  });
+
+  it("un analyst PEUT lire un litige", async () => {
+    await seedDispute("dispute_004");
+    const analyst = testEnv.authenticatedContext("analyst_dispute_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "disputes/dispute_004")));
+  });
+
+  it("un admin PEUT lire un litige", async () => {
+    await seedDispute("dispute_005");
+    const admin = testEnv.authenticatedContext("admin_dispute_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "disputes/dispute_005")));
+  });
+
+  it("un super_admin PEUT lire un litige", async () => {
+    await seedDispute("dispute_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_dispute_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "disputes/dispute_006")));
+  });
+
+  it("aucune écriture directe n'est autorisée, même pour analyst/admin/super_admin", async () => {
+    await seedDispute("dispute_007");
+
+    const analyst = testEnv.authenticatedContext("analyst_dispute_002", { role: "analyst" });
+    await assertFails(
+      updateDoc(doc(analyst.firestore(), "disputes/dispute_007"), { status: "won" })
+    );
+
+    const admin = testEnv.authenticatedContext("admin_dispute_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "disputes/dispute_007"), { status: "won" })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_dispute_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "disputes/dispute_007"), { status: "won" })
+    );
+  });
+
+  it("un customer/driver ne peut pas écrire un litige (create direct)", async () => {
+    const customer = testEnv.authenticatedContext("customer_dispute_002", { role: "customer" });
+    await assertFails(
+      setDoc(doc(customer.firestore(), "disputes/dispute_fake_001"), {
+        dispute_id: "dispute_fake_001",
+        status: "opened",
+      })
+    );
+
+    const driver = testEnv.authenticatedContext("driver_dispute_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "disputes/dispute_fake_002"), {
+        dispute_id: "dispute_fake_002",
+        status: "opened",
+      })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// reconciliation_reports/{reportId} — Bloc L : lecture admin ou supérieur
+// UNIQUEMENT (analyst explicitement refusé), aucune écriture cliente
+// (point 27, Phase 6).
+// -----------------------------------------------------------------------
+describe("Security Rules — reconciliation_reports/{reportId} (Bloc L)", () => {
+  async function seedReport(reportId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `reconciliation_reports/${reportId}`), {
+        report_id: reportId,
+        status: "open",
+        anomalies_count: 0,
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire un rapport de réconciliation", async () => {
+    await seedReport("recon_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "reconciliation_reports/recon_001")));
+  });
+
+  it("un customer ne peut PAS lire un rapport de réconciliation", async () => {
+    await seedReport("recon_002");
+    const customer = testEnv.authenticatedContext("customer_recon_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "reconciliation_reports/recon_002")));
+  });
+
+  it("un driver ne peut PAS lire un rapport de réconciliation", async () => {
+    await seedReport("recon_003");
+    const driver = testEnv.authenticatedContext("driver_recon_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "reconciliation_reports/recon_003")));
+  });
+
+  it("un analyst NE PEUT PAS lire un rapport de réconciliation (règle plus stricte que la moyenne : admin+ uniquement)", async () => {
+    await seedReport("recon_004");
+    const analyst = testEnv.authenticatedContext("analyst_recon_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "reconciliation_reports/recon_004")));
+  });
+
+  it("un admin PEUT lire un rapport de réconciliation", async () => {
+    await seedReport("recon_005");
+    const admin = testEnv.authenticatedContext("admin_recon_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "reconciliation_reports/recon_005")));
+  });
+
+  it("un super_admin PEUT lire un rapport de réconciliation", async () => {
+    await seedReport("recon_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_recon_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "reconciliation_reports/recon_006")));
+  });
+
+  it("aucune écriture directe n'est autorisée, même pour admin/super_admin", async () => {
+    await seedReport("recon_007");
+
+    const admin = testEnv.authenticatedContext("admin_recon_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "reconciliation_reports/recon_007"), { status: "resolved" })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_recon_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "reconciliation_reports/recon_007"), { status: "resolved" })
+    );
+  });
+
+  it("un analyst ne peut pas non plus créer un rapport directement", async () => {
+    const analyst = testEnv.authenticatedContext("analyst_recon_002", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "reconciliation_reports/recon_fake_001"), {
+        report_id: "recon_fake_001",
+        status: "open",
+      })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// tax_configs/{jurisdiction} — Bloc L : lecture publique (tout utilisateur
+// authentifié), aucune écriture cliente (point 16, Phase 6).
+// -----------------------------------------------------------------------
+describe("Security Rules — tax_configs/{jurisdiction} (Bloc L)", () => {
+  async function seedTaxConfig(jurisdiction: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `tax_configs/${jurisdiction}`), {
+        jurisdiction,
+        rate: 0.14975,
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "tax_configs/QC")));
+  });
+
+  it("un customer PEUT lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC_customer");
+    const customer = testEnv.authenticatedContext("customer_tax_001", { role: "customer" });
+    await assertSucceeds(getDoc(doc(customer.firestore(), "tax_configs/QC_customer")));
+  });
+
+  it("un driver PEUT lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC_driver");
+    const driver = testEnv.authenticatedContext("driver_tax_001", { role: "driver" });
+    await assertSucceeds(getDoc(doc(driver.firestore(), "tax_configs/QC_driver")));
+  });
+
+  it("un analyst PEUT lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC_analyst");
+    const analyst = testEnv.authenticatedContext("analyst_tax_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "tax_configs/QC_analyst")));
+  });
+
+  it("un admin PEUT lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC_admin");
+    const admin = testEnv.authenticatedContext("admin_tax_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "tax_configs/QC_admin")));
+  });
+
+  it("un super_admin PEUT lire une configuration de taxe", async () => {
+    await seedTaxConfig("QC_super_admin");
+    const superAdmin = testEnv.authenticatedContext("super_admin_tax_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "tax_configs/QC_super_admin")));
+  });
+
+  it("aucune écriture directe n'est autorisée, quel que soit le rôle (même super_admin)", async () => {
+    await seedTaxConfig("QC_write");
+
+    const customer = testEnv.authenticatedContext("customer_tax_002", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(customer.firestore(), "tax_configs/QC_write"), { rate: 0 })
+    );
+
+    const admin = testEnv.authenticatedContext("admin_tax_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "tax_configs/QC_write"), { rate: 0 })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_tax_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "tax_configs/QC_write"), { rate: 0 })
+    );
+  });
+
+  it("aucune création directe n'est autorisée, même pour super_admin", async () => {
+    const superAdmin = testEnv.authenticatedContext("super_admin_tax_003", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "tax_configs/QC_fake"), {
+        jurisdiction: "QC_fake",
+        rate: 0.5,
+      })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// payout_policy_configs/{configId} — Bloc L : lecture admin ou supérieur
+// UNIQUEMENT (analyst explicitement refusé), aucune écriture cliente
+// (point 9, Phase 6).
+// -----------------------------------------------------------------------
+describe("Security Rules — payout_policy_configs/{configId} (Bloc L)", () => {
+  async function seedPolicy(configId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `payout_policy_configs/${configId}`), {
+        config_id: configId,
+        default_hold_days: 3,
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire la politique de versement", async () => {
+    await seedPolicy("policy_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "payout_policy_configs/policy_001")));
+  });
+
+  it("un customer ne peut PAS lire la politique de versement", async () => {
+    await seedPolicy("policy_002");
+    const customer = testEnv.authenticatedContext("customer_policy_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "payout_policy_configs/policy_002")));
+  });
+
+  it("un driver ne peut PAS lire la politique de versement", async () => {
+    await seedPolicy("policy_003");
+    const driver = testEnv.authenticatedContext("driver_policy_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "payout_policy_configs/policy_003")));
+  });
+
+  it("un analyst NE PEUT PAS lire la politique de versement (règle plus stricte : admin+ uniquement)", async () => {
+    await seedPolicy("policy_004");
+    const analyst = testEnv.authenticatedContext("analyst_policy_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "payout_policy_configs/policy_004")));
+  });
+
+  it("un admin PEUT lire la politique de versement", async () => {
+    await seedPolicy("policy_005");
+    const admin = testEnv.authenticatedContext("admin_policy_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "payout_policy_configs/policy_005")));
+  });
+
+  it("un super_admin PEUT lire la politique de versement", async () => {
+    await seedPolicy("policy_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_policy_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "payout_policy_configs/policy_006")));
+  });
+
+  it("aucune écriture directe n'est autorisée, même pour admin/super_admin (Cloud Function updatePayoutPolicyConfiguration only)", async () => {
+    await seedPolicy("policy_007");
+
+    const admin = testEnv.authenticatedContext("admin_policy_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "payout_policy_configs/policy_007"), { default_hold_days: 0 })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_policy_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "payout_policy_configs/policy_007"), { default_hold_days: 0 })
+    );
+  });
+
+  it("un analyst ne peut pas non plus créer une politique directement", async () => {
+    const analyst = testEnv.authenticatedContext("analyst_policy_002", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "payout_policy_configs/policy_fake_001"), {
+        config_id: "policy_fake_001",
+        default_hold_days: 0,
+      })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
 // DENY BY DEFAULT — collection inconnue
 // -----------------------------------------------------------------------
 describe("Security Rules — deny-by-default", () => {
