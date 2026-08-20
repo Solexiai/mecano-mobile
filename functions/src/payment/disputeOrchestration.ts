@@ -38,6 +38,12 @@ import { notFound } from "../lib/errors";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
+import {
   DisputeDoc,
   DisputeStatus,
   DisputeStatuses,
@@ -74,84 +80,111 @@ export interface OpenDisputeOutcome {
 }
 
 export async function openDispute(input: OpenDisputeInput): Promise<OpenDisputeOutcome> {
+  // 🔒 BLOC I — le `providerDisputeId` (ID Stripe du litige) EST utilisé
+  // comme correlation_id, à l'image du pattern déjà établi dans
+  // processStripeWebhook.ts (event.id comme correlationId) — cohérent avec
+  // le fait que `disputes/{id}` est déjà indexé par ce même identifiant.
+  const correlationId = resolveCorrelationId(input.providerDisputeId);
+  const operationStartedAt = startFinancialOperationTimer();
   const disputeRef = db.collection("disputes").doc(input.providerDisputeId);
   const payRef = db.collection("payments").doc(input.paymentId);
 
   type TxResult = { disputeId: string; alreadyExisted: boolean; missionId: string | null };
 
-  const result: TxResult = await db.runTransaction(async (tx): Promise<TxResult> => {
-    const [disputeSnap, paySnap] = await Promise.all([tx.get(disputeRef), tx.get(payRef)]);
-    if (disputeSnap.exists) {
-      // Doublon de webhook "dispute.created" pour le MÊME litige provider —
-      // ne recrée rien, ne journalise pas un second frais.
-      return { disputeId: disputeRef.id, alreadyExisted: true, missionId: null };
-    }
-    if (!paySnap.exists) throw notFound(`payments/${input.paymentId} introuvable.`);
-    const payment = paySnap.data() as PaymentDoc;
+  let result: TxResult;
+  try {
+    result = await db.runTransaction(async (tx): Promise<TxResult> => {
+      const [disputeSnap, paySnap] = await Promise.all([tx.get(disputeRef), tx.get(payRef)]);
+      if (disputeSnap.exists) {
+        // Doublon de webhook "dispute.created" pour le MÊME litige provider —
+        // ne recrée rien, ne journalise pas un second frais.
+        return { disputeId: disputeRef.id, alreadyExisted: true, missionId: null };
+      }
+      if (!paySnap.exists) throw notFound(`payments/${input.paymentId} introuvable.`);
+      const payment = paySnap.data() as PaymentDoc;
 
-    const now = admin.firestore.Timestamp.now();
-    const disputeDoc: DisputeDoc = {
-      dispute_id: disputeRef.id,
-      mission_id: payment.mission_id,
-      payment_id: input.paymentId,
-      provider_dispute_id: input.providerDisputeId,
-      amount_minor: input.amountMinor,
-      currency: payment.currency,
-      reason: input.reason,
-      status: DisputeStatuses.OPENED,
-      evidence_due_at: input.evidenceDueAt ? admin.firestore.Timestamp.fromDate(input.evidenceDueAt) : null,
-      proof_of_delivery_url: null,
-      provider_metadata: input.providerMetadata ?? null,
-      created_at: now,
-      updated_at: now,
-      resolved_at: null,
-      closed_at: null,
-    };
-    tx.set(disputeRef, disputeDoc);
+      const now = admin.firestore.Timestamp.now();
+      const disputeDoc: DisputeDoc = {
+        dispute_id: disputeRef.id,
+        mission_id: payment.mission_id,
+        payment_id: input.paymentId,
+        provider_dispute_id: input.providerDisputeId,
+        amount_minor: input.amountMinor,
+        currency: payment.currency,
+        reason: input.reason,
+        status: DisputeStatuses.OPENED,
+        evidence_due_at: input.evidenceDueAt ? admin.firestore.Timestamp.fromDate(input.evidenceDueAt) : null,
+        proof_of_delivery_url: null,
+        provider_metadata: input.providerMetadata ?? null,
+        created_at: now,
+        updated_at: now,
+        resolved_at: null,
+        closed_at: null,
+      };
+      tx.set(disputeRef, disputeDoc);
 
-    // Transition paiement -> DISPUTED. Idempotence : si déjà DISPUTED
-    // (webhook "created" rejoué après qu'une AUTRE couche ait déjà marqué
-    // le paiement disputé — ne devrait pas arriver puisque ce même bloc
-    // est le seul point d'entrée, mais défensif), on ne retransite pas.
-    if (payment.status !== PaymentStatuses.DISPUTED) {
-      assertValidPaymentTransition(payment.status, PaymentStatuses.DISPUTED);
-      tx.update(payRef, { status: PaymentStatuses.DISPUTED, updated_at: now });
-    }
+      // Transition paiement -> DISPUTED. Idempotence : si déjà DISPUTED
+      // (webhook "created" rejoué après qu'une AUTRE couche ait déjà marqué
+      // le paiement disputé — ne devrait pas arriver puisque ce même bloc
+      // est le seul point d'entrée, mais défensif), on ne retransite pas.
+      if (payment.status !== PaymentStatuses.DISPUTED) {
+        assertValidPaymentTransition(payment.status, PaymentStatuses.DISPUTED);
+        tx.update(payRef, { status: PaymentStatuses.DISPUTED, updated_at: now });
+      }
 
-    const feeMinor = input.providerFeeMinor ?? DEFAULT_STRIPE_DISPUTE_FEE_MINOR;
-    const ledgerRef = db.collection("transaction_ledger").doc();
-    tx.set(ledgerRef, {
-      ledger_entry_id: ledgerRef.id,
-      mission_id: payment.mission_id,
-      transaction_id: input.paymentId,
-      type: LedgerEntryTypes.CHARGEBACK_FEE,
-      amount: feeMinor / 100,
-      amount_minor: feeMinor,
-      currency: payment.currency,
-      direction: LedgerDirections.DEBIT,
-      party: LedgerParties.PLATFORM,
-      created_at: now,
-      created_by: "openDispute",
-      source_event: "chargeback_created",
-      status: LedgerEntryStatuses.CONFIRMED,
-      reference_id: disputeRef.id,
+      const feeMinor = input.providerFeeMinor ?? DEFAULT_STRIPE_DISPUTE_FEE_MINOR;
+      const ledgerRef = db.collection("transaction_ledger").doc();
+      tx.set(ledgerRef, {
+        ledger_entry_id: ledgerRef.id,
+        mission_id: payment.mission_id,
+        transaction_id: input.paymentId,
+        type: LedgerEntryTypes.CHARGEBACK_FEE,
+        amount: feeMinor / 100,
+        amount_minor: feeMinor,
+        currency: payment.currency,
+        direction: LedgerDirections.DEBIT,
+        party: LedgerParties.PLATFORM,
+        created_at: now,
+        created_by: "openDispute",
+        source_event: "chargeback_created",
+        status: LedgerEntryStatuses.CONFIRMED,
+        reference_id: disputeRef.id,
+      });
+
+      writeAuditLogInTransaction(tx, {
+        actorUserId: "system",
+        actorRole: "system",
+        action: "dispute_opened",
+        sourceFunction: "openDispute",
+        targetId: disputeRef.id,
+        metadata: { paymentId: input.paymentId, amountMinor: input.amountMinor, reason: input.reason },
+      });
+
+      return { disputeId: disputeRef.id, alreadyExisted: false, missionId: payment.mission_id };
     });
-
-    writeAuditLogInTransaction(tx, {
-      actorUserId: "system",
-      actorRole: "system",
-      action: "dispute_opened",
-      sourceFunction: "openDispute",
-      targetId: disputeRef.id,
-      metadata: { paymentId: input.paymentId, amountMinor: input.amountMinor, reason: input.reason },
-    });
-
-    return { disputeId: disputeRef.id, alreadyExisted: false, missionId: payment.mission_id };
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "dispute_opened",
+      operationStartedAt,
+      "dispute_open_failed",
+      { paymentId: input.paymentId, disputeId: input.providerDisputeId },
+      { correlationId, message }
+    );
+    throw err;
+  }
 
   if (!result.alreadyExisted && result.missionId) {
     await recalculateMissionFinancialBalance(result.missionId);
   }
+
+  logFinancialSuccess(
+    "dispute_opened",
+    operationStartedAt,
+    { missionId: result.missionId, paymentId: input.paymentId, disputeId: result.disputeId },
+    { correlationId, metadata: { amountMinor: input.amountMinor, alreadyExisted: result.alreadyExisted } }
+  );
+
   return { disputeId: result.disputeId, alreadyExisted: result.alreadyExisted };
 }
 
@@ -169,11 +202,19 @@ export interface TransitionDisputeStatusOutcome {
 export async function transitionDisputeStatus(
   input: TransitionDisputeStatusInput
 ): Promise<TransitionDisputeStatusOutcome> {
+  // 🔒 BLOC I — même convention que openDispute() : le `disputeId` (ID
+  // Stripe du litige, ID du document `disputes/{id}`) sert de correlation_id
+  // pour relier "dispute updated"/"dispute closed" au "dispute opened"
+  // d'origine et au log webhook correspondant.
+  const correlationId = resolveCorrelationId(input.disputeId);
+  const operationStartedAt = startFinancialOperationTimer();
   const disputeRef = db.collection("disputes").doc(input.disputeId);
 
   type TxResult = { status: DisputeStatus; missionId: string; skipped: boolean };
 
-  const result: TxResult = await db.runTransaction(async (tx): Promise<TxResult> => {
+  let result: TxResult;
+  try {
+    result = await db.runTransaction(async (tx): Promise<TxResult> => {
     const disputeSnap = await tx.get(disputeRef);
     if (!disputeSnap.exists) throw notFound(`disputes/${input.disputeId} introuvable.`);
     const dispute = disputeSnap.data() as DisputeDoc;
@@ -262,10 +303,29 @@ export async function transitionDisputeStatus(
     });
 
     return { status: input.newStatus, missionId: dispute.mission_id, skipped: false };
-  });
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "dispute_transition",
+      operationStartedAt,
+      "dispute_transition_failed",
+      { disputeId: input.disputeId },
+      { correlationId, metadata: { newStatus: input.newStatus }, message }
+    );
+    throw err;
+  }
 
   if (!result.skipped) {
     await recalculateMissionFinancialBalance(result.missionId);
   }
+
+  logFinancialSuccess(
+    isTerminalDisputeStatus(result.status) ? "dispute_closed" : "dispute_updated",
+    operationStartedAt,
+    { missionId: result.missionId, disputeId: disputeRef.id },
+    { correlationId, metadata: { newStatus: result.status, skipped: result.skipped } }
+  );
+
   return { disputeId: disputeRef.id, status: result.status, skipped: result.skipped };
 }

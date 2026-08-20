@@ -52,6 +52,12 @@ import { getPaymentProvider } from "./paymentProviderFactory";
 import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import { writeAuditLog, writeAuditLogInTransaction } from "../lib/audit";
+import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 export interface CreateAndAuthorizePaymentInput {
   missionId: string;
@@ -80,6 +86,12 @@ export async function createAndAuthorizeMissionPayment(
   input: CreateAndAuthorizePaymentInput
 ): Promise<CreateAndAuthorizePaymentOutcome> {
   const { missionId, customerId, driverId, customerTotalMajor, applicationFeeMajor } = input;
+  // 🔒 BLOC I (observabilité) — un SEUL correlation_id pour toute l'opération
+  // "création + autorisation" (create payment ET authorize payment), généré
+  // ici car aucun correlationId entrant n'existe à ce point de la chaîne
+  // (déclenché par acceptDelivery(), pas par un webhook/évènement externe).
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
 
   const paymentProfileSnap = await db.collection("payment_profiles").doc(customerId).get();
   if (!paymentProfileSnap.exists) {
@@ -185,6 +197,12 @@ export async function createAndAuthorizeMissionPayment(
       targetId: paymentId,
       metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor },
     });
+    logFinancialSuccess(
+      "create_payment",
+      operationStartedAt,
+      { missionId, paymentId },
+      { correlationId, metadata: { providerPaymentIntentId: created.providerPaymentIntentId, amountMinor } }
+    );
 
     const authorized = await provider.authorizePayment({
       providerPaymentIntentId: created.providerPaymentIntentId,
@@ -197,7 +215,8 @@ export async function createAndAuthorizeMissionPayment(
         paymentId,
         authorized.failureCode ?? "authorization_failed",
         authorized.failureMessage ?? "Autorisation refusée par le fournisseur de paiement.",
-        created.providerPaymentIntentId
+        created.providerPaymentIntentId,
+        { correlationId, operationStartedAt, operation: "authorize_payment" }
       );
     }
 
@@ -231,11 +250,21 @@ export async function createAndAuthorizeMissionPayment(
       targetId: paymentId,
       metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor },
     });
+    logFinancialSuccess(
+      "authorize_payment",
+      operationStartedAt,
+      { missionId, paymentId },
+      { correlationId, metadata: { providerPaymentIntentId: created.providerPaymentIntentId, amountMinor } }
+    );
 
     return { paymentId, status: PaymentStatuses.AUTHORIZED, success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return await failMissionPayment(missionId, paymentId, "provider_error", message);
+    return await failMissionPayment(missionId, paymentId, "provider_error", message, null, {
+      correlationId,
+      operationStartedAt,
+      operation: "create_payment",
+    });
   }
 }
 
@@ -243,14 +272,26 @@ export async function createAndAuthorizeMissionPayment(
  * Compensation : bascule la mission en `payment_failed` (jamais réassignée
  * automatiquement — voir commentaire sur MissionStatuses.PAYMENT_FAILED) et
  * marque `payments/{id}` FAILED si le document existe déjà.
+ *
+ * 🔒 BLOC I — `observability` est optionnel car `failMissionPayment` est
+ * appelée pour des échecs très précoces (ex: profil de paiement manquant,
+ * AVANT même la génération d'un `correlationId` d'opération) où l'appelant
+ * ne dispose pas encore de contexte d'observabilité à propager ; dans ce cas
+ * un correlation_id dédié est généré ICI plutôt que de ne rien journaliser.
  */
 async function failMissionPayment(
   missionId: string,
   paymentId: string | null,
   failureCode: string,
   failureMessage: string,
-  providerPaymentIntentId: string | null = null
+  providerPaymentIntentId: string | null = null,
+  observability?: { correlationId: string; operationStartedAt: number; operation: string }
 ): Promise<CreateAndAuthorizePaymentOutcome> {
+  const obs = observability ?? {
+    correlationId: resolveCorrelationId(undefined),
+    operationStartedAt: startFinancialOperationTimer(),
+    operation: "create_payment",
+  };
   await db.runTransaction(async (tx) => {
     const missionRef = db.collection("delivery_requests").doc(missionId);
     const missionSnap = await tx.get(missionRef);
@@ -304,6 +345,14 @@ async function failMissionPayment(
     });
   });
 
+  logFinancialFailure(
+    obs.operation,
+    obs.operationStartedAt,
+    failureCode,
+    { missionId, paymentId: paymentId ?? undefined },
+    { correlationId: obs.correlationId, message: failureMessage, metadata: { providerPaymentIntentId } }
+  );
+
   return {
     paymentId: paymentId ?? "",
     status: PaymentStatuses.FAILED,
@@ -327,6 +376,10 @@ export async function captureMissionPayment(
   missionId: string,
   paymentId: string
 ): Promise<CaptureOutcome> {
+  // 🔒 BLOC I — aucun correlation_id entrant (déclenché par completeDelivery(),
+  // pas par un évènement externe) : en génère un nouveau, dédié à cette capture.
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
   const payRef = db.collection("payments").doc(paymentId);
 
   // Étape 1 : transaction — CAPTURE_PENDING.
@@ -399,6 +452,23 @@ export async function captureMissionPayment(
   // sans effet si rien n'a changé côté payments/refunds/ledger/snapshots).
   await recalculateMissionFinancialBalance(missionId);
 
+  if (result.success) {
+    logFinancialSuccess(
+      "capture_payment",
+      operationStartedAt,
+      { missionId, paymentId },
+      { correlationId, metadata: { amountCapturedMinor: result.amountCapturedMinor } }
+    );
+  } else {
+    logFinancialFailure(
+      "capture_payment",
+      operationStartedAt,
+      result.failureMessage ? "capture_failed" : "capture_failed_unknown",
+      { missionId, paymentId },
+      { correlationId, message: result.failureMessage }
+    );
+  }
+
   return { success: result.success, status: result.status, failureMessage: result.failureMessage };
 }
 
@@ -426,6 +496,12 @@ export interface SubmitDriverPayoutOutcome {
  * jamais de simulation silencieuse d'un versement réussi.
  */
 export async function submitDriverPayout(payoutId: string): Promise<SubmitDriverPayoutOutcome> {
+  // 🔒 BLOC I — un correlation_id couvre TOUTE la soumission (submission ->
+  // paid|failed) de ce payout. Déclenché par calculateDriverPayout.ts ou par
+  // le cron `processScheduledDriverPayouts`, jamais par un évènement externe
+  // porteur de son propre correlationId — génération ici.
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
   const payoutRef = db.collection("driver_payouts").doc(payoutId);
 
   // ---- Étape 1 : transaction — ELIGIBLE -> SCHEDULED -> PROCESSING ----
@@ -472,6 +548,13 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     });
   } catch (err) {
     if (err instanceof Error && err.message === "MISSING_CONNECTED_ACCOUNT") {
+      logFinancialFailure(
+        "submit_driver_payout",
+        operationStartedAt,
+        "missing_connected_account",
+        { payoutId },
+        { correlationId }
+      );
       return {
         success: false,
         status: PayoutStatuses.FAILED,
@@ -494,6 +577,12 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     targetId: payoutId,
     metadata: { amountMinor, connectedAccountId },
   });
+  logFinancialSuccess(
+    "submit_driver_payout",
+    operationStartedAt,
+    { payoutId },
+    { correlationId, metadata: { amountMinor, connectedAccountId } }
+  );
 
   // ---- Étape 2 : appel Stripe réel, hors transaction ----
   const provider = getPaymentProvider();
@@ -519,6 +608,13 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
         failure_reason: message,
       });
     });
+    logFinancialFailure(
+      "payout_processed",
+      operationStartedAt,
+      "provider_error",
+      { payoutId },
+      { correlationId, message }
+    );
     return { success: false, status: PayoutStatuses.FAILED, failureMessage: message };
   }
 
@@ -569,6 +665,23 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     await Promise.all([...missionIds].map((mId) => recalculateMissionFinancialBalance(mId)));
   }
 
+  if (result.success) {
+    logFinancialSuccess(
+      "payout_processed",
+      operationStartedAt,
+      { payoutId },
+      { correlationId, metadata: { providerPayoutId: result.providerPayoutId, amountMinor } }
+    );
+  } else {
+    logFinancialFailure(
+      "payout_processed",
+      operationStartedAt,
+      result.failureCode ?? "provider_payout_failed",
+      { payoutId },
+      { correlationId }
+    );
+  }
+
   return {
     success: result.success,
     status: result.success ? PayoutStatuses.PAID : PayoutStatuses.FAILED,
@@ -611,84 +724,109 @@ export async function reverseDriverPayout(
   input: ReverseDriverPayoutInput
 ): Promise<ReverseDriverPayoutOutcome> {
   const { payoutId, reason, initiatedByUserId, initiatedByRole } = input;
+  // 🔒 BLOC I — reversal administratif déclenché par un admin (Cloud Function
+  // callable reverseDriverPayout.ts), aucun correlationId externe à propager.
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
   const payoutRef = db.collection("driver_payouts").doc(payoutId);
 
-  const { missionIds } = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(payoutRef);
-    if (!snap.exists) throw notFound(`driver_payouts/${payoutId} introuvable.`);
-    const payout = snap.data() as DriverPayoutDoc;
-    assertValidPayoutTransition(payout.status, PayoutStatuses.REVERSED);
+  let missionIds: string[];
+  try {
+    const txOutcome = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(payoutRef);
+      if (!snap.exists) throw notFound(`driver_payouts/${payoutId} introuvable.`);
+      const payout = snap.data() as DriverPayoutDoc;
+      assertValidPayoutTransition(payout.status, PayoutStatuses.REVERSED);
 
-    // 🔒 Lecture des snapshots DANS la même transaction (plusieurs lectures
-    // sont autorisées dans une transaction Firestore) pour attribuer le
-    // MONTANT RÉELLEMENT gagné par mission (driver_net_mission_earnings),
-    // jamais une répartition arbitraire du total du payout — cohérent avec
-    // `computeMissionFinancialBalance()` qui recalculera automatiquement
-    // `driver_paid_minor` à 0 pour ces missions dès que ce payout n'est
-    // plus filtré par `status == "paid"`.
-    const snapshotRefs = payout.financial_snapshot_ids.map((id) =>
-      db.collection("financial_snapshots").doc(id)
-    );
-    const snapshotSnaps = await Promise.all(snapshotRefs.map((ref) => tx.get(ref)));
+      // 🔒 Lecture des snapshots DANS la même transaction (plusieurs lectures
+      // sont autorisées dans une transaction Firestore) pour attribuer le
+      // MONTANT RÉELLEMENT gagné par mission (driver_net_mission_earnings),
+      // jamais une répartition arbitraire du total du payout — cohérent avec
+      // `computeMissionFinancialBalance()` qui recalculera automatiquement
+      // `driver_paid_minor` à 0 pour ces missions dès que ce payout n'est
+      // plus filtré par `status == "paid"`.
+      const snapshotRefs = payout.financial_snapshot_ids.map((id) =>
+        db.collection("financial_snapshots").doc(id)
+      );
+      const snapshotSnaps = await Promise.all(snapshotRefs.map((ref) => tx.get(ref)));
 
-    const now = admin.firestore.Timestamp.now();
-    tx.update(payoutRef, {
-      status: PayoutStatuses.REVERSED,
-      reversed_at: now,
-      reversal_reason: reason,
-    });
-
-    const missionIdsFound: string[] = [];
-    for (const snapDoc of snapshotSnaps) {
-      if (!snapDoc.exists) continue;
-      const snapshot = snapDoc.data()!;
-      const missionId = snapshot.mission_id as string | undefined;
-      if (!missionId) continue;
-      missionIdsFound.push(missionId);
-
-      const earnedMajor = (snapshot.driver_net_mission_earnings as number) ?? 0;
-      const earnedMinor = toMinorUnits(earnedMajor, DEFAULT_CURRENCY);
-
-      const ledgerRef = db.collection("transaction_ledger").doc();
-      tx.set(ledgerRef, {
-        ledger_entry_id: ledgerRef.id,
-        mission_id: missionId,
-        transaction_id: payoutId,
-        type: LedgerEntryTypes.DRIVER_PAYOUT_REVERSAL,
-        amount: earnedMajor,
-        amount_minor: earnedMinor,
-        currency: payout.currency,
-        direction: LedgerDirections.DEBIT,
-        party: LedgerParties.DRIVER,
-        created_at: now,
-        created_by: `reverseDriverPayout:${initiatedByUserId}`,
-        source_event: "payout_reversed",
-        status: LedgerEntryStatuses.CONFIRMED,
-        reference_id: payoutId,
+      const now = admin.firestore.Timestamp.now();
+      tx.update(payoutRef, {
+        status: PayoutStatuses.REVERSED,
+        reversed_at: now,
+        reversal_reason: reason,
       });
-    }
 
-    writeAuditLogInTransaction(tx, {
-      actorUserId: initiatedByUserId,
-      actorRole: initiatedByRole,
-      action: "payout_reversed",
-      sourceFunction: "reverseDriverPayout",
-      targetId: payoutId,
-      metadata: {
-        reason,
-        amountMinor: payout.amount_minor,
-        snapshotCount: payout.financial_snapshot_ids.length,
-        missionIds: missionIdsFound,
-      },
+      const missionIdsFound: string[] = [];
+      for (const snapDoc of snapshotSnaps) {
+        if (!snapDoc.exists) continue;
+        const snapshot = snapDoc.data()!;
+        const missionId = snapshot.mission_id as string | undefined;
+        if (!missionId) continue;
+        missionIdsFound.push(missionId);
+
+        const earnedMajor = (snapshot.driver_net_mission_earnings as number) ?? 0;
+        const earnedMinor = toMinorUnits(earnedMajor, DEFAULT_CURRENCY);
+
+        const ledgerRef = db.collection("transaction_ledger").doc();
+        tx.set(ledgerRef, {
+          ledger_entry_id: ledgerRef.id,
+          mission_id: missionId,
+          transaction_id: payoutId,
+          type: LedgerEntryTypes.DRIVER_PAYOUT_REVERSAL,
+          amount: earnedMajor,
+          amount_minor: earnedMinor,
+          currency: payout.currency,
+          direction: LedgerDirections.DEBIT,
+          party: LedgerParties.DRIVER,
+          created_at: now,
+          created_by: `reverseDriverPayout:${initiatedByUserId}`,
+          source_event: "payout_reversed",
+          status: LedgerEntryStatuses.CONFIRMED,
+          reference_id: payoutId,
+        });
+      }
+
+      writeAuditLogInTransaction(tx, {
+        actorUserId: initiatedByUserId,
+        actorRole: initiatedByRole,
+        action: "payout_reversed",
+        sourceFunction: "reverseDriverPayout",
+        targetId: payoutId,
+        metadata: {
+          reason,
+          amountMinor: payout.amount_minor,
+          snapshotCount: payout.financial_snapshot_ids.length,
+          missionIds: missionIdsFound,
+        },
+      });
+
+      return { missionIds: missionIdsFound, amountMinor: payout.amount_minor };
     });
+    missionIds = txOutcome.missionIds;
 
-    return { missionIds: missionIdsFound };
-  });
+    // Recalcul HORS transaction (lecture multi-collections, voir
+    // missionFinancialBalance.ts en-tête) — `driver_paid_minor` retombe à 0
+    // pour ces missions car le payout n'est plus `status == "paid"`.
+    await Promise.all(missionIds.map((mId) => recalculateMissionFinancialBalance(mId)));
 
-  // Recalcul HORS transaction (lecture multi-collections, voir
-  // missionFinancialBalance.ts en-tête) — `driver_paid_minor` retombe à 0
-  // pour ces missions car le payout n'est plus `status == "paid"`.
-  await Promise.all(missionIds.map((mId) => recalculateMissionFinancialBalance(mId)));
+    logFinancialSuccess(
+      "payout_reversal",
+      operationStartedAt,
+      { payoutId },
+      { correlationId, metadata: { reason, amountMinor: txOutcome.amountMinor, missionCount: missionIds.length } }
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "payout_reversal",
+      operationStartedAt,
+      "payout_reversal_failed",
+      { payoutId },
+      { correlationId, message }
+    );
+    throw err;
+  }
 
   return { payoutId, status: PayoutStatuses.REVERSED, missionIds };
 }
@@ -729,6 +867,12 @@ export interface RefundPaymentInput {
   /** Clé de déduplication CLIENT (ex: bouton "rembourser" cliqué 2x) — voir
    *  refundPayment.ts (Cloud Function) pour la construction déterministe. */
   requestKey: string;
+  /** 🔒 BLOC I — propagé depuis refundPayment.ts (Cloud Function callable)
+   *  si déjà généré à ce niveau, sinon généré ici. Permet au log
+   *  `refund_requested` (émis par la Cloud Function) et aux logs
+   *  `refund_success`/`refund_failure` (émis ici) de partager le même
+   *  correlation_id. */
+  correlationId?: string;
 }
 
 export interface RefundPaymentOutcome {
@@ -743,6 +887,8 @@ export interface RefundPaymentOutcome {
 export async function refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutcome> {
   const { paymentId, amountMinor, reason, initiatedByUserId, initiatedByRole, isAdminInitiated, requestKey } =
     input;
+  const correlationId = resolveCorrelationId(input.correlationId);
+  const operationStartedAt = startFinancialOperationTimer();
 
   const payRef = db.collection("payments").doc(paymentId);
   // 🔒 Idempotence déterministe basée sur requestKey (fourni par l'appelant,
@@ -998,6 +1144,23 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
   // Recalcul mission_financial_balance HORS transaction (lecture
   // multi-collections, voir missionFinancialBalance.ts en-tête).
   await recalculateMissionFinancialBalance(p.missionId);
+
+  if (result.success) {
+    logFinancialSuccess(
+      "refund_payment",
+      operationStartedAt,
+      { missionId: p.missionId, paymentId, refundId: p.refundId },
+      { correlationId, metadata: { amountMinor: p.amountToRefundMinor, providerRefundId: result.providerRefundId } }
+    );
+  } else {
+    logFinancialFailure(
+      "refund_payment",
+      operationStartedAt,
+      result.failureCode ?? "provider_refund_failed",
+      { missionId: p.missionId, paymentId, refundId: p.refundId },
+      { correlationId }
+    );
+  }
 
   return {
     success: result.success,

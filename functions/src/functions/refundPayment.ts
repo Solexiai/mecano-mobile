@@ -30,6 +30,11 @@ import { failedPrecondition, invalidArgument, notFound, permissionDenied } from 
 import { writeAuditLog } from "../lib/audit";
 import { PaymentDoc, RefundReason, RefundReasons } from "../lib/types";
 import { refundPayment as refundPaymentOrchestration } from "../payment/paymentOrchestration";
+import {
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 export interface RefundPaymentRequest {
   paymentId: string;
@@ -97,14 +102,27 @@ export const refundPayment = onCall<RefundPaymentRequest>(async (request) => {
     ? `refund_${paymentId}_${clientRequestId}`
     : `refund_${paymentId}_${amountMinor}_${reason}`;
 
+  // 🔒 BLOC I — un correlation_id est généré ICI, au point d'entrée le plus
+  // externe de ce flux (Cloud Function callable), et propagé jusqu'à
+  // l'orchestration (refundPayment() ci-dessous) afin que "refund requested"
+  // et "refund success/failure" partagent le MÊME correlation_id.
+  const correlationId = resolveCorrelationId(undefined);
+  const requestStartedAt = startFinancialOperationTimer();
+
   await writeAuditLog({
     actorUserId: ctx.uid,
     actorRole: ctx.role ?? (isAdminInitiated ? "admin" : "customer"),
     action: "refund_requested",
     sourceFunction: "refundPayment",
     targetId: paymentId,
-    metadata: { amountMinor, reason, isAdminInitiated, requestKey },
+    metadata: { amountMinor, reason, isAdminInitiated, requestKey, correlationId },
   });
+  logFinancialSuccess(
+    "refund_requested",
+    requestStartedAt,
+    { paymentId },
+    { correlationId, metadata: { amountMinor, reason, isAdminInitiated } }
+  );
 
   const outcome = await refundPaymentOrchestration({
     paymentId,
@@ -114,6 +132,7 @@ export const refundPayment = onCall<RefundPaymentRequest>(async (request) => {
     initiatedByRole: ctx.role ?? (isAdminInitiated ? "admin" : "customer"),
     isAdminInitiated,
     requestKey,
+    correlationId,
   });
 
   await writeAuditLog({
