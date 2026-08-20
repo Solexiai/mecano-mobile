@@ -32,10 +32,17 @@ import {
   CreateDriverPayoutResult,
   CreatePaymentParams,
   CreatePaymentResult,
+  ListProviderPaymentsResult,
+  ListProviderPayoutsResult,
+  ListProviderRefundsResult,
+  ListProviderTransactionsParams,
   PaymentProvider,
   PaymentStatusResult,
   PayoutStatusResult,
   ProcessWebhookResult,
+  ProviderPaymentSummary,
+  ProviderPayoutSummary,
+  ProviderRefundSummary,
   ReconcileTransactionParams,
   ReconcileTransactionResult,
   RefundPaymentParams,
@@ -53,6 +60,16 @@ export interface FakePaymentProviderOptions {
   failureCode?: string;
   /** Message d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
   failureMessage?: string;
+  // ---- BLOC G (test uniquement) — simulation déterministe du "monde
+  // Provider" pour tester le moteur de réconciliation (reconciliationEngine.ts)
+  // SANS jamais appeler le réseau Stripe réel. Chaque tableau représente
+  // EXACTEMENT ce que `listProviderPayments/Payouts/Refunds()` renverra ;
+  // `reconcileTransaction()` résout aussi ses réponses depuis ces mêmes
+  // tableaux (résolution par ID), garantissant une vue Provider cohérente
+  // entre listing et vérification ponctuelle dans un même test.
+  providerPayments?: ProviderPaymentSummary[];
+  providerPayouts?: ProviderPayoutSummary[];
+  providerRefunds?: ProviderRefundSummary[];
 }
 
 let counter = 0;
@@ -174,9 +191,52 @@ export class FakePaymentProvider extends PaymentProvider {
   }
 
   async reconcileTransaction(
-    _params: ReconcileTransactionParams
+    params: ReconcileTransactionParams
   ): Promise<ReconcileTransactionResult> {
+    if (params.providerPaymentIntentId) {
+      const found = (this.options.providerPayments ?? []).find(
+        (p) => p.providerPaymentIntentId === params.providerPaymentIntentId
+      );
+      if (found) {
+        return { found: true, providerAmountMinor: found.amountMinor, providerStatus: found.status };
+      }
+    }
+    if (params.providerPayoutId) {
+      const found = (this.options.providerPayouts ?? []).find(
+        (p) => p.providerPayoutId === params.providerPayoutId
+      );
+      if (found) {
+        return { found: true, providerAmountMinor: found.amountMinor, providerStatus: found.status };
+      }
+    }
+    if (params.providerRefundId) {
+      const found = (this.options.providerRefunds ?? []).find(
+        (r) => r.providerRefundId === params.providerRefundId
+      );
+      if (found) {
+        return { found: true, providerAmountMinor: found.amountMinor, providerStatus: found.status };
+      }
+    }
     return { providerAmountMinor: null, providerStatus: null, found: false };
+  }
+
+  // ---- BLOC G (test uniquement) — listing simulé depuis les options ----
+  async listProviderPayments(
+    _params: ListProviderTransactionsParams
+  ): Promise<ListProviderPaymentsResult> {
+    return { payments: this.options.providerPayments ?? [], nextPageToken: null };
+  }
+
+  async listProviderPayouts(
+    _params: ListProviderTransactionsParams
+  ): Promise<ListProviderPayoutsResult> {
+    return { payouts: this.options.providerPayouts ?? [], nextPageToken: null };
+  }
+
+  async listProviderRefunds(
+    _params: ListProviderTransactionsParams
+  ): Promise<ListProviderRefundsResult> {
+    return { refunds: this.options.providerRefunds ?? [], nextPageToken: null };
   }
 }
 

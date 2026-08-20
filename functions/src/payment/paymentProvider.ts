@@ -157,11 +157,77 @@ export interface ProcessWebhookResult {
 export interface ReconcileTransactionParams {
   providerPaymentIntentId?: string | null;
   providerPayoutId?: string | null;
+  // 🔒 BLOC G (point 27) — extension du contrat reconcileTransaction() pour
+  // couvrir aussi les remboursements individuels (anomalie 5 : "refund
+  // Movi-K absent du provider"). N'existait pas dans le contrat initial des
+  // 13 méthodes (qui ne couvrait que payment/payout) ; ajout MINIMAL et
+  // rétro-compatible (paramètre optionnel supplémentaire, aucune signature
+  // existante modifiée).
+  providerRefundId?: string | null;
 }
 export interface ReconcileTransactionResult {
   providerAmountMinor: number | null;
   providerStatus: string | null;
   found: boolean;
+}
+
+// -----------------------------------------------------------------------------
+// BLOC G (point 27, directive 38 points) — capacités de LISTING nécessaires
+// à la réconciliation bidirectionnelle. `reconcileTransaction()` ne permet
+// de vérifier QU'un identifiant déjà connu côté Movi-K (anomalies 2/3/5/8).
+// Pour détecter une transaction qui existe chez le PROVIDER mais est
+// TOTALEMENT ABSENTE de Movi-K (anomalies 1 et 4 — "provider payment/refund
+// absent de Movi-K"), il faut pouvoir ÉNUMÉRER les transactions du provider
+// sur une fenêtre temporelle, indépendamment de tout identifiant Movi-K.
+// Ces méthodes sont un ajout EXPLICITE et documenté du contrat
+// PaymentProvider (au-delà des 13 méthodes historiques) — jamais une
+// capacité inventée : elles s'appuient exclusivement sur les endpoints de
+// listing standard de Stripe (`paymentIntents.list`, `payouts.list`,
+// `refunds.list`, tous documentés docs.stripe.com/api).
+// -----------------------------------------------------------------------------
+
+export interface ListProviderTransactionsParams {
+  /** Borne inférieure (incluse) de la fenêtre de création, en millisecondes epoch. */
+  sinceMillis: number;
+  /** Borne supérieure (incluse) de la fenêtre de création, en millisecondes epoch. */
+  untilMillis: number;
+  /** Pagination — jeton de continuation renvoyé par un appel précédent. */
+  pageToken?: string | null;
+}
+
+export interface ProviderPaymentSummary {
+  providerPaymentIntentId: string;
+  amountMinor: number;
+  status: string;
+  createdAtMillis: number;
+}
+export interface ListProviderPaymentsResult {
+  payments: ProviderPaymentSummary[];
+  nextPageToken: string | null;
+}
+
+export interface ProviderPayoutSummary {
+  providerPayoutId: string;
+  connectedAccountId: string | null;
+  amountMinor: number;
+  status: string;
+  createdAtMillis: number;
+}
+export interface ListProviderPayoutsResult {
+  payouts: ProviderPayoutSummary[];
+  nextPageToken: string | null;
+}
+
+export interface ProviderRefundSummary {
+  providerRefundId: string;
+  providerPaymentIntentId: string | null;
+  amountMinor: number;
+  status: string;
+  createdAtMillis: number;
+}
+export interface ListProviderRefundsResult {
+  refunds: ProviderRefundSummary[];
+  nextPageToken: string | null;
 }
 
 export abstract class PaymentProvider {
@@ -200,6 +266,19 @@ export abstract class PaymentProvider {
   abstract reconcileTransaction(
     params: ReconcileTransactionParams
   ): Promise<ReconcileTransactionResult>;
+
+  // ---- BLOC G (point 27) — listing pour réconciliation bidirectionnelle ----
+  abstract listProviderPayments(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderPaymentsResult>;
+
+  abstract listProviderPayouts(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderPayoutsResult>;
+
+  abstract listProviderRefunds(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderRefundsResult>;
 }
 
 /**
@@ -256,6 +335,15 @@ export class NotConfiguredPaymentProvider extends PaymentProvider {
     throw new PaymentProviderNotConfiguredError();
   }
   async reconcileTransaction(): Promise<ReconcileTransactionResult> {
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async listProviderPayments(): Promise<ListProviderPaymentsResult> {
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async listProviderPayouts(): Promise<ListProviderPayoutsResult> {
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async listProviderRefunds(): Promise<ListProviderRefundsResult> {
     throw new PaymentProviderNotConfiguredError();
   }
 }

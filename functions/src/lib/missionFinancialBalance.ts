@@ -37,7 +37,16 @@ import { admin, db } from "./admin";
 import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "./money";
 import { LedgerEntryTypes, MissionFinancialBalanceDoc, RefundStatuses } from "./types";
 
-export async function recalculateMissionFinancialBalance(
+/**
+ * Calcule le `MissionFinancialBalanceDoc` "frais" pour une mission SANS
+ * jamais écrire dans Firestore — pure lecture. Extrait de
+ * `recalculateMissionFinancialBalance()` (identique bit-à-bit) pour
+ * permettre au moteur de réconciliation (Bloc G, point 27) de COMPARER
+ * l'état stocké à l'état recalculé sans jamais corriger silencieusement une
+ * anomalie détectée (voir reconciliationEngine.ts — seul un rapport est
+ * écrit, jamais une correction automatique de ce document).
+ */
+export async function computeMissionFinancialBalance(
   missionId: string
 ): Promise<MissionFinancialBalanceDoc> {
   const [paymentsQuery, refundsQuery, ledgerQuery, snapshotsQuery] = await Promise.all([
@@ -202,6 +211,18 @@ export async function recalculateMissionFinancialBalance(
     updated_at: now,
   };
 
+  return balance;
+}
+
+/**
+ * Recalcule ET écrit `mission_financial_balance/{missionId}` (comportement
+ * historique inchangé, Bloc F). Voir `computeMissionFinancialBalance()`
+ * ci-dessus pour la variante lecture-seule utilisée par la réconciliation.
+ */
+export async function recalculateMissionFinancialBalance(
+  missionId: string
+): Promise<MissionFinancialBalanceDoc> {
+  const balance = await computeMissionFinancialBalance(missionId);
   await db.collection("mission_financial_balance").doc(missionId).set(balance);
   return balance;
 }

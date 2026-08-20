@@ -33,6 +33,10 @@ import {
   CreateDriverPayoutResult,
   CreatePaymentParams,
   CreatePaymentResult,
+  ListProviderPaymentsResult,
+  ListProviderPayoutsResult,
+  ListProviderRefundsResult,
+  ListProviderTransactionsParams,
   PaymentProvider,
   PaymentStatusResult,
   PayoutStatusResult,
@@ -197,6 +201,88 @@ export class StripeProvider extends PaymentProvider {
     }
   }
 
+  // ---- BLOC G (point 27) — listing pour réconciliation bidirectionnelle ----
+  // 🔒 Pagination : Stripe `.list()` renvoie au plus 100 objets par page
+  // (docs.stripe.com/api/pagination) — le paramètre `pageToken` correspond
+  // directement à `starting_after` (curseur = ID du dernier objet vu). Le
+  // filtrage temporel utilise `created: { gte, lte }` (secondes epoch,
+  // Stripe n'accepte pas les millisecondes — voir docs.stripe.com/api/payment_intents/list).
+  async listProviderPayments(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderPaymentsResult> {
+    const page = await this.stripe.paymentIntents.list({
+      created: {
+        gte: Math.floor(params.sinceMillis / 1000),
+        lte: Math.floor(params.untilMillis / 1000),
+      },
+      limit: 100,
+      starting_after: params.pageToken ?? undefined,
+    });
+    return {
+      payments: page.data.map((intent) => ({
+        providerPaymentIntentId: intent.id,
+        amountMinor: intent.amount_received || intent.amount,
+        status: intent.status,
+        createdAtMillis: intent.created * 1000,
+      })),
+      nextPageToken: page.has_more ? page.data[page.data.length - 1]?.id ?? null : null,
+    };
+  }
+
+  async listProviderPayouts(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderPayoutsResult> {
+    const page = await this.stripe.payouts.list({
+      created: {
+        gte: Math.floor(params.sinceMillis / 1000),
+        lte: Math.floor(params.untilMillis / 1000),
+      },
+      limit: 100,
+      starting_after: params.pageToken ?? undefined,
+    });
+    return {
+      payouts: page.data.map((payout) => ({
+        providerPayoutId: payout.id,
+        // 🔒 Le compte connecté n'est pas exposé sur l'objet Payout lui-même
+        // (il est implicite dans le contexte d'appel `stripeAccount` —
+        // docs.stripe.com/api/payouts/object) — non résolu ici pour éviter
+        // un appel réseau supplémentaire par payout ; le moteur de
+        // réconciliation associe par `providerPayoutId`, jamais par ce champ.
+        connectedAccountId: null,
+        amountMinor: payout.amount,
+        status: payout.status,
+        createdAtMillis: payout.created * 1000,
+      })),
+      nextPageToken: page.has_more ? page.data[page.data.length - 1]?.id ?? null : null,
+    };
+  }
+
+  async listProviderRefunds(
+    params: ListProviderTransactionsParams
+  ): Promise<ListProviderRefundsResult> {
+    const page = await this.stripe.refunds.list({
+      created: {
+        gte: Math.floor(params.sinceMillis / 1000),
+        lte: Math.floor(params.untilMillis / 1000),
+      },
+      limit: 100,
+      starting_after: params.pageToken ?? undefined,
+    });
+    return {
+      refunds: page.data.map((refund) => ({
+        providerRefundId: refund.id,
+        providerPaymentIntentId:
+          typeof refund.payment_intent === "string"
+            ? refund.payment_intent
+            : refund.payment_intent?.id ?? null,
+        amountMinor: refund.amount,
+        status: refund.status ?? "unknown",
+        createdAtMillis: refund.created * 1000,
+      })),
+      nextPageToken: page.has_more ? page.data[page.data.length - 1]?.id ?? null : null,
+    };
+  }
+
   // ---- 8. createDriverAccount ----
   // Compte Express (Accounts v1) + lien d'onboarding hébergé Stripe.
   // Voir docs/PAYMENT_ARCHITECTURE.md §1/§8 pour la justification et le
@@ -321,6 +407,18 @@ export class StripeProvider extends PaymentProvider {
       try {
         const payout = await this.stripe.payouts.retrieve(params.providerPayoutId);
         return { found: true, providerAmountMinor: payout.amount, providerStatus: payout.status };
+      } catch {
+        return { found: false, providerAmountMinor: null, providerStatus: null };
+      }
+    }
+    if (params.providerRefundId) {
+      try {
+        const refund = await this.stripe.refunds.retrieve(params.providerRefundId);
+        return {
+          found: true,
+          providerAmountMinor: refund.amount,
+          providerStatus: refund.status ?? "unknown",
+        };
       } catch {
         return { found: false, providerAmountMinor: null, providerStatus: null };
       }
