@@ -50,18 +50,22 @@ extension PlatformRoleX on PlatformRole {
   String get claimValue => name;
 
   static PlatformRole fromClaim(String value) => PlatformRole.values.firstWhere(
-        (r) => r.name == value,
-        orElse: () => PlatformRole.customer,
-      );
+    (r) => r.name == value,
+    orElse: () => PlatformRole.customer,
+  );
 
   /// Roles allowed to review/approve driver documents and applications.
-  bool get canReviewDrivers => this == PlatformRole.analyst || this == PlatformRole.admin || this == PlatformRole.superAdmin;
+  bool get canReviewDrivers =>
+      this == PlatformRole.analyst ||
+      this == PlatformRole.admin ||
+      this == PlatformRole.superAdmin;
 
   /// Only super_admin may change protected financial policy (tip %, etc).
   bool get canModifyProtectedFinancialPolicy => this == PlatformRole.superAdmin;
 
   /// admin/super_admin may edit standard pricing configuration.
-  bool get canEditPricingConfig => this == PlatformRole.admin || this == PlatformRole.superAdmin;
+  bool get canEditPricingConfig =>
+      this == PlatformRole.admin || this == PlatformRole.superAdmin;
 }
 
 // =====================================================================
@@ -83,7 +87,8 @@ extension DriverStatusX on DriverStatus {
   /// Rules (ex: `registrationIncomplete` -> `registration_incomplete`).
   String get firestoreValue => _camelToSnake(name);
 
-  static DriverStatus fromFirestoreValue(String? value) => DriverStatus.values.firstWhere(
+  static DriverStatus fromFirestoreValue(String? value) =>
+      DriverStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => DriverStatus.registrationIncomplete,
       );
@@ -127,7 +132,8 @@ enum DriverDocumentType {
 extension DriverDocumentTypeX on DriverDocumentType {
   String get firestoreValue => _camelToSnake(name);
 
-  static DriverDocumentType fromFirestoreValue(String? value) => DriverDocumentType.values.firstWhere(
+  static DriverDocumentType fromFirestoreValue(String? value) =>
+      DriverDocumentType.values.firstWhere(
         (t) => t.firestoreValue == value,
         orElse: () => DriverDocumentType.other,
       );
@@ -163,7 +169,8 @@ enum DriverDocumentStatus {
 extension DriverDocumentStatusX on DriverDocumentStatus {
   String get firestoreValue => _camelToSnake(name);
 
-  static DriverDocumentStatus fromFirestoreValue(String? value) => DriverDocumentStatus.values.firstWhere(
+  static DriverDocumentStatus fromFirestoreValue(String? value) =>
+      DriverDocumentStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => DriverDocumentStatus.missing,
       );
@@ -218,7 +225,8 @@ enum VehicleCategory {
 extension VehicleCategoryX on VehicleCategory {
   String get firestoreValue => _camelToSnake(name);
 
-  static VehicleCategory fromFirestoreValue(String? value) => VehicleCategory.values.firstWhere(
+  static VehicleCategory fromFirestoreValue(String? value) =>
+      VehicleCategory.values.firstWhere(
         (c) => c.firestoreValue == value,
         orElse: () => VehicleCategory.other,
       );
@@ -283,7 +291,8 @@ extension MissionStatusX on MissionStatus {
   /// `functions/src/lib/types.ts`.
   String get firestoreValue => _camelToSnake(name);
 
-  static MissionStatus fromFirestoreValue(String? value) => MissionStatus.values.firstWhere(
+  static MissionStatus fromFirestoreValue(String? value) =>
+      MissionStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => MissionStatus.draft,
       );
@@ -291,7 +300,8 @@ extension MissionStatusX on MissionStatus {
   String get key => 'mission_status_${name.toLowerCase()}';
 
   /// Statuses at which a mission is still open for offer/acceptance.
-  bool get isOpenForAcceptance => this == MissionStatus.searchingDriver || this == MissionStatus.offered;
+  bool get isOpenForAcceptance =>
+      this == MissionStatus.searchingDriver || this == MissionStatus.offered;
 }
 
 // =====================================================================
@@ -303,7 +313,8 @@ enum FoundingDriverStatus { candidate, qualified, suspended, revoked, expired }
 extension FoundingDriverStatusX on FoundingDriverStatus {
   String get firestoreValue => _camelToSnake(name);
 
-  static FoundingDriverStatus fromFirestoreValue(String? value) => FoundingDriverStatus.values.firstWhere(
+  static FoundingDriverStatus fromFirestoreValue(String? value) =>
+      FoundingDriverStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => FoundingDriverStatus.candidate,
       );
@@ -322,7 +333,8 @@ extension CommissionProgramTypeX on CommissionProgramType {
   /// `CommissionProgramTypes` dans `functions/src/lib/types.ts`).
   String get firestoreValue => _camelToSnake(name);
 
-  static CommissionProgramType fromFirestoreValue(String? value) => CommissionProgramType.values.firstWhere(
+  static CommissionProgramType fromFirestoreValue(String? value) =>
+      CommissionProgramType.values.firstWhere(
         (t) => t.firestoreValue == value,
         orElse: () => CommissionProgramType.standard,
       );
@@ -360,7 +372,8 @@ enum LedgerEntryType {
 extension LedgerEntryTypeX on LedgerEntryType {
   String get firestoreValue => _camelToSnake(name);
 
-  static LedgerEntryType fromFirestoreValue(String? value) => LedgerEntryType.values.firstWhere(
+  static LedgerEntryType fromFirestoreValue(String? value) =>
+      LedgerEntryType.values.firstWhere(
         (t) => t.firestoreValue == value,
         orElse: () => LedgerEntryType.driverAdjustment,
       );
@@ -371,7 +384,8 @@ enum LedgerDirection { credit, debit }
 extension LedgerDirectionX on LedgerDirection {
   String get firestoreValue => name; // déjà snake_case (mot unique)
 
-  static LedgerDirection fromFirestoreValue(String? value) => LedgerDirection.values.firstWhere(
+  static LedgerDirection fromFirestoreValue(String? value) =>
+      LedgerDirection.values.firstWhere(
         (d) => d.firestoreValue == value,
         orElse: () => LedgerDirection.credit,
       );
@@ -382,7 +396,8 @@ enum LedgerParty { customer, driver, platform }
 extension LedgerPartyX on LedgerParty {
   String get firestoreValue => name; // déjà snake_case (mot unique)
 
-  static LedgerParty fromFirestoreValue(String? value) => LedgerParty.values.firstWhere(
+  static LedgerParty fromFirestoreValue(String? value) =>
+      LedgerParty.values.firstWhere(
         (p) => p.firestoreValue == value,
         orElse: () => LedgerParty.platform,
       );
@@ -393,7 +408,8 @@ enum LedgerEntryStatus { pending, confirmed, reversed, compensated }
 extension LedgerEntryStatusX on LedgerEntryStatus {
   String get firestoreValue => name; // déjà snake_case (mot unique)
 
-  static LedgerEntryStatus fromFirestoreValue(String? value) => LedgerEntryStatus.values.firstWhere(
+  static LedgerEntryStatus fromFirestoreValue(String? value) =>
+      LedgerEntryStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => LedgerEntryStatus.pending,
       );
@@ -434,7 +450,8 @@ enum PaymentStatus {
 extension PaymentStatusX on PaymentStatus {
   String get firestoreValue => _camelToSnake(name);
 
-  static PaymentStatus fromFirestoreValue(String? value) => PaymentStatus.values.firstWhere(
+  static PaymentStatus fromFirestoreValue(String? value) =>
+      PaymentStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => PaymentStatus.pending,
       );
@@ -452,9 +469,41 @@ enum RefundStatus { requested, processing, succeeded, failed }
 extension RefundStatusX on RefundStatus {
   String get firestoreValue => _camelToSnake(name);
 
-  static RefundStatus fromFirestoreValue(String? value) => RefundStatus.values.firstWhere(
+  static RefundStatus fromFirestoreValue(String? value) =>
+      RefundStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => RefundStatus.requested,
+      );
+}
+
+// =====================================================================
+// PAYOUT — aligné sur `PayoutStatuses` dans `functions/src/lib/types.ts`
+// (Phase 6, directive 38 points, `DriverPayoutDoc`) :
+//   pending -> held -> eligible -> scheduled -> processing -> paid
+//   * -> failed
+//   paid -> reversed
+// `held` correspond à une période de rétention (payout_hold_period_hours)
+// avant que le versement ne devienne éligible.
+// =====================================================================
+
+enum PayoutStatus {
+  pending,
+  eligible,
+  scheduled,
+  processing,
+  paid,
+  failed,
+  reversed,
+  held,
+}
+
+extension PayoutStatusX on PayoutStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static PayoutStatus fromFirestoreValue(String? value) =>
+      PayoutStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => PayoutStatus.pending,
       );
 }
 
@@ -473,7 +522,8 @@ enum RefundReason {
 extension RefundReasonX on RefundReason {
   String get firestoreValue => _camelToSnake(name);
 
-  static RefundReason fromFirestoreValue(String? value) => RefundReason.values.firstWhere(
+  static RefundReason fromFirestoreValue(String? value) =>
+      RefundReason.values.firstWhere(
         (r) => r.firestoreValue == value,
         orElse: () => RefundReason.administrative,
       );
@@ -484,7 +534,8 @@ enum DriverOnlineStatus { offline, online, onMission }
 extension DriverOnlineStatusX on DriverOnlineStatus {
   String get firestoreValue => _camelToSnake(name);
 
-  static DriverOnlineStatus fromFirestoreValue(String? value) => DriverOnlineStatus.values.firstWhere(
+  static DriverOnlineStatus fromFirestoreValue(String? value) =>
+      DriverOnlineStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => DriverOnlineStatus.offline,
       );

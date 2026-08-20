@@ -43,11 +43,12 @@ import '../../finance/models/transaction_ledger.dart';
 import '../../finance/models/payment_info.dart';
 import '../../finance/models/refund_info.dart';
 import '../../finance/models/mission_financial_balance.dart';
+import '../../finance/models/driver_payout_info.dart';
 import 'finance_repository.dart';
 
 class FirebaseFinanceRepository implements FinanceRepository {
   FirebaseFinanceRepository({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
@@ -67,6 +68,8 @@ class FirebaseFinanceRepository implements FinanceRepository {
       _db.collection('refunds');
   CollectionReference<Map<String, dynamic>> get _missionFinancialBalance =>
       _db.collection('mission_financial_balance');
+  CollectionReference<Map<String, dynamic>> get _driverPayouts =>
+      _db.collection('driver_payouts');
 
   Future<String?> _readActivePricingVersion() async {
     final snap = await _pricingConfigs.doc('active').get();
@@ -91,8 +94,9 @@ class FirebaseFinanceRepository implements FinanceRepository {
     // changement (rare — nouvelle version publiée), on bascule l'écoute sur
     // le document `pricing_versions/{version}` correspondant.
     return _pricingConfigs.doc('active').snapshots().asyncExpand((configSnap) {
-      final version =
-          (configSnap.exists && configSnap.data() != null) ? configSnap.data()!['active_pricing_version'] as String? : null;
+      final version = (configSnap.exists && configSnap.data() != null)
+          ? configSnap.data()!['active_pricing_version'] as String?
+          : null;
       if (version == null) return Stream.value(PricingConfig.unconfigured());
       return _pricingVersions.doc(version).snapshots().map((versionSnap) {
         if (!versionSnap.exists || versionSnap.data() == null) {
@@ -137,8 +141,12 @@ class FirebaseFinanceRepository implements FinanceRepository {
 
   @override
   Stream<List<LedgerEntry>> watchLedgerEntriesForMission(String missionId) {
-    return _ledger.where('mission_id', isEqualTo: missionId).snapshots().map((snap) {
-      final entries = snap.docs.map((d) => LedgerEntry.fromJson(_normalizeLedgerJson(d.data()))).toList();
+    return _ledger.where('mission_id', isEqualTo: missionId).snapshots().map((
+      snap,
+    ) {
+      final entries = snap.docs
+          .map((d) => LedgerEntry.fromJson(_normalizeLedgerJson(d.data())))
+          .toList();
       entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return entries;
     });
@@ -148,30 +156,35 @@ class FirebaseFinanceRepository implements FinanceRepository {
   Stream<List<LedgerEntry>> watchDriverEarningsHistory(String driverId) {
     // Étape 1 : missions financières de ce chauffeur (index driver_id+created_at
     // déjà présent dans firestore.indexes.json).
-    return _snapshots.where('driver_id', isEqualTo: driverId).snapshots().asyncMap((snapshotsSnap) async {
-      final missionIds = snapshotsSnap.docs
-          .map((d) => d.data()['mission_id'] as String?)
-          .whereType<String>()
-          .toSet()
-          .toList();
-      if (missionIds.isEmpty) return <LedgerEntry>[];
+    return _snapshots
+        .where('driver_id', isEqualTo: driverId)
+        .snapshots()
+        .asyncMap((snapshotsSnap) async {
+          final missionIds = snapshotsSnap.docs
+              .map((d) => d.data()['mission_id'] as String?)
+              .whereType<String>()
+              .toSet()
+              .toList();
+          if (missionIds.isEmpty) return <LedgerEntry>[];
 
-      final entries = <LedgerEntry>[];
-      // transaction_ledger n'a pas de champ driver_id direct : on interroge
-      // par mission_id (index existant) puis on filtre party=='driver' en
-      // mémoire — cohérent avec la règle de sécurité déjà en place.
-      for (final missionId in missionIds) {
-        final ledgerSnap = await _ledger.where('mission_id', isEqualTo: missionId).get();
-        for (final d in ledgerSnap.docs) {
-          final data = d.data();
-          if (data['party'] == LedgerParty.driver.firestoreValue) {
-            entries.add(LedgerEntry.fromJson(_normalizeLedgerJson(data)));
+          final entries = <LedgerEntry>[];
+          // transaction_ledger n'a pas de champ driver_id direct : on interroge
+          // par mission_id (index existant) puis on filtre party=='driver' en
+          // mémoire — cohérent avec la règle de sécurité déjà en place.
+          for (final missionId in missionIds) {
+            final ledgerSnap = await _ledger
+                .where('mission_id', isEqualTo: missionId)
+                .get();
+            for (final d in ledgerSnap.docs) {
+              final data = d.data();
+              if (data['party'] == LedgerParty.driver.firestoreValue) {
+                entries.add(LedgerEntry.fromJson(_normalizeLedgerJson(data)));
+              }
+            }
           }
-        }
-      }
-      entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return entries;
-    });
+          entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return entries;
+        });
   }
 
   // -------------------------------------------------------------------
@@ -205,8 +218,12 @@ class FirebaseFinanceRepository implements FinanceRepository {
   // dans firestore.indexes.json, donc pas de `.orderBy()` ici non plus).
   @override
   Stream<List<RefundInfo>> watchRefundsForMission(String missionId) {
-    return _refunds.where('mission_id', isEqualTo: missionId).snapshots().map((snap) {
-      final refunds = snap.docs.map((d) => RefundInfo.fromJson(d.data())).toList();
+    return _refunds.where('mission_id', isEqualTo: missionId).snapshots().map((
+      snap,
+    ) {
+      final refunds = snap.docs
+          .map((d) => RefundInfo.fromJson(d.data()))
+          .toList();
       refunds.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return refunds;
     });
@@ -217,11 +234,54 @@ class FirebaseFinanceRepository implements FinanceRepository {
   // `db.collection("mission_financial_balance").doc(missionId).set(...)`),
   // donc lecture directe par ID, aucune requête nécessaire.
   @override
-  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(String missionId) {
+  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(
+    String missionId,
+  ) {
     return _missionFinancialBalance.doc(missionId).snapshots().map((snap) {
       if (!snap.exists || snap.data() == null) return null;
       return MissionFinancialBalance.fromJson(missionId, snap.data()!);
     });
+  }
+
+  // -------------------------------------------------------------------
+  // Bloc K — UI financière chauffeur (Phase 6).
+  //
+  // Requête RÉELLEMENT scopée `.where('driver_id', isEqualTo: driverId)` +
+  // `.orderBy('created_at', descending: true)` — l'index composite
+  // `driver_payouts` (driver_id ASC, created_at DESC) existe déjà dans
+  // firestore.indexes.json, donc ce tri côté serveur est sûr ici
+  // (contrairement au reste de ce repository qui évite .orderBy() par
+  // absence d'index composite dédié).
+  // -------------------------------------------------------------------
+  @override
+  Stream<List<DriverPayoutInfo>> watchPayoutsForDriver(String driverId) {
+    return _driverPayouts
+        .where('driver_id', isEqualTo: driverId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => DriverPayoutInfo.fromJson(d.id, d.data()))
+              .toList(),
+        );
+  }
+
+  // Même index composite que `watchDriverEarningsHistory()` ci-dessus
+  // (driver_id ASC, created_at DESC, déjà présent dans
+  // firestore.indexes.json) — tri serveur sûr ici.
+  @override
+  Stream<List<FinancialSnapshot>> watchFinancialSnapshotsForDriver(
+    String driverId,
+  ) {
+    return _snapshots
+        .where('driver_id', isEqualTo: driverId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => FinancialSnapshot.fromJson(d.data()))
+              .toList(),
+        );
   }
 
   /// Les Cloud Functions écrivent `type`/`direction`/`party`/`status` en
@@ -234,16 +294,24 @@ class FirebaseFinanceRepository implements FinanceRepository {
   Map<String, dynamic> _normalizeLedgerJson(Map<String, dynamic> json) {
     final out = Map<String, dynamic>.from(json);
     if (out['type'] is String) {
-      out['type'] = LedgerEntryTypeX.fromFirestoreValue(out['type'] as String).name;
+      out['type'] = LedgerEntryTypeX.fromFirestoreValue(
+        out['type'] as String,
+      ).name;
     }
     if (out['direction'] is String) {
-      out['direction'] = LedgerDirectionX.fromFirestoreValue(out['direction'] as String).name;
+      out['direction'] = LedgerDirectionX.fromFirestoreValue(
+        out['direction'] as String,
+      ).name;
     }
     if (out['party'] is String) {
-      out['party'] = LedgerPartyX.fromFirestoreValue(out['party'] as String).name;
+      out['party'] = LedgerPartyX.fromFirestoreValue(
+        out['party'] as String,
+      ).name;
     }
     if (out['status'] is String) {
-      out['status'] = LedgerEntryStatusX.fromFirestoreValue(out['status'] as String).name;
+      out['status'] = LedgerEntryStatusX.fromFirestoreValue(
+        out['status'] as String,
+      ).name;
     }
     final createdAt = out['created_at'];
     if (createdAt is Timestamp) {

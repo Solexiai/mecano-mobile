@@ -7,6 +7,7 @@ import '../../../../finance/models/transaction_ledger.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import 'provider_payouts_section.dart';
 
 /// Onglet "Revenus" du fournisseur (chauffeur).
 ///
@@ -27,7 +28,10 @@ class ProviderEarningsTab extends StatelessWidget {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(t('delivery_login_required'), textAlign: TextAlign.center),
+          child: Text(
+            t('delivery_login_required'),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -35,7 +39,9 @@ class ProviderEarningsTab extends StatelessWidget {
     final driverId = auth.user!.uid;
 
     return StreamBuilder<List<LedgerEntry>>(
-      stream: BackendLocator.financeRepository.watchDriverEarningsHistory(driverId),
+      stream: BackendLocator.financeRepository.watchDriverEarningsHistory(
+        driverId,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Padding(
@@ -45,7 +51,10 @@ class ProviderEarningsTab extends StatelessWidget {
                 children: [
                   const CircularProgressIndicator(),
                   const SizedBox(height: 12),
-                  Text(t('earnings_loading'), style: const TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    t('earnings_loading'),
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
                 ],
               ),
             ),
@@ -57,7 +66,11 @@ class ProviderEarningsTab extends StatelessWidget {
             child: Center(
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline, color: AppColors.error, size: 32),
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.error,
+                    size: 32,
+                  ),
                   const SizedBox(height: 8),
                   Text(t('earnings_error'), textAlign: TextAlign.center),
                 ],
@@ -71,7 +84,9 @@ class ProviderEarningsTab extends StatelessWidget {
         double confirmedTotal = 0;
         double pendingTotal = 0;
         for (final e in entries) {
-          final signed = e.direction == LedgerDirection.credit ? e.amount : -e.amount;
+          final signed = e.direction == LedgerDirection.credit
+              ? e.amount
+              : -e.amount;
           if (e.status == LedgerEntryStatus.confirmed) {
             confirmedTotal += signed;
           } else if (e.status == LedgerEntryStatus.pending) {
@@ -84,22 +99,58 @@ class ProviderEarningsTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t('earnings_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Text(
+                t('earnings_title'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 20),
+              // Bloc K — vue financière chauffeur (résumé versements,
+              // missions détaillées, historique de versements). Enrichit
+              // cet onglet Revenus existant plutôt que de créer un écran
+              // dupliqué (voir décision technique dans
+              // provider_payouts_section.dart).
+              ProviderPayoutsSection(driverId: driverId, t: t),
+              const SizedBox(height: 28),
               Row(
                 children: [
-                  Expanded(child: _MetricCard(label: t('earnings_total_label'), value: '${confirmedTotal.toStringAsFixed(2)}\$', color: AppColors.primary)),
+                  Expanded(
+                    child: _MetricCard(
+                      label: t('earnings_total_label'),
+                      value: '${confirmedTotal.toStringAsFixed(2)}\$',
+                      color: AppColors.primary,
+                    ),
+                  ),
                   const SizedBox(width: 14),
-                  Expanded(child: _MetricCard(label: t('earnings_pending_label'), value: '${pendingTotal.toStringAsFixed(2)}\$', color: AppColors.warning)),
+                  Expanded(
+                    child: _MetricCard(
+                      label: t('earnings_pending_label'),
+                      value: '${pendingTotal.toStringAsFixed(2)}\$',
+                      color: AppColors.warning,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 28),
-              Text(t('earnings_history_title'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(
+                t('earnings_history_title'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
               const SizedBox(height: 12),
               if (entries.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: Text(t('earnings_empty'), style: const TextStyle(color: AppColors.textSecondary))),
+                  child: Center(
+                    child: Text(
+                      t('earnings_empty'),
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
                 )
               else
                 ...entries.map((e) => _LedgerTile(entry: e, t: t)),
@@ -115,18 +166,39 @@ class _MetricCard extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _MetricCard({required this.label, required this.value, required this.color});
+  const _MetricCard({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -194,19 +266,32 @@ class _LedgerTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Row(
         children: [
-          Icon(isCredit ? Icons.arrow_downward : Icons.arrow_upward, color: isCredit ? AppColors.success : AppColors.error),
+          Icon(
+            isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+            color: isCredit ? AppColors.success : AppColors.error,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t(_typeKey(entry.type)), style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  t(_typeKey(entry.type)),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 Text(
                   '${entry.createdAt.year}-${entry.createdAt.month.toString().padLeft(2, '0')}-${entry.createdAt.day.toString().padLeft(2, '0')}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -216,13 +301,26 @@ class _LedgerTile extends StatelessWidget {
             children: [
               Text(
                 '${isCredit ? '+' : '-'}${signedAmount.abs().toStringAsFixed(2)}\$',
-                style: TextStyle(fontWeight: FontWeight.w800, color: isCredit ? AppColors.success : AppColors.error),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: isCredit ? AppColors.success : AppColors.error,
+                ),
               ),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text(t(_statusKey(entry.status)), style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  t(_statusKey(entry.status)),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),

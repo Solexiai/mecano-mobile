@@ -394,6 +394,169 @@ describe("Security Rules — payments/{paymentId} : lecture propriétaire unique
   });
 });
 
+// -----------------------------------------------------------------------
+// driver_payouts/{payoutId} — lecture propriétaire (chauffeur) uniquement
+// (Bloc K — UI financière chauffeur, Phase 6).
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_payouts/{payoutId} : lecture propriétaire (chauffeur) uniquement (Bloc K)", () => {
+  it("le chauffeur propriétaire du payout peut le lire", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_001"), {
+        payout_id: "payout_k_001",
+        driver_id: "driver_k_001",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_k_001", { role: "driver" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "driver_payouts/payout_k_001")));
+  });
+
+  it("un autre chauffeur (non propriétaire) ne peut PAS lire ce payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_002"), {
+        payout_id: "payout_k_002",
+        driver_id: "driver_k_001",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const strangerDriver = testEnv.authenticatedContext("driver_k_999", { role: "driver" });
+    await assertFails(getDoc(doc(strangerDriver.firestore(), "driver_payouts/payout_k_002")));
+  });
+
+  it("un client (customer) ne peut PAS lire un payout chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_003"), {
+        payout_id: "payout_k_003",
+        driver_id: "driver_k_001",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_k_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_payouts/payout_k_003")));
+  });
+
+  it("un utilisateur NON authentifié ne peut PAS lire un payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_004"), {
+        payout_id: "payout_k_004",
+        driver_id: "driver_k_001",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "driver_payouts/payout_k_004")));
+  });
+
+  it("un analyst PEUT lire n'importe quel payout chauffeur", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_005"), {
+        payout_id: "payout_k_005",
+        driver_id: "driver_k_001",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_payouts/payout_k_005")));
+  });
+
+  it("le chauffeur propriétaire ne peut PAS écrire/créer un nouveau payout", async () => {
+    const owner = testEnv.authenticatedContext("driver_k_010", { role: "driver" });
+    await assertFails(
+      setDoc(doc(owner.firestore(), "driver_payouts/payout_k_010"), {
+        payout_id: "payout_k_010",
+        driver_id: "driver_k_010",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      })
+    );
+  });
+
+  it("le chauffeur propriétaire ne peut PAS modifier amount_minor sur son propre payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_011"), {
+        payout_id: "payout_k_011",
+        driver_id: "driver_k_011",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "pending",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_k_011", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "driver_payouts/payout_k_011"), { amount_minor: 999999 })
+    );
+  });
+
+  it("le chauffeur propriétaire ne peut PAS modifier status sur son propre payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_012"), {
+        payout_id: "payout_k_012",
+        driver_id: "driver_k_012",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "pending",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_k_012", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "driver_payouts/payout_k_012"), { status: "paid" })
+    );
+  });
+
+  it("le chauffeur propriétaire ne peut PAS modifier provider_payout_id sur son propre payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_013"), {
+        payout_id: "payout_k_013",
+        driver_id: "driver_k_013",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "pending",
+        provider_payout_id: null,
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_k_013", { role: "driver" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "driver_payouts/payout_k_013"), {
+        provider_payout_id: "po_fake_injected",
+      })
+    );
+  });
+
+  it("le chauffeur propriétaire ne peut PAS supprimer son propre payout", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_payouts/payout_k_014"), {
+        payout_id: "payout_k_014",
+        driver_id: "driver_k_014",
+        amount_minor: 5000,
+        currency: "CAD",
+        status: "paid",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("driver_k_014", { role: "driver" });
+    await assertFails(deleteDoc(doc(owner.firestore(), "driver_payouts/payout_k_014")));
+  });
+});
+
 describe("Security Rules — refunds/{refundId} : lecture propriétaire uniquement (Bloc J)", () => {
   it("le customer propriétaire du paiement lié peut lire le refund", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {

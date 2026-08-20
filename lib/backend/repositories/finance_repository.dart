@@ -16,6 +16,7 @@ import '../../finance/models/transaction_ledger.dart';
 import '../../finance/models/payment_info.dart';
 import '../../finance/models/refund_info.dart';
 import '../../finance/models/mission_financial_balance.dart';
+import '../../finance/models/driver_payout_info.dart';
 
 abstract class FinanceRepository {
   /// Configuration de pricing active (dernière pricing_version publiée).
@@ -53,24 +54,50 @@ abstract class FinanceRepository {
   /// Solde financier synthétique (`mission_financial_balance/{missionId}`)
   /// de cette mission, ou `null` si le document n'a pas encore été calculé
   /// (mission trop ancienne, ou pas encore de mouvement financier).
-  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(String missionId);
+  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(
+    String missionId,
+  );
+
+  // ---- Bloc K — UI financière chauffeur (Phase 6) ----
+
+  /// Payouts (`driver_payouts/{id}`) appartenant à ce chauffeur, triés du
+  /// plus récent au plus ancien. Requête RÉELLEMENT scopée côté serveur
+  /// (`.where('driver_id', isEqualTo: driverId)`), jamais un scan complet
+  /// de la collection filtré en mémoire. Le Security Rule
+  /// `driver_payouts/{payoutId}` ne laisse lire que le propriétaire
+  /// (`driver_id == uid()`) ou analyst+.
+  Stream<List<DriverPayoutInfo>> watchPayoutsForDriver(String driverId);
+
+  /// `FinancialSnapshot` figés (offer/bonus/pourboire/net déjà calculés
+  /// côté serveur à l'acceptation) pour toutes les missions de ce
+  /// chauffeur, triés du plus récent au plus ancien. Requête RÉELLEMENT
+  /// scopée `.where('driver_id', isEqualTo: driverId)` (index composite
+  /// driver_id+created_at déjà présent). Source de vérité pour l'onglet
+  /// "Missions" du Bloc K — jamais `DriverCompensationResult` (estimation
+  /// locale pré-mission uniquement, voir driver_compensation.dart).
+  Stream<List<FinancialSnapshot>> watchFinancialSnapshotsForDriver(
+    String driverId,
+  );
 }
 
 class NotConfiguredFinanceRepository implements FinanceRepository {
   const NotConfiguredFinanceRepository();
 
   @override
-  Future<PricingConfig> getActivePricingConfig() async => PricingConfig.unconfigured();
+  Future<PricingConfig> getActivePricingConfig() async =>
+      PricingConfig.unconfigured();
 
   @override
   Stream<PricingConfig> watchActivePricingConfig() =>
       Stream.value(PricingConfig.unconfigured());
 
   @override
-  Future<FinancialSnapshot?> getFinancialSnapshot(String missionId) async => null;
+  Future<FinancialSnapshot?> getFinancialSnapshot(String missionId) async =>
+      null;
 
   @override
-  Stream<FinancialSnapshot?> watchFinancialSnapshot(String missionId) => Stream.value(null);
+  Stream<FinancialSnapshot?> watchFinancialSnapshot(String missionId) =>
+      Stream.value(null);
 
   @override
   Stream<List<LedgerEntry>> watchLedgerEntriesForMission(String missionId) =>
@@ -81,12 +108,24 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
       Stream.value(const []);
 
   @override
-  Stream<PaymentInfo?> watchPaymentForMission(String missionId) => Stream.value(null);
-
-  @override
-  Stream<List<RefundInfo>> watchRefundsForMission(String missionId) => Stream.value(const []);
-
-  @override
-  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(String missionId) =>
+  Stream<PaymentInfo?> watchPaymentForMission(String missionId) =>
       Stream.value(null);
+
+  @override
+  Stream<List<RefundInfo>> watchRefundsForMission(String missionId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(
+    String missionId,
+  ) => Stream.value(null);
+
+  @override
+  Stream<List<DriverPayoutInfo>> watchPayoutsForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<List<FinancialSnapshot>> watchFinancialSnapshotsForDriver(
+    String driverId,
+  ) => Stream.value(const []);
 }
