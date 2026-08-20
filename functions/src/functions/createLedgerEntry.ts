@@ -19,6 +19,12 @@ import { writeAuditLogInTransaction } from "../lib/audit";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
+import {
   LedgerDirection,
   LedgerEntryStatuses,
   LedgerEntryType,
@@ -61,7 +67,15 @@ export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request
     throw invalidArgument("type, direction, party, sourceEvent sont requis.");
   }
 
-  const newEntryId = await db.runTransaction(async (tx) => {
+  // 🔒 BLOC I (observabilité) — le correlationId peut déjà être fourni par
+  // l'appelant (support, script d'ajustement en lot) : on le propage tel
+  // quel, sinon on en génère un nouveau.
+  const correlationId = resolveCorrelationId(input.correlationId);
+  const operationStartedAt = startFinancialOperationTimer();
+
+  let newEntryId: string;
+  try {
+    newEntryId = await db.runTransaction(async (tx) => {
     const now = admin.firestore.Timestamp.now();
 
     // Si correction : marquer l'entrée originale `reversed` (jamais supprimée).
@@ -123,13 +137,47 @@ export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request
         type: input.type,
         reason: input.reason ?? input.sourceEvent,
         createdAt: now,
+        // 🔒 BLOC H (audit Firestore, contrat pré-existant) — reflète
+        // FIDÈLEMENT ce que l'appelant a fourni, jamais un ID généré côté
+        // serveur : `null` si absent. Le correlationId RÉSOLU (fourni ou
+        // généré) est utilisé séparément pour l'observabilité (Bloc I,
+        // Cloud Logging), jamais réinjecté ici.
         correlationId: input.correlationId ?? null,
         referenceId: input.referenceId ?? null,
       },
     });
 
     return entryRef.id;
-  });
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "financial_adjustment_created",
+      operationStartedAt,
+      "ledger_entry_creation_failed",
+      { missionId: input.missionId },
+      { correlationId, message, metadata: { type: input.type, sourceEvent: input.sourceEvent } }
+    );
+    throw err;
+  }
+
+  // 🔒 BLOC I (observabilité) — pas de duplication du contenu complet de
+  // l'entrée ledger : seuls les identifiants métier et le montant (déjà en
+  // cents) sont journalisés, jamais l'objet input brut.
+  logFinancialSuccess(
+    "financial_adjustment_created",
+    operationStartedAt,
+    { missionId: input.missionId ?? null },
+    {
+      correlationId,
+      metadata: {
+        ledgerEntryId: newEntryId,
+        amountMinor: toMinorUnits(input.amount, DEFAULT_CURRENCY),
+        type: input.type,
+        referenceId: input.referenceId ?? null,
+      },
+    }
+  );
 
   // 🔒 Bloc F (point 7) : un ajustement manuel modifie adjustments_minor de
   // mission_financial_balance — recalcul HORS transaction si missionId fourni

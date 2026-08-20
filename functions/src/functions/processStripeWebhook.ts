@@ -41,6 +41,11 @@ import { StripeProvider } from "../payment/stripeProvider";
 import { WebhookProcessingStatuses } from "../lib/types";
 import { openDispute, transitionDisputeStatus } from "../payment/disputeOrchestration";
 import { DisputeStatuses, DisputeStatus } from "../lib/types";
+import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 /**
  * Mappe le statut de litige brut Stripe vers notre `DisputeStatus` interne.
@@ -90,6 +95,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
     // ---- Paiement : autorisation/capture réussie ou échouée ----
     case "payment_intent.succeeded":
     case "payment_intent.payment_failed": {
+      const branchStartedAt = startFinancialOperationTimer();
       const intent = event.data.object as Stripe.PaymentIntent;
       const paySnap = await db
         .collection("payments")
@@ -100,6 +106,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         const doc = paySnap.docs[0];
         relatedPaymentId = doc.id;
         relatedMissionId = (doc.data().mission_id as string) ?? null;
+        const isSucceeded = event.type === "payment_intent.succeeded";
         // 🔒 Le webhook ne fait qu'ENREGISTRER/CONFIRMER l'état déjà obtenu
         // par l'appel synchrone (authorizePayment/capturePayment déjà
         // exécutés par createAndAuthorizeMissionPayment/captureMissionPayment).
@@ -108,11 +115,30 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         await writeAuditLog({
           actorUserId: "system",
           actorRole: "system",
-          action: event.type === "payment_intent.succeeded" ? "payment_captured" : "payment_failed",
+          action: isSucceeded ? "payment_captured" : "payment_failed",
           sourceFunction: "processStripeWebhook",
           targetId: doc.id,
           metadata: { providerPaymentIntentId: intent.id, eventType: event.type },
         });
+        // 🔒 BLOC I (observabilité) — event.id (provider_event_id) sert de
+        // correlation ID métier pour ce webhook, cohérent avec le log
+        // principal `stripe_webhook_processing` ci-dessous.
+        if (isSucceeded) {
+          logFinancialSuccess(
+            "payment_captured",
+            branchStartedAt,
+            { missionId: relatedMissionId, paymentId: doc.id, providerEventId: event.id },
+            { correlationId: event.id, metadata: { eventType: event.type } }
+          );
+        } else {
+          logFinancialFailure(
+            "payment_failed",
+            branchStartedAt,
+            "provider_payment_failed",
+            { missionId: relatedMissionId, paymentId: doc.id, providerEventId: event.id },
+            { correlationId: event.id, metadata: { eventType: event.type } }
+          );
+        }
       }
       break;
     }
@@ -120,6 +146,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
     // ---- Refund : confirmation succès/échec côté provider ----
     case "charge.refund.updated":
     case "refund.updated": {
+      const branchStartedAt = startFinancialOperationTimer();
       const refundObj = event.data.object as Stripe.Refund;
       const providerPaymentIntentId =
         typeof refundObj.payment_intent === "string"
@@ -156,12 +183,39 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         targetId: relatedRefundId ?? refundObj.id,
         metadata: { providerRefundId: refundObj.id, status: refundObj.status },
       });
+      if (refundObj.status === "succeeded") {
+        logFinancialSuccess(
+          "refund_succeeded",
+          branchStartedAt,
+          {
+            missionId: relatedMissionId,
+            paymentId: relatedPaymentId,
+            refundId: relatedRefundId,
+            providerEventId: event.id,
+          },
+          { correlationId: event.id, metadata: { eventType: event.type } }
+        );
+      } else {
+        logFinancialFailure(
+          "refund_failed",
+          branchStartedAt,
+          "provider_refund_failed",
+          {
+            missionId: relatedMissionId,
+            paymentId: relatedPaymentId,
+            refundId: relatedRefundId,
+            providerEventId: event.id,
+          },
+          { correlationId: event.id, metadata: { eventType: event.type, status: refundObj.status } }
+        );
+      }
       break;
     }
 
     // ---- Payout : succès/échec du versement chauffeur ----
     case "payout.paid":
     case "payout.failed": {
+      const branchStartedAt = startFinancialOperationTimer();
       const payout = event.data.object as Stripe.Payout;
       const payoutSnap = await db
         .collection("driver_payouts")
@@ -185,6 +239,22 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         targetId: relatedPayoutId ?? payout.id,
         metadata: { providerPayoutId: payout.id, status: payout.status },
       });
+      if (event.type === "payout.paid") {
+        logFinancialSuccess(
+          "payout_paid",
+          branchStartedAt,
+          { payoutId: relatedPayoutId, providerEventId: event.id },
+          { correlationId: event.id, metadata: { eventType: event.type } }
+        );
+      } else {
+        logFinancialFailure(
+          "payout_failed",
+          branchStartedAt,
+          "provider_payout_failed",
+          { payoutId: relatedPayoutId, providerEventId: event.id },
+          { correlationId: event.id, metadata: { eventType: event.type, status: payout.status } }
+        );
+      }
       break;
     }
 
@@ -387,6 +457,27 @@ export const processStripeWebhook = onRequest(
         },
       });
 
+      // 🔒 BLOC I (observabilité) — log de synthèse TOUJOURS émis pour
+      // reconstruire : webhook reçu -> event vérifié -> opération métier
+      // exécutée -> résultat. `provider_event_id` (event.id) sert de
+      // correlation ID métier principal, cohérent avec les logs de
+      // branche déjà émis dans dispatchStripeEvent() (payment_captured,
+      // refund_succeeded, payout_paid, dispute_*, etc.) et avec l'audit
+      // `writeAuditLog` ci-dessus (déjà en place, non modifié).
+      logFinancialSuccess(
+        "stripe_webhook_processing",
+        startedAt,
+        {
+          providerEventId: event.id,
+          missionId: related.relatedMissionId,
+          paymentId: related.relatedPaymentId,
+          refundId: related.relatedRefundId,
+          payoutId: related.relatedPayoutId,
+          disputeId: related.relatedDisputeId,
+        },
+        { correlationId: event.id, metadata: { eventType: event.type } }
+      );
+
       response.status(200).send({ received: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -414,6 +505,18 @@ export const processStripeWebhook = onRequest(
           errorMessage: message,
         },
       });
+
+      // 🔒 BLOC I (observabilité) — même schéma que la branche succès :
+      // le correlation ID reste event.id même en échec, pour permettre
+      // de retrouver TOUS les logs (branches + synthèse) d'un même
+      // évènement Stripe, y compris à travers des retries.
+      logFinancialFailure(
+        "stripe_webhook_processing",
+        startedAt,
+        "webhook_dispatch_failed",
+        { providerEventId: event.id },
+        { correlationId: event.id, message, metadata: { eventType: event.type } }
+      );
 
       // 🔒 500 explicite => Stripe RETENTE automatiquement cet évènement
       // (comportement standard webhooks Stripe sur échec serveur). Le

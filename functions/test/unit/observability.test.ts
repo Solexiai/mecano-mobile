@@ -363,3 +363,136 @@ describe("observability — API sucre syntaxique (logFinancialSuccess / logFinan
     expect(entry.metadata?.stripeSecretKey).toBe("[REDACTED]");
   });
 });
+
+describe("observability — webhook : correlation ID et provider_event_id", () => {
+  it("propage event.id à la fois comme correlation_id ET comme provider_event_id (pattern processStripeWebhook.ts)", () => {
+    const stripeEventId = "evt_1NxYzAbCdEfGhIjK";
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialSuccess(
+      "stripe_webhook_processing",
+      startedAt,
+      { providerEventId: stripeEventId, missionId: "mission_1", paymentId: "pay_1" },
+      { correlationId: stripeEventId, metadata: { eventType: "payment_intent.succeeded" } }
+    );
+    expect(entry.correlation_id).toBe(stripeEventId);
+    expect(entry.provider_event_id).toBe(stripeEventId);
+  });
+
+  it("conserve provider_event_id même en cas de failure webhook (retry Stripe traçable)", () => {
+    const stripeEventId = "evt_failed_case_1";
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialFailure(
+      "stripe_webhook_processing",
+      startedAt,
+      "webhook_dispatch_failed",
+      { providerEventId: stripeEventId },
+      { correlationId: stripeEventId, message: "dispatch error" }
+    );
+    expect(entry.result).toBe("failure");
+    expect(entry.provider_event_id).toBe(stripeEventId);
+    expect(entry.correlation_id).toBe(stripeEventId);
+    expect(entry.error_code).toBe("webhook_dispatch_failed");
+  });
+
+  it("branche métier interne (ex: payment_captured) partage le même correlation_id que le log de synthèse webhook", () => {
+    const stripeEventId = "evt_shared_corr_1";
+    const startedAt = startFinancialOperationTimer();
+    const branchEntry = logFinancialSuccess(
+      "payment_captured",
+      startedAt,
+      { paymentId: "pay_1", providerEventId: stripeEventId },
+      { correlationId: stripeEventId }
+    );
+    const summaryEntry = logFinancialSuccess(
+      "stripe_webhook_processing",
+      startedAt,
+      { providerEventId: stripeEventId },
+      { correlationId: stripeEventId }
+    );
+    expect(branchEntry.correlation_id).toBe(summaryEntry.correlation_id);
+  });
+});
+
+describe("observability — réconciliation : usage du correlation ID", () => {
+  it("logFinancialSuccess pour reconciliation_run accepte et conserve un correlation_id propagé depuis l'appelant", () => {
+    const propagatedCorrelationId = "reconciliation_run_from_caller_123";
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialSuccess(
+      "reconciliation_run",
+      startedAt,
+      {},
+      { correlationId: propagatedCorrelationId, metadata: { reportId: "report_1", anomalyCount: 0 } }
+    );
+    expect(entry.correlation_id).toBe(propagatedCorrelationId);
+    expect(entry.result).toBe("success");
+  });
+
+  it("reconciliation_anomaly_detected est une structure failure avec error_code dédié, sans dupliquer les anomalies brutes", () => {
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialFailure(
+      "reconciliation_anomaly_detected",
+      startedAt,
+      "anomalies_detected",
+      {},
+      {
+        correlationId: "reconciliation_run_2",
+        metadata: { reportId: "report_2", anomalyCount: 3, anomalyTypes: ["payment_amount_mismatch"] },
+      }
+    );
+    expect(entry.result).toBe("failure");
+    expect(entry.error_code).toBe("anomalies_detected");
+    expect(entry.metadata?.anomalyCount).toBe(3);
+    // Le résumé ne doit contenir que des types/compteurs, jamais le détail complet.
+    expect(entry.metadata).not.toHaveProperty("anomalies");
+  });
+
+  it("reconciliation_run failure (chemin d'échec réel) produit result=failure + error_code cohérents", () => {
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialFailure(
+      "reconciliation_run",
+      startedAt,
+      "reconciliation_failed",
+      {},
+      { correlationId: "reconciliation_error_case", message: "PaymentProvider unavailable" }
+    );
+    expect(entry.result).toBe("failure");
+    expect(entry.error_code).toBe("reconciliation_failed");
+    expect(typeof entry.duration_ms).toBe("number");
+  });
+});
+
+describe("observability — cohérence structurelle success/failure (rappel transverse)", () => {
+  it("une entrée success n'a jamais error_code, une entrée failure l'a toujours", () => {
+    const startedAt = startFinancialOperationTimer();
+    const success = logFinancialSuccess("financial_adjustment_created", startedAt, { missionId: "m1" });
+    const failure = logFinancialFailure(
+      "financial_adjustment_created",
+      startedAt,
+      "ledger_entry_creation_failed",
+      { missionId: "m1" }
+    );
+    expect(success.error_code).toBeUndefined();
+    expect(failure.error_code).toBe("ledger_entry_creation_failed");
+    expect(success.result).toBe("success");
+    expect(failure.result).toBe("failure");
+  });
+
+  it("les metadata sensibles restent supprimées même dans un scénario d'intégration réaliste (webhook + secret Stripe accidentel)", () => {
+    const startedAt = startFinancialOperationTimer();
+    const entry = logFinancialSuccess(
+      "payout_paid",
+      startedAt,
+      { payoutId: "payout_9", providerEventId: "evt_9" },
+      {
+        correlationId: "evt_9",
+        metadata: {
+          status: "paid",
+          // Fuite accidentelle simulée d'un objet provider complet.
+          rawPayload: { id: "po_9", destination: "ba_123", api_key: "sk_live_leak" },
+        },
+      }
+    );
+    expect(entry.metadata?.status).toBe("paid");
+    expect(entry.metadata?.rawPayload).toBe("[REDACTED]");
+  });
+});

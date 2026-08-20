@@ -46,6 +46,12 @@ import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { computeMissionFinancialBalance } from "./missionFinancialBalance";
 import { subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "./money";
 import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "./observability";
+import {
   DriverPayoutDoc,
   PaymentDoc,
   PayoutStatuses,
@@ -76,6 +82,12 @@ export type ReconciliationAnomalyType =
 export interface RunReconciliationParams {
   periodStartMillis: number;
   periodEndMillis: number;
+  /**
+   * Identifiant de corrélation optionnel, propagé depuis l'appelant
+   * (runReconciliationNow/runDailyReconciliation). Purement traçabilité
+   * (BLOC I observabilité) — jamais utilisé pour la logique métier.
+   */
+  correlationId?: string;
 }
 
 export interface RunReconciliationResult {
@@ -109,17 +121,41 @@ export async function runReconciliation(
   params: RunReconciliationParams
 ): Promise<RunReconciliationResult> {
   const { periodStartMillis, periodEndMillis } = params;
+  const correlationId = resolveCorrelationId(params.correlationId);
+  const operationStartedAt = startFinancialOperationTimer();
+
   if (!Number.isFinite(periodStartMillis) || !Number.isFinite(periodEndMillis)) {
-    throw new Error("periodStartMillis/periodEndMillis doivent être des nombres valides.");
+    const err = new Error("periodStartMillis/periodEndMillis doivent être des nombres valides.");
+    logFinancialFailure(
+      "reconciliation_run",
+      operationStartedAt,
+      "invalid_period",
+      {},
+      { correlationId, message: err.message }
+    );
+    throw err;
   }
   if (periodEndMillis <= periodStartMillis) {
-    throw new Error("periodEndMillis doit être strictement supérieur à periodStartMillis.");
+    const err = new Error("periodEndMillis doit être strictement supérieur à periodStartMillis.");
+    logFinancialFailure(
+      "reconciliation_run",
+      operationStartedAt,
+      "invalid_period",
+      {},
+      { correlationId, message: err.message }
+    );
+    throw err;
   }
 
   const now = admin.firestore.Timestamp.now();
   const periodStart = admin.firestore.Timestamp.fromMillis(periodStartMillis);
   const periodEnd = admin.firestore.Timestamp.fromMillis(periodEndMillis);
 
+  // 🔒 BLOC I (observabilité) — tout le corps de la réconciliation est
+  // enveloppé pour garantir un log `reconciliation_run` de failure en cas
+  // d'erreur inattendue (ex: PaymentProvider indisponible), en plus du
+  // log final success/anomaly ci-dessous en cas de complétion normale.
+  try {
   const anomalies: ReconciliationAnomaly[] = [];
   let totalPaymentsChecked = 0;
   let totalPayoutsChecked = 0;
@@ -598,7 +634,59 @@ export async function runReconciliation(
     provider_checks_skipped: providerChecksSkipped,
   });
 
+  // 🔒 BLOC I (observabilité) — log de synthèse structuré, jamais un log
+  // par anomalie (resterait lisible même avec des dizaines d'anomalies).
+  // result=success si 0 anomalie, sinon failure avec error_code dédié —
+  // le détail complet des anomalies reste dans reconciliation_reports/{id}
+  // (jamais dupliqué intégralement dans les logs).
+  if (anomalies.length === 0) {
+    logFinancialSuccess(
+      "reconciliation_run",
+      operationStartedAt,
+      {},
+      {
+        correlationId,
+        metadata: {
+          reportId: reportRef.id,
+          periodStartMillis,
+          periodEndMillis,
+          totalPaymentsChecked,
+          totalPayoutsChecked,
+          totalRefundsChecked,
+        },
+      }
+    );
+  } else {
+    logFinancialFailure(
+      "reconciliation_anomaly_detected",
+      operationStartedAt,
+      "anomalies_detected",
+      {},
+      {
+        correlationId,
+        metadata: {
+          reportId: reportRef.id,
+          periodStartMillis,
+          periodEndMillis,
+          anomalyCount: anomalies.length,
+          anomalyTypes: [...new Set(anomalies.map((a) => a.type))],
+        },
+      }
+    );
+  }
+
   return { reportId: reportRef.id, report };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "reconciliation_run",
+      operationStartedAt,
+      "reconciliation_failed",
+      {},
+      { correlationId, message, metadata: { periodStartMillis, periodEndMillis } }
+    );
+    throw err;
+  }
 }
 
 /**

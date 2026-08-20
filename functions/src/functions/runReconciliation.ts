@@ -23,6 +23,12 @@ import { invalidArgument } from "../lib/errors";
 import { writeAuditLog } from "../lib/audit";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { runReconciliation } from "../lib/reconciliationEngine";
+import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 export interface RunReconciliationNowRequest {
   periodStartMillis: number;
@@ -43,7 +49,32 @@ export const runReconciliationNow = onCall<RunReconciliationNowRequest>(
       throw invalidArgument("periodEndMillis doit être strictement supérieur à periodStartMillis.");
     }
 
-    const { reportId, report } = await runReconciliation({ periodStartMillis, periodEndMillis });
+    // 🔒 BLOC I (observabilité) — correlationId généré ici au point d'entrée
+    // admin, et PROPAGÉ au moteur (runReconciliation) pour que le log
+    // `reconciliation_run`/`reconciliation_anomaly_detected` interne au
+    // moteur partage le même correlation_id que ce log d'invocation.
+    const correlationId = resolveCorrelationId(undefined);
+    const operationStartedAt = startFinancialOperationTimer();
+
+    let reportId: string;
+    let report: Awaited<ReturnType<typeof runReconciliation>>["report"];
+    try {
+      ({ reportId, report } = await runReconciliation({
+        periodStartMillis,
+        periodEndMillis,
+        correlationId,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logFinancialFailure(
+        "run_reconciliation_now",
+        operationStartedAt,
+        "reconciliation_failed",
+        {},
+        { correlationId, message, metadata: { periodStartMillis, periodEndMillis } }
+      );
+      throw err;
+    }
 
     await writeAuditLog({
       actorUserId: ctx.uid,
@@ -58,6 +89,16 @@ export const runReconciliationNow = onCall<RunReconciliationNowRequest>(
         periodEndMillis,
       },
     });
+
+    logFinancialSuccess(
+      "run_reconciliation_now",
+      operationStartedAt,
+      {},
+      {
+        correlationId,
+        metadata: { reportId, status: report.status, anomalyCount: report.anomalies.length },
+      }
+    );
 
     return {
       success: true,
@@ -79,7 +120,30 @@ export const runDailyReconciliation = onSchedule(
     const periodEndMillis = now.toMillis();
     const periodStartMillis = periodEndMillis - 24 * 3600 * 1000;
 
-    const { reportId, report } = await runReconciliation({ periodStartMillis, periodEndMillis });
+    // 🔒 BLOC I (observabilité) — même schéma que runReconciliationNow :
+    // correlationId généré au déclenchement cron, propagé au moteur.
+    const correlationId = resolveCorrelationId(undefined);
+    const operationStartedAt = startFinancialOperationTimer();
+
+    let reportId: string;
+    let report: Awaited<ReturnType<typeof runReconciliation>>["report"];
+    try {
+      ({ reportId, report } = await runReconciliation({
+        periodStartMillis,
+        periodEndMillis,
+        correlationId,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logFinancialFailure(
+        "run_daily_reconciliation",
+        operationStartedAt,
+        "reconciliation_failed",
+        {},
+        { correlationId, message, metadata: { periodStartMillis, periodEndMillis } }
+      );
+      throw err;
+    }
 
     await writeAuditLog({
       actorUserId: "system",
@@ -95,5 +159,15 @@ export const runDailyReconciliation = onSchedule(
         periodEndMillis,
       },
     });
+
+    logFinancialSuccess(
+      "run_daily_reconciliation",
+      operationStartedAt,
+      {},
+      {
+        correlationId,
+        metadata: { reportId, status: report.status, anomalyCount: report.anomalies.length },
+      }
+    );
   }
 );
