@@ -227,21 +227,41 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
       relatedDisputeId = dispute.id;
       const mappedStatus = mapStripeDisputeStatus(dispute.status);
       if (mappedStatus) {
+        // 🔒 transitionDisputeStatus() est déjà idempotente sur une
+        // self-transition (dispute.status === newStatus => skipped=true,
+        // aucun effet dupliqué) — on peut donc l'appeler sans risque même
+        // si un webhook "updated" précédent a déjà appliqué ce même statut.
         const outcome = await transitionDisputeStatus({
           disputeId: dispute.id,
           newStatus: mappedStatus,
         });
         relatedDisputeId = outcome.disputeId;
-      } else if (event.type === "charge.dispute.closed") {
-        // Stripe peut fermer un litige avec un statut "won"/"lost" déjà
-        // traité par un évènement "updated" précédent — dans ce cas on
-        // transite explicitement vers CLOSED (clôture administrative pure,
-        // voir disputeStateMachine.ts : WON/LOST/REVERSED -> CLOSED).
+      }
+      if (event.type === "charge.dispute.closed") {
+        // 🔒 BUG CORRIGÉ : Stripe envoie `charge.dispute.closed` avec le
+        // statut FINAL déjà positionné (won/lost) — le mappedStatus
+        // ci-dessus vient donc de faire OPENED/UNDER_REVIEW -> WON|LOST
+        // (ou était déjà à ce statut). Il faut ENCORE appliquer la
+        // clôture administrative WON|LOST -> CLOSED (disputeStateMachine.ts)
+        // dans le MÊME évènement, jamais seulement quand mappedStatus est
+        // null. Idempotent : transitionDisputeStatus() no-op proprement si
+        // déjà CLOSED (self-transition), et lève une erreur explicite
+        // uniquement si le litige n'a pas encore atteint WON/LOST/REVERSED
+        // (impossible en pratique côté Stripe, mais on lit l'état réel
+        // plutôt que de supposer).
         const disputeSnap = await db.collection("disputes").doc(dispute.id).get();
         if (disputeSnap.exists) {
           const currentStatus = disputeSnap.data()?.status as DisputeStatus;
-          if (currentStatus === DisputeStatuses.WON || currentStatus === DisputeStatuses.LOST) {
-            await transitionDisputeStatus({ disputeId: dispute.id, newStatus: DisputeStatuses.CLOSED });
+          if (
+            currentStatus === DisputeStatuses.WON ||
+            currentStatus === DisputeStatuses.LOST ||
+            currentStatus === DisputeStatuses.REVERSED
+          ) {
+            const outcome = await transitionDisputeStatus({
+              disputeId: dispute.id,
+              newStatus: DisputeStatuses.CLOSED,
+            });
+            relatedDisputeId = outcome.disputeId;
           }
         }
       }
