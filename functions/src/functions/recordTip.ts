@@ -14,6 +14,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
+import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import { LedgerDirections, LedgerEntryStatuses, LedgerEntryTypes, LedgerParties, MissionStatuses, PricingVersionDoc } from "../lib/types";
 
 export interface RecordTipRequest {
@@ -92,6 +93,11 @@ export const recordTip = onCall<RecordTipRequest>(async (request) => {
       metadata: { tipAmount, driverShare },
     });
   });
+
+  // 🔒 Bloc F (point 7) : le pourboire modifie driver_earned/driver_tip_minor
+  // de mission_financial_balance — recalcul HORS transaction (lecture
+  // multi-collections, voir missionFinancialBalance.ts).
+  await recalculateMissionFinancialBalance(missionId);
 
   return { success: true, missionId, tipAmount };
 });

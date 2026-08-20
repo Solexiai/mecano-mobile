@@ -370,6 +370,12 @@ export async function captureMissionPayment(
     });
   });
 
+  // 🔒 Bloc F (point 7, directive 38 points) : mission_financial_balance
+  // reflète l'argent RÉELLEMENT capturé — recalcul HORS transaction (lecture
+  // multi-collections), y compris sur échec de capture (recalcul idempotent,
+  // sans effet si rien n'a changé côté payments/refunds/ledger/snapshots).
+  await recalculateMissionFinancialBalance(missionId);
+
   return { success: result.success, status: result.status, failureMessage: result.failureMessage };
 }
 
@@ -505,6 +511,28 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
       });
     }
   });
+
+  // 🔒 Bloc F (point 7) : un payout PAID rend `driver_paid_minor` non-nul pour
+  // CHAQUE mission dont un financial_snapshot est inclus dans ce versement —
+  // recalcul de mission_financial_balance pour toutes ces missions, HORS
+  // transaction (missionFinancialBalance.ts lit plusieurs collections).
+  if (result.success) {
+    const payoutSnapAfter = await payoutRef.get();
+    const snapshotIds: string[] = payoutSnapAfter.exists
+      ? (payoutSnapAfter.data() as DriverPayoutDoc).financial_snapshot_ids ?? []
+      : [];
+    const missionIds = new Set<string>();
+    await Promise.all(
+      snapshotIds.map(async (snapshotId) => {
+        const snapDoc = await db.collection("financial_snapshots").doc(snapshotId).get();
+        if (snapDoc.exists) {
+          const missionId = snapDoc.data()!.mission_id as string;
+          if (missionId) missionIds.add(missionId);
+        }
+      })
+    );
+    await Promise.all([...missionIds].map((mId) => recalculateMissionFinancialBalance(mId)));
+  }
 
   return {
     success: result.success,

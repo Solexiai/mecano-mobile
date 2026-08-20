@@ -16,6 +16,7 @@ import { admin, db } from "../lib/admin";
 import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
+import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import {
   LedgerDirection,
   LedgerEntryStatuses,
@@ -89,6 +90,15 @@ export const createLedgerEntry = onCall<CreateLedgerEntryRequest>(async (request
 
     return entryRef.id;
   });
+
+  // 🔒 Bloc F (point 7) : un ajustement manuel modifie adjustments_minor de
+  // mission_financial_balance — recalcul HORS transaction si missionId fourni
+  // (une entrée ledger admin peut être rattachée à une transaction globale
+  // sans mission, ex: correction comptable multi-missions — dans ce cas
+  // aucun recalcul n'est possible/pertinent ici).
+  if (input.missionId) {
+    await recalculateMissionFinancialBalance(input.missionId);
+  }
 
   return { success: true, ledgerEntryId: newEntryId };
 });
