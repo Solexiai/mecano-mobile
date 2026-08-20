@@ -48,6 +48,9 @@ export { refundPayment } from "./functions/refundPayment";
 export { updateDisputeStatus } from "./functions/updateDisputeStatus";
 export { processStripeWebhook } from "./functions/processStripeWebhook";
 
+// ---- Taxes (Phase 6, bloc E — moteur de taxes configurable) ----
+export { updateTaxConfiguration } from "./functions/updateTaxConfiguration";
+
 // ---- Commission / promotions / Founding Driver / pricing ----
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
 export { qualifyFoundingDriver, revokeFoundingDriverStatus } from "./functions/qualifyFoundingDriver";

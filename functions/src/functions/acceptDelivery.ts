@@ -40,6 +40,11 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
+import {
+  DEFAULT_JURISDICTION,
+  applyTaxSnapshotToQuote,
+  resolveAndFreezeTaxSnapshot,
+} from "../lib/taxEngine";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
@@ -105,7 +110,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
     const pricingConfig = versionSnap.data() as PricingVersionDoc;
 
-    const pricingResult = calculateCustomerQuote(pricingConfig, {
+    const flatPricingResult = calculateCustomerQuote(pricingConfig, {
       vehicleCategory: mission.required_vehicle_category,
       distanceKm: mission.distance_km,
       estimatedDurationMinutes: mission.estimated_duration_minutes,
@@ -114,6 +119,22 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       // que le snapshot final reflète EXACTEMENT le devis affiché au client.
       customerDiscountAmount: mission.customer_discount_amount ?? 0,
     });
+
+    // ---- BLOC E : moteur de taxes configurable (Phase 6, point 14/15) ----
+    // Tant qu'aucune TaxConfigDoc active n'existe pour la juridiction,
+    // `taxSnapshot` est null et `applyTaxSnapshotToQuote()` renvoie
+    // `flatPricingResult` INCHANGÉ (taux plat legacy `pricingConfig.tax_rate`)
+    // — AUCUNE régression sur les missions déjà tarifées en Phase 1-5.
+    const jurisdiction = mission.tax_jurisdiction ?? DEFAULT_JURISDICTION;
+    const taxSnapshot = await resolveAndFreezeTaxSnapshot({
+      jurisdiction,
+      taxableAmountMajor: flatPricingResult.subtotal + flatPricingResult.customerServiceFee,
+      applyToTransport: true,
+      applyToPlatformFees: true,
+      atMillis: admin.firestore.Timestamp.now().toMillis(),
+      tx,
+    });
+    const pricingResult = applyTaxSnapshotToQuote(flatPricingResult, taxSnapshot);
 
     // Résolution de commission : Founding Driver > promo > standard.
     const foundingQualSnap = await tx.get(
@@ -199,6 +220,12 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
         pricingResult.handlingFeesTotal + pricingResult.waitingFee + pricingResult.additionalStopsFee,
       customer_discount: pricingResult.customerDiscountAmount,
       customer_tax: pricingResult.taxAmount,
+      // 🔒 BLOC E — snapshot fiscal figé au moment où la mission devient
+      // contractuelle (point 15). `null` tant qu'aucune TaxConfigDoc active
+      // n'existe pour la juridiction (comportement de repli explicite, pas
+      // une pseudo-règle silencieuse — voir taxEngine.ts). Une fois écrit,
+      // ce champ n'est JAMAIS modifié même si tax_configs change ensuite.
+      tax_snapshot: taxSnapshot,
       driver_bonus: 0,
       tip_amount: 0,
       driver_net_mission_earnings: compensation.driverNetMissionEarnings,

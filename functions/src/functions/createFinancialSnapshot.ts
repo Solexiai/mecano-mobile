@@ -22,6 +22,11 @@ import {
   resolveCommission,
 } from "../lib/pricingEngine";
 import { PricingVersionDoc } from "../lib/types";
+import {
+  DEFAULT_JURISDICTION,
+  applyTaxSnapshotToQuote,
+  resolveAndFreezeTaxSnapshot,
+} from "../lib/taxEngine";
 
 export interface CreateFinancialSnapshotRequest {
   missionId: string;
@@ -66,12 +71,24 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
     if (!versionSnap.exists) throw failedPrecondition("pricing_version introuvable.");
     const pricingConfig = versionSnap.data() as PricingVersionDoc;
 
-    const pricingResult = calculateCustomerQuote(pricingConfig, {
+    const flatPricingResult = calculateCustomerQuote(pricingConfig, {
       vehicleCategory: mission.required_vehicle_category,
       distanceKm: mission.distance_km,
       estimatedDurationMinutes: mission.estimated_duration_minutes,
       customerDiscountAmount: mission.customer_discount_amount ?? 0,
     });
+
+    // ---- BLOC E : même moteur de taxes configurable que acceptDelivery.ts ----
+    const jurisdiction = mission.tax_jurisdiction ?? DEFAULT_JURISDICTION;
+    const taxSnapshot = await resolveAndFreezeTaxSnapshot({
+      jurisdiction,
+      taxableAmountMajor: flatPricingResult.subtotal + flatPricingResult.customerServiceFee,
+      applyToTransport: true,
+      applyToPlatformFees: true,
+      atMillis: admin.firestore.Timestamp.now().toMillis(),
+      tx,
+    });
+    const pricingResult = applyTaxSnapshotToQuote(flatPricingResult, taxSnapshot);
 
     const resolved = resolveCommission({
       nowMillis: Date.now(),
@@ -104,6 +121,7 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       customer_fees: pricingResult.handlingFeesTotal + pricingResult.waitingFee + pricingResult.additionalStopsFee,
       customer_discount: pricingResult.customerDiscountAmount,
       customer_tax: pricingResult.taxAmount,
+      tax_snapshot: taxSnapshot,
       driver_bonus: 0,
       tip_amount: 0,
       driver_net_mission_earnings: compensation.driverNetMissionEarnings,
