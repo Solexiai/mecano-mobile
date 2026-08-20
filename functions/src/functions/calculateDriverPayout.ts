@@ -37,12 +37,19 @@ import { writeAuditLogInTransaction } from "../lib/audit";
 import { buildIdempotencyKey } from "../lib/idempotency";
 import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  resolveCorrelationId,
+  startFinancialOperationTimer,
+} from "../lib/observability";
+import {
   DriverPayoutDoc,
   DriverProfileDoc,
   LedgerDirections,
   LedgerEntryStatuses,
   LedgerEntryTypes,
   LedgerParties,
+  PayoutStatus,
   PayoutStatuses,
 } from "../lib/types";
 import { readPayoutPolicyConfig, resolveHoldPeriodHours } from "./updatePayoutPolicyConfiguration";
@@ -57,6 +64,13 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
   requireAdminOrAbove(ctx);
   const { driverId } = request.data;
   if (!driverId) throw invalidArgument("driverId est requis.");
+
+  // 🔒 BLOC I (observabilité) — point d'entrée admin de la création d'un
+  // versement (distinct de sa SOUMISSION au fournisseur, déjà instrumentée
+  // dans submitDriverPayout()). Aucun correlationId entrant possible ici
+  // (déclenchement manuel admin) : génération systématique.
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
 
   const snapshotsQuery = await db
     .collection("financial_snapshots")
@@ -85,7 +99,10 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
   const payoutRef = db.collection("driver_payouts").doc();
   const idempotencyKey = buildIdempotencyKey("createDriverPayout", payoutRef.id);
 
-  const { payoutId, initialStatus } = await db.runTransaction(async (tx) => {
+  let payoutId: string;
+  let initialStatus: PayoutStatus;
+  try {
+    ({ payoutId, initialStatus } = await db.runTransaction(async (tx) => {
     const now = admin.firestore.Timestamp.now();
     const eligibleAtMillis = now.toMillis() + holdPeriodHours * 3600 * 1000;
     const payoutEligibleAt = admin.firestore.Timestamp.fromMillis(eligibleAtMillis);
@@ -166,7 +183,28 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
     });
 
     return { payoutId: payoutRef.id, initialStatus: initial };
-  });
+  }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "payout_creation",
+      operationStartedAt,
+      "payout_creation_failed",
+      { payoutId: payoutRef.id },
+      { correlationId, message, metadata: { driverId, amountMinor } }
+    );
+    throw err;
+  }
+
+  logFinancialSuccess(
+    "payout_creation",
+    operationStartedAt,
+    { payoutId },
+    {
+      correlationId,
+      metadata: { driverId, amountMinor, snapshotCount: eligibleSnapshots.length, initialStatus },
+    }
+  );
 
   // Si déjà ELIGIBLE (rétention nulle + compte connecté existant), on
   // déclenche immédiatement l'appel réel au fournisseur, HORS de la
