@@ -28,6 +28,7 @@ import '../screens/dashboard/provider/provider_dashboard_shell.dart';
 import '../screens/dashboard/admin/admin_dashboard_shell.dart';
 import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
+import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
 
 /// Locale-prefixed routing (/fr, /en, /es) as required for SEO-friendly
 /// multilingual URLs. The locale segment is informational for routing;
@@ -328,6 +329,11 @@ class AppRouter {
                       ),
                     ),
                   ],
+                ),
+                GoRoute(
+                  path: 'paiements',
+                  builder: (c, s) =>
+                      const AdminAuthGate(child: AdminFinanceShell()),
                 ),
               ],
             ),

@@ -14,7 +14,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/finance/models/financial_snapshot.dart';
 import 'package:movik_connect/models/enums.dart';
 
-FinancialSnapshot _buildSnapshot({required String status, DateTime? confirmedAt}) {
+FinancialSnapshot _buildSnapshot({
+  required String status,
+  DateTime? confirmedAt,
+}) {
   return FinancialSnapshot(
     snapshotId: 'snap_001',
     missionId: 'mission_001',
@@ -65,39 +68,57 @@ void main() {
       expect(snapshot.confirmedAt, isNotNull);
     });
 
-    test('tout autre statut inconnu est traité comme NON immuable (fail-safe)', () {
-      final snapshot = _buildSnapshot(status: 'refunded');
-      expect(snapshot.isImmutable, isFalse);
-    });
+    test(
+      'tout autre statut inconnu est traité comme NON immuable (fail-safe)',
+      () {
+        final snapshot = _buildSnapshot(status: 'refunded');
+        expect(snapshot.isImmutable, isFalse);
+      },
+    );
   });
 
-  group('FinancialSnapshot — round-trip de sérialisation (traçabilité, aucune perte de champ)', () {
-    test('toJson() puis fromJson() reproduit un snapshot confirmé identique', () {
-      final original = _buildSnapshot(
-        status: 'confirmed',
-        confirmedAt: DateTime(2025, 6, 15, 10, 5, 0),
+  group(
+    'FinancialSnapshot — round-trip de sérialisation (traçabilité, aucune perte de champ)',
+    () {
+      test(
+        'toJson() puis fromJson() reproduit un snapshot confirmé identique',
+        () {
+          final original = _buildSnapshot(
+            status: 'confirmed',
+            confirmedAt: DateTime(2025, 6, 15, 10, 5, 0),
+          );
+
+          final json = original.toJson();
+          final roundTripped = FinancialSnapshot.fromJson(json);
+
+          expect(roundTripped.snapshotId, original.snapshotId);
+          expect(roundTripped.missionId, original.missionId);
+          expect(roundTripped.status, original.status);
+          expect(roundTripped.isImmutable, isTrue);
+          expect(roundTripped.commissionProgram, original.commissionProgram);
+          expect(
+            roundTripped.driverNetMissionEarnings,
+            closeTo(original.driverNetMissionEarnings, 1e-9),
+          );
+          expect(
+            roundTripped.customerTotal,
+            closeTo(original.customerTotal, 1e-9),
+          );
+          expect(roundTripped.confirmedAt, original.confirmedAt);
+        },
       );
 
-      final json = original.toJson();
-      final roundTripped = FinancialSnapshot.fromJson(json);
+      test(
+        'un snapshot pending sérialisé/désérialisé reste non-confirmé et sans confirmedAt',
+        () {
+          final original = _buildSnapshot(status: 'pending');
+          final roundTripped = FinancialSnapshot.fromJson(original.toJson());
 
-      expect(roundTripped.snapshotId, original.snapshotId);
-      expect(roundTripped.missionId, original.missionId);
-      expect(roundTripped.status, original.status);
-      expect(roundTripped.isImmutable, isTrue);
-      expect(roundTripped.commissionProgram, original.commissionProgram);
-      expect(roundTripped.driverNetMissionEarnings, closeTo(original.driverNetMissionEarnings, 1e-9));
-      expect(roundTripped.customerTotal, closeTo(original.customerTotal, 1e-9));
-      expect(roundTripped.confirmedAt, original.confirmedAt);
-    });
-
-    test('un snapshot pending sérialisé/désérialisé reste non-confirmé et sans confirmedAt', () {
-      final original = _buildSnapshot(status: 'pending');
-      final roundTripped = FinancialSnapshot.fromJson(original.toJson());
-
-      expect(roundTripped.status, 'pending');
-      expect(roundTripped.isImmutable, isFalse);
-      expect(roundTripped.confirmedAt, isNull);
-    });
-  });
+          expect(roundTripped.status, 'pending');
+          expect(roundTripped.isImmutable, isFalse);
+          expect(roundTripped.confirmedAt, isNull);
+        },
+      );
+    },
+  );
 }

@@ -11,25 +11,25 @@ import 'package:movik_connect/finance/models/refund_info.dart';
 import 'package:movik_connect/models/enums.dart';
 
 Map<String, dynamic> _fullRefundJson() => {
-      'refund_id': 'refund_001',
-      'payment_id': 'payment_001',
-      'mission_id': 'mission_001',
-      'amount_minor': 2500,
-      'reason': 'customer_request',
-      'initiated_by_user_id': 'customer_001',
-      'initiated_by_role': 'customer',
-      'is_admin_initiated': false,
-      'is_post_payout': false,
-      'related_payout_id': null,
-      'status': 'succeeded',
-      'provider_refund_id': 're_123',
-      'reverse_transfer': true,
-      'refund_application_fee': false,
-      'created_at': '2025-06-16T09:00:00.000Z',
-      'processing_at': '2025-06-16T09:00:05.000Z',
-      'completed_at': '2025-06-16T09:00:10.000Z',
-      'failed_reason': null,
-    };
+  'refund_id': 'refund_001',
+  'payment_id': 'payment_001',
+  'mission_id': 'mission_001',
+  'amount_minor': 2500,
+  'reason': 'customer_request',
+  'initiated_by_user_id': 'customer_001',
+  'initiated_by_role': 'customer',
+  'is_admin_initiated': false,
+  'is_post_payout': false,
+  'related_payout_id': null,
+  'status': 'succeeded',
+  'provider_refund_id': 're_123',
+  'reverse_transfer': true,
+  'refund_application_fee': false,
+  'created_at': '2025-06-16T09:00:00.000Z',
+  'processing_at': '2025-06-16T09:00:05.000Z',
+  'completed_at': '2025-06-16T09:00:10.000Z',
+  'failed_reason': null,
+};
 
 void main() {
   group('RefundInfo.fromJson — document complet', () {
@@ -69,7 +69,11 @@ void main() {
       };
       for (final entry in values.entries) {
         final json = _fullRefundJson()..['status'] = entry.key;
-        expect(RefundInfo.fromJson(json).status, entry.value, reason: entry.key);
+        expect(
+          RefundInfo.fromJson(json).status,
+          entry.value,
+          reason: entry.key,
+        );
       }
     });
 
@@ -87,7 +91,11 @@ void main() {
       };
       for (final entry in values.entries) {
         final json = _fullRefundJson()..['reason'] = entry.key;
-        expect(RefundInfo.fromJson(json).reason, entry.value, reason: entry.key);
+        expect(
+          RefundInfo.fromJson(json).reason,
+          entry.value,
+          reason: entry.key,
+        );
       }
     });
 
@@ -107,24 +115,27 @@ void main() {
   });
 
   group('RefundInfo.fromJson — rétro-compatibilité (champs absents)', () {
-    test('un document minimal ne plante pas et retombe sur des valeurs sûres', () {
-      final refund = RefundInfo.fromJson(const {
-        'refund_id': 'refund_old',
-        'payment_id': 'payment_old',
-        'mission_id': 'mission_old',
-        'amount_minor': 1000,
-      });
+    test(
+      'un document minimal ne plante pas et retombe sur des valeurs sûres',
+      () {
+        final refund = RefundInfo.fromJson(const {
+          'refund_id': 'refund_old',
+          'payment_id': 'payment_old',
+          'mission_id': 'mission_old',
+          'amount_minor': 1000,
+        });
 
-      expect(refund.refundId, 'refund_old');
-      expect(refund.status, RefundStatus.requested); // valeur de repli
-      expect(refund.reason, RefundReason.administrative); // valeur de repli
-      expect(refund.isAdminInitiated, isFalse);
-      expect(refund.isPostPayout, isFalse);
-      expect(refund.relatedPayoutId, isNull);
-      expect(refund.processingAt, isNull);
-      expect(refund.completedAt, isNull);
-      expect(refund.failedReason, isNull);
-    });
+        expect(refund.refundId, 'refund_old');
+        expect(refund.status, RefundStatus.requested); // valeur de repli
+        expect(refund.reason, RefundReason.administrative); // valeur de repli
+        expect(refund.isAdminInitiated, isFalse);
+        expect(refund.isPostPayout, isFalse);
+        expect(refund.relatedPayoutId, isNull);
+        expect(refund.processingAt, isNull);
+        expect(refund.completedAt, isNull);
+        expect(refund.failedReason, isNull);
+      },
+    );
 
     test('un JSON totalement vide ne plante jamais (fail-safe absolu)', () {
       expect(() => RefundInfo.fromJson(const {}), returnsNormally);
