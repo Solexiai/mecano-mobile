@@ -401,9 +401,35 @@ extension LedgerEntryStatusX on LedgerEntryStatus {
 
 // =====================================================================
 // PAYMENT
+//
+// Machine d'état COMPLÈTE alignée sur `PaymentStatuses` dans
+// `functions/src/lib/types.ts` (Phase 6, directive 38 points) :
+//   created -> requiresPaymentMethod -> authorizationPending -> authorized
+//   authorized -> capturePending -> captured
+//   authorized -> cancelled | failed
+//   captured -> partiallyRefunded -> refunded
+//   captured -> refunded
+//   captured | partiallyRefunded -> disputed -> chargeback
+// `pending` est CONSERVÉ comme valeur de repli historique (`orElse` de
+// `fromFirestoreValue`) pour la rétro-compatibilité de code existant, mais
+// ne correspond à AUCUNE valeur `PaymentStatuses` réelle côté serveur.
 // =====================================================================
 
-enum PaymentStatus { pending, authorized, captured, failed, refunded, partiallyRefunded, disputed }
+enum PaymentStatus {
+  pending, // repli historique uniquement — jamais écrit par le serveur
+  created,
+  requiresPaymentMethod,
+  authorizationPending,
+  authorized,
+  capturePending,
+  captured,
+  failed,
+  cancelled,
+  refunded,
+  partiallyRefunded,
+  disputed,
+  chargeback,
+}
 
 extension PaymentStatusX on PaymentStatus {
   String get firestoreValue => _camelToSnake(name);
@@ -411,6 +437,45 @@ extension PaymentStatusX on PaymentStatus {
   static PaymentStatus fromFirestoreValue(String? value) => PaymentStatus.values.firstWhere(
         (s) => s.firestoreValue == value,
         orElse: () => PaymentStatus.pending,
+      );
+}
+
+// =====================================================================
+// REFUND — aligné sur `RefundStatuses`/`RefundReasons` dans
+// `functions/src/lib/types.ts` (Phase 6, directive 38 points).
+//   REQUESTED -> PROCESSING -> SUCCEEDED
+//   REQUESTED -> PROCESSING -> FAILED
+// =====================================================================
+
+enum RefundStatus { requested, processing, succeeded, failed }
+
+extension RefundStatusX on RefundStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static RefundStatus fromFirestoreValue(String? value) => RefundStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => RefundStatus.requested,
+      );
+}
+
+enum RefundReason {
+  customerRequest,
+  cancelledBeforePickup,
+  cancelledAfterPickup,
+  paymentError,
+  goodwill,
+  administrative,
+  missionImpossible,
+  partialDelivery,
+  noShow,
+}
+
+extension RefundReasonX on RefundReason {
+  String get firestoreValue => _camelToSnake(name);
+
+  static RefundReason fromFirestoreValue(String? value) => RefundReason.values.firstWhere(
+        (r) => r.firestoreValue == value,
+        orElse: () => RefundReason.administrative,
       );
 }
 

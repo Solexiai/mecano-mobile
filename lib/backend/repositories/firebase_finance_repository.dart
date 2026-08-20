@@ -40,6 +40,9 @@ import '../../models/enums.dart';
 import '../../finance/models/pricing_config.dart';
 import '../../finance/models/financial_snapshot.dart';
 import '../../finance/models/transaction_ledger.dart';
+import '../../finance/models/payment_info.dart';
+import '../../finance/models/refund_info.dart';
+import '../../finance/models/mission_financial_balance.dart';
 import 'finance_repository.dart';
 
 class FirebaseFinanceRepository implements FinanceRepository {
@@ -58,6 +61,12 @@ class FirebaseFinanceRepository implements FinanceRepository {
       _db.collection('financial_snapshots');
   CollectionReference<Map<String, dynamic>> get _ledger =>
       _db.collection('transaction_ledger');
+  CollectionReference<Map<String, dynamic>> get _payments =>
+      _db.collection('payments');
+  CollectionReference<Map<String, dynamic>> get _refunds =>
+      _db.collection('refunds');
+  CollectionReference<Map<String, dynamic>> get _missionFinancialBalance =>
+      _db.collection('mission_financial_balance');
 
   Future<String?> _readActivePricingVersion() async {
     final snap = await _pricingConfigs.doc('active').get();
@@ -162,6 +171,56 @@ class FirebaseFinanceRepository implements FinanceRepository {
       }
       entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return entries;
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // Bloc J — UI financière client (Phase 6).
+  //
+  // Même pattern "pointeur puis lecture directe par ID" que
+  // `watchFinancialSnapshot()` ci-dessus : `delivery_requests/{missionId}`
+  // porte `active_payment_id` (dénormalisé par createAndAuthorizeMissionPayment,
+  // voir payment/paymentOrchestration.ts), on bascule donc l'écoute sur
+  // `payments/{id}` par ID direct — aucun index composite requis.
+  // -------------------------------------------------------------------
+
+  @override
+  Stream<PaymentInfo?> watchPaymentForMission(String missionId) {
+    return _missions.doc(missionId).snapshots().asyncExpand((missionSnap) {
+      final paymentId = (missionSnap.exists && missionSnap.data() != null)
+          ? missionSnap.data()!['active_payment_id'] as String?
+          : null;
+      if (paymentId == null) return Stream.value(null);
+      return _payments.doc(paymentId).snapshots().map((snap) {
+        if (!snap.exists || snap.data() == null) return null;
+        return PaymentInfo.fromJson(snap.data()!);
+      });
+    });
+  }
+
+  // `refunds/{id}` porte un champ `mission_id` direct (voir RefundDoc) —
+  // requête simple `.where('mission_id', isEqualTo: ...)` puis tri en
+  // mémoire, cohérent avec `watchLedgerEntriesForMission()` ci-dessus
+  // (aucun index composite mission_id+created_at n'existe pour `refunds`
+  // dans firestore.indexes.json, donc pas de `.orderBy()` ici non plus).
+  @override
+  Stream<List<RefundInfo>> watchRefundsForMission(String missionId) {
+    return _refunds.where('mission_id', isEqualTo: missionId).snapshots().map((snap) {
+      final refunds = snap.docs.map((d) => RefundInfo.fromJson(d.data())).toList();
+      refunds.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return refunds;
+    });
+  }
+
+  // `mission_financial_balance/{missionId}` — l'ID de document EST le
+  // missionId (voir recalculateMissionFinancialBalance() côté serveur,
+  // `db.collection("mission_financial_balance").doc(missionId).set(...)`),
+  // donc lecture directe par ID, aucune requête nécessaire.
+  @override
+  Stream<MissionFinancialBalance?> watchMissionFinancialBalance(String missionId) {
+    return _missionFinancialBalance.doc(missionId).snapshots().map((snap) {
+      if (!snap.exists || snap.data() == null) return null;
+      return MissionFinancialBalance.fromJson(missionId, snap.data()!);
     });
   }
 

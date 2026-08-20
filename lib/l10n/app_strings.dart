@@ -1072,6 +1072,45 @@ class AppStrings {
       'en': 'You are offline',
       'es': 'Está desconectado',
     },
+
+    // ---------- Bloc J — Finance client (Phase 6) ----------
+    'finance_section_title': {'fr': 'Détails financiers', 'en': 'Financial details', 'es': 'Detalles financieros'},
+    'finance_summary_title': {'fr': 'Résumé', 'en': 'Summary', 'es': 'Resumen'},
+    'finance_summary_mission_price': {'fr': 'Prix de la mission', 'en': 'Mission price', 'es': 'Precio de la misión'},
+    'finance_summary_fees': {'fr': 'Frais', 'en': 'Fees', 'es': 'Cargos'},
+    'finance_summary_taxes': {'fr': 'Taxes', 'en': 'Taxes', 'es': 'Impuestos'},
+    'finance_summary_tip': {'fr': 'Pourboire', 'en': 'Tip', 'es': 'Propina'},
+    'finance_summary_total': {'fr': 'Total', 'en': 'Total', 'es': 'Total'},
+    'finance_payment_title': {'fr': 'Paiement', 'en': 'Payment', 'es': 'Pago'},
+    'finance_payment_authorized_amount': {'fr': 'Montant autorisé', 'en': 'Authorized amount', 'es': 'Monto autorizado'},
+    'finance_payment_captured_amount': {'fr': 'Montant capturé', 'en': 'Captured amount', 'es': 'Monto capturado'},
+    'finance_payment_date': {'fr': 'Date', 'en': 'Date', 'es': 'Fecha'},
+    'finance_payment_none': {'fr': 'Aucun paiement enregistré pour cette mission.', 'en': 'No payment recorded for this mission.', 'es': 'No hay ningún pago registrado para esta misión.'},
+    'finance_refund_title': {'fr': 'Remboursement', 'en': 'Refund', 'es': 'Reembolso'},
+    'finance_refund_none': {'fr': 'Aucun remboursement', 'en': 'No refund', 'es': 'Sin reembolso'},
+    'finance_refund_partial': {'fr': 'Remboursement partiel', 'en': 'Partial refund', 'es': 'Reembolso parcial'},
+    'finance_refund_full': {'fr': 'Remboursé', 'en': 'Refunded', 'es': 'Reembolsado'},
+    'finance_refund_amount': {'fr': 'Montant remboursé', 'en': 'Refunded amount', 'es': 'Monto reembolsado'},
+    'finance_history_title': {'fr': 'Historique', 'en': 'History', 'es': 'Historial'},
+    'finance_history_empty': {'fr': 'Aucun mouvement à afficher.', 'en': 'No activity to display.', 'es': 'No hay movimientos para mostrar.'},
+    'finance_loading': {'fr': 'Chargement des données financières…', 'en': 'Loading financial data…', 'es': 'Cargando datos financieros…'},
+    'finance_error': {'fr': 'Impossible de charger les données financières.', 'en': 'Unable to load financial data.', 'es': 'No se pudieron cargar los datos financieros.'},
+    'finance_receipt_title': {'fr': 'Reçu', 'en': 'Receipt', 'es': 'Recibo'},
+    'finance_receipt_final_balance': {'fr': 'Solde final', 'en': 'Final balance', 'es': 'Saldo final'},
+    'finance_view_receipt': {'fr': 'Voir le reçu', 'en': 'View receipt', 'es': 'Ver recibo'},
+
+    // Statuts client (Bloc J point 9) — clés i18n dédiées, indépendantes de
+    // `PaymentStatus` Dart (mapping fait par `PaymentDisplayStatus`, voir
+    // lib/finance/presentation/payment_display_status.dart), afin de rester
+    // compatible avec le futur Bloc M (i18n) sans dépendre de la machine
+    // d'état interne complète (created/authorization_pending/etc. sont
+    // regroupés en un nombre réduit d'états compréhensibles pour un client).
+    'finance_status_pending': {'fr': 'Paiement en attente', 'en': 'Payment pending', 'es': 'Pago pendiente'},
+    'finance_status_authorized': {'fr': 'Paiement autorisé', 'en': 'Payment authorized', 'es': 'Pago autorizado'},
+    'finance_status_confirmed': {'fr': 'Paiement confirmé', 'en': 'Payment confirmed', 'es': 'Pago confirmado'},
+    'finance_status_failed': {'fr': 'Paiement échoué', 'en': 'Payment failed', 'es': 'Pago fallido'},
+    'finance_status_partially_refunded': {'fr': 'Remboursement partiel', 'en': 'Partially refunded', 'es': 'Reembolso parcial'},
+    'finance_status_refunded': {'fr': 'Remboursé', 'en': 'Refunded', 'es': 'Reembolsado'},
   };
 
   static String t(String key, String locale) {

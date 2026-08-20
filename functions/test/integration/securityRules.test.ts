@@ -322,6 +322,211 @@ describe("Security Rules — financial_snapshots/{id} : immutabilité", () => {
 });
 
 // -----------------------------------------------------------------------
+// BLOC J — payments/{id} & refunds/{id} : vérification ciblée (lecture
+// propriétaire uniquement, aucune écriture cliente). Couverture minimale
+// demandée pour le Bloc J — la couverture EXHAUSTIVE (tous rôles, tous
+// champs) reste du ressort du Bloc T.
+// -----------------------------------------------------------------------
+describe("Security Rules — payments/{paymentId} : lecture propriétaire uniquement (Bloc J)", () => {
+  it("le customer propriétaire du paiement peut le lire", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_001"), {
+        payment_id: "payment_j_001",
+        mission_id: "mission_j_001",
+        customer_id: "customer_j_001",
+        driver_id: "driver_j_001",
+        status: "captured",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("customer_j_001", { role: "customer" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "payments/payment_j_001")));
+  });
+
+  it("un autre client (non propriétaire) ne peut PAS lire ce paiement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_002"), {
+        payment_id: "payment_j_002",
+        mission_id: "mission_j_002",
+        customer_id: "customer_j_001",
+        driver_id: "driver_j_001",
+        status: "captured",
+      });
+    });
+
+    const stranger = testEnv.authenticatedContext("customer_j_999", { role: "customer" });
+    await assertFails(getDoc(doc(stranger.firestore(), "payments/payment_j_002")));
+  });
+
+  it("un utilisateur NON authentifié ne peut PAS lire un paiement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_003"), {
+        payment_id: "payment_j_003",
+        mission_id: "mission_j_003",
+        customer_id: "customer_j_001",
+        driver_id: "driver_j_001",
+        status: "authorized",
+      });
+    });
+
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "payments/payment_j_003")));
+  });
+
+  it("le client propriétaire ne peut PAS écrire/modifier son propre document de paiement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_004"), {
+        payment_id: "payment_j_004",
+        mission_id: "mission_j_004",
+        customer_id: "customer_j_001",
+        driver_id: "driver_j_001",
+        status: "authorized",
+        amount_captured_minor: 0,
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("customer_j_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "payments/payment_j_004"), {
+        amount_captured_minor: 999999,
+      })
+    );
+  });
+});
+
+describe("Security Rules — refunds/{refundId} : lecture propriétaire uniquement (Bloc J)", () => {
+  it("le customer propriétaire du paiement lié peut lire le refund", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_010"), {
+        payment_id: "payment_j_010",
+        mission_id: "mission_j_010",
+        customer_id: "customer_j_010",
+        driver_id: "driver_j_010",
+        status: "refunded",
+      });
+      await setDoc(doc(ctx.firestore(), "refunds/refund_j_010"), {
+        refund_id: "refund_j_010",
+        payment_id: "payment_j_010",
+        mission_id: "mission_j_010",
+        amount_minor: 500,
+        status: "succeeded",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("customer_j_010", { role: "customer" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "refunds/refund_j_010")));
+  });
+
+  it("un autre client (non propriétaire du paiement lié) ne peut PAS lire ce refund", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_011"), {
+        payment_id: "payment_j_011",
+        mission_id: "mission_j_011",
+        customer_id: "customer_j_010",
+        driver_id: "driver_j_010",
+        status: "refunded",
+      });
+      await setDoc(doc(ctx.firestore(), "refunds/refund_j_011"), {
+        refund_id: "refund_j_011",
+        payment_id: "payment_j_011",
+        mission_id: "mission_j_011",
+        amount_minor: 500,
+        status: "succeeded",
+      });
+    });
+
+    const stranger = testEnv.authenticatedContext("customer_j_999", { role: "customer" });
+    await assertFails(getDoc(doc(stranger.firestore(), "refunds/refund_j_011")));
+  });
+
+  it("un utilisateur NON authentifié ne peut PAS lire un refund", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_012"), {
+        payment_id: "payment_j_012",
+        mission_id: "mission_j_012",
+        customer_id: "customer_j_010",
+        driver_id: "driver_j_010",
+        status: "refunded",
+      });
+      await setDoc(doc(ctx.firestore(), "refunds/refund_j_012"), {
+        refund_id: "refund_j_012",
+        payment_id: "payment_j_012",
+        mission_id: "mission_j_012",
+        amount_minor: 500,
+        status: "succeeded",
+      });
+    });
+
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "refunds/refund_j_012")));
+  });
+
+  it("le client propriétaire ne peut PAS écrire/modifier un refund existant", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "payments/payment_j_013"), {
+        payment_id: "payment_j_013",
+        mission_id: "mission_j_013",
+        customer_id: "customer_j_010",
+        driver_id: "driver_j_010",
+        status: "refunded",
+      });
+      await setDoc(doc(ctx.firestore(), "refunds/refund_j_013"), {
+        refund_id: "refund_j_013",
+        payment_id: "payment_j_013",
+        mission_id: "mission_j_013",
+        amount_minor: 500,
+        status: "succeeded",
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("customer_j_010", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "refunds/refund_j_013"), { amount_minor: 999999 })
+    );
+  });
+});
+
+describe("Security Rules — mission_financial_balance/{missionId} : lecture client/chauffeur propriétaires (Bloc J)", () => {
+  it("le customer de la mission peut lire son solde financier", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/mission_j_020"), {
+        customer_id: "customer_j_020",
+        driver_id: "driver_j_020",
+        status: "completed",
+      });
+      await setDoc(doc(ctx.firestore(), "mission_financial_balance/mission_j_020"), {
+        mission_id: "mission_j_020",
+        customer_charged_minor: 5000,
+      });
+    });
+
+    const owner = testEnv.authenticatedContext("customer_j_020", { role: "customer" });
+    await assertSucceeds(
+      getDoc(doc(owner.firestore(), "mission_financial_balance/mission_j_020"))
+    );
+  });
+
+  it("un tiers sans lien avec la mission ne peut PAS lire ce solde financier", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/mission_j_021"), {
+        customer_id: "customer_j_020",
+        driver_id: "driver_j_020",
+        status: "completed",
+      });
+      await setDoc(doc(ctx.firestore(), "mission_financial_balance/mission_j_021"), {
+        mission_id: "mission_j_021",
+        customer_charged_minor: 5000,
+      });
+    });
+
+    const stranger = testEnv.authenticatedContext("customer_j_999", { role: "customer" });
+    await assertFails(
+      getDoc(doc(stranger.firestore(), "mission_financial_balance/mission_j_021"))
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
 // transaction_ledger/{id} — APPEND-ONLY, tentative d'ajout/modification
 // -----------------------------------------------------------------------
 describe("Security Rules — transaction_ledger/{id} : append-only, aucune écriture cliente", () => {
