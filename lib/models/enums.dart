@@ -507,6 +507,90 @@ extension PayoutStatusX on PayoutStatus {
       );
 }
 
+// =====================================================================
+// DISPUTE — aligné sur `DisputeStatuses` dans `functions/src/lib/types.ts`
+// (Phase 6, directive 38 points, `DisputeDoc`). `closed` est un statut
+// terminal ADMINISTRATIF distinct de won/lost/reversed (voir
+// updateDisputeStatus.ts) : won/lost/reversed décrivent l'ISSUE du litige
+// provider, closed décrit la clôture du dossier côté Movi-K.
+// =====================================================================
+
+enum DisputeStatus { opened, underReview, won, lost, reversed, closed }
+
+extension DisputeStatusX on DisputeStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static DisputeStatus fromFirestoreValue(String? value) =>
+      DisputeStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => DisputeStatus.opened,
+      );
+}
+
+// =====================================================================
+// RECONCILIATION — aligné sur `ReconciliationStatuses` (rapport global) et
+// les statuts d'anomalie individuelle (`ReconciliationAnomaly.status`) dans
+// `functions/src/lib/types.ts` (Bloc G, Phase 6, directive 38 points).
+// =====================================================================
+
+enum ReconciliationStatus { ok, anomaly, pending }
+
+extension ReconciliationStatusX on ReconciliationStatus {
+  String get firestoreValue => _camelToSnake(name);
+
+  static ReconciliationStatus fromFirestoreValue(String? value) =>
+      ReconciliationStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => ReconciliationStatus.pending,
+      );
+}
+
+/// Sévérité d'une anomalie individuelle au sein d'un `ReconciliationReport`
+/// (`ReconciliationAnomaly.severity` côté serveur : "info"|"warning"|"critical").
+enum ReconciliationAnomalySeverity { info, warning, critical }
+
+extension ReconciliationAnomalySeverityX on ReconciliationAnomalySeverity {
+  String get firestoreValue => name; // déjà snake/flat: info|warning|critical
+
+  static ReconciliationAnomalySeverity fromFirestoreValue(String? value) =>
+      ReconciliationAnomalySeverity.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => ReconciliationAnomalySeverity.info,
+      );
+}
+
+/// Statut de résolution d'une anomalie individuelle
+/// (`ReconciliationAnomaly.status` côté serveur : "open"|"acknowledged"|"resolved").
+enum ReconciliationAnomalyStatus { open, acknowledged, resolved }
+
+extension ReconciliationAnomalyStatusX on ReconciliationAnomalyStatus {
+  String get firestoreValue => name; // déjà flat: open|acknowledged|resolved
+
+  static ReconciliationAnomalyStatus fromFirestoreValue(String? value) =>
+      ReconciliationAnomalyStatus.values.firstWhere(
+        (s) => s.firestoreValue == value,
+        orElse: () => ReconciliationAnomalyStatus.open,
+      );
+}
+
+// =====================================================================
+// TAX — aligné sur `TaxTypes` dans `functions/src/lib/types.ts` (moteur de
+// taxes configurable, Phase 6 directive 38 points). Catégorie TECHNIQUE
+// uniquement (voir directive Bloc L point 17 : ne PAS présumer de valeurs
+// fiscales réelles dans l'UI).
+// =====================================================================
+
+enum TaxType { gst, qst, hst, otherTax, taxExempt }
+
+extension TaxTypeX on TaxType {
+  String get firestoreValue => _camelToSnake(name);
+
+  static TaxType fromFirestoreValue(String? value) => TaxType.values.firstWhere(
+    (s) => s.firestoreValue == value,
+    orElse: () => TaxType.otherTax,
+  );
+}
+
 enum RefundReason {
   customerRequest,
   cancelledBeforePickup,

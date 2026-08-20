@@ -35,6 +35,7 @@
 // ---------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../models/enums.dart';
 import '../../finance/models/pricing_config.dart';
@@ -44,13 +45,30 @@ import '../../finance/models/payment_info.dart';
 import '../../finance/models/refund_info.dart';
 import '../../finance/models/mission_financial_balance.dart';
 import '../../finance/models/driver_payout_info.dart';
+import '../../finance/models/dispute_info.dart';
+import '../../finance/models/reconciliation_report.dart';
+import '../../finance/models/tax_configuration.dart';
+import '../../finance/models/payout_policy_configuration.dart';
 import 'finance_repository.dart';
 
 class FirebaseFinanceRepository implements FinanceRepository {
-  FirebaseFinanceRepository({FirebaseFirestore? firestore})
-    : _db = firestore ?? FirebaseFirestore.instance;
+  FirebaseFinanceRepository({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  }) : _db = firestore ?? FirebaseFirestore.instance,
+       _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFirestore _db;
+  final FirebaseFunctions _functions;
+
+  CollectionReference<Map<String, dynamic>> get _disputes =>
+      _db.collection('disputes');
+  CollectionReference<Map<String, dynamic>> get _reconciliationReports =>
+      _db.collection('reconciliation_reports');
+  CollectionReference<Map<String, dynamic>> get _taxConfigs =>
+      _db.collection('tax_configs');
+  CollectionReference<Map<String, dynamic>> get _payoutPolicyConfigs =>
+      _db.collection('payout_policy_configs');
 
   CollectionReference<Map<String, dynamic>> get _pricingConfigs =>
       _db.collection('pricing_configs');
@@ -282,6 +300,326 @@ class FirebaseFinanceRepository implements FinanceRepository {
               .map((d) => FinancialSnapshot.fromJson(d.data()))
               .toList(),
         );
+  }
+
+  // -------------------------------------------------------------------
+  // Bloc L — UI admin finance (Phase 6).
+  //
+  // Toutes les requêtes ci-dessous sont BORNÉES (`.limit()`), jamais un
+  // `.get()`/`.snapshots()` non borné sur une collection potentiellement
+  // volumineuse. Aucun index composite (champ_filtre + created_at)
+  // n'existe pour `payments`/`refunds`/`disputes`/`transaction_ledger`
+  // dans firestore.indexes.json (seul `driver_payouts` a
+  // `status`+`payout_eligible_at`, pas `created_at`) : lorsqu'un filtre
+  // par statut est appliqué, on utilise donc `.where(status).limit()`
+  // SEUL (pas de `.orderBy()` combiné, pour ne jamais dépendre d'un index
+  // composite absent), puis un tri en mémoire — cohérent avec la
+  // convention déjà suivie par `watchLedgerEntriesForMission()` ci-dessus.
+  // Sans filtre, `.orderBy('created_at', descending: true).limit()` seul
+  // est sûr (index à champ unique auto-créé par Firestore).
+  // -------------------------------------------------------------------
+
+  @override
+  Stream<List<PaymentInfo>> watchPayments({
+    PaymentStatus? status,
+    int limit = 50,
+  }) {
+    Query<Map<String, dynamic>> q = _payments;
+    if (status != null) {
+      q = q.where('status', isEqualTo: status.firestoreValue).limit(limit);
+    } else {
+      q = q.orderBy('created_at', descending: true).limit(limit);
+    }
+    return q.snapshots().map((snap) {
+      final items = snap.docs
+          .map((d) => PaymentInfo.fromJson(d.data()))
+          .toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
+    });
+  }
+
+  @override
+  Stream<List<RefundInfo>> watchRefunds({
+    RefundStatus? status,
+    int limit = 50,
+  }) {
+    Query<Map<String, dynamic>> q = _refunds;
+    if (status != null) {
+      q = q.where('status', isEqualTo: status.firestoreValue).limit(limit);
+    } else {
+      q = q.orderBy('created_at', descending: true).limit(limit);
+    }
+    return q.snapshots().map((snap) {
+      final items = snap.docs
+          .map((d) => RefundInfo.fromJson(d.data()))
+          .toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
+    });
+  }
+
+  /// VUE ADMIN (tous chauffeurs) — distincte de `watchPayoutsForDriver()`
+  /// (scopée à un seul chauffeur). Sans filtre de statut, `created_at`
+  /// seul est utilisé (index à champ unique). Avec filtre, l'index
+  /// composite existant `status`+`payout_eligible_at` ne couvre pas
+  /// `created_at` : on reste donc sur `.where(status).limit()` + tri
+  /// mémoire, par cohérence avec le reste de cette section.
+  @override
+  Stream<List<DriverPayoutInfo>> watchDriverPayouts({
+    PayoutStatus? status,
+    int limit = 50,
+  }) {
+    Query<Map<String, dynamic>> q = _driverPayouts;
+    if (status != null) {
+      q = q.where('status', isEqualTo: status.firestoreValue).limit(limit);
+    } else {
+      q = q.orderBy('created_at', descending: true).limit(limit);
+    }
+    return q.snapshots().map((snap) {
+      final items = snap.docs
+          .map((d) => DriverPayoutInfo.fromJson(d.id, d.data()))
+          .toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
+    });
+  }
+
+  @override
+  Stream<List<DisputeInfo>> watchDisputes({
+    DisputeStatus? status,
+    int limit = 50,
+  }) {
+    Query<Map<String, dynamic>> q = _disputes;
+    if (status != null) {
+      q = q.where('status', isEqualTo: status.firestoreValue).limit(limit);
+    } else {
+      q = q.orderBy('created_at', descending: true).limit(limit);
+    }
+    return q.snapshots().map((snap) {
+      final items = snap.docs
+          .map((d) => DisputeInfo.fromJson(d.id, d.data()))
+          .toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
+    });
+  }
+
+  /// VUE ADMIN (toutes missions/parties) — distincte de
+  /// `watchLedgerEntriesForMission()`/`watchDriverEarningsHistory()`
+  /// (scopées). `created_at` seul (index à champ unique) + `.limit()`.
+  @override
+  Stream<List<LedgerEntry>> watchLedger({int limit = 50}) {
+    return _ledger
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => LedgerEntry.fromJson(_normalizeLedgerJson(d.data())))
+              .toList(),
+        );
+  }
+
+  /// `created_at` seul (index à champ unique) + `.limit()` — volume de
+  /// rapports intrinsèquement faible (un par exécution de
+  /// `runReconciliationNow`/`runDailyReconciliation`), mais toujours borné
+  /// par principe.
+  @override
+  Stream<List<ReconciliationReport>> watchReconciliationReports({
+    int limit = 20,
+  }) {
+    return _reconciliationReports
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => ReconciliationReport.fromJson(d.id, d.data()))
+              .toList(),
+        );
+  }
+
+  /// Ne mappe QUE les documents de VERSION (`is_alias` absent/false) —
+  /// exclut les alias mutables `{jurisdiction}_{taxCode}_current`
+  /// (`is_alias: true`, voir `updateTaxConfiguration.ts`) qui ne sont pas
+  /// des `TaxConfigDoc` complets. Volume intrinsèquement faible : pas de
+  /// `.limit()` nécessaire, tri en mémoire par version décroissante.
+  @override
+  Stream<List<TaxConfiguration>> watchTaxConfigurations() {
+    return _taxConfigs.snapshots().map((snap) {
+      final items = <TaxConfiguration>[];
+      for (final d in snap.docs) {
+        final data = d.data();
+        if (data['is_alias'] == true) continue;
+        items.add(TaxConfiguration.fromJson(d.id, data));
+      }
+      items.sort((a, b) {
+        final j = a.jurisdiction.compareTo(b.jurisdiction);
+        if (j != 0) return j;
+        final c = a.taxCode.compareTo(b.taxCode);
+        if (c != 0) return c;
+        return b.version.compareTo(a.version);
+      });
+      return items;
+    });
+  }
+
+  /// Document mutable unique `payout_policy_configs/default` — lecture par
+  /// ID direct, aucune requête. Si le document n'existe pas encore (avant
+  /// tout appel admin à `updatePayoutPolicyConfiguration`), renvoie le
+  /// même filet de sécurité de bootstrap que côté serveur (72h, voir
+  /// `readPayoutPolicyConfig()`), jamais utilisé pour un calcul réel.
+  @override
+  Stream<PayoutPolicyConfiguration> watchPayoutPolicy() {
+    return _payoutPolicyConfigs.doc('default').snapshots().map((snap) {
+      if (!snap.exists || snap.data() == null) {
+        return PayoutPolicyConfiguration.bootstrapDefault();
+      }
+      return PayoutPolicyConfiguration.fromJson(snap.data()!);
+    });
+  }
+
+  // -------------------------------------------------------------------
+  // Bloc L — Actions admin (Cloud Functions callables uniquement).
+  //
+  // Aucune écriture Firestore directe : chaque méthode délègue à la
+  // Cloud Function existante correspondante (voir functions/src/index.ts).
+  // Les erreurs serveur (`FirebaseFunctionsException`) sont propagées
+  // telles quelles à l'appelant.
+  // -------------------------------------------------------------------
+
+  @override
+  Future<void> adminRefundPayment({
+    required String paymentId,
+    required RefundReason reason,
+    int? amountMinor,
+    String? clientRequestId,
+  }) async {
+    await _functions.httpsCallable('refundPayment').call({
+      'paymentId': paymentId,
+      'reason': reason.firestoreValue,
+      if (amountMinor != null) 'amountMinor': amountMinor,
+      if (clientRequestId != null) 'clientRequestId': clientRequestId,
+    });
+  }
+
+  @override
+  Future<void> adminReverseDriverPayout({
+    required String payoutId,
+    required String reason,
+  }) async {
+    await _functions.httpsCallable('reverseDriverPayout').call({
+      'payoutId': payoutId,
+      'reason': reason,
+    });
+  }
+
+  @override
+  Future<void> adminRunReconciliationNow({
+    required DateTime periodStart,
+    required DateTime periodEnd,
+  }) async {
+    await _functions.httpsCallable('runReconciliationNow').call({
+      'periodStartMillis': periodStart.millisecondsSinceEpoch,
+      'periodEndMillis': periodEnd.millisecondsSinceEpoch,
+    });
+  }
+
+  @override
+  Future<void> adminResolveReconciliationAnomaly({
+    required String reportId,
+    required int anomalyIndex,
+    required ReconciliationAnomalyStatus newStatus,
+    required String resolutionNotes,
+  }) async {
+    await _functions.httpsCallable('resolveReconciliationAnomaly').call({
+      'reportId': reportId,
+      'anomalyIndex': anomalyIndex,
+      'newStatus': newStatus.firestoreValue,
+      'resolutionNotes': resolutionNotes,
+    });
+  }
+
+  @override
+  Future<void> adminUpdateTaxConfiguration({
+    required String jurisdiction,
+    required String taxCode,
+    required TaxType taxType,
+    required String displayName,
+    required double rate,
+    required List<String> taxableComponents,
+    required DateTime effectiveFrom,
+    DateTime? effectiveUntil,
+    required bool enabled,
+    required String taxRegistrationOwner,
+  }) async {
+    await _functions.httpsCallable('updateTaxConfiguration').call({
+      'jurisdiction': jurisdiction,
+      'taxCode': taxCode,
+      'taxType': taxType.firestoreValue,
+      'displayName': displayName,
+      'rate': rate,
+      'taxableComponents': taxableComponents,
+      'effectiveFromMillis': effectiveFrom.millisecondsSinceEpoch,
+      if (effectiveUntil != null)
+        'effectiveUntilMillis': effectiveUntil.millisecondsSinceEpoch,
+      'enabled': enabled,
+      'taxRegistrationOwner': taxRegistrationOwner,
+    });
+  }
+
+  @override
+  Future<void> adminUpdatePayoutPolicyConfiguration({
+    required int defaultHoldPeriodHours,
+    required int newDriverHoldPeriodHours,
+    required int riskyDriverHoldPeriodHours,
+    String? correlationId,
+  }) async {
+    await _functions.httpsCallable('updatePayoutPolicyConfiguration').call({
+      'defaultHoldPeriodHours': defaultHoldPeriodHours,
+      'newDriverHoldPeriodHours': newDriverHoldPeriodHours,
+      'riskyDriverHoldPeriodHours': riskyDriverHoldPeriodHours,
+      if (correlationId != null) 'correlationId': correlationId,
+    });
+  }
+
+  @override
+  Future<void> adminCreateLedgerAdjustment({
+    String? missionId,
+    String? transactionId,
+    required LedgerEntryType type,
+    required double amount,
+    required LedgerDirection direction,
+    required LedgerParty party,
+    required String sourceEvent,
+    String? referenceId,
+    String? reason,
+    String? correlationId,
+  }) async {
+    await _functions.httpsCallable('createLedgerEntry').call({
+      if (missionId != null) 'missionId': missionId,
+      if (transactionId != null) 'transactionId': transactionId,
+      'type': type.firestoreValue,
+      'amount': amount,
+      'direction': direction.firestoreValue,
+      'party': party.firestoreValue,
+      'sourceEvent': sourceEvent,
+      if (referenceId != null) 'referenceId': referenceId,
+      if (reason != null) 'reason': reason,
+      if (correlationId != null) 'correlationId': correlationId,
+    });
+  }
+
+  @override
+  Future<void> adminUpdateDisputeStatus({
+    required String disputeId,
+    required DisputeStatus newStatus,
+  }) async {
+    await _functions.httpsCallable('updateDisputeStatus').call({
+      'disputeId': disputeId,
+      'newStatus': newStatus.firestoreValue,
+    });
   }
 
   /// Les Cloud Functions écrivent `type`/`direction`/`party`/`status` en

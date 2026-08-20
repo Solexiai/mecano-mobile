@@ -2584,6 +2584,587 @@ class AppStrings {
       'en': 'Payout reversed',
       'es': 'Pago revertido',
     },
+
+    // ---------- Bloc L — UI admin finance (Phase 6) ----------
+    'admin_finance_title': {
+      'fr': 'Centre financier',
+      'en': 'Finance center',
+      'es': 'Centro financiero',
+    },
+    'admin_finance_tab_payments': {
+      'fr': 'Paiements',
+      'en': 'Payments',
+      'es': 'Pagos',
+    },
+    'admin_finance_tab_refunds': {
+      'fr': 'Remboursements',
+      'en': 'Refunds',
+      'es': 'Reembolsos',
+    },
+    'admin_finance_tab_payouts': {
+      'fr': 'Versements',
+      'en': 'Payouts',
+      'es': 'Pagos a conductores',
+    },
+    'admin_finance_tab_disputes': {
+      'fr': 'Litiges',
+      'en': 'Disputes',
+      'es': 'Disputas',
+    },
+    'admin_finance_tab_ledger': {
+      'fr': 'Registre',
+      'en': 'Ledger',
+      'es': 'Libro mayor',
+    },
+    'admin_finance_tab_reconciliation': {
+      'fr': 'Réconciliation',
+      'en': 'Reconciliation',
+      'es': 'Reconciliación',
+    },
+    'admin_finance_tab_taxes': {
+      'fr': 'Taxes',
+      'en': 'Taxes',
+      'es': 'Impuestos',
+    },
+    'admin_finance_tab_payout_policy': {
+      'fr': 'Politique de versement',
+      'en': 'Payout policy',
+      'es': 'Política de pagos',
+    },
+    'admin_finance_loading': {
+      'fr': 'Chargement des données financières…',
+      'en': 'Loading financial data…',
+      'es': 'Cargando datos financieros…',
+    },
+    'admin_finance_empty': {
+      'fr': 'Aucune donnée pour le moment.',
+      'en': 'No data yet.',
+      'es': 'Aún no hay datos.',
+    },
+    'admin_finance_error': {
+      'fr': 'Impossible de charger les données. Réessayez.',
+      'en': 'Unable to load data. Please retry.',
+      'es': 'No se pudieron cargar los datos. Reintente.',
+    },
+    'admin_finance_permission_denied': {
+      'fr':
+          'Accès refusé. Votre rôle ne permet pas de consulter cette section.',
+      'en': 'Access denied. Your role cannot view this section.',
+      'es': 'Acceso denegado. Su rol no permite ver esta sección.',
+    },
+    'admin_finance_filter_all': {'fr': 'Tous', 'en': 'All', 'es': 'Todos'},
+    'admin_finance_retry': {
+      'fr': 'Réessayer',
+      'en': 'Retry',
+      'es': 'Reintentar',
+    },
+    'admin_finance_action_admin_only': {
+      'fr': 'Réservé aux administrateurs',
+      'en': 'Admin only',
+      'es': 'Solo para administradores',
+    },
+
+    // ---- Payments ----
+    'admin_payments_col_id': {
+      'fr': 'ID paiement',
+      'en': 'Payment ID',
+      'es': 'ID de pago',
+    },
+    'admin_payments_col_mission': {
+      'fr': 'Mission',
+      'en': 'Mission',
+      'es': 'Misión',
+    },
+    'admin_payments_col_customer': {
+      'fr': 'Client',
+      'en': 'Customer',
+      'es': 'Cliente',
+    },
+    'admin_payments_col_status': {
+      'fr': 'Statut',
+      'en': 'Status',
+      'es': 'Estado',
+    },
+    'admin_payments_col_authorized': {
+      'fr': 'Autorisé',
+      'en': 'Authorized',
+      'es': 'Autorizado',
+    },
+    'admin_payments_col_captured': {
+      'fr': 'Capturé',
+      'en': 'Captured',
+      'es': 'Capturado',
+    },
+    'admin_payments_col_refunded': {
+      'fr': 'Remboursé',
+      'en': 'Refunded',
+      'es': 'Reembolsado',
+    },
+    'admin_payments_col_provider': {
+      'fr': 'Fournisseur',
+      'en': 'Provider',
+      'es': 'Proveedor',
+    },
+    'admin_payments_col_date': {'fr': 'Date', 'en': 'Date', 'es': 'Fecha'},
+    'admin_payment_detail_title': {
+      'fr': 'Détail du paiement',
+      'en': 'Payment detail',
+      'es': 'Detalle del pago',
+    },
+    'admin_payment_detail_mission': {
+      'fr': 'Mission liée',
+      'en': 'Linked mission',
+      'es': 'Misión vinculada',
+    },
+    'admin_payment_detail_snapshot': {
+      'fr': 'Solde financier',
+      'en': 'Financial balance',
+      'es': 'Balance financiero',
+    },
+    'admin_payment_detail_refunds': {
+      'fr': 'Remboursements liés',
+      'en': 'Linked refunds',
+      'es': 'Reembolsos vinculados',
+    },
+    'admin_payment_detail_ledger': {
+      'fr': 'Écritures liées',
+      'en': 'Related ledger entries',
+      'es': 'Entradas relacionadas',
+    },
+    'admin_payment_detail_disputes': {
+      'fr': 'Litiges liés',
+      'en': 'Linked disputes',
+      'es': 'Disputas vinculadas',
+    },
+    'admin_payment_action_refund': {
+      'fr': 'Rembourser',
+      'en': 'Refund',
+      'es': 'Reembolsar',
+    },
+
+    // ---- Refunds ----
+    'admin_refunds_col_id': {
+      'fr': 'ID remboursement',
+      'en': 'Refund ID',
+      'es': 'ID de reembolso',
+    },
+    'admin_refunds_col_payment': {
+      'fr': 'Paiement',
+      'en': 'Payment',
+      'es': 'Pago',
+    },
+    'admin_refunds_col_amount': {
+      'fr': 'Montant',
+      'en': 'Amount',
+      'es': 'Monto',
+    },
+    'admin_refunds_col_status': {
+      'fr': 'Statut',
+      'en': 'Status',
+      'es': 'Estado',
+    },
+    'admin_refunds_col_reason': {'fr': 'Motif', 'en': 'Reason', 'es': 'Motivo'},
+    'admin_refunds_col_requested_at': {
+      'fr': 'Demandé le',
+      'en': 'Requested on',
+      'es': 'Solicitado el',
+    },
+    'admin_refunds_col_processed_at': {
+      'fr': 'Traité le',
+      'en': 'Processed on',
+      'es': 'Procesado el',
+    },
+
+    // ---- Payouts ----
+    'admin_payouts_col_driver': {
+      'fr': 'Chauffeur',
+      'en': 'Driver',
+      'es': 'Conductor',
+    },
+    'admin_payouts_col_id': {
+      'fr': 'ID versement',
+      'en': 'Payout ID',
+      'es': 'ID de pago',
+    },
+    'admin_payouts_col_amount': {
+      'fr': 'Montant',
+      'en': 'Amount',
+      'es': 'Monto',
+    },
+    'admin_payouts_col_status': {
+      'fr': 'Statut',
+      'en': 'Status',
+      'es': 'Estado',
+    },
+    'admin_payouts_col_hold': {
+      'fr': 'Période de rétention',
+      'en': 'Hold period',
+      'es': 'Período de retención',
+    },
+    'admin_payouts_col_eligible_at': {
+      'fr': 'Éligible le',
+      'en': 'Eligible at',
+      'es': 'Elegible el',
+    },
+    'admin_payouts_col_provider_id': {
+      'fr': 'ID fournisseur',
+      'en': 'Provider ID',
+      'es': 'ID del proveedor',
+    },
+    'admin_payouts_col_paid_at': {
+      'fr': 'Payé le',
+      'en': 'Paid at',
+      'es': 'Pagado el',
+    },
+    'admin_payouts_col_failed_at': {
+      'fr': 'Échoué le',
+      'en': 'Failed at',
+      'es': 'Fallido el',
+    },
+    'admin_payouts_col_reversed_at': {
+      'fr': 'Renversé le',
+      'en': 'Reversed at',
+      'es': 'Revertido el',
+    },
+    'admin_payout_action_reverse': {
+      'fr': 'Renverser',
+      'en': 'Reverse',
+      'es': 'Revertir',
+    },
+    'admin_payout_reverse_reason_label': {
+      'fr': 'Motif du renversement (obligatoire)',
+      'en': 'Reversal reason (required)',
+      'es': 'Motivo de reversión (obligatorio)',
+    },
+    'admin_payout_reverse_confirm': {
+      'fr': 'Confirmer le renversement',
+      'en': 'Confirm reversal',
+      'es': 'Confirmar reversión',
+    },
+    'admin_payout_reverse_success': {
+      'fr': 'Versement renversé avec succès.',
+      'en': 'Payout reversed successfully.',
+      'es': 'Pago revertido correctamente.',
+    },
+
+    // ---- Disputes ----
+    'admin_disputes_col_id': {
+      'fr': 'ID litige',
+      'en': 'Dispute ID',
+      'es': 'ID de disputa',
+    },
+    'admin_disputes_col_payment': {
+      'fr': 'Paiement',
+      'en': 'Payment',
+      'es': 'Pago',
+    },
+    'admin_disputes_col_mission': {
+      'fr': 'Mission',
+      'en': 'Mission',
+      'es': 'Misión',
+    },
+    'admin_disputes_col_amount': {
+      'fr': 'Montant',
+      'en': 'Amount',
+      'es': 'Monto',
+    },
+    'admin_disputes_col_reason': {
+      'fr': 'Motif',
+      'en': 'Reason',
+      'es': 'Motivo',
+    },
+    'admin_disputes_col_status': {
+      'fr': 'Statut',
+      'en': 'Status',
+      'es': 'Estado',
+    },
+    'admin_disputes_col_opened_at': {
+      'fr': 'Ouvert le',
+      'en': 'Opened at',
+      'es': 'Abierto el',
+    },
+    'admin_disputes_col_evidence_due': {
+      'fr': 'Preuves dues le',
+      'en': 'Evidence due',
+      'es': 'Evidencia requerida',
+    },
+    'admin_disputes_col_updated_at': {
+      'fr': 'Mis à jour le',
+      'en': 'Updated at',
+      'es': 'Actualizado el',
+    },
+    'dispute_status_opened': {'fr': 'Ouvert', 'en': 'Opened', 'es': 'Abierto'},
+    'dispute_status_under_review': {
+      'fr': 'En révision',
+      'en': 'Under review',
+      'es': 'En revisión',
+    },
+    'dispute_status_won': {'fr': 'Gagné', 'en': 'Won', 'es': 'Ganado'},
+    'dispute_status_lost': {'fr': 'Perdu', 'en': 'Lost', 'es': 'Perdido'},
+    'dispute_status_reversed': {
+      'fr': 'Renversé',
+      'en': 'Reversed',
+      'es': 'Revertido',
+    },
+    'dispute_status_closed': {'fr': 'Clôturé', 'en': 'Closed', 'es': 'Cerrado'},
+
+    // ---- Ledger ----
+    'admin_ledger_col_date': {'fr': 'Date', 'en': 'Date', 'es': 'Fecha'},
+    'admin_ledger_col_type': {'fr': 'Type', 'en': 'Type', 'es': 'Tipo'},
+    'admin_ledger_col_mission': {
+      'fr': 'Mission',
+      'en': 'Mission',
+      'es': 'Misión',
+    },
+    'admin_ledger_col_party': {'fr': 'Partie', 'en': 'Party', 'es': 'Parte'},
+    'admin_ledger_col_amount': {'fr': 'Montant', 'en': 'Amount', 'es': 'Monto'},
+    'admin_ledger_col_currency': {
+      'fr': 'Devise',
+      'en': 'Currency',
+      'es': 'Moneda',
+    },
+    'admin_ledger_col_reference': {
+      'fr': 'Référence',
+      'en': 'Reference',
+      'es': 'Referencia',
+    },
+    'admin_ledger_col_source': {'fr': 'Source', 'en': 'Source', 'es': 'Origen'},
+    'admin_ledger_adjustment_title': {
+      'fr': 'Nouvel ajustement financier',
+      'en': 'New financial adjustment',
+      'es': 'Nuevo ajuste financiero',
+    },
+    'admin_ledger_adjustment_notice': {
+      'fr':
+          'Ceci créera une NOUVELLE entrée compensatoire. L\'historique existant n\'est jamais modifié.',
+      'en':
+          'This will create a NEW compensating entry. Existing history is never modified.',
+      'es':
+          'Esto creará una NUEVA entrada compensatoria. El historial existente nunca se modifica.',
+    },
+    'admin_ledger_adjustment_amount': {
+      'fr': 'Montant',
+      'en': 'Amount',
+      'es': 'Monto',
+    },
+    'admin_ledger_adjustment_type': {
+      'fr': 'Type d\'entrée',
+      'en': 'Entry type',
+      'es': 'Tipo de entrada',
+    },
+    'admin_ledger_adjustment_reason': {
+      'fr': 'Motif (recommandé)',
+      'en': 'Reason (recommended)',
+      'es': 'Motivo (recomendado)',
+    },
+    'admin_ledger_adjustment_create': {
+      'fr': 'Créer l\'ajustement',
+      'en': 'Create adjustment',
+      'es': 'Crear ajuste',
+    },
+    'admin_ledger_adjustment_success': {
+      'fr': 'Ajustement créé avec succès.',
+      'en': 'Adjustment created successfully.',
+      'es': 'Ajuste creado correctamente.',
+    },
+
+    // ---- Reconciliation ----
+    'admin_reconciliation_open': {
+      'fr': 'Ouvertes',
+      'en': 'Open',
+      'es': 'Abiertas',
+    },
+    'admin_reconciliation_critical': {
+      'fr': 'Critiques',
+      'en': 'Critical',
+      'es': 'Críticas',
+    },
+    'admin_reconciliation_warning': {
+      'fr': 'Avertissements',
+      'en': 'Warnings',
+      'es': 'Advertencias',
+    },
+    'admin_reconciliation_resolved': {
+      'fr': 'Résolues',
+      'en': 'Resolved',
+      'es': 'Resueltas',
+    },
+    'admin_reconciliation_col_severity': {
+      'fr': 'Sévérité',
+      'en': 'Severity',
+      'es': 'Severidad',
+    },
+    'admin_reconciliation_col_type': {'fr': 'Type', 'en': 'Type', 'es': 'Tipo'},
+    'admin_reconciliation_col_mission': {
+      'fr': 'Mission',
+      'en': 'Mission',
+      'es': 'Misión',
+    },
+    'admin_reconciliation_col_payment': {
+      'fr': 'Paiement',
+      'en': 'Payment',
+      'es': 'Pago',
+    },
+    'admin_reconciliation_col_expected': {
+      'fr': 'Attendu',
+      'en': 'Expected',
+      'es': 'Esperado',
+    },
+    'admin_reconciliation_col_actual': {
+      'fr': 'Réel',
+      'en': 'Actual',
+      'es': 'Real',
+    },
+    'admin_reconciliation_col_detected_at': {
+      'fr': 'Détecté le',
+      'en': 'Detected at',
+      'es': 'Detectado el',
+    },
+    'admin_reconciliation_col_status': {
+      'fr': 'Statut',
+      'en': 'Status',
+      'es': 'Estado',
+    },
+    'admin_reconciliation_run_now': {
+      'fr': 'Lancer une réconciliation',
+      'en': 'Run reconciliation now',
+      'es': 'Ejecutar reconciliación',
+    },
+    'admin_reconciliation_run_success': {
+      'fr': 'Réconciliation lancée avec succès.',
+      'en': 'Reconciliation run successfully.',
+      'es': 'Reconciliación ejecutada correctamente.',
+    },
+    'admin_reconciliation_resolve': {
+      'fr': 'Résoudre',
+      'en': 'Resolve',
+      'es': 'Resolver',
+    },
+    'admin_reconciliation_acknowledge': {
+      'fr': 'Accuser réception',
+      'en': 'Acknowledge',
+      'es': 'Reconocer',
+    },
+    'admin_reconciliation_resolution_notes': {
+      'fr': 'Notes de résolution (obligatoire)',
+      'en': 'Resolution notes (required)',
+      'es': 'Notas de resolución (obligatorio)',
+    },
+    'anomaly_status_open': {'fr': 'Ouverte', 'en': 'Open', 'es': 'Abierta'},
+    'anomaly_status_acknowledged': {
+      'fr': 'Accusée réception',
+      'en': 'Acknowledged',
+      'es': 'Reconocida',
+    },
+    'anomaly_status_resolved': {
+      'fr': 'Résolue',
+      'en': 'Resolved',
+      'es': 'Resuelta',
+    },
+    'anomaly_severity_info': {'fr': 'Info', 'en': 'Info', 'es': 'Info'},
+    'anomaly_severity_warning': {
+      'fr': 'Avertissement',
+      'en': 'Warning',
+      'es': 'Advertencia',
+    },
+    'anomaly_severity_critical': {
+      'fr': 'Critique',
+      'en': 'Critical',
+      'es': 'Crítica',
+    },
+
+    // ---- Taxes ----
+    'admin_taxes_col_jurisdiction': {
+      'fr': 'Juridiction',
+      'en': 'Jurisdiction',
+      'es': 'Jurisdicción',
+    },
+    'admin_taxes_col_tax_code': {
+      'fr': 'Code taxe',
+      'en': 'Tax code',
+      'es': 'Código de impuesto',
+    },
+    'admin_taxes_col_rate': {'fr': 'Taux', 'en': 'Rate', 'es': 'Tasa'},
+    'admin_taxes_col_components': {
+      'fr': 'Composants taxables',
+      'en': 'Taxable components',
+      'es': 'Componentes gravables',
+    },
+    'admin_taxes_col_effective_from': {
+      'fr': 'Effectif à partir de',
+      'en': 'Effective from',
+      'es': 'Vigente desde',
+    },
+    'admin_taxes_col_effective_until': {
+      'fr': 'Effectif jusqu\'à',
+      'en': 'Effective until',
+      'es': 'Vigente hasta',
+    },
+    'admin_taxes_col_enabled': {
+      'fr': 'Activé',
+      'en': 'Enabled',
+      'es': 'Habilitado',
+    },
+    'admin_taxes_col_version': {
+      'fr': 'Version',
+      'en': 'Version',
+      'es': 'Versión',
+    },
+    'admin_taxes_new_config': {
+      'fr': 'Nouvelle configuration fiscale',
+      'en': 'New tax configuration',
+      'es': 'Nueva configuración fiscal',
+    },
+    'admin_taxes_new_config_notice': {
+      'fr':
+          'Ceci créera une NOUVELLE version. Les valeurs fiscales réelles doivent être validées séparément — cette interface ne présume aucun taux.',
+      'en':
+          'This will create a NEW version. Real tax values must be validated separately — this UI does not assume any rate.',
+      'es':
+          'Esto creará una NUEVA versión. Los valores fiscales reales deben validarse por separado — esta interfaz no asume ninguna tasa.',
+    },
+    'admin_taxes_save': {
+      'fr': 'Enregistrer la nouvelle version',
+      'en': 'Save new version',
+      'es': 'Guardar nueva versión',
+    },
+    'admin_taxes_save_success': {
+      'fr': 'Configuration fiscale créée avec succès.',
+      'en': 'Tax configuration created successfully.',
+      'es': 'Configuración fiscal creada correctamente.',
+    },
+
+    // ---- Payout Policy ----
+    'admin_payout_policy_default': {
+      'fr': 'Rétention standard (heures)',
+      'en': 'Default hold (hours)',
+      'es': 'Retención estándar (horas)',
+    },
+    'admin_payout_policy_new_driver': {
+      'fr': 'Rétention nouveau chauffeur (heures)',
+      'en': 'New driver hold (hours)',
+      'es': 'Retención nuevo conductor (horas)',
+    },
+    'admin_payout_policy_risky_driver': {
+      'fr': 'Rétention chauffeur à risque/suspendu (heures)',
+      'en': 'Risky/suspended driver hold (hours)',
+      'es': 'Retención conductor riesgoso/suspendido (horas)',
+    },
+    'admin_payout_policy_updated_at': {
+      'fr': 'Dernière mise à jour',
+      'en': 'Last updated',
+      'es': 'Última actualización',
+    },
+    'admin_payout_policy_save': {
+      'fr': 'Enregistrer la politique',
+      'en': 'Save policy',
+      'es': 'Guardar política',
+    },
+    'admin_payout_policy_save_success': {
+      'fr': 'Politique de versement mise à jour.',
+      'en': 'Payout policy updated.',
+      'es': 'Política de pagos actualizada.',
+    },
   };
 
   static String t(String key, String locale) {
