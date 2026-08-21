@@ -3396,11 +3396,7 @@ class AppStrings {
     },
 
     // ---- Nav Finance (shell 8 sections) ----
-    'admin_nav_finance': {
-      'fr': 'Finance',
-      'en': 'Finance',
-      'es': 'Finanzas',
-    },
+    'admin_nav_finance': {'fr': 'Finance', 'en': 'Finance', 'es': 'Finanzas'},
     'admin_finance_filter_mission': {
       'fr': 'Filtrer par ID mission',
       'en': 'Filter by mission ID',
@@ -3433,6 +3429,117 @@ class AppStrings {
           'No sensitive payment provider data (secret keys, card data) is ever displayed here.',
       'es':
           'Ningún dato sensible del proveedor de pago (claves secretas, datos de tarjeta) se muestra aquí.',
+    },
+
+    // -----------------------------------------------------------------
+    // BLOC M — I18N GLOBAL PHASE 6 : clés manquantes détectées lors de
+    // l'audit complet des écrans Finance (admin + chauffeur + client).
+    // Réutilise `common_cancel`/`common_confirm` partout où c'était déjà
+    // possible ; les clés ci-dessous couvrent uniquement les libellés qui
+    // n'avaient pas encore d'entrée i18n dédiée.
+    // -----------------------------------------------------------------
+    'admin_ledger_new_adjustment': {
+      'fr': 'Ajustement',
+      'en': 'Adjustment',
+      'es': 'Ajuste',
+    },
+    'admin_ledger_adjustment_dialog_title': {
+      'fr': 'Ajustement financier',
+      'en': 'Financial adjustment',
+      'es': 'Ajuste financiero',
+    },
+    'admin_ledger_col_amount_cad': {
+      'fr': 'Montant (\$)',
+      'en': 'Amount (\$)',
+      'es': 'Monto (\$)',
+    },
+    'admin_ledger_col_direction': {
+      'fr': 'Direction',
+      'en': 'Direction',
+      'es': 'Dirección',
+    },
+    'admin_ledger_col_reason': {'fr': 'Raison', 'en': 'Reason', 'es': 'Razón'},
+    'admin_ledger_create': {'fr': 'Créer', 'en': 'Create', 'es': 'Crear'},
+    'admin_ledger_validation_required': {
+      'fr': 'Montant et raison requis.',
+      'en': 'Amount and reason are required.',
+      'es': 'Monto y razón son obligatorios.',
+    },
+    'admin_ledger_adjustment_created': {
+      'fr': 'Ajustement créé.',
+      'en': 'Adjustment created.',
+      'es': 'Ajuste creado.',
+    },
+    'admin_reconciliation_summary_open': {
+      'fr': 'Ouvertes',
+      'en': 'Open',
+      'es': 'Abiertas',
+    },
+    'admin_reconciliation_summary_critical': {
+      'fr': 'Critiques',
+      'en': 'Critical',
+      'es': 'Críticas',
+    },
+    'admin_reconciliation_summary_warning': {
+      'fr': 'Avertissements',
+      'en': 'Warnings',
+      'es': 'Advertencias',
+    },
+    'admin_reconciliation_summary_resolved': {
+      'fr': 'Résolues',
+      'en': 'Resolved',
+      'es': 'Resueltas',
+    },
+    'admin_reconciliation_resolve_dialog_title': {
+      'fr': 'Résoudre l\'anomalie',
+      'en': 'Resolve anomaly',
+      'es': 'Resolver anomalía',
+    },
+    'admin_reconciliation_anomaly_resolved': {
+      'fr': 'Anomalie résolue.',
+      'en': 'Anomaly resolved.',
+      'es': 'Anomalía resuelta.',
+    },
+    'admin_taxes_col_display_name': {
+      'fr': 'Nom affiché',
+      'en': 'Display name',
+      'es': 'Nombre visible',
+    },
+    'admin_taxes_col_type': {'fr': 'Type', 'en': 'Type', 'es': 'Tipo'},
+    'admin_taxes_col_owner': {
+      'fr': 'Responsable de la taxe',
+      'en': 'Tax owner',
+      'es': 'Responsable del impuesto',
+    },
+    'admin_taxes_validation_required': {
+      'fr': 'Juridiction, code et taux requis.',
+      'en': 'Jurisdiction, code and rate are required.',
+      'es': 'Jurisdicción, código y tasa son obligatorios.',
+    },
+    'admin_payout_policy_edit': {
+      'fr': 'Modifier',
+      'en': 'Edit',
+      'es': 'Modificar',
+    },
+    'admin_payout_policy_validation_invalid': {
+      'fr': 'Valeurs invalides.',
+      'en': 'Invalid values.',
+      'es': 'Valores inválidos.',
+    },
+    'admin_payouts_reverse_dialog_title': {
+      'fr': 'Annuler le versement',
+      'en': 'Reverse payout',
+      'es': 'Revertir el pago',
+    },
+    'admin_payouts_reverse_action': {
+      'fr': 'Reverse',
+      'en': 'Reverse',
+      'es': 'Revertir',
+    },
+    'admin_payouts_reversed_success': {
+      'fr': 'Versement annulé.',
+      'en': 'Payout reversed.',
+      'es': 'Pago revertido.',
     },
   };
 

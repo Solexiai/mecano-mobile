@@ -51,9 +51,9 @@ class _AdminFinanceReconciliationTabState
         periodEnd: periodEnd,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Réconciliation lancée.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('admin_reconciliation_run_success'))),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -103,7 +103,7 @@ class _AdminFinanceReconciliationTabState
                           ),
                         )
                       : const Icon(Icons.play_arrow, size: 18),
-                  label: const Text('Lancer'),
+                  label: Text(t('admin_reconciliation_run_now')),
                 ),
             ],
           ),
@@ -153,22 +153,22 @@ class _AdminFinanceReconciliationTabState
                     runSpacing: 12,
                     children: [
                       _SummaryCard(
-                        label: 'Ouvertes',
+                        label: t('admin_reconciliation_summary_open'),
                         value: totalOpen,
                         color: AppColors.error,
                       ),
                       _SummaryCard(
-                        label: 'Critiques',
+                        label: t('admin_reconciliation_summary_critical'),
                         value: totalCritical,
                         color: AppColors.error,
                       ),
                       _SummaryCard(
-                        label: 'Avertissements',
+                        label: t('admin_reconciliation_summary_warning'),
                         value: totalWarning,
                         color: AppColors.warning,
                       ),
                       _SummaryCard(
-                        label: 'Résolues',
+                        label: t('admin_reconciliation_summary_resolved'),
                         value: totalResolved,
                         color: AppColors.success,
                       ),
@@ -318,20 +318,25 @@ class _AnomalyRowState extends State<_AnomalyRow> {
     final confirmed = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Résoudre l\'anomalie'),
+        title: Text(widget.t('admin_reconciliation_resolve_dialog_title')),
         content: TextField(
           controller: notesController,
-          decoration: const InputDecoration(labelText: 'Notes de résolution'),
+          decoration: InputDecoration(
+            labelText: widget.t('admin_reconciliation_resolution_notes'),
+            // Réutilise la clé existante (Bloc L, étape 1) — le libellé
+            // FR inclut "(obligatoire)" et reste cohérent avec les
+            // validations existantes.
+          ),
           maxLines: 3,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(widget.t('common_cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, notesController.text.trim()),
-            child: const Text('Confirmer'),
+            child: Text(widget.t('common_confirm')),
           ),
         ],
       ),
@@ -346,9 +351,11 @@ class _AnomalyRowState extends State<_AnomalyRow> {
         resolutionNotes: confirmed,
       );
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Anomalie résolue.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.t('admin_reconciliation_anomaly_resolved')),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -439,7 +446,7 @@ class _AnomalyRowState extends State<_AnomalyRow> {
                   )
                 : TextButton(
                     onPressed: _resolve,
-                    child: const Text('Résoudre'),
+                    child: Text(widget.t('admin_reconciliation_resolve')),
                   ),
         ],
       ),

@@ -64,7 +64,7 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
                 FilledButton.icon(
                   onPressed: () => _openAdjustmentDialog(context, t),
                   icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Ajustement'),
+                  label: Text(t('admin_ledger_new_adjustment')),
                 ),
             ],
           ),
@@ -159,7 +159,7 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Ajustement financier'),
+          title: Text(t('admin_ledger_adjustment_dialog_title')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -177,7 +177,9 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'Montant (\$)'),
+                  decoration: InputDecoration(
+                    labelText: t('admin_ledger_col_amount_cad'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<LedgerEntryType>(
@@ -198,7 +200,9 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<LedgerDirection>(
                   initialValue: direction,
-                  decoration: const InputDecoration(labelText: 'Direction'),
+                  decoration: InputDecoration(
+                    labelText: t('admin_ledger_col_direction'),
+                  ),
                   items: LedgerDirection.values
                       .map(
                         (v) => DropdownMenuItem(
@@ -229,7 +233,9 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: reasonController,
-                  decoration: const InputDecoration(labelText: 'Raison'),
+                  decoration: InputDecoration(
+                    labelText: t('admin_ledger_col_reason'),
+                  ),
                   maxLines: 2,
                 ),
               ],
@@ -238,11 +244,11 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(t('common_cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Créer'),
+              child: Text(t('admin_ledger_create')),
             ),
           ],
         ),
@@ -254,8 +260,8 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
     if (amount == null || amount <= 0 || reasonController.text.trim().isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Montant et raison requis.'),
+          SnackBar(
+            content: Text(t('admin_ledger_validation_required')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -275,9 +281,9 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
         reason: reasonController.text.trim(),
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Ajustement créé.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('admin_ledger_adjustment_created'))),
+        );
       }
     } catch (e) {
       if (context.mounted) {

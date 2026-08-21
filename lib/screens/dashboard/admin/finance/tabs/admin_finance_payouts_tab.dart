@@ -135,7 +135,7 @@ class _PayoutRowState extends State<_PayoutRow> {
     final confirmed = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(t('admin_payouts_col_reversed_at')),
+        title: Text(t('admin_payouts_reverse_dialog_title')),
         content: TextField(
           controller: reasonController,
           decoration: InputDecoration(
@@ -146,11 +146,11 @@ class _PayoutRowState extends State<_PayoutRow> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(t('common_cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, reasonController.text.trim()),
-            child: const Text('Confirmer'),
+            child: Text(t('common_confirm')),
           ),
         ],
       ),
@@ -164,7 +164,7 @@ class _PayoutRowState extends State<_PayoutRow> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('admin_payout_policy_save_success'))),
+          SnackBar(content: Text(t('admin_payouts_reversed_success'))),
         );
       }
     } catch (e) {
@@ -283,9 +283,9 @@ class _PayoutRowState extends State<_PayoutRow> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.error,
                         ),
-                        child: const Text(
-                          'Reverse',
-                          style: TextStyle(fontSize: 12),
+                        child: Text(
+                          t('admin_payouts_reverse_action'),
+                          style: const TextStyle(fontSize: 12),
                         ),
                       ),
               ],

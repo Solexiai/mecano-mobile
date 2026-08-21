@@ -141,12 +141,16 @@ class _AdminFinanceTaxesTabState extends State<AdminFinanceTaxesTab> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: displayNameController,
-                  decoration: const InputDecoration(labelText: 'Nom affiché'),
+                  decoration: InputDecoration(
+                    labelText: t('admin_taxes_col_display_name'),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<TaxType>(
                   initialValue: taxType,
-                  decoration: const InputDecoration(labelText: 'Type'),
+                  decoration: InputDecoration(
+                    labelText: t('admin_taxes_col_type'),
+                  ),
                   items: TaxType.values
                       .map(
                         (v) => DropdownMenuItem(
@@ -179,8 +183,8 @@ class _AdminFinanceTaxesTabState extends State<AdminFinanceTaxesTab> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: owner,
-                  decoration: const InputDecoration(
-                    labelText: 'Responsable de la taxe',
+                  decoration: InputDecoration(
+                    labelText: t('admin_taxes_col_owner'),
                   ),
                   items: ['platform', 'driver', 'not_applicable']
                       .map(
@@ -223,7 +227,7 @@ class _AdminFinanceTaxesTabState extends State<AdminFinanceTaxesTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(t('common_cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -241,8 +245,8 @@ class _AdminFinanceTaxesTabState extends State<AdminFinanceTaxesTab> {
         rate == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Juridiction, code et taux requis.'),
+          SnackBar(
+            content: Text(t('admin_taxes_validation_required')),
             backgroundColor: AppColors.error,
           ),
         );

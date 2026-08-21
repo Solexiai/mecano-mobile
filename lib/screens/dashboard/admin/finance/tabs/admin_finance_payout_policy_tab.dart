@@ -135,7 +135,7 @@ class _AdminFinancePayoutPolicyTabState
                           if (!_editing)
                             OutlinedButton(
                               onPressed: () => setState(() => _editing = true),
-                              child: const Text('Modifier'),
+                              child: Text(t('admin_payout_policy_edit')),
                             )
                           else ...[
                             FilledButton(
@@ -155,7 +155,7 @@ class _AdminFinancePayoutPolicyTabState
                             const SizedBox(width: 12),
                             TextButton(
                               onPressed: () => setState(() => _editing = false),
-                              child: const Text('Annuler'),
+                              child: Text(t('common_cancel')),
                             ),
                           ],
                         ],
@@ -176,8 +176,8 @@ class _AdminFinancePayoutPolicyTabState
     final riskyH = int.tryParse(_riskyController.text.trim());
     if (defaultH == null || newDriverH == null || riskyH == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Valeurs invalides.'),
+        SnackBar(
+          content: Text(t('admin_payout_policy_validation_invalid')),
           backgroundColor: AppColors.error,
         ),
       );
