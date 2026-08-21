@@ -243,6 +243,22 @@ void main() {
   });
 
   group('BLOC M — rendu réel AdminFinanceShell dans les 3 langues', () {
+    // BUG DE HARNESS IDENTIFIÉ ET CORRIGÉ (pas un bug applicatif) :
+    // `LocaleProvider._load()` persiste la locale active via
+    // `SharedPreferences` (clé `movik_locale`). Comme ce mock de
+    // SharedPreferences est un stockage GLOBAL partagé par tous les tests
+    // du fichier, un `setLocale('es')` déclenché par un test précédent de
+    // ce même groupe (ex. le test de rendu statique "es") laissait une
+    // valeur résiduelle 'es' qui était ensuite relue par le
+    // `LocaleProvider()` fraîchement construit du test suivant — faisant
+    // démarrer ce dernier en espagnol au lieu du défaut 'fr' attendu.
+    // On réinitialise donc le mock avant CHAQUE test de ce groupe pour
+    // garantir un état de départ déterministe (locale par défaut = 'fr'),
+    // conforme au comportement réel d'une app fraîchement installée.
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     Widget wrapWithLocale(String localeCode) {
       return MultiProvider(
         providers: [
@@ -300,12 +316,11 @@ void main() {
         );
         // `LocaleProvider()` charge la préférence persistée de façon
         // asynchrone (`SharedPreferences.getInstance()`) avant de notifier ;
-        // `pumpAndSettle` seul peut se stabiliser avant la résolution de ce
-        // premier Future selon la plateforme de test. On force quelques
-        // cycles de pump supplémentaires pour laisser ce chargement initial
-        // se terminer avant toute assertion, évitant un faux négatif flaky.
-        await tester.pumpAndSettle();
-        await tester.pump(const Duration(milliseconds: 50));
+        // `pumpAndSettle` attend la résolution de ce premier Future ainsi
+        // que toutes les animations/transitions déclenchées par le premier
+        // build (le `setUp` ci-dessus garantit que ce chargement initial
+        // résout bien sur la locale par défaut 'fr', et non une valeur
+        // résiduelle d'un test précédent).
         await tester.pumpAndSettle();
 
         // FR (défaut) : onglet "Paiements" visible.
