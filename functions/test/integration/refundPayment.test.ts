@@ -144,8 +144,15 @@ async function cleanupAll(paymentIds: string[], missionIds: string[]): Promise<v
 }
 
 describe("refundPayment — remboursement réel, complet/partiel, avant/après payout", () => {
+  // 🔒 BLOC N — référence conservée à l'instance injectée pour permettre
+  // `jest.spyOn(currentFakeProvider, 'refundPayment')` dans le test de
+  // concurrence ci-dessous, SANS changer le comportement des autres tests
+  // de ce describe (chacun continue de recevoir une instance fraîche).
+  let currentFakeProvider: FakePaymentProvider;
+
   beforeEach(async () => {
-    setPaymentProviderForTesting(new FakePaymentProvider());
+    currentFakeProvider = new FakePaymentProvider();
+    setPaymentProviderForTesting(currentFakeProvider);
   });
 
   afterEach(async () => {
@@ -330,6 +337,15 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     const missionId = "mission_concurrent_1";
     await seedPayment(paymentId, { amountCapturedMinor: 5000, missionId });
 
+    // 🔒 BLOC N — instrumentation EXPLICITE du comptage d'appels provider
+    // (directive utilisateur : ne pas se contenter de l'état Firestore
+    // final, qui pourrait masquer un doublon d'appel réseau corrigé après
+    // coup). `refundPayment()` appelle `provider.refundPayment()` HORS
+    // transaction (étape 2, voir paymentOrchestration.ts) : si la garde
+    // `refunds/{requestKey}` en étape 1 laissait passer les deux branches,
+    // ce spy le révélerait immédiatement (2 appels au lieu de 1).
+    const refundSpy = jest.spyOn(currentFakeProvider, "refundPayment");
+
     const req = buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
       paymentId,
       amountMinor: 2000,
@@ -347,14 +363,37 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     >[];
     expect(fulfilled.length).toBeGreaterThanOrEqual(1);
 
+    // 🔒 Assertion CRITIQUE (point 4, comptage EXPLICITE d'appel provider) :
+    // quel que soit l'entrelacement exact des deux appels concurrents, le
+    // provider (Stripe réel en production, FakePaymentProvider ici) n'est
+    // JAMAIS appelé plus d'une fois pour la MÊME requestKey — la garde
+    // `refunds/{requestKey}` (doc déterministe lu DANS la transaction
+    // Firestore, voir paymentOrchestration.ts:887-955) empêche le second
+    // appel concurrent d'atteindre l'étape 2 (appel réseau HORS transaction).
+    expect(refundSpy).toHaveBeenCalledTimes(1);
+
     const payment = (await db.collection("payments").doc(paymentId).get()).data()!;
     // 🔒 Assertion CRITIQUE (point 4) : quel que soit l'entrelacement exact,
     // JAMAIS plus de 2000 cents remboursés pour cette même requestKey.
     expect(payment.amount_refunded_minor).toBe(2000);
+    // Aucun dépassement du montant capturé (5000) même en cas de double
+    // tentative — la somme remboursée reste strictement le montant demandé.
+    expect(payment.amount_refunded_minor).toBeLessThanOrEqual(payment.amount_captured_minor);
 
     const refundsSnap = await db.collection("refunds").where("payment_id", "==", paymentId).get();
+    // Un seul RefundDoc créé (clé déterministe requestKey) — aucun double
+    // ledger compensatoire possible puisqu'un seul refund existe.
     expect(refundsSnap.docs.length).toBe(1);
     expect(refundsSnap.docs[0].data().status).toBe(RefundStatuses.SUCCEEDED);
+
+    const ledgerSnap = await db
+      .collection("transaction_ledger")
+      .where("mission_id", "==", missionId)
+      .where("type", "==", "partial_refund")
+      .get();
+    // Une seule écriture ledger compensatoire, jamais deux, malgré la
+    // concurrence.
+    expect(ledgerSnap.docs.length).toBe(1);
 
     await cleanupAll([paymentId], [missionId]);
   });

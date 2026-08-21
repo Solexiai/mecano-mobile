@@ -374,6 +374,70 @@ describe("processStripeWebhook", () => {
     await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
   });
 
+  // ---------------------------------------------------------------------
+  // BLOC N (Phase 6) — Extension ciblée : idempotence RÉELLEMENT
+  // CONCURRENTE (Promise.allSettled, pas 2 appels séquentiels comme le
+  // test ci-dessus) sur le MÊME provider_event_id, avec preuve explicite
+  // qu'AUCUN doublon d'effet métier n'est produit.
+  //
+  // Note architecturale (voir dispatchStripeEvent(), branche
+  // payment_intent.succeeded, processStripeWebhook.ts:96-140) : cette
+  // branche ne fait QUE journaliser un audit_log — elle n'appelle JAMAIS
+  // PaymentProvider (le webhook confirme un état déjà obtenu par un appel
+  // synchrone antérieur, il ne réexécute jamais capturePayment). Fabriquer
+  // artificiellement un comptage `jest.spyOn` sur le PaymentProvider ici
+  // serait donc trompeur — conformément à la directive, la preuve
+  // d'idempotence porte ici sur le nombre d'ÉCRITURES MÉTIER (audit_logs +
+  // provider_webhook_events.attempt_count), qui est le seul effet de bord
+  // réel de ce chemin.
+  // ---------------------------------------------------------------------
+  test("WEBHOOK DUPLIQUÉ CONCURRENT (Promise.allSettled, même provider_event_id) => 1 seul traitement métier effectif (1 audit_log, attempt_count=1)", async () => {
+    const eventId = "evt_duplicate_concurrent_001";
+    const missionId = "webhook_mission_dup_concurrent";
+    const paymentId = "webhook_payment_dup_concurrent";
+    await seedPayment(paymentId, missionId, { providerPaymentIntentId: "pi_dup_concurrent_001" });
+
+    const payload = buildStripeEventPayload(eventId, "payment_intent.succeeded", {
+      id: "pi_dup_concurrent_001",
+    });
+    const sig = signPayload(payload);
+
+    // Deux requêtes HTTP RÉELLEMENT concurrentes portant le MÊME
+    // provider_event_id — la garde d'idempotence est le get-or-create
+    // transactionnel sur provider_webhook_events/{event.id} (voir
+    // processStripeWebhook.ts, avant dispatchStripeEvent()).
+    const [first, second] = await Promise.all([invokeWebhook(payload, sig), invokeWebhook(payload, sig)]);
+
+    // 🔒 Assertion CRITIQUE : les deux requêtes HTTP renvoient 200 (aucune
+    // ne doit jamais échouer côté client à cause de la concurrence), mais
+    // au plus une seule doit avoir réellement exécuté le dispatch.
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    const bodies = [first.body, second.body] as { received: boolean; alreadyProcessed?: boolean }[];
+    const freshCount = bodies.filter((b) => !b.alreadyProcessed).length;
+    const alreadyProcessedCount = bodies.filter((b) => b.alreadyProcessed === true).length;
+    // Exactement un seul traitement "frais", l'autre observe alreadyProcessed
+    // (l'ordre exact d'arrivée n'est pas déterministe, seul le COMPTE l'est).
+    expect(freshCount).toBe(1);
+    expect(alreadyProcessedCount).toBe(1);
+
+    const doc = await getEventDoc(eventId);
+    expect(doc!.processing_status).toBe("processed");
+    // 🔒 Preuve numérique explicite d'UN SEUL traitement effectif, malgré
+    // la concurrence réelle des 2 requêtes HTTP.
+    expect(doc!.attempt_count).toBe(1);
+
+    // Un seul audit_log métier créé — aucun doublon financier/d'effet.
+    const auditSnap = await db
+      .collection("audit_logs")
+      .where("target_id", "==", paymentId)
+      .where("action", "==", "payment_captured")
+      .get();
+    expect(auditSnap.size).toBe(1);
+
+    await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
+  });
+
   test("évènement déjà `processed` (pré-existant en base) => 200 sans exécution", async () => {
     const eventId = "evt_already_processed_001";
     await db.collection("provider_webhook_events").doc(eventId).set({
