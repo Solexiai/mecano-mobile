@@ -108,6 +108,38 @@ export const FoundingDriverStatuses = {
 export type FoundingDriverStatus =
   (typeof FoundingDriverStatuses)[keyof typeof FoundingDriverStatuses];
 
+// -----------------------------------------------------------------------------
+// BLOC O (Phase 6, directive 38 points) — schéma typé de
+// `founding_driver_programs/{programId}` et de sa sous-collection
+// `qualifications/{driverId}`, voir docs/FIRESTORE_ARCHITECTURE.md #13.
+// Utilisé par acceptDelivery() pour charger le VRAI programme lié à la
+// qualification (via `qualification.program_id`), jamais une valeur
+// arbitraire ("default") ni un taux inventé localement.
+// -----------------------------------------------------------------------------
+export interface FoundingDriverProgramDoc {
+  program_id: string;
+  is_active: boolean;
+  total_slots: number;
+  slots_taken: number;
+  promotional_commission_rate: number;
+  promotional_duration_months: number;
+  preferred_commission_rate: number;
+  program_opens_at?: admin_Timestamp | null;
+  program_closes_at?: admin_Timestamp | null;
+}
+
+export interface FoundingDriverQualificationDoc {
+  driver_id: string;
+  program_id: string;
+  status: FoundingDriverStatus;
+  qualified_at: admin_Timestamp;
+  promotional_period_ends_at: admin_Timestamp;
+  suspension_reason?: string | null;
+  revocation_reason?: string | null;
+  status_changed_at?: admin_Timestamp | null;
+  status_changed_by_user_id?: string | null;
+}
+
 export const LedgerEntryStatuses = {
   PENDING: "pending",
   CONFIRMED: "confirmed",
