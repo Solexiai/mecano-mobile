@@ -40,31 +40,50 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
   (`paymentStateMachine.ts`) autorise pourtant explicitement la transition
   `AUTHORIZED -> CANCELLED` (« mission annulée avant capture ») — la transition est prévue et
   documentée dans le code mais jamais déclenchée.
-- **Correctif requis (NON encore appliqué — prochaine étape)** : Ajouter dans
-  `onMissionEndedClearTracking.ts` (ou une fonction dédiée appelée par lui) une étape qui,
-  lorsque `after.status === 'cancelled'` (transition entrante) ET qu'un `active_payment_id`
-  existe ET que `payments/{id}.status === 'authorized'` :
-  1. Transaction Firestore n°1 : lit le paiement, vérifie son statut, passe en état
-     intermédiaire si nécessaire (suivre EXACTEMENT le schéma en 3 temps déjà établi dans
-     `paymentOrchestration.ts` — jamais d'appel provider dans une transaction Firestore).
-  2. Appel `provider.cancelAuthorization()` HORS transaction, avec une `idempotencyKey`
-     déterministe (`buildIdempotencyKey("cancelAuthorization", paymentId)`).
-  3. Transaction Firestore n°2 : applique le résultat
-     (`payments/{id}.status = CANCELLED`, `cancelled_at`, et `delivery_requests/{missionId}.payment_status = CANCELLED`),
-     via `assertValidPaymentTransition()`.
-  4. `writeAuditLog()` avec `action: "payment_authorization_cancelled"`.
-  5. Ne JAMAIS toucher un paiement déjà `CAPTURED`/`REFUNDED`/etc. (seul `AUTHORIZED` est
-     concerné — le remboursement post-capture reste le chemin `refundPayment()` existant,
-     inchangé).
-  6. Idempotence : si `payments/{id}.status` est déjà `CANCELLED` au moment du (ré)traitement du
-     trigger (livraison at-least-once), ne rien refaire (pas de second appel provider, pas de
-     second audit_log).
-- **Test de régression** : déjà écrit et committé
-  (`missionCancellationPaymentRelease.test.ts`, 3 tests) — servira à valider le correctif
-  (les 2 tests actuellement rouges doivent passer au vert après implémentation, sans régression
-  sur le 3e test négatif déjà vert).
-- **Statut** : **OUVERT — correctif à implémenter à la prochaine session** (voir point de
-  reprise dans `docs/PHASE7_QA_PLAN.md`).
+- **Correctif appliqué** :
+  1. Nouvelle fonction exportée `cancelMissionPaymentAuthorization(missionId, paymentId)`
+     ajoutée dans `functions/src/payment/paymentOrchestration.ts`, suivant EXACTEMENT le schéma
+     en 3 temps déjà établi (`createAndAuthorizeMissionPayment` / `captureMissionPayment` /
+     `refundPayment`) :
+     - **Étape 1 (transaction de préparation)** : lit `payments/{paymentId}`, retourne un état
+       discriminé (`already_cancelled` / `skipped` si statut ≠ `AUTHORIZED` / `proceed` avec
+       `providerPaymentIntentId` + `idempotencyKey = buildIdempotencyKey("cancelAuthorization", paymentId)`).
+       Retours anticipés non-erreur pour `already_cancelled` et `skipped` (aucun appel provider).
+     - **Étape 2 (HORS transaction)** : `provider.cancelAuthorization({providerPaymentIntentId, idempotencyKey})`,
+       try/catch, échec loggé via `logFinancialFailure("cancel_authorization", ...)`.
+     - **Étape 3 (transaction d'application)** : relit `payments/{id}` (garde de concurrence —
+       si déjà `CANCELLED`, sort sans réécrire), **tous les reads AVANT tous les writes**
+       (contrainte Firestore — voir bug de régression ci-dessous), `assertValidPaymentTransition()`,
+       écrit `status: CANCELLED`, `cancelled_at`, `updated_at` sur le paiement et
+       `payment_status: CANCELLED` sur `delivery_requests/{missionId}` si le doc existe.
+     - Puis (hors transaction) : `writeAuditLog({action: "payment_authorization_cancelled", ...})`,
+       `logFinancialSuccess(...)`, `recalculateMissionFinancialBalance(missionId)`.
+     - Portée strictement limitée aux paiements `AUTHORIZED` — ne touche jamais un paiement
+       `CAPTURED`/`PARTIALLY_REFUNDED` (chemin exclusif de `refundPayment()`), ne déclenche
+       aucune capture, ne crée aucun payout chauffeur.
+  2. `functions/src/functions/onMissionEndedClearTracking.ts` : import de
+     `cancelMissionPaymentAuthorization`, et appel conditionnel — placé après la garde
+     `wasAlreadyTerminal || !isNowTerminal` mais avant la garde `!after.driver_id` — déclenché
+     uniquement quand `after.status === MissionStatuses.CANCELLED` ET qu'un `active_payment_id`
+     non nul existe sur la mission. Scope strictement limité à la transition `cancelled` (pas
+     `disputed`/`refunded`, qui suivent leurs propres chemins financiers dédiés).
+  3. **Bug de régression découvert et corrigé pendant l'implémentation** : la première version
+     du correctif violait la contrainte Firestore « tous les reads doivent précéder tous les
+     writes dans une transaction » (`tx.update(payRef, ...)` était appelé avant
+     `tx.get(missionRef)` dans la transaction d'application). Détecté immédiatement par le
+     premier run de test post-fix (`Firestore transactions require all reads to be executed
+     before all writes`, 2 tests rouges). Corrigé en réordonnant : `tx.get(missionRef)` déplacé
+     avant tous les `tx.update(...)`. Recompilation (`tsc --noEmit`) confirmée propre après
+     correction.
+- **Test de régression** : `functions/test/integration/missionCancellationPaymentRelease.test.ts`
+  (3 tests) — résultat final après correctif : **`Tests: 3 passed, 3 total`** (confirmé via
+  émulateurs firestore+auth+storage, `demo-movik-test`).
+- **Suite de régression complète exécutée après correctif** (aucune régression détectée) :
+  - `functions/test/integration/onMissionEndedClearTracking.test.ts` → `10 passed, 10 total`.
+  - Security Rules (`securityRules.test.ts` + `storageRules.test.ts`) → `196 passed, 196 total`.
+  - `npx tsc --noEmit` → 0 erreur.
+  - `npm run lint` (ciblé `src/`) → 0 erreur/warning.
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc B).
 
 ---
 

@@ -25,11 +25,30 @@
 // uniquement si ce driver_locations pointe encore vers CETTE mission
 // précise (évite d'écraser un active_delivery_id légitime si le chauffeur a
 // déjà enchaîné une nouvelle mission entre-temps).
+//
+// BUG-001 (Phase 7, Bloc B) — CORRECTIF : ce trigger est aussi le SEUL point
+// d'interception fiable de l'annulation client directe (écriture Firestore
+// permise par firestore.rules, ne passe par aucune Cloud Function callable —
+// voir onMissionStatusChangeNotifyCustomer.ts qui suit exactement le même
+// raisonnement pour les notifications). Sur une transition ENTRANTE vers
+// 'cancelled' avec un `active_payment_id` dont le paiement est encore
+// AUTHORIZED (jamais capturé), l'autorisation Stripe DOIT être libérée
+// (sinon les fonds du client restent bloqués jusqu'à expiration naturelle).
+// Délégué à `cancelMissionPaymentAuthorization()` (paymentOrchestration.ts)
+// qui suit le schéma en 3 temps standard (transaction de préparation ->
+// appel provider HORS transaction avec idempotencyKey -> transaction
+// d'application + audit_log) — jamais un appel provider DANS une transaction
+// Firestore. Idempotent : si déjà CANCELLED (livraison at-least-once de ce
+// trigger), ou si le paiement n'est pas AUTHORIZED (déjà CAPTURED, etc.),
+// ne fait rien. Voir docs/PHASE7_BUG_REPORT.md (BUG-001) pour le diagnostic
+// complet et missionCancellationPaymentRelease.test.ts pour le test de
+// régression.
 // -----------------------------------------------------------------------------
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
+import { cancelMissionPaymentAuthorization } from "../payment/paymentOrchestration";
 
 const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
   MissionStatuses.CANCELLED,
@@ -50,6 +69,20 @@ export const onMissionEndedClearTracking = onDocumentUpdated(
     const isNowTerminal = TERMINAL_STATUSES_CLEARING_TRACKING.includes(after.status);
 
     if (wasAlreadyTerminal || !isNowTerminal) return; // pas une transition ENTRANTE vers un statut terminal
+
+    // BUG-001 — CORRECTIF : libère l'autorisation de paiement UNIQUEMENT sur
+    // une transition ENTRANTE vers 'cancelled' précisément (pas
+    // disputed/refunded, qui suivent leurs propres chemins financiers
+    // dédiés — disputeOrchestration.ts / refundPayment()). Portée
+    // volontairement étroite : annuler une AUTORISATION n'a de sens que
+    // pour 'cancelled' (mission jamais menée à terme AVANT capture).
+    if (after.status === MissionStatuses.CANCELLED) {
+      const paymentId = (after.active_payment_id as string | null | undefined) ?? null;
+      if (paymentId) {
+        await cancelMissionPaymentAuthorization(missionId, paymentId);
+      }
+    }
+
     if (!after.driver_id) return; // aucune mission jamais assignée -> rien à nettoyer
 
     const locationRef = db.collection("driver_locations").doc(after.driver_id);

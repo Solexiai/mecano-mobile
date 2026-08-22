@@ -23,7 +23,7 @@ Colonnes : ID | Rôle | Préconditions | Étapes | Résultat attendu | Test auto
 | MIS-C-02 | client | aucun chauffeur dispo | createDeliveryRequest puis timeout dispatch | mission reste `searching_driver`, message clair, pas de crash | non trouvé | oui | À TESTER (Bloc B) | - |
 | MIS-C-03 | client | devis expiré | createDeliveryRequest avec quoteId expiré | `failed-precondition` | `createDeliveryRequest.test.ts` (couvert) | non | DONE | - |
 | MIS-C-04 | client | paiement refusé à l'acceptation | acceptDelivery avec FakePaymentProvider en échec | mission `payment_failed`, désassignée | couvert dans un test paiement ? à vérifier | à confirmer | À VÉRIFIER (Bloc B) | - |
-| MIS-C-05 | client | mission assignée (driver_id != null), payment authorized | client annule (`status`->`cancelled`) | **paiement autorisé doit être libéré/annulé (cancelAuthorization)** | NON — `cancelAuthorization` jamais appelé dans `src/` | oui — CRITIQUE | BUG SUSPECTÉ (Bloc B) | **candidat P1** |
+| MIS-C-05 | client | mission assignée (driver_id != null), payment authorized | client annule (`status`->`cancelled`) | paiement autorisé libéré/annulé (`cancelAuthorization`) | `missionCancellationPaymentRelease.test.ts` (3/3 PASS) | - | **DONE — CORRIGÉ** | **BUG-001 (CORRIGÉ)** |
 | MIS-C-06 | client | session expirée | tente action authentifiée | redirection login, pas de crash | non | oui | À TESTER (Bloc E/F) | - |
 | MIS-C-07 | client | non authentifié | accède à un écran mission | redirection/erreur propre | non | oui | À TESTER (Bloc F) | - |
 | MIS-C-08 | client | ancienne mission avec données partielles (avant Phase 6, sans timestamps financiers) | ouvre l'historique | pas de crash, defaults sûrs | non | oui | À TESTER (Bloc R) | - |

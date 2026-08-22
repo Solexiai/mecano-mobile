@@ -473,6 +473,188 @@ export async function captureMissionPayment(
 }
 
 // -----------------------------------------------------------------------------
+// Annulation de l'AUTORISATION — appelée par onMissionEndedClearTracking.ts
+// quand une mission ASSIGNÉE (paiement déjà AUTHORIZED, jamais capturé) est
+// annulée par le client. Suit le MÊME schéma en 3 temps que
+// createAndAuthorizeMissionPayment / captureMissionPayment ci-dessus :
+// jamais d'appel PaymentProvider DANS une transaction Firestore.
+//
+// BUG-001 (Phase 7, Bloc B) — CORRECTIF : avant ce correctif, aucune Cloud
+// Function n'appelait `PaymentProvider.cancelAuthorization()` sur cette
+// transition, laissant l'autorisation active côté provider (fonds bloqués
+// sur la carte du client jusqu'à expiration naturelle) et
+// `payments/{id}.status` figé à tort sur AUTHORIZED alors que la mission
+// était déjà annulée. Voir docs/PHASE7_BUG_REPORT.md (BUG-001) pour le
+// diagnostic complet et le test de régression associé
+// (missionCancellationPaymentRelease.test.ts).
+//
+// 🔒 Portée STRICTEMENT limitée à un paiement encore AUTHORIZED (jamais
+// capturé) — un paiement déjà CAPTURED/PARTIALLY_REFUNDED/etc. n'est JAMAIS
+// touché par cette fonction : le remboursement post-capture reste
+// exclusivement le chemin refundPayment() existant, inchangé. Aucune
+// capture n'est jamais déclenchée ici, et aucun payout chauffeur n'est
+// jamais créé pour un paiement annulé (submitDriverPayout() ne s'exécute
+// que sur des financial_snapshots issus d'un paiement CAPTURED — recalcul
+// de mission_financial_balance ci-dessous garantit la cohérence ledger).
+// -----------------------------------------------------------------------------
+
+export interface CancelMissionPaymentAuthorizationOutcome {
+  /** true si l'annulation a été effectuée (ou l'était déjà) sans erreur. */
+  success: boolean;
+  /** true si le paiement était DÉJÀ CANCELLED (idempotence — aucun appel provider n'a été refait). */
+  alreadyCancelled: boolean;
+  /** true si le paiement n'était pas dans un état concerné (ex: déjà CAPTURED) — aucune action prise, ce n'est pas une erreur. */
+  skipped: boolean;
+  status: string;
+  failureMessage?: string | null;
+}
+
+/**
+ * Annule l'autorisation de paiement d'une mission côté provider quand le
+ * client annule la mission AVANT toute capture. Idempotent : si
+ * `payments/{id}.status` est déjà CANCELLED (livraison at-least-once du
+ * trigger appelant), ne refait aucun appel provider ni aucune écriture
+ * financière équivalente. Si le paiement n'est pas AUTHORIZED (ex: déjà
+ * CAPTURED, ou jamais initialisé), ne fait rien et renvoie `skipped: true`
+ * — ce n'est jamais un cas d'erreur, seulement "hors périmètre".
+ */
+export async function cancelMissionPaymentAuthorization(
+  missionId: string,
+  paymentId: string
+): Promise<CancelMissionPaymentAuthorizationOutcome> {
+  const correlationId = resolveCorrelationId(undefined);
+  const operationStartedAt = startFinancialOperationTimer();
+  const payRef = db.collection("payments").doc(paymentId);
+
+  // ---- Étape 1 : transaction de préparation ----
+  // Lit l'état actuel du paiement et décide de l'action : soit il est déjà
+  // CANCELLED (idempotence, rien à faire), soit il n'est pas AUTHORIZED
+  // (hors périmètre, rien à faire), soit il EST AUTHORIZED et l'appel
+  // provider doit être tenté HORS transaction ci-dessous.
+  type PrepOutcome =
+    | { kind: "already_cancelled" }
+    | { kind: "skipped"; status: string }
+    | { kind: "proceed"; providerPaymentIntentId: string; idempotencyKey: string };
+
+  const prep: PrepOutcome = await db.runTransaction(async (tx): Promise<PrepOutcome> => {
+    const paySnap = await tx.get(payRef);
+    if (!paySnap.exists) return { kind: "skipped", status: "not_found" };
+    const payment = paySnap.data() as PaymentDoc;
+
+    if (payment.status === PaymentStatuses.CANCELLED) {
+      return { kind: "already_cancelled" };
+    }
+    if (payment.status !== PaymentStatuses.AUTHORIZED) {
+      // Déjà CAPTURED/FAILED/REFUNDED/etc. — jamais touché par ce chemin.
+      return { kind: "skipped", status: payment.status };
+    }
+
+    const idempotencyKey = buildIdempotencyKey("cancelAuthorization", paymentId);
+    return {
+      kind: "proceed",
+      providerPaymentIntentId: payment.provider_payment_intent_id!,
+      idempotencyKey,
+    };
+  });
+
+  if (prep.kind === "already_cancelled") {
+    return { success: true, alreadyCancelled: true, skipped: false, status: PaymentStatuses.CANCELLED };
+  }
+  if (prep.kind === "skipped") {
+    return { success: true, alreadyCancelled: false, skipped: true, status: prep.status };
+  }
+
+  // ---- Étape 2 : appel PaymentProvider RÉEL, HORS transaction ----
+  const provider = getPaymentProvider();
+  let cancelResult: { success: boolean; status: string };
+  try {
+    cancelResult = await provider.cancelAuthorization({
+      providerPaymentIntentId: prep.providerPaymentIntentId,
+      idempotencyKey: prep.idempotencyKey,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logFinancialFailure(
+      "cancel_authorization",
+      operationStartedAt,
+      "provider_error",
+      { missionId, paymentId },
+      { correlationId, message }
+    );
+    return { success: false, alreadyCancelled: false, skipped: false, status: "error", failureMessage: message };
+  }
+
+  if (!cancelResult.success) {
+    logFinancialFailure(
+      "cancel_authorization",
+      operationStartedAt,
+      "provider_cancel_failed",
+      { missionId, paymentId },
+      { correlationId, message: `Statut provider inattendu: ${cancelResult.status}` }
+    );
+    return {
+      success: false,
+      alreadyCancelled: false,
+      skipped: false,
+      status: cancelResult.status,
+      failureMessage: `Annulation refusée par le fournisseur de paiement (statut: ${cancelResult.status}).`,
+    };
+  }
+
+  // ---- Étape 3 : transaction d'application ----
+  // Relit l'état (défense contre une exécution concurrente qui aurait déjà
+  // appliqué le résultat entre-temps — assertValidPaymentTransition() lève
+  // si la transition n'est plus valide, auquel cas on la traite comme déjà
+  // traitée par idempotence plutôt que de propager une erreur).
+  const now = admin.firestore.Timestamp.now();
+  const missionRef = db.collection("delivery_requests").doc(missionId);
+  await db.runTransaction(async (tx) => {
+    // ---- Tous les reads d'abord (contrainte Firestore transactions) ----
+    const paySnap = await tx.get(payRef);
+    if (!paySnap.exists) return;
+    const payment = paySnap.data() as PaymentDoc;
+    if (payment.status === PaymentStatuses.CANCELLED) return; // déjà appliqué (concurrence)
+    assertValidPaymentTransition(payment.status, PaymentStatuses.CANCELLED);
+
+    const missionSnap = await tx.get(missionRef);
+
+    // ---- Puis tous les writes ----
+    tx.update(payRef, {
+      status: PaymentStatuses.CANCELLED,
+      cancelled_at: now,
+      updated_at: now,
+    });
+
+    if (missionSnap.exists) {
+      tx.update(missionRef, { payment_status: PaymentStatuses.CANCELLED });
+    }
+  });
+
+  await writeAuditLog({
+    actorUserId: "system",
+    actorRole: "system",
+    action: "payment_authorization_cancelled",
+    sourceFunction: "cancelMissionPaymentAuthorization",
+    targetId: paymentId,
+    metadata: { missionId, providerPaymentIntentId: prep.providerPaymentIntentId },
+  });
+  logFinancialSuccess(
+    "cancel_authorization",
+    operationStartedAt,
+    { missionId, paymentId },
+    { correlationId, metadata: { providerPaymentIntentId: prep.providerPaymentIntentId } }
+  );
+
+  // 🔒 Recalcul mission_financial_balance HORS transaction (multi-collections,
+  // même pattern que captureMissionPayment/refundPayment ci-dessus) — un
+  // paiement CANCELLED n'apporte aucun montant capturé, garantit que le
+  // solde reflète bien 0 $ effectivement mouvementé pour cette mission.
+  await recalculateMissionFinancialBalance(missionId);
+
+  return { success: true, alreadyCancelled: false, skipped: false, status: PaymentStatuses.CANCELLED };
+}
+
+// -----------------------------------------------------------------------------
 // Versement chauffeur — appelée par calculateDriverPayout.ts UNIQUEMENT quand
 // le versement est déjà ELIGIBLE (payout_eligible_at <= now) et possède un
 // connected_account_id valide. Suit le même schéma en 3 temps que
