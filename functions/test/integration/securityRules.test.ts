@@ -2230,6 +2230,375 @@ describe("Security Rules — payout_policy_configs/{configId} (Bloc L)", () => {
 });
 
 // -----------------------------------------------------------------------
+// payment_profiles/{customerId} — Bloc T : lecture propriétaire ou
+// analyst+ (règle exacte : `uid() == customerId || isAnalystOrAbove()`),
+// aucune écriture cliente (référence Stripe client, pas de donnée de
+// carte sensible).
+// -----------------------------------------------------------------------
+describe("Security Rules — payment_profiles/{customerId} (Bloc T)", () => {
+  async function seedProfile(customerId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `payment_profiles/${customerId}`), {
+        customer_id: customerId,
+        stripe_customer_id: "cus_fake_001",
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire un profil de paiement", async () => {
+    await seedProfile("customer_pp_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "payment_profiles/customer_pp_001")));
+  });
+
+  it("le customer propriétaire PEUT lire son propre profil de paiement", async () => {
+    await seedProfile("customer_pp_002");
+    const owner = testEnv.authenticatedContext("customer_pp_002", { role: "customer" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "payment_profiles/customer_pp_002")));
+  });
+
+  it("un autre customer (non propriétaire) ne peut PAS lire ce profil de paiement", async () => {
+    await seedProfile("customer_pp_003");
+    const other = testEnv.authenticatedContext("customer_pp_other_001", { role: "customer" });
+    await assertFails(getDoc(doc(other.firestore(), "payment_profiles/customer_pp_003")));
+  });
+
+  it("un driver ne peut PAS lire un profil de paiement (aucune règle explicite ne l'autorise)", async () => {
+    await seedProfile("customer_pp_004");
+    const driver = testEnv.authenticatedContext("driver_pp_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "payment_profiles/customer_pp_004")));
+  });
+
+  it("un analyst PEUT lire n'importe quel profil de paiement", async () => {
+    await seedProfile("customer_pp_005");
+    const analyst = testEnv.authenticatedContext("analyst_pp_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "payment_profiles/customer_pp_005")));
+  });
+
+  it("un admin PEUT lire n'importe quel profil de paiement", async () => {
+    await seedProfile("customer_pp_006");
+    const admin = testEnv.authenticatedContext("admin_pp_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "payment_profiles/customer_pp_006")));
+  });
+
+  it("un super_admin PEUT lire n'importe quel profil de paiement", async () => {
+    await seedProfile("customer_pp_007");
+    const superAdmin = testEnv.authenticatedContext("super_admin_pp_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "payment_profiles/customer_pp_007")));
+  });
+
+  it("le propriétaire ne peut PAS écrire/modifier directement son propre profil de paiement", async () => {
+    await seedProfile("customer_pp_008");
+    const owner = testEnv.authenticatedContext("customer_pp_008", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "payment_profiles/customer_pp_008"), {
+        stripe_customer_id: "cus_hacked",
+      })
+    );
+  });
+
+  it("un analyst ne peut PAS écrire directement un profil de paiement", async () => {
+    await seedProfile("customer_pp_009");
+    const analyst = testEnv.authenticatedContext("analyst_pp_002", { role: "analyst" });
+    await assertFails(
+      updateDoc(doc(analyst.firestore(), "payment_profiles/customer_pp_009"), {
+        stripe_customer_id: "cus_hacked",
+      })
+    );
+  });
+
+  it("un admin ne peut PAS écrire directement un profil de paiement", async () => {
+    await seedProfile("customer_pp_010");
+    const admin = testEnv.authenticatedContext("admin_pp_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "payment_profiles/customer_pp_010"), {
+        stripe_customer_id: "cus_hacked",
+      })
+    );
+  });
+
+  it("un super_admin ne peut PAS écrire directement un profil de paiement (Cloud Functions only)", async () => {
+    await seedProfile("customer_pp_011");
+    const superAdmin = testEnv.authenticatedContext("super_admin_pp_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "payment_profiles/customer_pp_011"), {
+        stripe_customer_id: "cus_hacked",
+      })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// idempotency_keys/{key} — Bloc T : collection totalement inaccessible
+// côté client, quel que soit le rôle. Règle exacte : `allow read, write:
+// if false;` — verrous internes Cloud Functions / Admin SDK uniquement.
+// -----------------------------------------------------------------------
+describe("Security Rules — idempotency_keys/{key} (Bloc T)", () => {
+  async function seedKey(key: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `idempotency_keys/${key}`), {
+        key,
+        locked_at: Date.now(),
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire une clé d'idempotence", async () => {
+    await seedKey("idem_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "idempotency_keys/idem_001")));
+  });
+
+  it("un customer ne peut PAS lire une clé d'idempotence", async () => {
+    await seedKey("idem_002");
+    const customer = testEnv.authenticatedContext("customer_idem_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "idempotency_keys/idem_002")));
+  });
+
+  it("un driver ne peut PAS lire une clé d'idempotence", async () => {
+    await seedKey("idem_003");
+    const driver = testEnv.authenticatedContext("driver_idem_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "idempotency_keys/idem_003")));
+  });
+
+  it("un analyst ne peut PAS lire une clé d'idempotence", async () => {
+    await seedKey("idem_004");
+    const analyst = testEnv.authenticatedContext("analyst_idem_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "idempotency_keys/idem_004")));
+  });
+
+  it("un admin ne peut PAS lire une clé d'idempotence", async () => {
+    await seedKey("idem_005");
+    const admin = testEnv.authenticatedContext("admin_idem_001", { role: "admin" });
+    await assertFails(getDoc(doc(admin.firestore(), "idempotency_keys/idem_005")));
+  });
+
+  it("un super_admin ne peut PAS lire une clé d'idempotence (même le rôle le plus élevé)", async () => {
+    await seedKey("idem_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_idem_001", { role: "super_admin" });
+    await assertFails(getDoc(doc(superAdmin.firestore(), "idempotency_keys/idem_006")));
+  });
+
+  it("un customer ne peut PAS écrire une clé d'idempotence", async () => {
+    const customer = testEnv.authenticatedContext("customer_idem_002", { role: "customer" });
+    await assertFails(
+      setDoc(doc(customer.firestore(), "idempotency_keys/idem_fake_001"), { key: "idem_fake_001" })
+    );
+  });
+
+  it("un driver ne peut PAS écrire une clé d'idempotence", async () => {
+    const driver = testEnv.authenticatedContext("driver_idem_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "idempotency_keys/idem_fake_002"), { key: "idem_fake_002" })
+    );
+  });
+
+  it("un analyst ne peut PAS écrire une clé d'idempotence", async () => {
+    const analyst = testEnv.authenticatedContext("analyst_idem_002", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "idempotency_keys/idem_fake_003"), { key: "idem_fake_003" })
+    );
+  });
+
+  it("un admin ne peut PAS écrire une clé d'idempotence", async () => {
+    const admin = testEnv.authenticatedContext("admin_idem_002", { role: "admin" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "idempotency_keys/idem_fake_004"), { key: "idem_fake_004" })
+    );
+  });
+
+  it("un super_admin ne peut PAS écrire une clé d'idempotence (Cloud Functions / Admin SDK only)", async () => {
+    const superAdmin = testEnv.authenticatedContext("super_admin_idem_002", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "idempotency_keys/idem_fake_005"), { key: "idem_fake_005" })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// provider_webhook_events/{eventId} — Bloc T : lecture admin+ UNIQUEMENT
+// (analyst explicitement refusé, règle exacte : `isAdminOrAbove()`),
+// aucune écriture cliente. Les webhooks Stripe restent backend-only.
+// -----------------------------------------------------------------------
+describe("Security Rules — provider_webhook_events/{eventId} (Bloc T)", () => {
+  async function seedEvent(eventId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `provider_webhook_events/${eventId}`), {
+        event_id: eventId,
+        type: "payment_intent.succeeded",
+        status: "processed",
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire un évènement webhook", async () => {
+    await seedEvent("evt_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "provider_webhook_events/evt_001")));
+  });
+
+  it("un customer ne peut PAS lire un évènement webhook", async () => {
+    await seedEvent("evt_002");
+    const customer = testEnv.authenticatedContext("customer_evt_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "provider_webhook_events/evt_002")));
+  });
+
+  it("un driver ne peut PAS lire un évènement webhook", async () => {
+    await seedEvent("evt_003");
+    const driver = testEnv.authenticatedContext("driver_evt_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "provider_webhook_events/evt_003")));
+  });
+
+  it("un analyst NE PEUT PAS lire un évènement webhook (règle plus stricte : admin+ uniquement)", async () => {
+    await seedEvent("evt_004");
+    const analyst = testEnv.authenticatedContext("analyst_evt_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "provider_webhook_events/evt_004")));
+  });
+
+  it("un admin PEUT lire un évènement webhook", async () => {
+    await seedEvent("evt_005");
+    const admin = testEnv.authenticatedContext("admin_evt_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "provider_webhook_events/evt_005")));
+  });
+
+  it("un super_admin PEUT lire un évènement webhook", async () => {
+    await seedEvent("evt_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_evt_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "provider_webhook_events/evt_006")));
+  });
+
+  it("un customer ne peut PAS écrire un évènement webhook", async () => {
+    const customer = testEnv.authenticatedContext("customer_evt_002", { role: "customer" });
+    await assertFails(
+      setDoc(doc(customer.firestore(), "provider_webhook_events/evt_fake_001"), {
+        event_id: "evt_fake_001",
+      })
+    );
+  });
+
+  it("un driver ne peut PAS écrire un évènement webhook", async () => {
+    const driver = testEnv.authenticatedContext("driver_evt_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "provider_webhook_events/evt_fake_002"), {
+        event_id: "evt_fake_002",
+      })
+    );
+  });
+
+  it("un analyst ne peut PAS écrire un évènement webhook", async () => {
+    const analyst = testEnv.authenticatedContext("analyst_evt_002", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "provider_webhook_events/evt_fake_003"), {
+        event_id: "evt_fake_003",
+      })
+    );
+  });
+
+  it("un admin ne peut PAS écrire directement un évènement webhook", async () => {
+    await seedEvent("evt_007");
+    const admin = testEnv.authenticatedContext("admin_evt_002", { role: "admin" });
+    await assertFails(
+      updateDoc(doc(admin.firestore(), "provider_webhook_events/evt_007"), { status: "failed" })
+    );
+  });
+
+  it("un super_admin ne peut PAS écrire directement un évènement webhook (processStripeWebhook / Admin SDK only)", async () => {
+    await seedEvent("evt_008");
+    const superAdmin = testEnv.authenticatedContext("super_admin_evt_002", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "provider_webhook_events/evt_008"), { status: "failed" })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
+// audit_logs/{logId} — Bloc T : lecture admin+ UNIQUEMENT (analyst
+// explicitement refusé, règle exacte : `isAdminOrAbove()`), écriture
+// directe interdite quel que soit le rôle (Cloud Functions only).
+// -----------------------------------------------------------------------
+describe("Security Rules — audit_logs/{logId} (Bloc T)", () => {
+  async function seedLog(logId: string) {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `audit_logs/${logId}`), {
+        log_id: logId,
+        action: "dispute_opened",
+      });
+    });
+  }
+
+  it("un utilisateur NON authentifié ne peut PAS lire un log d'audit", async () => {
+    await seedLog("log_001");
+    const unauthed = testEnv.unauthenticatedContext();
+    await assertFails(getDoc(doc(unauthed.firestore(), "audit_logs/log_001")));
+  });
+
+  it("un customer ne peut PAS lire un log d'audit", async () => {
+    await seedLog("log_002");
+    const customer = testEnv.authenticatedContext("customer_log_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "audit_logs/log_002")));
+  });
+
+  it("un driver ne peut PAS lire un log d'audit", async () => {
+    await seedLog("log_003");
+    const driver = testEnv.authenticatedContext("driver_log_001", { role: "driver" });
+    await assertFails(getDoc(doc(driver.firestore(), "audit_logs/log_003")));
+  });
+
+  it("un analyst NE PEUT PAS lire un log d'audit (règle plus stricte : admin+ uniquement)", async () => {
+    await seedLog("log_004");
+    const analyst = testEnv.authenticatedContext("analyst_log_001", { role: "analyst" });
+    await assertFails(getDoc(doc(analyst.firestore(), "audit_logs/log_004")));
+  });
+
+  it("un admin PEUT lire un log d'audit", async () => {
+    await seedLog("log_005");
+    const admin = testEnv.authenticatedContext("admin_log_001", { role: "admin" });
+    await assertSucceeds(getDoc(doc(admin.firestore(), "audit_logs/log_005")));
+  });
+
+  it("un super_admin PEUT lire un log d'audit", async () => {
+    await seedLog("log_006");
+    const superAdmin = testEnv.authenticatedContext("super_admin_log_001", { role: "super_admin" });
+    await assertSucceeds(getDoc(doc(superAdmin.firestore(), "audit_logs/log_006")));
+  });
+
+  it("aucun rôle ne peut écrire directement un log d'audit (create), même super_admin", async () => {
+    const customer = testEnv.authenticatedContext("customer_log_002", { role: "customer" });
+    await assertFails(
+      setDoc(doc(customer.firestore(), "audit_logs/log_fake_001"), { log_id: "log_fake_001" })
+    );
+
+    const driver = testEnv.authenticatedContext("driver_log_002", { role: "driver" });
+    await assertFails(
+      setDoc(doc(driver.firestore(), "audit_logs/log_fake_002"), { log_id: "log_fake_002" })
+    );
+
+    const analyst = testEnv.authenticatedContext("analyst_log_002", { role: "analyst" });
+    await assertFails(
+      setDoc(doc(analyst.firestore(), "audit_logs/log_fake_003"), { log_id: "log_fake_003" })
+    );
+
+    const admin = testEnv.authenticatedContext("admin_log_002", { role: "admin" });
+    await assertFails(
+      setDoc(doc(admin.firestore(), "audit_logs/log_fake_004"), { log_id: "log_fake_004" })
+    );
+
+    const superAdmin = testEnv.authenticatedContext("super_admin_log_002", { role: "super_admin" });
+    await assertFails(
+      setDoc(doc(superAdmin.firestore(), "audit_logs/log_fake_005"), { log_id: "log_fake_005" })
+    );
+  });
+
+  it("aucun rôle ne peut modifier directement un log d'audit existant (update), même super_admin", async () => {
+    await seedLog("log_007");
+    const superAdmin = testEnv.authenticatedContext("super_admin_log_003", { role: "super_admin" });
+    await assertFails(
+      updateDoc(doc(superAdmin.firestore(), "audit_logs/log_007"), { action: "tampered" })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
 // DENY BY DEFAULT — collection inconnue
 // -----------------------------------------------------------------------
 describe("Security Rules — deny-by-default", () => {
