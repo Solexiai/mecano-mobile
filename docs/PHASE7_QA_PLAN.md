@@ -88,7 +88,20 @@ fermeture de bloc pour survivre à une compaction de contexte.
 5. Interdiction de `dart format .` global. Formatter uniquement les fichiers modifiés.
 6. Chaque bloc/groupe logique important → commit + push. Avant clôture Phase 7 : `HEAD==origin/main`, working tree clean.
 
-## Point de reprise actuel (mis à jour après BUG-001 corrigé + MIS-C-02/04/06/07/08 traités)
+## BLOC B : ✅ FERMÉ
+
+**Critères de clôture vérifiés** :
+- MIS-C-09 (dernier scénario ouvert du Bloc B) : **DONE** — Cas A (UI double submit, 2/2 PASS),
+  Cas B (backend retry séquentiel, PASS), Cas C (backend concurrence stricte, PASS). Voir détail
+  ci-dessous.
+- `flutter analyze` (projet complet) : 0 erreur (3 `info`/`deprecated_member_use` pré-existants,
+  hors périmètre Bloc B, non régressés).
+- `flutter test` (suite complète, aucun fichier ciblé) : **323 passed, 0 failed** — aucune
+  régression, aucun test skip/supprimé.
+- Aucun P0/P1 ouvert dans le Bloc B : BUG-001 (P1, CORRIGÉ), BUG-002 (P3, CORRIGÉ), BUG-003 (P1,
+  CORRIGÉ). Tous fermés.
+
+## Point de reprise actuel (mis à jour après BUG-001/002/003 corrigés + MIS-C-02/04/06/07/08/09 traités)
 
 **Dernière action complétée** :
 - **BUG-001 CORRIGÉ** ✅ : `cancelAuthorization()` maintenant appelé correctement à l'annulation
@@ -119,22 +132,40 @@ fermeture de bloc pour survivre à une compaction de contexte.
   timestamps ; inspection de code confirme tous les force-unwraps (`!`) dans les écrans concernés
   sont gardés par `if (x != null)` — **aucun bug réel**.
 
+**MIS-C-09 — traitement complet** :
+- **Backend (Cas B + Cas C)** : `createDeliveryRequest.ts` s'appuie déjà sur une transaction
+  Firestore unique (lecture du devis + écriture mission + consommation `is_consumed` atomiques) —
+  le contrôle de concurrence optimiste Firestore empêche nativement toute double mission sur
+  retry séquentiel OU concurrence stricte. Nouveau test
+  `createDeliveryRequestIdempotency.test.ts` (Cas B retry, Cas C `Promise.allSettled`) →
+  **2/2 PASS**. **Aucun bug backend** — architecture déjà sûre.
+- **UI (Cas A) — BUG-003 (P1) trouvé et CORRIGÉ** : en écrivant le test du double-tap, découverte
+  qu'une saisie catégorie-puis-description (étape 1) ou remplissage des champs d'adresse
+  (étape 2) ne déclenchait jamais de rebuild du parent (`TextEditingController` sans `onChanged`
+  reliant à `setState`), figeant `canProceed` sur `false` et bloquant tout le funnel. Corrigé par
+  ajout de `onDescriptionChanged`/`onAddressFieldChanged` (`onChanged: (_) => setState(() {})`)
+  sur les champs concernés — voir `PHASE7_BUG_REPORT.md`. Garde de réentrance explicite déjà
+  ajoutée dans `_createMission()` (`if (_phase == creating || _phase == created) return;`) +
+  seams de test (`BackendLocator.missionRepositoryOverride`,
+  `FirebaseAuthProvider.debugForceSignedIn` etc.). Test
+  `delivery_request_flow_double_submit_test.dart` → **2/2 PASS** (double-tap rapide : une seule
+  création ; bouton devient `onPressed == null` dès la phase `creating`).
+- **MIS-C-09 → DONE** dans `PHASE7_QA_MATRIX.md`.
+
+**Validation de clôture Bloc B (une seule fois, non une reconnaissance)** :
+- `flutter analyze` (projet complet) → 0 erreur (3 `info` pré-existants hors périmètre).
+- `flutter test` (suite complète) → **323 passed, 0 failed**.
+- Backend : `createDeliveryRequestIdempotency.test.ts` reconfirmé isolément → 2/2 PASS.
+
 **PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit)** :
-1. **MIS-C-09** (déconnexion réseau pendant requête, pas de double mission) : reste **NON
-   TRAITÉ**. Piste identifiée mais pas encore vérifiée : `createMissionFromQuote()` (client) ->
-   Cloud Function `createDeliveryRequest` — vérifier si un retry réseau côté client (bouton
-   toujours actif pendant `_phase == _FlowPhase.creating` ? à confirmer dans
-   `step_progress_form.dart`/`delivery_request_flow_screen.dart`) peut créer 2 missions pour le
-   même `quoteId`, et si le serveur a une protection idempotente sur `quoteId` déjà consommé.
-   TEST → possible FAIL → FIX → RETEST.
-2. Une fois MIS-C-09 traité : exécuter `flutter test` complet (suite entière, pas seulement les
-   fichiers ciblés — pas fait depuis le début de la Phase 7, à faire UNE FOIS avant la clôture du
-   Bloc B, cf. Règle 2 anti-boucle : c'est la vérification de clôture, pas une reconnaissance).
-3. Déclarer **"BLOC B : ✅ FERMÉ"** dans ce fichier.
-4. Enchaîner directement **Bloc C — E2E CHAUFFEUR** (parcours complet + cas négatifs : chauffeur
-   non approuvé, document manquant, véhicule non vérifié, compte suspendu, course de
-   double-acceptation, GPS refusé/désactivé, échec upload preuve, échec payout) sans audit
-   général préalable.
+1. **Bloc B est FERMÉ** (voir déclaration ci-dessus). Commit + push de ce cycle (garde
+   double-submit, seams de test, fix rebuild BUG-003, tests UI + backend, documentation Phase 7).
+2. Enchaîner directement **Bloc C — E2E CHAUFFEUR** (parcours complet : signup → profil →
+   véhicule → documents → submit review → analyst approve → online → reçoit mission → accepte →
+   GPS → pickup → in transit → destination → proof → completed → revenus → payout ; puis cas
+   négatifs déjà définis : chauffeur non approuvé, document manquant, véhicule non vérifié,
+   compte suspendu, mission déjà acceptée, GPS refusé, GPS désactivé, upload preuve échoue,
+   payout échoue) sans audit général préalable.
 
 **Fichiers créés/modifiés cette session, tous committés/pushés dans ce cycle** :
 - `functions/src/payment/paymentOrchestration.ts` (fix BUG-001 + fix reads-before-writes)
@@ -148,7 +179,19 @@ fermeture de bloc pour survivre à une compaction de contexte.
 - `docs/PHASE7_BUG_REPORT.md` (BUG-001 CORRIGÉ, BUG-002 ajouté et CORRIGÉ)
 - `docs/PHASE7_QA_MATRIX.md` (lignes MIS-C-02/04/05/06/07/08 mises à jour)
 
-**Important pour la prochaine session** : `flutter test` complet et `flutter analyze` complet du
-projet n'ont PAS été ré-exécutés dans ce cycle (seuls les fichiers modifiés ont été vérifiés
-individuellement, conformément à la règle "pas de `dart format .` global"). À faire une seule
-fois, à la clôture du Bloc B (voir étape 2 ci-dessus).
+**Fichiers créés/modifiés ce cycle (MIS-C-09, clôture Bloc B)** :
+- `lib/screens/delivery/delivery_request_flow_screen.dart` (garde de réentrance
+  `_createMission()` ; fix BUG-003 : `onDescriptionChanged`/`onAddressFieldChanged` sur les
+  champs texte des étapes 1 et 2 ; usage de `auth.effectiveUid/effectiveDisplayName/effectiveEmail`)
+- `lib/backend/backend_locator.dart` (seam de test `missionRepositoryOverride`)
+- `lib/providers/firebase_auth_provider.dart` (seams de test `debugForceSignedIn` etc. +
+  getters `effectiveUid/effectiveDisplayName/effectiveEmail`)
+- `functions/test/integration/createDeliveryRequestIdempotency.test.ts` (MIS-C-09 Cas B+C,
+  2/2 PASS)
+- `test/customer/delivery_request_flow_double_submit_test.dart` (MIS-C-09 Cas A, 2/2 PASS)
+- `docs/PHASE7_BUG_REPORT.md` (BUG-003 ajouté et CORRIGÉ)
+- `docs/PHASE7_QA_MATRIX.md` (ligne MIS-C-09 → DONE)
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc B)
+
+**Vérification finale de clôture** : `flutter test` complet exécuté → **323 passed, 0 failed**.
+`flutter analyze` complet exécuté → 0 erreur (3 `info` pré-existants, hors périmètre).

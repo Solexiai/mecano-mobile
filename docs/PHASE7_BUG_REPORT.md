@@ -114,6 +114,56 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
 
 ---
 
+## BUG-003 — `DeliveryRequestFlowScreen` : bouton "Suivant" figé désactivé selon l'ordre de saisie (étapes 1 et 2)
+
+- **Composant** : `lib/screens/delivery/delivery_request_flow_screen.dart` (`_Step1ItemInfo`,
+  `_Step2Addresses`).
+- **Sévérité** : **P1** — blocage total possible de la création d'une mission client sur un
+  parcours utilisateur courant (aucun contournement UI disponible une fois le bouton figé
+  désactivé ; seul un redémarrage du flux, potentiellement inefficace selon l'ordre de saisie
+  répété, permettrait de s'en sortir).
+- **Découvert pendant** : Phase 7, Bloc B, MIS-C-09 (E2E client — double soumission réseau),
+  en construisant le widget test du Cas A (double-tap UI) : un test de diagnostic minimal a
+  révélé que le formulaire ne progressait jamais au-delà de l'étape 1 malgré catégorie et
+  description valides.
+- **Cause racine** : `StepProgressForm.canProceed(step)` (callback fourni par
+  `_DeliveryRequestFlowScreenState.build()`) lit directement `_descController.text` (étape 0)
+  et les `.text` de 10 `TextEditingController` d'adresse (étape 1, pickup + dropoff). Ces
+  contrôleurs sont passés à des `TextField` dans des widgets enfants `StatelessWidget`
+  (`_Step1ItemInfo`, `_Step2Addresses`) **sans aucun callback `onChanged` déclenchant un
+  `setState()` sur le parent**. Un `TextEditingController` ne provoque par lui-même aucun
+  rebuild de `StepProgressForm` (qui ne l'écoute pas) : `canProceed` n'est donc réévalué que
+  lors d'un `setState` déclenché par ailleurs (ex. sélection d'une catégorie/`ChoiceChip`).
+  Concrètement : si l'utilisateur (1) choisit la catégorie, PUIS (2) saisit la description, le
+  dernier `setState` a eu lieu à l'étape (1) — où la description était encore vide — et
+  `canProceed` reste figé sur `false` en permanence, même une fois la description remplie,
+  car aucun événement ne redéclenche le calcul. Même mécanisme pour les 10 champs d'adresse de
+  l'étape 2 (`pickupLine1/City/Postal/Lat/Lng`, `dropoffLine1/City/Postal/Lat/Lng` — les champs
+  optionnels `contactController`/`accessController` ne sont pas concernés, absents de
+  `canProceed`).
+- **Reproduction** : test de diagnostic ad hoc (widget test minimal, non conservé) confirmant
+  `nextBtn.onPressed == null` après saisie catégorie + description complètes, chip bien
+  `selected: true`, texte bien présent dans le controller (`tf.controller?.text == "Canape"`)
+  — élimine toute cause côté validation elle-même, isole strictement l'absence de rebuild.
+- **Correctif appliqué** :
+  1. `_Step1ItemInfo` : ajout du paramètre `onDescriptionChanged` (`VoidCallback`), branché sur
+     `TextField(controller: descController, onChanged: (_) => onDescriptionChanged())`. Site
+     d'appel (`build()` du parent) : `onDescriptionChanged: () => setState(() {})`.
+  2. `_Step2Addresses` : ajout du paramètre `onAddressFieldChanged` (`VoidCallback`), branché en
+     `onChanged` sur les 10 `TextField` participant à `canProceed(step == 1)` (pickup et dropoff
+     : line1, city, postal, lat, lng). Site d'appel : `onAddressFieldChanged: () => setState(() {})`.
+  3. Aucune refonte : le pattern déjà utilisé pour les autres callbacks (`onCategorySelected`,
+     `onQuantityChanged`, etc.) est simplement étendu aux champs texte concernés.
+- **Test de régression** : `test/customer/delivery_request_flow_double_submit_test.dart` —
+  le scénario `_fillFormAndReachQuoteStep`/`fillFormAndReachQuoteStep` reproduit exactement
+  l'ordre catégorie-puis-description (étape 1) et la saisie des 10 champs d'adresse (étape 2) ;
+  sans le correctif, ce helper bloque indéfiniment dès l'étape 1 (bouton "Suivant" jamais
+  actif) et les deux tests du fichier échouent avant même d'atteindre l'assertion de
+  double-submit. Après correctif : **2 passed, 2 total**.
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc B, MIS-C-09).
+
+---
+
 *Ce fichier sera enrichi au fil des blocs B à W avec tout nouveau bug découvert (ID
-séquentiel BUG-003, BUG-004, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+séquentiel BUG-004, BUG-005, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

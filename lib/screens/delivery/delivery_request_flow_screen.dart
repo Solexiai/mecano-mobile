@@ -195,6 +195,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                           onHeavyChanged: (v) => setState(() => _isHeavyItem = v),
                           isBulkyItem: _isBulkyItem,
                           onBulkyChanged: (v) => setState(() => _isBulkyItem = v),
+                          // MIS-C-09 / BUG-003 : force le rebuild du parent
+                          // pour que `canProceed` (qui lit
+                          // `_descController.text`) soit réévalué à chaque
+                          // frappe, sans quoi le bouton "Suivant" peut
+                          // rester bloqué désactivé.
+                          onDescriptionChanged: () => setState(() {}),
                         ),
                     (context) => _Step2Addresses(
                           pickupLine1: _pickupLine1Controller,
@@ -209,6 +215,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                           dropoffLng: _dropoffLngController,
                           contactController: _contactController,
                           accessController: _accessController,
+                          // MIS-C-09 / BUG-003 : même correctif que l'étape 1
+                          // — force la réévaluation de `canProceed(step==1)`
+                          // à chaque frappe dans un champ d'adresse.
+                          onAddressFieldChanged: () => setState(() {}),
                         ),
                     (context) => _Step3Vehicle(
                           selected: _selectedVehicle,
@@ -375,6 +385,13 @@ class _Step1ItemInfo extends StatelessWidget {
   final ValueChanged<bool> onHeavyChanged;
   final bool isBulkyItem;
   final ValueChanged<bool> onBulkyChanged;
+  // MIS-C-09 (Phase 7, Bloc B, BUG-003) : `canProceed` (StepProgressForm)
+  // dépend de `descController.text`, mais un `TextEditingController` seul
+  // ne déclenche AUCUN rebuild du parent quand son texte change (ce widget
+  // est `StatelessWidget` et le parent n'écoute pas le controller). Sans ce
+  // callback, taper la description après avoir choisi la catégorie ne
+  // réévalue jamais `canProceed` -> le bouton "Suivant" reste figé désactivé.
+  final VoidCallback onDescriptionChanged;
 
   const _Step1ItemInfo({
     required this.categories,
@@ -391,6 +408,7 @@ class _Step1ItemInfo extends StatelessWidget {
     required this.onHeavyChanged,
     required this.isBulkyItem,
     required this.onBulkyChanged,
+    required this.onDescriptionChanged,
   });
 
   @override
@@ -418,6 +436,7 @@ class _Step1ItemInfo extends StatelessWidget {
             controller: descController,
             maxLines: 3,
             decoration: InputDecoration(labelText: t('delivery_item_description')),
+            onChanged: (_) => onDescriptionChanged(),
           ),
           const SizedBox(height: 16),
           Row(
@@ -472,6 +491,14 @@ class _Step2Addresses extends StatelessWidget {
   final TextEditingController dropoffLng;
   final TextEditingController contactController;
   final TextEditingController accessController;
+  // MIS-C-09 (Phase 7, Bloc B, BUG-003) : même pattern que _Step1ItemInfo —
+  // `canProceed(step == 1)` lit directement le `.text` des 10 controllers
+  // d'adresse. Sans callback de rebuild, remplir ces champs dans un ordre
+  // qui ne déclenche pas déjà un `setState` ailleurs laisse le bouton
+  // "Suivant" figé désactivé même une fois tous les champs valides.
+  // (contactController/accessController ne sont PAS dans `canProceed` —
+  // ils sont optionnels — donc pas concernés par ce callback.)
+  final VoidCallback onAddressFieldChanged;
 
   const _Step2Addresses({
     required this.pickupLine1,
@@ -486,6 +513,7 @@ class _Step2Addresses extends StatelessWidget {
     required this.dropoffLng,
     required this.contactController,
     required this.accessController,
+    required this.onAddressFieldChanged,
   });
 
   @override
@@ -503,13 +531,29 @@ class _Step2Addresses extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(controller: pickupLine1, decoration: InputDecoration(labelText: t('delivery_pickup_line1'))),
+          TextField(
+            controller: pickupLine1,
+            decoration: InputDecoration(labelText: t('delivery_pickup_line1')),
+            onChanged: (_) => onAddressFieldChanged(),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: pickupCity, decoration: InputDecoration(labelText: t('delivery_pickup_city')))),
+              Expanded(
+                child: TextField(
+                  controller: pickupCity,
+                  decoration: InputDecoration(labelText: t('delivery_pickup_city')),
+                  onChanged: (_) => onAddressFieldChanged(),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: TextField(controller: pickupPostal, decoration: InputDecoration(labelText: t('delivery_pickup_postal')))),
+              Expanded(
+                child: TextField(
+                  controller: pickupPostal,
+                  decoration: InputDecoration(labelText: t('delivery_pickup_postal')),
+                  onChanged: (_) => onAddressFieldChanged(),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -520,6 +564,7 @@ class _Step2Addresses extends StatelessWidget {
                   controller: pickupLat,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                   decoration: InputDecoration(labelText: t('delivery_lat')),
+                  onChanged: (_) => onAddressFieldChanged(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -528,6 +573,7 @@ class _Step2Addresses extends StatelessWidget {
                   controller: pickupLng,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                   decoration: InputDecoration(labelText: t('delivery_lng')),
+                  onChanged: (_) => onAddressFieldChanged(),
                 ),
               ),
             ],
@@ -541,13 +587,29 @@ class _Step2Addresses extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(controller: dropoffLine1, decoration: InputDecoration(labelText: t('delivery_dropoff_line1'))),
+          TextField(
+            controller: dropoffLine1,
+            decoration: InputDecoration(labelText: t('delivery_dropoff_line1')),
+            onChanged: (_) => onAddressFieldChanged(),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: dropoffCity, decoration: InputDecoration(labelText: t('delivery_dropoff_city')))),
+              Expanded(
+                child: TextField(
+                  controller: dropoffCity,
+                  decoration: InputDecoration(labelText: t('delivery_dropoff_city')),
+                  onChanged: (_) => onAddressFieldChanged(),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: TextField(controller: dropoffPostal, decoration: InputDecoration(labelText: t('delivery_dropoff_postal')))),
+              Expanded(
+                child: TextField(
+                  controller: dropoffPostal,
+                  decoration: InputDecoration(labelText: t('delivery_dropoff_postal')),
+                  onChanged: (_) => onAddressFieldChanged(),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -558,6 +620,7 @@ class _Step2Addresses extends StatelessWidget {
                   controller: dropoffLat,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                   decoration: InputDecoration(labelText: t('delivery_lat')),
+                  onChanged: (_) => onAddressFieldChanged(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -566,6 +629,7 @@ class _Step2Addresses extends StatelessWidget {
                   controller: dropoffLng,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                   decoration: InputDecoration(labelText: t('delivery_lng')),
+                  onChanged: (_) => onAddressFieldChanged(),
                 ),
               ),
             ],

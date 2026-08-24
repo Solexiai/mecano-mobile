@@ -299,14 +299,17 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(submitButtonFinder);
-      await tester.pump(); // 1 frame : phase passe à `creating`, bouton remplacé par un loader.
+      await tester.pump(); // 1 frame : phase passe à `creating`.
 
-      // À ce stade, `_Step4Quote` affiche le `CircularProgressIndicator`
-      // (phase == creating) : le bouton "Confirmer et créer" ne devrait
-      // même plus être dans l'arbre. On le vérifie explicitement — c'est
-      // la preuve que la désactivation visuelle ET la garde logique
-      // travaillent ensemble.
-      expect(submitButtonFinder, findsNothing);
+      // Le bouton "Confirmer et créer" est rendu par `StepProgressForm`
+      // lui-même (pas par le contenu de l'étape `_Step4Quote`) : il reste
+      // dans l'arbre mais doit être DÉSACTIVÉ (`onPressed == null`) dès que
+      // `_phase == creating`, car `canProceed` redevient faux
+      // (`_quote != null && _phase == _FlowPhase.quoted`). C'est la preuve
+      // que la désactivation visuelle ET la garde logique travaillent
+      // ensemble contre un second tap.
+      final buttonAfterFirstTap = tester.widget<ElevatedButton>(submitButtonFinder);
+      expect(buttonAfterFirstTap.onPressed, isNull);
 
       await tester.pumpAndSettle(const Duration(seconds: 1));
 
