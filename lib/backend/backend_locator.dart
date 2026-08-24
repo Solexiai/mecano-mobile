@@ -14,6 +14,8 @@
 // Flutter n'aura besoin d'être modifié grâce au pattern Repository.
 // ---------------------------------------------------------------------------
 
+import 'package:flutter/foundation.dart';
+
 import 'backend_bootstrap.dart';
 import 'repositories/driver_repository.dart';
 import 'repositories/firebase_driver_repository.dart';
@@ -28,6 +30,17 @@ import 'repositories/firebase_notification_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
+  // ---------------------------------------------------------------------
+  // Seam de test (Phase 7, Bloc B, MIS-C-09) — permet aux widget tests
+  // d'injecter un `MissionRepository` fake (ex: pour compter le nombre de
+  // requêtes `createMissionFromQuote` réellement déclenchées lors d'un
+  // double-tap UI) sans dépendre de Firebase/BackendBootstrap. `@visibleForTesting`
+  // documente l'intention : ne JAMAIS positionner ce champ en dehors de
+  // `test/`. Doit être remis à `null` après chaque test (voir `tearDown`).
+  // ---------------------------------------------------------------------
+  @visibleForTesting
+  static MissionRepository? missionRepositoryOverride;
+
   static DriverRepository get driverRepository {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredDriverRepository();
@@ -36,6 +49,8 @@ class BackendLocator {
   }
 
   static MissionRepository get missionRepository {
+    final override = missionRepositoryOverride;
+    if (override != null) return override;
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredMissionRepository();
     }

@@ -252,7 +252,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       );
 
       final quote = await BackendLocator.missionRepository.requestQuote(
-        customerId: auth.user!.uid,
+        customerId: auth.effectiveUid ?? '',
         itemCategoryKey: _selectedCategory,
         vehicleCategoryName: _selectedVehicle!.firestoreValue,
         missionDetails: {
@@ -283,6 +283,17 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   }
 
   Future<void> _createMission(FirebaseAuthProvider auth) async {
+    // MIS-C-09 (Phase 7, Bloc B) : garde de réentrance EXPLICITE, en plus de
+    // la désactivation visuelle du bouton (`canProceed` -> `_phase ==
+    // _FlowPhase.quoted`). La désactivation visuelle ne suffit pas seule :
+    // entre le premier `onPressed` et le rebuild qui grise le bouton, un
+    // deuxième tap synchrone (même frame, ou double-tap très rapide) peut
+    // survenir AVANT que `setState` n'ait été appliqué. Cette garde en tête
+    // de fonction (vérifiée avant tout `setState`/appel réseau) empêche
+    // qu'un deuxième appel à `_createMission()` ne déclenche une deuxième
+    // requête `createMissionFromQuote` tant que le premier appel est en
+    // cours ou déjà terminé (`creating` ou `created`).
+    if (_phase == _FlowPhase.creating || _phase == _FlowPhase.created) return;
     if (_quote == null || _selectedVehicle == null || _distanceEstimate == null) return;
     setState(() {
       _phase = _FlowPhase.creating;
@@ -323,7 +334,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
             ),
             MissionStopInput(type: 'dropoff', address: dropoffAddress),
           ],
-          customerDisplayName: auth.user!.displayName ?? auth.user!.email ?? 'Client',
+          customerDisplayName: auth.effectiveDisplayName ?? auth.effectiveEmail ?? 'Client',
         ),
       );
 

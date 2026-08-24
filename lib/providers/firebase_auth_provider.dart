@@ -43,8 +43,38 @@ class FirebaseAuthProvider extends ChangeNotifier {
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Seam de test (Phase 7, Bloc B, MIS-C-09) — `fb.User` est une classe
+  // opaque du SDK Firebase Auth qu'on ne peut pas construire manuellement
+  // sans initialiser un vrai projet Firebase (ou un package de mocks non
+  // installé dans ce projet). Ce flag permet aux widget tests de simuler
+  // un état "connecté" pour tester le contenu protégé d'un écran (ex:
+  // `DeliveryRequestFlowScreen`) SANS dépendre de Firebase réel. `@visibleForTesting`
+  // documente l'intention : ne JAMAIS positionner ce champ en dehors de
+  // `test/`. `user` reste `null` dans ce mode (seul `isSignedIn` est
+  // affecté) — les écrans qui lisent `auth.user!.uid` doivent donc être
+  // testés séparément ou tolérer `null` dans ce mode spécifique.
+  // ---------------------------------------------------------------------
+  @visibleForTesting
+  bool debugForceSignedIn = false;
+  @visibleForTesting
+  String? debugForceUid;
+  @visibleForTesting
+  String? debugForceDisplayName;
+  @visibleForTesting
+  String? debugForceEmail;
+
   fb.User? get user => _user;
-  bool get isSignedIn => _user != null;
+  bool get isSignedIn => _user != null || debugForceSignedIn;
+
+  /// Identifiant client effectif : l'uid Firebase réel si connecté, sinon
+  /// (uniquement en test, `debugForceSignedIn == true`) l'uid simulé. Les
+  /// écrans qui ont besoin de l'identité du client courant doivent utiliser
+  /// ce getter plutôt que `user!.uid` directement, pour rester testables
+  /// sans dépendance à un vrai utilisateur Firebase.
+  String? get effectiveUid => _user?.uid ?? debugForceUid;
+  String? get effectiveDisplayName => _user?.displayName ?? debugForceDisplayName;
+  String? get effectiveEmail => _user?.email ?? debugForceEmail;
   List<PlatformRole> get roles => _roles;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
