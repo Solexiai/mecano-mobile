@@ -65,7 +65,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
     final auth = context.watch<FirebaseAuthProvider>();
     final t = context.watch<LocaleProvider>().t;
 
-    if (!auth.isSignedIn || auth.user == null) {
+    if (!auth.isSignedIn || auth.effectiveUid == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -74,7 +74,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       );
     }
 
-    final driverId = auth.user!.uid;
+    final driverId = auth.effectiveUid!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),

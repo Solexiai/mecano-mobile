@@ -81,7 +81,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final uid = auth.user!.uid;
+    final uid = auth.effectiveUid!;
     final repo = BackendLocator.driverRepository;
 
     return StreamBuilder<DriverProfileV2?>(

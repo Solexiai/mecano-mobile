@@ -227,7 +227,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
     String Function(String) t,
     FirebaseAuthProvider auth,
   ) {
-    if (!auth.isSignedIn || auth.user == null) {
+    if (!auth.isSignedIn || auth.effectiveUid == null) {
       return _MessageCard(
         icon: Icons.lock_outline,
         color: AppColors.error,
@@ -239,7 +239,11 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       );
     }
 
-    final uid = auth.user!.uid;
+    // `effectiveUid` (et non `user!.uid`) : identique en production (où
+    // `user` est toujours non-null si `isSignedIn`), mais permet aussi aux
+    // widget tests d'utiliser `debugForceSignedIn`/`debugForceUid` sans
+    // dépendre d'un vrai `fb.User` — voir `firebase_auth_provider.dart`.
+    final uid = auth.effectiveUid!;
     final repo = BackendLocator.missionRepository;
 
     return StreamBuilder<DeliveryMission?>(
