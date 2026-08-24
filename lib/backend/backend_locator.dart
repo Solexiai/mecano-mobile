@@ -41,6 +41,13 @@ class BackendLocator {
   @visibleForTesting
   static MissionRepository? missionRepositoryOverride;
 
+  // Même seam que `missionRepositoryOverride` ci-dessus, pour
+  // `LocationRepository` (Phase 7, Bloc C, ACTION 3 — tests GPS refusé/
+  // désactivé/échec de rapport pour `DriverLocationReporter` sans dépendre
+  // de Firebase). Ne jamais positionner en dehors de `test/`.
+  @visibleForTesting
+  static LocationRepository? locationRepositoryOverride;
+
   static DriverRepository get driverRepository {
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredDriverRepository();
@@ -65,6 +72,8 @@ class BackendLocator {
   }
 
   static LocationRepository get locationRepository {
+    final override = locationRepositoryOverride;
+    if (override != null) return override;
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredLocationRepository();
     }
