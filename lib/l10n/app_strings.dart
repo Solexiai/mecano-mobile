@@ -1144,6 +1144,14 @@ class AppStrings {
       'en': 'Sign in to access your provider workspace.',
       'es': 'Inicia sesión para acceder a tu espacio de proveedor.',
     },
+    // Phase 7, Bloc B (MIS-C-07) : message dédié pour un accès non
+    // authentifié à l'écran de suivi de mission — évite d'afficher à tort
+    // le message générique "erreur réseau" (voir CustomerTrackingScreen).
+    'tracking_locked_message': {
+      'fr': 'Connectez-vous pour suivre votre livraison.',
+      'en': 'Sign in to track your delivery.',
+      'es': 'Inicia sesión para seguir tu entrega.',
+    },
     'provider_availability_toggle_error': {
       'fr': 'Impossible de changer votre statut de disponibilité.',
       'en': 'Unable to change your availability status.',

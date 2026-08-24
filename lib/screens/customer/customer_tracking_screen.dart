@@ -29,6 +29,7 @@ import '../../backend/backend_locator.dart';
 import '../../backend/models/delivery_mission.dart';
 import '../../core/app_colors.dart';
 import '../../models/enums.dart';
+import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/live_tracking_map.dart';
 import 'mission_finance_section.dart';
@@ -54,6 +55,48 @@ class CustomerTrackingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
+
+    // Phase 7, Bloc B (MIS-C-07) : accès non authentifié — firestore.rules
+    // refuse déjà la lecture côté serveur (aucune fuite de données possible,
+    // voir securityRules.test.ts), mais SANS cette garde le StreamBuilder
+    // ci-dessous recevait l'erreur de permission Firestore et affichait à
+    // tort le message générique "erreur réseau" au lieu d'inviter l'usager
+    // à se connecter — incohérent avec CustomerDashboardShell/
+    // ProviderDashboardShell/DriverActiveMissionScreen qui gèrent déjà ce
+    // cas explicitement.
+    final auth = context.watch<FirebaseAuthProvider>();
+    if (!auth.isSignedIn) {
+      return Scaffold(
+        appBar: AppBar(title: Text(t('tracking_title'))),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 48,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    t('tracking_locked_message'),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => context.go('/$locale/connexion'),
+                    child: Text(t('delivery_sign_in_button')),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

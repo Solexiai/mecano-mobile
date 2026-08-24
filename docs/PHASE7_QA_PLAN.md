@@ -88,47 +88,67 @@ fermeture de bloc pour survivre à une compaction de contexte.
 5. Interdiction de `dart format .` global. Formatter uniquement les fichiers modifiés.
 6. Chaque bloc/groupe logique important → commit + push. Avant clôture Phase 7 : `HEAD==origin/main`, working tree clean.
 
-## Point de reprise actuel (mis à jour après le 1er cycle TEST→FAIL de cette session)
+## Point de reprise actuel (mis à jour après BUG-001 corrigé + MIS-C-02/04/06/07/08 traités)
 
 **Dernière action complétée** :
-- Règle 3 : `docs/PHASE7_QA_PLAN.md` créé.
-- Bloc A : `docs/PHASE7_QA_MATRIX.md` créé (v1, sera enrichi en continu).
-- Bloc B (démarré) : reconnaissance ciblée sur le flux d'annulation client post-assignation →
-  découverte d'un bug financier réel (**BUG-001**, voir `docs/PHASE7_BUG_REPORT.md`) :
-  aucune Cloud Function n'appelle `PaymentProvider.cancelAuthorization()` quand un client annule
-  une mission déjà assignée avec paiement `AUTHORIZED`. Confirmé par un test d'intégration réel
-  (`functions/test/integration/missionCancellationPaymentRelease.test.ts`, 3 tests, exécuté
-  contre les émulateurs : **2 failed / 1 passed** — le FAIL est confirmé et reproductible).
+- **BUG-001 CORRIGÉ** ✅ : `cancelAuthorization()` maintenant appelé correctement à l'annulation
+  client post-assignation (voir `PHASE7_BUG_REPORT.md`). Bug secondaire découvert et corrigé
+  pendant l'implémentation (violation Firestore "reads before writes" dans la transaction
+  d'application de `cancelMissionPaymentAuthorization()`). Test dédié :
+  `missionCancellationPaymentRelease.test.ts` → **3/3 PASS**. Régression complète (Security
+  Rules 196/196, `onMissionEndedClearTracking.test.ts` 10/10, `tsc --noEmit` 0 erreur, lint 0
+  erreur) → **aucune régression**.
+- **MIS-C-02** (aucun chauffeur dispo) : nouveau test `dispatchNoDriverAvailable.test.ts`
+  (2/2 PASS) — comportement documenté déjà correct, coverage gap comblé, **aucun bug réel**.
+- **MIS-C-04** (paiement refusé à l'acceptation) : nouveau test
+  `acceptDeliveryPaymentFailure.test.ts` (2/2 PASS) — mécanisme de compensation déjà correct
+  (mission `payment_failed`, driver redevient `online`, retry possible), **aucun bug réel**.
+- **MIS-C-06** (session expirée) : investigation de code (pas de nouveau test — les deux seuls
+  écrans appelant des Cloud Functions, `delivery_request_flow_screen.dart` et
+  `driver_active_mission_screen.dart`, catchent déjà `CloudFunctionException` de façon uniforme
+  et affichent un message actionnable, jamais un crash) → conclu **DONE, déjà adéquat**.
+- **MIS-C-07** (accès non authentifié à l'écran de suivi) : **BUG-002 (P3, UX mineur) trouvé et
+  CORRIGÉ** — `CustomerTrackingScreen` n'avait pas la garde d'auth de ses écrans frères,
+  affichait un message "erreur réseau" trompeur au lieu de "connectez-vous". Corrigé (nouvelle
+  clé i18n `tracking_locked_message` + garde `!auth.isSignedIn` dans `build()`, pattern identique
+  à `CustomerDashboardShell`). AUCUNE faille de sécurité (firestore.rules déjà scopée
+  correctement, 196/196 tests). Test : `customer_tracking_screen_auth_test.dart` (2/2 PASS).
+- **MIS-C-08** (ancienne mission, données partielles) : nouveau test
+  `delivery_mission_partial_data_test.dart` (3/3 PASS) prouvant que `DeliveryMission.fromJson`
+  gère sans exception un document pré-Phase-4/5 sans `pickup_address`/`dropoff_address`/
+  timestamps ; inspection de code confirme tous les force-unwraps (`!`) dans les écrans concernés
+  sont gardés par `if (x != null)` — **aucun bug réel**.
 
 **PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit)** :
-1. Implémenter le correctif dans `onMissionEndedClearTracking.ts` (ou fonction dédiée appelée
-   par lui) suivant EXACTEMENT le schéma en 3 temps déjà établi dans `paymentOrchestration.ts`
-   (transaction Firestore → appel provider HORS transaction avec idempotencyKey déterministe
-   `buildIdempotencyKey("cancelAuthorization", paymentId)` → transaction Firestore appliquant le
-   résultat + `writeAuditLog({action: "payment_authorization_cancelled"})`). Détail complet du
-   correctif attendu déjà rédigé dans `docs/PHASE7_BUG_REPORT.md` (BUG-001).
-2. Relancer `missionCancellationPaymentRelease.test.ts` → les 3 tests doivent passer au vert
-   (RETEST).
-3. Relancer la suite Security Rules (180 tests) + `onMissionEndedClearTracking.test.ts` existant
-   pour zéro régression.
-4. `npx tsc --noEmit` + `npm run lint` (uniquement `src/`, ne pas toucher au formatage global).
-5. Commit + push (message référencant BUG-001), mettre à jour `docs/PHASE7_BUG_REPORT.md`
-   (statut OUVERT → CORRIGÉ) et ce fichier (Bloc B toujours IN PROGRESS, poursuivre avec les
-   autres cas négatifs listés dans `PHASE7_QA_MATRIX.md` : MIS-C-02 aucun chauffeur dispo,
-   MIS-C-04 paiement refusé, MIS-C-06/07 session expirée/non authentifié, MIS-C-08 ancienne
-   mission, MIS-C-09 retry réseau).
-6. Une fois Bloc B (E2E Client) réellement clos (nominal + tous les cas négatifs testés),
-   enchaîner Bloc C (E2E Chauffeur).
+1. **MIS-C-09** (déconnexion réseau pendant requête, pas de double mission) : reste **NON
+   TRAITÉ**. Piste identifiée mais pas encore vérifiée : `createMissionFromQuote()` (client) ->
+   Cloud Function `createDeliveryRequest` — vérifier si un retry réseau côté client (bouton
+   toujours actif pendant `_phase == _FlowPhase.creating` ? à confirmer dans
+   `step_progress_form.dart`/`delivery_request_flow_screen.dart`) peut créer 2 missions pour le
+   même `quoteId`, et si le serveur a une protection idempotente sur `quoteId` déjà consommé.
+   TEST → possible FAIL → FIX → RETEST.
+2. Une fois MIS-C-09 traité : exécuter `flutter test` complet (suite entière, pas seulement les
+   fichiers ciblés — pas fait depuis le début de la Phase 7, à faire UNE FOIS avant la clôture du
+   Bloc B, cf. Règle 2 anti-boucle : c'est la vérification de clôture, pas une reconnaissance).
+3. Déclarer **"BLOC B : ✅ FERMÉ"** dans ce fichier.
+4. Enchaîner directement **Bloc C — E2E CHAUFFEUR** (parcours complet + cas négatifs : chauffeur
+   non approuvé, document manquant, véhicule non vérifié, compte suspendu, course de
+   double-acceptation, GPS refusé/désactivé, échec upload preuve, échec payout) sans audit
+   général préalable.
 
-**Fichiers déjà créés/modifiés cette session (non encore commités au moment de la rédaction de
-cette note — à committer avec le message ci-dessous)** :
-- `docs/PHASE7_QA_PLAN.md` (nouveau)
-- `docs/PHASE7_QA_MATRIX.md` (nouveau)
-- `docs/PHASE7_BUG_REPORT.md` (nouveau)
-- `functions/test/integration/missionCancellationPaymentRelease.test.ts` (nouveau — test de
-  régression pour BUG-001, actuellement 2/3 rouge, C'EST ATTENDU tant que le correctif n'est pas
-  implémenté — NE PAS interpréter ce rouge comme une régression d'un autre bloc)
+**Fichiers créés/modifiés cette session, tous committés/pushés dans ce cycle** :
+- `functions/src/payment/paymentOrchestration.ts` (fix BUG-001 + fix reads-before-writes)
+- `functions/test/integration/missionCancellationPaymentRelease.test.ts` (BUG-001, 3/3 PASS)
+- `functions/test/integration/acceptDeliveryPaymentFailure.test.ts` (MIS-C-04, 2/2 PASS)
+- `functions/test/integration/dispatchNoDriverAvailable.test.ts` (MIS-C-02, 2/2 PASS)
+- `lib/l10n/app_strings.dart` (clé `tracking_locked_message`, MIS-C-07/BUG-002)
+- `lib/screens/customer/customer_tracking_screen.dart` (garde auth, MIS-C-07/BUG-002)
+- `test/customer/customer_tracking_screen_auth_test.dart` (MIS-C-07, 2/2 PASS)
+- `test/customer/delivery_mission_partial_data_test.dart` (MIS-C-08, 3/3 PASS)
+- `docs/PHASE7_BUG_REPORT.md` (BUG-001 CORRIGÉ, BUG-002 ajouté et CORRIGÉ)
+- `docs/PHASE7_QA_MATRIX.md` (lignes MIS-C-02/04/05/06/07/08 mises à jour)
 
-**Important pour la prochaine session** : `flutter test`/`test:unit`/`test:integration` complets
-n'ont PAS été ré-exécutés dans ce cycle (seul le test ciblé BUG-001 a tourné) — à faire lors de
-la clôture du Bloc B, pas avant (éviter la sur-vérification prématurée, cf. Règle 2 anti-boucle).
+**Important pour la prochaine session** : `flutter test` complet et `flutter analyze` complet du
+projet n'ont PAS été ré-exécutés dans ce cycle (seuls les fichiers modifiés ont été vérifiés
+individuellement, conformément à la règle "pas de `dart format .` global"). À faire une seule
+fois, à la clôture du Bloc B (voir étape 2 ci-dessus).

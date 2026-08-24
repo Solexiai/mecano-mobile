@@ -20,14 +20,14 @@ Colonnes : ID | Rôle | Préconditions | Étapes | Résultat attendu | Test auto
 | ID | Rôle | Préconditions | Étapes | Résultat attendu | Test existant | Manquant | Statut | Bug |
 |---|---|---|---|---|---|---|---|---|
 | MIS-C-01 | client | payment_profile avec default_payment_method | devis -> création mission -> assignation -> tracking -> completed | mission completed, paiement capturé, historique visible | `e2eDeliveryLifecycle.test.ts` (nominal) | négatifs ci-dessous | PARTIEL (nominal DONE) | - |
-| MIS-C-02 | client | aucun chauffeur dispo | createDeliveryRequest puis timeout dispatch | mission reste `searching_driver`, message clair, pas de crash | non trouvé | oui | À TESTER (Bloc B) | - |
+| MIS-C-02 | client | aucun chauffeur dispo | createDeliveryRequest puis dispatch sans chauffeur éligible | mission reste `searching_driver`, aucune `delivery_offers`, pas de crash | `dispatchNoDriverAvailable.test.ts` (2/2 PASS, incl. régression positive) | - | **DONE** | - |
 | MIS-C-03 | client | devis expiré | createDeliveryRequest avec quoteId expiré | `failed-precondition` | `createDeliveryRequest.test.ts` (couvert) | non | DONE | - |
-| MIS-C-04 | client | paiement refusé à l'acceptation | acceptDelivery avec FakePaymentProvider en échec | mission `payment_failed`, désassignée | couvert dans un test paiement ? à vérifier | à confirmer | À VÉRIFIER (Bloc B) | - |
+| MIS-C-04 | client | paiement refusé à l'acceptation | acceptDelivery avec FakePaymentProvider en échec | mission `payment_failed`, désassignée, driver remis `online`, aucun payment AUTHORIZED, retry possible avec nouvelle mission | `acceptDeliveryPaymentFailure.test.ts` (2/2 PASS) | - | **DONE** | - |
 | MIS-C-05 | client | mission assignée (driver_id != null), payment authorized | client annule (`status`->`cancelled`) | paiement autorisé libéré/annulé (`cancelAuthorization`) | `missionCancellationPaymentRelease.test.ts` (3/3 PASS) | - | **DONE — CORRIGÉ** | **BUG-001 (CORRIGÉ)** |
-| MIS-C-06 | client | session expirée | tente action authentifiée | redirection login, pas de crash | non | oui | À TESTER (Bloc E/F) | - |
-| MIS-C-07 | client | non authentifié | accède à un écran mission | redirection/erreur propre | non | oui | À TESTER (Bloc F) | - |
-| MIS-C-08 | client | ancienne mission avec données partielles (avant Phase 6, sans timestamps financiers) | ouvre l'historique | pas de crash, defaults sûrs | non | oui | À TESTER (Bloc R) | - |
-| MIS-C-09 | client | déconnexion réseau pendant requête | retry | pas de double mission créée | `acceptDeliveryConcurrency.test.ts` couvre double-accept chauffeur, pas retry client | oui côté client | À TESTER (Bloc G) | - |
+| MIS-C-06 | client | session expirée | tente action authentifiée (Cloud Function) | pas de crash, message d'erreur actionnable, jamais d'état incohérent | inspection de code : `delivery_request_flow_screen.dart` + `driver_active_mission_screen.dart` catchent déjà `CloudFunctionException` de façon uniforme (`_actionErrorKey`/`_errorMessage`, jamais un crash) ; le SDK Firebase Auth rafraîchit les ID tokens automatiquement | - | **DONE (adéquat, aucun code changé)** | - |
+| MIS-C-07 | client | non authentifié | accède à `/livraison/suivi/:missionId` | message clair "connectez-vous", pas de message générique "erreur réseau" trompeur | `customer_tracking_screen_auth_test.dart` (2/2 PASS) | - | **DONE — CORRIGÉ (UX)** | **BUG-002 (mineur, CORRIGÉ)** |
+| MIS-C-08 | client | ancienne mission avec données partielles (avant Phase 4/5, sans pickup/dropoff/timestamps) | `DeliveryMission.fromJson` sur document partiel + ouverture des vues associées | pas de crash, defaults sûrs, aucun force-unwrap non gardé | `delivery_mission_partial_data_test.dart` (3/3 PASS) + inspection de code (tous les `!` sur champs nullables dans les écrans sont gardés par `if (x != null)`) | - | **DONE** | - |
+| MIS-C-09 | client | déconnexion réseau pendant requête | retry | pas de double mission créée | `acceptDeliveryConcurrency.test.ts` couvre double-accept chauffeur, pas retry client | oui côté client | À TESTER (reste ouvert) | - |
 
 ## Missions (Chauffeur)
 

@@ -87,6 +87,33 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
 
 ---
 
+## BUG-002 — `CustomerTrackingScreen` sans garde d'authentification (message trompeur)
+
+- **Composant** : `lib/screens/customer/customer_tracking_screen.dart`.
+- **Sévérité** : **P3 (UX mineur)** — AUCUN impact sécurité : `firestore.rules` sur
+  `delivery_requests/{missionId}` est déjà correctement scopée (confirmé par la suite Security
+  Rules, 196/196 PASS) — un utilisateur non authentifié n'a jamais accès aux données réelles,
+  le flux échoue toujours côté serveur avant toute fuite. Le seul défaut est côté présentation.
+- **Découvert pendant** : Phase 7, Bloc B, scénario MIS-C-07 (accès non authentifié à l'écran de
+  suivi de mission).
+- **Cause** : contrairement à ses écrans « frères » protégés (`CustomerDashboardShell`,
+  `ProviderDashboardShell`, `DriverActiveMissionScreen`), `CustomerTrackingScreen` n'implémentait
+  aucune garde `FirebaseAuthProvider.isSignedIn` — un utilisateur déconnecté voyait le message
+  générique `driver_active_mission_network_error` ("erreur réseau"), incohérent et trompeur.
+- **Correctif appliqué** :
+  1. Nouvelle clé i18n `tracking_locked_message` (fr/en/es) dans `lib/l10n/app_strings.dart`.
+  2. Garde ajoutée au tout début de `build()` : si `!auth.isSignedIn`, affiche un `Scaffold` dédié
+     (icône verrou, message clair, bouton "se connecter" -> `/$locale/connexion`), suivant
+     exactement le pattern déjà établi dans `CustomerDashboardShell`.
+  3. Le reste du flux (StreamBuilder Firestore, timeline, preuve de livraison, section
+     financière) reste strictement inchangé pour un utilisateur authentifié.
+- **Test de régression** : `test/customer/customer_tracking_screen_auth_test.dart` (2 tests,
+  widget-test pur avec `FirebaseAuthProvider(backendConfigured: false)`, aucun émulateur requis)
+  → **2 passed, 2 total**.
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc B).
+
+---
+
 *Ce fichier sera enrichi au fil des blocs B à W avec tout nouveau bug découvert (ID
-séquentiel BUG-002, BUG-003, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+séquentiel BUG-003, BUG-004, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*
