@@ -164,6 +164,35 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
 
 ---
 
+## BUG-003 — occurrence DriverOnboarding (récurrence confirmée, même cause racine)
+
+- **Composant** : `lib/screens/driver/driver_onboarding_screen.dart` (étape 0 — Profil,
+  `_DriverOnboardingScreenState.build()`).
+- **Sévérité** : **P1** — même impact que l'occurrence originale (blocage total du funnel
+  d'inscription chauffeur si nom/email/password sont saisis sans déclencher un autre
+  `setState`).
+- **Découvert pendant** : Phase 7, Bloc C, ACTION 1 (test de diagnostic ciblé explicitement
+  demandé pour vérifier si `DriverOnboardingScreen` était affecté par le même pattern que
+  BUG-003 sur `DeliveryRequestFlowScreen`).
+- **Cause racine** : identique à BUG-003 original — `canProceed(0)` lit directement
+  `_nameController.text` / `_emailController.text` / `_passwordController.text`, mais les 3
+  `TextField` correspondants n'avaient aucun `onChanged` déclenchant un `setState()` du
+  parent. Différence structurelle avec l'occurrence originale : ici les champs sont inline
+  dans `build()` (pas dans un `StatelessWidget` enfant séparé), donc le correctif n'a pas eu
+  besoin d'introduire un nouveau paramètre `VoidCallback`.
+- **Reproduction** : `test/driver/driver_onboarding_step0_rebuild_test.dart` — avant
+  correctif, `nextButton.onPressed` restait `null` après saisie complète des 3 champs (aucune
+  autre action `setState`) → **FAIL** confirmé.
+- **Correctif appliqué** : ajout de `onChanged: (_) => setState(() {})` directement sur les 3
+  `TextField` (nom, email, password) de l'étape 0, avec commentaire renvoyant explicitement à
+  BUG-003.
+- **Test de régression** : même fichier, retesté après correctif → **1 passed, 1 total**.
+- **Classification** : rattaché à **BUG-003** (pas de nouveau BUG-004 créé, cause racine
+  identique, conformément à la consigne explicite du Bloc C/ACTION 1).
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc C, ACTION 1).
+
+---
+
 *Ce fichier sera enrichi au fil des blocs B à W avec tout nouveau bug découvert (ID
 séquentiel BUG-004, BUG-005, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

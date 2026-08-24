@@ -140,11 +140,17 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                   stepBuilders: [
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            TextField(controller: _nameController, decoration: InputDecoration(labelText: t('auth_full_name'))),
+                            // BUG-003 (occurrence DriverOnboarding, Phase 7 Bloc C) :
+                            // canProceed(0) lit ces 3 controllers directement ; sans
+                            // onChanged->setState, aucun rebuild n'est déclenché à la
+                            // frappe et le bouton "Suivant" peut rester figé désactivé
+                            // selon l'ordre de saisie (même root-cause que BUG-003 sur
+                            // DeliveryRequestFlowScreen, Bloc B).
+                            TextField(controller: _nameController, decoration: InputDecoration(labelText: t('auth_full_name')), onChanged: (_) => setState(() {})),
                             const SizedBox(height: 16),
-                            TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email')), keyboardType: TextInputType.emailAddress),
+                            TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email')), keyboardType: TextInputType.emailAddress, onChanged: (_) => setState(() {})),
                             const SizedBox(height: 16),
-                            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Mot de passe (min. 6 caractères)'), obscureText: true),
+                            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Mot de passe (min. 6 caractères)'), obscureText: true, onChanged: (_) => setState(() {})),
                             const SizedBox(height: 16),
                             TextField(controller: _phoneController, decoration: InputDecoration(labelText: t('auth_phone'))),
                             const SizedBox(height: 16),
