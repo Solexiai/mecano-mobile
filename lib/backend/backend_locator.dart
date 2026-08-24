@@ -27,6 +27,8 @@ import 'repositories/location_repository.dart';
 import 'repositories/firebase_location_repository.dart';
 import 'repositories/notification_repository.dart';
 import 'repositories/firebase_notification_repository.dart';
+import 'repositories/proof_upload_repository.dart';
+import 'repositories/firebase_proof_upload_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
@@ -47,6 +49,13 @@ class BackendLocator {
   // de Firebase). Ne jamais positionner en dehors de `test/`.
   @visibleForTesting
   static LocationRepository? locationRepositoryOverride;
+
+  // Même seam que ci-dessus, pour `ProofUploadRepository` (Phase 7, Bloc C —
+  // "proof upload failure") : permet aux widget tests de simuler un échec
+  // d'upload Firebase Storage (réseau, permission refusée, quota) sans
+  // dépendre d'un vrai bucket. Ne jamais positionner en dehors de `test/`.
+  @visibleForTesting
+  static ProofUploadRepository? proofUploadRepositoryOverride;
 
   static DriverRepository get driverRepository {
     if (!BackendBootstrap.status.isConfigured) {
@@ -85,6 +94,15 @@ class BackendLocator {
       return const NotConfiguredNotificationRepository();
     }
     return FirebaseNotificationRepository();
+  }
+
+  static ProofUploadRepository get proofUploadRepository {
+    final override = proofUploadRepositoryOverride;
+    if (override != null) return override;
+    if (!BackendBootstrap.status.isConfigured) {
+      return const NotConfiguredProofUploadRepository();
+    }
+    return FirebaseProofUploadRepository();
   }
 
   static PaymentProvider get paymentProvider {

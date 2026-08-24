@@ -28,7 +28,6 @@
 
 import 'dart:typed_data';
 
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -177,16 +176,12 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       // storage.rules (seul le chauffeur assigné peut y écrire).
       final fileName =
           'delivery_proof_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('delivery_proofs')
-          .child(mission.id)
-          .child(fileName);
-      await ref.putData(
-        Uint8List.fromList(bytes),
-        SettableMetadata(contentType: 'image/jpeg'),
+      final url = await BackendLocator.proofUploadRepository.uploadDeliveryProof(
+        missionId: mission.id,
+        fileName: fileName,
+        bytes: bytes,
+        contentType: 'image/jpeg',
       );
-      final url = await ref.getDownloadURL();
 
       final repo = BackendLocator.missionRepository;
       await repo.markDeliveryCompleted(mission.id, proofOfDeliveryUrl: url);
