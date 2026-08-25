@@ -46,7 +46,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
 
-    if (!auth.isSignedIn) {
+    if (!auth.isSignedIn || auth.effectiveUid == null) {
       return Scaffold(
         body: Center(
           child: Column(
@@ -63,7 +63,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
       );
     }
 
-    final driverId = auth.user!.uid;
+    final driverId = auth.effectiveUid!;
 
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     final tabs = [

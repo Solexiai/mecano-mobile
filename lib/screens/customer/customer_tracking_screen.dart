@@ -129,6 +129,23 @@ class CustomerTrackingScreen extends StatelessWidget {
               );
             }
 
+            // Défense en profondeur (Bloc F, gap F-1) : ne jamais afficher
+            // les données d'une mission qui n'appartient pas au client
+            // connecté, même si firestore.rules devrait déjà l'empêcher en
+            // production. Symétrique du check équivalent dans
+            // `DriverActiveMissionScreen` (`mission.driverId != uid`) —
+            // avant ce correctif, un `MissionRepository` mal configuré, un
+            // bug de règles, ou un test/environnement de dev sans Security
+            // Rules actives pouvait laisser fuiter les données d'un autre
+            // client (nom, adresse, montant, chauffeur assigné) jusqu'à
+            // l'écran, sans aucun garde-fou côté Flutter.
+            if (mission.customerId != auth.effectiveUid) {
+              return _CenteredMessage(
+                icon: Icons.block_outlined,
+                message: t('driver_active_mission_access_denied'),
+              );
+            }
+
             // Mission complétée : vue dédiée (statut, date, preuve,
             // timeline complète) — plus jamais de carte GPS en direct.
             if (mission.status == MissionStatus.completed) {
