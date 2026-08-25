@@ -27,6 +27,31 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
   final Set<String> _accepting = {};
   final Map<String, String> _acceptErrors = {};
 
+  // 🔒 BUG-FIX (Phase 7, Bloc C item 3) : ne JAMAIS instancier un Stream
+  // directement dans `build()`. Avant ce correctif,
+  // `watchAvailableMissionsForDriver()`/`watchActiveMissionForDriver()`
+  // étaient appelés à chaque rebuild — or `_accept()` déclenche un
+  // `setState()` synchrone (passage à `isAccepting = true`) qui provoque un
+  // rebuild immédiat, donc un NOUVEAU Stream à chaque frame. `StreamBuilder`
+  // compare le flux par référence et, en détectant un flux différent,
+  // repasse en `ConnectionState.waiting` : la carte de mission en cours
+  // d'acceptation disparaissait au profit de l'écran de chargement générique
+  // ("Recherche de missions disponibles…"), et un nouvel abonnement Firestore
+  // était recréé inutilement à chaque frappe. On mémorise donc les flux par
+  // `driverId` pour qu'ils ne soient créés qu'une seule fois.
+  String? _cachedDriverId;
+  Stream<List<DeliveryMission>>? _availableMissionsStream;
+  Stream<DeliveryMission?>? _activeMissionStream;
+
+  void _ensureStreams(String driverId) {
+    if (_cachedDriverId == driverId && _availableMissionsStream != null) {
+      return;
+    }
+    _cachedDriverId = driverId;
+    _availableMissionsStream = BackendLocator.missionRepository.watchAvailableMissionsForDriver(driverId);
+    _activeMissionStream = BackendLocator.missionRepository.watchActiveMissionForDriver(driverId);
+  }
+
   Future<void> _accept(DeliveryMission mission, String driverId) async {
     setState(() {
       _accepting.add(mission.id);
@@ -75,6 +100,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
     }
 
     final driverId = auth.effectiveUid!;
+    _ensureStreams(driverId);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -88,7 +114,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           // revenir directement plutôt que de la laisser invisible parmi
           // les jobs disponibles.
           StreamBuilder<DeliveryMission?>(
-            stream: BackendLocator.missionRepository.watchActiveMissionForDriver(driverId),
+            stream: _activeMissionStream,
             builder: (context, snap) {
               final active = snap.data;
               if (active == null) return const SizedBox.shrink();
@@ -133,7 +159,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
             },
           ),
           StreamBuilder<List<DeliveryMission>>(
-            stream: BackendLocator.missionRepository.watchAvailableMissionsForDriver(driverId),
+            stream: _availableMissionsStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Padding(

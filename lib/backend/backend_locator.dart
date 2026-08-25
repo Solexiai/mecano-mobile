@@ -57,7 +57,17 @@ class BackendLocator {
   @visibleForTesting
   static ProofUploadRepository? proofUploadRepositoryOverride;
 
+  // Même seam que ci-dessus, pour `DriverRepository` (Phase 7, Bloc C item 3 —
+  // tests `ProviderJobsTab`/`DriverStatusScreen`) : permet aux widget tests
+  // d'injecter un profil chauffeur déterministe (statut, missions
+  // disponibles) sans dépendre de Firebase. Ne jamais positionner en dehors
+  // de `test/`.
+  @visibleForTesting
+  static DriverRepository? driverRepositoryOverride;
+
   static DriverRepository get driverRepository {
+    final override = driverRepositoryOverride;
+    if (override != null) return override;
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredDriverRepository();
     }
