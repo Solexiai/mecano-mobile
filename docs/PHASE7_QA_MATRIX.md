@@ -93,6 +93,37 @@ test dédié `AdminAuthGate`/`AdminLoginScreen` ; aucun test Cloud Function exer
 `setUserRole.ts`, sans régression sur les 36 tests Bloc D). Principe "le frontend n'est jamais
 l'autorité finale" prouvé par code (AUTH-E-C02/C03/C05/C06). **BLOC E : ✅ FERMÉ.**
 
+## Routing / Deep Links (Bloc F)
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| F-1 | client A tente d'accéder à une mission de client B | `customerId` de la mission != `auth.effectiveUid` sur `/livraison/suivi/:id` | refus propre (`driver_active_mission_access_denied`), aucune donnée de B affichée, aucun crash | `test/customer/customer_tracking_cross_customer_test.dart` (3/3 PASS) | **DONE** |
+| F-2 | chauffeur `pending_review`/`suspended` tente de passer en ligne | `ProviderDashboardShell` avec statut chauffeur non `approved` | Switch "en ligne" désactivé (jamais actionnable), régression vérifiée pour `approved` (switch actif), défense niveau 2 si contournement | `test/driver/provider_dashboard_shell_status_gate_test.dart` (4/4 PASS) | **DONE — bug AppBar overflow CORRIGÉ (BUG-007)** |
+| ROUTE-F-01 | route totalement inconnue | navigation vers une URL non déclarée dans `AppRouter.router` | fallback GoRouter par défaut ("Page Not Found" + bouton Home), pas d'écran blanc, pas d'exception | `test/routing/app_router_invalid_routes_test.dart` (1/6) | **DONE** |
+| ROUTE-F-02 | paramètre `missionId` manquant | `/livraison/suivi/` (trailing slash, sans id) | fallback propre (route paramétrée non matchée), pas d'écran blanc | `test/routing/app_router_invalid_routes_test.dart` (2/6) | **DONE** |
+| ROUTE-F-03 | route admin sans rôle privilégié | `/admin/chauffeurs/` avec rôle insuffisant | `AdminAuthGate` redirige vers `AdminLoginScreen`, aucune fuite de la liste chauffeurs | `test/routing/app_router_invalid_routes_test.dart` (3/6) | **DONE** |
+| ROUTE-F-04 | paramètre `:type` malformé | `/legal/:type` avec type inconnu | `LegalScreen` retombe sur son cas `default` (politique de confidentialité), pas d'écran blanc | `test/routing/app_router_invalid_routes_test.dart` (4/6) | **DONE** |
+| ROUTE-F-05 | mission chauffeur inexistante | `/provider/mission/:id` avec id inexistant | message "introuvable" (fallback existant réutilisé), pas d'écran blanc | `test/routing/app_router_invalid_routes_test.dart` (5/6) | **DONE** |
+| ROUTE-F-06 | mission client inexistante | `/livraison/suivi/:id` avec id inexistant | message "introuvable" (fallback existant réutilisé), pas d'écran blanc | `test/routing/app_router_invalid_routes_test.dart` (6/6) | **DONE** |
+| F-3.1 | deep-link notification client valide | notification contient `missionId` X → tap → `markAsRead` → navigation `/livraison/suivi/X` | `markAsRead` appelé avec le bon id, `CustomerTrackingScreen` reçoit exactement X, navigation unique, aucun crash | `test/notifications/notifications_deep_link_test.dart` groupe F-3.1 (1/7) | **DONE** |
+| F-3.2 | deep-link vers mission supprimée/inexistante | tap notification → navigation tracking X → `watchMission` renvoie `null` | fallback EXISTANT réutilisé (`driver_active_mission_not_found`), aucun écran blanc, aucune exception, aucun contenu fictif | `test/notifications/notifications_deep_link_test.dart` groupe F-3.2 (2/7) | **DONE — aucune logique métier recréée** |
+| F-3.3 | deep-link vers mission d'un autre utilisateur (client + chauffeur) | tap notification → mission appartient à un autre `customerId`/`driverId` | protection F-1 (client) et protection existante `DriverActiveMissionScreen` (chauffeur) réutilisées telles quelles : refus propre, aucune donnée sensible affichée, aucun crash | `test/notifications/notifications_deep_link_test.dart` groupe F-3.3 (3-4/7) | **DONE — protections F-1/chauffeur réutilisées, non dupliquées** |
+| F-3 (nominal chauffeur) | branchement client/chauffeur de `NotificationsScreen` | chauffeur connecté → tap notification mission X | navigation `/fournisseur/mission/X` (pas la route client), `DriverActiveMissionScreen` reçoit X, aucun refus à tort | `test/notifications/notifications_deep_link_test.dart` groupe "Cas nominal chauffeur" (5/7) | **DONE — branchement `auth.hasRole(PlatformRole.driver)` prouvé** |
+| F-3 (missionId null/vide) | notification sans mission liée | tap notification sans `missionId` | `markAsRead` appelé, AUCUNE navigation (reste sur `NotificationsScreen`), aucun chevron affiché, aucun crash | `test/notifications/notifications_deep_link_test.dart` groupe "missionId null / vide" (6-7/7) | **DONE — comportement existant (skip silencieux) documenté, non modifié (aucun bug démontré)** |
+
+**Bloc F — clôture** : seam `BackendLocator.notificationRepositoryOverride` ajouté (même pattern que
+`missionRepositoryOverride`/`driverRepositoryOverride`/`locationRepositoryOverride`/`proofUploadRepositoryOverride`),
+utilisé exclusivement par le nouveau fichier `test/notifications/notifications_deep_link_test.dart`
+(7 tests, 7/7 PASS) qui prouve le deep-link notification → navigation → mission, en RÉUTILISANT sans
+duplication la protection F-1 (client) et la protection symétrique existante de
+`DriverActiveMissionScreen` (chauffeur), ainsi que le fallback `mission == null` déjà en place.
+Combiné aux tests F-1/F-2/ROUTE-F-01..06 déjà committés précédemment : **32/32 PASS** au total
+sur le périmètre Bloc F. Un seul bug trouvé sur tout le bloc (AppBar overflow, F-2, CORRIGÉ —
+voir `PHASE7_BUG_REPORT.md` BUG-007) ; **F-3 n'a révélé aucun nouveau bug** (chaque scénario a
+réutilisé une protection déjà correcte sans modification de code de production).
+Validation : `flutter analyze` (0 souci nouveau, 3 issues `info` pré-existantes non liées),
+`flutter test` (aucune régression). **BLOC F : ✅ FERMÉ.**
+
 ## GPS / Notifications / Responsive / I18N / Sécurité / Performance
 Voir blocs dédiés H, I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 

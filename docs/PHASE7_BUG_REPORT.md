@@ -316,6 +316,64 @@ correctif ciblé. Aucune régression sur les 36 tests Bloc D (`adminPrivilegedAc
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs F à W avec tout nouveau bug découvert (ID
-séquentiel BUG-007, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+## Bloc F — ROUTING/DEEP LINKS
+
+### BUG-007 (P2, CORRIGÉ) — Overflow AppBar `ProviderDashboardShell` sur téléphone étroit
+
+**Contexte** : découvert en écrivant le test de non-régression du Switch online/offline (gap F-2,
+`provider_dashboard_shell_status_gate_test.dart`), PAS un bug pré-existant connu.
+
+**Cause** : sur téléphone étroit (320-428px de large, iPhone SE jusqu'à iPhone Pro Max), l'AppBar
+de `ProviderDashboardShell` (bouton retour + titre "Espace fournisseur" + libellé statut
+"Disponible"/"Hors ligne" + Switch online/offline + cloche notifications + sélecteur de langue +
+bouton déconnexion) dépassait l'espace horizontal disponible → `RenderFlex` overflow reproductible
+sur toutes les largeurs de téléphone testées (320/390/412/428px), sauf 360px. Confirmé via
+`tester.view.physicalSize` (API correcte dans ce contexte de test ; `setSurfaceSize()` est
+deprecated et ne propage pas fidèlement `MediaQuery.size`).
+
+**Correctif** : AppBar responsive sous 480px de large (`isNarrowPhone = screenWidth < 480`) —
+masque UNIQUEMENT les libellés texte décoratifs ("Espace fournisseur", "Disponible"/"Hors ligne",
+sélecteur de langue compact). **Aucune action essentielle n'est masquée** : le Switch
+online/offline (action de sécurité critique du gap F-2) reste TOUJOURS visible et fonctionnel sur
+toutes les largeurs, avec un `Tooltip` préservant l'information de statut de façon accessible même
+sans le texte.
+
+**Fichier modifié** : `lib/screens/dashboard/provider/provider_dashboard_shell.dart`
+(58 insertions / 22 suppressions).
+
+**Test de régression** : `test/driver/provider_dashboard_shell_status_gate_test.dart` (4/4 PASS —
+pending_review → Switch désactivé, suspended → Switch désactivé, approved → Switch actif
+(régression), défense niveau 2 backend). Revérifié manuellement : 0 overflow sur
+320/360/390/412/428/600px après correction. `flutter analyze` : clean sur le fichier impacté.
+
+**Statut** : CORRIGÉ, aucune régression détectée.
+
+### F-3 (deep-link notification → mission) : aucun nouveau bug
+
+**Résultat** : nouveau fichier `test/notifications/notifications_deep_link_test.dart` (7 tests,
+7/7 PASS au premier essai) couvrant notification client valide (F-3.1), mission
+supprimée/inexistante (F-3.2), mission d'un autre utilisateur côté client et côté chauffeur
+(F-3.3), branchement client/chauffeur nominal, et `missionId` null/vide. Chaque scénario a atteint
+une protection déjà correcte et existante (F-1 côté client, `mission.driverId != uid` côté
+chauffeur, fallback `mission == null`) **sans qu'aucune modification de code de production n'ait
+été nécessaire**. Ajout technique associé : seam `BackendLocator.notificationRepositoryOverride`
+(infrastructure de test uniquement, même pattern que les seams existants) — pas un correctif de
+bug.
+
+### ROUTE-F-01 à ROUTE-F-06 (routes invalides/paramètres invalides) : aucun nouveau bug
+
+**Résultat** : `test/routing/app_router_invalid_routes_test.dart` (6/6 PASS) confirme que
+l'absence volontaire de `errorBuilder`/`onUnknownRoute` personnalisé dans
+`lib/router/app_router.dart` n'est PAS un défaut : le fallback par défaut de
+`MaterialApp.router`/GoRouter ("Page Not Found" + bouton Home) gère proprement toute route
+inconnue ou paramètre manquant, sans écran blanc, sans exception, sans fuite d'autorisation
+(routes admin protégées redirigent vers `AdminLoginScreen`) et sans boucle de redirection.
+
+**Bilan Bloc F** : 1 bug trouvé et corrigé (BUG-007, P2, UI uniquement — aucun impact
+sécurité/données). F-1, F-3, et ROUTE-F-01..06 n'ont révélé aucun nouveau bug.
+
+---
+
+*Ce fichier sera enrichi au fil des blocs G à W avec tout nouveau bug découvert (ID
+séquentiel BUG-008, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

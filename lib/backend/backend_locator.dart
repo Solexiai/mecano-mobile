@@ -65,6 +65,15 @@ class BackendLocator {
   @visibleForTesting
   static DriverRepository? driverRepositoryOverride;
 
+  // Même seam que ci-dessus, pour `NotificationRepository` (Phase 7, Bloc F,
+  // gap F-3 — tests deep-link `NotificationsScreen`) : permet aux widget
+  // tests d'injecter une liste de notifications déterministe (avec
+  // `missionId` valide, absent, ou pointant vers une mission d'un autre
+  // utilisateur) sans dépendre de Firebase. Ne jamais positionner en dehors
+  // de `test/`.
+  @visibleForTesting
+  static NotificationRepository? notificationRepositoryOverride;
+
   static DriverRepository get driverRepository {
     final override = driverRepositoryOverride;
     if (override != null) return override;
@@ -100,6 +109,8 @@ class BackendLocator {
   }
 
   static NotificationRepository get notificationRepository {
+    final override = notificationRepositoryOverride;
+    if (override != null) return override;
     if (!BackendBootstrap.status.isConfigured) {
       return const NotConfiguredNotificationRepository();
     }

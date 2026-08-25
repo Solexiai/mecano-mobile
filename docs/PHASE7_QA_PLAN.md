@@ -51,7 +51,7 @@ fermeture de bloc pour survivre à une compaction de contexte.
 | C | E2E Chauffeur complet | DONE | BUG-003 occurrence DriverOnboarding (P1, CORRIGÉ), BUG payout rollback (P0, CORRIGÉ), BUG stream ProviderJobsTab (P1, CORRIGÉ), BUG boucle GPS infinie (P1, CORRIGÉ) |
 | D | Analyste/Admin/Super Admin | NEXT | permissions réelles uniquement |
 | E | Auth/Session/Claims | NEXT | vérifier révocation rôle admin |
-| F | Routing/Deep Links | NEXT | pas de redirection infinie |
+| F | Routing/Deep Links | DONE | F-1/F-2/ROUTE-F-01..06/F-3 — BUG-007 (P2, CORRIGÉ) |
 | G | Offline/Réseau/Retry | NEXT | pas de perte de mission financière |
 | H | GPS/Tracking | NEXT | doit s'arrêter après completed/cancelled |
 | I | Notifications | NEXT | isolation, dédoublonnage |
@@ -395,16 +395,91 @@ AUTH-E-C04) — corrigées via TEST→FAIL→FIX→RETEST, documentées inline e
 
 **PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
 1. **Bloc E est FERMÉ.**
-2. Enchaîner directement **Bloc F — ROUTING/DEEP LINKS** (NEXT — non commencé, par manque de
-   budget d'itérations dans ce cycle, PAS par choix d'arrêt volontaire) : scénarios CLIENT
-   (route directe, refresh, back/forward, deep link mission/notification, non connecté, mission
-   inexistante/d'un autre client), CHAUFFEUR (dashboard, mission active, deep link, non
-   approuvé/suspendu, mission d'un autre chauffeur, refresh pendant mission active), ANALYSTE/
-   ADMIN (route directe, mauvais rôle, non authentifié, refresh page protégée), ROUTES INVALIDES
-   (route inconnue, paramètre invalide, ressource supprimée/inaccessible — aucun écran blanc,
-   aucune exception non gérée, aucune boucle de redirection, aucune fuite d'autorisation,
-   fallback propre), DEEP LINK NOTIFICATION (valide→bonne mission ; ancienne/inaccessible→
-   fallback propre). Point de départ : `lib/router/app_router.dart` (déjà repéré en
-   reconnaissance antérieure : absence de `errorBuilder`/`onUnknownRoute` — à vérifier/combler).
+2. Enchaîner directement **Bloc F — ROUTING/DEEP LINKS**.
 3. Puis **Bloc G — OFFLINE/RÉSEAU/RETRY**, sans s'arrêter entre F et G.
 4. **Ne pas refaire d'audit général** pour E (fermé), D (fermé), ni Security Rules (196/196 PASS).
+
+---
+
+## BLOC F : ✅ FERMÉ
+
+**Périmètre couvert** :
+- **F-1 — cross-customer** : client A tente d'accéder à `/livraison/suivi/:id` d'une mission
+  appartenant à client B. Protection existante (`mission.customerId != auth.effectiveUid`) dans
+  `CustomerTrackingScreen` déjà en place et prouvée par `customer_tracking_cross_customer_test.dart`
+  (3/3 PASS, déjà committé). Aucune reprise/duplication effectuée ce bloc — référencé uniquement.
+- **F-2 — chauffeur pending_review/suspended** : le Switch "en ligne" de `ProviderDashboardShell`
+  reste désactivé pour tout statut != `approved`, avec régression positive pour `approved` et
+  défense de niveau 2 en cas de contournement. Couvert par
+  `provider_dashboard_shell_status_gate_test.dart` (4/4 PASS, déjà committé). Un bug UI a été
+  trouvé et corrigé pendant la clôture de F-2 : dépassement (`overflow`) de l'AppBar — voir
+  `PHASE7_BUG_REPORT.md` BUG-007. Référencé uniquement, non redupliqué.
+- **ROUTE-F-01 à ROUTE-F-06 — routes invalides/paramètres invalides** : route totalement inconnue
+  (fallback GoRouter par défaut "Page Not Found"), paramètre `missionId` manquant (trailing
+  slash), route admin sans rôle privilégié (`AdminAuthGate` → `AdminLoginScreen`, aucune fuite),
+  paramètre `:type` légal malformé (`LegalScreen` retombe sur son `default`), mission
+  chauffeur/client inexistante (fallback "introuvable" existant réutilisé). Couvert par
+  `test/routing/app_router_invalid_routes_test.dart` (6/6 PASS, déjà committé à `b8eb381`).
+  Confirmation explicite : `lib/router/app_router.dart` n'a AUCUN `errorBuilder`/`onUnknownRoute`
+  personnalisé — c'est le fallback par défaut de `MaterialApp.router`/GoRouter qui est exercé et
+  validé comme suffisant (pas d'écran blanc, pas d'exception, pas de fuite d'autorisation).
+  Référencé uniquement, non redupliqué.
+- **F-3 — deep-link notification → mission (NOUVEAU ce tour)** : ajout du seam
+  `BackendLocator.notificationRepositoryOverride` (même pattern exact que
+  `missionRepositoryOverride`/`driverRepositoryOverride`/`locationRepositoryOverride`/
+  `proofUploadRepositoryOverride` — aucun refactor du système notifications). Nouveau fichier
+  `test/notifications/notifications_deep_link_test.dart` (7 tests, 7/7 PASS) couvrant :
+  - **F-3.1** : notification client valide → `markAsRead` → navigation
+    `/livraison/suivi/X` → `CustomerTrackingScreen` reçoit exactement X.
+  - **F-3.2** : notification pointant vers une mission supprimée (`watchMission` → `null`) →
+    fallback EXISTANT réutilisé (`driver_active_mission_not_found`), aucune nouvelle logique
+    métier créée.
+  - **F-3.3** : notification pointant vers une mission d'un autre utilisateur, côté client
+    (réutilise strictement la protection F-1) ET côté chauffeur (réutilise strictement la
+    protection existante `mission.driverId != uid` de `DriverActiveMissionScreen`) — aucune
+    duplication de ces contrôles.
+  - **Cas nominal chauffeur** : prouve que le branchement `auth.hasRole(PlatformRole.driver)`
+    de `NotificationsScreen` route bien vers `/fournisseur/mission/X` (pas la route client).
+  - **missionId null/vide** : comportement actuel (skip silencieux de la navigation, `markAsRead`
+    quand même appelé) documenté et prouvé stable, AUCUNE modification de comportement car aucun
+    bug démontré.
+
+**Bugs fermés dans ce bloc** : BUG-007 (P2, AppBar overflow F-2, CORRIGÉ). **F-3 n'a révélé
+AUCUN nouveau bug** — chaque scénario a atteint une protection déjà correcte sans qu'aucun code
+de production n'ait besoin d'être modifié.
+
+**Validation de clôture** :
+- `flutter test test/notifications/notifications_deep_link_test.dart
+  test/customer/customer_tracking_cross_customer_test.dart
+  test/driver/provider_dashboard_shell_status_gate_test.dart
+  test/driver/driver_active_mission_status_gaps_test.dart
+  test/driver/driver_active_mission_proof_upload_test.dart
+  test/routing/app_router_invalid_routes_test.dart` → **32/32 PASS** (aucune régression).
+- `flutter analyze` (projet complet) → 0 souci nouveau (3 issues `info` pré-existantes et non
+  liées : `deprecated_member_use` x2 dans `mechanic_request_flow_screen.dart`,
+  `unintended_html_in_doc_comment` dans `storage_service.dart` — identiques à toutes les
+  validations précédentes, non régressées).
+
+**Fichiers créés/modifiés (F-3, ce tour)** :
+- `lib/backend/backend_locator.dart` (seam `notificationRepositoryOverride`, +11 lignes).
+- `test/notifications/notifications_deep_link_test.dart` (nouveau, 7 tests).
+- `docs/PHASE7_QA_MATRIX.md` (section "Routing / Deep Links (Bloc F)" — F-1/F-2/ROUTE-F-01..06/F-3).
+- `docs/PHASE7_BUG_REPORT.md` (section "Bloc F" — BUG-007, note F-3 sans nouveau bug).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc F).
+
+**Fichiers déjà committés précédemment, référencés sans modification** :
+`test/customer/customer_tracking_cross_customer_test.dart`,
+`test/driver/provider_dashboard_shell_status_gate_test.dart`,
+`test/routing/app_router_invalid_routes_test.dart`.
+
+**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
+1. **Bloc F est FERMÉ.**
+2. Enchaîner directement **Bloc G — OFFLINE/RÉSEAU/RETRY** : matrice courte requirement→test
+   existant→COUVERT/GAP (≤15-20% du budget en reconnaissance), réutiliser MIS-C-09
+   (`delivery_request_flow_double_submit_test.dart` + `createDeliveryRequestIdempotency.test.ts`),
+   `driver_active_mission_proof_upload_test.dart`, `driver_location_reporter_test.dart`, tests
+   finance Phase 6 (authorize/capture failure, refund/idempotence, payout failure, concurrence).
+   Tester uniquement les GAPS réels : Cloud Function unavailable, timeout, Firestore listener
+   error, Firestore write failure, retour réseau (si l'architecture le permet).
+3. Puis **Bloc H — GPS/TRACKING DURCISSEMENT**, sans s'arrêter entre G et H.
+4. **Ne pas refaire d'audit général** pour F/E/D (fermés), ni Security Rules (196/196 PASS).
