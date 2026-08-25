@@ -37,9 +37,23 @@ Colonnes : ID | Rôle | Préconditions | Étapes | Résultat attendu | Test auto
 | MIS-D-02 | driver pending_review | tente accepter | refusé | `acceptDeliveryConcurrency.test.ts` | - | DONE | - |
 | MIS-D-03 | driver suspendu | tente accepter | refusé | `acceptDeliveryConcurrency.test.ts` | - | DONE | - |
 | MIS-D-04 | 2 drivers | même mission, accept simultané | un seul gagne, l'autre reçoit erreur claire | `acceptDeliveryConcurrency.test.ts` (déjà 100% Phase 5/6) | - | DONE | - |
-| MIS-D-05 | driver | GPS refusé/désactivé | tente `recordTrackingPoint` | erreur claire, mission reste cohérente | `recordTrackingPoint.test.ts` (à vérifier cas refus) | à confirmer | À VÉRIFIER (Bloc H) | - |
-| MIS-D-06 | driver | proof upload échoue (Storage) | completeDelivery sans proof valide | erreur claire, pas de transition fantôme | à vérifier | oui | À TESTER (Bloc C/G) | - |
-| MIS-D-07 | driver | payout policy / Stripe account non configuré | payout scheduled | échec explicite, pas de perte de fonds | `reverseDriverPayout.test.ts`, `calculateDriverPayout.test.ts` | cas payout failure complet | À VÉRIFIER (Bloc C) | - |
+| MIS-D-05 | driver | GPS refusé/désactivé/rapport échoue | `DriverLocationReporter.start()` avec service désactivé, permission refusée (temp/forever), ou `reportDriverLocation` qui échoue | bandeau d'avertissement affiché, mission reste cohérente, **jamais** de boucle de retry non contrôlée | `driver_location_reporter_test.dart` (cas négatifs GPS) + `driver_active_mission_status_gaps_test.dart` (bandeau GPS pendant trajet, sans blocage des actions) | - | **DONE** | **BUG P1 boucle GPS infinie (CORRIGÉ)** |
+| MIS-D-06 | driver | proof upload échoue (Storage) | completeDelivery sans proof valide, puis retry après échec | erreur claire affichée, pas de transition fantôme, retry réussi possible | `driver_active_mission_proof_upload_test.dart` (échec upload, retry réussi, NotConfiguredProofUploadRepository) | - | **DONE** | - |
+| MIS-D-07 | driver | payout policy / Stripe account non configuré, ou échec provider en cours de traitement | `submitDriverPayout` : ELIGIBLE → PROCESSING → échec provider → FAILED | échec explicite, **transaction annulée intégralement** (pas de rollback silencieux partiel), pas de perte de fonds, payout reste `FAILED` et re-tentable | `submitDriverPayoutFailure.test.ts` (Jest, `forceCreateDriverPayoutFailure` sur `FakePaymentProvider`) | - | **DONE — CORRIGÉ** | **BUG P0 payout rollback (CORRIGÉ)** |
+| MIS-D-08 | driver | `ProviderJobsTab` (liste missions dispo + missions actives) | ouverture répétée de l'onglet / rebuilds successifs (setState) | les `Stream` Firestore (missions dispo, missions actives) sont créés UNE SEULE FOIS, jamais recréés à chaque `build()` | `provider_jobs_tab_test.dart` (8/8 PASS) | - | **DONE — CORRIGÉ** | **BUG P1 stream recréé (CORRIGÉ)** |
+| MIS-D-09 | driver | `DriverActiveMissionScreen`, tous les statuts de trajet intermédiaires (assigned → driverToPickup → arrivedAtPickup → pickedUp → inTransit → arrivedAtDropoff → completed) | transition de chaque statut via l'action UI correspondante ; double-tap rapide sur une action | seule l'action attendue par statut est visible/actionnable ; `markPickupCompleted` utilisé pour arrivedAtPickup→pickedUp (JAMAIS `updateTrackingStatus`) ; double-tap ne déclenche l'appel repository qu'une seule fois (bouton busy bloque le second tap) | `driver_active_mission_status_gaps_test.dart` (9/9 PASS) | - | **DONE** | - |
+| MIS-D-10 | driver | `DriverStatusScreen`, 7 statuts (registrationIncomplete/pendingReview/documentsRequired/approved/rejected/suspended/inactive) | ouverture de l'écran pour chaque statut ; actions déclenchées (resubmit, toggle online) | CTA et message corrects par statut ; AUCUNE action interdite visible (ex : `suspended`/`rejected`/`inactive` n'affichent jamais de switch online) ; `approved` ne passe JAMAIS online automatiquement au premier rendu ; repository appelé uniquement sur interaction explicite | `driver_status_screen_test.dart` (18/18 PASS) | - | **DONE** | - |
+
+**Bloc C — clôture** : les 4 lignes MIS-D-05 à MIS-D-10 ci-dessus couvrent l'intégralité du
+périmètre Bloc C (onboarding chauffeur/BUG-003, E2E chauffeur complet, GPS/location reporter,
+proof upload failure, payout submission failure, ProviderJobsTab, DriverActiveMissionScreen gaps,
+DriverStatusScreen). Validation finale : `npx tsc --noEmit` (0 erreur), `npm run lint` (clean),
+Jest unit (109/109 PASS), Jest intégration pertinente Bloc C — payout/E2E/concurrence chauffeur
+(56/56 PASS : `submitDriverPayoutFailure`, `e2eDriverOnboardingToPayout`,
+`acceptDeliveryConcurrency`, `calculateDriverPayout`, `reverseDriverPayout`,
+`foundingDriverCommission`, `financialConcurrency`, `dispatchNoDriverAvailable`,
+`e2eRefundPostPayoutLifecycle`), `flutter analyze` (0 souci nouveau), `flutter test` (371/371 PASS).
+**BLOC C : ✅ FERMÉ.**
 
 ## Admin / Analyste / Super Admin
 

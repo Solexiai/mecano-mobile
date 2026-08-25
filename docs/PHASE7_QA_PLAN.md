@@ -47,8 +47,8 @@ fermeture de bloc pour survivre à une compaction de contexte.
 |---|---|---|---|
 | Règle 3 | Créer PHASE7_QA_PLAN.md | DONE | ce fichier |
 | A | Matrice QA Produit | DONE (v1) | `docs/PHASE7_QA_MATRIX.md` créée, sera enrichie en continu |
-| B | E2E Client complet | IN PROGRESS | BUG-001 découvert+confirmé par test (voir ci-dessous). Correctif à implémenter ensuite. |
-| C | E2E Chauffeur complet | NEXT | parcours + cas négatifs |
+| B | E2E Client complet | DONE | BUG-001 (P1, CORRIGÉ), BUG-002 (P3, CORRIGÉ), BUG-003 (P1, CORRIGÉ) |
+| C | E2E Chauffeur complet | DONE | BUG-003 occurrence DriverOnboarding (P1, CORRIGÉ), BUG payout rollback (P0, CORRIGÉ), BUG stream ProviderJobsTab (P1, CORRIGÉ), BUG boucle GPS infinie (P1, CORRIGÉ) |
 | D | Analyste/Admin/Super Admin | NEXT | permissions réelles uniquement |
 | E | Auth/Session/Claims | NEXT | vérifier révocation rôle admin |
 | F | Routing/Deep Links | NEXT | pas de redirection infinie |
@@ -195,3 +195,61 @@ fermeture de bloc pour survivre à une compaction de contexte.
 
 **Vérification finale de clôture** : `flutter test` complet exécuté → **323 passed, 0 failed**.
 `flutter analyze` complet exécuté → 0 erreur (3 `info` pré-existants, hors périmètre).
+
+## BLOC C : ✅ FERMÉ
+
+**Périmètre couvert** : onboarding chauffeur (BUG-003 occurrence confirmée+corrigée), E2E
+chauffeur complet (registerAsDriver → payout, 5/5 PASS), GPS/location reporter (cas négatifs
+refus/désactivation/échec rapport + fix boucle infinie), proof upload failure (échec Storage +
+retry), payout submission failure (fix rollback silencieux P0), `ProviderJobsTab` (fix stream
+recréé à chaque `setState`, P1), `DriverActiveMissionScreen` gaps (statuts trajet, GPS,
+double-tap), `DriverStatusScreen` (7 statuts + cas transverses).
+
+**Bugs fermés dans ce bloc** :
+- **P0** — payout rollback silencieux (`b4b79fd`) — voir `PHASE7_BUG_REPORT.md`.
+- **P1** — stream `ProviderJobsTab` recréé à chaque rebuild (`0259619`).
+- **P1** — boucle GPS infinie sur échec permanent de rapport de position (`19942c2`).
+- **P1** — BUG-003 occurrence `DriverOnboardingScreen` (même cause racine que l'occurrence
+  originale Bloc B, champs texte sans `onChanged`/`setState`) (`698831f`).
+
+**Validation de clôture (une seule fois, non une reconnaissance)** :
+- `npx tsc --noEmit` (functions) → 0 erreur.
+- `npm run lint` (functions) → clean.
+- Jest unit (functions) → **109/109 PASS**.
+- Jest intégration pertinente Bloc C (émulateurs firestore+auth+storage,
+  `demo-movik-test`) → **56/56 PASS** : `submitDriverPayoutFailure`,
+  `e2eDriverOnboardingToPayout`, `acceptDeliveryConcurrency`, `calculateDriverPayout`,
+  `reverseDriverPayout`, `foundingDriverCommission`, `financialConcurrency`,
+  `dispatchNoDriverAvailable`, `e2eRefundPostPayoutLifecycle`.
+- `flutter analyze` (projet complet) → 0 erreur nouvelle (3 `info` pré-existants inchangés).
+- `flutter test` (suite complète) → **371/371 PASS** (353 pré-existants + 18 nouveaux
+  `driver_status_screen_test.dart`), aucune régression, aucun skip/suppression.
+
+**Fichiers créés/modifiés dans ce bloc** (voir `PHASE7_QA_MATRIX.md` MIS-D-05 à MIS-D-10 et
+`PHASE7_BUG_REPORT.md` pour le détail complet) :
+- `test/driver/driver_onboarding_step0_rebuild_test.dart`, fix
+  `lib/screens/driver/driver_onboarding_screen.dart` (BUG-003 occurrence).
+- `functions/test/integration/e2eDriverOnboardingToPayout.test.ts` (E2E chauffeur, 5/5 PASS).
+- `test/driver/driver_location_reporter_test.dart`, fix
+  `lib/services/driver_location_reporter.dart` (boucle GPS infinie).
+- `lib/backend/repositories/proof_upload_repository.dart` (seam),
+  `test/driver/driver_active_mission_proof_upload_test.dart` (proof upload failure).
+- `functions/test/integration/submitDriverPayoutFailure.test.ts`, fix
+  `functions/src/payment/*` (payout rollback P0).
+- `lib/backend/backend_locator.dart` (seam `driverRepositoryOverride`), fix
+  `lib/screens/mechanic_provider/provider_jobs_tab.dart` (stream recréé),
+  `test/driver/provider_jobs_tab_test.dart`.
+- `test/driver/driver_active_mission_status_gaps_test.dart` (gaps statuts trajet).
+- `test/driver/driver_status_screen_test.dart` (18/18 PASS, 7 statuts + cas transverses).
+- `docs/PHASE7_QA_MATRIX.md` (MIS-D-05 à MIS-D-10 → DONE, clôture Bloc C).
+- `docs/PHASE7_BUG_REPORT.md` (BUG-003 occurrence DriverOnboarding + bugs P0/P1 Bloc C).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc C).
+
+**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit)** :
+1. **Bloc C est FERMÉ**. Commit + push de ce cycle.
+2. Enchaîner directement **Bloc D — ANALYSTE/ADMIN/SUPER ADMIN** : ne pas rouvrir l'audit
+   général des Security Rules (déjà 196/196 PASS, DENY BY DEFAULT confirmé Phase 6 Bloc T) ;
+   identifier uniquement les gaps de couverture sur les capacités réelles Analyste/Admin/Super
+   Admin définies dans le code, et référencer (sans dupliquer) les cas négatifs déjà couverts.
+3. Puis **Bloc E — AUTH/SESSION/CLAIMS** : gaps réels signup/login/logout/session/claims,
+   principe "le frontend n'est jamais l'autorité finale".

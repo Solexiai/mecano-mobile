@@ -193,6 +193,89 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs B à W avec tout nouveau bug découvert (ID
-séquentiel BUG-004, BUG-005, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+## BUG-004 — Rollback silencieux à l'échec de versement chauffeur (`submitDriverPayout`)
+
+- **Composant** : `functions/src/payment/paymentOrchestration.ts` (`submitDriverPayout`).
+- **Sévérité** : **P0** — risque financier : un échec du provider de paiement lors du
+  versement (`provider.createDriverPayout()`) pouvait laisser le payout dans un état
+  incohérent (transition partielle) sans que l'échec ne soit répercuté de façon fiable et
+  re-tentable, avec risque de double versement ou de perte de traçabilité.
+- **Découvert pendant** : Phase 7, Bloc C, item 2 (payout submission failure), en écrivant
+  `submitDriverPayoutFailure.test.ts` (ajout de `forceCreateDriverPayoutFailure` sur
+  `FakePaymentProvider`, même pattern que `forceAuthorizeFailure`/`forceCaptureFailure`).
+- **Cause racine** : le chemin d'échec de `submitDriverPayout()` ne garantissait pas de façon
+  systématique la transition `PROCESSING -> FAILED` avec `failure_reason` renseigné avant tout
+  autre effet (ledger, audit `payout_paid`) ; un échec provider pouvait laisser le payout dans
+  un état ambigu, empêchant un retry propre (`FAILED -> SCHEDULED`, transition valide dans
+  `payoutStateMachine.ts`).
+- **Correctif appliqué** : garantie que `provider.createDriverPayout()` en échec produit
+  toujours `status: FAILED`, `failure_reason` renseigné, aucun `paid_at`/`provider_payout_id`
+  factice, aucune écriture `transaction_ledger`, `mission_financial_balance.driver_paid_minor`
+  inchangé (reste à 0), un seul document `driver_payouts` (pas de duplication), et retry
+  (`submitDriverPayout` rejoué sur un payout `FAILED`) qui échoue proprement à nouveau sans
+  dupliquer d'effet financier.
+- **Test de régression** : `functions/test/integration/submitDriverPayoutFailure.test.ts` —
+  couvre échec provider (FAILED, pas PAID, audit `payout_submitted` présent, ledger vide,
+  balance à 0, retry propre) + cas `missing_connected_account` (échec avant tout appel
+  provider). Résultat : **PASS** (suite intégrée dans le run global Bloc C, 56/56 PASS avec les
+  8 autres suites d'intégration pertinentes).
+- **Commit** : `b4b79fd` ("Phase 7 Bloc C item 2: test payout submission failure + fix BUG P0
+  rollback silencieux").
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc C, item 2).
+
+---
+
+## BUG-005 — `ProviderJobsTab` : Stream Firestore recréé à chaque `setState()`
+
+- **Composant** : `lib/screens/mechanic_provider/provider_jobs_tab.dart`.
+- **Sévérité** : **P1** — UX dégradée + charge Firestore inutile : la carte "Acceptation en
+  cours..." disparaissait au profit de l'écran de chargement générique pendant une action
+  utilisateur normale, et un nouvel abonnement Firestore était recréé à chaque frame.
+- **Découvert pendant** : Phase 7, Bloc C, item 3 (1/3), en écrivant
+  `provider_jobs_tab_test.dart` après ajout du seam `driverRepositoryOverride`.
+- **Cause racine** : `watchAvailableMissionsForDriver()` et `watchActiveMissionForDriver()`
+  étaient appelés directement dans `build()`. Le `setState()` synchrone de `_accept()`
+  (passage `isAccepting=true`) déclenchait un rebuild immédiat → nouveau `Stream` à chaque
+  frame → le `StreamBuilder` repassait en `ConnectionState.waiting`, masquant la carte
+  "Acceptation en cours..." et recréant un abonnement Firestore inutile à chaque frappe.
+- **Correctif appliqué** : streams mémorisés par `driverId` (`_ensureStreams()`), jamais
+  recréés tant que le `driverId` ne change pas.
+- **Test de régression** : `test/driver/provider_jobs_tab_test.dart` (8 tests) — mission
+  admissible visible avec offre, liste vide, acceptation réussie + navigation, loading pendant
+  la requête (bouton désactivé + carte visible), stream non recréé pendant `setState`. Résultat :
+  **8/8 PASS**.
+- **Commit** : `0259619` ("Phase 7 Bloc C item 3 (1/3): seam driverRepositoryOverride + tests
+  ProviderJobsTab + fix BUG P1 (Stream recréé à chaque setState)").
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc C, item 3).
+
+---
+
+## BUG-006 — `DriverActiveMissionScreen` : boucle infinie de resynchronisation GPS sur échec permanent
+
+- **Composant** : `lib/screens/driver/driver_active_mission_screen.dart` (`_syncGpsSharing()`).
+- **Sévérité** : **P1** — martèlement du service de localisation natif à chaque frame en cas
+  d'échec GPS permanent (service désactivé / permission refusée), avec risque de dégradation de
+  performance et de batterie sur un vrai appareil.
+- **Découvert pendant** : Phase 7, Bloc C, item 3 (2/3), en écrivant
+  `driver_active_mission_status_gaps_test.dart` (test de sonde comptant les appels
+  `isLocationServiceEnabled`).
+- **Cause racine** : `_syncGpsSharing()` était rappelé via `addPostFrameCallback` à CHAQUE
+  `build()`. Si le GPS échoue durablement, `isRunning` restait `false` indéfiniment → chaque
+  build retentait `start()` → `onError` → `setState()` → nouveau build → boucle infinie
+  (confirmé par test de sonde : 10 appels `isLocationServiceEnabled` en 20 frames).
+- **Correctif appliqué** : `_syncGpsSharingIfStatusChanged()` ne resynchronise que lorsque le
+  statut GPS change réellement (mémoïsation du dernier statut connu), au lieu de retenter à
+  chaque frame.
+- **Test de régression** : `test/driver/driver_active_mission_status_gaps_test.dart` (9 tests) —
+  couvre les 7 statuts de trajet (assigned → completed), disponibilité exclusive des actions
+  par statut, erreur GPS pendant le trajet (pas de boucle, bandeau affiché une fois), double-tap
+  protégé. Résultat : **9/9 PASS**.
+- **Commit** : `19942c2` ("Phase 7 Bloc C item 3 (2/3): tests gaps DriverActiveMissionScreen
+  (statuts trajet, GPS, double-tap) + fix BUG P1 (boucle infinie GPS sur echec permanent)").
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc C, item 3).
+
+---
+
+*Ce fichier sera enrichi au fil des blocs D à W avec tout nouveau bug découvert (ID
+séquentiel BUG-007, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*
