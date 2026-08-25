@@ -276,6 +276,19 @@ Règle de fermeture Phase 7 : **P0 = 0, P1 = 0** avant clôture. P2/P3 peuvent r
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs D à W avec tout nouveau bug découvert (ID
+## Bloc D — ANALYSTE/ADMIN/SUPER ADMIN : aucun nouveau bug
+
+**Résultat** : 36 nouveaux tests (`functions/test/integration/adminPrivilegedActions.test.ts`)
+couvrant les 10 Cloud Functions callables jusque-là non testées (`setUserRole`, `suspendDriver`,
+`reactivateDriver`, `requestDriverDocuments`, `updatePricingConfiguration`, `applyDriverPromotion`,
+`qualifyFoundingDriver`, `revokeFoundingDriverStatus`, `createFinancialSnapshot`,
+`logDriverReviewOpened`) plus le gap "permission-denied" sur `validateDriverDocument`/
+`rejectDriver` — **36/36 PASS au premier essai, aucun bug trouvé**. Chaque garde de rôle
+(`requireAdminOrAbove`/`requireAnalystOrAbove`/`requireSuperAdmin`) fonctionne exactement comme
+prévu par le code source. **Aucune entrée BUG-007+ à ajouter pour ce bloc.**
+
+---
+
+*Ce fichier sera enrichi au fil des blocs E à W avec tout nouveau bug découvert (ID
 séquentiel BUG-007, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

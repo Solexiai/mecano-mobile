@@ -59,10 +59,23 @@ Jest unit (109/109 PASS), Jest intégration pertinente Bloc C — payout/E2E/con
 
 | ID | Rôle | Étapes | Résultat attendu | Statut |
 |---|---|---|---|---|
-| ADM-01 | analyste | review driver, request documents | autorisé | Sécurité déjà auditée Phase 6 (securityRules.test.ts) — DONE (lecture/écriture Firestore) ; reste à tester via Functions (Bloc D) |
-| ADM-02 | analyste | tente refund/payout/reconciliation | refusé | Security Rules DONE ; Functions-level à confirmer (Bloc D) |
-| ADM-03 | admin | refund/payout/dispute/reconciliation/taxes | autorisé | Security Rules DONE ; Functions-level à confirmer (Bloc D) |
-| ADM-04 | super_admin | payout policy update | autorisé | `payoutPolicyConfig.test.ts` (unit) — à confirmer intégration (Bloc D) |
+| ADM-01 | analyste | review driver, request documents, validate document, add internal note, log review opened | autorisé | `adminPrivilegedActions.test.ts` (Bloc D, NOUVEAU) : `requestDriverDocuments` success (analyst), `addDriverInternalNote` success (analyst), `logDriverReviewOpened` success (analyst) — DONE |
+| ADM-02 | analyste | tente suspendDriver/reactivateDriver/updatePricingConfiguration/applyDriverPromotion/qualifyFoundingDriver/createFinancialSnapshot (admin-only) | refusé (permission-denied) | `adminPrivilegedActions.test.ts` (Bloc D, NOUVEAU) : 7 tests dédiés « refuse pour analyst » — DONE |
+| ADM-03 | admin | suspendDriver/reactivateDriver/updatePricingConfiguration/applyDriverPromotion/qualifyFoundingDriver/revokeFoundingDriverStatus/createFinancialSnapshot | autorisé | `adminPrivilegedActions.test.ts` (Bloc D, NOUVEAU) — DONE. Refund/payout/dispute/reconciliation/taxes Cloud-Function-level déjà couverts Phase 6/Bloc C (`disputeOrchestration.test.ts`, `reconciliationEngine.test.ts`, `taxEngine.test.ts`, `calculateDriverPayout.test.ts`, `reverseDriverPayout.test.ts`) — référencé, non dupliqué |
+| ADM-04 | super_admin | `setUserRole` (SEUL point d'entrée privilège) | autorisé ; refusé pour tout rôle < super_admin | `adminPrivilegedActions.test.ts` (Bloc D, NOUVEAU) : success (super_admin) + 4 tests refus (customer/driver/analyst/admin) + invalid-argument (rôle invalide, targetUid/roles manquants) — DONE |
+| ADM-05 | analyst/driver/customer | `validateDriverDocument` / `rejectDriver` avec rôle insuffisant | refusé (permission-denied) | success-path déjà couvert `e2eDriverOnboardingToPayout.test.ts` ; gap « permission-denied » comblé par `adminPrivilegedActions.test.ts` (Bloc D, NOUVEAU) — DONE |
+| ADM-06 | tout rôle (y compris super_admin) | écriture Firestore DIRECTE sur transaction_ledger / disputes / reconciliation_reports / payout_policy_configs / payment_profiles / driver_internal_notes | refusé | Déjà exhaustivement couvert `securityRules.test.ts` (196/196 PASS, Phase 6) — RÉFÉRENCÉ, non redupliqué (directive Bloc D : ne pas refaire l'audit Security Rules général) |
+
+**Bloc D — clôture** : gap de couverture Cloud-Function-callable identifié (0 test existant pour
+`setUserRole`, `suspendDriver`, `reactivateDriver`, `requestDriverDocuments`,
+`updatePricingConfiguration`, `applyDriverPromotion`, `qualifyFoundingDriver`,
+`revokeFoundingDriverStatus`, `createFinancialSnapshot`, `logDriverReviewOpened` ; success-path
+seulement pour `validateDriverDocument`/`rejectDriver`) comblé intégralement par le nouveau fichier
+`functions/test/integration/adminPrivilegedActions.test.ts` (36 tests, 36/36 PASS au premier essai —
+aucun bug trouvé, chaque garde `require*OrAbove()`/`requireSuperAdmin()` fonctionne exactement comme
+le code source le prévoyait). Security Rules Firestore (196/196 PASS) référencées, non ré-auditées.
+Validation : `npx tsc --noEmit` (0 erreur), Jest unit (109/109 PASS), Jest intégration Bloc D
+(36/36 PASS nouveau fichier). **BLOC D : ✅ FERMÉ.**
 
 ## GPS / Notifications / Responsive / I18N / Sécurité / Performance
 Voir blocs dédiés H, I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.

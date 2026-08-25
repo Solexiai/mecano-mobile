@@ -245,11 +245,76 @@ double-tap), `DriverStatusScreen` (7 statuts + cas transverses).
 - `docs/PHASE7_BUG_REPORT.md` (BUG-003 occurrence DriverOnboarding + bugs P0/P1 Bloc C).
 - `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc C).
 
-**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit)** :
-1. **Bloc C est FERMÉ**. Commit + push de ce cycle.
-2. Enchaîner directement **Bloc D — ANALYSTE/ADMIN/SUPER ADMIN** : ne pas rouvrir l'audit
-   général des Security Rules (déjà 196/196 PASS, DENY BY DEFAULT confirmé Phase 6 Bloc T) ;
-   identifier uniquement les gaps de couverture sur les capacités réelles Analyste/Admin/Super
-   Admin définies dans le code, et référencer (sans dupliquer) les cas négatifs déjà couverts.
-3. Puis **Bloc E — AUTH/SESSION/CLAIMS** : gaps réels signup/login/logout/session/claims,
-   principe "le frontend n'est jamais l'autorité finale".
+## BLOC D : ✅ FERMÉ
+
+**Périmètre couvert** : gaps de couverture Cloud-Function-callable pour ANALYSTE/ADMIN/SUPER ADMIN.
+Ne PAS avoir refait l'audit Security Rules général (déjà 196/196 PASS, Phase 6/Bloc T) — uniquement
+identifié et comblé les gaps à la couche callable (surface d'autorisation distincte des Security
+Rules Firestore, car les repositories Flutter appellent ces callables plutôt que d'écrire
+directement dans Firestore pour les actions sensibles).
+
+**Gap identifié** (reconnaissance exhaustive via `grep -rl "<fn>.run(" test/`) : **0 test existant**
+pour `setUserRole` (super_admin exclusif — SEUL point d'entrée d'élévation de privilège),
+`suspendDriver`, `reactivateDriver`, `requestDriverDocuments`, `updatePricingConfiguration`,
+`applyDriverPromotion`, `qualifyFoundingDriver`, `revokeFoundingDriverStatus`,
+`createFinancialSnapshot`, `logDriverReviewOpened` ; couverture **success-path uniquement** (aucun
+test de refus par mauvais rôle) pour `validateDriverDocument` et `rejectDriver`.
+`addDriverInternalNote` avait une couverture Security-Rules (lecture) mais 0 test callable.
+
+**Fichier créé** : `functions/test/integration/adminPrivilegedActions.test.ts` — 36 tests couvrant,
+pour chaque fonction listée ci-dessus : (a) chemin de succès avec le rôle minimal requis, (b) refus
+`permission-denied` pour au moins un rôle insuffisant (souvent plusieurs : customer/driver/analyst
+selon le seuil réel de la fonction), (c) cas négatifs métier propres à la fonction déjà couverts par
+le code (failed-precondition sur double-suspension, immutabilité pricing_version/financial_snapshot,
+quota Founding Driver complet, invalid-argument sur rôle/plage invalide).
+
+**Résultat** : **36/36 PASS au premier essai — AUCUN bug trouvé**. Chaque garde
+`requireAdminOrAbove()`/`requireAnalystOrAbove()`/`requireSuperAdmin()` réellement présente dans le
+code source refuse correctement tout rôle insuffisant, exactement comme documenté dans
+`functions/src/lib/auth.ts`. Aucun P0/P1 à corriger pour ce bloc.
+
+**Cas négatifs transversaux (directive Bloc D)** — déjà exhaustivement couverts par
+`securityRules.test.ts` (196/196 PASS, Phase 6), RÉFÉRENCÉS et non redupliqués : écriture Firestore
+directe sur `transaction_ledger` (append-only, aucun rôle), `disputes`/`reconciliation_reports`/
+`payout_policy_configs` (admin+ lecture seule, jamais écriture directe), `payment_profiles` (même
+super_admin ne peut pas écrire directement), `driver_internal_notes` (Cloud-Function-only),
+`users/{uid}.roles` (un customer ne peut pas s'auto-élever).
+
+**Validation de clôture** :
+- `npx tsc --noEmit` (functions) → 0 erreur.
+- Jest unit (functions) → **109/109 PASS** (aucune régression).
+- Jest intégration Bloc D (émulateurs firestore+auth+storage, `demo-movik-test`) →
+  **36/36 PASS** (`adminPrivilegedActions.test.ts`, nouveau fichier).
+- `npm run lint` (functions, cible `src/` selon script du projet) → clean.
+
+**Fichiers créés/modifiés** :
+- `functions/test/integration/adminPrivilegedActions.test.ts` (nouveau, 36 tests).
+- `docs/PHASE7_QA_MATRIX.md` (ADM-01 à ADM-06, clôture Bloc D).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc D).
+- `docs/PHASE7_BUG_REPORT.md` (note : aucun nouveau bug — Bloc D n'ajoute aucune entrée BUG-007+).
+
+**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
+1. **Bloc D est FERMÉ**. Commit + push de ce cycle effectués (voir historique git).
+2. Enchaîner directement **Bloc E — AUTH/SESSION/CLAIMS** (NEXT — non commencé ce cycle par
+   manque de budget d'itérations, PAS par choix d'arrêt volontaire après un seul bloc) :
+   - Gaps réels signup/login/logout/session persistante/expirée/refresh token/mauvais mot de
+     passe/utilisateur désactivé/`user == null`/route protégée/refresh navigateur/fermeture-
+     réouverture app.
+   - CLAIMS/RÔLES : réutiliser le nouveau `setUserRole` test (Bloc D) comme brique pour tester
+     analyst→promotion admin→refresh claims→droits effectifs ; admin→downgrade→refresh/révocation
+     →privilèges refusés ; super_admin downgrade ; ancien token privilégié après changement de
+     rôle ; callable sensible après changement de rôle ; UI avec ancien rôle temporaire.
+   - Principe explicite à prouver par du code, pas seulement affirmé : "le frontend n'est jamais
+     l'autorité finale" — même avec un token/état UI périmé, le backend doit refuser une action
+     non autorisée côté serveur (candidat naturel : appeler un callable admin-only avec un token
+     construit avec un ANCIEN rôle après un `setUserRole` downgrade réel — vérifier que le
+     nouveau claims prévaut si le token est réellement rafraîchi, ET que même un token non
+     rafraîchi ne peut PAS obtenir un accès que les Custom Claims serveur actuels n'autorisent
+     plus, puisque `requireSignedIn()` lit `request.auth.token` — à vérifier précisément comment
+     l'émulateur/production réévalue ce token par requête).
+   - Réutiliser les tests Auth existants (`registerAsDriver`/`submitDriverForReview` chain,
+     `AdminAuthGate`/`AdminLoginScreen` déjà lus en Bloc D) où suffisants ; créer uniquement les
+     gaps réels.
+3. Puis **Bloc F — ROUTING/DEEP LINKS**, sans s'arrêter entre E et F (directive : "ne t'arrête pas
+   après E").
+4. **Ne pas refaire d'audit général** pour D (fermé), ni pour Security Rules (déjà 196/196 PASS).
