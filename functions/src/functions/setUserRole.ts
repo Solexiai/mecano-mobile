@@ -41,6 +41,20 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
   // 1. Custom Claims (source de vérité pour l'autorisation).
   await authAdmin.setCustomUserClaims(targetUid, { role: roles[0], roles });
 
+  // 1.b Durcissement défense-en-profondeur (Phase 7, Bloc E) : révoque les
+  // refresh tokens existants pour forcer, dès la prochaine tentative de
+  // rafraîchissement, l'obtention d'un NOUVEAU token reflétant les rôles à
+  // jour. Ceci NE garantit PAS l'invalidation immédiate d'un ID token déjà
+  // émis et non encore expiré (les callables `onCall` vérifient les tokens
+  // via `verifyIdToken()` SANS `checkRevoked: true` — limitation du SDK
+  // firebase-functions v2, confirmée par inspection ; un ID token existant
+  // reste donc valide jusqu'à son expiration naturelle, ≤ 1h). C'est un
+  // risque résiduel connu et documenté (voir docs/PHASE7_BUG_REPORT.md,
+  // Bloc E) — hors de portée d'un correctif applicatif sans remplacer
+  // `onCall` par un handler HTTPS personnalisé sur CHAQUE fonction
+  // sensible, ce qui serait disproportionné pour ce correctif ciblé.
+  await authAdmin.revokeRefreshTokens(targetUid);
+
   // 2. Miroir Firestore (affichage/requêtes UI uniquement).
   await db.collection("users").doc(targetUid).set(
     { roles, updated_at: admin.firestore.FieldValue.serverTimestamp() },

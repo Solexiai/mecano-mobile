@@ -318,3 +318,93 @@ super_admin ne peut pas écrire directement), `driver_internal_notes` (Cloud-Fun
 3. Puis **Bloc F — ROUTING/DEEP LINKS**, sans s'arrêter entre E et F (directive : "ne t'arrête pas
    après E").
 4. **Ne pas refaire d'audit général** pour D (fermé), ni pour Security Rules (déjà 196/196 PASS).
+
+## BLOC E : ✅ FERMÉ
+
+**Périmètre couvert** : gaps de couverture AUTH/SESSION/CLAIMS, uniquement — pas de nouvel audit
+général du système Auth existant.
+
+**Gaps identifiés** :
+- Flutter : aucun seam pour simuler un jeu de rôles/claims arbitraire dans `FirebaseAuthProvider`
+  (`debugForceRoles`/`debugForceClaimsLoaded`/`debugForceClaimsFetchFailed` absents) ; 0 test
+  dédié pour `AdminAuthGate`/`AdminLoginScreen` (session/claims states, downgrade round-trip).
+- Cloud Functions : 0 fichier de test dédié Auth/session/claims. Les tests Bloc D
+  (`buildRequest()`) prouvent uniquement l'autorisation par SNAPSHOT de claims — ils ne passent
+  jamais par `verifyIdToken()` réel (le `onCall` HTTP réel). Gap réel : aucune preuve end-to-end
+  que le token serveur réel (Identity Toolkit REST, comme un vrai client Flutter) est bien vérifié,
+  et aucune preuve empirique du comportement de fraîcheur des claims après `setUserRole`.
+
+**Fichiers créés** :
+- `test/auth/admin_auth_gate_session_claims_test.dart` — 13 tests (AUTH-E-01 à AUTH-E-08) :
+  session (signed-out/signed-in), claims (loading/loaded/fetch-failed avec écran "Réessayer" sans
+  déconnexion forcée), rôle insuffisant → login, rôle suffisant → dashboard, downgrade analyst
+  après promotion admin via les nouveaux seams. **13/13 PASS**.
+- `functions/test/integration/authSessionClaims.test.ts` — 16 tests en 3 niveaux :
+  - NIVEAU 1 (S01-S09) : session réelle via Identity Toolkit REST contre l'émulateur Auth
+    (signup, login, mauvais mot de passe, email inconnu, refresh token, claims dans le token
+    décodé) — exerce réellement `verifyIdToken()`, contrairement au pattern `buildRequest()`.
+  - NIVEAU 2 (C01-C06) : round-trip claims via `setUserRole` (Bloc D) — analyst→admin→droits
+    effectifs ; admin→downgrade→refus ; rôle retiré ; super_admin downgrade ; callable sensible
+    (`suspendDriver`, `requestDriverDocuments`) après changement de rôle.
+  - NIVEAU 3 (U01) : callable sans authentification → `unauthenticated`.
+  **16/16 PASS** (après 2 corrections TEST→FAIL→FIX→RETEST documentées inline, voir
+  `docs/PHASE7_BUG_REPORT.md`).
+
+**Durcissement proactif appliqué** : `functions/src/functions/setUserRole.ts` appelle désormais
+`authAdmin.revokeRefreshTokens(targetUid)` immédiatement après `setCustomUserClaims()` (défense en
+profondeur). Limitation documentée en commentaire : ceci n'invalide PAS rétroactivement un ID token
+déjà émis et non expiré, car `onCall` (SDK `firebase-functions`) appelle `verifyIdToken()` SANS
+`checkRevoked: true` (confirmé par inspection de
+`firebase-functions/lib/common/providers/https.js` et par sonde empirique contre l'émulateur Auth).
+Un token privilégié déjà émis reste donc valide jusqu'à son expiration naturelle (≤ 1h) — risque
+résiduel connu et documenté, hors périmètre d'un correctif ciblé (remplacer `onCall` par un handler
+HTTPS personnalisé sur chaque fonction sensible serait disproportionné).
+
+**Principe "le frontend n'est jamais l'autorité finale"** : prouvé par AUTH-E-C02/C03/C05/C06 —
+même avec un token construit avec un rôle désormais révoqué côté serveur (`buildRequest` avec
+rôle périmé), le callable réévalue les Custom Claims effectifs et refuse `permission-denied` ;
+et côté UI, `debugForceClaimsFetchFailed`/`debugForceRoles` prouvent que l'écran ne fait jamais
+confiance à un état de claims obsolète pour accorder un accès qu'il n'a pas — l'affichage seul
+n'autorise jamais une action serveur.
+
+**Bugs découverts** : **aucun bug applicatif P0/P1**. Deux corrections de type "test-authoring"
+dans le nouveau fichier lui-même (assertion erronée AUTH-E-S06 due à une particularité de
+l'émulateur — JWT non signés déterministes ; UID cible non créé avant l'appel `setUserRole` dans
+AUTH-E-C04) — corrigées via TEST→FAIL→FIX→RETEST, documentées inline et dans le Bug Report.
+
+**Validation de clôture** :
+- `flutter analyze` (fichiers touchés) → clean.
+- `flutter test test/auth/ test/customer/customer_tracking_screen_auth_test.dart test/finance/ test/driver/`
+  → 378/378 PASS (aucune régression).
+- `npx tsc --noEmit` (functions) → 0 erreur.
+- `npm run lint` (functions) → clean.
+- Jest unit (functions) → 109/109 PASS.
+- Jest intégration Bloc E (émulateurs firestore+auth+storage, `demo-movik-test`) →
+  `authSessionClaims.test.ts` **16/16 PASS**.
+- Jest intégration Bloc D régression → `adminPrivilegedActions.test.ts` **36/36 PASS** (confirme
+  l'absence de régression suite au durcissement `setUserRole.ts`).
+
+**Fichiers créés/modifiés** :
+- `lib/providers/firebase_auth_provider.dart` (3 nouveaux seams `@visibleForTesting`).
+- `functions/src/functions/setUserRole.ts` (durcissement `revokeRefreshTokens`).
+- `test/auth/admin_auth_gate_session_claims_test.dart` (nouveau, 13 tests).
+- `functions/test/integration/authSessionClaims.test.ts` (nouveau, 16 tests).
+- `docs/PHASE7_QA_MATRIX.md` (AUTH-E-*, clôture Bloc E).
+- `docs/PHASE7_BUG_REPORT.md` (note Bloc E — aucun bug applicatif, 1 durcissement proactif).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc E).
+
+**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
+1. **Bloc E est FERMÉ.**
+2. Enchaîner directement **Bloc F — ROUTING/DEEP LINKS** (NEXT — non commencé, par manque de
+   budget d'itérations dans ce cycle, PAS par choix d'arrêt volontaire) : scénarios CLIENT
+   (route directe, refresh, back/forward, deep link mission/notification, non connecté, mission
+   inexistante/d'un autre client), CHAUFFEUR (dashboard, mission active, deep link, non
+   approuvé/suspendu, mission d'un autre chauffeur, refresh pendant mission active), ANALYSTE/
+   ADMIN (route directe, mauvais rôle, non authentifié, refresh page protégée), ROUTES INVALIDES
+   (route inconnue, paramètre invalide, ressource supprimée/inaccessible — aucun écran blanc,
+   aucune exception non gérée, aucune boucle de redirection, aucune fuite d'autorisation,
+   fallback propre), DEEP LINK NOTIFICATION (valide→bonne mission ; ancienne/inaccessible→
+   fallback propre). Point de départ : `lib/router/app_router.dart` (déjà repéré en
+   reconnaissance antérieure : absence de `errorBuilder`/`onUnknownRoute` — à vérifier/combler).
+3. Puis **Bloc G — OFFLINE/RÉSEAU/RETRY**, sans s'arrêter entre F et G.
+4. **Ne pas refaire d'audit général** pour E (fermé), D (fermé), ni Security Rules (196/196 PASS).

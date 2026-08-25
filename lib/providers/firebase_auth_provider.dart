@@ -64,6 +64,27 @@ class FirebaseAuthProvider extends ChangeNotifier {
   @visibleForTesting
   String? debugForceEmail;
 
+  /// Seam de test (Phase 7, Bloc E) — permet à un widget test de simuler un
+  /// jeu de rôles/claims effectifs (ex: `[PlatformRole.admin]`) SANS
+  /// dépendre d'un vrai token Firebase Auth. `null` = comportement normal
+  /// (utiliser les claims réellement chargés dans `_roles`). Ne JAMAIS
+  /// positionner ce champ en dehors de `test/` — comme les autres seams
+  /// `debugForce*`, il n'a aucun effet sur l'autorisation SERVEUR (Cloud
+  /// Functions / Security Rules), qui reste la seule autorité réelle ; il
+  /// ne pilote que l'affichage côté client dans les tests.
+  @visibleForTesting
+  List<PlatformRole>? debugForceRoles;
+
+  /// Seams de test (Phase 7, Bloc E) — permettent de simuler précisément les
+  /// états `claimsLoaded`/`claimsFetchFailed` consommés par `AdminAuthGate`
+  /// (écran de chargement, écran "réessayer" en cas d'échec réseau des
+  /// claims) sans dépendre d'un vrai cycle Firebase Auth. `null` =
+  /// comportement normal (valeur réelle `_claimsLoaded`/`_claimsFetchFailed`).
+  @visibleForTesting
+  bool? debugForceClaimsLoaded;
+  @visibleForTesting
+  bool? debugForceClaimsFetchFailed;
+
   fb.User? get user => _user;
   bool get isSignedIn => _user != null || debugForceSignedIn;
 
@@ -75,7 +96,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
   String? get effectiveUid => _user?.uid ?? debugForceUid;
   String? get effectiveDisplayName => _user?.displayName ?? debugForceDisplayName;
   String? get effectiveEmail => _user?.email ?? debugForceEmail;
-  List<PlatformRole> get roles => _roles;
+  List<PlatformRole> get roles => debugForceRoles ?? _roles;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
 
@@ -83,15 +104,15 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// pour l'utilisateur courant (évite un flash "accès refusé" pendant le
   /// court instant où les claims sont encore en cours de lecture après
   /// authStateChanges()).
-  bool get claimsLoaded => _claimsLoaded;
+  bool get claimsLoaded => debugForceClaimsLoaded ?? _claimsLoaded;
 
   /// true si la dernière tentative de lecture des custom claims a échoué
   /// (erreur réseau/interop transitoire), PAS si l'utilisateur n'a
   /// simplement aucun rôle. Permet à l'UI/AdminLoginScreen de proposer un
   /// nouvel essai plutôt que de déconnecter à tort un compte légitime.
-  bool get claimsFetchFailed => _claimsFetchFailed;
+  bool get claimsFetchFailed => debugForceClaimsFetchFailed ?? _claimsFetchFailed;
 
-  bool hasRole(PlatformRole role) => _roles.contains(role);
+  bool hasRole(PlatformRole role) => roles.contains(role);
   bool get isAdminOrAbove =>
       hasRole(PlatformRole.admin) || hasRole(PlatformRole.superAdmin);
   bool get isSuperAdmin => hasRole(PlatformRole.superAdmin);

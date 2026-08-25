@@ -289,6 +289,33 @@ prévu par le code source. **Aucune entrée BUG-007+ à ajouter pour ce bloc.**
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs E à W avec tout nouveau bug découvert (ID
+## Bloc E — AUTH/SESSION/CLAIMS : aucun nouveau bug applicatif
+
+**Résultat** : 29 nouveaux tests (`test/auth/admin_auth_gate_session_claims_test.dart` 13/13 PASS +
+`functions/test/integration/authSessionClaims.test.ts` 16/16 PASS) couvrant session (signup/login/
+logout/mauvais mot de passe/email inconnu/refresh token), claims (chargement/échec réseau/
+downgrade), et round-trip de rôles via `setUserRole` (Bloc D) sur des callables sensibles
+(`suspendDriver`, `requestDriverDocuments`). **Aucun bug P0/P1 applicatif trouvé.**
+
+Deux corrections de type "erreur d'écriture de test" (pas des bugs produit) ont eu lieu via
+TEST→FAIL→FIX→RETEST DANS le nouveau fichier lui-même, documentées en commentaire inline :
+1. AUTH-E-S06 : assertion `id_token` forcément différent après refresh — invalide car l'émulateur
+   Auth émet des JWT non signés (`alg: none`) et déterministes ; si signup+refresh ont lieu dans la
+   même seconde sans changement de claims, le texte du token peut être identique. Assertion
+   retirée, les assertions significatives (`claims.user_id === localId`) conservées.
+2. AUTH-E-C04 : `setUserRole` ciblait un UID Auth jamais créé → `"There is no user record..."`.
+   Corrigé par l'ajout d'un `authAdmin.createUser()` préalable dans le test.
+
+**Durcissement proactif (pas un correctif de bug)** : `functions/src/functions/setUserRole.ts`
+appelle désormais `authAdmin.revokeRefreshTokens(targetUid)` après `setCustomUserClaims()`, en
+défense en profondeur. Limitation documentée : n'invalide pas un ID token déjà émis et non expiré
+(`onCall` n'utilise pas `checkRevoked: true`) — risque résiduel connu, hors périmètre d'un
+correctif ciblé. Aucune régression sur les 36 tests Bloc D (`adminPrivilegedActions.test.ts`).
+
+**Aucune entrée BUG-007+ à ajouter pour ce bloc.**
+
+---
+
+*Ce fichier sera enrichi au fil des blocs F à W avec tout nouveau bug découvert (ID
 séquentiel BUG-007, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

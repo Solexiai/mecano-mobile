@@ -77,6 +77,22 @@ le code source le prévoyait). Security Rules Firestore (196/196 PASS) référen
 Validation : `npx tsc --noEmit` (0 erreur), Jest unit (109/109 PASS), Jest intégration Bloc D
 (36/36 PASS nouveau fichier). **BLOC D : ✅ FERMÉ.**
 
+## Auth / Session / Claims
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| AUTH-E-01..08 | session/claims UI | signed-out, signed-in, claims loading/loaded/fetch-failed, rôle insuffisant, rôle suffisant, downgrade analyst après promotion admin | login screen / spinner / écran "Réessayer" (sans déconnexion forcée) / dashboard selon état ; jamais d'accès UI non autorisé par le backend | `test/auth/admin_auth_gate_session_claims_test.dart` (13/13 PASS, nouveaux seams `debugForceRoles`/`debugForceClaimsLoaded`/`debugForceClaimsFetchFailed`) | DONE |
+| AUTH-E-S01..09 | session réelle (Identity Toolkit REST, émulateur) | signup, login, mauvais mot de passe, email inconnu, refresh token, claims dans token décodé | succès/échec HTTP corrects (`INVALID_PASSWORD`, `EMAIL_NOT_FOUND`), `verifyIdToken()` réellement exercé (pas de bypass `buildRequest`) | `functions/test/integration/authSessionClaims.test.ts` NIVEAU 1 | DONE |
+| AUTH-E-C01..06 | claims round-trip | analyst→promotion admin (`setUserRole`)→droits effectifs ; admin→downgrade→refus ; rôle retiré ; super_admin downgrade ; callable sensible (`suspendDriver`/`requestDriverDocuments`) après changement de rôle | droits accordés/refusés exactement selon les claims actuels, jamais selon un état UI/token périmé | `functions/test/integration/authSessionClaims.test.ts` NIVEAU 2 | DONE |
+| AUTH-E-U01 | callable sans authentification | appel direct sans `auth` | `unauthenticated` | `functions/test/integration/authSessionClaims.test.ts` NIVEAU 3 | DONE |
+
+**Bloc E — clôture** : gaps identifiés (aucun seam claims/rôles arbitraire côté Flutter ; aucun
+test dédié `AdminAuthGate`/`AdminLoginScreen` ; aucun test Cloud Function exerçant réellement
+`verifyIdToken()` plutôt que le snapshot `buildRequest()`) comblés par 2 nouveaux fichiers de test
+(13 + 16 = 29 tests, tous PASS) et un durcissement proactif (`revokeRefreshTokens` dans
+`setUserRole.ts`, sans régression sur les 36 tests Bloc D). Principe "le frontend n'est jamais
+l'autorité finale" prouvé par code (AUTH-E-C02/C03/C05/C06). **BLOC E : ✅ FERMÉ.**
+
 ## GPS / Notifications / Responsive / I18N / Sécurité / Performance
 Voir blocs dédiés H, I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 
