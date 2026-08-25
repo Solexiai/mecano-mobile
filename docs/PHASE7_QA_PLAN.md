@@ -600,15 +600,56 @@ correction de code de production n'ait été nécessaire.
 - `docs/PHASE7_BUG_REPORT.md` (section Bloc H — aucun bug, bilan explicite).
 - `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc H).
 
+## BLOC I : ✅ FERMÉ
+
+**Périmètre couvert** :
+- I-1 création (8 transitions statut) : COUVERT, référencé sans duplication
+  (`functions/test/integration/onMissionStatusChangeNotifyCustomer.test.ts`, 15 cas).
+- I-1 secondaire (`detectExpiringDocuments`, `transitionFoundingDriverPeriods`) : aucun test
+  dédié trouvé ; logique simple (même schéma d'écriture `users/{uid}/notifications/{id}` déjà
+  validé par le trigger principal), aucun bug démontré → documenté non-bloquant, pas de nouveau
+  test construit arbitrairement pour satisfaire le plan.
+- I-2 read/unread + badge (`NotificationBell`, `markAsRead` idempotence) : GAP confirmé (le test
+  G-4 note explicitement "hors périmètre... cf. Bloc I") → COMBLÉ.
+- I-3 realtime + listener error sur `NotificationsScreen.watchNotifications()` : GAP confirmé
+  (le pattern G-3 n'existait que sur `CustomerTrackingScreen`) → COMBLÉ.
+- I-4 duplication/idempotence : architecture par `onDocumentUpdated`, un déclenchement = une
+  écriture réelle de transition de statut ; aucun scénario de duplication réelle démontrable en
+  usage normal → pas de nouveau système de dédup construit arbitrairement.
+- I-5 navigation post-tap : COUVERT, référencé Bloc F (`notifications_deep_link_test.dart`),
+  non dupliqué.
+- I-6 FR/EN/ES notifications : COUVERT via audit direct des clés `notif_*`/`notifications_*`
+  dans `lib/l10n/app_strings.dart` — toutes présentes en FR/EN/ES, aucune chaîne en dur.
+- I-7 push mobile externe (FCM/APNs) : aucune dépendance `firebase_messaging`/FCM/APNs dans le
+  projet → documenté `DEFERRED / Phase 8`.
+
+**Bugs trouvés (Bloc I)** : AUCUN. Les gaps I-2/I-3 comblés ont prouvé un comportement déjà
+correct (badge temps réel, idempotence markAsRead, gestion d'erreur listener déjà implémentée
+dans `NotificationsScreen` via `snap.hasError`).
+
+**Validation de clôture** :
+- Nouveau test : `flutter test test/notifications/notifications_realtime_and_unread_test.dart`
+  → 6/6 PASS.
+- Suite complète : `flutter test` → 422/422 PASS (+6 vs 416 post-Bloc H, aucune régression).
+- `flutter analyze` → 0 souci nouveau (mêmes 3 `info` préexistants et non liés).
+- Backend non touché ce bloc → `npx tsc --noEmit`/`npm run lint` non requis.
+
+**Fichiers créés/modifiés (Bloc I, ce tour)** :
+- `test/notifications/notifications_realtime_and_unread_test.dart` (nouveau, 6 tests).
+- `docs/PHASE7_QA_MATRIX.md` (section "Notifications (Bloc I)").
+- `docs/PHASE7_BUG_REPORT.md` (section Bloc I — aucun bug, bilan explicite).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc I).
+
 **PROCHAINE ACTION EXACTE (reprise ici si interruption, pas de nouvel audit général)** :
-1. **Bloc H est FERMÉ.**
-2. Enchaîner **Bloc I — NOTIFICATIONS** : matrice courte I-0 en premier, réutiliser Phase 5
-   notifications + Bloc F deep links (F-3, ne pas redupliquer) + Bloc G (G-3 listener error,
-   G-4 write failure/BUG-008) ; combler uniquement les gaps réels (probablement : erreur de
-   listener sur `NotificationsScreen.watchNotifications()` elle-même jamais testée, duplication/
-   idempotence business event si un vrai bug est démontrable, FR/EN/ES notifications) ; documenter
-   I-7 (push mobile FCM/APNs réel) comme `DEFERRED / Phase 8` si non opérationnel en production.
-3. Puis **Bloc J — RESPONSIVE/VIEWPORTS** (écrans MVP critiques, petits/standards téléphones,
-   BUG-007 référencé, FR/EN/ES sur layout, clavier/formulaires, modals, web si prévu).
-4. Une fois I et J fermés : validation croisée finale, mise à jour des 3 docs QA, commit+push,
-   rapport unique `# PHASE 7 — BLOCS H → I → J`.
+1. **Blocs H et I sont FERMÉS.**
+2. Enchaîner **Bloc J — RESPONSIVE/VIEWPORTS** (non démarré) : J-0 matrice écrans MVP critiques
+   (Auth/Client/Driver/Admin) ; J-1 viewports (petit ~320-360px, standard ~390-430px, grand
+   ~430-480px, tablette/desktop si prévu) ; J-2 référencer/réexécuter BUG-007 (regression
+   AppBar overflow) sans le redupliquer ; J-3 effet FR/EN/ES sur écrans critiques ; J-4
+   clavier/formulaires (login, signup, création mission, onboarding chauffeur) ; J-5
+   modals/dialogs critiques ; J-6 web/desktop uniquement si des écrans web sont réellement
+   prévus. RÈGLE OVERFLOW stricte (jamais masquer `tester.takeException()`, jamais élargir
+   artificiellement le viewport pour faire passer un test).
+3. Une fois J fermé : validation croisée H→I→J (`flutter analyze`, `flutter test` complet,
+   backend si touché), mise à jour finale des 3 docs QA, commit+push, puis rapport final unique
+   `# PHASE 7 — BLOCS H → I → J`.

@@ -225,8 +225,25 @@ test/driver/driver_active_mission_status_gaps_test.dart test/driver/driver_locat
 (18/18 PASS, aucune régression BUG-006), `flutter analyze` (0 souci nouveau), `flutter test` complet
 (voir validation croisée finale). **BLOC H : ✅ FERMÉ.**
 
-## Notifications / Responsive / I18N / Sécurité / Performance
-Voir blocs dédiés I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
+## Notifications (Bloc I)
+
+| Exigence I | Test existant | Statut |
+|---|---|---|
+| I-1 création (8 transitions statut) | `functions/test/integration/onMissionStatusChangeNotifyCustomer.test.ts` (15 cas : 8 transitions + garde-fous + anti-fuite croisée) | COUVERT (référencé, non dupliqué) |
+| I-1 création secondaire (`detectExpiringDocuments`, `transitionFoundingDriverPeriods`) | Aucun test dédié trouvé | GAP mineur documenté DEFERRED (logique simple, même schéma déjà validé par le trigger principal ; pas de bug démontré) |
+| I-2 read/unread + badge | **GAP** avant ce tour | COMBLÉ : `test/notifications/notifications_realtime_and_unread_test.dart` (I-2.1/I-2.2/I-2.3, 3 tests) |
+| I-3 realtime + listener error (`NotificationsScreen`) | **GAP** avant ce tour (pattern G-3 existait seulement sur `CustomerTrackingScreen`) | COMBLÉ : même fichier (I-3.1/I-3.2/I-3.3, 3 tests) |
+| I-4 duplication/idempotence notification création | Architecture par `onDocumentUpdated` : un déclenchement = une écriture réelle de statut ; aucun scénario de duplication réelle démontré en usage normal | Non-bloquant, pas de nouveau système construit arbitrairement |
+| I-5 navigation post-tap | Bloc F, `notifications_deep_link_test.dart` | COUVERT (référencé, non dupliqué) |
+| I-6 FR/EN/ES notifications | Audit direct `lib/l10n/app_strings.dart` (toutes clés `notif_*`/`notifications_*` présentes en FR/EN/ES) | COUVERT |
+| I-7 push mobile externe (FCM/APNs) | Aucune dépendance `firebase_messaging`/FCM/APNs dans le projet | DEFERRED / Phase 8 |
+
+Nouveau fichier : `test/notifications/notifications_realtime_and_unread_test.dart` (6 tests, 6/6 PASS).
+Validation : `flutter test` complet 422/422 PASS (+6 vs 416 post-Bloc H), `flutter analyze` 0 souci nouveau.
+**BLOC I : ✅ FERMÉ.**
+
+## Responsive / I18N global / Sécurité / Performance
+Voir blocs dédiés J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 
 ---
 **Note méthodologique** : Cette matrice n'est PAS exhaustive à ce stade — elle sert de point de

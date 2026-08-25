@@ -433,6 +433,39 @@ nouveau (3 issues `info` pré-existantes non liées, inchangées).
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs I à W avec tout nouveau bug découvert (ID
+## Bloc I — Notifications : aucun nouveau bug
+
+**Résultat** : 2 GAPS réels identifiés — I-2 (read/unread + badge `NotificationBell`, jamais
+testé dédiée, explicitement noté "hors périmètre... cf. Bloc I" par le test G-4) et I-3
+(gestion d'erreur du listener `NotificationsScreen.watchNotifications()`, le pattern G-3
+n'existant jusqu'ici que sur `CustomerTrackingScreen`). Nouveau fichier
+`test/notifications/notifications_realtime_and_unread_test.dart` (6 tests, **6/6 PASS**)
+prouvant : badge temps réel qui reflète le compteur non-lu (incrément/décrément/plafond "99+"),
+idempotence de `markAsRead()` appelé deux fois sur la même notification (aucune exception,
+aucun état incohérent), mise à jour temps réel de la liste de notifications, gestion propre
+d'une erreur de listener (aucun crash, contenu non trompeur, message d'erreur affiché), et
+reprise normale après une nouvelle émission valide sur le même flux.
+
+**Aucun bug trouvé** — chaque assertion a validé un comportement déjà correct du code de
+production (`NotificationBell`, `NotificationsScreen`).
+
+I-1 (création — 8 transitions de statut via `onMissionStatusChangeNotifyCustomer`) était déjà
+entièrement couvert par `functions/test/integration/onMissionStatusChangeNotifyCustomer.test.ts`
+(15 cas) — référencé sans duplication. I-1 secondaire (`detectExpiringDocuments.ts`,
+`transitionFoundingDriverPeriods.ts`) n'a pas de test dédié mais réutilise le même schéma
+d'écriture déjà validé ; aucun bug démontré → non-bloquant, documenté. I-4 (duplication) :
+architecture par `onDocumentUpdated`, aucun scénario de duplication réelle démontrable en usage
+normal → pas de nouveau système de dédup construit arbitrairement. I-5 (navigation) référencé
+Bloc F sans duplication. I-6 (FR/EN/ES notifications) confirmé COUVERT par audit direct des clés
+`notif_*`/`notifications_*` dans `app_strings.dart`. I-7 (push mobile FCM/APNs réel) documenté
+`DEFERRED / Phase 8` — aucune dépendance `firebase_messaging`/FCM/APNs dans le projet.
+
+**Bilan** : Aucun bug P0/P1/P2/P3 pour ce bloc. `flutter test` complet du projet :
+**422/422 PASS, aucune régression** (416 précédents + 6 nouveaux). `flutter analyze` : 0 souci
+nouveau (3 issues `info` pré-existantes non liées, inchangées).
+
+---
+
+*Ce fichier sera enrichi au fil des blocs J à W avec tout nouveau bug découvert (ID
 séquentiel BUG-009, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*
