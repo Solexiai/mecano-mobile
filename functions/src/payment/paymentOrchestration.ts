@@ -701,13 +701,16 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
       const payout = snap.data() as DriverPayoutDoc;
 
       if (!payout.connected_account_id) {
+        // 🔒 BUG-FIX (Phase 7, Bloc C item 2) : NE JAMAIS faire `tx.update()`
+        // puis `throw` dans le MÊME corps de transaction — Firestore annule
+        // (rollback) intégralement toute transaction dont le callback lève,
+        // donc cette écriture n'était JAMAIS committée malgré un retour
+        // `status: FAILED` trompeur côté appelant. On se contente ici de
+        // valider la transition (échoue immédiatement si invalide) puis de
+        // lever un marqueur ; l'écriture réelle du statut FAILED est faite
+        // dans une transaction SÉPARÉE par le bloc catch ci-dessous (même
+        // schéma que le catch de l'appel provider en échec plus bas).
         assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
-        const now = admin.firestore.Timestamp.now();
-        tx.update(payoutRef, {
-          status: PayoutStatuses.FAILED,
-          failed_at: now,
-          failure_reason: "missing_connected_account",
-        });
         throw new Error("MISSING_CONNECTED_ACCOUNT");
       }
 
@@ -730,6 +733,23 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     });
   } catch (err) {
     if (err instanceof Error && err.message === "MISSING_CONNECTED_ACCOUNT") {
+      // 🔒 Écriture réelle du statut FAILED — transaction SÉPARÉE (la
+      // transaction ci-dessus a déjà rollback son propre `tx.update()` en
+      // levant). Re-vérifie la transition ET le statut terminal (défense
+      // contre une exécution concurrente qui aurait déjà traité ce payout
+      // entre les deux transactions).
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(payoutRef);
+        if (!snap.exists) return;
+        const payout = snap.data() as DriverPayoutDoc;
+        if (isTerminalPayout(payout.status)) return;
+        assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
+        tx.update(payoutRef, {
+          status: PayoutStatuses.FAILED,
+          failed_at: admin.firestore.Timestamp.now(),
+          failure_reason: "missing_connected_account",
+        });
+      });
       logFinancialFailure(
         "submit_driver_payout",
         operationStartedAt,

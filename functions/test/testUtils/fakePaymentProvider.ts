@@ -56,7 +56,9 @@ export interface FakePaymentProviderOptions {
   forceCaptureFailure?: boolean;
   /** Si vrai, `refundPayment()` renvoie un échec déterministe (refus provider simulé). */
   forceRefundFailure?: boolean;
-  /** Code d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
+  /** Si vrai, `createDriverPayout()` renvoie un échec déterministe (versement refusé simulé, ex: compte connecté invalide côté Stripe). */
+  forceCreateDriverPayoutFailure?: boolean;
+  /** Code d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure`/`forceCreateDriverPayoutFailure` est actif. */
   failureCode?: string;
   /** Message d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
   failureMessage?: string;
@@ -167,6 +169,14 @@ export class FakePaymentProvider extends PaymentProvider {
   async createDriverPayout(
     _params: CreateDriverPayoutParams
   ): Promise<CreateDriverPayoutResult> {
+    if (this.options.forceCreateDriverPayoutFailure) {
+      return {
+        success: false,
+        providerPayoutId: null,
+        status: "failed",
+        failureCode: this.options.failureCode ?? "payout_provider_declined",
+      };
+    }
     return { success: true, providerPayoutId: nextId("po"), status: "paid" };
   }
 
