@@ -74,10 +74,31 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
   // pendant l'upload Storage, avant même l'appel à completeDelivery().
   bool _uploadingProof = false;
 
+  // 🔒 BUG-FIX (Phase 7, Bloc C item 3) : `_syncGpsSharing()` était
+  // ré-appelé via `addPostFrameCallback` à CHAQUE `build()` (donc à chaque
+  // frame tant que l'écran est affiché). Si le GPS échoue durablement
+  // (service désactivé, permission refusée), `_locationReporter.isRunning`
+  // reste `false` pour toujours -> chaque build retentait `start()` ->
+  // `onError` -> `setState()` -> nouveau build -> nouvelle tentative ->
+  // boucle infinie martelant le service de localisation natif à chaque
+  // frame (drain de batterie, jank, potentiel throttling OS). On ne
+  // resynchronise désormais QUE lorsque le statut de la mission change
+  // réellement (même pattern de mémoïsation que le fix P1 de
+  // `ProviderJobsTab._ensureStreams()`), ce qui préserve le comportement
+  // voulu (retry automatique dès que la mission avance d'étape) sans
+  // jamais boucler indéfiniment sur un même statut.
+  MissionStatus? _lastSyncedGpsStatus;
+
   @override
   void dispose() {
     _locationReporter.stop();
     super.dispose();
+  }
+
+  void _syncGpsSharingIfStatusChanged(MissionStatus status) {
+    if (_lastSyncedGpsStatus == status) return;
+    _lastSyncedGpsStatus = status;
+    _syncGpsSharing(status);
   }
 
   void _syncGpsSharing(MissionStatus status) {
@@ -326,7 +347,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
         }
 
         WidgetsBinding.instance.addPostFrameCallback(
-          (_) => _syncGpsSharing(mission.status),
+          (_) => _syncGpsSharingIfStatusChanged(mission.status),
         );
 
         return _MissionCard(
