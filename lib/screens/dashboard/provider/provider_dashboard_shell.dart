@@ -65,7 +65,21 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
 
     final driverId = auth.effectiveUid!;
 
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    // Bloc F (gap F-2, bug UI trouvé lors du test de non-régression du
+    // Switch online/offline) : sur téléphone étroit (ex. 320-428px de
+    // large, iPhone SE jusqu'à iPhone Pro Max), le nombre d'actions dans
+    // l'AppBar (libellé "Disponible"/"Hors ligne" + Switch + cloche
+    // notifications + sélecteur de langue + déconnexion) dépassait
+    // l'espace disponible et provoquait un RenderFlex overflow (jusqu'à
+    // 429px, reproductible sur toutes les largeurs de téléphone testées
+    // sauf 360px). Correctif : masquer uniquement le libellé texte
+    // DÉCORATIF "Disponible"/"Hors ligne" sur écran étroit — le Switch
+    // (action essentielle, jamais masqué) reste toujours visible et
+    // fonctionnel, avec un Tooltip pour conserver l'information de statut
+    // de façon accessible même sans le texte.
+    final isNarrowPhone = screenWidth < 480;
     final tabs = [
       const ProviderJobsTab(),
       const ProviderCalendarTab(),
@@ -81,10 +95,18 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 0,
         title: Row(children: [
           IconButton(onPressed: () => context.go('/$locale'), icon: const Icon(Icons.arrow_back)),
-          const SizedBox(width: 4),
-          const Text('Espace fournisseur', style: TextStyle(fontWeight: FontWeight.w700)),
+          if (!isNarrowPhone) const SizedBox(width: 4),
+          if (!isNarrowPhone)
+            const Expanded(
+              child: Text(
+                'Espace fournisseur',
+                style: TextStyle(fontWeight: FontWeight.w700),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
         ]),
         actions: [
           StreamBuilder<DriverProfileV2?>(
@@ -93,30 +115,44 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
               final profile = snap.data;
               final online = profile?.onlineStatus == DriverOnlineStatus.online;
               final canGoOnline = profile?.status.canGoOnline ?? false;
-              return Row(children: [
-                Text(
-                  online ? 'Disponible' : 'Hors ligne',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: online ? AppColors.success : AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
+              final statusLabel = online ? 'Disponible' : 'Hors ligne';
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Sur téléphone étroit, le libellé texte décoratif est
+                  // masqué pour éviter l'overflow (voir commentaire sur
+                  // `isNarrowPhone` ci-dessus) ; l'information de statut
+                  // reste accessible via le Tooltip du Switch, qui reste
+                  // TOUJOURS visible et fonctionnel (action essentielle,
+                  // jamais masquée) quelle que soit la largeur d'écran.
+                  if (!isNarrowPhone)
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: online ? AppColors.success : AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  Tooltip(
+                    message: statusLabel,
+                    child: Switch(
+                      value: online,
+                      onChanged: (!canGoOnline || _togglingAvailability)
+                          ? null
+                          : (v) => _toggleAvailability(driverId, v, t),
+                      activeThumbColor: AppColors.success,
+                    ),
                   ),
-                ),
-                Switch(
-                  value: online,
-                  onChanged: (!canGoOnline || _togglingAvailability)
-                      ? null
-                      : (v) => _toggleAvailability(driverId, v, t),
-                  activeThumbColor: AppColors.success,
-                ),
-              ]);
+                ],
+              );
             },
           ),
           NotificationBell(userId: driverId),
-          const LanguageSelector(compact: true),
-          const SizedBox(width: 8),
+          if (!isNarrowPhone) const LanguageSelector(compact: true),
+          if (!isNarrowPhone) const SizedBox(width: 8),
           IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       body: isDesktop
