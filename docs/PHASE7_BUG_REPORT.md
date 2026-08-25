@@ -408,6 +408,31 @@ sécurité/données). F-1, F-3, et ROUTE-F-01..06 n'ont révélé aucun nouveau 
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs H à W avec tout nouveau bug découvert (ID
+## Bloc H — GPS / Tracking durcissement : aucun nouveau bug
+
+**Résultat** : 1 seul GAP réel identifié (H-2 — lifecycle GPS au niveau
+`DriverActiveMissionScreen`, jusqu'ici non prouvé explicitement bien que le code existant
+(`_syncGpsSharing()`/`_syncGpsSharingIfStatusChanged()`) le gère déjà correctement depuis le fix
+BUG-006). Nouveau fichier `test/driver/driver_active_mission_gps_lifecycle_test.dart` (6 tests,
+**6/6 PASS au premier essai**) prouvant : démarrage réel du partage sur statut de trajet actif,
+arrêt réel sur `completed`/`cancelled`, idempotence (aucune 2e boucle démarrée sur transitions
+internes "partage actif"), nettoyage propre au `dispose()`, idempotence `stop()`/`stop()` isolée.
+**Aucun bug trouvé** — chaque assertion a directement validé le comportement déjà correct du code
+de production, sans qu'aucune correction n'ait été nécessaire.
+
+H-1 (permissions GPS) et H-4 (sécurité tracking `driver_locations`) étaient déjà entièrement
+couverts par des tests existants (`driver_location_reporter_test.dart` et
+`securityRules.test.ts`) — référencés sans duplication. H-3 (BUG-006) réexécuté : reste
+**18/18 PASS**, aucune régression. H-5 (background/foreground) documenté honnêtement
+`DEFERRED NON-BLOCKING → Phase 8` (non implémenté, aucune architecture construite arbitrairement).
+H-6 (position stale/invalide) documenté `N/A` (aucun consommateur actuel n'en dépend).
+
+**Bilan** : Aucun bug P0/P1/P2/P3 pour ce bloc. `flutter test` complet du projet :
+**416/416 PASS, aucune régression** (410 précédents + 6 nouveaux). `flutter analyze` : 0 souci
+nouveau (3 issues `info` pré-existantes non liées, inchangées).
+
+---
+
+*Ce fichier sera enrichi au fil des blocs I à W avec tout nouveau bug découvert (ID
 séquentiel BUG-009, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

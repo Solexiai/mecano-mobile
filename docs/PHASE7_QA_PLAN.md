@@ -523,22 +523,92 @@ BUG-008. Aucun bug P0/P1.
 
 **PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
 1. **Bloc G est FERMÉ.**
-2. Enchaîner **Bloc H — GPS/TRACKING DURCISSEMENT** : matrice courte requirement→test
-   existant→COUVERT/GAP en premier (H-1 permissions déjà couvert par
-   `driver_location_reporter_test.dart` + bandeau GPS de
-   `driver_active_mission_status_gaps_test.dart` — à confirmer sans réexécution intégrale ; H-2
-   lifecycle tracking start/stop selon statut mission — probablement partiellement couvert par
-   `_syncGpsSharingIfStatusChanged`/BUG-006 mais lifecycle explicite start-on-active/
-   stop-on-completed/stop-on-cancelled à vérifier et combler si gap réel ; H-3 référencer/
-   réexécuter `driver_active_mission_status_gaps_test.dart` pour confirmer BUG-006 toujours vert ;
-   H-4 sécurité tracking — vérifier Security Rules existantes (`functions/test/integration/
-   securityRules.test.ts`) pour driver_locations, combler seulement un gap réel ; H-5
-   background/foreground — documenter `DEFERRED NON-BLOCKING → Phase 8` si non implémenté ; H-6
-   position stale/invalide — seulement si l'architecture en dépend).
-3. Puis **Bloc I — NOTIFICATIONS** (création, read/unread, badge, realtime, duplication —
+2. **Bloc H est FERMÉ** (voir section dédiée ci-dessous).
+3. Enchaîner **Bloc I — NOTIFICATIONS** (création, read/unread, badge, realtime, duplication —
    réutiliser F-3 pour navigation, ne pas la redupliquer ; documenter I-7 push externe/FCM comme
    `DEFERRED / Phase 8` si non prêt en production).
-4. **Ne pas refaire d'audit général** pour G/F/E/D (fermés), ni Security Rules (196/196 PASS).
-5. Une fois H et I fermés : validation croisée (`flutter analyze`, `flutter test`,
+4. **Ne pas refaire d'audit général** pour G/F/E/D/H (fermés), ni Security Rules (196/196 PASS +
+   16 tests `driver_locations` référencés au Bloc H).
+5. Une fois I et J fermés : validation croisée (`flutter analyze`, `flutter test`,
    `npx tsc --noEmit`, `npm run lint` si backend touché), mise à jour finale des 3 docs QA,
-   commit+push final, puis rapport unique `# PHASE 7 — BLOCS G → H → I`.
+   commit+push final, puis rapport unique `# PHASE 7 — BLOCS H → I → J`.
+
+---
+
+## BLOC H : ✅ FERMÉ
+
+**Périmètre couvert** — matrice courte requirement→test existant→COUVERT/GAP effectuée en premier
+(voir `docs/PHASE7_QA_MATRIX.md`, section "GPS / Tracking durcissement (Bloc H)"), puis codage du
+seul GAP réel identifié :
+- **H-1 — Permissions GPS** : déjà entièrement couvert par `driver_location_reporter_test.dart`
+  (9 tests, isolé au niveau de la classe `DriverLocationReporter` — service désactivé, permission
+  denied/deniedForever, refus-puis-accord, échec `getCurrentPosition`/`reportDriverLocation`,
+  idempotence de `start()`, `stop()` isolé). Référencé, non redupliqué.
+- **H-2 — Lifecycle tracking au niveau écran (GAP comblé ce bloc)** : nouveau fichier
+  `test/driver/driver_active_mission_gps_lifecycle_test.dart` (6 tests) prouvant, au niveau
+  `DriverActiveMissionScreen` (pas seulement de la classe isolée) : CAS 1 mission `assigned` →
+  partage démarre réellement (1 rapport immédiat, `checkPermission()` appelé 1 fois) ; CAS 2
+  `inTransit` → `completed` → partage s'arrête (aucun nouveau rapport/vérification après 5 pumps
+  supplémentaires) ; CAS 3 `driverToPickup` → `cancelled` → même exigence ; idempotence lifecycle
+  (`assigned → driverToPickup → arrivedAtPickup`, toutes des transitions "partage actif" : une
+  seule vérification de permission au total, jamais de 2e boucle démarrée) ; nettoyage `dispose()`
+  pendant partage actif (`stop()` sans exception, aucun rapport résiduel) ; idempotence
+  `stop()`/`stop()` isolée (aucune exception, état propre).
+- **H-3 — BUG-006 (boucle infinie GPS)** : réexécuté (pas recréé) —
+  `driver_active_mission_status_gaps_test.dart` + `driver_location_reporter_test.dart` →
+  **18/18 PASS**, toujours vert.
+- **H-4 — Sécurité tracking** : déjà entièrement couvert par
+  `functions/test/integration/securityRules.test.ts` (16 tests ciblés sur `driver_locations/
+  {driverId}` + `driver_locations/{driverId}/history/{eventId}` : write self OK, write autre
+  chauffeur DENIED, read sans mission active DENIED, read avec mission active assignée OK, read
+  mission active mais autre chauffeur DENIED, read après nettoyage `active_delivery_id=null`
+  DENIED, analyste read tout OK, non-authentifié DENIED (read+write), écriture directe historique
+  interdite même pour super_admin, lecture historique propriétaire/tiers/analyste). Référencé, non
+  redupliqué — aucune réexécution intégrale des 196 Security Rules nécessaire.
+- **H-5 — Background/Foreground** : **DEFERRED NON-BLOCKING → Phase 8**, documenté honnêtement.
+  Confirmé par lecture directe : `AndroidManifest.xml` ne demande PAS
+  `ACCESS_BACKGROUND_LOCATION` (commentaire explicite dans le fichier), et
+  `driver_location_reporter.dart` documente lui-même "Ne tourne jamais en arrière-plan". Aucune
+  architecture de background tracking construite ce bloc — dépend de permissions OS avancées et
+  de configuration Android/iOS production, hors périmètre MVP actuel.
+- **H-6 — Position stale/invalide** : **N/A**, documenté. Grep exhaustif confirme qu'aucun
+  consommateur actuel (`LiveTrackingMap`, écrans client/chauffeur) ne lit/valide
+  `DriverLocation.updatedAt` pour détecter une position périmée — aucun moteur de validation
+  construit arbitrairement pour satisfaire une checklist théorique.
+
+**Bugs trouvés dans ce bloc** : **AUCUN** (P0/P1/P2/P3 = 0). Le code de production
+(`_syncGpsSharing()`, `_syncGpsSharingIfStatusChanged()`, `DriverLocationReporter.start()/stop()`)
+se comporte exactement comme attendu au niveau écran — chaque scénario testé (start/stop selon
+statut, idempotence, dispose) a directement validé le comportement existant sans qu'aucune
+correction de code de production n'ait été nécessaire.
+
+**Validation de clôture (exécutée réellement, pas seulement rédigée)** :
+- `flutter test test/driver/driver_active_mission_gps_lifecycle_test.dart` → **6/6 PASS**.
+- `flutter test test/driver/driver_active_mission_status_gaps_test.dart
+  test/driver/driver_location_reporter_test.dart` → **18/18 PASS** (BUG-006 confirmé toujours
+  vert, aucune régression).
+- `flutter analyze` (projet complet) → 3 issues `info` pré-existantes non liées, 0 souci nouveau.
+- `flutter test` (suite complète du projet) → **416/416 PASS** (410 précédents + 6 nouveaux,
+  aucune régression).
+- Security Rules `driver_locations` : référencées sans réexécution isolée nécessaire (aucune
+  modification de `firestore.rules` ni de `securityRules.test.ts` ce bloc — `npx tsc --noEmit`/
+  `npm run lint` non requis, backend non touché).
+
+**Fichiers créés/modifiés (Bloc H, ce tour)** :
+- `test/driver/driver_active_mission_gps_lifecycle_test.dart` (nouveau, 6 tests).
+- `docs/PHASE7_QA_MATRIX.md` (section "GPS / Tracking durcissement (Bloc H)").
+- `docs/PHASE7_BUG_REPORT.md` (section Bloc H — aucun bug, bilan explicite).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc H).
+
+**PROCHAINE ACTION EXACTE (reprise ici si interruption, pas de nouvel audit général)** :
+1. **Bloc H est FERMÉ.**
+2. Enchaîner **Bloc I — NOTIFICATIONS** : matrice courte I-0 en premier, réutiliser Phase 5
+   notifications + Bloc F deep links (F-3, ne pas redupliquer) + Bloc G (G-3 listener error,
+   G-4 write failure/BUG-008) ; combler uniquement les gaps réels (probablement : erreur de
+   listener sur `NotificationsScreen.watchNotifications()` elle-même jamais testée, duplication/
+   idempotence business event si un vrai bug est démontrable, FR/EN/ES notifications) ; documenter
+   I-7 (push mobile FCM/APNs réel) comme `DEFERRED / Phase 8` si non opérationnel en production.
+3. Puis **Bloc J — RESPONSIVE/VIEWPORTS** (écrans MVP critiques, petits/standards téléphones,
+   BUG-007 référencé, FR/EN/ES sur layout, clavier/formulaires, modals, web si prévu).
+4. Une fois I et J fermés : validation croisée finale, mise à jour des 3 docs QA, commit+push,
+   rapport unique `# PHASE 7 — BLOCS H → I → J`.

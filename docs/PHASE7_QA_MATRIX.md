@@ -185,8 +185,48 @@ identifiés. Aucun bug P0/P1 trouvé. Validation réelle exécutée : `flutter t
 `flutter test` complet du projet (**410/410 PASS, aucune régression**).
 **BLOC G : ✅ FERMÉ.**
 
-## GPS / Notifications / Responsive / I18N / Sécurité / Performance
-Voir blocs dédiés H, I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
+## GPS / Tracking durcissement (Bloc H)
+
+Matrice courte (exigence → test existant → COUVERT/GAP), avant codage du gap réel uniquement :
+
+| Exigence H | Test existant | Statut |
+|---|---|---|
+| H-1 — GPS désactivé / permission denied / deniedForever / refus-puis-accord / échec `getCurrentPosition`/`reportDriverLocation` | `driver_location_reporter_test.dart` (9 tests, isolé classe `DriverLocationReporter`) | **COUVERT** (référencé, non dupliqué) |
+| H-2 — Lifecycle écran : mission active → start ; completed/cancelled → stop ; idempotence start/start et stop/stop | Aucun test existant ne liait le statut mission au lifecycle réel de `DriverLocationReporter` AU NIVEAU `DriverActiveMissionScreen` (seul le bandeau d'erreur GPS et BUG-006 étaient couverts, pas le lifecycle start/stop lui-même) | **GAP → H-2 (comblé ce bloc)** |
+| H-3 — BUG-006 (boucle infinie de resynchronisation GPS sur échec permanent) | `driver_active_mission_status_gaps_test.dart` (9 tests, sonde `isLocationServiceEnabled`) | **COUVERT** (réexécuté : 18/18 PASS avec `driver_location_reporter_test.dart`, toujours vert) |
+| H-4 — Sécurité tracking : chauffeur assigné write autorisé / autre chauffeur DENIED / client propriétaire read autorisé / autre client DENIED / non authentifié DENIED / historique trajet écriture directe interdite (Cloud Function only) | `functions/test/integration/securityRules.test.ts` lignes ~1513-1750, describe \"driver_locations/{driverId}\" + \"driver_locations/{driverId}/history/{eventId}\" (16 tests ciblés : write self OK, write autre chauffeur DENIED, read sans mission active DENIED, read avec mission active assignée OK, read mission active mais autre chauffeur DENIED, read après nettoyage `active_delivery_id=null` DENIED, analyste read tout OK, non-authentifié DENIED (read+write), écriture directe historique interdite même pour super_admin, lecture historique propriétaire/tiers/analyste) | **COUVERT** (référencé, non dupliqué — aucun gap réel identifié) |
+| H-5 — Background/Foreground (tracking continue hors écran actif / app en arrière-plan) | Aucune implémentation : `AndroidManifest.xml` ne demande PAS `ACCESS_BACKGROUND_LOCATION` (commenté explicitement), `driver_location_reporter.dart` documente \"Ne tourne jamais en arrière-plan\" | **DEFERRED NON-BLOCKING → Phase 8** (non implémenté, dépend de permissions OS avancées + configuration Android/iOS production ; documentation uniquement, aucun code construit ce bloc) |
+| H-6 — Position stale/invalide (âge de la position, coordonnées invalides) | Grep exhaustif : aucun consommateur (`LiveTrackingMap`, écrans client/chauffeur) ne lit/valide `DriverLocation.updatedAt` pour détecter une position périmée | **N/A — architecture actuelle ne dépend pas de cette validation** (aucun moteur de validation construit arbitrairement, conformément à la consigne) |
+
+Budget reconnaissance : ~15-20% du bloc (lecture ciblée de `driver_location_reporter.dart`,
+`driver_location_reporter_test.dart`, `driver_active_mission_status_gaps_test.dart`,
+`driver_active_mission_screen.dart`, `securityRules.test.ts` section driver_locations,
+`AndroidManifest.xml`). Aucun audit général, aucune relecture redondante.
+
+### H-2 — Lifecycle GPS écran (nouveau test)
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| H-2.1 | CAS 1 — mission dans un statut de partage (`assigned`) | montage `DriverActiveMissionScreen` | 1 rapport de position immédiat, `checkPermission()` appelé une seule fois | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+| H-2.2 | CAS 2 — mission `inTransit` → `completed` | `advanceTo(completed)` puis 5 pumps supplémentaires | aucun nouveau rapport, aucune nouvelle vérification de permission, écran \"déjà complétée\" affiché | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+| H-2.3 | CAS 3 — mission `driverToPickup` → `cancelled` | `advanceTo(cancelled)` puis 5 pumps supplémentaires | même exigence que CAS 2, écran \"annulée\" affiché | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+| H-2.4 | Idempotence lifecycle (transitions internes toutes \"partage actif\") | `assigned → driverToPickup → arrivedAtPickup` | `checkPermission()` appelé UNE SEULE fois au total (jamais de 2e boucle démarrée) | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+| H-2.5 | Nettoyage dispose() | démontage de l'écran pendant partage actif | `stop()` exécuté sans exception (`tester.takeException()` == null), aucun rapport résiduel | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+| H-2.6 | Idempotence `stop()`/`stop()` isolée | `DriverLocationReporter().stop()` appelé deux fois de suite, jamais démarré | aucune exception (`returnsNormally`), `isRunning` reste `false` | `driver_active_mission_gps_lifecycle_test.dart` | **DONE** |
+
+**Bloc H — clôture** : 1 nouveau fichier créé (`test/driver/driver_active_mission_gps_lifecycle_test.dart`,
+6 tests), comblant le seul GAP réel identifié (H-2). H-1/H-3/H-4 référencés sans duplication
+(réexécutés pour H-3 : 18/18 PASS). H-5 documenté `DEFERRED NON-BLOCKING → Phase 8`. H-6 documenté
+`N/A`. Aucun bug P0/P1/P2/P3 trouvé pendant ce bloc — le code de production (`_syncGpsSharing()`,
+`DriverLocationReporter.start()/stop()`) se comporte exactement comme attendu au niveau écran, sans
+qu'aucune correction n'ait été nécessaire. Validation réelle exécutée : `flutter test
+test/driver/driver_active_mission_gps_lifecycle_test.dart` (6/6 PASS), `flutter test
+test/driver/driver_active_mission_status_gaps_test.dart test/driver/driver_location_reporter_test.dart`
+(18/18 PASS, aucune régression BUG-006), `flutter analyze` (0 souci nouveau), `flutter test` complet
+(voir validation croisée finale). **BLOC H : ✅ FERMÉ.**
+
+## Notifications / Responsive / I18N / Sécurité / Performance
+Voir blocs dédiés I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 
 ---
 **Note méthodologique** : Cette matrice n'est PAS exhaustive à ce stade — elle sert de point de
