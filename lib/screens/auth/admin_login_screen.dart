@@ -16,6 +16,7 @@ import 'package:provider/provider.dart';
 import '../../backend/backend_status.dart';
 import '../../core/app_colors.dart';
 import '../../providers/firebase_auth_provider.dart';
+import '../../providers/locale_provider.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -33,6 +34,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   Widget build(BuildContext context) {
     final backendStatus = context.watch<BackendStatus>();
     final auth = context.watch<FirebaseAuthProvider>();
+    final t = context.watch<LocaleProvider>().t;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,16 +64,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Administration Movi-K',
+                  Text(
+                    t('admin_login_title'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Accès réservé au personnel autorisé (analyste, admin, super-admin).',
+                  Text(
+                    t('admin_login_subtitle'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 12.5,
                     ),
@@ -82,17 +84,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                     _InfoBanner(
                       icon: Icons.warning_amber_rounded,
                       color: AppColors.warning,
-                      text:
-                          'Backend Firebase non configuré sur cet environnement. La connexion admin est indisponible.',
+                      text: t('admin_login_backend_not_configured'),
                     )
                   else ...[
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
-                      decoration: const InputDecoration(
-                        labelText: 'Courriel',
-                        prefixIcon: Icon(Icons.mail_outline),
+                      decoration: InputDecoration(
+                        labelText: t('admin_login_email_label'),
+                        prefixIcon: const Icon(Icons.mail_outline),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -102,7 +103,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       autofillHints: const [AutofillHints.password],
                       onSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
-                        labelText: 'Mot de passe',
+                        labelText: t('admin_login_password_label'),
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -140,7 +141,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text('Se connecter'),
+                            : Text(t('admin_login_submit')),
                       ),
                     ),
                   ],
@@ -148,7 +149,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   const SizedBox(height: 24),
                   TextButton(
                     onPressed: () => context.go('/fr'),
-                    child: const Text('Retour à l\'accueil'),
+                    child: Text(t('admin_login_back_home')),
                   ),
                 ],
               ),
@@ -181,13 +182,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       // problème de droits) : on NE déconnecte PAS le compte, on laisse
       // l'utilisateur réessayer sans perdre sa session.
       if (!mounted) return;
+      final t = context.read<LocaleProvider>().t;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Connexion réussie mais impossible de vérifier vos droits '
-            'pour le moment. Veuillez réessayer dans quelques secondes.',
-          ),
-        ),
+        SnackBar(content: Text(t('admin_login_claims_verify_failed'))),
       );
       return;
     }
@@ -197,12 +194,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     // toute confusion — cet écran est réservé au personnel autorisé.
     await auth.signOut();
     if (!mounted) return;
+    final t = context.read<LocaleProvider>().t;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Ce compte n\'a pas les droits d\'administration requis.',
-        ),
-      ),
+      SnackBar(content: Text(t('admin_login_access_denied'))),
     );
   }
 
@@ -280,6 +274,7 @@ class AdminAuthGate extends StatelessWidget {
       // Utilisateur bien connecté, mais impossible de confirmer ses droits
       // (échec réseau/temporaire) : on propose un nouvel essai plutôt que
       // de le renvoyer silencieusement vers l'écran de connexion.
+      final t = context.watch<LocaleProvider>().t;
       return Scaffold(
         body: Center(
           child: Padding(
@@ -289,19 +284,18 @@ class AdminAuthGate extends StatelessWidget {
               children: [
                 const Icon(Icons.wifi_off_rounded, size: 40),
                 const SizedBox(height: 16),
-                const Text(
-                  'Impossible de vérifier vos droits d\'accès pour le '
-                  'moment. Vérifiez votre connexion et réessayez.',
+                Text(
+                  t('admin_login_claims_check_failed'),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => auth.refreshClaims(),
-                  child: const Text('Réessayer'),
+                  child: Text(t('common_retry')),
                 ),
                 TextButton(
                   onPressed: () => auth.signOut(),
-                  child: const Text('Se déconnecter'),
+                  child: Text(t('admin_login_sign_out')),
                 ),
               ],
             ),
@@ -328,6 +322,7 @@ class _AdminShellWithSignOut extends StatelessWidget {
     // déconnexion est exposé via un Provider.of accessible depuis
     // AdminDashboardShell si besoin, mais pour rester non-intrusif on
     // fournit ici un bouton flottant discret de déconnexion.
+    final t = context.watch<LocaleProvider>().t;
     return Stack(
       children: [
         child,
@@ -338,7 +333,7 @@ class _AdminShellWithSignOut extends StatelessWidget {
             child: Material(
               color: Colors.transparent,
               child: IconButton(
-                tooltip: 'Se déconnecter',
+                tooltip: t('admin_login_sign_out'),
                 icon: const Icon(Icons.logout, size: 20),
                 onPressed: () => context.read<FirebaseAuthProvider>().signOut(),
               ),

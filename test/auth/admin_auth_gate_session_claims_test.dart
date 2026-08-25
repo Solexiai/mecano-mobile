@@ -40,6 +40,7 @@ import 'package:provider/provider.dart';
 import 'package:movik_connect/backend/backend_status.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
+import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/auth/admin_login_screen.dart';
 
 void main() {
@@ -50,6 +51,10 @@ void main() {
           value: backendStatus ?? const BackendStatus.ready(),
         ),
         ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+        // Ajouté Bloc K (i18n) : AdminLoginScreen/AdminAuthGate consomment
+        // désormais LocaleProvider pour tous les textes visibles (BUG-010 /
+        // gap K-1) — indispensable pour que ce wrap ne throw plus.
+        ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
       ],
       child: MaterialApp(
         home: AdminAuthGate(

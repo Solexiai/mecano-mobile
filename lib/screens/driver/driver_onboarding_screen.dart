@@ -91,7 +91,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       return AppShell(
         locale: widget.locale,
         showFooter: false,
-        child: _PendingVerificationView(locale: widget.locale, roleLabel: 'chauffeur'),
+        child: _PendingVerificationView(locale: widget.locale),
       );
     }
 
@@ -104,17 +104,17 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SectionTitle(title: 'Inscription chauffeur', subtitle: 'Complétez votre profil pour commencer à recevoir des demandes.'),
+              SectionTitle(title: t('driver_onboarding_title'), subtitle: t('driver_onboarding_subtitle')),
               const SizedBox(height: 12),
               if (!backendStatus.isConfigured)
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(color: AppColors.warning.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Row(children: [
-                    Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
-                    SizedBox(width: 10),
-                    Expanded(child: Text('Backend Firebase non configuré sur cet environnement : l\'inscription réelle est indisponible.', style: TextStyle(fontSize: 12.5))),
+                  child: Row(children: [
+                    const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(t('driver_onboarding_backend_not_configured'), style: const TextStyle(fontSize: 12.5))),
                   ]),
                 ),
               if (_submitError != null)
@@ -131,10 +131,15 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 880),
                 child: StepProgressForm(
-                  stepTitles: const ['Profil', 'Véhicule', 'Tarification', 'Documents'],
+                  stepTitles: [
+                    t('driver_onboarding_step_profile'),
+                    t('driver_onboarding_step_vehicle'),
+                    t('driver_onboarding_step_pricing'),
+                    t('driver_onboarding_step_documents'),
+                  ],
                   nextLabel: t('common_next'),
                   backLabel: t('common_back'),
-                  submitLabel: _submitting ? 'Envoi en cours...' : 'Soumettre mon inscription',
+                  submitLabel: _submitting ? t('driver_onboarding_submitting') : t('driver_onboarding_submit'),
                   onStepChanged: (_) {},
                   onComplete: _submitting ? () {} : () => _handleSubmit(auth, backendStatus),
                   stepBuilders: [
@@ -150,23 +155,23 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                             const SizedBox(height: 16),
                             TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email')), keyboardType: TextInputType.emailAddress, onChanged: (_) => setState(() {})),
                             const SizedBox(height: 16),
-                            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Mot de passe (min. 6 caractères)'), obscureText: true, onChanged: (_) => setState(() {})),
+                            TextField(controller: _passwordController, decoration: InputDecoration(labelText: t('driver_onboarding_password_label')), obscureText: true, onChanged: (_) => setState(() {})),
                             const SizedBox(height: 16),
                             TextField(controller: _phoneController, decoration: InputDecoration(labelText: t('auth_phone'))),
                             const SizedBox(height: 16),
-                            TextField(controller: _cityController, decoration: const InputDecoration(labelText: 'Ville / base de service')),
+                            TextField(controller: _cityController, decoration: InputDecoration(labelText: t('driver_onboarding_city_label'))),
                             const SizedBox(height: 20),
-                            Text('Rayon de service maximal: ${_radius.round()} km', style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Text('${t('driver_onboarding_service_radius_label')}: ${_radius.round()} km', style: const TextStyle(fontWeight: FontWeight.w600)),
                             Slider(value: _radius, min: 5, max: 100, divisions: 19, activeColor: AppColors.primary, onChanged: (v) => setState(() => _radius = v)),
                             const SizedBox(height: 12),
-                            const Text('Langues parlées', style: TextStyle(fontWeight: FontWeight.w700)),
+                            Text(t('driver_onboarding_languages_spoken'), style: const TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(spacing: 8, children: _allLanguages.map((l) => FilterChip(label: Text(l), selected: _languages.contains(l), onSelected: (_) => setState(() => _languages.contains(l) ? _languages.remove(l) : _languages.add(l)))).toList()),
                           ]),
                         ),
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            const Text('Type de véhicule', style: TextStyle(fontWeight: FontWeight.w700)),
+                            Text(t('driver_onboarding_vehicle_type'), style: const TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
@@ -181,17 +186,17 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                                   .toList(),
                             ),
                             const SizedBox(height: 16),
-                            TextField(controller: _vehicleMakeController, decoration: const InputDecoration(labelText: 'Marque et modèle')),
+                            TextField(controller: _vehicleMakeController, decoration: InputDecoration(labelText: t('driver_onboarding_make_model'))),
                             const SizedBox(height: 16),
-                            TextField(controller: _vehicleYearController, decoration: const InputDecoration(labelText: 'Année'), keyboardType: TextInputType.number),
+                            TextField(controller: _vehicleYearController, decoration: InputDecoration(labelText: t('driver_onboarding_year')), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
-                            TextField(controller: _plateController, decoration: const InputDecoration(labelText: 'Plaque d\'immatriculation')),
+                            TextField(controller: _plateController, decoration: InputDecoration(labelText: t('driver_onboarding_plate'))),
                             const SizedBox(height: 16),
-                            TextField(controller: _payloadController, decoration: const InputDecoration(labelText: 'Charge utile maximale (kg)'), keyboardType: TextInputType.number),
+                            TextField(controller: _payloadController, decoration: InputDecoration(labelText: t('driver_onboarding_max_payload')), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.camera_alt_outlined), label: const Text('Photos du véhicule')),
+                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.camera_alt_outlined), label: Text(t('driver_onboarding_vehicle_photos'))),
                             const SizedBox(height: 20),
-                            const Text("Types d'objets acceptés", style: TextStyle(fontWeight: FontWeight.w700)),
+                            Text(t('driver_onboarding_accepted_item_types'), style: const TextStyle(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 8),
                             Wrap(
                               spacing: 8,
@@ -205,44 +210,44 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                                   .toList(),
                             ),
                             const SizedBox(height: 12),
-                            SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text("Aide au chargement disponible", style: TextStyle(fontSize: 14)), value: _loadingAssistance, onChanged: (v) => setState(() => _loadingAssistance = v), activeThumbColor: AppColors.primary),
+                            SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t('driver_onboarding_loading_assistance'), style: const TextStyle(fontSize: 14)), value: _loadingAssistance, onChanged: (v) => setState(() => _loadingAssistance = v), activeThumbColor: AppColors.primary),
                           ]),
                         ),
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            TextField(controller: _hourlyController, decoration: const InputDecoration(labelText: 'Tarif horaire (\$)'), keyboardType: TextInputType.number),
+                            TextField(controller: _hourlyController, decoration: InputDecoration(labelText: t('driver_onboarding_hourly_rate')), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
-                            TextField(controller: _perKmController, decoration: const InputDecoration(labelText: 'Tarif par kilomètre (\$)'), keyboardType: TextInputType.number),
+                            TextField(controller: _perKmController, decoration: InputDecoration(labelText: t('driver_onboarding_per_km_rate')), keyboardType: TextInputType.number),
                             const SizedBox(height: 20),
                             Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14)),
-                              child: const Row(children: [
-                                Icon(Icons.info_outline, color: AppColors.info, size: 18),
-                                SizedBox(width: 10),
-                                Expanded(child: Text('Vous pourrez ajuster vos frais forfaitaires par catégorie, vos frais d\'attente et vos frais d\'arrêt additionnel depuis votre tableau de bord.', style: TextStyle(fontSize: 12.5))),
+                              child: Row(children: [
+                                const Icon(Icons.info_outline, color: AppColors.info, size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(child: Text(t('driver_onboarding_fees_info'), style: const TextStyle(fontSize: 12.5))),
                               ]),
                             ),
                           ]),
                         ),
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.badge_outlined), label: const Text('Téléverser le permis de conduire')),
+                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.badge_outlined), label: Text(t('driver_onboarding_upload_license'))),
                             const SizedBox(height: 12),
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.description_outlined), label: const Text("Téléverser l'attestation d'assurance")),
+                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.description_outlined), label: Text(t('driver_onboarding_upload_insurance'))),
                             const SizedBox(height: 20),
                             CheckboxListTile(
                               contentPadding: EdgeInsets.zero,
                               value: _consentVerification,
                               onChanged: (v) => setState(() => _consentVerification = v ?? false),
-                              title: const Text('Je consens à la vérification de mon identité et de mes documents.', style: TextStyle(fontSize: 13.5)),
+                              title: Text(t('driver_onboarding_consent_verification'), style: const TextStyle(fontSize: 13.5)),
                               activeColor: AppColors.primary,
                             ),
                             CheckboxListTile(
                               contentPadding: EdgeInsets.zero,
                               value: _agreedTerms,
                               onChanged: (v) => setState(() => _agreedTerms = v ?? false),
-                              title: const Text("J'accepte les conditions de la plateforme et l'entente fournisseur.", style: TextStyle(fontSize: 13.5)),
+                              title: Text(t('driver_onboarding_consent_terms'), style: const TextStyle(fontSize: 13.5)),
                               activeColor: AppColors.primary,
                             ),
                           ]),
@@ -267,8 +272,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   }
 
   Future<void> _handleSubmit(FirebaseAuthProvider auth, BackendStatus backendStatus) async {
+    final t = context.read<LocaleProvider>().t;
     if (!backendStatus.isConfigured) {
-      setState(() => _submitError = 'Backend Firebase non configuré sur cet environnement.');
+      setState(() => _submitError = t('driver_onboarding_error_backend_not_configured'));
       return;
     }
 
@@ -286,13 +292,13 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
           fullName: _nameController.text.trim(),
         );
         if (!ok) {
-          throw Exception(auth.lastError ?? 'La création du compte a échoué.');
+          throw Exception(auth.lastError ?? t('driver_onboarding_error_account_creation_failed'));
         }
       }
 
       final uid = auth.user?.uid;
       if (uid == null) {
-        throw Exception('Session invalide après inscription.');
+        throw Exception(t('driver_onboarding_error_invalid_session'));
       }
 
       // 2. Créer/mettre à jour le profil d'onboarding (registerAsDriver +
@@ -341,7 +347,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _submitError = 'L\'inscription a échoué : $e';
+        _submitError = '${t('driver_onboarding_error_generic_prefix')} $e';
       });
     }
   }
@@ -365,8 +371,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
 
 class _PendingVerificationView extends StatelessWidget {
   final String locale;
-  final String roleLabel;
-  const _PendingVerificationView({required this.locale, required this.roleLabel});
+  const _PendingVerificationView({required this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -383,7 +388,7 @@ class _PendingVerificationView extends StatelessWidget {
             Text(t('driver_pending_verification'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Text(
-              "Merci pour votre inscription comme $roleLabel! Notre équipe examine votre profil et vos documents. Vous recevrez une confirmation par courriel une fois votre compte approuvé.",
+              t('driver_onboarding_pending_message'),
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
             ),

@@ -327,6 +327,56 @@ class AppStrings {
       'en': 'Logged in as',
       'es': 'Conectado como',
     },
+    'auth_password': {
+      'fr': 'Mot de passe',
+      'en': 'Password',
+      'es': 'Contraseña',
+    },
+    'auth_intro_subtitle': {
+      'fr': 'Connectez-vous ou créez un compte Movi-K pour continuer.',
+      'en': 'Sign in or create a Movi-K account to continue.',
+      'es': 'Inicia sesión o crea una cuenta Movi-K para continuar.',
+    },
+    'auth_sign_in': {
+      'fr': 'Se connecter',
+      'en': 'Sign in',
+      'es': 'Iniciar sesión',
+    },
+    'auth_create_account': {
+      'fr': 'Créer un compte',
+      'en': 'Create an account',
+      'es': 'Crear una cuenta',
+    },
+    'auth_create_my_account': {
+      'fr': 'Créer mon compte',
+      'en': 'Create my account',
+      'es': 'Crear mi cuenta',
+    },
+    'auth_driver_redirect_message': {
+      'fr': "Le parcours chauffeur a son propre formulaire d'inscription complet.",
+      'en': 'The driver journey has its own complete sign-up form.',
+      'es': 'El proceso de conductor tiene su propio formulario de registro completo.',
+    },
+    'auth_mechanic_redirect_message': {
+      'fr': "Le parcours mécanicien mobile a son propre formulaire d'inscription.",
+      'en': 'The mobile mechanic journey has its own sign-up form.',
+      'es': 'El proceso de mecánico móvil tiene su propio formulario de registro.',
+    },
+    'auth_error_missing_credentials': {
+      'fr': 'Courriel et mot de passe requis.',
+      'en': 'Email and password are required.',
+      'es': 'Correo electrónico y contraseña son obligatorios.',
+    },
+    'auth_error_missing_name': {
+      'fr': 'Le nom complet est requis.',
+      'en': 'Full name is required.',
+      'es': 'El nombre completo es obligatorio.',
+    },
+    'auth_error_generic': {
+      'fr': 'Une erreur est survenue. Réessayez.',
+      'en': 'An error occurred. Please try again.',
+      'es': 'Ocurrió un error. Inténtelo de nuevo.',
+    },
 
     // ---------- Delivery ----------
     'delivery_hero_headline': {
@@ -1158,6 +1208,53 @@ class AppStrings {
       'es': 'No se pudo cambiar tu estado de disponibilidad.',
     },
 
+    // ---------- Profil client (CustomerProfileTab, Bloc K) ----------
+    'customer_profile_title': {
+      'fr': 'Mon profil',
+      'en': 'My profile',
+      'es': 'Mi perfil',
+    },
+    'customer_profile_city_label': {
+      'fr': 'Ville',
+      'en': 'City',
+      'es': 'Ciudad',
+    },
+    'customer_profile_update_success': {
+      'fr': 'Profil mis à jour',
+      'en': 'Profile updated',
+      'es': 'Perfil actualizado',
+    },
+    'customer_profile_update_error': {
+      'fr': 'Échec de la mise à jour du profil.',
+      'en': 'Failed to update the profile.',
+      'es': 'Error al actualizar el perfil.',
+    },
+    'customer_profile_dark_mode': {
+      'fr': 'Mode sombre',
+      'en': 'Dark mode',
+      'es': 'Modo oscuro',
+    },
+    'customer_profile_favourite_providers': {
+      'fr': 'Fournisseurs favoris',
+      'en': 'Favourite providers',
+      'es': 'Proveedores favoritos',
+    },
+    'customer_profile_notification_preferences': {
+      'fr': 'Préférences de notification',
+      'en': 'Notification preferences',
+      'es': 'Preferencias de notificación',
+    },
+    'customer_profile_delete_account_request': {
+      'fr': 'Demander la suppression de mon compte',
+      'en': 'Request account deletion',
+      'es': 'Solicitar la eliminación de mi cuenta',
+    },
+    'customer_profile_delete_account_confirmation': {
+      'fr': 'Demande de suppression de compte enregistrée.',
+      'en': 'Account deletion request recorded.',
+      'es': 'Solicitud de eliminación de cuenta registrada.',
+    },
+
     // Notification content — resolved client-side via title_key/body_key.
     'notif_driver_assigned_title': {
       'fr': 'Chauffeur assigné',
@@ -1633,6 +1730,304 @@ class AppStrings {
       'es': 'Pendiente de verificación',
     },
 
+    // ---------- Driver onboarding screen (Bloc K) ----------
+    'driver_onboarding_title': {
+      'fr': 'Inscription chauffeur',
+      'en': 'Driver sign-up',
+      'es': 'Registro de conductor',
+    },
+    'driver_onboarding_subtitle': {
+      'fr':
+          'Complétez votre profil pour commencer à recevoir des demandes.',
+      'en': 'Complete your profile to start receiving requests.',
+      'es': 'Completa tu perfil para empezar a recibir solicitudes.',
+    },
+    'driver_onboarding_backend_not_configured': {
+      'fr':
+          "Backend Firebase non configuré sur cet environnement : l'inscription réelle est indisponible.",
+      'en':
+          'Firebase backend not configured on this environment: real sign-up is unavailable.',
+      'es':
+          'Backend de Firebase no configurado en este entorno: el registro real no está disponible.',
+    },
+    'driver_onboarding_step_profile': {
+      'fr': 'Profil',
+      'en': 'Profile',
+      'es': 'Perfil',
+    },
+    'driver_onboarding_step_vehicle': {
+      'fr': 'Véhicule',
+      'en': 'Vehicle',
+      'es': 'Vehículo',
+    },
+    'driver_onboarding_step_pricing': {
+      'fr': 'Tarification',
+      'en': 'Pricing',
+      'es': 'Tarifas',
+    },
+    'driver_onboarding_step_documents': {
+      'fr': 'Documents',
+      'en': 'Documents',
+      'es': 'Documentos',
+    },
+    'driver_onboarding_submitting': {
+      'fr': 'Envoi en cours...',
+      'en': 'Submitting...',
+      'es': 'Enviando...',
+    },
+    'driver_onboarding_submit': {
+      'fr': 'Soumettre mon inscription',
+      'en': 'Submit my registration',
+      'es': 'Enviar mi registro',
+    },
+    'driver_onboarding_password_label': {
+      'fr': 'Mot de passe (min. 6 caractères)',
+      'en': 'Password (min. 6 characters)',
+      'es': 'Contraseña (mín. 6 caracteres)',
+    },
+    'driver_onboarding_city_label': {
+      'fr': 'Ville / base de service',
+      'en': 'City / service base',
+      'es': 'Ciudad / base de servicio',
+    },
+    'driver_onboarding_service_radius_label': {
+      'fr': 'Rayon de service maximal',
+      'en': 'Maximum service radius',
+      'es': 'Radio de servicio máximo',
+    },
+    'driver_onboarding_languages_spoken': {
+      'fr': 'Langues parlées',
+      'en': 'Languages spoken',
+      'es': 'Idiomas hablados',
+    },
+    'driver_onboarding_vehicle_type': {
+      'fr': 'Type de véhicule',
+      'en': 'Vehicle type',
+      'es': 'Tipo de vehículo',
+    },
+    'driver_onboarding_make_model': {
+      'fr': 'Marque et modèle',
+      'en': 'Make and model',
+      'es': 'Marca y modelo',
+    },
+    'driver_onboarding_year': {
+      'fr': 'Année',
+      'en': 'Year',
+      'es': 'Año',
+    },
+    'driver_onboarding_plate': {
+      'fr': "Plaque d'immatriculation",
+      'en': 'License plate',
+      'es': 'Placa de matrícula',
+    },
+    'driver_onboarding_max_payload': {
+      'fr': 'Charge utile maximale (kg)',
+      'en': 'Maximum payload (kg)',
+      'es': 'Carga útil máxima (kg)',
+    },
+    'driver_onboarding_vehicle_photos': {
+      'fr': 'Photos du véhicule',
+      'en': 'Vehicle photos',
+      'es': 'Fotos del vehículo',
+    },
+    'driver_onboarding_accepted_item_types': {
+      'fr': "Types d'objets acceptés",
+      'en': 'Accepted item types',
+      'es': 'Tipos de artículos aceptados',
+    },
+    'driver_onboarding_loading_assistance': {
+      'fr': 'Aide au chargement disponible',
+      'en': 'Loading assistance available',
+      'es': 'Ayuda de carga disponible',
+    },
+    'driver_onboarding_hourly_rate': {
+      'fr': 'Tarif horaire (\$)',
+      'en': 'Hourly rate (\$)',
+      'es': 'Tarifa por hora (\$)',
+    },
+    'driver_onboarding_per_km_rate': {
+      'fr': 'Tarif par kilomètre (\$)',
+      'en': 'Rate per kilometer (\$)',
+      'es': 'Tarifa por kilómetro (\$)',
+    },
+    'driver_onboarding_fees_info': {
+      'fr':
+          "Vous pourrez ajuster vos frais forfaitaires par catégorie, vos frais d'attente et vos frais d'arrêt additionnel depuis votre tableau de bord.",
+      'en':
+          'You will be able to adjust your flat fees per category, waiting fees and additional stop fees from your dashboard.',
+      'es':
+          'Podrás ajustar tus tarifas fijas por categoría, tarifas de espera y tarifas de parada adicional desde tu panel.',
+    },
+    'driver_onboarding_upload_license': {
+      'fr': 'Téléverser le permis de conduire',
+      'en': "Upload driver's license",
+      'es': 'Subir la licencia de conducir',
+    },
+    'driver_onboarding_upload_insurance': {
+      'fr': "Téléverser l'attestation d'assurance",
+      'en': 'Upload insurance certificate',
+      'es': 'Subir el certificado de seguro',
+    },
+    'driver_onboarding_consent_verification': {
+      'fr':
+          'Je consens à la vérification de mon identité et de mes documents.',
+      'en': 'I consent to the verification of my identity and documents.',
+      'es': 'Doy mi consentimiento para verificar mi identidad y documentos.',
+    },
+    'driver_onboarding_consent_terms': {
+      'fr':
+          "J'accepte les conditions de la plateforme et l'entente fournisseur.",
+      'en': 'I accept the platform terms and the provider agreement.',
+      'es': 'Acepto los términos de la plataforma y el acuerdo de proveedor.',
+    },
+    'driver_onboarding_error_backend_not_configured': {
+      'fr': 'Backend Firebase non configuré sur cet environnement.',
+      'en': 'Firebase backend not configured on this environment.',
+      'es': 'Backend de Firebase no configurado en este entorno.',
+    },
+    'driver_onboarding_error_account_creation_failed': {
+      'fr': 'La création du compte a échoué.',
+      'en': 'Account creation failed.',
+      'es': 'La creación de la cuenta falló.',
+    },
+    'driver_onboarding_error_invalid_session': {
+      'fr': "Session invalide après inscription.",
+      'en': 'Invalid session after sign-up.',
+      'es': 'Sesión inválida después del registro.',
+    },
+    'driver_onboarding_error_generic_prefix': {
+      'fr': "L'inscription a échoué :",
+      'en': 'Sign-up failed:',
+      'es': 'El registro falló:',
+    },
+    'driver_onboarding_pending_message': {
+      'fr':
+          'Merci pour votre inscription comme chauffeur! Notre équipe examine votre profil et vos documents. Vous recevrez une confirmation par courriel une fois votre compte approuvé.',
+      'en':
+          'Thank you for signing up as a driver! Our team is reviewing your profile and documents. You will receive an email confirmation once your account is approved.',
+      'es':
+          '¡Gracias por registrarte como conductor! Nuestro equipo está revisando tu perfil y documentos. Recibirás una confirmación por correo electrónico una vez que tu cuenta sea aprobada.',
+    },
+
+    // ---------- Mechanic onboarding screen (Bloc K) ----------
+    'mechanic_onboarding_title': {
+      'fr': 'Inscription mécanicien mobile',
+      'en': 'Mobile mechanic sign-up',
+      'es': 'Registro de mecánico móvil',
+    },
+    'mechanic_onboarding_subtitle': {
+      'fr':
+          'Complétez votre profil pour commencer à recevoir des demandes.',
+      'en': 'Complete your profile to start receiving requests.',
+      'es': 'Completa tu perfil para empezar a recibir solicitudes.',
+    },
+    'mechanic_onboarding_step_profile': {
+      'fr': 'Profil',
+      'en': 'Profile',
+      'es': 'Perfil',
+    },
+    'mechanic_onboarding_step_specialties': {
+      'fr': 'Spécialités',
+      'en': 'Specialties',
+      'es': 'Especialidades',
+    },
+    'mechanic_onboarding_step_pricing': {
+      'fr': 'Tarification',
+      'en': 'Pricing',
+      'es': 'Tarifas',
+    },
+    'mechanic_onboarding_step_documents': {
+      'fr': 'Documents',
+      'en': 'Documents',
+      'es': 'Documentos',
+    },
+    'mechanic_onboarding_submit': {
+      'fr': 'Soumettre mon inscription',
+      'en': 'Submit my registration',
+      'es': 'Enviar mi registro',
+    },
+    'mechanic_onboarding_business_name': {
+      'fr': "Nom d'entreprise",
+      'en': 'Business name',
+      'es': 'Nombre de la empresa',
+    },
+    'mechanic_onboarding_specialties_title': {
+      'fr': 'Spécialités mécaniques',
+      'en': 'Mechanical specialties',
+      'es': 'Especialidades mecánicas',
+    },
+    'mechanic_onboarding_years_experience': {
+      'fr': "Années d'expérience",
+      'en': 'Years of experience',
+      'es': 'Años de experiencia',
+    },
+    'mechanic_onboarding_certifications': {
+      'fr': 'Certifications professionnelles (optionnel)',
+      'en': 'Professional certifications (optional)',
+      'es': 'Certificaciones profesionales (opcional)',
+    },
+    'mechanic_onboarding_emergency_availability': {
+      'fr': 'Disponibilité urgences',
+      'en': 'Emergency availability',
+      'es': 'Disponibilidad para emergencias',
+    },
+    'mechanic_onboarding_evening_availability': {
+      'fr': 'Disponibilité en soirée',
+      'en': 'Evening availability',
+      'es': 'Disponibilidad por la noche',
+    },
+    'mechanic_onboarding_weekend_availability': {
+      'fr': 'Disponibilité fin de semaine',
+      'en': 'Weekend availability',
+      'es': 'Disponibilidad de fin de semana',
+    },
+    'mechanic_onboarding_hourly_labor_rate': {
+      'fr': "Tarif horaire de main-d'œuvre (\$)",
+      'en': 'Hourly labor rate (\$)',
+      'es': 'Tarifa horaria de mano de obra (\$)',
+    },
+    'mechanic_onboarding_travel_fee': {
+      'fr': 'Frais de déplacement (\$)',
+      'en': 'Travel fee (\$)',
+      'es': 'Tarifa de desplazamiento (\$)',
+    },
+    'mechanic_onboarding_fees_info': {
+      'fr':
+          'Vous pourrez configurer vos forfaits à prix fixe, frais de diagnostic et majoration sur pièces depuis votre tableau de bord.',
+      'en':
+          'You will be able to configure your flat-rate packages, diagnostic fees and parts markup from your dashboard.',
+      'es':
+          'Podrás configurar tus paquetes de precio fijo, tarifas de diagnóstico y recargo en piezas desde tu panel.',
+    },
+    'mechanic_onboarding_upload_id': {
+      'fr': "Téléverser une pièce d'identité",
+      'en': 'Upload an ID document',
+      'es': 'Subir un documento de identidad',
+    },
+    'mechanic_onboarding_upload_liability_insurance': {
+      'fr': "Téléverser l'attestation d'assurance responsabilité",
+      'en': 'Upload liability insurance certificate',
+      'es': 'Subir el certificado de seguro de responsabilidad civil',
+    },
+    'mechanic_onboarding_business_number': {
+      'fr': "Numéro d'entreprise (optionnel)",
+      'en': 'Business number (optional)',
+      'es': 'Número de empresa (opcional)',
+    },
+    'mechanic_onboarding_go_to_dashboard': {
+      'fr': 'Voir mon tableau de bord',
+      'en': 'Go to my dashboard',
+      'es': 'Ir a mi panel',
+    },
+    'mechanic_onboarding_pending_message': {
+      'fr':
+          'Merci pour votre inscription comme mécanicien mobile! Notre équipe examine votre profil et vos documents. Vous recevrez une confirmation par courriel une fois votre compte approuvé.',
+      'en':
+          'Thank you for signing up as a mobile mechanic! Our team is reviewing your profile and documents. You will receive an email confirmation once your account is approved.',
+      'es':
+          '¡Gracias por registrarte como mecánico móvil! Nuestro equipo está revisando tu perfil y documentos. Recibirás una confirmación por correo electrónico una vez que tu cuenta sea aprobada.',
+    },
+
     // ---------- Mechanic recruitment ----------
     'mech_provider_hero_headline': {
       'fr': "Plus de demandes. Moins de temps à chercher des clients.",
@@ -1806,6 +2201,73 @@ class AppStrings {
       'fr': 'Inactif',
       'en': 'Inactive',
       'es': 'Inactivo',
+    },
+
+    // ---------- Profil fournisseur (ProviderProfileTab, Bloc K) ----------
+    'provider_profile_title': {
+      'fr': 'Mon profil fournisseur',
+      'en': 'My provider profile',
+      'es': 'Mi perfil de proveedor',
+    },
+    'provider_profile_my_services': {
+      'fr': 'Mes services',
+      'en': 'My services',
+      'es': 'Mis servicios',
+    },
+    'provider_profile_accepted_vehicles': {
+      'fr': 'Véhicules acceptés',
+      'en': 'Accepted vehicles',
+      'es': 'Vehículos aceptados',
+    },
+    'provider_profile_pricing': {
+      'fr': 'Tarification',
+      'en': 'Pricing',
+      'es': 'Tarifas',
+    },
+    'provider_profile_documents': {
+      'fr': 'Documents',
+      'en': 'Documents',
+      'es': 'Documentos',
+    },
+    'provider_profile_id_document': {
+      'fr': "Pièce d'identité",
+      'en': 'ID document',
+      'es': 'Documento de identidad',
+    },
+    'provider_profile_insurance': {
+      'fr': 'Assurance',
+      'en': 'Insurance',
+      'es': 'Seguro',
+    },
+    'provider_profile_reviews_received': {
+      'fr': 'Avis reçus',
+      'en': 'Reviews received',
+      'es': 'Reseñas recibidas',
+    },
+    'provider_profile_no_reviews_yet': {
+      'fr': 'Aucun avis pour le moment.',
+      'en': 'No reviews yet.',
+      'es': 'Todavía no hay reseñas.',
+    },
+    'provider_profile_support': {
+      'fr': 'Support technique',
+      'en': 'Technical support',
+      'es': 'Soporte técnico',
+    },
+
+    // ---------- Messagerie client (CustomerMessagesTab, Bloc K) ----------
+    'customer_messages_title': {
+      'fr': 'Messagerie intégrée',
+      'en': 'Integrated messaging',
+      'es': 'Mensajería integrada',
+    },
+    'customer_messages_body': {
+      'fr':
+          'La messagerie en temps réel entre clients et fournisseurs sera bientôt disponible.',
+      'en':
+          'Real-time messaging between customers and providers will be available soon.',
+      'es':
+          'La mensajería en tiempo real entre clientes y proveedores estará disponible pronto.',
     },
 
     // ---------- Statuts document (DriverDocumentStatus enum) ----------
@@ -2195,6 +2657,72 @@ class AppStrings {
       'fr': "L'action a échoué. Veuillez réessayer.",
       'en': 'The action failed. Please try again.',
       'es': 'La acción falló. Por favor, inténtelo de nuevo.',
+    },
+
+    // ---------- Admin login screen (Bloc K) ----------
+    'admin_login_title': {
+      'fr': 'Administration Movi-K',
+      'en': 'Movi-K Administration',
+      'es': 'Administración Movi-K',
+    },
+    'admin_login_subtitle': {
+      'fr': 'Accès réservé au personnel autorisé (analyste, admin, super-admin).',
+      'en': 'Access restricted to authorized staff (analyst, admin, super admin).',
+      'es': 'Acceso restringido al personal autorizado (analista, admin, super admin).',
+    },
+    'admin_login_backend_not_configured': {
+      'fr':
+          'Backend Firebase non configuré sur cet environnement. La connexion admin est indisponible.',
+      'en':
+          'Firebase backend not configured on this environment. Admin sign-in is unavailable.',
+      'es':
+          'Backend de Firebase no configurado en este entorno. El inicio de sesión de administrador no está disponible.',
+    },
+    'admin_login_email_label': {
+      'fr': 'Courriel',
+      'en': 'Email',
+      'es': 'Correo electrónico',
+    },
+    'admin_login_password_label': {
+      'fr': 'Mot de passe',
+      'en': 'Password',
+      'es': 'Contraseña',
+    },
+    'admin_login_submit': {
+      'fr': 'Se connecter',
+      'en': 'Sign in',
+      'es': 'Iniciar sesión',
+    },
+    'admin_login_back_home': {
+      'fr': "Retour à l'accueil",
+      'en': 'Back to home',
+      'es': 'Volver al inicio',
+    },
+    'admin_login_claims_verify_failed': {
+      'fr':
+          'Connexion réussie mais impossible de vérifier vos droits pour le moment. Veuillez réessayer dans quelques secondes.',
+      'en':
+          'Sign-in succeeded but we could not verify your permissions right now. Please try again in a few seconds.',
+      'es':
+          'Inicio de sesión exitoso, pero no se pudieron verificar sus permisos por el momento. Inténtelo de nuevo en unos segundos.',
+    },
+    'admin_login_access_denied': {
+      'fr': "Ce compte n'a pas les droits d'administration requis.",
+      'en': 'This account does not have the required administration rights.',
+      'es': 'Esta cuenta no tiene los permisos de administración requeridos.',
+    },
+    'admin_login_claims_check_failed': {
+      'fr':
+          "Impossible de vérifier vos droits d'accès pour le moment. Vérifiez votre connexion et réessayez.",
+      'en':
+          'Unable to verify your access rights right now. Check your connection and try again.',
+      'es':
+          'No se pudieron verificar sus permisos de acceso por el momento. Verifique su conexión e inténtelo de nuevo.',
+    },
+    'admin_login_sign_out': {
+      'fr': 'Se déconnecter',
+      'en': 'Sign out',
+      'es': 'Cerrar sesión',
     },
 
     'admin_no_access_title': {

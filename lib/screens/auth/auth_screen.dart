@@ -98,7 +98,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 Text(t('auth_welcome'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 8),
                 Text(
-                  'Connectez-vous ou créez un compte Movi-K pour continuer.',
+                  t('auth_intro_subtitle'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSecondary),
                 ),
@@ -132,15 +132,15 @@ class _AuthScreenState extends State<AuthScreen> {
                 ] else if (_role == _AuthRoleChoice.driver) ...[
                   _buildRedirectCard(
                     icon: Icons.local_shipping_outlined,
-                    message: 'Le parcours chauffeur a son propre formulaire d\'inscription complet.',
-                    buttonLabel: 'Devenir chauffeur',
+                    message: t('auth_driver_redirect_message'),
+                    buttonLabel: t('nav_become_driver'),
                     onPressed: () => context.go('/${widget.locale}/devenir-chauffeur'),
                   ),
                 ] else ...[
                   _buildRedirectCard(
                     icon: Icons.build_outlined,
-                    message: 'Le parcours mécanicien mobile a son propre formulaire d\'inscription.',
-                    buttonLabel: 'Devenir mécanicien',
+                    message: t('auth_mechanic_redirect_message'),
+                    buttonLabel: t('nav_become_mechanic'),
                     onPressed: () => context.go('/${widget.locale}/devenir-mecanicien'),
                   ),
                 ],
@@ -176,9 +176,9 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       children: [
         SegmentedButton<_AuthMode>(
-          segments: const [
-            ButtonSegment(value: _AuthMode.signIn, label: Text('Se connecter')),
-            ButtonSegment(value: _AuthMode.signUp, label: Text('Créer un compte')),
+          segments: [
+            ButtonSegment(value: _AuthMode.signIn, label: Text(t('auth_sign_in'))),
+            ButtonSegment(value: _AuthMode.signUp, label: Text(t('auth_create_account'))),
           ],
           selected: {_mode},
           onSelectionChanged: (s) => setState(() {
@@ -202,7 +202,7 @@ class _AuthScreenState extends State<AuthScreen> {
         const SizedBox(height: 14),
         TextField(
           controller: _passwordController,
-          decoration: const InputDecoration(labelText: 'Mot de passe'),
+          decoration: InputDecoration(labelText: t('auth_password')),
           obscureText: true,
         ),
         if (_error != null) ...[
@@ -226,7 +226,7 @@ class _AuthScreenState extends State<AuthScreen> {
             child: _submitting
                 ? const SizedBox(
                     height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Text(_mode == _AuthMode.signIn ? 'Se connecter' : 'Créer mon compte'),
+                : Text(_mode == _AuthMode.signIn ? t('auth_sign_in') : t('auth_create_my_account')),
           ),
         ),
       ],
@@ -238,12 +238,13 @@ class _AuthScreenState extends State<AuthScreen> {
     final password = _passwordController.text;
     final name = _nameController.text.trim();
 
+    final t = context.read<LocaleProvider>().t;
     if (email.isEmpty || password.isEmpty) {
-      setState(() => _error = 'Courriel et mot de passe requis.');
+      setState(() => _error = t('auth_error_missing_credentials'));
       return;
     }
     if (_mode == _AuthMode.signUp && name.isEmpty) {
-      setState(() => _error = 'Le nom complet est requis.');
+      setState(() => _error = t('auth_error_missing_name'));
       return;
     }
 
@@ -267,7 +268,7 @@ class _AuthScreenState extends State<AuthScreen> {
         context.go('/${widget.locale}/tableau-de-bord');
       }
     } catch (e) {
-      setState(() => _error = 'Une erreur est survenue. Réessayez.');
+      setState(() => _error = t('auth_error_generic'));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

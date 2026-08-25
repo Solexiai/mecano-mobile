@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
+import '../../../../providers/locale_provider.dart';
 import '../../../../providers/theme_provider.dart';
 import '../../../../widgets/coming_soon_badge.dart';
 
@@ -51,6 +52,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
 
   Future<void> _save(String uid) async {
     setState(() => _saving = true);
+    final t = context.read<LocaleProvider>().t;
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'full_name': _nameController.text.trim(),
@@ -58,12 +60,13 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
         'city': _cityController.text.trim(),
       }, SetOptions(merge: true));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil mis à jour')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(t('customer_profile_update_success'))));
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Échec de la mise à jour du profil.')));
+            .showSnackBar(SnackBar(content: Text(t('customer_profile_update_error'))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -75,6 +78,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
     final auth = context.watch<FirebaseAuthProvider>();
     final user = auth.user;
     final themeProvider = context.watch<ThemeProvider>();
+    final t = context.watch<LocaleProvider>().t;
 
     if (user == null) {
       return const Center(child: CircularProgressIndicator());
@@ -90,7 +94,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Mon profil', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(t('customer_profile_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 20),
           Center(
             child: CircleAvatar(
@@ -103,17 +107,17 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             ),
           ),
           const SizedBox(height: 24),
-          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nom complet')),
+          TextField(controller: _nameController, decoration: InputDecoration(labelText: t('auth_full_name'))),
           const SizedBox(height: 14),
           TextField(
             enabled: false,
             controller: TextEditingController(text: user.email ?? ''),
-            decoration: const InputDecoration(labelText: 'Adresse courriel'),
+            decoration: InputDecoration(labelText: t('auth_email')),
           ),
           const SizedBox(height: 14),
-          TextField(controller: _phoneController, decoration: const InputDecoration(labelText: 'Téléphone')),
+          TextField(controller: _phoneController, decoration: InputDecoration(labelText: t('auth_phone'))),
           const SizedBox(height: 14),
-          TextField(controller: _cityController, decoration: const InputDecoration(labelText: 'Ville')),
+          TextField(controller: _cityController, decoration: InputDecoration(labelText: t('customer_profile_city_label'))),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
@@ -122,13 +126,13 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
               child: _saving
                   ? const SizedBox(
                       width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Enregistrer'),
+                  : Text(t('common_save')),
             ),
           ),
           const Divider(height: 40),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Mode sombre'),
+            title: Text(t('customer_profile_dark_mode')),
             value: themeProvider.isDark,
             onChanged: (_) => themeProvider.toggle(),
             activeThumbColor: AppColors.primary,
@@ -137,19 +141,19 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.place_outlined),
-            title: const Text('Adresses enregistrées'),
+            title: Text(t('nav_saved_addresses')),
             trailing: const ComingSoonBadge(small: true),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.favorite_border),
-            title: const Text('Fournisseurs favoris'),
+            title: Text(t('customer_profile_favourite_providers')),
             trailing: const ComingSoonBadge(small: true),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.notifications_outlined),
-            title: const Text('Préférences de notification'),
+            title: Text(t('customer_profile_notification_preferences')),
             trailing: const ComingSoonBadge(small: true),
           ),
           const Divider(height: 20),
@@ -157,15 +161,15 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error)),
             onPressed: () => auth.signOut(),
             icon: const Icon(Icons.logout),
-            label: const Text('Se déconnecter'),
+            label: Text(t('nav_logout')),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context)
-                  .showSnackBar(const SnackBar(content: Text('Demande de suppression de compte enregistrée.')));
+                  .showSnackBar(SnackBar(content: Text(t('customer_profile_delete_account_confirmation'))));
             },
-            child: const Text('Demander la suppression de mon compte', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(t('customer_profile_delete_account_request'), style: const TextStyle(color: AppColors.textSecondary)),
           ),
         ],
       ),
