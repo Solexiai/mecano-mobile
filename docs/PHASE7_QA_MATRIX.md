@@ -124,6 +124,67 @@ réutilisé une protection déjà correcte sans modification de code de producti
 Validation : `flutter analyze` (0 souci nouveau, 3 issues `info` pré-existantes non liées),
 `flutter test` (aucune régression). **BLOC F : ✅ FERMÉ.**
 
+## Offline / Réseau / Retry (Bloc G)
+
+Matrice courte (exigence → test existant → COUVERT/GAP), avant codage des GAPS uniquement :
+
+| Exigence G | Test existant | Statut |
+|---|---|---|
+| Création mission : retry/double-tap/concurrence, une seule mission | `delivery_request_flow_double_submit_test.dart` (2/2 PASS, garde de réentrance) + `createDeliveryRequestIdempotency.test.ts` (2/2 PASS, transaction Firestore atomique) — MIS-C-09 | **COUVERT** (référencé, non dupliqué) |
+| Proof upload : échec, mission non completed, retry réussi | `driver_active_mission_proof_upload_test.dart` (Storage throw, `markDeliveryCompleted` jamais appelé, retry possible) | **COUVERT** (référencé, non dupliqué) |
+| GPS : service désactivé/permission refusée/rapport échoue | `driver_location_reporter_test.dart` + `driver_active_mission_status_gaps_test.dart` (bandeau GPS) | **COUVERT** (référencé, non dupliqué) |
+| Paiement : authorize/capture failure, idempotence, concurrence | Tests Phase 6 (`acceptDeliveryPaymentFailure.test.ts`, `financialConcurrency.test.ts`, etc.) | **COUVERT** (référencé, non dupliqué) |
+| Refund : state machine / E2E | Phase 6 (`refundStateMachine.test.ts`, `e2eRefundLifecycle.test.ts`, `e2eRefundPostPayoutLifecycle.test.ts`) | **COUVERT** (référencé, non dupliqué) |
+| Payout : provider failure, retry/idempotence, aucun double payout | `submitDriverPayoutFailure.test.ts` (Bloc C, BUG P0 CORRIGÉ) | **COUVERT** (référencé, non dupliqué) |
+| Cloud Function `unavailable`/timeout sur une action chauffeur (trajet) | aucun (grep exhaustif `test/` : aucune occurrence de `CloudFunctionException(` avant ce bloc) | **GAP → G-1/G-2** |
+| Firestore listener error (`StreamBuilder.hasError`) sur un écran temps réel + reprise après erreur | `snap.hasError` déjà géré dans le code (`CustomerTrackingScreen`, `DriverActiveMissionScreen`, `NotificationsScreen`, tabs admin finance) mais **aucun test ne l'exerce réellement** | **GAP → G-3** |
+| Firestore write failure (écriture directe, hors Cloud Function) | `markAsRead`/`markAllAsRead` (`FirebaseNotificationRepository`) sont des écritures directes Firestore jamais testées en échec | **GAP → G-4** |
+
+Budget reconnaissance : ~15% du bloc (une seule passe de grep + lecture ciblée des écrans/repos concernés, aucun audit général).
+
+### G-1 / G-2 — Cloud Function `unavailable` + retry idempotent (chauffeur, trajet)
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| G-1 | action chauffeur (`updateTrackingStatus`) → CF `unavailable` | tap "partir vers le pickup" → `CloudFunctionException('unavailable', ...)` | aucun faux succès (statut mission inchangé), message d'erreur traduit (`driver_active_mission_cf_error`) affiché, `_actionInProgress` nettoyé, bouton redevient actionnable, aucun crash | `test/network/driver_action_cloud_function_unavailable_test.dart` (1/2) | **DONE** |
+| G-2 | retry après échec (même action) → succès, sans duplication | 2e tap sur le même bouton après l'échec | `updateTrackingStatus` rappelé, mission avance correctement au nouveau statut (une seule fois), aucune transition dupliquée/sautée, erreur effacée | `test/network/driver_action_cloud_function_unavailable_test.dart` (2/2) | **DONE** |
+
+### G-3 — Firestore listener error + reprise
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| G-3.1 | `watchMission` émet une erreur (listener) | `StreamController.addError(...)` sur le stream écouté par `CustomerTrackingScreen` | fallback existant affiché (`driver_active_mission_network_error`), aucun crash, aucun écran blanc, aucune ancienne donnée mission présentée comme valide | `test/network/mission_tracking_listener_error_test.dart` (1/2) | **DONE** |
+| G-3.2 | reprise après erreur (nouvelle donnée valide sur le même stream) | après l'erreur, le même `StreamController` émet la mission réelle | `CustomerTrackingScreen` affiche normalement la mission, sans nécessiter un remount de l'écran | `test/network/mission_tracking_listener_error_test.dart` (2/2) | **DONE — reprise naturelle de l'architecture existante, aucune couche offline ajoutée** |
+
+### G-4 — Firestore write failure (écriture directe)
+
+| ID | Scénario | Étapes | Résultat attendu | Test | Statut |
+|---|---|---|---|---|---|
+| G-4.1 | `markAsRead` (écriture directe Firestore, pas de Cloud Function) échoue au tap sur une notification non lue | tap notification → `NotificationRepository.markAsRead()` throw `CloudFunctionException` | aucun faux succès (le point non-lu ne disparaît pas côté fake, état `_isRead` réellement inchangé), aucun crash de l'app, navigation vers la mission reste fonctionnelle (dégradation acceptable : l'échec de `markAsRead` n'empêche jamais l'accès à la mission) | `test/network/notification_mark_as_read_write_failure_test.dart` (1/2) | **DONE — BUG P2 trouvé + CORRIGÉ (voir ci-dessous)** |
+| G-4.2 | retry après échec de `markAsRead` → succès, aucun état bloqué | 2e appel après le 1er échec | l'écriture réussit, compteurs cohérents (1 échec + 1 succès), aucune exception résiduelle | `test/network/notification_mark_as_read_write_failure_test.dart` (2/2) | **DONE** |
+
+**Bug réel trouvé pendant G-4 (TEST → FAIL → FIX → RETEST) — P2, CORRIGÉ** :
+`NotificationsScreen.onTap` appelait `BackendLocator.notificationRepository.markAsRead(...)` sans
+jamais catcher l'échec (`Future` rejetée non awaited/non catchée) → toute panne réseau/Firestore
+transitoire pendant ce tap remontait comme exception non gérée jusqu'au binding Flutter (crash
+potentiel en release selon la politique de zone d'erreur de l'app). AVANT le fix : le test G-4.1
+faisait planter la suite (`CloudFunctionException` non catchée remontée au test harness). APRÈS le
+fix (`.catchError((_) {})` ajouté sur l'appel dans `notifications_screen.dart`, commenté en detail
+sur l'intention : le marquage lu/non-lu est un confort UX secondaire, son échec ne doit jamais
+bloquer la navigation vers la mission liée) : G-4.1 et G-4.2 PASS, navigation post-tap toujours
+fonctionnelle malgré l'échec de l'écriture. Voir `PHASE7_BUG_REPORT.md` pour le détail complet.
+
+**Bloc G — clôture** : 6 tests créés sur les 3 GAPS réels identifiés (G-1+G-2 dans un seul
+fichier, G-3.1+G-3.2 dans un seul fichier, G-4.1+G-4.2 dans un seul fichier), **6/6 PASS**
+(vérifiés par exécution réelle, pas seulement rédigés). 1 bug P2 réel trouvé et corrigé (détaillé
+ci-dessus). Aucune double mission/paiement/payout/ledger possible : ces protections sont déjà
+prouvées par les preuves référencées (MIS-C-09, Phase 6 finance, `submitDriverPayoutFailure.test.ts`)
+— le Bloc G n'a pas eu besoin de les re-tester, seulement de combler les 3 gaps UI Flutter
+identifiés. Aucun bug P0/P1 trouvé. Validation réelle exécutée : `flutter test test/network/`
+(6/6 PASS), `flutter analyze` (3 issues `info` pré-existantes non liées, 0 souci nouveau),
+`flutter test` complet du projet (**410/410 PASS, aucune régression**).
+**BLOC G : ✅ FERMÉ.**
+
 ## GPS / Notifications / Responsive / I18N / Sécurité / Performance
 Voir blocs dédiés H, I, J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 

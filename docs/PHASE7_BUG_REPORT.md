@@ -374,6 +374,40 @@ sécurité/données). F-1, F-3, et ROUTE-F-01..06 n'ont révélé aucun nouveau 
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs G à W avec tout nouveau bug découvert (ID
-séquentiel BUG-008, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+## BUG-008 — `NotificationsScreen` : échec de `markAsRead()` jamais catché (exception non gérée)
+
+- **Composant** : `lib/screens/notifications/notifications_screen.dart` (callback `onTap` de
+  `_NotificationTile`).
+- **Sévérité** : **P2** — `markAsRead()` est une écriture Firestore directe (pas de Cloud
+  Function) protégée uniquement par firestore.rules ; en cas d'échec (permission-denied
+  transitoire, coupure réseau), le `Future` rejeté n'était jamais `await`é ni catché par l'appelant
+  → l'exception remonte comme erreur non gérée jusqu'au binding Flutter (crash potentiel en
+  production selon la politique de zone d'erreur de l'app ; dans le test, elle fait planter la
+  suite avec `CloudFunctionException` non catchée).
+- **Découvert pendant** : Phase 7, Bloc G, gap G-4 (Firestore write failure), en écrivant
+  `test/network/notification_mark_as_read_write_failure_test.dart` avec un
+  `_FlakyNotificationRepository` qui fait échouer `markAsRead()`.
+- **Cause racine** : `BackendLocator.notificationRepository.markAsRead(userId, n.id);` appelé
+  en "fire-and-forget" sans `.catchError(...)` ni `try/catch`.
+- **Correctif appliqué** : ajout de `.catchError((_) {})` sur l'appel, avec commentaire explicite
+  documentant l'intention : le marquage lu/non-lu est un confort UX secondaire, son échec ne doit
+  jamais bloquer la navigation vers la mission liée (action principale du tap).
+- **Test de régression** : `test/network/notification_mark_as_read_write_failure_test.dart`
+  (2 tests) — G-4.1 (échec initial : aucun faux succès, aucun crash, navigation vers la mission
+  reste fonctionnelle malgré l'échec de l'écriture) et G-4.2 (retry après échec : nouvel essai
+  possible, succès confirmé, aucun état bloqué). Résultat : **2/2 PASS** après correctif.
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc G, gap G-4).
+
+---
+
+## Bloc G — bilan
+
+**Résultat** : 6 tests créés sur les 3 gaps réels identifiés (G-1/G-2, G-3, G-4), **6/6 PASS**.
+1 bug trouvé et corrigé (BUG-008, P2). Aucun bug P0/P1. `flutter test` complet du projet :
+**410/410 PASS, aucune régression**. `flutter analyze` : 0 souci nouveau.
+
+---
+
+*Ce fichier sera enrichi au fil des blocs H à W avec tout nouveau bug découvert (ID
+séquentiel BUG-009, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

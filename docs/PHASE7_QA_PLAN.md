@@ -52,7 +52,7 @@ fermeture de bloc pour survivre à une compaction de contexte.
 | D | Analyste/Admin/Super Admin | NEXT | permissions réelles uniquement |
 | E | Auth/Session/Claims | NEXT | vérifier révocation rôle admin |
 | F | Routing/Deep Links | DONE | F-1/F-2/ROUTE-F-01..06/F-3 — BUG-007 (P2, CORRIGÉ) |
-| G | Offline/Réseau/Retry | NEXT | pas de perte de mission financière |
+| G | Offline/Réseau/Retry | DONE | pas de perte de mission financière |
 | H | GPS/Tracking | NEXT | doit s'arrêter après completed/cancelled |
 | I | Notifications | NEXT | isolation, dédoublonnage |
 | J | Responsive | NEXT | tailles réalistes mobile/tablette/desktop |
@@ -472,14 +472,73 @@ de production n'ait besoin d'être modifié.
 `test/driver/provider_dashboard_shell_status_gate_test.dart`,
 `test/routing/app_router_invalid_routes_test.dart`.
 
+---
+
+## BLOC G : ✅ FERMÉ
+
+**Périmètre couvert** — matrice courte requirement→test existant→COUVERT/GAP effectuée en premier
+(voir `docs/PHASE7_QA_MATRIX.md`, section "Offline / Réseau / Retry (Bloc G)"), puis codage des
+3 seuls GAPS réels identifiés :
+- **G-1/G-2 — Cloud Function `unavailable` + retry idempotent** : nouveau fichier
+  `test/network/driver_action_cloud_function_unavailable_test.dart` (2 tests) sur
+  `DriverActiveMissionScreen` (`_FlakyMissionRepository` fake qui échoue N fois puis réussit).
+  Prouve : aucun faux succès, message traduit affiché, bouton redevient actionnable, aucun crash
+  (G-1) ; retry réussit avec exactement 2 appels au total (1 échec + 1 succès), aucune duplication
+  de transition (G-2).
+- **G-3 — Firestore listener error + reprise** : nouveau fichier
+  `test/network/mission_tracking_listener_error_test.dart` (2 tests) sur `CustomerTrackingScreen`
+  (`StreamController.addError()` sur `watchMission()`). Prouve : aucun crash, aucun écran blanc,
+  message réseau cohérent, aucune ancienne donnée (nom du chauffeur) présentée comme encore valide
+  (G-3.1) ; reprise naturelle après nouvelle émission valide sur le même flux, sans couche offline
+  additionnelle (G-3.2).
+- **G-4 — Firestore write failure** : nouveau fichier
+  `test/network/notification_mark_as_read_write_failure_test.dart` (2 tests) sur
+  `NotificationsScreen`/`markAsRead()`. **Bug réel P2 trouvé et corrigé** : `NotificationsScreen.
+  onTap` appelait `markAsRead()` sans catcher l'échec → exception non gérée remontant jusqu'au
+  binding Flutter. Fix : `.catchError((_) {})` ajouté (le marquage lu/non-lu est un confort UX
+  secondaire, son échec ne doit jamais bloquer la navigation vers la mission liée). Après fix :
+  aucun faux succès, navigation continue de fonctionner, retry possible (G-4.1/G-4.2).
+- **G-5 — réutilisation des preuves existantes** : mission creation (MIS-C-09), proof upload
+  (`driver_active_mission_proof_upload_test.dart`), GPS (`driver_location_reporter_test.dart`),
+  paiement/refund/payout (Phase 6 + `submitDriverPayoutFailure.test.ts`) — tous référencés dans la
+  matrice, aucune duplication.
+
+**Bug fermé dans ce bloc** : nouveau bug **P2** (markAsRead non catché, `NotificationsScreen`),
+découvert par TEST → FAIL → FIX → RETEST pendant G-4, CORRIGÉ. Voir `PHASE7_BUG_REPORT.md`
+BUG-008. Aucun bug P0/P1.
+
+**Validation de clôture (exécutée réellement, pas seulement rédigée)** :
+- `flutter test test/network/` → **6/6 PASS**.
+- `flutter analyze` (projet complet) → 3 issues `info` pré-existantes non liées, 0 souci nouveau.
+- `flutter test` (suite complète du projet) → **410/410 PASS, aucune régression**.
+
+**Fichiers créés/modifiés (Bloc G, ce tour)** :
+- `test/network/driver_action_cloud_function_unavailable_test.dart` (nouveau, 2 tests).
+- `test/network/mission_tracking_listener_error_test.dart` (nouveau, 2 tests).
+- `test/network/notification_mark_as_read_write_failure_test.dart` (nouveau, 2 tests).
+- `lib/screens/notifications/notifications_screen.dart` (fix BUG-008 : `.catchError((_) {})`).
+- `docs/PHASE7_QA_MATRIX.md` (section "Offline / Réseau / Retry (Bloc G)").
+- `docs/PHASE7_BUG_REPORT.md` (section Bloc G, BUG-008).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc G).
+
 **PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
-1. **Bloc F est FERMÉ.**
-2. Enchaîner directement **Bloc G — OFFLINE/RÉSEAU/RETRY** : matrice courte requirement→test
-   existant→COUVERT/GAP (≤15-20% du budget en reconnaissance), réutiliser MIS-C-09
-   (`delivery_request_flow_double_submit_test.dart` + `createDeliveryRequestIdempotency.test.ts`),
-   `driver_active_mission_proof_upload_test.dart`, `driver_location_reporter_test.dart`, tests
-   finance Phase 6 (authorize/capture failure, refund/idempotence, payout failure, concurrence).
-   Tester uniquement les GAPS réels : Cloud Function unavailable, timeout, Firestore listener
-   error, Firestore write failure, retour réseau (si l'architecture le permet).
-3. Puis **Bloc H — GPS/TRACKING DURCISSEMENT**, sans s'arrêter entre G et H.
-4. **Ne pas refaire d'audit général** pour F/E/D (fermés), ni Security Rules (196/196 PASS).
+1. **Bloc G est FERMÉ.**
+2. Enchaîner **Bloc H — GPS/TRACKING DURCISSEMENT** : matrice courte requirement→test
+   existant→COUVERT/GAP en premier (H-1 permissions déjà couvert par
+   `driver_location_reporter_test.dart` + bandeau GPS de
+   `driver_active_mission_status_gaps_test.dart` — à confirmer sans réexécution intégrale ; H-2
+   lifecycle tracking start/stop selon statut mission — probablement partiellement couvert par
+   `_syncGpsSharingIfStatusChanged`/BUG-006 mais lifecycle explicite start-on-active/
+   stop-on-completed/stop-on-cancelled à vérifier et combler si gap réel ; H-3 référencer/
+   réexécuter `driver_active_mission_status_gaps_test.dart` pour confirmer BUG-006 toujours vert ;
+   H-4 sécurité tracking — vérifier Security Rules existantes (`functions/test/integration/
+   securityRules.test.ts`) pour driver_locations, combler seulement un gap réel ; H-5
+   background/foreground — documenter `DEFERRED NON-BLOCKING → Phase 8` si non implémenté ; H-6
+   position stale/invalide — seulement si l'architecture en dépend).
+3. Puis **Bloc I — NOTIFICATIONS** (création, read/unread, badge, realtime, duplication —
+   réutiliser F-3 pour navigation, ne pas la redupliquer ; documenter I-7 push externe/FCM comme
+   `DEFERRED / Phase 8` si non prêt en production).
+4. **Ne pas refaire d'audit général** pour G/F/E/D (fermés), ni Security Rules (196/196 PASS).
+5. Une fois H et I fermés : validation croisée (`flutter analyze`, `flutter test`,
+   `npx tsc --noEmit`, `npm run lint` si backend touché), mise à jour finale des 3 docs QA,
+   commit+push final, puis rapport unique `# PHASE 7 — BLOCS G → H → I`.

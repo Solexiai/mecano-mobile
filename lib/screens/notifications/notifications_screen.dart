@@ -93,7 +93,19 @@ class NotificationsScreen extends StatelessWidget {
                   t: t,
                   onTap: () {
                     if (!n.isRead) {
-                      BackendLocator.notificationRepository.markAsRead(userId, n.id);
+                      // Phase 7, Bloc G (gap G-4) : `markAsRead()` est une
+                      // écriture Firestore directe (pas de Cloud Function)
+                      // qui peut échouer (réseau, permission transitoire).
+                      // AVANT ce correctif, l'échec remontait comme
+                      // exception non gérée (Future rejetée jamais
+                      // catchée) et faisait planter le test/l'app. Le
+                      // marquage lu/non-lu est un confort UX secondaire :
+                      // son échec ne doit JAMAIS bloquer la navigation vers
+                      // la mission liée, qui reste l'action principale de
+                      // ce tap.
+                      BackendLocator.notificationRepository
+                          .markAsRead(userId, n.id)
+                          .catchError((_) {});
                     }
                     final missionId = n.missionId;
                     if (missionId == null || missionId.isEmpty) return;
