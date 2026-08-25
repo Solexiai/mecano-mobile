@@ -200,7 +200,10 @@ class _AdminFinancePayoutPolicyTabState
     } catch (e) {
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(t('admin_action_error')),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

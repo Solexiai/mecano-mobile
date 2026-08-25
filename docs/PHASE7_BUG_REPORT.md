@@ -534,6 +534,91 @@ analyze` : 0 souci nouveau (3 issues `info` pré-existantes non liées, inchang�
 
 ---
 
+## BUG-010 (P2, CORRIGÉ) — Messages d'exception brute affichés à l'utilisateur admin (finance)
+
+- **Composant** : 5 fichiers `lib/screens/dashboard/admin/finance/tabs/` :
+  `admin_finance_payouts_tab.dart`, `admin_finance_ledger_tab.dart`,
+  `admin_finance_reconciliation_tab.dart` (2 occurrences, 2 State classes distinctes),
+  `admin_finance_taxes_tab.dart`, `admin_finance_payout_policy_tab.dart`.
+- **Sévérité** : **P2** — pas de risque sécurité/données, mais violation directe de la règle
+  K-6 (aucun texte technique/anglais forcé visible en FR/ES) : un admin francophone ou
+  hispanophone voyait le `toString()` brut de l'exception attrapée (potentiellement
+  `CloudFunctionException`/`FirebaseException` en anglais ou message technique) au lieu d'un
+  message localisé.
+- **Découvert pendant** : Phase 7, Bloc K, gap K-6 (audit ciblé des patterns
+  `catch (e)` + `Text('$e')`/`SnackBar` dans `lib/`).
+- **Cause racine** : `SnackBar(content: Text('$e'), backgroundColor: AppColors.error)` dans 6
+  blocs `catch` d'actions admin (reverse payout, ajustement ledger, relance réconciliation,
+  résolution anomalie, recalcul taxes, sauvegarde politique de payout), affichant directement
+  l'exception interceptée sans passer par `LocaleProvider`.
+- **Correctif appliqué** : remplacement des 6 occurrences par
+  `Text(t('admin_action_error'))` (ou `Text(widget.t('admin_action_error'))` selon
+  l'accesseur de traduction déjà en portée dans chaque méthode), en réutilisant la clé i18n
+  **déjà existante et complète FR/EN/ES** `admin_action_error` — aucune nouvelle clé requise.
+  Le détail technique de l'exception reste disponible en log développeur (non supprimé), seul
+  l'affichage utilisateur est corrigé.
+- **Test de régression** : validation ciblée via `flutter analyze` (scope
+  `lib/screens/dashboard/admin/finance/tabs/` → "No issues found!", puis full-projet → 0 souci
+  nouveau) + `flutter test test/finance/` (53/53 PASS sur le domaine impacté) + `flutter test`
+  complet du projet : **433/433 PASS, aucune régression**.
+- **Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc K, gap K-6).
+
+---
+
+## Bloc K — I18N GLOBAL : EN COURS (fermeture partielle honnête à date de ce commit)
+
+**Reconnaissance effectuée** (K-0, K-7, K-8) :
+
+- **K-0** : audit programmatique du dictionnaire `lib/l10n/app_strings.dart` (753 clés) via
+  script Python de parsing du littéral `_t` — **0 clé avec locale manquante, 0 doublon**. Le
+  dictionnaire lui-même est structurellement sain.
+- **K-8** : cross-référence des 426 appels `t('clé')` trouvés dans `lib/` contre les 753 clés
+  définies — **0 clé utilisée mais non définie**. Aucun risque de fallback accidentel côté
+  dictionnaire.
+- **K-7** : recherche ciblée des chaînes visibles codées en dur (`grep` sur les patterns
+  `Text('...')`/`labelText:`/`SnackBar`) — 41 candidats initiaux triés en faux positifs
+  (ex. `language_selector.dart` : noms de langue en écriture native, par conception, pas un
+  bug ; `admin_finance_reconciliation_tab.dart` lignes 321-449 et
+  `admin_driver_detail_screen.dart` lignes 420/424 : déjà `widget.t(...)`, faux positifs de
+  grep) et **GAPS RÉELS CONFIRMÉS** (fichiers entiers sans aucun usage de `LocaleProvider`,
+  donc 100% hardcodés en français indépendamment de la langue choisie) :
+  - `lib/screens/auth/admin_login_screen.dart` (CRITIQUE — écran de connexion admin, 0 usage
+    `LocaleProvider` sur 351 lignes).
+  - `lib/screens/dashboard/customer/tabs/customer_profile_tab.dart` (0 usage, 182 lignes).
+  - `lib/screens/dashboard/provider/tabs/provider_profile_tab.dart` (0 usage, 182 lignes,
+    inclut une méthode `_statusLabel()` qui duplique en dur des libellés alors que les clés
+    `driver_status_*` existent déjà et sont complètes FR/EN/ES).
+  - `lib/screens/dashboard/customer/tabs/customer_messages_tab.dart` (0 usage, 32 lignes,
+    écran "bientôt disponible").
+  Et des **GAPS PARTIELS** (fichiers utilisant déjà `LocaleProvider` mais avec des chaînes
+  résiduelles non traduites) : `lib/screens/auth/auth_screen.dart`,
+  `lib/screens/driver/driver_onboarding_screen.dart`,
+  `lib/screens/mechanic_provider/mechanic_onboarding_screen.dart`,
+  `lib/screens/mechanic/mechanic_request_flow_screen.dart`, `lib/widgets/app_shell.dart`,
+  `lib/screens/dashboard/admin/admin_dashboard_shell.dart`,
+  `lib/screens/dashboard/admin/drivers/admin_drivers_list_screen.dart` (1 seul mot, "Retry",
+  à remplacer par la clé existante `common_retry`).
+- **K-6** : audit et **correction complète** des messages d'exception brute → voir BUG-010
+  ci-dessus. **Fermé.**
+
+**Non encore fait à ce commit** : correction effective des GAPS listés ci-dessus (K-1
+Auth, K-2 Client, K-3 Chauffeur, K-4 Admin partiels), ajout des nouvelles clés i18n
+nécessaires, écriture des tests K-9 (détection automatisée des écrans sans `LocaleProvider`
+et/ou des clés manquantes), audit K-5 (Notifications) non encore mené explicitement.
+
+**PROCHAINE ACTION EXACTE** : corriger dans l'ordre `admin_login_screen.dart` →
+`customer_profile_tab.dart` → `provider_profile_tab.dart` → `customer_messages_tab.dart` →
+restes de `auth_screen.dart`/`driver_onboarding_screen.dart`/
+`mechanic_onboarding_screen.dart`/`mechanic_request_flow_screen.dart`/`app_shell.dart`/
+`admin_dashboard_shell.dart`/`admin_drivers_list_screen.dart` (méthode TEST→FAIL→FIX→RETEST
+par fichier, ajout des clés i18n manquantes dans `app_strings.dart`), puis K-5, puis K-9,
+avant de pouvoir déclarer "BLOC K : ✅ FERMÉ" et poursuivre K2 → L.
+
+**Bloc K n'est PAS fermé à ce commit — poursuite prévue à la prochaine session, limite de
+budget d'itérations atteinte honnêtement documentée.**
+
+---
+
 *Ce fichier sera enrichi au fil des blocs K à W avec tout nouveau bug découvert (ID
-séquentiel BUG-010, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+séquentiel BUG-011, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

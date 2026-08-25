@@ -58,7 +58,10 @@ class _AdminFinanceReconciliationTabState
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(t('admin_action_error')),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -360,7 +363,10 @@ class _AnomalyRowState extends State<_AnomalyRow> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(widget.t('admin_action_error')),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

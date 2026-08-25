@@ -288,7 +288,10 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(t('admin_action_error')),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }

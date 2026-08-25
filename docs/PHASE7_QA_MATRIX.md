@@ -285,8 +285,36 @@ réelle exécutée : `flutter test test/responsive/critical_screens_viewport_tes
 `safety_screen.dart` modifié), `flutter test` complet du projet (**433/433 PASS**, +11 vs 422
 post-Bloc I, aucune régression). **BLOC J : ✅ FERMÉ.**
 
-## Responsive / I18N global / Sécurité / Performance
-Voir blocs dédiés K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
+## I18N Global (Bloc K) — EN COURS
+
+| Zone / écran | Couverture i18n existante | Statut |
+|---|---|---|
+| Dictionnaire `app_strings.dart` (753 clés) | 0 clé avec locale manquante, 0 doublon (audit programmatique) | COUVERT |
+| Cohérence clés utilisées vs définies (426 appels `t()`) | 0 clé utilisée non définie | COUVERT |
+| Auth — `admin_login_screen.dart` | 0 usage `LocaleProvider`, tout FR codé en dur | **GAP (critique)** |
+| Auth — `auth_screen.dart` | `t()` utilisé mais ~10 chaînes résiduelles (redirections, labels, erreurs validation) | **GAP (partiel)** |
+| Client — `customer_profile_tab.dart` | 0 usage `LocaleProvider` | **GAP** |
+| Client — `customer_messages_tab.dart` | 0 usage `LocaleProvider` (écran placeholder) | **GAP (mineur)** |
+| Client — `mechanic_request_flow_screen.dart` (Steps 2-4) | `t()` en tête de fichier mais sous-widgets Step2/3/4 hardcodés | **GAP (partiel)** |
+| Chauffeur — `provider_profile_tab.dart` | 0 usage `LocaleProvider`, `_statusLabel()` duplique les clés `driver_status_*` existantes | **GAP** |
+| Chauffeur — `driver_onboarding_screen.dart` | `t()` utilisé mais ~14 `labelText`/titres résiduels | **GAP (partiel)** |
+| Chauffeur — `mechanic_onboarding_screen.dart` | 1 usage `LocaleProvider`, 2 chaînes résiduelles | **GAP (mineur)** |
+| Admin — `app_shell.dart` | Majoritairement `t()`, 2 `PopupMenuItem` résiduels | **GAP (mineur)** |
+| Admin — `admin_dashboard_shell.dart` | `NavigationRail` labels + "Activer la commission" hardcodés | **GAP (partiel)** |
+| Admin — `admin_drivers_list_screen.dart` | 1 seul mot "Retry" à remplacer par `common_retry` | **GAP (trivial)** |
+| Admin — finance tabs (erreurs K-6) | 6 messages d'exception brute → **corrigés (BUG-010)**, réutilisation de `admin_action_error` | COUVERT (après correctif) |
+| Notifications (K-5, référence Bloc I) | Clés `notif_*`/`notifications_*` déjà confirmées COUVERT en Bloc I | COUVERT (référencé, pas dupliqué) |
+
+**Bilan intermédiaire** : dictionnaire et cohérence des clés sains ; le GAP réel se situe dans
+plusieurs écrans/fichiers qui n'appellent jamais `LocaleProvider.t()` ou n'en font qu'un usage
+partiel. 1 bug corrigé ce tour (BUG-010, P2). Bloc K reste **EN COURS** — voir
+`docs/PHASE7_QA_PLAN.md` et `docs/PHASE7_BUG_REPORT.md` pour le point de reprise exact.
+
+## Timezone / Date (Bloc K2) et Accessibilité MVP (Bloc L)
+Non démarrés à ce commit — prochaine session.
+
+## Sécurité / Performance
+Voir blocs dédiés Q, M — matrice à enrichir au fur et à mesure des tests réels.
 
 ---
 **Note méthodologique** : Cette matrice n'est PAS exhaustive à ce stade — elle sert de point de

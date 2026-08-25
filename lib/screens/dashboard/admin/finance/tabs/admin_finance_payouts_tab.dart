@@ -170,7 +170,10 @@ class _PayoutRowState extends State<_PayoutRow> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(t('admin_action_error')),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {

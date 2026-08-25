@@ -711,3 +711,75 @@ ligne sous 480px, sans masquer aucun contenu ni action. Détail complet
    Validation globale, Git final, Prochain groupe `# K → K2 → L`).
 5. Enchaîner **Bloc K — I18N GLOBAL**, **Bloc K2 — TIMEZONE/DATE**, **Bloc L —
    ACCESSIBILITÉ MVP** (groupe suivant de 3 blocs, règle des 3 blocs).
+
+---
+
+## BLOC K — I18N GLOBAL : EN COURS (checkpoint honnête, limite de budget atteinte)
+
+**Reconnaissance (K-0, K-7, K-8) terminée** : dictionnaire `app_strings.dart` audité
+programmatiquement (753 clés, 0 locale manquante, 0 doublon), cohérence clés
+définies/utilisées confirmée (426 appels `t()`, 0 manquant), recherche ciblée des chaînes
+hardcodées effectuée dans `lib/` avec triage faux positifs / vrais GAPS (voir détail dans
+`docs/PHASE7_QA_MATRIX.md` section "I18N Global (Bloc K)").
+
+**K-6 (erreurs) : FERMÉ.** 6 occurrences de `Text('$e')` (exception brute affichée à l'admin)
+corrigées dans les 5 fichiers `lib/screens/dashboard/admin/finance/tabs/*.dart`, remplacées par
+la clé existante `admin_action_error` (FR/EN/ES déjà complète). Documenté **BUG-010** (P2,
+CORRIGÉ) dans `docs/PHASE7_BUG_REPORT.md`.
+
+**Validation du correctif K-6** :
+- `flutter analyze` (scope `lib/screens/dashboard/admin/finance/tabs/`) → "No issues found!"
+- `flutter analyze` (projet complet) → 0 souci nouveau (3 issues `info` pré-existantes
+  inchangées).
+- `flutter test test/finance/` → 53/53 PASS (aucune régression sur le domaine impacté).
+- `flutter test` (projet complet) → **433/433 PASS, aucune régression** (même total que fin
+  Bloc J — aucun nouveau test ajouté ce tour au-delà du correctif ciblé, K-9 pas encore
+  écrit).
+
+**GAPS confirmés restants (non corrigés à ce commit)**, par ordre de priorité :
+1. `lib/screens/auth/admin_login_screen.dart` — 0 usage `LocaleProvider` (CRITIQUE, écran
+   de connexion admin).
+2. `lib/screens/dashboard/customer/tabs/customer_profile_tab.dart` — 0 usage.
+3. `lib/screens/dashboard/provider/tabs/provider_profile_tab.dart` — 0 usage, duplique
+   `driver_status_*`.
+4. `lib/screens/dashboard/customer/tabs/customer_messages_tab.dart` — 0 usage (mineur).
+5. `lib/screens/auth/auth_screen.dart` — résidus partiels.
+6. `lib/screens/driver/driver_onboarding_screen.dart` — résidus partiels.
+7. `lib/screens/mechanic_provider/mechanic_onboarding_screen.dart` — résidus mineurs.
+8. `lib/screens/mechanic/mechanic_request_flow_screen.dart` — résidus Steps 2-4.
+9. `lib/widgets/app_shell.dart` — résidus mineurs (2 `PopupMenuItem`).
+10. `lib/screens/dashboard/admin/admin_dashboard_shell.dart` — résidus partiels.
+11. `lib/screens/dashboard/admin/drivers/admin_drivers_list_screen.dart` — 1 mot ("Retry" →
+    `common_retry`, trivial).
+
+K-5 (Notifications) pas encore explicitement audité (référence prévue au Bloc I sans
+duplication). K-9 (tests automatisés de détection de gaps i18n) pas encore écrit.
+
+**Bloc K n'est PAS fermé.** Motif : limite réelle de budget d'itérations atteinte pendant
+cette session (règle explicite de l'utilisateur autorisant un checkpoint honnête plutôt
+qu'une fausse clôture). **Blocs K2 (Timezone/Date) et L (Accessibilité MVP) non démarrés.**
+
+**PROCHAINE ACTION EXACTE (reprise ici, pas de nouvel audit général)** :
+1. Corriger les GAPS listés ci-dessus dans l'ordre indiqué, méthode
+   `TEST → FAIL → FIX → RETEST` par fichier (ajouter les clés i18n manquantes dans
+   `lib/l10n/app_strings.dart` avec FR/EN/ES complet avant de les utiliser).
+2. Auditer K-5 (référencer Bloc I sans dupliquer).
+3. Écrire K-9 (test maintenable détectant les écrans critiques sans `LocaleProvider` et/ou
+   les clés manquantes).
+4. Revalider `flutter analyze` + `flutter test` complet, mettre à jour les 3 docs, déclarer
+   "BLOC K : ✅ FERMÉ", commit + push.
+5. Poursuivre immédiatement **Bloc K2 — TIMEZONE/DATE** puis **Bloc L — ACCESSIBILITÉ MVP**
+   selon les spécifications déjà fournies par l'utilisateur (non répétées ici, voir
+   l'instruction originale "MODE AUTONOME — PHASE 7 — REPRISE K → K2 → L").
+6. Produire le rapport unique `# PHASE 7 — BLOCS K → K2 → L` seulement une fois les 3 blocs
+   réellement fermés.
+
+**Fichiers modifiés ce tour (Bloc K, partiel)** :
+- `lib/screens/dashboard/admin/finance/tabs/admin_finance_payouts_tab.dart`
+- `lib/screens/dashboard/admin/finance/tabs/admin_finance_ledger_tab.dart`
+- `lib/screens/dashboard/admin/finance/tabs/admin_finance_reconciliation_tab.dart`
+- `lib/screens/dashboard/admin/finance/tabs/admin_finance_taxes_tab.dart`
+- `lib/screens/dashboard/admin/finance/tabs/admin_finance_payout_policy_tab.dart`
+- `docs/PHASE7_QA_MATRIX.md` (section I18N Global Bloc K)
+- `docs/PHASE7_BUG_REPORT.md` (BUG-010 + bilan Bloc K partiel)
+- `docs/PHASE7_QA_PLAN.md` (ce fichier)
