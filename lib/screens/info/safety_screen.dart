@@ -150,35 +150,67 @@ class SafetyScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: AppColors.heroGradient,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.shield_outlined, color: Colors.white, size: 28),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        _tr(
-                          fr: 'Un problème pendant une réservation? Signalez-le immédiatement.',
-                          en: 'An issue during a booking? Report it right away.',
-                          es: '¿Un problema durante una reserva? Repórtelo de inmediato.',
-                        ),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
+              Builder(
+                builder: (context) {
+                  // Bloc J (gap J-5, bug de layout trouvé en écrivant le test
+                  // viewport `critical_screens_viewport_test.dart`) : sur
+                  // téléphone étroit (< 480px, ex. iPhone SE), l'icône + le
+                  // texte d'alerte + le bouton "Signaler un problème" dans un
+                  // seul `Row` dépassaient l'espace horizontal disponible
+                  // (`RenderFlex` overflow reproductible jusqu'à ~146px sur
+                  // 320px de large). Correctif : sous 480px, le bouton passe
+                  // sur sa propre ligne (Column) au lieu de partager la
+                  // largeur avec le texte — aucune information ni action
+                  // n'est masquée, seule la disposition change.
+                  final isNarrow = MediaQuery.of(context).size.width < 480;
+                  final icon = const Icon(Icons.shield_outlined, color: Colors.white, size: 28);
+                  final message = Text(
+                    _tr(
+                      fr: 'Un problème pendant une réservation? Signalez-le immédiatement.',
+                      en: 'An issue during a booking? Report it right away.',
+                      es: '¿Un problema durante una reserva? Repórtelo de inmediato.',
                     ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
-                      onPressed: () => _showReportDialog(context),
-                      child: Text(_tr(fr: 'Signaler un problème', en: 'Report an issue', es: 'Reportar un problema')),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                  );
+                  final reportButton = ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
+                    onPressed: () => _showReportDialog(context),
+                    child: Text(_tr(fr: 'Signaler un problème', en: 'Report an issue', es: 'Reportar un problema')),
+                  );
+
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.heroGradient,
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                  ],
-                ),
+                    child: isNarrow
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  icon,
+                                  const SizedBox(width: 16),
+                                  Expanded(child: message),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              reportButton,
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              icon,
+                              const SizedBox(width: 16),
+                              Expanded(child: message),
+                              const SizedBox(width: 12),
+                              reportButton,
+                            ],
+                          ),
+                  );
+                },
               ),
               const SizedBox(height: 40),
               ...sections.map((s) => _SafetySectionCard(icon: s.$1, title: s.$2, description: s.$3, color: s.$4)),

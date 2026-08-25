@@ -466,6 +466,74 @@ nouveau (3 issues `info` pré-existantes non liées, inchangées).
 
 ---
 
-*Ce fichier sera enrichi au fil des blocs J à W avec tout nouveau bug découvert (ID
-séquentiel BUG-009, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
+## BUG-009 (P2, CORRIGÉ) — Overflow bandeau signalement `SafetyScreen` sur téléphone étroit
+
+- **Composant** : `lib/screens/info/safety_screen.dart` (bandeau "Signaler un problème" en haut
+  de l'écran Sécurité).
+- **Découvert pendant** : Phase 7, Bloc J, gap J-5 (modals/dialogs sur écran critique), en
+  écrivant `test/responsive/critical_screens_viewport_test.dart` à 320px de large — PAS un bug
+  pré-existant connu, jamais testé à une largeur de téléphone étroite auparavant.
+
+**Contexte** : le bandeau d'alerte en haut de `SafetyScreen` combine une icône, un message
+texte explicatif et un bouton "Signaler un problème" dans une seule `Row` horizontale, à
+l'intérieur d'un `Container` à fond dégradé.
+
+**Cause** : contrairement à `ProviderDashboardShell` (déjà corrigé en BUG-007), ce bandeau
+n'avait aucune logique responsive pour les largeurs étroites. À 320px de large (iPhone SE),
+la somme des largeurs minimales de l'icône + `Expanded(message)` + bouton dépassait l'espace
+disponible → `RenderFlex overflowed by 146 pixels on the right`, reproductible à 100 % à cette
+largeur. Le test a intentionnellement refusé d'ignorer `tester.takeException()` ou d'élargir
+artificiellement le viewport (règle anti-triche J), révélant ainsi un bug réel de layout.
+
+**Correctif** : application du même seuil que BUG-007 (`isNarrow = MediaQuery.of(context).size.width
+< 480`) via un `Builder` englobant le bandeau. Sous ce seuil, l'icône + le message restent sur une
+première ligne (`Row` avec `Expanded` sur le texte) et le bouton "Signaler un problème" est
+déplacé sur sa propre ligne en dessous (`Column` en pleine largeur), au lieu d'être compressé à
+côté du texte. **Aucun contenu ni action n'est masqué** — seule la disposition change ; le bouton
+reste pleinement visible, lisible et actionnable à toutes les largeurs testées.
+
+**Fichier modifié** : `lib/screens/info/safety_screen.dart`.
+
+**Test de régression** : `test/responsive/critical_screens_viewport_test.dart` (groupe J-5,
+1 test) — dialog "Signaler un problème" à 320px de large : contenu du bandeau visible sans
+overflow, ouverture du dialogue de signalement (`AlertDialog` + `TextField` + boutons
+"Annuler"/"Envoyer") entièrement accessible, fermeture via "Annuler" sans exception. Revérifié :
+0 overflow après correction, `tester.takeException()` nul. `flutter analyze` sur le fichier
+impacté : clean ("No issues found!").
+
+**Statut** : **CORRIGÉ** ✅ (Phase 7, Bloc J, gap J-5).
+
+---
+
+## Bloc J — Responsive / Viewports : 1 bug trouvé et corrigé (BUG-009)
+
+**Résultat** : nouveau fichier `test/responsive/critical_screens_viewport_test.dart`
+(11 tests, **10/11 PASS au premier essai puis 11/11 PASS après correctif**) couvrant :
+
+- **J-1/J-2** (régression BUG-007 + matrice de viewports) : `ProviderDashboardShell` testé aux
+  largeurs 320/360/390/430/480px (Switch online/offline toujours visible et fonctionnel, aucun
+  overflow) + 600px (libellés décoratifs réapparaissent, `isNarrowPhone == false` confirmé) —
+  **6/6 PASS, aucune régression, aucun nouveau bug** : le correctif BUG-007 tient toujours sur
+  l'ensemble de la matrice de largeurs.
+- **J-3** (effet FR/EN/ES sur écran critique) : `AuthScreen` testé dans les 3 langues à 320px
+  (largeur la plus contraignante) — **3/3 PASS**, aucun overflow, aucune régression liée à la
+  longueur variable des chaînes traduites.
+- **J-4** (clavier/formulaires) : `AuthScreen` en mode inscription sous hauteur verticale
+  réduite (simulation clavier virtuel, 375×320) — **1/1 PASS**, les 3 champs et le bouton CTA
+  final restent atteignables via `ensureVisible`/scroll, aucun contenu bloqué hors écran.
+- **J-5** (modals/dialogs) : `SafetyScreen`, dialogue de signalement à 320px — **a révélé
+  BUG-009** (voir ci-dessus), corrigé, puis **1/1 PASS**.
+- **J-6** (web/desktop) : déjà couvert par `test/finance/admin_finance_ui_test.dart`
+  (`NavigationRail` desktop à 1200×900) — référencé sans duplication, aucun écran supplémentaire
+  n'est prévu en usage desktop dans le périmètre actuel.
+
+**Bilan** : 1 bug trouvé et corrigé (BUG-009, P2, UI uniquement — aucun impact
+sécurité/données, même classe de sévérité que BUG-007). Aucun bug P0/P1. `flutter test` complet
+du projet : **433/433 PASS, aucune régression** (422 précédents + 11 nouveaux). `flutter
+analyze` : 0 souci nouveau (3 issues `info` pré-existantes non liées, inchangées).
+
+---
+
+*Ce fichier sera enrichi au fil des blocs K à W avec tout nouveau bug découvert (ID
+séquentiel BUG-010, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*

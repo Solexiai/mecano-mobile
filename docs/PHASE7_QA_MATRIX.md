@@ -242,8 +242,51 @@ Nouveau fichier : `test/notifications/notifications_realtime_and_unread_test.dar
 Validation : `flutter test` complet 422/422 PASS (+6 vs 416 post-Bloc H), `flutter analyze` 0 souci nouveau.
 **BLOC I : ✅ FERMÉ.**
 
+## Responsive / Viewports (Bloc J)
+
+**Matrice de couverture d'écrans J-0** (AUTH : Login/Signup ; CLIENT : création demande/devis/
+recherche chauffeur/tracking/complétée/notifications ; DRIVER : onboarding/statut/dashboard/
+jobs/mission active/preuve/gains ; ADMIN : login/revue chauffeurs/missions/dashboard finance) —
+3 écrans critiques sélectionnés pour test réel ce bloc (représentatifs de chaque famille de
+layout à risque : AppBar dense, formulaire, dialogue modal) :
+
+| Exigence J | Test existant | Statut |
+|---|---|---|
+| J-1/J-2 — matrice de viewports (320/360/390/430/480px) + non-régression BUG-007 | Aucun test existant ne faisait varier la largeur de `ProviderDashboardShell` au-delà du défaut 800×600 (`provider_dashboard_shell_status_gate_test.dart` relu, confirmé) | **GAP → comblé ce bloc** |
+| J-3 — effet FR/EN/ES sur écran critique | Aucun test de largeur+langue combinées sur `AuthScreen` | **GAP → comblé ce bloc** |
+| J-4 — clavier/formulaires (CTA accessible/scrollable) | Scrollabilité de `AuthScreen` héritée de `AppShell`/`SingleChildScrollView`, jamais prouvée sous hauteur réduite (clavier virtuel) | **GAP → comblé ce bloc** |
+| J-5 — modals/dialogs (contenu visible, boutons accessibles, sans overflow) | Aucun test de `SafetyScreen`/dialogue de signalement à largeur étroite | **GAP → comblé ce bloc, a révélé BUG-009** |
+| J-6 — web/desktop (écrans réellement prévus en web) | `test/finance/admin_finance_ui_test.dart` (`NavigationRail` desktop 1200×900) | **COUVERT** (référencé, non dupliqué — aucun autre écran n'est prévu en usage desktop dans le périmètre actuel) |
+
+Budget reconnaissance : ~15-20% du bloc (relecture ciblée de
+`provider_dashboard_shell_status_gate_test.dart`, `admin_finance_ui_test.dart`,
+`provider_dashboard_shell.dart`, `auth_screen.dart`, `app_shell.dart`, `safety_screen.dart`).
+Aucun audit général, aucune relecture redondante.
+
+### J-1/J-2/J-3/J-4/J-5 — nouveau test `critical_screens_viewport_test.dart`
+
+| ID | Scénario | Étapes | Résultat attendu | Statut |
+|---|---|---|---|---|
+| J-1/J-2.1-5 | `ProviderDashboardShell` à 320/360/390/430/480px | montage + mesure overflow + tap Switch | 0 overflow, Switch toujours visible et fonctionnel (régression BUG-007 vérifiée sur toute la matrice) | **DONE** (5/5 PASS) |
+| J-1/J-2.6 | `ProviderDashboardShell` à 600px (phablette) | montage | 0 overflow, libellés décoratifs réapparaissent (`isNarrowPhone == false`) | **DONE** |
+| J-3.1-3 | `AuthScreen` en fr/en/es à 320px | montage par langue | 0 overflow, textes `auth_welcome`/`auth_choose_role` trouvés | **DONE** (3/3 PASS) |
+| J-4.1 | `AuthScreen` mode inscription, hauteur réduite (375×320, clavier simulé) | bascule inscription + `ensureVisible` sur 3 champs + CTA final | tous les champs et le CTA restent atteignables via scroll | **DONE** |
+| J-5.1 | `SafetyScreen`, dialogue de signalement à 320px | tap "Signaler un problème" → vérifier `AlertDialog` → tap "Annuler" | contenu visible, champ texte + boutons accessibles, 0 overflow, fermeture sans exception | **DONE après correctif BUG-009** (échec au 1er essai : overflow 146px détecté et corrigé) |
+
+**Bug trouvé** : **BUG-009** (P2, CORRIGÉ) — overflow du bandeau "Signaler un problème" dans
+`SafetyScreen` à 320px de large (voir `docs/PHASE7_BUG_REPORT.md` pour le détail complet
+Contexte/Cause/Correctif/Test de régression).
+
+**Bloc J — clôture** : 1 nouveau fichier créé (`test/responsive/critical_screens_viewport_test.dart`,
+11 tests), comblant les 4 GAPS réels identifiés (J-1/J-2, J-3, J-4, J-5). J-6 référencé sans
+duplication. 1 bug trouvé et corrigé (BUG-009, P2, UI uniquement). Aucun bug P0/P1. Validation
+réelle exécutée : `flutter test test/responsive/critical_screens_viewport_test.dart` (10/11 puis
+11/11 PASS après correctif), `flutter analyze` (0 souci nouveau, y compris sur
+`safety_screen.dart` modifié), `flutter test` complet du projet (**433/433 PASS**, +11 vs 422
+post-Bloc I, aucune régression). **BLOC J : ✅ FERMÉ.**
+
 ## Responsive / I18N global / Sécurité / Performance
-Voir blocs dédiés J, K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
+Voir blocs dédiés K, Q, M — matrice à enrichir au fur et à mesure des tests réels.
 
 ---
 **Note méthodologique** : Cette matrice n'est PAS exhaustive à ce stade — elle sert de point de

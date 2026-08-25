@@ -640,16 +640,74 @@ dans `NotificationsScreen` via `snap.hasError`).
 - `docs/PHASE7_BUG_REPORT.md` (section Bloc I — aucun bug, bilan explicite).
 - `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc I).
 
+## BLOC J : ✅ FERMÉ
+
+**Périmètre couvert** — matrice courte J-0 (écrans critiques représentatifs de chaque famille de
+layout à risque : AppBar dense `ProviderDashboardShell`, formulaire `AuthScreen`, dialogue modal
+`SafetyScreen`) effectuée en premier (voir `docs/PHASE7_QA_MATRIX.md`, section
+"Responsive / Viewports (Bloc J)"), puis codage des GAPS réels identifiés :
+- **J-1/J-2 — matrice de viewports + non-régression BUG-007** : nouveau test faisant varier
+  `ProviderDashboardShell` sur 320/360/390/430/480px (Switch online/offline toujours visible et
+  fonctionnel, aucun `RenderFlex` overflow — régression BUG-007 confirmée absente sur toute la
+  matrice, pas seulement à 360px comme observé initialement lors du fix BUG-007) + 600px
+  (libellés décoratifs réapparaissent, `isNarrowPhone == false` confirmé).
+- **J-3 — effet FR/EN/ES sur écran critique** : `AuthScreen` testé dans les 3 langues à 320px
+  (largeur la plus contraignante pour la longueur variable des chaînes traduites) — aucun
+  overflow, textes `auth_welcome`/`auth_choose_role` correctement affichés dans chaque langue.
+- **J-4 — clavier/formulaires** : `AuthScreen` en mode inscription sous hauteur verticale
+  réduite (375×320, simulation clavier virtuel) — les 3 champs et le bouton CTA final restent
+  atteignables via `ensureVisible`/scroll (scrollabilité héritée de `AppShell`/
+  `SingleChildScrollView`, jamais prouvée explicitement avant ce bloc).
+- **J-5 — modals/dialogs** : `SafetyScreen`, dialogue de signalement à 320px — **a révélé un bug
+  réel** (voir BUG-009 ci-dessous), corrigé, puis validé : contenu visible, champ texte et
+  boutons ("Annuler"/"Envoyer") accessibles, fermeture sans exception.
+- **J-6 — web/desktop** : déjà entièrement couvert par `test/finance/admin_finance_ui_test.dart`
+  (`NavigationRail` desktop 1200×900). Référencé, non redupliqué — aucun autre écran n'est
+  actuellement prévu en usage desktop dans le périmètre MVP.
+
+**RÈGLE OVERFLOW respectée** : aucun `tester.takeException()` masqué, aucun viewport élargi
+artificiellement pour faire passer un test — l'overflow détecté en J-5 a été traité comme un bug
+réel (TEST → FAIL → FIX layout → RETEST), pas contourné.
+
+**Bugs trouvés dans ce bloc** : **1 bug, BUG-009 (P2, CORRIGÉ)** — overflow du bandeau
+"Signaler un problème" dans `SafetyScreen` (`RenderFlex overflowed by 146 pixels on the right`)
+à 320px de large, jamais testé à cette largeur auparavant. Cause : contrairement à
+`ProviderDashboardShell` (BUG-007), ce bandeau n'avait aucune logique responsive pour les
+largeurs étroites. Correctif : même seuil `isNarrow = MediaQuery.of(context).size.width < 480`
+que BUG-007, bascule `Row`→`Column` pour placer le bouton "Signaler un problème" sur sa propre
+ligne sous 480px, sans masquer aucun contenu ni action. Détail complet
+(Contexte/Cause/Correctif/Fichier modifié/Test de régression/Statut) dans
+`docs/PHASE7_BUG_REPORT.md`. **P0 = 0, P1 = 0** pour ce bloc.
+
+**Validation de clôture (exécutée réellement, pas seulement rédigée)** :
+- `flutter test test/responsive/critical_screens_viewport_test.dart` → 10/11 PASS au premier
+  essai (échec J-5 : overflow réel détecté), puis **11/11 PASS** après correctif de
+  `lib/screens/info/safety_screen.dart`.
+- `flutter analyze` (projet complet) → 3 issues `info` pré-existantes non liées, **0 souci
+  nouveau** (y compris sur `safety_screen.dart` modifié : "No issues found!").
+- `flutter test` (suite complète du projet) → **433/433 PASS** (422 précédents + 11 nouveaux,
+  aucune régression — les erreurs `ClientException` sur les tuiles OpenStreetMap visibles dans
+  la sortie sont du bruit réseau préexistant sans accès internet en sandbox, sans lien avec ce
+  bloc, et n'affectent aucun résultat de test).
+- Backend non touché ce bloc → `npx tsc --noEmit`/`npm run lint` non requis.
+
+**Fichiers créés/modifiés (Bloc J, ce tour)** :
+- `test/responsive/critical_screens_viewport_test.dart` (nouveau, 11 tests).
+- `lib/screens/info/safety_screen.dart` (correctif BUG-009 — bandeau responsive sous 480px).
+- `docs/PHASE7_QA_MATRIX.md` (section "Responsive / Viewports (Bloc J)").
+- `docs/PHASE7_BUG_REPORT.md` (entrée BUG-009 + bilan Bloc J).
+- `docs/PHASE7_QA_PLAN.md` (ce fichier — clôture Bloc J).
+
 **PROCHAINE ACTION EXACTE (reprise ici si interruption, pas de nouvel audit général)** :
-1. **Blocs H et I sont FERMÉS.**
-2. Enchaîner **Bloc J — RESPONSIVE/VIEWPORTS** (non démarré) : J-0 matrice écrans MVP critiques
-   (Auth/Client/Driver/Admin) ; J-1 viewports (petit ~320-360px, standard ~390-430px, grand
-   ~430-480px, tablette/desktop si prévu) ; J-2 référencer/réexécuter BUG-007 (regression
-   AppBar overflow) sans le redupliquer ; J-3 effet FR/EN/ES sur écrans critiques ; J-4
-   clavier/formulaires (login, signup, création mission, onboarding chauffeur) ; J-5
-   modals/dialogs critiques ; J-6 web/desktop uniquement si des écrans web sont réellement
-   prévus. RÈGLE OVERFLOW stricte (jamais masquer `tester.takeException()`, jamais élargir
-   artificiellement le viewport pour faire passer un test).
-3. Une fois J fermé : validation croisée H→I→J (`flutter analyze`, `flutter test` complet,
-   backend si touché), mise à jour finale des 3 docs QA, commit+push, puis rapport final unique
-   `# PHASE 7 — BLOCS H → I → J`.
+1. **Blocs H, I et J sont FERMÉS.**
+2. Effectuer la **validation croisée H→I→J** : `flutter analyze` (déjà 0 souci nouveau confirmé
+   ci-dessus), `flutter test` complet (déjà 433/433 PASS confirmé ci-dessus), backend non touché
+   dans H/I/J → `npx tsc --noEmit`/`npm run lint` non requis pour ce groupe (à mentionner
+   explicitement dans le rapport final, pas juste omis).
+3. Commit + push de tous les fichiers Bloc J listés ci-dessus, vérifier `HEAD == origin/main`,
+   working tree clean.
+4. Produire le **rapport final unique** `# PHASE 7 — BLOCS H → I → J` selon le template exact
+   demandé (sections Couverture/Tests/Bugs/Deferred par bloc, Bugs par priorité P0/P1/P2/P3,
+   Validation globale, Git final, Prochain groupe `# K → K2 → L`).
+5. Enchaîner **Bloc K — I18N GLOBAL**, **Bloc K2 — TIMEZONE/DATE**, **Bloc L —
+   ACCESSIBILITÉ MVP** (groupe suivant de 3 blocs, règle des 3 blocs).
