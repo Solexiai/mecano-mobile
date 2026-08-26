@@ -29,6 +29,8 @@ import 'repositories/notification_repository.dart';
 import 'repositories/firebase_notification_repository.dart';
 import 'repositories/proof_upload_repository.dart';
 import 'repositories/firebase_proof_upload_repository.dart';
+import 'repositories/driver_document_upload_repository.dart';
+import 'repositories/firebase_driver_document_upload_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
@@ -73,6 +75,14 @@ class BackendLocator {
   // de `test/`.
   @visibleForTesting
   static NotificationRepository? notificationRepositoryOverride;
+
+  // Même seam que ci-dessus, pour `DriverDocumentUploadRepository` (Phase 7,
+  // Bloc U, U-0 — BUG-U-01 "dead upload button") : permet aux widget tests
+  // de simuler un échec d'upload Firebase Storage pour les documents
+  // chauffeur (permis, assurance, photo véhicule) sans dépendre d'un vrai
+  // bucket. Ne jamais positionner en dehors de `test/`.
+  @visibleForTesting
+  static DriverDocumentUploadRepository? driverDocumentUploadRepositoryOverride;
 
   static DriverRepository get driverRepository {
     final override = driverRepositoryOverride;
@@ -124,6 +134,15 @@ class BackendLocator {
       return const NotConfiguredProofUploadRepository();
     }
     return FirebaseProofUploadRepository();
+  }
+
+  static DriverDocumentUploadRepository get driverDocumentUploadRepository {
+    final override = driverDocumentUploadRepositoryOverride;
+    if (override != null) return override;
+    if (!BackendBootstrap.status.isConfigured) {
+      return const NotConfiguredDriverDocumentUploadRepository();
+    }
+    return FirebaseDriverDocumentUploadRepository();
   }
 
   static PaymentProvider get paymentProvider {

@@ -1060,3 +1060,55 @@ aucune preuve de coût réel excessif n'a été mesurée (émulateur uniquement)
 information de veille pour une décision produit future si le volume dépasse largement le cadre MVP.
 
 **BLOC T2 : ✅ FERMÉ** — P0=0, P1=0, P2=0.
+
+## MISE À JOUR — Bloc U, U-0 (dead upload button chauffeur) — EN COURS
+
+**BUG-U-01 — P1, CORRIGÉ.**
+
+- **Repro** : `driver_onboarding_screen.dart`, étapes "Véhicule" et "Documents" — 3 boutons
+  (`vehicle_photos`, `upload_license`, `upload_insurance`) avaient `onPressed: () {}`. `canProceed(3)`
+  ne vérifiait aucun document : un chauffeur pouvait atteindre `pending_review` sans jamais fournir
+  permis/assurance/photo véhicule.
+- **Cause** : aucun repository d'upload binaire Storage n'existait pour les documents chauffeur
+  (contrairement à `ProofUploadRepository` pour la preuve de livraison) — `submitDriverDocument`
+  n'écrit que les métadonnées Firestore, jamais le fichier lui-même. Vérification exhaustive
+  (`driver_status_screen.dart`) : aucune autre voie fonctionnelle d'upload n'existe ailleurs dans
+  l'app → classé P1 (contrôle présenté comme upload, inerte, faussant le parcours d'inscription).
+- **Fix** :
+  - Nouveau `DriverDocumentUploadRepository` (+ `FirebaseDriverDocumentUploadRepository` +
+    `NotConfiguredDriverDocumentUploadRepository`), même pattern exact que `ProofUploadRepository`,
+    ciblant le chemin Storage déjà spécifié par `storage.rules` (Bloc P, non modifié) :
+    `driver_documents/{driverId}/{fileName}`. Enregistré dans `BackendLocator` avec le même seam de
+    test (`driverDocumentUploadRepositoryOverride`).
+  - Les 3 boutons ouvrent maintenant une sélection réelle (`ImagePicker`, seul mécanisme déjà
+    abstrait dans le repo — caméra ou galerie via bottom sheet), avec état visuel du fichier
+    sélectionné (nom affiché, remplaçable).
+  - **Décision d'architecture** : le compte Firebase Auth + le custom claim `driver` (requis par
+    `storage.rules` pour écrire sous `driver_documents/{driverId}/...`) ne sont créés/rafraîchis
+    qu'à la soumission finale du wizard (`_handleSubmit`). Les boutons du wizard ne font donc
+    QUE une sélection locale (bytes en mémoire) ; l'upload Storage réel + l'écriture des métadonnées
+    (`submitDriverDocument`, déjà existant) ont lieu dans `_handleSubmit()`, juste après
+    `refreshClaims()` et avant `submitForReview()` — jamais avant que le claim ne soit visible.
+  - `canProceed(3)` exige maintenant permis ET assurance réellement sélectionnés (photo véhicule
+    reste optionnelle, étape "Véhicule"). Échec d'upload → `_submitError` affiché, aucune
+    transition vers `pending_review`, fichiers déjà sélectionnés conservés (retry sans tout
+    re-choisir). Aucune nouvelle architecture parallèle : réutilisation stricte du repository
+    Storage (nouveau, mais même pattern), des chemins/règles Storage existants (Bloc P) et du
+    modèle `DriverDocument` existant.
+- **Cas mécanicien (`mechanic_onboarding_screen.dart`)** : investigation confirme que ce module
+  reste actuellement backé par `AuthProvider`/Hive (`signInOrRegister`, `StorageService.mechanicBox`)
+  et non par Firebase — aucun `MechanicRepository` Firebase, aucune règle Storage/Firestore dédiée
+  au mécanicien n'existe dans le repo. Le fix des 3 boutons dead (`certifications`, `upload_id`,
+  `upload_liability_insurance`) pour ce module est **DIFFÉRÉ** dans ce même mouvement (traité comme
+  un point séparé, non résolu ici) : appliquer le même correctif nécessiterait de construire un
+  backend Firebase mécanicien complet, ce qui excède le périmètre de U-0 et constituerait une
+  décision produit majeure (statut MVP du module mécanicien) qui n'appartient pas à l'agent.
+  À trancher explicitement par le fondateur avant de soit brancher soit désactiver ces boutons.
+- **Tests** : test de régression widget créé puis retiré de ce commit après instabilité de layout
+  (timeouts `pumpAndSettle` liés à la taille du viewport de test) — **À REFAIRE** avant fermeture
+  définitive de U (voir tâches restantes ci-dessous). Le test pré-existant
+  `driver_onboarding_step0_rebuild_test.dart` reste PASS (aucune régression introduite).
+
+**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur) corrigé et vérifié par `flutter analyze`
+(0 erreur). Tests de régression U-0 à finaliser. Décision mécanicien documentée mais non exécutée.
+U-1 à U-6 non traités dans ce mouvement.
