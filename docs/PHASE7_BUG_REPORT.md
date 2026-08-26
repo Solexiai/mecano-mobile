@@ -1048,3 +1048,15 @@ Les 2 `.limit()` P2 déjà documentés (Bloc M/N, `watchNotifications`/`watchDri
 restent DEFERRED — aucune preuve nouvelle ce bloc ne justifie un fix.
 
 **BLOC T : ✅ FERMÉ** — P0=0, P1=0, P2=0 nouveau (2 P2 pré-existants réaffirmés DEFERRED).
+
+## MISE À JOUR — Bloc T2 (Firebase Cost Profile)
+
+Aucun bug trouvé — bloc d'estimation/documentation, pas de correction de code. Constat notable
+(non-bloquant, informatif) : le tracking GPS (`recordTrackingPoint`, appelé toutes les 8s pendant
+un trajet actif) représente ~90-95% du volume total de writes Firestore à toutes les échelles
+pilote testées (10/100/1000 missions/jour). Ce n'est PAS classé comme un bug ni un GAP — la
+rétention automatique (`cleanupExpiredTrackingHistory`, 30 jours) est déjà en place (Bloc N-7), et
+aucune preuve de coût réel excessif n'a été mesurée (émulateur uniquement). Documenté comme
+information de veille pour une décision produit future si le volume dépasse largement le cadre MVP.
+
+**BLOC T2 : ✅ FERMÉ** — P0=0, P1=0, P2=0.

@@ -1119,3 +1119,125 @@ charge à l'échelle production) sur les chemins exposés à la concurrence/volu
 | P0/P1 | 0 trouvé |
 
 **P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC T : ✅ FERMÉ.**
+
+---
+
+## BLOC T2 — FIREBASE COST PROFILE
+
+**Objectif** : identifier les gros multiplicateurs de consommation Firebase pendant un pilote
+(reads, writes, Storage, Functions, GPS/history, notifications). **Ceci n'est PAS un modèle
+financier précis** — ce sont des ordres de grandeur destinés à orienter les priorités techniques
+(ex: si le GPS s'avère être le principal driver de writes, c'est là qu'il faut surveiller/optimiser
+en premier, pas ailleurs).
+
+### T2-1 — Une mission complète (parcours de bout en bout)
+
+| Étape | Fonction/chemin | Firestore reads (approx.) | Firestore writes (approx.) | Cloud Functions invoquées | Storage |
+|---|---|---|---|---|---|
+| Devis | `calculateDeliveryQuote` | 1 (pricing_version actif) | 1 (`delivery_quotes`) | 1 | — |
+| Recherche chauffeur | `onMissionCreatedDispatch` (trigger) + `dispatchMissionToDrivers` | 1 requête bornée `.limit(50)` (`driver_profiles` géohash) | 1-N (`delivery_offers`, 1 par chauffeur candidat notifié) + 1 (mission→statut) | 1 (trigger) | — |
+| Création mission | `createDeliveryRequest` | 1 (quote) | 3-4 (mission + 2 stops + 1 tracking_event) + 1 (quote update) | 1 | — |
+| Acceptation | `acceptDelivery` | 3-4 (driver_profile, mission, pricing_version, payment_profile) | ~6-7 en transaction (mission, driver_profile, financial_snapshot, payment, tracking_event, audit_log) + trigger notification (1 write) | 1 (+ 1 trigger notif) | — |
+| Pickup | `completePickup` | 2-3 (mission, driver_profile) | ~4 (mission, tracking_event, proof metadata si applicable) + trigger notif | 1 (+ 1 trigger notif) | 1 upload si preuve pickup activée |
+| Transit (statuts intermédiaires) | `updateMissionTrackingStatus` × 2-3 (driver_to_pickup, arrived_at_pickup, in_transit, arrived_at_dropoff) | 1-2 par appel | 1-2 par appel + trigger notif à chaque fois | 1 par appel (+1 trigger notif chacun) | — |
+| GPS pendant tout le trajet | `recordTrackingPoint` | 1 par appel (driver_profile) | 1-2 par appel (position courante + 1 point d'historique SI mission active) | 1 par appel — **voir T2-2, le plus fréquent de tous** | — |
+| Livraison + preuve | `completeDelivery` | 3-4 (mission, driver_profile, financial_snapshot) | ~6-7 en transaction (mission, financial_snapshot confirmed, ledger, payment capture, tracking_event) + trigger notif | 1 (+ capture paiement interne + 1 trigger notif) | 1 upload (photo preuve livraison, `delivery_proofs/{missionId}/...`) |
+| Notification finale | trigger `onMissionStatusChangeNotifyCustomer` | — | 1 document par transition (déjà compté ci-dessus) | inclus | — |
+| Finance (payout ultérieur) | `calculateDriverPayout` (batch, pas par mission) | N snapshots éligibles | 1 `driver_payouts` par cycle (regroupe plusieurs missions) | 1 par cycle planifié, pas par mission | — |
+
+**Estimation par mission complète (hors GPS, hors payout groupé)** : environ **15-20 reads**,
+**20-25 writes**, **8-10 invocations de Cloud Functions** (dont ~5 triggers Firestore
+automatiques). Précision explicitement approximative — dépend du nombre de chauffeurs candidats
+notifiés et du nombre de transitions de statut réellement empruntées.
+
+### T2-2 — GPS (PRIORITÉ — principal driver de writes suspecté)
+
+- Fréquence client : **1 appel `recordTrackingPoint` toutes les 8 secondes** pendant qu'une mission
+  est active (`lib/services/driver_location_reporter.dart`, `Duration(seconds: 8)`), donc **~7.5
+  appels/minute**.
+- Chaque appel = **1 write systématique** (position courante `driver_locations/{driverId}`, merge)
+  **+ 1 write conditionnel** dans `history` UNIQUEMENT si `active_delivery_id` pointe vers une
+  mission réelle du bon chauffeur (protection anti-pollution déjà en place, voir Bloc R/N).
+- Pour une mission de durée moyenne pilote **~20 minutes de trajet actif** (pickup → dropoff) :
+  **~150 appels** → **~150 writes position + ~150 writes historique** = **~300 writes GPS par
+  mission**, très largement supérieur aux ~20-25 writes du reste du cycle de vie de la mission
+  (T2-1). **Confirmé : le GPS/history est bien le principal multiplicateur de writes du système.**
+- Rétention automatique : `cleanupExpiredTrackingHistory` (cron quotidien, 30 jours) purge
+  l'historique — sans ce nettoyage (déjà en place, voir Bloc N-7), la collection `history`
+  croîtrait indéfiniment. Avec le nettoyage, le volume stocké est plafonné à ~30 jours d'historique
+  actif, pas cumulatif à l'infini.
+- **Classification impact : ÉLEVÉ** (writes) — mais fréquence produit (8s) volontairement NON
+  modifiée ici (aucune preuve qu'elle soit "dangereusement coûteuse" pour un volume pilote,
+  seulement qu'elle domine structurellement le compte de writes ; changer une fréquence produit
+  sans décision produit explicite serait hors du cadre de ce bloc).
+
+### T2-3 — Listeners (reads en continu)
+
+| Listener | Portée | Reads déclenchés | Mémoïsation (Bloc M) |
+|---|---|---|---|
+| Missions disponibles (chauffeur) | `whereIn` batché par 30, stream mémoïsé | 1 batch de reads par changement de disponibilité, pas par frame | ✅ `_ensureStreams()` mémoïsé (Bloc M) |
+| Notifications (`watchNotifications`) | 1 stream par utilisateur connecté, sans `.limit()` | Proportionnel au nombre total de notifications non purgées de l'utilisateur | ⚠️ P2 DEFERRED (volume MVP faible, sous-collection par user) |
+| Driver profile (dashboard/statut) | Stream mémoïsé par `driverId`/`uid` (Bloc M, ex-GAP corrigé) | 1 read par changement de document, pas de duplication de listener | ✅ Corrigé Bloc M |
+| Tracking (client suit son colis) | 1 stream sur `driver_locations/{driverId}` pendant la mission active du client | 1 read par write GPS (~1 toutes les 8s pendant le trajet, cf T2-2) — **directement proportionnel à la fréquence GPS** | Structurel (document unique par chauffeur) |
+| Admin listes (drivers/finance) | Non-lazy, mais toutes `.limit()`-bornées côté finance (17 requêtes) | Reads plafonnés par page | ⚠️ 2 exceptions P2 DEFERRED (`watchDriversByStatus`, admin-only, volume MVP faible) |
+
+**Conclusion T2-3** : le listener de tracking client est le plus actif en reads pendant une mission
+(hérite directement de la fréquence GPS de T2-2). Toutes les mémoïsations Bloc M sont confirmées
+toujours en place (aucune régression détectée pendant T).
+
+### T2-4 — Storage
+
+| Type | Moment | Volume initial estimé | Trafic/téléchargement |
+|---|---|---|---|
+| Documents chauffeur (`driver_documents/{driverId}/...`) | Une fois à l'onboarding (+ re-upload si rejeté/expiré) | Quelques fichiers (permis, assurance, etc.) par chauffeur, une seule fois | Faible — relu principalement par review admin |
+| Photo véhicule (`profile_photos` / véhicule) | Une fois à l'onboarding | 1 photo par véhicule | Faible — affichage occasionnel |
+| Preuve de livraison (`delivery_proofs/{missionId}/...`) | **À CHAQUE mission complétée** | 1 photo par mission — **proportionnel au volume de missions, pas un coût fixe** | Modéré — consultée en cas de litige/dispute, sinon rarement retéléchargée |
+
+**Conclusion T2-4** : le stockage initial (onboarding chauffeur) est un coût fixe ponctuel par
+chauffeur (faible volume total). La preuve de livraison est le seul poste Storage qui **grandit
+avec le volume de missions** — reste un coût mineur comparé aux writes GPS (une photo par mission
+vs. ~150 writes GPS par mission).
+
+### T2-5 — Functions (profil d'invocation)
+
+| Fréquence | Functions concernées |
+|---|---|
+| **ÉLEVÉ** (proportionnel au temps de trajet, pas au nombre de missions) | `recordTrackingPoint` (~7.5 appels/minute pendant un trajet actif — de très loin la Function la plus invoquée) |
+| **MOYEN** (une fois par mission, ou quelques fois) | `calculateDeliveryQuote`, `createDeliveryRequest`, `acceptDelivery`, `completePickup`, `completeDelivery`, `updateMissionTrackingStatus` (×2-4), triggers `onMissionStatusChangeNotifyCustomer`/`onMissionEndedClearTracking` |
+| **FAIBLE** (batch/planifié, indépendant du volume de missions) | `calculateDriverPayout`/`processScheduledDriverPayouts` (cycle périodique groupant plusieurs missions), `cleanupExpiredTrackingHistory` (cron quotidien unique), `runDailyReconciliation` (cron quotidien unique), `detectExpiringDocuments`/`transitionFoundingDriverPeriods`/`expireDriverPromotions` (cron, admin-scale) |
+| **RARE** (actions admin ponctuelles) | `approveDriver`, `rejectDriver`, `suspendDriver`, `refundPayment`, `updateDisputeStatus`, `updatePricingConfiguration`, etc. |
+
+**Conclusion T2-5** : sans tarif Firebase codé dans ce projet, impossible de chiffrer un coût exact
+— mais le classement ÉLEVÉ/MOYEN/FAIBLE ci-dessus identifie clairement `recordTrackingPoint` comme
+la Function dominante en nombre d'invocations, cohérent avec T2-2/T2-3.
+
+### T2-6 — Scénarios pilote (ordres de grandeur, PAS une facture officielle)
+
+Hypothèses : mission moyenne = ~20 min de trajet actif (~150 appels GPS), ~20-25 writes hors GPS,
+~15-20 reads hors GPS/tracking, 1 preuve de livraison par mission.
+
+| Volume | Missions/jour | Writes GPS/jour (approx.) | Writes hors-GPS/jour (approx.) | Reads/jour (approx., hors listeners tracking) | Uploads Storage/jour |
+|---|---|---|---|---|---|
+| **10 missions/jour** | 10 | ~3 000 (10 × ~300) | ~200-250 | ~150-200 | ~10-20 (preuve + occasionnels onboarding) |
+| **100 missions/jour** | 100 | ~30 000 | ~2 000-2 500 | ~1 500-2 000 | ~100-200 |
+| **1 000 missions/jour** | 1 000 | ~300 000 | ~20 000-25 000 | ~15 000-20 000 | ~1 000-2 000 |
+
+**Lecture** : à TOUTES les échelles testées, les writes GPS représentent environ **90-95% du
+volume total de writes Firestore**. C'est le seul poste qui mérite une vigilance particulière si le
+volume de missions dépasse largement 1 000/jour (hors scope MVP actuel) — pas une urgence pour un
+pilote, mais le principal levier d'optimisation future identifié (ex: réduire la fréquence GPS ou
+ne pas persister l'historique complet si un jour le coût devient un problème réel mesuré, PAS une
+anticipation spéculative ce tour).
+
+### DONE T2
+
+| Critère | Statut |
+|---|---|
+| Principaux cost drivers connus | ✅ GPS (`recordTrackingPoint`, ~90-95% des writes) identifié comme dominant |
+| GPS analysé | ✅ T2-2 (fréquence, volume par mission, rétention déjà automatisée) |
+| Reads/writes mission estimés | ✅ T2-1 (tableau détaillé par étape du cycle de vie) |
+| Storage estimé | ✅ T2-4 (coût fixe onboarding vs. coût proportionnel preuve de livraison) |
+| Scénarios pilote documentés | ✅ T2-6 (10/100/1000 missions par jour) |
+| Aucun P0/P1 coût/performance ignoré | ✅ — les 2 P2 `.limit()` connus (Bloc M/N) sont des GAPS de performance déjà documentés, pas des GAPS de coût nouveaux |
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC T2 : ✅ FERMÉ.**

@@ -1324,3 +1324,22 @@ T-6 (admin) confirmés COUVERT par construction/tests existants sans modificatio
 un fix. Suite d'intégration complète re-exécutée après ajout : **522/522 PASS** (36 suites).
 
 **BLOC T : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC T2 (Firebase Cost Profile)
+
+Estimation (ordres de grandeur, pas un modèle financier précis) des principaux cost drivers Firebase
+pendant un pilote. Parcours complet d'une mission modélisé étape par étape (T2-1, ~15-20 reads /
+~20-25 writes / 8-10 invocations Functions hors GPS). **GPS confirmé comme principal multiplicateur
+de writes** : `recordTrackingPoint` appelé toutes les 8s pendant un trajet actif
+(`lib/services/driver_location_reporter.dart`) → ~150 appels pour une mission de 20 min → ~300
+writes GPS/mission, soit ~90-95% du volume total de writes à toutes les échelles testées (T2-2,
+T2-6). Listeners (T2-3) : toutes les mémoïsations Bloc M reconfirmées en place, seul le listener de
+tracking client hérite directement de la fréquence GPS. Storage (T2-4) : coût fixe onboarding
+chauffeur vs. coût proportionnel au volume de missions pour la preuve de livraison (mineur comparé
+au GPS). Functions (T2-5) : profil ÉLEVÉ/MOYEN/FAIBLE/RARE établi sans prétendre à un tarif exact.
+3 scénarios pilote modélisés (10/100/1000 missions/jour, T2-6). Aucune fréquence produit modifiée
+sans décision explicite (le taux GPS 8s n'a pas été changé, seulement documenté comme le principal
+levier d'optimisation future si besoin réel mesuré). Voir `docs/PHASE7_QA_MATRIX.md` pour le détail
+complet.
+
+**BLOC T2 : ✅ FERMÉ.**
