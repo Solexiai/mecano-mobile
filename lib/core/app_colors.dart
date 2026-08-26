@@ -35,6 +35,19 @@ class AppColors {
   static const Color error = Color(0xFFE0473C);
   static const Color info = Color(0xFF3B82F6);
 
+  // Bloc L (Accessibilité MVP, L-6) : `warning` (0xF59E0B) donne un
+  // contraste de ~2.15:1 sur fond blanc/clair — sous le seuil WCAG AA
+  // (4.5:1 texte normal) et même sous le seuil "large text"/icône (3:1).
+  // `warningText` (ambre plus foncé) est réservé aux endroits où la
+  // couleur "warning" est utilisée comme couleur de TEXTE lisible (pas
+  // un simple badge/pastille décoratif) — contraste ~5.0:1 sur blanc,
+  // ~4.7:1 sur `background`. Les badges/pastilles décoratifs existants
+  // (StatusBadge, ComingSoonBadge, etc.) restent inchangés : ils affichent
+  // un texte COURT (statut/label) toujours accompagné d'un intitulé
+  // explicite ailleurs dans l'écran, donc non bloquants MVP (voir
+  // PHASE7_BUG_REPORT.md, DEFERRED NON-BLOCKING P2/P3).
+  static const Color warningText = Color(0xFFB45309);
+
   // Gradients
   static const LinearGradient heroGradient = LinearGradient(
     begin: Alignment.topLeft,

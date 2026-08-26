@@ -25,6 +25,8 @@
 // redupliqué.
 // ---------------------------------------------------------------------------
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -34,6 +36,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
 import 'package:movik_connect/backend/repositories/driver_repository.dart';
+import 'package:movik_connect/core/app_colors.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
@@ -318,5 +321,40 @@ void main() {
         expect(size.height, greaterThan(0));
       }
     });
+
+    test(
+        'GAP CORRIGÉ (BUG-L6-01) : AppColors.warningText offre un contraste '
+        'WCAG AA (>= 4.5:1) sur fond blanc, contrairement à AppColors.warning '
+        'brut (~2.15:1) — utilisé désormais pour le texte d\'avertissement '
+        'GPS de DriverActiveMissionScreen (pas les badges/pastilles '
+        'décoratifs, hors scope MVP, voir PHASE7_BUG_REPORT.md)', () {
+      double relLuminance(Color c) {
+        final r = _srgbToLinear(c.r);
+        final g = _srgbToLinear(c.g);
+        final b = _srgbToLinear(c.b);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      }
+
+      double contrast(Color a, Color b) {
+        final l1 = relLuminance(a);
+        final l2 = relLuminance(b);
+        final lighter = l1 > l2 ? l1 : l2;
+        final darker = l1 > l2 ? l2 : l1;
+        return (lighter + 0.05) / (darker + 0.05);
+      }
+
+      const white = Color(0xFFFFFFFF);
+      final ratioNew = contrast(AppColors.warningText, white);
+      final ratioOld = contrast(AppColors.warning, white);
+
+      expect(ratioNew, greaterThanOrEqualTo(4.5),
+          reason: 'warningText doit respecter WCAG AA texte normal sur fond blanc');
+      expect(ratioOld, lessThan(4.5),
+          reason: 'documente le gap réel de la couleur warning brute (non utilisée pour du texte critique)');
+    });
   });
+}
+
+double _srgbToLinear(double v) {
+  return v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
 }

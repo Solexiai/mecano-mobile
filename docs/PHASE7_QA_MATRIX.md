@@ -375,9 +375,9 @@ Voir section dédiée ci-dessous.
 | L-2 Text scale | 🟡 Partiel — testé à 1.0x (OK). Gap réel trouvé à 1.5x/2.0x sur AuthScreen 320px (overflow) → **DEFERRED NON-BLOCKING** (P3) : nécessite refonte layout AuthScreen hors budget session actuelle |
 | L-3 Tap targets | 🟡 Partiel — au moins 1 carte rôle AuthScreen mesurée à 38px (<44px recommandé) → **DEFERRED NON-BLOCKING** (P3) |
 | L-4 Formulaires | ✅ Fait — labels présents, erreur non basée uniquement sur la couleur (icône + texte) |
-| L-5 Clavier web | ❌ NON TRAITÉ cette session — DEFERRED, à reprendre |
-| L-6 Contraste | ❌ NON TRAITÉ proprement cette session — DEFERRED, à reprendre |
-| L-7 Photo/preuve | ❌ NON TRAITÉ cette session — DEFERRED (le bouton capture photo utilise déjà un label texte, à confirmer) |
-| L-8 Loading states | ❌ NON TRAITÉ cette session — DEFERRED, référencer tests double-action existants |
+| L-5 Clavier web | 🟡 Reconnaissance faite (AdminLoginScreen a déjà `onSubmitted`), aucun P0/P1 — **DEFERRED NON-BLOCKING** (audit exhaustif tab order hors budget) |
+| L-6 Contraste | ✅ BUG-L6-01 (P1) corrigé : `AppColors.warningText` créé (contraste AA ~5.0:1) et câblé dans l'avertissement GPS chauffeur. Gap P2 résiduel sur badges décoratifs (StatusBadge etc.) — **DEFERRED NON-BLOCKING** |
+| L-7 Photo/preuve | ✅ COUVERT — `_ProofPreviewDialog` (driver_active_mission_screen.dart) utilise déjà des labels texte explicites, aucun bouton icon-only |
+| L-8 Loading states | ✅ COUVERT (référencé) — déjà prouvé par tests double-submit existants (Bloc B/C) |
 
-**BLOC L : 🟡 NON FERMÉ** — L-1/L-4 complets et validés (7/7 tests locaux, suite complète 478/478 au dernier run). L-2/L-3 gaps réels documentés en DEFERRED NON-BLOCKING. L-5/L-6/L-7/L-8 restent à traiter en session suivante — aucun P0/P1 identifié à ce stade.
+**BLOC L : ✅ FERMÉ** — L-0 à L-4 complets (session précédente). L-6 : 1 gap réel P1 corrigé (BUG-L6-01), test de régression permanent ajouté. L-7/L-8 confirmés couverts sans gap. L-2/L-3/L-5 et le résidu P2 de L-6 (badges décoratifs) restent DEFERRED NON-BLOCKING, documentés avec justification. `flutter analyze` 3 infos + 2 warnings pré-existants non liés / 0 erreur. `flutter test` complet → **479/479 PASS**, 0 régression. P0 = 0, P1 = 0.

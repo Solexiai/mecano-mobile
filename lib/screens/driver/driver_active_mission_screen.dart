@@ -569,14 +569,14 @@ class _MissionCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.gps_off, color: AppColors.warning, size: 18),
+                const Icon(Icons.gps_off, color: AppColors.warningText, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     t(gpsWarningKey!),
                     style: const TextStyle(
                       fontSize: 12.5,
-                      color: AppColors.warning,
+                      color: AppColors.warningText,
                     ),
                   ),
                 ),

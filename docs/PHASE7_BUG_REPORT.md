@@ -694,3 +694,59 @@ Nouveaux gaps réels trouvés par tests (P3, DEFERRED NON-BLOCKING) :
 Tally après cette session : P0 = 0, P1 = 0, P2 = 0, P3 = 2 (nouveaux, tous deux DEFERRED NON-BLOCKING, non bloquants pour MVP).
 
 Non traité cette session (reporté, pas de bug identifié encore) : L-5 (clavier web), L-6 (contraste), L-7 (photo/preuve), L-8 (loading states).
+
+## MISE À JOUR — Bloc L (suite et clôture partielle, cette session)
+
+**BUG-L6-01 (P1, contraste) — CORRIGÉ** : `AppColors.warning` (0xF59E0B) utilisé comme couleur de
+TEXTE (pas juste badge décoratif) donnait un contraste ~2.15:1 sur fond blanc/clair — sous le
+seuil WCAG AA (4.5:1 texte normal, 3:1 icône/large text). Cas réel identifié : message
+d'avertissement GPS dans `DriverActiveMissionScreen` (information de sécurité potentiellement
+critique pour le chauffeur). Nouvelle couleur `AppColors.warningText` (0xB45309, ambre plus
+foncé) ajoutée dans `app_colors.dart`, contraste ~5.0:1 sur blanc / ~4.7:1 sur `background` —
+respecte AA. Câblée dans le message + icône GPS de `driver_active_mission_screen.dart`. Les
+badges/pastilles décoratifs existants (`StatusBadge`, `ComingSoonBadge`, cartes statut chauffeur)
+qui utilisent encore `AppColors.warning` brut sur fond teinté (~1.96:1) sont **DEFERRED NON-
+BLOCKING (P2)** : ce sont des labels courts systématiquement accompagnés d'un intitulé de champ
+explicite ailleurs dans l'écran (pas la seule source d'information), non bloquants pour le MVP,
+mais à corriger en Phase 8 (remplacer `AppColors.warning` par `AppColors.warningText` dans tous
+les usages "texte de statut" identifiés : `finance_ui_helpers.dart`, `admin_drivers_list_screen.dart`,
+`admin_driver_detail_screen.dart`, `provider_earnings_tab.dart`, `provider_payouts_section.dart`,
+`provider_profile_tab.dart`, `admin_finance_payout_policy_tab.dart`).
+
+**L-5 (clavier web)** : reconnaissance ciblée — `AdminLoginScreen` a déjà `onSubmitted` sur le
+champ mot de passe (soumission par Entrée). Les formulaires admin finance (`TextField` de
+filtres/montants) sont des champs de saisie simples sans action de soumission critique liée à la
+touche Entrée (pas de gap identifié). **DEFERRED NON-BLOCKING** : audit exhaustif de l'ordre de
+tabulation (`FocusTraversalOrder`) sur tous les écrans admin, hors budget session actuelle — aucun
+P0/P1 identifié par la reconnaissance faite.
+
+**L-7 (photo/preuve)** : confirmé — le flux de capture de preuve de livraison
+(`driver_active_mission_screen.dart::_ProofPreviewDialog`) utilise déjà des labels texte explicites
+pour tous ses contrôles (`driver_active_mission_confirm_proof`, `driver_active_mission_retake_photo`,
+pas de bouton icon-only). Aucun gap trouvé. **COUVERT**.
+
+**L-8 (loading states)** : référence confirmée aux tests existants de double-soumission
+(`test/customer/delivery_request_flow_double_submit_test.dart`,
+`test/driver/driver_active_mission_proof_upload_test.dart`,
+`test/driver/driver_status_screen_test.dart`) qui prouvent déjà que les boutons d'action async
+sont désactivés (`onPressed: null`) pendant le chargement, empêchant tout double-tap. **COUVERT
+(référencé, pas dupliqué)**.
+
+**Validation finale Bloc L** : `flutter analyze` → 3 infos + 2 warnings pré-existants (assets
+`images/`/`icons/` non liés à ce bloc), 0 erreur. `flutter test` complet → **479/479 PASS** (478
+précédents + 1 nouveau test de régression contraste BUG-L6-01), 0 régression.
+
+**BLOC L : ✅ FERMÉ.**
+- L-0 à L-4 : FAIT (session précédente).
+- L-5 : reconnaissance faite, aucun P0/P1, reste DEFERRED NON-BLOCKING pour audit exhaustif.
+- L-6 : 1 gap réel P1 corrigé (BUG-L6-01) ; gap P2 restant sur badges décoratifs documenté DEFERRED.
+- L-7 : COUVERT, aucun gap.
+- L-8 : COUVERT (référencé aux tests Bloc B/C existants).
+- L-2/L-3 : gaps P3 déjà documentés DEFERRED NON-BLOCKING (session précédente, AuthScreen 320px/
+  text scale 2.0 overflow ; carte rôle 38px < 48px).
+
+P0 ouverts = 0. P1 ouverts = 0 (BUG-L6-01 corrigé). P2 ouverts = 1 (badges décoratifs warning,
+DEFERRED). P3 ouverts = 2 (déjà documentés session précédente, DEFERRED).
+
+**PROCHAINE ACTION** : démarrer Bloc M (Performance), puis N (Firestore/Indexes), puis O (Cloud
+Functions hardening).

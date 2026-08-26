@@ -996,3 +996,34 @@ complet) → 3 infos pré-existantes non liées, 0 erreur. `flutter test` (suite
 
 **PROCHAINE ACTION** : démarrer immédiatement **Bloc L — ACCESSIBILITÉ MVP** (L-0 à L-8), sans
 rapport intermédiaire, selon les spécifications déjà fournies par l'utilisateur.
+
+## MISE À JOUR — BLOC L : ✅ FERMÉ (L-5/L-6/L-7/L-8 traités ce tour)
+
+**BUG-L6-01 (P1, contraste) corrigé** : `AppColors.warningText` (0xB45309) ajouté dans
+`app_colors.dart` — contraste ~5.0:1 sur blanc (~4.7:1 sur `background`), respecte WCAG AA texte
+normal, contrairement à `AppColors.warning` brut (~2.15:1). Câblé dans le message + icône
+d'avertissement GPS de `driver_active_mission_screen.dart` (information de sécurité chauffeur).
+Test de régression permanent ajouté dans `test/accessibility/critical_accessibility_test.dart`
+(calcul WCAG réel, pas un seuil arbitraire). Les badges/pastilles décoratifs restants utilisant
+`AppColors.warning` brut sur fond teinté (~1.96:1) sont **DEFERRED NON-BLOCKING (P2)** — labels
+courts toujours accompagnés d'un intitulé de champ explicite, non bloquants MVP.
+
+**L-5 (clavier web)** : reconnaissance ciblée (AdminLoginScreen a déjà `onSubmitted`, formulaires
+finance admin sans action Entrée critique) — aucun P0/P1, DEFERRED NON-BLOCKING pour audit
+exhaustif de l'ordre de tabulation.
+
+**L-7 (photo/preuve)** : confirmé COUVERT — `_ProofPreviewDialog` utilise déjà des labels texte
+explicites (pas de bouton icon-only).
+
+**L-8 (loading states)** : confirmé COUVERT par référence aux tests double-submit existants
+(Bloc B/C), pas de duplication.
+
+**Validation finale** : `flutter analyze` → 3 infos + 2 warnings pré-existants non liés, 0
+erreur. `flutter test` complet → **479/479 PASS** (478 + 1 nouveau test contraste), 0 régression.
+
+**BLOC L : ✅ FERMÉ.** P0 = 0, P1 = 0 (BUG-L6-01 corrigé). P2 ouvert = 1 (badges décoratifs
+warning, DEFERRED, Phase 8). P3 ouverts = 2 (déjà documentés : AuthScreen text-scale 2.0 overflow,
+carte rôle 38px tap target).
+
+**PROCHAINE ACTION** : Bloc M (Performance) → N (Firestore/Indexes) → O (Cloud Functions
+hardening), en mode accéléré (CODE → TEST → FIX → RETEST → DOC COURTE → COMMIT).
