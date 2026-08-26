@@ -1237,4 +1237,26 @@ sur le mode "Monitor" natif Firebase pour un rollout progressif Phase 8.
 Aucune fausse déclaration : App Check production n'est PAS activé, documenté explicitement
 comme tel.
 
-**PROCHAINE ACTION : validation finale groupée P→Q→Q2, puis rapport unique.**
+## VALIDATION FINALE GROUPÉE P → Q → Q2
+
+Exécutée une seule fois après fermeture des 3 blocs (aucune ré-exécution redondante) :
+
+- `npx tsc --noEmit` (functions) → **0 erreur**.
+- `npm run lint` (functions) → **0 erreur**.
+- Jest unit (functions) → **109/109 PASS**.
+- Jest integration complet (émulateur Firestore/Auth/Storage, `firebase emulators:exec --only
+  firestore,auth,storage`) → **35 suites / 518 tests PASS** (512 précédents Bloc N + 6 nouvelles
+  assertions Storage Bloc P), 0 régression.
+- `flutter analyze` (scope `lib test`, excluant le bruit non pertinent d'un template Dart vendored
+  dans `functions/node_modules/firebase-tools/...` qui n'appartient pas à l'app) → **3 infos
+  pré-existantes non liées** (Radio deprecated x2, doc-comment HTML x1 — identiques à la baseline
+  Bloc M), **0 erreur nouvelle**. Note : la première exécution a auto-régénéré un bloc
+  `analyzer.exclude` standard (build/android/ios/web/windows/macos/linux) dans
+  `analysis_options.yaml` — modification cosmétique de l'outil, committée avec cette validation.
+- `flutter test` (suite complète) → **480/480 PASS**, 0 régression (mêmes bruits réseau
+  OpenStreetMap tiles déjà connus et sans impact sur le résultat des tests, comme en Bloc M/K2).
+
+**Aucune régression sur l'ensemble P→Q→Q2. HEAD == origin/main après commit+push final,
+working tree clean.**
+
+**PROCHAINE ACTION : rapport unique, puis prochain groupe R → R2 → S.**
