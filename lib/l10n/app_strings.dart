@@ -447,6 +447,18 @@ class AppStrings {
       'en': 'Quantity',
       'es': 'Cantidad',
     },
+    // Bloc L (L-1) : labels accessibles pour les boutons +/- icon-only de
+    // quantité (aucun texte visible sinon, nécessaire pour lecteur d'écran).
+    'delivery_item_quantity_decrease': {
+      'fr': 'Diminuer la quantité',
+      'en': 'Decrease quantity',
+      'es': 'Disminuir cantidad',
+    },
+    'delivery_item_quantity_increase': {
+      'fr': 'Augmenter la quantité',
+      'en': 'Increase quantity',
+      'es': 'Aumentar cantidad',
+    },
     'delivery_item_stairs': {
       'fr': 'Escaliers, ascenseur ou manutention spéciale',
       'en': 'Stairs, elevator or special handling',

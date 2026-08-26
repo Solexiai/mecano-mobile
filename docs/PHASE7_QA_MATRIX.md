@@ -365,3 +365,19 @@ P0 ouverts = 0. P1 ouverts = 0.
 
 ## Accessibilité MVP (Bloc L)
 Voir section dédiée ci-dessous.
+
+## Bloc L — Accessibilité MVP (session en cours, PARTIEL)
+
+| Item | État |
+|---|---|
+| L-0 Reconnaissance | ✅ Fait (grep ciblé icon-only sans tooltip) |
+| L-1 Semantics critiques | ✅ Fait — 5 tooltips ajoutés (back-arrow x3, quantité +/- x2) + 3 tests (NotificationBell, ProviderDashboardShell Switch, AuthScreen role buttons) |
+| L-2 Text scale | 🟡 Partiel — testé à 1.0x (OK). Gap réel trouvé à 1.5x/2.0x sur AuthScreen 320px (overflow) → **DEFERRED NON-BLOCKING** (P3) : nécessite refonte layout AuthScreen hors budget session actuelle |
+| L-3 Tap targets | 🟡 Partiel — au moins 1 carte rôle AuthScreen mesurée à 38px (<44px recommandé) → **DEFERRED NON-BLOCKING** (P3) |
+| L-4 Formulaires | ✅ Fait — labels présents, erreur non basée uniquement sur la couleur (icône + texte) |
+| L-5 Clavier web | ❌ NON TRAITÉ cette session — DEFERRED, à reprendre |
+| L-6 Contraste | ❌ NON TRAITÉ proprement cette session — DEFERRED, à reprendre |
+| L-7 Photo/preuve | ❌ NON TRAITÉ cette session — DEFERRED (le bouton capture photo utilise déjà un label texte, à confirmer) |
+| L-8 Loading states | ❌ NON TRAITÉ cette session — DEFERRED, référencer tests double-action existants |
+
+**BLOC L : 🟡 NON FERMÉ** — L-1/L-4 complets et validés (7/7 tests locaux, suite complète 478/478 au dernier run). L-2/L-3 gaps réels documentés en DEFERRED NON-BLOCKING. L-5/L-6/L-7/L-8 restent à traiter en session suivante — aucun P0/P1 identifié à ce stade.

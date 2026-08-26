@@ -45,6 +45,7 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
             IconButton(
               onPressed: () => context.go('/$locale'),
               icon: const Icon(Icons.arrow_back),
+              tooltip: t('common_back'),
             ),
             const SizedBox(width: 4),
             Text(

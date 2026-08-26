@@ -443,9 +443,17 @@ class _Step1ItemInfo extends StatelessWidget {
             children: [
               Text(t('delivery_item_quantity'), style: const TextStyle(fontWeight: FontWeight.w600)),
               const Spacer(),
-              IconButton(onPressed: quantity > 1 ? () => onQuantityChanged(quantity - 1) : null, icon: const Icon(Icons.remove_circle_outline)),
+              IconButton(
+                onPressed: quantity > 1 ? () => onQuantityChanged(quantity - 1) : null,
+                icon: const Icon(Icons.remove_circle_outline),
+                tooltip: t('delivery_item_quantity_decrease'),
+              ),
               Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              IconButton(onPressed: () => onQuantityChanged(quantity + 1), icon: const Icon(Icons.add_circle_outline)),
+              IconButton(
+                onPressed: () => onQuantityChanged(quantity + 1),
+                icon: const Icon(Icons.add_circle_outline),
+                tooltip: t('delivery_item_quantity_increase'),
+              ),
             ],
           ),
           const Divider(height: 32),

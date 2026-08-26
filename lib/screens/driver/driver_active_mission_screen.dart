@@ -227,6 +227,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
         title: Text(t('driver_active_mission_title')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: t('common_back'),
           onPressed: () => context.canPop()
               ? context.pop()
               : context.go(

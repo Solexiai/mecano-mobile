@@ -103,6 +103,7 @@ class CustomerTrackingScreen extends StatelessWidget {
         title: Text(t('tracking_title')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+          tooltip: t('common_back'),
           onPressed: () => context.canPop()
               ? context.pop()
               : context.go('/$locale/dashboard'),

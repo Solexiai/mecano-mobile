@@ -683,3 +683,14 @@ complet → **471/471 PASS** (469 + 2 nouveaux), 0 régression.
 
 **BLOC K2 : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0. P2 ouverts = 0. P3 ouverts = 0 (le seul
 P3 identifié, connecteur codé en dur, est maintenant corrigé).
+
+## MISE À JOUR — Bloc L (session en cours, PARTIEL)
+
+Nouveaux gaps réels trouvés par tests (P3, DEFERRED NON-BLOCKING) :
+
+- **BUG-L2-01** (P3) : `AuthScreen` à 320px de largeur avec text scale 1.5x/2.0x produit un `RenderFlex overflow` réel (confirmé par `tester.takeException()`). DEFERRED NON-BLOCKING — nécessite refonte layout (scroll/flexible) hors budget session actuelle. Non bloquant : app reste utilisable à l'échelle système par défaut (1.0x).
+- **BUG-L3-01** (P3) : au moins une carte de sélection de rôle (`InkWell`) sur `AuthScreen` mesure ~38px de hauteur, sous la recommandation Android de 48x48 (ou seuil test 44px). DEFERRED NON-BLOCKING — correction simple (augmenter min-height) à planifier en session suivante, aucun impact fonctionnel bloquant identifié.
+
+Tally après cette session : P0 = 0, P1 = 0, P2 = 0, P3 = 2 (nouveaux, tous deux DEFERRED NON-BLOCKING, non bloquants pour MVP).
+
+Non traité cette session (reporté, pas de bug identifié encore) : L-5 (clavier web), L-6 (contraste), L-7 (photo/preuve), L-8 (loading states).
