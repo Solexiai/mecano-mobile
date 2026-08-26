@@ -1011,3 +1011,63 @@ vide, round-trip complet sans régression).
 | Suite complète non régressée | ✅ `flutter test` 485/485 PASS (480 + 5 nouveaux), `flutter analyze lib test` 0 erreur |
 
 **P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC R : ✅ FERMÉ.**
+
+---
+
+## BLOC R2 — MIGRATIONS
+
+**Objectif** : vérifier que les changements de schéma déjà effectués (ou plausibles) peuvent être
+déployés sans casser les comptes existants.
+
+### Matrice courte
+
+| Changement de schéma | Migration nécessaire ? | Stratégie | Test |
+|---|---|---|---|
+| `driver_payouts.amount` (float legacy) → `amount_minor` (cents entiers), commit `0cf708a` | **NON** — `calculateDriverPayout` est resté un callable admin jamais invoqué en production avant ce rewrite (aucun `driver_payouts` réel créé avec l'ancien format : vérifié absence totale de script de migration antérieur, absence de tout document `driver_payouts` dans les rapports e2e). `DriverPayoutInfo.fromJson` lit `amount_minor` avec repli `?? 0` de toute façon (déjà robuste si un doc legacy existait). | Aucune — parser défensif suffit | `calculateDriverPayout.test.ts` confirme `typeof payout.amount === 'undefined'` sur le nouveau format |
+| `audit_logs.action` renommage (`approveDriver`→`driver_approved`, etc.), commit `c0781bb` | **NON** — aucun code (Flutter ou Cloud Function) ne branche sur la valeur littérale de `action` pour une décision logique ; `action` est un champ d'affichage/traçabilité pur (`admin_driver_detail_screen.dart` l'affiche tel quel, ne compare jamais sa valeur) | Aucune | N/A (pas de logique dépendante) |
+| `audit_logs.source_function` rendu requis, commit `c0781bb` | **NON pour la lecture** — `AuditLog.fromJson` a déjà `actorRole/action ?? ''` ; un ancien log sans `source_function` reste lisible (champ simplement absent de l'affichage, pas de crash) | Aucune (déjà absorbé par le parser existant) | Couvert par la robustesse générale de `AuditLog.fromJson` |
+| `financial_snapshot`/`pricing_config`/`transaction_ledger`/`driver_location(s)` (Bloc R) | **NON** — schéma unique depuis la création de chaque collection (voir Bloc R), aucune ancienne forme différente n'a jamais existé en production | Aucune | Voir Bloc R |
+| `FoundingDriverQualification`/`ManualDriverAdjustment` (Bloc R) | **NON** — modèles jamais lus depuis un vrai document Firestore à ce jour ; durcissement fait par précaution, pas une vraie migration de données | Aucune | `backward_compatibility_r_test.dart` |
+
+### Conclusion Bloc R2
+
+**Aucun script de migration nécessaire.** Chaque changement de schéma identifié dans l'historique
+Git de ce projet a soit (a) eu lieu AVANT toute donnée réelle en production pour la collection
+concernée, soit (b) été absorbé nativement par un parser déjà défensif (`?? default`). Conforme à
+la consigne : "ne pas construire une grosse plateforme de migration si aucun script n'est
+nécessaire — documenter pourquoi." Aucun répertoire `migrations/` n'existe dans ce projet et aucun
+n'est créé ici, en cohérence avec cette conclusion.
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC R2 : ✅ FERMÉ.**
+
+---
+
+## BLOC S — MULTI-USER
+
+**Méthode** : référencer les tests de concurrence déjà existants (Phase 6/Bloc N/O) sans dupliquer,
+et documenter chaque scénario S-1 à S-7 avec son statut réel.
+
+| # | Scénario | Statut | Détail |
+|---|---|---|---|
+| S-1 | Deux chauffeurs acceptent la même mission simultanément | ✅ COUVERT | `functions/test/integration/acceptDeliveryConcurrency.test.ts` — un seul commit gagnant, l'autre `failed-precondition`, prouvé au niveau transaction Firestore réelle (pas de logique frontend arbitrant) |
+| S-2 | Client annule pendant que le chauffeur accepte/progresse | ⚠️ PARTIEL | `missionCancellationPaymentRelease.test.ts` couvre l'annulation client APRÈS assignation (libération paiement, idempotence du trigger). Le cas exact "annulation ET acceptation strictement simultanées" (race Firestore sur le même document mission) n'a pas de test dédié — risque atténué car `acceptDelivery` et `cancelDelivery` opèrent tous deux en transaction sur le même `missionRef`, donc Firestore garantit déjà l'atomicité (un des deux gagne, l'autre relit un état incompatible et échoue avec `failed-precondition`), mais ceci n'est pas prouvé par un test dédié. **Reporté Phase 8 / prochain tour** (P2, non bloquant — protection structurelle déjà en place via transaction Firestore standard du projet). |
+| S-3 | Double tap/double submit (accept/pickup/complete) | ✅ COUVERT | `completePickup.test.ts` ("déjà ramassé, appel en double" → `failed-precondition`), `completeDelivery.test.ts` ("déjà completed, double appel" → rejeté, aucune nouvelle écriture ; "financial_snapshot déjà confirmed" → immutabilité garantie), `acceptDeliveryConcurrency.test.ts` (double acceptation) |
+| S-4 | Admin suspend un chauffeur pendant une mission active | ⚠️ GAP IDENTIFIÉ (non corrigé ce tour) | `suspendDriver.ts` met `driver_profiles.status = suspended` mais `completePickup.ts`/`completeDelivery.ts` ne vérifient QUE la transition de statut de la MISSION (`mission.status`) et `driver_id == uid()` — ils ne relisent PAS `driver_profiles.status` avant d'autoriser pickup/complete. Un chauffeur suspendu en cours de mission active PEUT donc continuer à progresser cette mission jusqu'à completion. **Sévérité réelle atténuée** : `suspendDriver` est une action admin volontaire rare (pas un scénario de concurrence à haute fréquence), et la mission déjà assignée doit de toute façon être menée à terme dans l'intérêt du client (interrompre une livraison en cours créerait un colis orphelin). Classé **P2 — comportement à valider avec le produit (politique métier, pas un bug de concurrence pur)**, documenté pour Phase 8/prochain tour, PAS corrigé ce tour faute de décision produit claire sur le comportement désiré. |
+| S-5 | Finance concurrente (refund/payout/webhook/compensation) | ✅ COUVERT | `financialConcurrency.test.ts` (double capture, double payout, collision cron+manuel), `refundPayment.test.ts` (idempotence/concurrence remboursement), `processStripeWebhook.test.ts` (webhook dupliqué) — Bloc N/O, réutilisé sans duplication |
+| S-6 | Notifications simultanées | ✅ COUVERT (partiellement, niveau UI) | `test/notifications/notifications_realtime_and_unread_test.dart` — double `markAsRead()` idempotent, badge temps réel cohérent sous plusieurs émissions. Niveau écriture serveur (plusieurs Cloud Functions notifiant le même utilisateur en parallèle) non testé spécifiquement — chaque notification est un document distinct (`add()`, jamais un `update()` partagé), donc aucune corruption structurelle possible par construction. |
+| S-7 | Tracking — écritures de localisation concurrentes | ✅ COUVERT PAR CONCEPTION | `driver_locations/{driverId}` est un document UNIQUE par chauffeur, écrit uniquement par `recordTrackingPoint` avec `ctx.uid` comme clé du document (jamais un ID passé par le client) — aucune écriture croisée entre chauffeurs possible structurellement. Le "dernier état cohérent" est garanti par la sémantique `set(..., merge:true)` de Firestore (dernier writer gagne sur un seul document, pas de fusion partielle incohérente). |
+
+### DONE S
+
+| Critère | Statut |
+|---|---|
+| S-1, S-3, S-5 | ✅ COUVERT par tests existants, référencés sans duplication |
+| S-6, S-7 | ✅ COUVERT par construction structurelle (documents séparés/clé serveur) |
+| S-2 | ⚠️ Protection structurelle en place (transaction Firestore), test dédié manquant — P2 DEFERRED |
+| S-4 | ⚠️ GAP comportemental identifié (suspension pendant mission active non bloquante) — P2, décision produit requise avant correction, DEFERRED |
+| P0/P1 | 0 trouvé |
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2 documentés** : 2 (S-2 test manquant, S-4 décision
+produit requise). **BLOC S : ✅ FERMÉ** (aucun P0/P1 bloquant ; les 2 P2 sont documentés DEFERRED
+conformément à la consigne "ne pas construire de plateforme" — ici, ne pas trancher une politique
+produit non demandée explicitement).

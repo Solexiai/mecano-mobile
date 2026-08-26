@@ -1277,3 +1277,33 @@ test` 0 erreur (3 infos pré-existantes inchangées), `flutter test` 485/485 PAS
 0 régression. Voir `docs/PHASE7_QA_MATRIX.md` pour le détail complet.
 
 **BLOC R : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC R2 (Migrations)
+
+Matrice courte (5 lignes) sur tous les changements de schéma identifiés dans l'historique Git
+(`driver_payouts.amount`→`amount_minor` commit `0cf708a`, `audit_logs.action` renommage +
+`source_function` requis commit `c0781bb`, + rappel des schémas Bloc R). Conclusion : **aucune
+migration nécessaire** dans aucun cas — soit le changement a eu lieu avant toute donnée réelle en
+production pour la collection concernée, soit un parser déjà défensif (`?? default`) absorbe
+nativement l'absence du champ. Aucun script créé (conforme à la consigne "documenter pourquoi si
+aucun script n'est nécessaire"), aucun répertoire `migrations/` introduit. Voir
+`docs/PHASE7_QA_MATRIX.md` pour le détail complet.
+
+**BLOC R2 : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC S (Multi-user)
+
+7 scénarios (S-1 à S-7) évalués contre les tests de concurrence déjà existants (Phase 6/Bloc N/O),
+référencés sans duplication. S-1/S-3/S-5 ✅ COUVERT par tests d'intégration existants
+(`acceptDeliveryConcurrency.test.ts`, `completePickup.test.ts`, `completeDelivery.test.ts`,
+`financialConcurrency.test.ts`, `refundPayment.test.ts`, `processStripeWebhook.test.ts`). S-6/S-7
+✅ COUVERT par construction structurelle (documents séparés, clé de document dérivée côté serveur
+de `ctx.uid`, jamais un paramètre client). 2 constats P2 documentés et **DEFERRED** (aucun P0/P1) :
+S-2 (protection structurelle via transaction Firestore déjà en place, test dédié à la race exacte
+annulation/acceptation manquant) et S-4 (un chauffeur suspendu en cours de mission active peut
+continuer à progresser cette mission jusqu'à completion car `completePickup.ts`/`completeDelivery.ts`
+ne revérifient pas `driver_profiles.status` — décision produit requise avant correction). Pas de
+test de charge construit ici (réservé au Bloc T). Voir `docs/PHASE7_QA_MATRIX.md` pour le détail
+complet.
+
+**BLOC S : ✅ FERMÉ.**

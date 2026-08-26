@@ -1007,3 +1007,33 @@ un état qui ne peut pas exister en production. `app_user_v2.dart`/`audit_log.da
 
 **BLOC R : ✅ FERMÉ** — P0=0, P1=0, P2=2 trouvés et corrigés (aucun DEFERRED, coût de correction
 nul pour les deux).
+
+## MISE À JOUR — Bloc R2 (Migrations)
+
+Aucun bug trouvé. Tous les changements de schéma historiques (`driver_payouts.amount` →
+`amount_minor`, `audit_logs.action`/`source_function`) sont soit antérieurs à toute donnée réelle
+en production, soit déjà absorbés par un parser défensif. Aucun script de migration nécessaire,
+aucune correction requise.
+
+**BLOC R2 : ✅ FERMÉ** — P0=0, P1=0, P2=0.
+
+## MISE À JOUR — Bloc S (Multi-user)
+
+**GAP-S-02** (P2, DEFERRED) : pas de test dédié à la race exacte "annulation client + acceptation
+chauffeur strictement simultanées" sur le même document mission. Protection structurelle déjà
+présente (transaction Firestore standard sur `missionRef` dans `acceptDelivery`/`cancelDelivery`),
+mais non prouvée par un test ciblé. Reporté Phase 8/prochain tour.
+
+**GAP-S-04** (P2, DEFERRED — décision produit requise) : `suspendDriver.ts` met
+`driver_profiles.status = suspended` mais `completePickup.ts`/`completeDelivery.ts` ne
+revérifient QUE `mission.status` + `driver_id == uid()`, jamais `driver_profiles.status`. Un
+chauffeur suspendu en cours de mission active PEUT continuer à progresser cette mission jusqu'à
+completion. Non corrigé ce tour : ambiguïté métier (interrompre une livraison en cours pourrait
+créer un colis orphelin, potentiellement pire pour le client) — nécessite une décision produit
+explicite avant toute correction. Si validé comme un vrai bug par le produit, le correctif
+consisterait à ajouter une vérification `driver_profiles.status === 'approved'` dans la transaction
+de `completePickup.ts` et `completeDelivery.ts`.
+
+Aucun P0/P1 trouvé dans le Bloc S.
+
+**BLOC S : ✅ FERMÉ** — P0=0, P1=0, P2=2 documentés DEFERRED (GAP-S-02, GAP-S-04).
