@@ -29,6 +29,7 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
@@ -46,9 +47,9 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
               icon: const Icon(Icons.arrow_back),
             ),
             const SizedBox(width: 4),
-            const Text(
-              'Administration Movi-k',
-              style: TextStyle(fontWeight: FontWeight.w700),
+            Text(
+              t('admin_dashboard_title'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ],
         ),
@@ -73,22 +74,22 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
                     setState(() => _tab = i == 2 ? 1 : 0);
                   },
                   labelType: NavigationRailLabelType.all,
-                  destinations: const [
+                  destinations: [
                     NavigationRailDestination(
-                      icon: Icon(Icons.dashboard_outlined),
-                      label: Text('Vue d\'ensemble'),
+                      icon: const Icon(Icons.dashboard_outlined),
+                      label: Text(t('admin_nav_overview')),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.verified_user_outlined),
-                      label: Text('Chauffeurs'),
+                      icon: const Icon(Icons.verified_user_outlined),
+                      label: Text(t('admin_nav_drivers')),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.settings_outlined),
-                      label: Text('Paramètres'),
+                      icon: const Icon(Icons.settings_outlined),
+                      label: Text(t('admin_nav_settings')),
                     ),
                     NavigationRailDestination(
-                      icon: Icon(Icons.account_balance_outlined),
-                      label: Text('Finance'),
+                      icon: const Icon(Icons.account_balance_outlined),
+                      label: Text(t('admin_nav_finance')),
                     ),
                   ],
                 ),
@@ -113,22 +114,22 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
                     }
                     setState(() => _tab = i == 2 ? 1 : 0);
                   },
-                  items: const [
+                  items: [
                     BottomNavigationBarItem(
-                      icon: Icon(Icons.dashboard_outlined),
-                      label: 'Vue d\'ensemble',
+                      icon: const Icon(Icons.dashboard_outlined),
+                      label: t('admin_nav_overview'),
                     ),
                     BottomNavigationBarItem(
-                      icon: Icon(Icons.verified_user_outlined),
-                      label: 'Chauffeurs',
+                      icon: const Icon(Icons.verified_user_outlined),
+                      label: t('admin_nav_drivers'),
                     ),
                     BottomNavigationBarItem(
-                      icon: Icon(Icons.settings_outlined),
-                      label: 'Paramètres',
+                      icon: const Icon(Icons.settings_outlined),
+                      label: t('admin_nav_settings'),
                     ),
                     BottomNavigationBarItem(
-                      icon: Icon(Icons.account_balance_outlined),
-                      label: 'Finance',
+                      icon: const Icon(Icons.account_balance_outlined),
+                      label: t('admin_nav_finance'),
                     ),
                   ],
                 ),
@@ -143,28 +144,29 @@ class _AdminOverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     final metrics = [
-      ('Clients', '128', Icons.people_outline, AppColors.primary),
+      (t('admin_overview_metric_customers'), '128', Icons.people_outline, AppColors.primary),
       (
-        'Chauffeurs qualifiés',
+        t('admin_overview_metric_qualified_drivers'),
         '${DemoDataService.drivers.length}',
         Icons.local_shipping_outlined,
         AppColors.success,
       ),
       (
-        'Mécaniciens qualifiés',
+        t('admin_overview_metric_qualified_mechanics'),
         '${DemoDataService.mechanics.length}',
         Icons.build_outlined,
         AppColors.success,
       ),
-      ('Demandes actives', '4', Icons.timelapse, AppColors.warning),
+      (t('admin_overview_metric_active_requests'), '4', Icons.timelapse, AppColors.warning),
       (
-        'Réservations complétées',
+        t('admin_overview_metric_completed_bookings'),
         '20',
         Icons.check_circle_outline,
         AppColors.success,
       ),
-      ('Litiges', '0', Icons.report_gmailerrorred_outlined, AppColors.error),
+      (t('admin_overview_metric_disputes'), '0', Icons.report_gmailerrorred_outlined, AppColors.error),
     ];
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
@@ -173,14 +175,14 @@ class _AdminOverviewTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Vue d\'ensemble du marché',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Text(
+            t('admin_overview_market_title'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Ces chiffres sont des hypothèses de validation interne pour les 60 premiers jours (données de démonstration).',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+          Text(
+            t('admin_overview_market_subtitle'),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
           ),
           const SizedBox(height: 20),
           GridView.count(
@@ -232,39 +234,39 @@ class _AdminOverviewTab extends StatelessWidget {
               color: AppColors.background,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Cibles de validation interne (60 jours)',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                  t('admin_overview_targets_title'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  '• 50 mécaniciens mobiles qualifiés',
-                  style: TextStyle(
+                  t('admin_overview_target_mechanics'),
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 Text(
-                  '• 30 chauffeurs de livraison qualifiés',
-                  style: TextStyle(
+                  t('admin_overview_target_drivers'),
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 Text(
-                  '• 20 emplois complétés',
-                  style: TextStyle(
+                  t('admin_overview_target_jobs'),
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'Ces cibles sont des hypothèses internes, non des indicateurs publics.',
-                  style: TextStyle(
+                  t('admin_overview_targets_disclaimer'),
+                  style: const TextStyle(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
                     color: AppColors.textSecondary,
@@ -293,14 +295,15 @@ class _AdminSettingsTabState extends State<_AdminSettingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Paramètres de la plateforme',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          Text(
+            t('admin_settings_title'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 20),
           Container(
@@ -313,14 +316,14 @@ class _AdminSettingsTabState extends State<_AdminSettingsTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Monétisation future',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                Text(
+                  t('admin_settings_monetization_title'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Ces paramètres sont préparés pour une activation future. La commission est désactivée par défaut durant le MVP.',
-                  style: TextStyle(
+                Text(
+                  t('admin_settings_monetization_subtitle'),
+                  style: const TextStyle(
                     fontSize: 12.5,
                     color: AppColors.textSecondary,
                   ),
@@ -328,13 +331,13 @@ class _AdminSettingsTabState extends State<_AdminSettingsTab> {
                 const SizedBox(height: 14),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Activer la commission'),
+                  title: Text(t('admin_settings_enable_commission')),
                   value: _commissionEnabled,
                   onChanged: (v) => setState(() => _commissionEnabled = v),
                   activeThumbColor: AppColors.primary,
                 ),
                 Text(
-                  'Pourcentage de commission: ${_commissionPct.round()}%',
+                  '${t('admin_settings_commission_percentage')}: ${_commissionPct.round()}%',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Slider(
@@ -349,7 +352,7 @@ class _AdminSettingsTabState extends State<_AdminSettingsTab> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Frais de réservation client: ${_bookingFee.toStringAsFixed(2)}\$',
+                  '${t('admin_settings_customer_booking_fee')}: ${_bookingFee.toStringAsFixed(2)}\$',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Slider(
@@ -370,14 +373,14 @@ class _AdminSettingsTabState extends State<_AdminSettingsTab> {
               color: AppColors.background,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, color: AppColors.info),
-                SizedBox(width: 12),
+                const Icon(Icons.info_outline, color: AppColors.info),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Ces paramètres sont sauvegardés localement pour cette démonstration et ne sont pas encore connectés à un moteur de facturation réel.',
-                    style: TextStyle(
+                    t('admin_settings_local_save_notice'),
+                    style: const TextStyle(
                       fontSize: 12.5,
                       color: AppColors.textSecondary,
                     ),

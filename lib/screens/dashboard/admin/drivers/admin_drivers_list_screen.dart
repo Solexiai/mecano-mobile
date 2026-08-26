@@ -293,6 +293,7 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Center(
@@ -302,7 +303,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, style: const TextStyle(color: AppColors.error)),
             const SizedBox(height: 12),
-            OutlinedButton(onPressed: onRetry, child: const Text('Retry')),
+            OutlinedButton(onPressed: onRetry, child: Text(t('common_retry'))),
           ],
         ),
       ),

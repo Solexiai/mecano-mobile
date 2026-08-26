@@ -164,8 +164,8 @@ class _AccountMenu extends StatelessWidget {
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'dashboard', child: Text(t('nav_dashboard'))),
-        if (!isCustomerOnly) PopupMenuItem(value: 'provider', child: Text('Espace fournisseur')),
-        if (auth.isAnalystOrAbove) const PopupMenuItem(value: 'admin', child: Text('Admin')),
+        if (!isCustomerOnly) PopupMenuItem(value: 'provider', child: Text(t('nav_provider_space'))),
+        if (auth.isAnalystOrAbove) PopupMenuItem(value: 'admin', child: Text(t('nav_admin'))),
         PopupMenuItem(value: 'logout', child: Text(t('nav_logout'))),
       ],
       child: CircleAvatar(
@@ -275,10 +275,10 @@ class _MovikFooter extends StatelessWidget {
         link(t('nav_faq'), () => context.go('/$locale/faq')),
         link(t('nav_safety'), () => context.go('/$locale/securite')),
       ]),
-      column('Légal', [
+      column(t('footer_legal_column_title'), [
         link(t('footer_privacy'), () => context.go('/$locale/legal/privacy')),
         link(t('footer_terms'), () => context.go('/$locale/legal/terms')),
-        link('Politique d\'annulation', () => context.go('/$locale/legal/cancellation')),
+        link(t('footer_cancellation_policy'), () => context.go('/$locale/legal/cancellation')),
       ]),
     ];
 

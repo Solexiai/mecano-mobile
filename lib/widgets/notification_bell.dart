@@ -10,8 +10,10 @@
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../backend/backend_locator.dart';
+import '../providers/locale_provider.dart';
 import '../screens/notifications/notifications_screen.dart';
 
 class NotificationBell extends StatelessWidget {
@@ -20,6 +22,7 @@ class NotificationBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     return StreamBuilder<int>(
       stream: BackendLocator.notificationRepository.watchUnreadCount(userId),
       builder: (context, snap) {
@@ -29,6 +32,7 @@ class NotificationBell extends StatelessWidget {
           children: [
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
+              tooltip: t('notifications_open_tooltip'),
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => NotificationsScreen(userId: userId),

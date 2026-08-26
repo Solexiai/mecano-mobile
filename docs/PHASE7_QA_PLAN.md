@@ -783,3 +783,64 @@ qu'une fausse clôture). **Blocs K2 (Timezone/Date) et L (Accessibilité MVP) no
 - `docs/PHASE7_QA_MATRIX.md` (section I18N Global Bloc K)
 - `docs/PHASE7_BUG_REPORT.md` (BUG-010 + bilan Bloc K partiel)
 - `docs/PHASE7_QA_PLAN.md` (ce fichier)
+
+---
+
+## MISE À JOUR — Reprise K-5 résidus 4/7→7/7 + K-5 Notifications + K-9 (ce tour)
+
+**Fait ce tour (sans réaudit global, reprise directe depuis 2d30207)** :
+1. `mechanic_request_flow_screen.dart` (résidu 4/7) : toutes les chaînes visibles identifiées
+   dans `_Step2Problem`/`_Step3Location`/`_Step4Matching`/`_MechanicCard`/`_Step5Summary`/
+   `_MechanicSubmittedConfirmation` corrigées (30 nouvelles clés FR/EN/ES).
+2. `app_shell.dart` (résidu 5/7) : `PopupMenuItem` "Espace fournisseur"/"Admin" et footer
+   "Légal"/"Politique d'annulation" corrigés (1 nouvelle clé + 2 réutilisées/nouvelles).
+3. `admin_dashboard_shell.dart` (résidu 6/7) : titre, NavigationRail/BottomNavigationBar,
+   `_AdminOverviewTab`, `_AdminSettingsTab` corrigés (24 nouvelles clés).
+4. `admin_drivers_list_screen.dart` (résidu 7/7) : "Retry" → `common_retry` (clé réutilisée,
+   aucune nouvelle clé).
+5. **K-5 Notifications** : audit du contenu (`notification_bell.dart`,
+   `notifications_screen.dart`, `app_notification.dart`, specs backend
+   `functions/src/functions/onMissionStatusChangeNotifyCustomer.ts` +
+   `detectExpiringDocuments.ts` + `transitionFoundingDriverPeriods.ts`). Les 9 paires
+   `notif_*_title`/`notif_*_body` sont complètes FR/EN/ES, sans interpolation cassée (contenu
+   statique). 1 gap réel trouvé et corrigé : `NotificationBell` n'utilisait pas la clé
+   `notifications_open_tooltip` (existante mais orpheline) — ajout d'un `tooltip:` câblé.
+   **Gap identifié mais explicitement DIFFÉRÉ à K2** (hors périmètre K) : le connecteur `'à'`
+   codé en dur dans `_formatDateTime()` (notifications_screen.dart + 4 autres fichiers
+   finance/tracking) relève du format date/heure localisé (K2-3), pas du contenu i18n.
+6. **K-9** : ajout d'un accesseur public `AppStrings.allEntries` (lecture seule) + création de
+   `test/i18n/app_strings_structural_test.dart` (dictionnaire : >=500 clés, aucune clé/valeur
+   vide, fr/en/es toujours les 3 présentes, aucune fuite de clé littérale, scan statique de
+   tous les appels `t('...')` de `lib/` référençant bien une clé existante — 592 appels
+   détectés, couverture explicite des 20 clés `notif_*`/`notifications_*`) et
+   `test/i18n/k5_residual_screens_locale_render_test.dart` (2 widget tests ciblés sur
+   `AdminDashboardShell`, rendu réel FR puis changement FR→EN sans exception). 31 nouveaux
+   tests, tous PASS.
+7. Validation complète : `flutter analyze` → 3 infos pré-existantes non liées (Radio deprecated
+   x2, doc comment html x1), 0 erreur. `flutter test` complet → **464/464 PASS** (433 baseline +
+   31 nouveaux), 0 régression.
+8. Recherche ciblée de chaînes visibles résiduelles sur les 5 fichiers modifiés ce tour → aucune
+   trouvée.
+
+**BLOC K : ✅ FERMÉ** (voir critères Definition of Done ci-dessus tous remplis : FR/EN/ES
+complet, tous les écrans listés couverts, erreurs techniques brutes éliminées dès BUG-010,
+tests structurels i18n en place, P0=0, P1=0).
+
+**Bloc K2 (Timezone/Date) et Bloc L (Accessibilité MVP) : NON DÉMARRÉS** — limite réelle de
+budget d'itérations atteinte pendant cette session avant de pouvoir les entamer. Reprise prévue
+directement sur K2-0 (matrice courte) à la prochaine session, en gardant à l'esprit le gap déjà
+identifié ci-dessus (connecteur 'à' codé en dur dans le formatage date/heure, présent dans
+`notifications_screen.dart`, `customer_tracking_screen.dart`, `mission_finance_section.dart`,
+`finance/presentation/money_format.dart`, `admin_drivers_list_screen.dart`,
+`admin/finance/finance_ui_helpers.dart`) — pertinent pour K2-3.
+
+**Fichiers modifiés ce tour (Bloc K, clôture)** :
+- `lib/l10n/app_strings.dart` (+~57 clés + accesseur `allEntries`)
+- `lib/screens/mechanic/mechanic_request_flow_screen.dart`
+- `lib/widgets/app_shell.dart`
+- `lib/screens/dashboard/admin/admin_dashboard_shell.dart`
+- `lib/screens/dashboard/admin/drivers/admin_drivers_list_screen.dart`
+- `lib/widgets/notification_bell.dart`
+- `test/i18n/app_strings_structural_test.dart` (nouveau)
+- `test/i18n/k5_residual_screens_locale_render_test.dart` (nouveau)
+- `docs/PHASE7_QA_PLAN.md`, `docs/PHASE7_QA_MATRIX.md`, `docs/PHASE7_BUG_REPORT.md`

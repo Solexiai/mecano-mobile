@@ -109,6 +109,11 @@ class AppStrings {
       'en': 'Admin',
       'es': 'Administración',
     },
+    'nav_provider_space': {
+      'fr': 'Espace fournisseur',
+      'en': 'Provider area',
+      'es': 'Espacio de proveedor',
+    },
 
     // ---------- Home ----------
     'home_hero_headline': {
@@ -1514,6 +1519,162 @@ class AppStrings {
       'en': 'Can the vehicle move safely?',
       'es': '¿Puede el vehículo moverse con seguridad?',
     },
+    'mechanic_sign_in_required': {
+      'fr': 'Connectez-vous pour créer une demande de service mécanique.',
+      'en': 'Sign in to create a mechanic service request.',
+      'es': 'Inicia sesión para crear una solicitud de servicio mecánico.',
+    },
+    'mechanic_problem_description_label': {
+      'fr': 'Description du problème',
+      'en': 'Problem description',
+      'es': 'Descripción del problema',
+    },
+    'mechanic_photo_video_demo_notice': {
+      'fr': 'Sélection de photos/vidéo simulée en mode démo',
+      'en': 'Photo/video selection simulated in demo mode',
+      'es': 'Selección de fotos/video simulada en modo demo',
+    },
+    'mechanic_urgency_title': {
+      'fr': "Niveau d'urgence",
+      'en': 'Urgency level',
+      'es': 'Nivel de urgencia',
+    },
+    'mechanic_urgency_normal': {
+      'fr': 'Normal',
+      'en': 'Normal',
+      'es': 'Normal',
+    },
+    'mechanic_urgency_urgent': {
+      'fr': 'Urgent',
+      'en': 'Urgent',
+      'es': 'Urgente',
+    },
+    'mechanic_urgency_emergency': {
+      'fr': 'Urgence routière',
+      'en': 'Roadside emergency',
+      'es': 'Emergencia en carretera',
+    },
+    'mechanic_parts_already_purchased': {
+      'fr': 'Pièces déjà achetées',
+      'en': 'Parts already purchased',
+      'es': 'Piezas ya compradas',
+    },
+    'mechanic_location_type_title': {
+      'fr': "Type d'emplacement",
+      'en': 'Location type',
+      'es': 'Tipo de ubicación',
+    },
+    'mechanic_location_type_home': {
+      'fr': 'Domicile',
+      'en': 'Home',
+      'es': 'Domicilio',
+    },
+    'mechanic_location_type_work': {
+      'fr': 'Travail',
+      'en': 'Work',
+      'es': 'Trabajo',
+    },
+    'mechanic_location_type_job_site': {
+      'fr': 'Chantier',
+      'en': 'Job site',
+      'es': 'Obra',
+    },
+    'mechanic_location_type_roadside': {
+      'fr': 'Bord de route',
+      'en': 'Roadside',
+      'es': 'Borde de la carretera',
+    },
+    'mechanic_vehicle_address_label': {
+      'fr': 'Adresse du véhicule',
+      'en': 'Vehicle address',
+      'es': 'Dirección del vehículo',
+    },
+    'mechanic_roadside_danger_warning': {
+      'fr':
+          'Ne restez pas dans un endroit dangereux en bord de route. Éloignez-vous de la circulation.',
+      'en':
+          'Do not stay in a dangerous roadside location. Move away from traffic.',
+      'es':
+          'No permanezca en un lugar peligroso al borde de la carretera. Aléjese del tráfico.',
+    },
+    'mechanic_preferred_date_label': {
+      'fr': 'Date préférée',
+      'en': 'Preferred date',
+      'es': 'Fecha preferida',
+    },
+    'mechanic_preferred_time_label': {
+      'fr': 'Heure préférée',
+      'en': 'Preferred time',
+      'es': 'Hora preferida',
+    },
+    'mechanic_access_instructions_label': {
+      'fr': 'Instructions de stationnement/accès (optionnel)',
+      'en': 'Parking/access instructions (optional)',
+      'es': 'Instrucciones de estacionamiento/acceso (opcional)',
+    },
+    'mechanic_safe_workspace_confirmation': {
+      'fr': "Confirmation d'un espace de travail sécuritaire",
+      'en': 'Confirmation of a safe workspace',
+      'es': 'Confirmación de un espacio de trabajo seguro',
+    },
+    'mechanic_available_mechanics_title': {
+      'fr': 'Mécaniciens disponibles',
+      'en': 'Available mechanics',
+      'es': 'Mecánicos disponibles',
+    },
+    'mechanic_emergency_badge': {
+      'fr': 'Urgences',
+      'en': 'Emergency',
+      'es': 'Emergencias',
+    },
+    'mechanic_rating_jobs_suffix': {
+      'fr': 'interventions',
+      'en': 'jobs',
+      'es': 'trabajos',
+    },
+    'mechanic_vehicle_summary_label': {
+      'fr': 'Véhicule',
+      'en': 'Vehicle',
+      'es': 'Vehículo',
+    },
+    'mechanic_initial_price_estimate_title': {
+      'fr': 'Estimation de prix initiale (indicative)',
+      'en': 'Initial price estimate (indicative)',
+      'es': 'Estimación de precio inicial (indicativa)',
+    },
+    'mechanic_minimum_service_fee': {
+      'fr': 'Frais minimum de service',
+      'en': 'Minimum service fee',
+      'es': 'Tarifa mínima de servicio',
+    },
+    'mechanic_travel_fee': {
+      'fr': 'Frais de déplacement',
+      'en': 'Travel fee',
+      'es': 'Tarifa de desplazamiento',
+    },
+    'mechanic_total_estimated': {
+      'fr': 'Total estimé',
+      'en': 'Estimated total',
+      'es': 'Total estimado',
+    },
+    'mechanic_payment_method_title': {
+      'fr': 'Mode de paiement',
+      'en': 'Payment method',
+      'es': 'Método de pago',
+    },
+    'mechanic_not_guaranteed_booking_notice': {
+      'fr':
+          "Votre demande sera envoyée pour confirmation du mécanicien — ce n'est pas encore une réservation garantie.",
+      'en':
+          'Your request will be sent for the mechanic to confirm — this is not yet a guaranteed booking.',
+      'es':
+          'Su solicitud será enviada para la confirmación del mecánico; todavía no es una reserva garantizada.',
+    },
+    'mechanic_request_sent_to': {
+      'fr': 'Demande envoyée à',
+      'en': 'Request sent to',
+      'es': 'Solicitud enviada a',
+    },
 
     'mechanic_disclaimer': {
       'fr':
@@ -2089,6 +2250,16 @@ class AppStrings {
       'en': 'Terms of Service',
       'es': 'Términos de servicio',
     },
+    'footer_cancellation_policy': {
+      'fr': "Politique d'annulation",
+      'en': 'Cancellation Policy',
+      'es': 'Política de cancelación',
+    },
+    'footer_legal_column_title': {
+      'fr': 'Légal',
+      'en': 'Legal',
+      'es': 'Legal',
+    },
 
     // ---------- Trust ----------
     'trust_identity_verified': {
@@ -2657,6 +2828,137 @@ class AppStrings {
       'fr': "L'action a échoué. Veuillez réessayer.",
       'en': 'The action failed. Please try again.',
       'es': 'La acción falló. Por favor, inténtelo de nuevo.',
+    },
+
+    // ---------- Admin dashboard shell (Bloc K) ----------
+    'admin_dashboard_title': {
+      'fr': 'Administration Movi-k',
+      'en': 'Movi-k Administration',
+      'es': 'Administración Movi-k',
+    },
+    'admin_nav_overview': {
+      'fr': "Vue d'ensemble",
+      'en': 'Overview',
+      'es': 'Resumen',
+    },
+    'admin_nav_drivers': {
+      'fr': 'Chauffeurs',
+      'en': 'Drivers',
+      'es': 'Conductores',
+    },
+    'admin_nav_settings': {
+      'fr': 'Paramètres',
+      'en': 'Settings',
+      'es': 'Configuración',
+    },
+    'admin_overview_market_title': {
+      'fr': "Vue d'ensemble du marché",
+      'en': 'Market overview',
+      'es': 'Resumen del mercado',
+    },
+    'admin_overview_market_subtitle': {
+      'fr':
+          'Ces chiffres sont des hypothèses de validation interne pour les 60 premiers jours (données de démonstration).',
+      'en':
+          'These figures are internal validation assumptions for the first 60 days (demo data).',
+      'es':
+          'Estas cifras son hipótesis de validación interna para los primeros 60 días (datos de demostración).',
+    },
+    'admin_overview_metric_customers': {
+      'fr': 'Clients',
+      'en': 'Customers',
+      'es': 'Clientes',
+    },
+    'admin_overview_metric_qualified_drivers': {
+      'fr': 'Chauffeurs qualifiés',
+      'en': 'Qualified drivers',
+      'es': 'Conductores calificados',
+    },
+    'admin_overview_metric_qualified_mechanics': {
+      'fr': 'Mécaniciens qualifiés',
+      'en': 'Qualified mechanics',
+      'es': 'Mecánicos calificados',
+    },
+    'admin_overview_metric_active_requests': {
+      'fr': 'Demandes actives',
+      'en': 'Active requests',
+      'es': 'Solicitudes activas',
+    },
+    'admin_overview_metric_completed_bookings': {
+      'fr': 'Réservations complétées',
+      'en': 'Completed bookings',
+      'es': 'Reservas completadas',
+    },
+    'admin_overview_metric_disputes': {
+      'fr': 'Litiges',
+      'en': 'Disputes',
+      'es': 'Disputas',
+    },
+    'admin_overview_targets_title': {
+      'fr': 'Cibles de validation interne (60 jours)',
+      'en': 'Internal validation targets (60 days)',
+      'es': 'Objetivos de validación interna (60 días)',
+    },
+    'admin_overview_target_mechanics': {
+      'fr': '• 50 mécaniciens mobiles qualifiés',
+      'en': '• 50 qualified mobile mechanics',
+      'es': '• 50 mecánicos móviles calificados',
+    },
+    'admin_overview_target_drivers': {
+      'fr': '• 30 chauffeurs de livraison qualifiés',
+      'en': '• 30 qualified delivery drivers',
+      'es': '• 30 conductores de entrega calificados',
+    },
+    'admin_overview_target_jobs': {
+      'fr': '• 20 emplois complétés',
+      'en': '• 20 completed jobs',
+      'es': '• 20 trabajos completados',
+    },
+    'admin_overview_targets_disclaimer': {
+      'fr': 'Ces cibles sont des hypothèses internes, non des indicateurs publics.',
+      'en': 'These targets are internal assumptions, not public indicators.',
+      'es': 'Estos objetivos son hipótesis internas, no indicadores públicos.',
+    },
+    'admin_settings_title': {
+      'fr': 'Paramètres de la plateforme',
+      'en': 'Platform settings',
+      'es': 'Configuración de la plataforma',
+    },
+    'admin_settings_monetization_title': {
+      'fr': 'Monétisation future',
+      'en': 'Future monetization',
+      'es': 'Monetización futura',
+    },
+    'admin_settings_monetization_subtitle': {
+      'fr':
+          'Ces paramètres sont préparés pour une activation future. La commission est désactivée par défaut durant le MVP.',
+      'en':
+          'These settings are prepared for future activation. The commission is disabled by default during the MVP.',
+      'es':
+          'Estos ajustes están preparados para una activación futura. La comisión está desactivada por defecto durante el MVP.',
+    },
+    'admin_settings_enable_commission': {
+      'fr': 'Activer la commission',
+      'en': 'Enable commission',
+      'es': 'Activar comisión',
+    },
+    'admin_settings_commission_percentage': {
+      'fr': 'Pourcentage de commission',
+      'en': 'Commission percentage',
+      'es': 'Porcentaje de comisión',
+    },
+    'admin_settings_customer_booking_fee': {
+      'fr': 'Frais de réservation client',
+      'en': 'Customer booking fee',
+      'es': 'Tarifa de reserva del cliente',
+    },
+    'admin_settings_local_save_notice': {
+      'fr':
+          'Ces paramètres sont sauvegardés localement pour cette démonstration et ne sont pas encore connectés à un moteur de facturation réel.',
+      'en':
+          'These settings are saved locally for this demo and are not yet connected to a real billing engine.',
+      'es':
+          'Estos ajustes se guardan localmente para esta demostración y aún no están conectados a un motor de facturación real.',
     },
 
     // ---------- Admin login screen (Bloc K) ----------
@@ -4084,4 +4386,16 @@ class AppStrings {
     if (entry == null) return key;
     return entry[locale] ?? entry['fr'] ?? entry['en'] ?? key;
   }
+
+  /// Vue en lecture seule du dictionnaire complet (clé -> {locale: valeur}).
+  ///
+  /// Exposée UNIQUEMENT pour permettre des tests structurels automatisés
+  /// (Bloc K, K-9 : cohérence FR/EN/ES, absence de doublons, absence de
+  /// valeurs critiques vides) sans avoir à dupliquer manuellement la liste
+  /// des ~900 clés dans chaque fichier de test — ce qui serait fragile et
+  /// non maintenable (cf. test/finance/finance_i18n_test.dart qui utilise
+  /// une liste statique dupliquée, approche volontairement NON reproduite
+  /// ici pour l'ensemble du dictionnaire).
+  static Map<String, Map<String, String>> get allEntries =>
+      Map.unmodifiable(_t);
 }

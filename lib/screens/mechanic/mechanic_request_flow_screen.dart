@@ -64,9 +64,9 @@ class _MechanicRequestFlowScreenState extends State<MechanicRequestFlowScreen> {
               children: [
                 const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
                 const SizedBox(height: 16),
-                const Text('Connectez-vous pour créer une demande de service mécanique.', textAlign: TextAlign.center),
+                Text(t('mechanic_sign_in_required'), textAlign: TextAlign.center),
                 const SizedBox(height: 20),
-                ElevatedButton(onPressed: () => context.go('/${widget.locale}/connexion'), child: const Text('Se connecter')),
+                ElevatedButton(onPressed: () => context.go('/${widget.locale}/connexion'), child: Text(t('auth_sign_in'))),
               ],
             ),
           ),
@@ -308,11 +308,11 @@ class _Step2Problem extends StatelessWidget {
             children: services.map((s) => FilterChip(label: Text(t(s)), selected: selected.contains(s), onSelected: (_) => onToggle(s))).toList(),
           ),
           const SizedBox(height: 20),
-          TextField(controller: problemController, maxLines: 4, decoration: const InputDecoration(labelText: 'Description du problème')),
+          TextField(controller: problemController, maxLines: 4, decoration: InputDecoration(labelText: t('mechanic_problem_description_label'))),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sélection de photos/vidéo simulée en mode démo')));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('mechanic_photo_video_demo_notice'))));
             },
             icon: const Icon(Icons.camera_alt_outlined),
             label: Text(t('common_upload_photo')),
@@ -330,20 +330,20 @@ class _Step2Problem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Text('Niveau d\'urgence', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(t('mechanic_urgency_title'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
-              ChoiceChip(label: const Text('Normal'), selected: urgency == 'normal', onSelected: (_) => onUrgencyChanged('normal')),
-              ChoiceChip(label: const Text('Urgent'), selected: urgency == 'urgent', onSelected: (_) => onUrgencyChanged('urgent')),
-              ChoiceChip(label: const Text('Urgence routière'), selected: urgency == 'emergency', onSelected: (_) => onUrgencyChanged('emergency')),
+              ChoiceChip(label: Text(t('mechanic_urgency_normal')), selected: urgency == 'normal', onSelected: (_) => onUrgencyChanged('normal')),
+              ChoiceChip(label: Text(t('mechanic_urgency_urgent')), selected: urgency == 'urgent', onSelected: (_) => onUrgencyChanged('urgent')),
+              ChoiceChip(label: Text(t('mechanic_urgency_emergency')), selected: urgency == 'emergency', onSelected: (_) => onUrgencyChanged('emergency')),
             ],
           ),
           const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Pièces déjà achetées', style: TextStyle(fontSize: 14)),
+            title: Text(t('mechanic_parts_already_purchased'), style: const TextStyle(fontSize: 14)),
             value: partsPurchased,
             onChanged: onPartsPurchasedChanged,
             activeThumbColor: AppColors.primary,
@@ -381,34 +381,35 @@ class _Step3Location extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     final windows = ['8h - 11h', '11h - 14h', '14h - 17h', '17h - 20h'];
     return StepFormCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Type d\'emplacement', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(t('mechanic_location_type_title'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
-              ChoiceChip(label: const Text('Domicile'), selected: locationType == 'home', onSelected: (_) => onLocationTypeChanged('home')),
-              ChoiceChip(label: const Text('Travail'), selected: locationType == 'work', onSelected: (_) => onLocationTypeChanged('work')),
-              ChoiceChip(label: const Text('Chantier'), selected: locationType == 'job-site', onSelected: (_) => onLocationTypeChanged('job-site')),
-              ChoiceChip(label: const Text('Bord de route'), selected: locationType == 'roadside', onSelected: (_) => onLocationTypeChanged('roadside')),
+              ChoiceChip(label: Text(t('mechanic_location_type_home')), selected: locationType == 'home', onSelected: (_) => onLocationTypeChanged('home')),
+              ChoiceChip(label: Text(t('mechanic_location_type_work')), selected: locationType == 'work', onSelected: (_) => onLocationTypeChanged('work')),
+              ChoiceChip(label: Text(t('mechanic_location_type_job_site')), selected: locationType == 'job-site', onSelected: (_) => onLocationTypeChanged('job-site')),
+              ChoiceChip(label: Text(t('mechanic_location_type_roadside')), selected: locationType == 'roadside', onSelected: (_) => onLocationTypeChanged('roadside')),
             ],
           ),
           const SizedBox(height: 20),
-          TextField(controller: locationController, decoration: const InputDecoration(labelText: 'Adresse du véhicule', prefixIcon: Icon(Icons.location_on_outlined))),
+          TextField(controller: locationController, decoration: InputDecoration(labelText: t('mechanic_vehicle_address_label'), prefixIcon: const Icon(Icons.location_on_outlined))),
           if (locationType == 'roadside') ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14)),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: AppColors.error),
-                  SizedBox(width: 10),
-                  Expanded(child: Text('Ne restez pas dans un endroit dangereux en bord de route. Éloignez-vous de la circulation.', style: TextStyle(fontSize: 12.5))),
+                  const Icon(Icons.warning_amber_rounded, color: AppColors.error),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(t('mechanic_roadside_danger_warning'), style: const TextStyle(fontSize: 12.5))),
                 ],
               ),
             ),
@@ -420,20 +421,20 @@ class _Step3Location extends StatelessWidget {
               if (picked != null) onDatePicked(picked);
             },
             child: InputDecorator(
-              decoration: const InputDecoration(labelText: 'Date préférée', prefixIcon: Icon(Icons.calendar_today_outlined)),
+              decoration: InputDecoration(labelText: t('mechanic_preferred_date_label'), prefixIcon: const Icon(Icons.calendar_today_outlined)),
               child: Text(preferredDate == null ? '—' : '${preferredDate!.day}/${preferredDate!.month}/${preferredDate!.year}'),
             ),
           ),
           const SizedBox(height: 16),
-          Text('Heure préférée', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text(t('mechanic_preferred_time_label'), style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, children: windows.map((w) => ChoiceChip(label: Text(w), selected: preferredTime == w, onSelected: (_) => onTimeChanged(w))).toList()),
           const SizedBox(height: 16),
-          TextField(controller: accessController, decoration: const InputDecoration(labelText: 'Instructions de stationnement/accès (optionnel)')),
+          TextField(controller: accessController, decoration: InputDecoration(labelText: t('mechanic_access_instructions_label'))),
           const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Confirmation d\'un espace de travail sécuritaire', style: TextStyle(fontSize: 14)),
+            title: Text(t('mechanic_safe_workspace_confirmation'), style: const TextStyle(fontSize: 14)),
             value: safeWorkspace,
             onChanged: onSafeWorkspaceChanged,
             activeThumbColor: AppColors.primary,
@@ -452,12 +453,13 @@ class _Step4Matching extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Expanded(child: Text('Mécaniciens disponibles', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
+            Expanded(child: Text(t('mechanic_available_mechanics_title'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
             const DemoDataBadge(),
           ],
         ),
@@ -479,6 +481,7 @@ class _MechanicCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LocaleProvider>().t;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -504,7 +507,7 @@ class _MechanicCard extends StatelessWidget {
                     if (provider.identityVerified) const Icon(Icons.verified, color: AppColors.success, size: 16),
                     if (provider.emergencyAvailable) ...[
                       const SizedBox(width: 6),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: const Text('Urgences', style: TextStyle(fontSize: 10, color: AppColors.error, fontWeight: FontWeight.w700))),
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Text(t('mechanic_emergency_badge'), style: const TextStyle(fontSize: 10, color: AppColors.error, fontWeight: FontWeight.w700))),
                     ],
                   ]),
                   const SizedBox(height: 4),
@@ -512,7 +515,7 @@ class _MechanicCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(children: [
                     const Icon(Icons.star_rounded, color: AppColors.warning, size: 16),
-                    Text(' ${provider.rating} · ${provider.completedJobs} interventions', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    Text(' ${provider.rating} · ${provider.completedJobs} ${t('mechanic_rating_jobs_suffix')}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   ]),
                 ],
               ),
@@ -568,24 +571,24 @@ class _Step5Summary extends StatelessWidget {
           ],
           Text('${t('mechanic_services_label')} ${selectedServices.map(t).join(', ')}', style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
-          Text('Véhicule: ${request.vehicleMake} ${request.vehicleModel} (${request.vehicleYear})', style: const TextStyle(color: AppColors.textSecondary)),
+          Text('${t('mechanic_vehicle_summary_label')}: ${request.vehicleMake} ${request.vehicleModel} (${request.vehicleYear})', style: const TextStyle(color: AppColors.textSecondary)),
           const Divider(height: 32),
-          Text('Estimation de prix initiale (indicative)', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(t('mechanic_initial_price_estimate_title'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(14)),
             child: Column(children: [
-              _PriceRow('Frais minimum de service', mechanic?.minimumFee ?? 0),
-              _PriceRow('Frais de déplacement', mechanic?.travelFee ?? 0),
+              _PriceRow(t('mechanic_minimum_service_fee'), mechanic?.minimumFee ?? 0),
+              _PriceRow(t('mechanic_travel_fee'), mechanic?.travelFee ?? 0),
               const Divider(),
-              _PriceRow('Total estimé', (mechanic?.minimumFee ?? 0) + (mechanic?.travelFee ?? 0), bold: true),
+              _PriceRow(t('mechanic_total_estimated'), (mechanic?.minimumFee ?? 0) + (mechanic?.travelFee ?? 0), bold: true),
             ]),
           ),
           const SizedBox(height: 10),
           Text(t('mechanic_disclaimer'), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
           const Divider(height: 32),
-          Text('Mode de paiement', style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(t('mechanic_payment_method_title'), style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, children: [
             ChoiceChip(label: Text(t('payment_cash')), selected: paymentMethod == PaymentMethod.cash, onSelected: (_) => onPaymentChanged(PaymentMethod.cash)),
@@ -596,10 +599,10 @@ class _Step5Summary extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(14)),
-            child: const Row(children: [
-              Icon(Icons.info_outline, color: AppColors.info, size: 18),
-              SizedBox(width: 10),
-              Expanded(child: Text("Votre demande sera envoyée pour confirmation du mécanicien — ce n'est pas encore une réservation garantie.", style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
+            child: Row(children: [
+              const Icon(Icons.info_outline, color: AppColors.info, size: 18),
+              const SizedBox(width: 10),
+              Expanded(child: Text(t('mechanic_not_guaranteed_booking_notice'), style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary))),
             ]),
           ),
         ],
@@ -656,7 +659,7 @@ class _MechanicSubmittedConfirmation extends StatelessWidget {
                   child: Row(children: [
                     CircleAvatar(backgroundImage: NetworkImage(mechanic!.profilePhotoUrl)),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('Demande envoyée à ${mechanic!.fullName}', style: const TextStyle(fontWeight: FontWeight.w600))),
+                    Expanded(child: Text('${t('mechanic_request_sent_to')} ${mechanic!.fullName}', style: const TextStyle(fontWeight: FontWeight.w600))),
                   ]),
                 ),
               const SizedBox(height: 28),

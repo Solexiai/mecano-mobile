@@ -328,3 +328,23 @@ lorsqu'un client annule une mission déjà assignée (payment_status = `authoriz
 sur `functions/src/` confirme zéro appel à `.cancelAuthorization(` en dehors de sa définition
 d'interface/implémentation. Ceci doit être confirmé par un test d'intégration réel avant d'être
 classé comme bug (voir Bloc B).
+
+## MISE À JOUR — Bloc K FERMÉ (reprise K-5 résidus 4/7→7/7 + Notifications + K-9)
+
+| Écran / zone | État | Statut |
+|---|---|---|
+| `mechanic_request_flow_screen.dart` (résidu 4/7) | Toutes chaînes Steps 2-4 + résumé corrigées | **COUVERT** |
+| `app_shell.dart` (résidu 5/7) | PopupMenu + footer corrigés | **COUVERT** |
+| `admin_dashboard_shell.dart` (résidu 6/7) | Titre/nav/overview/settings corrigés | **COUVERT** |
+| `admin_drivers_list_screen.dart` (résidu 7/7) | "Retry" → `common_retry` | **COUVERT** |
+| Notifications (K-5, contenu) | 9 paires `notif_*` FR/EN/ES complètes ; tooltip bell câblé | **COUVERT** |
+| K-9 tests structurels | `app_strings_structural_test.dart` (dictionnaire + scan statique 592 appels) + 2 widget tests ciblés | **EN PLACE** |
+
+**Bloc K : ✅ FERMÉ.** `flutter analyze` 3 infos pré-existantes / 0 erreur. `flutter test` 464/464 PASS.
+
+**Gap différé (hors K, documenté pour K2-3)** : connecteur `'à'` codé en dur dans le formatage
+date/heure local (`notifications_screen.dart` + 4 autres fichiers) — comparaison sur instants
+réels non affectée, uniquement l'affichage textuel du connecteur.
+
+## Timezone / Date (Bloc K2) et Accessibilité MVP (Bloc L)
+Toujours NON DÉMARRÉS à ce commit — reprise prévue en priorité sur K2-0.

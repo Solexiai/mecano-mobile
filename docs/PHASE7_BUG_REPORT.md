@@ -622,3 +622,20 @@ budget d'itérations atteinte honnêtement documentée.**
 *Ce fichier sera enrichi au fil des blocs K à W avec tout nouveau bug découvert (ID
 séquentiel BUG-011, ...), classé P0/P1/P2/P3, avec cause, correctif, test de
 régression et statut.*
+
+---
+
+## MISE À JOUR — Bloc K fermé ce tour
+
+Aucun nouveau bug P0/P1/P2 découvert lors de la fermeture des résidus K-5 (4/7 à 7/7) et de
+l'audit Notifications : tous les gaps traités étaient des chaînes non traduites (dette i18n),
+pas des bugs fonctionnels. Un gap mineur a été noté et corrigé au passage : la clé
+`notifications_open_tooltip` existait dans le dictionnaire mais n'était câblée nulle part
+(`NotificationBell` sans `tooltip:`) — corrigé, pas de ticket dédié (trivial, même nature que
+BUG-010).
+
+**BLOC K : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
+
+**Reprise prévue** : Bloc K2 (Timezone/Date), à partir de K2-0 (matrice courte), avec un gap déjà
+identifié et documenté (connecteur `'à'` codé en dur dans le formatage date/heure local,
+plusieurs fichiers) — pertinent pour K2-3 (formats FR/EN/ES sans hardcode).
