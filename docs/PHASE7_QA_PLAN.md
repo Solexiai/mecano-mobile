@@ -1307,3 +1307,20 @@ test de charge construit ici (réservé au Bloc T). Voir `docs/PHASE7_QA_MATRIX.
 complet.
 
 **BLOC S : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC T (Load MVP)
+
+Confirmation préalable : suite Jest integration complète relancée via émulateurs AVANT de démarrer
+T → **518/518 PASS** (35 suites), 0 régression après R/R2/S — aucun réaudit R/R2/S effectué.
+
+Matrice courte sur les 6 scénarios (T-1 à T-6). Nouveau fichier
+`functions/test/integration/loadMvpBlocT.test.ts` (4 tests) comblant les GAPS identifiés :
+T-1 concurrence acceptation étendue à 5 chauffeurs (au lieu de 2), T-2 burst de 5 créations de
+mission indépendantes strictement concurrentes (aucune collision d'ID, aucune quote perdue/croisée),
+T-3 volume de 20 points GPS successifs (historique exact, aucune duplication), T-5 finance sur 4
+missions indépendantes capturées en parallèle (aucune fuite cross-mission). T-4 (notifications) et
+T-6 (admin) confirmés COUVERT par construction/tests existants sans modification nécessaire. Les 2
+`.limit()` P2 déjà connus (Bloc M/N) restent DEFERRED, aucune preuve nouvelle ce bloc ne justifiant
+un fix. Suite d'intégration complète re-exécutée après ajout : **522/522 PASS** (36 suites).
+
+**BLOC T : ✅ FERMÉ.**

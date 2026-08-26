@@ -1037,3 +1037,14 @@ de `completePickup.ts` et `completeDelivery.ts`.
 Aucun P0/P1 trouvé dans le Bloc S.
 
 **BLOC S : ✅ FERMÉ** — P0=0, P1=0, P2=2 documentés DEFERRED (GAP-S-02, GAP-S-04).
+
+## MISE À JOUR — Bloc T (Load MVP)
+
+Aucun bug trouvé. 3 GAPS de couverture de test (pas des bugs) comblés par 4 nouveaux tests dans
+`functions/test/integration/loadMvpBlocT.test.ts` : concurrence acceptation à 5 chauffeurs (T-1),
+burst de créations de mission (T-2), volume de tracking GPS (T-3), finance sur missions
+indépendantes en parallèle (T-5). Tous PASS, aucune régression sur la suite complète (522/522).
+Les 2 `.limit()` P2 déjà documentés (Bloc M/N, `watchNotifications`/`watchDriversByStatus`)
+restent DEFERRED — aucune preuve nouvelle ce bloc ne justifie un fix.
+
+**BLOC T : ✅ FERMÉ** — P0=0, P1=0, P2=0 nouveau (2 P2 pré-existants réaffirmés DEFERRED).

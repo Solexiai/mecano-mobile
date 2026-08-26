@@ -1071,3 +1071,51 @@ et documenter chaque scénario S-1 à S-7 avec son statut réel.
 produit requise). **BLOC S : ✅ FERMÉ** (aucun P0/P1 bloquant ; les 2 P2 sont documentés DEFERRED
 conformément à la consigne "ne pas construire de plateforme" — ici, ne pas trancher une politique
 produit non demandée explicitement).
+
+---
+
+## BLOC T — LOAD MVP
+
+**Objectif** : vérifier que Movi-K supporte une charge raisonnable de pilote/MVP (PAS un test de
+charge à l'échelle production) sur les chemins exposés à la concurrence/volume.
+
+### Matrice courte
+
+| Scénario | Volume MVP | Test existant | GAP |
+|---|---|---|---|
+| T-1 Concurrence acceptation | 2 chauffeurs (existant) → **étendu à 5** | `acceptDeliveryConcurrency.test.ts` (N=2) | **COUVERT + ÉTENDU** — nouveau test N=5 dans `loadMvpBlocT.test.ts` |
+| T-2 Création missions (burst) | 5 créations indépendantes strictement concurrentes | Aucun test de burst existant (`createDeliveryRequest.test.ts` = 1 création à la fois) | **GAP → COMBLÉ** — nouveau test burst dans `loadMvpBlocT.test.ts` |
+| T-3 Tracking GPS (volume) | 20 points successifs (mission ~15-20 min) | `recordTrackingPoint.test.ts` couvre l'accumulation (3 points) mais pas un volume réaliste de mission complète | **GAP PARTIEL → COMBLÉ** — nouveau test 20 points dans `loadMvpBlocT.test.ts` |
+| T-4 Notifications (volume) | 8 transitions de statut distinctes par mission | `onMissionStatusChangeNotifyCustomer.test.ts` (`it.each` sur 8 transitions, 1 notification = 1 document distinct par construction) | **COUVERT PAR CONCEPTION** — chaque notification est un `add()` sur un document séparé (jamais un `update()` partagé), aucune corruption structurelle possible même en volume ; référencé sans duplication |
+| T-5 Finance (missions indépendantes) | 4 captures de paiement concurrentes sur 4 missions distinctes | `financialConcurrency.test.ts` teste le double-appel sur le MÊME paymentId (pas plusieurs missions différentes en parallèle) | **GAP → COMBLÉ** — nouveau test 4 missions indépendantes dans `loadMvpBlocT.test.ts`, prouve l'absence de fuite cross-mission |
+| T-6 Admin (listes) | Dataset MVP (dizaines de documents, pas de dataset dédié créé) | `firebase_driver_repository.dart`/`firebase_finance_repository.dart` — 17 requêtes finance déjà `.limit()`-bornées (Bloc M) | **COUVERT** — aucun nouveau timeout/chargement excessif trouvé ; les 2 `.limit()` P2 déjà connus (`watchNotifications`, `watchDriversByStatus`) restent **DEFERRED** (aucune preuve nouvelle ce bloc ne justifie un fix — volume MVP réel toujours faible) |
+
+### Détail T-1/T-2/T-3/T-5 (nouveau fichier `functions/test/integration/loadMvpBlocT.test.ts`, 4 tests)
+
+- **T-1** : 5 chauffeurs appellent `acceptDelivery` en même temps sur la même mission → exactement
+  1 gagnant, 4 `failed-precondition`, 1 seul `financial_snapshot`, les 4 perdants restent `online`
+  (aucun n'est passé `on_mission` par erreur).
+- **T-2** : 5 clients créent chacun leur mission à partir de leur propre devis, strictement en
+  parallèle → 5 `missionId` uniques (aucune collision), chaque mission pointe vers le bon client et
+  le bon devis, chaque devis marqué consommé une seule fois vers la bonne mission (aucune quote
+  perdue ni croisée).
+- **T-3** : 20 points GPS successifs pour un chauffeur en mission active → exactement 20 documents
+  d'historique (aucune duplication, aucune perte), le document de position courante reflète le
+  dernier point et reste unique (merge, pas de doublon de document racine).
+- **T-5** : 4 captures de paiement concurrentes sur 4 missions/paiements distincts → chaque montant
+  capturé correspond exactement à sa propre mission, aucune fuite de montant entre missions.
+
+**Résultat** : 4/4 nouveaux tests PASS. Suite d'intégration complète re-exécutée après ajout :
+**522/522 PASS** (36 suites, +4 tests / +1 suite vs. la baseline R/R2/S de 518/518 — 0 régression).
+
+### DONE T
+
+| Critère | Statut |
+|---|---|
+| Charge pilote raisonnable testée | ✅ (5 chauffeurs concurrents, 5 créations burst, 20 points GPS, 4 missions finance parallèles) |
+| Concurrence critique sûre | ✅ (T-1 étendu N=5, toujours un seul gagnant) |
+| Aucune corruption | ✅ (aucune fuite cross-mission en T-5, aucune duplication en T-2/T-3) |
+| Aucune fuite mémoire/listener manifeste | ✅ (Bloc M déjà couvert — mémoïsation des streams confirmée toujours en place, aucune régression) |
+| P0/P1 | 0 trouvé |
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC T : ✅ FERMÉ.**
