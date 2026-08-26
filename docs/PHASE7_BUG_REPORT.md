@@ -979,3 +979,31 @@ développement Phase 7, correctement classée `Phase 8 — EXTERNAL CONFIGURATIO
 déclaration faite : nous n'affirmons PAS qu'App Check production est activé, car il ne l'est pas.
 
 **BLOC Q2 : ✅ FERMÉ** — P0=0, P1=0, P2=1 documenté (GAP-Q2-01, DEFERRED → Phase 8).
+
+## MISE À JOUR — Bloc R (Backward Compatibility)
+
+**GAP-R-01** (P2, corrigé) : `FoundingDriverQualification.fromJson`
+(`lib/finance/models/founding_driver.dart`) utilisait `DateTime.parse(json['qualified_at'] as
+String)`/`DateTime.parse(json['promotional_period_ends_at'] as String)` sans garde — plante sur un
+document partiel/corrompu. Exposition réelle NULLE constatée (aucun repository de ce projet ne
+désérialise de vrai document `founding_driver_programs/*/qualifications/*` via ce constructeur ;
+utilisé uniquement comme paramètre en mémoire par les moteurs de calcul). Corrigé par précaution
+(repli `DateTime.tryParse(...) ?? DateTime.now()`, `driverId`/`programId` repliés sur `''`).
+Test : `test/finance/backward_compatibility_r_test.dart` (FAIL confirmé avant fix, PASS après).
+
+**GAP-R-02** (P2, corrigé) : `ManualDriverAdjustment.fromJson`
+(`lib/finance/models/driver_compensation.dart`) — même pattern (casts non-nullables `as
+String`/`as num`/`DateTime.parse` sans garde). Code mort au sens strict (aucun appelant réel hors
+tests). Corrigé par précaution (tous les champs repliés sur une valeur sûre).
+
+**Aucun autre gap trouvé** : 8 autres cas de casts non-nullables suspects (`driver_document.dart`,
+`driver_vehicle.dart`, `financial_snapshot.dart`, `pricing_config.dart`, `transaction_ledger.dart`,
+`driver_location.dart`, `driver_location_history_point.dart`) ont été vérifiés via le chemin
+d'écriture Cloud Functions + `firestore.rules` et confirmés **COUVERT-PAR-CONCEPTION** : un seul
+schéma a toujours existé pour ces collections depuis leur création, le champ ne peut PAS être
+absent d'un document réel. Conformément à la consigne, aucune compatibilité n'a été construite pour
+un état qui ne peut pas exister en production. `app_user_v2.dart`/`audit_log.dart` (`created_at`)
+étaient déjà correctement gardés (faux-positif du grep initial).
+
+**BLOC R : ✅ FERMÉ** — P0=0, P1=0, P2=2 trouvés et corrigés (aucun DEFERRED, coût de correction
+nul pour les deux).

@@ -928,3 +928,86 @@ aujourd'hui au-delà de cette note.
 limite de fréquence — coût faible, DEFERRED, mécanisme prévu = App Check + rate-limiter Phase 8).
 
 **BLOC Q2 : ✅ FERMÉ.**
+
+---
+
+## BLOC R — BACKWARD COMPATIBILITY
+
+**Objectif** : vérifier que les anciennes données, anciennes versions de documents Firestore et
+états historiques encore plausibles ne cassent pas l'application actuelle.
+
+**Méthode** : scan exhaustif de tous les `fromJson` des modèles Dart (`lib/backend/models/*.dart`,
+`lib/finance/models/*.dart`), croisé avec le chemin d'écriture serveur (Cloud Functions) de chaque
+collection concernée, pour distinguer un GAP réel (le champ a pu manquer/changer de forme depuis
+la création de la collection) d'un cas COUVERT-par-conception (le champ est garanti présent par
+`firestore.rules`/la Cloud Function depuis la création de la collection — un seul schéma a
+toujours existé, `git log --follow` confirmé).
+
+### Matrice courte
+
+| Ancienne forme de donnée | Parser actuel | Test existant | Statut |
+|---|---|---|---|
+| Mission ancienne, champs optionnels manquants (7 champs seulement) | `DeliveryMission.fromJson` | `test/customer/delivery_mission_partial_data_test.dart` (3 tests, déjà exhaustif) | ✅ COUVERT (réutilisé, non dupliqué) |
+| Ancien statut de mission inconnu/corrompu | `MissionStatus.fromFirestoreValue` (`orElse` → `draft`) | idem ci-dessus | ✅ COUVERT |
+| Ancienne catégorie de véhicule inconnue | `VehicleCategoryX.fromFirestoreValue` (`orElse` → `other`) | idem ci-dessus | ✅ COUVERT |
+| Mission complétée sans preuve de livraison / adresses | `DeliveryMission.fromJson` (champs nullable) | idem ci-dessus | ✅ COUVERT |
+| Vieux document driver profile (champs manquants) | `DriverProfileV2.fromJson` (tous les champs `?? default`, `_parseDate` défensif) | Lecture de code confirmée robuste ; pas de nouveau test nécessaire | ✅ COUVERT |
+| Ancien `driver_documents`/`driver_vehicles` sans `driver_id` | `DriverDocument.fromJson`/`DriverVehicle.fromJson` (`as String` non-nullable) | Vérifié via `firestore.rules` : `allow create` exige `driver_id == uid()` depuis la création de la collection (commit unique `c448be0`, jamais de schéma antérieur différent). `driver_id` ne peut PAS être absent d'un document réel. | ✅ COUVERT-PAR-CONCEPTION (aucun test nécessaire — cas impossible en production) |
+| Anciennes structures `financial_snapshot` (5 champs `as String`: `snapshot_id`, `mission_id`, `customer_id`, `driver_id`, `pricing_version`) | `FinancialSnapshot.fromJson` | Vérifié : `financial_snapshots` est `allow write: if false` (Cloud Functions only) depuis toujours ; `acceptDelivery.ts`/`createFinancialSnapshot.ts` écrivent TOUJOURS ces 5 champs ensemble, schéma unique depuis `c448be0`/étape 8-11. Aucun document `financial_snapshots` n'a jamais pu exister sans ces champs. | ✅ COUVERT-PAR-CONCEPTION |
+| Anciennes notifications (champs manquants) | `AppNotification.fromJson` (tous les champs `?? default`, `metadata` type-checké) | Lecture de code confirmée robuste ; pas de nouveau test nécessaire | ✅ COUVERT |
+| Ancienne preuve de livraison | `DeliveryMission.proofOfDeliveryUrl` (nullable) | `delivery_mission_partial_data_test.dart` (test 3) | ✅ COUVERT (réutilisé) |
+| Ancien pricing/config (`PricingConfig.fromJson`, `pricing_version` non-nullable) | `PricingConfig.fromJson` | Vérifié : `pricing_versions/{version}` immuable par design (`updatePricingConfiguration.ts` ne réécrit JAMAIS une version existante, en crée toujours une nouvelle) ; `pricing_version` a toujours été la clé du document depuis la création. Sous-objets (`VehiclePricingRule`, `HandlingFeeConfig`, etc.) tous robustes avec `?? default`. | ✅ COUVERT-PAR-CONCEPTION |
+| Ancien `transaction_ledger` sans `ledger_entry_id` | `LedgerEntry.fromJson` | Vérifié : 4 Cloud Functions différentes (`calculateDriverPayout.ts`, `completeDelivery.ts`, `createLedgerEntry.ts`, `recordTip.ts`) écrivent TOUTES `ledger_entry_id: entryRef.id` depuis la création de la collection ; `allow write: if false` côté client. | ✅ COUVERT-PAR-CONCEPTION |
+| `driver_locations`/history sans `latitude`/`longitude` | `DriverLocation.fromJson`/`DriverLocationHistoryPoint.fromJson` (`as num` non-nullable) | Vérifié : `recordTrackingPoint.ts` valide `typeof latitude/longitude !== "number"` AVANT toute écriture (invalidArgument sinon) — un document sans ces champs n'a jamais pu être créé. | ✅ COUVERT-PAR-CONCEPTION |
+| `app_user_v2`/`audit_log` — `created_at` | `AppUserV2.fromJson`/`AuditLog.fromJson` | Relecture complète : déjà guardé par `json['created_at'] != null ? DateTime.parse(...) : DateTime.now()` — PAS un gap (le grep initial n'avait vu que la ligne du cast, pas le ternaire englobant). | ✅ COUVERT (déjà correct, aucune modification) |
+| `FoundingDriverQualification` — dates de qualification absentes | `FoundingDriverQualification.fromJson` (`DateTime.parse` non-guardé) | **GAP RÉEL trouvé** — voir ci-dessous | 🔴 GAP → CORRIGÉ |
+| `ManualDriverAdjustment` — champs d'ajustement manuel absents | `ManualDriverAdjustment.fromJson` (casts non-nullables) | **GAP RÉEL trouvé** — voir ci-dessous | 🔴 GAP → CORRIGÉ |
+
+### GAP-R-01 — `FoundingDriverQualification.fromJson` plante sur document partiel
+
+**Constat** : `qualifiedAt`/`promotionalPeriodEndsAt` utilisaient `DateTime.parse(json['x'] as
+String)` sans aucun garde — un document historique/corrompu manquant ces champs provoque une
+exception non catchée (`type 'Null' is not a subtype of type 'String'`).
+
+**Exposition réelle** : NULLE actuellement — `grep` confirme qu'aucun repository de ce projet ne
+désérialise de VRAI document Firestore via `FoundingDriverQualification.fromJson` (utilisé
+uniquement comme paramètre en mémoire dans `founding_driver_engine.dart`/`commission_resolver.dart`,
+jamais lu depuis `founding_driver_programs/*/qualifications/*`). Corrigé par précaution (coût nul,
+cohérence avec le reste du projet) — pas parce qu'un vecteur d'exposition a été identifié.
+
+**Test (FAIL confirmé avant fix)** : document `{driver_id, program_id, status}` sans dates →
+`throwsA(anything)` confirmé avant correction.
+
+**Fix appliqué** : repli sur `DateTime.tryParse(...) ?? DateTime.now()`, `driverId`/`programId`
+repliés sur `''` si absents (cohérent avec le reste du projet).
+
+**Test après fix** : `test/finance/backward_compatibility_r_test.dart` — 3 tests PASS (document
+minimal, document vide, dates corrompues).
+
+### GAP-R-02 — `ManualDriverAdjustment.fromJson` plante sur document partiel
+
+**Constat** : `id`, `reason`, `createdByUserId` (`as String`), `amount` (`as num`), `createdAt`
+(`DateTime.parse` sans garde) — même pattern que GAP-R-01.
+
+**Exposition réelle** : NULLE actuellement — code mort au sens strict, aucun appelant réel hors du
+fichier modèle lui-même et des tests. Corrigé par précaution.
+
+**Fix appliqué** : tous les champs repliés sur une valeur sûre (`''`, `0`, `'unknown'`,
+`DateTime.now()`).
+
+**Test après fix** : `test/finance/backward_compatibility_r_test.dart` — 2 tests PASS (document
+vide, round-trip complet sans régression).
+
+### DONE R
+
+| Critère | Statut |
+|---|---|
+| Matrice courte construite | ✅ 14 lignes, priorités du prompt toutes couvertes |
+| Tests de partial-data existants réutilisés | ✅ `delivery_mission_partial_data_test.dart` référencé, non dupliqué |
+| Chaque cast non-nullable suspect évalué (COUVERT-par-conception vs GAP réel) | ✅ 8 cas COUVERT-par-conception (write-path vérifié), 2 GAP réels trouvés et corrigés |
+| P0/P1 corrigés | ✅ 2/2 (sévérité réelle P2 — code mort/non exposé — corrigés par précaution) |
+| Aucune sur-ingénierie sur structures abandonnées | ✅ Aucune compatibilité réintroduite pour un schéma qui n'a jamais existé |
+| Tests nouveaux passent | ✅ `test/finance/backward_compatibility_r_test.dart` — 5/5 PASS |
+| Suite complète non régressée | ✅ `flutter test` 485/485 PASS (480 + 5 nouveaux), `flutter analyze lib test` 0 erreur |
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC R : ✅ FERMÉ.**

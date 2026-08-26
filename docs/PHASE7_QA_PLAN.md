@@ -1260,3 +1260,20 @@ Exécutée une seule fois après fermeture des 3 blocs (aucune ré-exécution re
 working tree clean.**
 
 **PROCHAINE ACTION : rapport unique, puis prochain groupe R → R2 → S.**
+
+## MISE À JOUR — BLOC R (Backward Compatibility)
+
+Scan exhaustif de tous les `fromJson` (`lib/backend/models/*.dart`, `lib/finance/models/*.dart`)
+croisé avec les chemins d'écriture Cloud Functions + `firestore.rules` pour distinguer un GAP réel
+d'un cas couvert par conception (schéma unique depuis la création de la collection, jamais de
+forme antérieure différente). 14 lignes de matrice couvrant toutes les priorités demandées
+(missions/statuts anciens, financial snapshot, driver/profile, notifications, preuve de livraison,
+pricing/config). Tests de partial-data existants (`delivery_mission_partial_data_test.dart`)
+réutilisés sans duplication. 2 GAP réels trouvés (`FoundingDriverQualification.fromJson`,
+`ManualDriverAdjustment.fromJson` — tous deux du code actuellement non exposé/non lu depuis un
+vrai document Firestore, corrigés par précaution) : `test/finance/backward_compatibility_r_test.dart`
+créé (5 tests, cycle FAIL confirmé avant fix → PASS après fix). Validation : `flutter analyze lib
+test` 0 erreur (3 infos pré-existantes inchangées), `flutter test` 485/485 PASS (480 + 5 nouveaux),
+0 régression. Voir `docs/PHASE7_QA_MATRIX.md` pour le détail complet.
+
+**BLOC R : ✅ FERMÉ.**

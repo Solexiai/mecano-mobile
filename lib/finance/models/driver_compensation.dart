@@ -42,12 +42,19 @@ class ManualDriverAdjustment {
       };
 
   factory ManualDriverAdjustment.fromJson(Map<String, dynamic> json) {
+    // Bloc R (rétrocompatibilité) : bien qu'aucun repository actuel ne
+    // désérialise encore de document Firestore réel via ce constructeur,
+    // il reste défensif par cohérence avec le reste du projet (jamais de
+    // cast non-nullable brut sur des champs pouvant théoriquement manquer
+    // dans un ajustement historique/corrigé manuellement).
     return ManualDriverAdjustment(
-      id: json['id'] as String,
-      reason: json['reason'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      createdByUserId: json['created_by_user_id'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      id: json['id'] as String? ?? '',
+      reason: json['reason'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      createdByUserId: json['created_by_user_id'] as String? ?? 'unknown',
+      createdAt: json['created_at'] != null
+          ? (DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
     );
   }
 }

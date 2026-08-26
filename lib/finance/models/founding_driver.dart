@@ -128,19 +128,30 @@ class FoundingDriverQualification {
       };
 
   factory FoundingDriverQualification.fromJson(Map<String, dynamic> json) {
+    // Bloc R (rétrocompatibilité) : `driver_id`/`program_id` sont garantis
+    // par `qualifyFoundingDriver()` (Cloud Function, seul point d'écriture)
+    // depuis la création de la collection — mais `qualified_at`/
+    // `promotional_period_ends_at` sont défensivement parsés avec repli
+    // (jamais de crash) au cas où un document historique/corrompu manquerait
+    // ces champs : repli sur `DateTime.now()` plutôt qu'une exception, pour
+    // qu'un écran d'admin listant les qualifications ne plante jamais.
     return FoundingDriverQualification(
-      driverId: json['driver_id'] as String,
-      programId: json['program_id'] as String,
+      driverId: json['driver_id'] as String? ?? '',
+      programId: json['program_id'] as String? ?? '',
       status: FoundingDriverStatus.values.firstWhere(
         (s) => s.name == json['status'],
         orElse: () => FoundingDriverStatus.candidate,
       ),
-      qualifiedAt: DateTime.parse(json['qualified_at'] as String),
-      promotionalPeriodEndsAt: DateTime.parse(json['promotional_period_ends_at'] as String),
+      qualifiedAt: json['qualified_at'] != null
+          ? (DateTime.tryParse(json['qualified_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
+      promotionalPeriodEndsAt: json['promotional_period_ends_at'] != null
+          ? (DateTime.tryParse(json['promotional_period_ends_at'].toString()) ?? DateTime.now())
+          : DateTime.now(),
       suspensionReason: json['suspension_reason'] as String?,
       revocationReason: json['revocation_reason'] as String?,
       statusChangedAt: json['status_changed_at'] != null
-          ? DateTime.parse(json['status_changed_at'] as String)
+          ? DateTime.tryParse(json['status_changed_at'].toString())
           : null,
       statusChangedByUserId: json['status_changed_by_user_id'] as String?,
     );
