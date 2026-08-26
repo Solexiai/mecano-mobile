@@ -372,6 +372,16 @@ class _ProofOfDeliveryView extends StatelessWidget {
       );
     }
 
+    // Bloc M (Bloc M-1, gap performance) : la photo source peut atteindre
+    // 1600px de large (voir maxWidth du ImagePicker en capture), alors que
+    // l'affichage est borné à 220px de hauteur fixe — sans `cacheHeight`,
+    // Flutter décode l'image PLEINE RÉSOLUTION en mémoire avant de la
+    // redimensionner à l'écran, ce qui gaspille mémoire/CPU à chaque
+    // ouverture de cet écran de tracking. `cacheHeight` demande au décodeur
+    // de ne produire qu'un bitmap proche de la taille d'affichage réelle
+    // (ajusté par le devicePixelRatio de l'appareil) ; la largeur suit
+    // automatiquement le ratio de l'image source.
+    final cacheHeight = (220 * MediaQuery.of(context).devicePixelRatio).round();
     return ClipRRect(
       borderRadius: BorderRadius.circular(14),
       child: Image.network(
@@ -379,6 +389,7 @@ class _ProofOfDeliveryView extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: 220,
+        cacheHeight: cacheHeight,
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return Container(

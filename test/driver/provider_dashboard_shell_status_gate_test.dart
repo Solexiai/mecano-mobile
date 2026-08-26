@@ -75,6 +75,7 @@ DriverProfileV2 _buildProfile({
 class _FakeDriverRepository implements DriverRepository {
   final DriverProfileV2 profile;
   int setDriverOnlineStatusCallCount = 0;
+  int watchDriverProfileCallCount = 0;
 
   /// Si positionné, `setDriverOnlineStatus()` lève cette exception au lieu
   /// de réussir — simule le refus Security Rules / Cloud Function côté
@@ -86,7 +87,10 @@ class _FakeDriverRepository implements DriverRepository {
   _FakeDriverRepository(this.profile);
 
   @override
-  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => Stream.value(profile);
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) {
+    watchDriverProfileCallCount++;
+    return Stream.value(profile);
+  }
 
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) async {
@@ -209,6 +213,36 @@ void main() {
       await tester.tap(switchFinder);
       await tester.pumpAndSettle();
       expect(fakeRepo.setDriverOnlineStatusCallCount, 1);
+    },
+  );
+
+  testWidgets(
+    'Bloc M (gap performance corrigé) : watchDriverProfile() n\'est appelé '
+    'qu\'une seule fois même après plusieurs bascules online/offline '
+    '(stream mémoïsé par driverId, pas recréé à chaque setState)',
+    (tester) async {
+      final fakeRepo = _FakeDriverRepository(
+        _buildProfile(status: DriverStatus.approved),
+      );
+      BackendLocator.driverRepositoryOverride = fakeRepo;
+
+      await tester.pumpWidget(_wrap(_signedInDriver()));
+      await tester.pumpAndSettle();
+
+      // Un seul appel à `watchDriverProfile()` au premier build.
+      expect(fakeRepo.watchDriverProfileCallCount, 1);
+
+      final switchFinder = find.byType(Switch);
+      await tester.tap(switchFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(switchFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Avant le correctif Bloc M, chaque `setState()` de
+      // `_toggleAvailability` recréait le Stream (nouvel appel à
+      // `watchDriverProfile()` à chaque rebuild). Après correctif, un seul
+      // appel reste enregistré pour toute la durée de vie du widget.
+      expect(fakeRepo.watchDriverProfileCallCount, 1);
     },
   );
 

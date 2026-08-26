@@ -381,3 +381,22 @@ Voir section dédiée ci-dessous.
 | L-8 Loading states | ✅ COUVERT (référencé) — déjà prouvé par tests double-submit existants (Bloc B/C) |
 
 **BLOC L : ✅ FERMÉ** — L-0 à L-4 complets (session précédente). L-6 : 1 gap réel P1 corrigé (BUG-L6-01), test de régression permanent ajouté. L-7/L-8 confirmés couverts sans gap. L-2/L-3/L-5 et le résidu P2 de L-6 (badges décoratifs) restent DEFERRED NON-BLOCKING, documentés avec justification. `flutter analyze` 3 infos + 2 warnings pré-existants non liés / 0 erreur. `flutter test` complet → **479/479 PASS**, 0 régression. P0 = 0, P1 = 0.
+
+## BLOC M — PERFORMANCE : ✅ FERMÉ
+
+| Zone critique | Preuve / Statut |
+|---|---|
+| Démarrage app | ✅ COUVERT — `main.dart` léger, aucun travail lourd au boot |
+| GPS (Bloc H/C) | ✅ COUVERT — Timer unique, garde `isRunning`/`_busy`, pas de régression |
+| Missions dispo chauffeur | ✅ COUVERT — `_ensureStreams()` mémoïsé, `whereIn` batché 30 |
+| Finance repository (paiements/refunds/payouts/disputes/ledger) | ✅ COUVERT — toutes requêtes `.limit()` bornées |
+| Dashboard chauffeur (switch en ligne) | ❌ GAP P1 → ✅ CORRIGÉ (stream mémoïsé par driverId) |
+| Statut chauffeur (`driver_status_screen`) | ❌ GAP P1 → ✅ CORRIGÉ (stream mémoïsé par uid) |
+| Fiche admin chauffeur (`admin_driver_detail_screen`) | ❌ GAP P1 → ✅ CORRIGÉ (Stream+2 Future en `late final`) |
+| Tracking client — photo preuve | ❌ GAP P1 → ✅ CORRIGÉ (`cacheHeight` ajouté) |
+| Onglets dashboard chauffeur (`tabs[_index]` sans IndexedStack) | ⚠️ GAP P2 — DEFERRED (IndexedStack testé, reverté : coût pire pour MVP) |
+| Notifications (`watchNotifications` sans `.limit()`) | ⚠️ GAP P2 — DEFERRED (sous-collection par user, volume MVP faible) |
+| Listes admin (drivers/finance tabs non-lazy) | ⚠️ GAP P2 — DEFERRED (admin-only, volume MVP faible) |
+
+**Tests** : 480/480 PASS (`flutter test`), 0 erreur `flutter analyze`.
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2 DEFERRED** : 3 (documentés ci-dessus).

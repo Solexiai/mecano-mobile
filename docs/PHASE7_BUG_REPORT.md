@@ -750,3 +750,42 @@ DEFERRED). P3 ouverts = 2 (déjà documentés session précédente, DEFERRED).
 
 **PROCHAINE ACTION** : démarrer Bloc M (Performance), puis N (Firestore/Indexes), puis O (Cloud
 Functions hardening).
+
+## MISE À JOUR — Bloc M (Performance MVP, cette session)
+
+**BUG-M-01 (P1, corrigé)** — `provider_dashboard_shell.dart` : `watchDriverProfile()`
+instancié dans `build()`, recréé à chaque `setState()` de `_toggleAvailability`
+(flicker + re-souscription Firestore). Fix : mémoïsation par `driverId` (pattern
+Bloc C). Test de régression ajouté (`provider_dashboard_shell_status_gate_test.dart`).
+
+**BUG-M-02 (P1, corrigé)** — `driver_status_screen.dart` : même pattern, recréé à
+chaque `_runAction()` (resoumission dossier / toggle en ligne). Fix : mémoïsé par `uid`.
+
+**BUG-M-03 (P1, corrigé)** — `admin_driver_detail_screen.dart` : StreamBuilder
+(`watchDriverProfile`) + 2 FutureBuilder (`users/{id}.get()`, `getDriverVehicles()`)
+recréés/refetchés à chaque action admin (`_actionInProgress` toggle via Approuver/
+Refuser/Suspendre/Réactiver/Documents). Fix : capturés en `late final` (driverId
+stable pour la durée de vie de l'écran) — 1 seul appel réseau désormais par ouverture
+d'écran au lieu d'un par clic d'action.
+
+**BUG-M-04 (P1, corrigé)** — `customer_tracking_screen.dart` : `Image.network` de la
+preuve de livraison sans `cacheWidth`/`cacheHeight` malgré un affichage fixe 220px vs
+source jusqu'à 1600px (décodage pleine résolution gaspillé). Fix : `cacheHeight` ajouté.
+
+**GAP-M-05 (P2, DEFERRED NON-BLOCKING)** — `tabs[_index]` (indexation directe, pas
+`IndexedStack`) détruit/recrée le State d'onglet non affiché à chaque changement
+d'onglet dans `provider_dashboard_shell.dart`. Un remplacement par `IndexedStack` a
+été tenté puis **reverté** : il construit les 4 onglets dès le premier rendu, créant
+des souscriptions Firestore supplémentaires immédiates (Earnings/Calendar/Profile)
+même quand l'utilisateur reste sur le premier onglet — un coût réseau ajouté au
+démarrage, pire que le gap initial pour l'usage MVP typique (rester sur "Missions
+disponibles"). Un vrai correctif nécessiterait une construction paresseuse par onglet
+(ex: garder chaque tab vivant seulement après sa première visite). Non-bloquant :
+n'affecte que la fraîcheur du flux après un retour d'onglet, pas de fuite ni de crash.
+
+**GAP-M-06 (P2, DEFERRED NON-BLOCKING)** — `watchNotifications()` et
+`watchDriversByStatus()` sans `.limit()`. Sous-collection par utilisateur / liste
+admin-only, volumes MVP faibles, non mesurés comme un risque réel à ce stade.
+
+**BLOC M : ✅ FERMÉ** — P0=0, P1=0 (4 corrigés), P2=2 (DEFERRED documentés).
+Validation finale : `flutter analyze` 0 erreur, `flutter test` 480/480 PASS.

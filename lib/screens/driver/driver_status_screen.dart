@@ -47,6 +47,23 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   bool _actionInProgress = false;
   String? _actionError;
 
+  // Bloc M (gap performance, même classe de bug que Bloc C item 3) :
+  // `watchDriverProfile(uid)` était instancié directement dans
+  // `_buildBody()` (donc dans `build()`) — chaque `setState()` déclenché
+  // par `_runAction()` (resoumission dossier, toggle en ligne/hors ligne)
+  // recréait le Stream, provoquant un flicker ConnectionState.waiting et
+  // une re-souscription Firestore inutile. Mémoïsé par `uid`.
+  String? _cachedUid;
+  Stream<DriverProfileV2?>? _driverProfileStream;
+
+  Stream<DriverProfileV2?> _ensureDriverProfileStream(String uid) {
+    if (_cachedUid != uid || _driverProfileStream == null) {
+      _cachedUid = uid;
+      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(uid);
+    }
+    return _driverProfileStream!;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
@@ -85,7 +102,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
     final repo = BackendLocator.driverRepository;
 
     return StreamBuilder<DriverProfileV2?>(
-      stream: repo.watchDriverProfile(uid),
+      stream: _ensureDriverProfileStream(uid),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

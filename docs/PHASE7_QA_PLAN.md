@@ -1027,3 +1027,36 @@ carte rôle 38px tap target).
 
 **PROCHAINE ACTION** : Bloc M (Performance) → N (Firestore/Indexes) → O (Cloud Functions
 hardening), en mode accéléré (CODE → TEST → FIX → RETEST → DOC COURTE → COMMIT).
+
+## MISE À JOUR — BLOC M : ✅ FERMÉ (Performance MVP)
+
+**Matrice courte (reconnaissance ~15% du budget M)** : voir PHASE7_QA_MATRIX.md.
+10 zones critiques auditées (démarrage, dashboards, GPS, missions dispo, tracking,
+notifications, admin) → 8 COUVERT, 4 GAP P1 corrigés, 3 GAP P2 DEFERRED NON-BLOCKING.
+
+**Gaps P1 corrigés (pattern Bloc C répliqué : mémoïsation Stream par id stable) :**
+- `provider_dashboard_shell.dart` : `watchDriverProfile()` recréé à chaque
+  `setState()` de `_toggleAvailability` → mémoïsé par `driverId`.
+- `driver_status_screen.dart` : idem via `_runAction()` (resoumission/toggle) → mémoïsé par `uid`.
+- `admin_driver_detail_screen.dart` : StreamBuilder + 2 FutureBuilder (profil Firestore,
+  véhicules) recréés/refetchés à chaque action admin (`_actionInProgress`) → `late final`
+  capturés une seule fois (driverId stable pour la durée de vie de l'écran).
+- `customer_tracking_screen.dart` : `Image.network` (preuve de livraison) sans
+  `cacheWidth`/`cacheHeight` malgré un affichage fixe 220px vs source jusqu'à 1600px
+  → `cacheHeight` ajouté (ajusté au devicePixelRatio).
+
+**Tentative revertée (documentée, pas un fix retenu) :** remplacement de `tabs[_index]`
+par `IndexedStack` dans `provider_dashboard_shell.dart` pour éviter la destruction/
+recréation du State d'onglet au changement d'onglet. REVERTÉ car `IndexedStack`
+construit les 4 onglets dès le premier rendu (souscriptions Firestore supplémentaires
+immédiates sur Earnings/Calendar/Profile même si l'utilisateur reste sur le premier
+onglet) — pire pour l'usage MVP typique. Gap réel mais non-bloquant, DEFERRED
+(nécessiterait une construction paresseuse par onglet, hors budget accéléré M).
+
+**Validation finale M** : `flutter analyze` → 0 erreur (5 infos/warnings pré-existants
+inchangés). `flutter test` → **480/480 PASS** (479 avant + 1 nouveau test de régression
+performance sur `provider_dashboard_shell_status_gate_test.dart`).
+
+**PROCHAINE ACTION : Bloc N (Firestore/Indexes) puis Bloc O (Cloud Functions hardening)
+— NON DÉMARRÉS dans cette session, à reprendre en state réel du repo (voir règle de
+reprise Phase 7).**

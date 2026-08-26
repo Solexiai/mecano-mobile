@@ -25,6 +25,23 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   int _index = 0;
   bool _togglingAvailability = false;
 
+  // Bloc M (gap performance, même classe de bug que Bloc C item 3) :
+  // `watchDriverProfile(driverId)` était appelé directement dans `build()`,
+  // donc réinstancié à chaque `setState()` de `_toggleAvailability` — le
+  // StreamBuilder détecte un flux "différent" par référence et repasse en
+  // ConnectionState.waiting (flicker du Switch en ligne/hors ligne), en plus
+  // de re-souscrire inutilement à Firestore. Mémoïsé par `driverId`.
+  String? _cachedDriverId;
+  Stream<DriverProfileV2?>? _driverProfileStream;
+
+  Stream<DriverProfileV2?> _ensureDriverProfileStream(String driverId) {
+    if (_cachedDriverId != driverId || _driverProfileStream == null) {
+      _cachedDriverId = driverId;
+      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(driverId);
+    }
+    return _driverProfileStream!;
+  }
+
   Future<void> _toggleAvailability(String driverId, bool goOnline, String Function(String) t) async {
     setState(() => _togglingAvailability = true);
     try {
@@ -110,7 +127,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
         ]),
         actions: [
           StreamBuilder<DriverProfileV2?>(
-            stream: BackendLocator.driverRepository.watchDriverProfile(driverId),
+            stream: _ensureDriverProfileStream(driverId),
             builder: (context, snap) {
               final profile = snap.data;
               final online = profile?.onlineStatus == DriverOnlineStatus.online;
@@ -155,6 +172,23 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           const SizedBox(width: 4),
         ],
       ),
+      // Bloc M (gap performance identifié, NON corrigé ce tour) : `tabs[_index]`
+      // détruit/recrée le State de l'onglet non affiché à chaque changement
+      // d'onglet (ré-abonnement Firestore, ex: `_ensureStreams()` de
+      // ProviderJobsTab). Un remplacement par `IndexedStack` a été tenté puis
+      // REVERTÉ : `IndexedStack` construit les 4 onglets simultanément dès le
+      // premier rendu (y compris Earnings/Calendar/Profile, jamais visités),
+      // ce qui souscrit immédiatement à des flux Firestore supplémentaires
+      // (finance, profil) même quand l'utilisateur reste sur "Missions
+      // disponibles" — un coût réseau/mémoire ajouté au démarrage, pire que
+      // le gap initial pour l'usage MVP typique (rester sur le premier
+      // onglet). Un vrai correctif nécessiterait une construction paresseuse
+      // par onglet (ex: `AutomaticKeepAliveClientMixin` par onglet, ou
+      // construire l'IndexedStack enfant par enfant uniquement après première
+      // visite) — DEFERRED NON-BLOCKING, documenté dans PHASE7_BUG_REPORT.md
+      // pour un prochain bloc (hors urgence P0/P1 : le gap actuel n'affecte
+      // que la fraîcheur du flux après un retour d'onglet, pas une fuite ni
+      // un crash).
       body: isDesktop
           ? Row(
               children: [

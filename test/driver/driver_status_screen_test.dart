@@ -60,6 +60,7 @@ class _FakeDriverRepository implements DriverRepository {
 
   int submitForReviewCallCount = 0;
   int setDriverOnlineStatusCallCount = 0;
+  int watchDriverProfileCallCount = 0;
   bool? lastOnlineValue;
 
   /// Si positionné, `submitForReview()` lève cette exception au lieu de
@@ -85,7 +86,10 @@ class _FakeDriverRepository implements DriverRepository {
   void dispose() => _controller.close();
 
   @override
-  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => _controller.stream;
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) {
+    watchDriverProfileCallCount++;
+    return _controller.stream;
+  }
 
   @override
   Future<DriverProfileV2?> getDriverProfile(String driverId) async => profile;

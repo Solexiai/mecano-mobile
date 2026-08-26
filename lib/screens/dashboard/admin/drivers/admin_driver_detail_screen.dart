@@ -34,6 +34,19 @@ class AdminDriverDetailScreen extends StatefulWidget {
 class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
   bool _actionInProgress = false;
 
+  // Bloc M (gap performance, même classe de bug que Bloc C item 3) : le
+  // StreamBuilder sur `watchDriverProfile()` était instancié directement
+  // dans `build()`. Chaque action admin (Approuver/Refuser/Suspendre/
+  // Réactiver/Demander documents) déclenche un `setState()` via
+  // `onBusyChanged`, recréant le Stream (flicker + re-souscription
+  // Firestore). `widget.driverId` est stable pour la durée de vie de cet
+  // écran, donc le Stream n'a besoin d'être créé qu'une seule fois — pas
+  // de mémoïsation conditionnelle par id nécessaire ici (contrairement aux
+  // shells où le driverId peut changer), un simple champ `late final`
+  // suffit et documente clairement l'intention.
+  late final Stream<DriverProfileV2?> _driverProfileStream =
+      BackendLocator.driverRepository.watchDriverProfile(widget.driverId);
+
   @override
   void initState() {
     super.initState();
@@ -48,12 +61,11 @@ class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final repo = BackendLocator.driverRepository;
 
     return Scaffold(
       appBar: AppBar(title: Text(t('admin_driver_detail_title'))),
       body: StreamBuilder<DriverProfileV2?>(
-        stream: repo.watchDriverProfile(widget.driverId),
+        stream: _driverProfileStream,
         builder: (context, profileSnap) {
           if (profileSnap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -176,14 +188,32 @@ class _KeyValueRow extends StatelessWidget {
   }
 }
 
-class _ProfileSection extends StatelessWidget {
+class _ProfileSection extends StatefulWidget {
   final String driverId;
   final DriverProfileV2 profile;
   final String Function(String) t;
   const _ProfileSection({required this.driverId, required this.profile, required this.t});
 
   @override
+  State<_ProfileSection> createState() => _ProfileSectionState();
+}
+
+class _ProfileSectionState extends State<_ProfileSection> {
+  // Bloc M (gap performance) : ce widget est recréé à chaque rebuild du
+  // parent (ex : toggle `_actionInProgress` sur une action admin sans
+  // rapport avec ce champ), et un `FutureBuilder` dont `future:` est
+  // construit en `build()` relance systématiquement une LECTURE FIRESTORE
+  // (`users/{driverId}.get()`) à chaque reconstruction — coûteux et
+  // inutile puisque `driverId` ne change jamais pour cet écran. Le Future
+  // est désormais capturé une seule fois dans `initState()`.
+  late final Future<DocumentSnapshot<Map<String, dynamic>>> _userFuture =
+      FirebaseFirestore.instance.collection('users').doc(widget.driverId).get();
+
+  @override
   Widget build(BuildContext context) {
+    final t = widget.t;
+    final profile = widget.profile;
+    final driverId = widget.driverId;
     final na = t('admin_driver_field_not_available');
     final nameParts = profile.fullName.trim().split(RegExp(r'\s+'));
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
@@ -192,7 +222,7 @@ class _ProfileSection extends StatelessWidget {
     return _SectionCard(
       title: t('admin_driver_section_profile'),
       child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        future: FirebaseFirestore.instance.collection('users').doc(driverId).get(),
+        future: _userFuture,
         builder: (context, snap) {
           AppUserV2? user;
           if (snap.hasData && snap.data!.exists) {
@@ -222,18 +252,30 @@ class _ProfileSection extends StatelessWidget {
   }
 }
 
-class _VehicleSection extends StatelessWidget {
+class _VehicleSection extends StatefulWidget {
   final String driverId;
   final String Function(String) t;
   const _VehicleSection({required this.driverId, required this.t});
 
   @override
+  State<_VehicleSection> createState() => _VehicleSectionState();
+}
+
+class _VehicleSectionState extends State<_VehicleSection> {
+  // Bloc M (gap performance) : même correctif que _ProfileSection — évite
+  // de relancer `getDriverVehicles()` (lecture Firestore) à chaque rebuild
+  // du parent déclenché par une action admin sans rapport (toggle busy).
+  late final Future<List<DriverVehicle>> _vehiclesFuture =
+      BackendLocator.driverRepository.getDriverVehicles(widget.driverId);
+
+  @override
   Widget build(BuildContext context) {
+    final t = widget.t;
     final na = t('admin_driver_field_not_available');
     return _SectionCard(
       title: t('admin_driver_section_vehicle'),
       child: FutureBuilder<List<DriverVehicle>>(
-        future: BackendLocator.driverRepository.getDriverVehicles(driverId),
+        future: _vehiclesFuture,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Padding(
