@@ -19,6 +19,7 @@ import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../backend/models/driver_vehicle.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
+import '../../../../finance/presentation/money_format.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 
@@ -353,12 +354,16 @@ class _DocumentTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '${t('admin_driver_doc_uploaded_at')}: ${doc.uploadedAt.toLocal()}'.split('.').first,
+            // Bloc K2 (K2-2) : plus de Timestamp/DateTime brut visible
+            // (ex: "2026-08-26 12:24:28.123456") — formatage localisé via
+            // `formatDisplayDate` (déjà utilisé ailleurs pour la finance),
+            // cohérent avec le reste de l'app.
+            '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt)}',
             style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
           if (doc.expiresAt != null)
             Text(
-              '${t('admin_driver_doc_expires_at')}: ${doc.expiresAt!.toLocal()}'.split('.').first,
+              '${t('admin_driver_doc_expires_at')}: ${formatDisplayDate(doc.expiresAt!)}',
               style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
             ),
           if (doc.rejectionReason != null && doc.rejectionReason!.isNotEmpty)

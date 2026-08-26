@@ -242,9 +242,16 @@ class _DriverRow extends StatelessWidget {
 }
 
 String _formatDate(DateTime d, String locale) {
-  final dd = d.day.toString().padLeft(2, '0');
-  final mm = d.month.toString().padLeft(2, '0');
-  return '$dd/$mm/${d.year}';
+  // Bloc K2 (K2-2) : conversion explicite en heure locale AVANT extraction
+  // jour/mois/année — sans ceci, un DateTime réellement UTC (ex: valeur
+  // provenant d'un Timestamp Firestore non converti) afficherait le jour
+  // UTC au lieu du jour perçu par l'utilisateur, ce qui peut différer de 1
+  // jour autour de minuit selon le fuseau. Voir aussi
+  // `k2_utc_local_boundary_test.dart`.
+  final local = d.toLocal();
+  final dd = local.day.toString().padLeft(2, '0');
+  final mm = local.month.toString().padLeft(2, '0');
+  return '$dd/$mm/${local.year}';
 }
 
 class _MetaChip extends StatelessWidget {

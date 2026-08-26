@@ -287,7 +287,15 @@ class _LedgerTile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  '${entry.createdAt.year}-${entry.createdAt.month.toString().padLeft(2, '0')}-${entry.createdAt.day.toString().padLeft(2, '0')}',
+                  // Bloc K2 (K2-2) : `.toLocal()` explicite avant extraction
+                  // des composants de date — voir justification identique
+                  // dans admin_drivers_list_screen.dart::_formatDate.
+                  () {
+                    final local = entry.createdAt.toLocal();
+                    final mm = local.month.toString().padLeft(2, '0');
+                    final dd = local.day.toString().padLeft(2, '0');
+                    return '${local.year}-$mm-$dd';
+                  }(),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,

@@ -346,5 +346,23 @@ classé comme bug (voir Bloc B).
 date/heure local (`notifications_screen.dart` + 4 autres fichiers) — comparaison sur instants
 réels non affectée, uniquement l'affichage textuel du connecteur.
 
-## Timezone / Date (Bloc K2) et Accessibilité MVP (Bloc L)
-Toujours NON DÉMARRÉS à ce commit — reprise prévue en priorité sur K2-0.
+## Timezone / Date (Bloc K2) — EN COURS (ce tour)
+
+| Sous-bloc | État | Statut |
+|---|---|---|
+| K2-0 Reconnaissance | 144 occurrences date/heure cartographiées (41 fichiers `lib/`), backend `functions/` sans logique day-boundary sensible au fuseau | **FAIT** |
+| K2-1 Storage | Timestamps métier = vrais `Timestamp` Firestore (instants réels), `parseFirestoreDate()` fuseau-agnostique | **CONFORME** |
+| K2-2 Affichage local | 3 gaps réels trouvés et **corrigés** (Timestamp brut visible + 2x `.toLocal()` manquant) | **PARTIEL** |
+| K2-3 Formats FR/EN/ES | Gap réel identifié (connecteur `'à'` codé en dur, 3 fonctions) — **PAS ENCORE corrigé** | **GAP OUVERT** |
+| K2-4 Frontière UTC/local | `test/timezone/k2_utc_local_boundary_test.dart` créé (5 tests permanents, PASS) | **FAIT** |
+| K2-5 Expirations business | Comparaisons sur instants réels (`isBefore`/`isAfter`/`<=`), jamais sur strings | **CONFORME** |
+| K2-6 Tri | ~25 `.sort()`/`.orderBy()` tous sur `DateTime.compareTo()` réel | **CONFORME** |
+| K2-7 DST | NON EXAMINÉ ce tour | **À FAIRE** |
+
+**Bloc K2 : ⚠️ EN COURS, PAS FERMÉ.** `flutter analyze` 3 infos pré-existantes / 0 erreur.
+`flutter test` complet → **469/469 PASS** (464 Bloc K + 5 nouveaux K2-4), 0 régression.
+Reprise : K2-3 (connecteur i18n) puis K2-7 (confirmer N/A ou traiter), voir détail dans
+`docs/PHASE7_QA_PLAN.md`.
+
+## Accessibilité MVP (Bloc L)
+NON DÉMARRÉ — reprise après clôture réelle de K2.

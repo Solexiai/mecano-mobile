@@ -844,3 +844,106 @@ identifié ci-dessus (connecteur 'à' codé en dur dans le formatage date/heure,
 - `test/i18n/app_strings_structural_test.dart` (nouveau)
 - `test/i18n/k5_residual_screens_locale_render_test.dart` (nouveau)
 - `docs/PHASE7_QA_PLAN.md`, `docs/PHASE7_QA_MATRIX.md`, `docs/PHASE7_BUG_REPORT.md`
+
+---
+
+## MISE À JOUR — Bloc K2 (Timezone/Date) : reconnaissance + corrections partielles (ce tour)
+
+**K2-0 (reconnaissance, ~15-20% du budget K2)** : cartographie complète des manipulations
+date/heure dans `lib/` (144 occurrences `DateTime.now/toIso8601String/DateFormat` sur 41
+fichiers) et dans `functions/src/` (écriture serveur systématique via
+`admin.firestore.Timestamp.now()`/`Date.now()`, aucune logique day-boundary sensible au fuseau
+côté Cloud Functions).
+
+**Constats K2-1 (storage)** : ✅ CONFORME. Tous les timestamps métier (missions, devis,
+paiements, documents chauffeur) sont écrits côté serveur comme de vrais `Timestamp` Firestore
+(instants réels), jamais comme chaînes dépendant d'un fuseau. `parseFirestoreDate()` gère les 3
+formes possibles (Timestamp/DateTime/String ISO) sans dépendre du fuseau local à la lecture.
+
+**Constats K2-5 (expirations business)** : ✅ CONFORME. Toutes les comparaisons d'expiration
+trouvées (`DeliveryQuote.isValidAt`, `FoundingDriver.isWithinPromotionalPeriod`,
+`CommissionResolver`, `detectExpiringDocuments.ts` côté serveur) comparent des `DateTime`/
+`Timestamp` réels via `.isBefore()`/`.isAfter()`/`<=`, jamais des chaînes formatées.
+
+**Constats K2-6 (tri)** : ✅ CONFORME. Les ~25 occurrences de `.sort()`/`.orderBy()` trouvées
+(providers, repositories, écrans admin/finance) trient systématiquement sur `.compareTo()` d'un
+champ `DateTime` réel (`createdAt`, `lastUpdatedAt`, `recordedAt`, `offeredAt`), jamais sur une
+chaîne affichée.
+
+**Gaps réels trouvés et CORRIGÉS ce tour (K2-2)** :
+1. `admin_driver_detail_screen.dart` : affichait un `DateTime` BRUT tronqué
+   (`'${doc.uploadedAt.toLocal()}'.split('.').first`, ex: `"2026-08-26 12:24:28"`) au lieu d'un
+   format localisé — remplacé par `formatDisplayDate()` (déjà utilisé ailleurs dans l'app).
+2. `admin_drivers_list_screen.dart::_formatDate()` : extrayait jour/mois/année directement sur
+   le `DateTime` reçu SANS appeler `.toLocal()` au préalable (contrairement au pattern correct
+   utilisé dans 4 autres fichiers de formatage du projet) — corrigé.
+3. `provider_earnings_tab.dart` : même gap que #2 (extraction `year/month/day` sans
+   `.toLocal()`) — corrigé.
+
+**Gap identifié mais DIFFÉRÉ (K2-3, formats FR/EN/ES)** : le connecteur `'à'` codé en dur dans
+6 fonctions de formatage date/heure (`notifications_screen.dart`, `customer_tracking_screen.dart`
+(implicite via `mission_finance_section.dart`), `mission_finance_section.dart`,
+`money_format.dart`, `finance_ui_helpers.dart` (format court, pas de connecteur — non concerné),
+`admin_drivers_list_screen.dart` (format court, non concerné)) — en l'état, l'app affiche
+systématiquement `JJ/MM/AAAA à HH:MM` même en EN/ES au lieu d'un séparateur localisé (`at`/`a
+las`). Ce gap est réel mais N'A PAS ENCORE été corrigé ce tour (limite de budget) : la correction
+nécessite soit d'introduire un connecteur i18n (`t('datetime_connector')`) dans chacune des 4
+fonctions concernées (`_formatDateTime` x2, `_formatDate` dans mission_finance_section,
+`formatDisplayDate`), avec le risque de devoir propager un paramètre `locale`/`t` là où il n'est
+pas encore disponible (ex: `money_format.dart` est un fichier de fonctions pures sans accès à
+`LocaleProvider`).
+
+**K2-4 (frontière UTC/local)** : ✅ FAIT. Nouveau test permanent
+`test/timezone/k2_utc_local_boundary_test.dart` (5 tests, tous PASS) prouvant :
+   - le round-trip `.toLocal().toUtc()` préserve l'instant réel (`isAtSameMomentAs`) ;
+   - l'ordre chronologique est préservé après conversion locale, y compris pour deux instants
+     UTC situés juste avant/après minuit UTC (cas Québec/Canada, fuseau négatif) ;
+   - `formatDisplayDate()` et `formatShortDate()` (fonctions réelles du projet) construisent
+     bien leur texte à partir de `dt.toLocal()`, jamais des composantes UTC brutes ;
+   - `formatShortDate(null)` retourne `'—'` sans exception.
+
+**K2-7 (DST)** : NON EXAMINÉ ce tour (limite de budget) — aucune logique de durée métier
+(délais, fenêtres de promo) n'a été identifiée comme dépendant d'un nombre fixe de "jours" over
+une frontière DST pendant la reconnaissance K2-0, mais ceci reste à CONFIRMER explicitement
+avant de documenter K2-7 comme N/A.
+
+**Validation de ce qui a été fait ce tour** : `flutter analyze` → 3 infos pré-existantes non
+liées, 0 erreur. `flutter test` (suite complète, y compris le nouveau
+`k2_utc_local_boundary_test.dart`) → **469/469 PASS** (464 baseline Bloc K + 5 nouveaux K2-4),
+0 régression.
+
+**BLOC K2 : ⚠️ EN COURS, PAS ENCORE FERMÉ.** K2-0/K2-1/K2-4/K2-5/K2-6 traités (constats +
+1 test permanent + 3 corrections de gaps réels). K2-2 partiellement traité (3 gaps réels
+corrigés, recherche non exhaustive garantie à 100%). **K2-3 (formats FR/EN/ES sans hardcode) et
+K2-7 (DST) restent à traiter** avant de pouvoir déclarer BLOC K2 fermé. Limite de budget
+d'itérations atteinte honnêtement documentée — PAS de fausse clôture.
+
+**Reprise exacte prévue à la prochaine session** :
+1. K2-3 : ajouter un connecteur localisé (nouvelle clé i18n, ex. `datetime_connector_at` avec
+   fr='à', en='at', es='a las') et le brancher dans les 3 fonctions concernées qui ont accès à
+   `t`/`locale` (`notifications_screen.dart::_formatDateTime`,
+   `mission_finance_section.dart::_formatDate`) ; pour `money_format.dart::formatDisplayDate`
+   (fonction pure sans accès à `LocaleProvider`), ajouter un paramètre optionnel `String
+   connector = 'à'` avec valeur par défaut rétrocompatible, et faire passer la locale depuis les
+   3 call sites identifiés (`provider_payouts_section.dart` x4, `admin_payment_detail_screen.dart`
+   x1).
+2. K2-7 : confirmer explicitement l'absence de logique DST-sensible (délais en jours calendaires
+   vs délais en heures fixes) dans les modules `founding_driver.dart`, `commission_resolver.dart`,
+   `payout_policy_configuration.dart`, `detectExpiringDocuments.ts`, puis documenter N/A avec
+   justification.
+3. Validation finale K2 : `flutter analyze`/`flutter test` complets, `npx tsc --noEmit` +
+   `npm run lint` côté `functions/` (backend non touché ce tour, mais K2-3 pourrait nécessiter
+   des ajustements si le connecteur doit un jour être généré côté serveur — vérifier avant de
+   clore).
+4. Déclarer "BLOC K2 : ✅ FERMÉ", commit+push, puis démarrer immédiatement Bloc L
+   (Accessibilité MVP) sans s'arrêter, conformément à la règle anti-boucle.
+
+**Fichiers modifiés ce tour (Bloc K2, partiel)** :
+- `lib/screens/dashboard/admin/drivers/admin_driver_detail_screen.dart` (Timestamp brut →
+  `formatDisplayDate()`)
+- `lib/screens/dashboard/admin/drivers/admin_drivers_list_screen.dart` (`.toLocal()` manquant
+  ajouté dans `_formatDate()`)
+- `lib/screens/dashboard/provider/tabs/provider_earnings_tab.dart` (`.toLocal()` manquant
+  ajouté)
+- `test/timezone/k2_utc_local_boundary_test.dart` (nouveau, 5 tests K2-4)
+- `docs/PHASE7_QA_PLAN.md` (ce fichier)

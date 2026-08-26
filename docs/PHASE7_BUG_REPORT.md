@@ -636,6 +636,26 @@ BUG-010).
 
 **BLOC K : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
 
-**Reprise prévue** : Bloc K2 (Timezone/Date), à partir de K2-0 (matrice courte), avec un gap déjà
-identifié et documenté (connecteur `'à'` codé en dur dans le formatage date/heure local,
-plusieurs fichiers) — pertinent pour K2-3 (formats FR/EN/ES sans hardcode).
+---
+
+## MISE À JOUR — Bloc K2 (Timezone/Date) : EN COURS (ce tour)
+
+3 gaps réels trouvés et **corrigés** (P2, affichage uniquement, aucune donnée métier fausse) :
+1. `admin_driver_detail_screen.dart` : Timestamp brut tronqué affiché à l'admin
+   (`"2026-08-26 12:24:28"`) au lieu d'un format localisé → corrigé (`formatDisplayDate()`).
+2. `admin_drivers_list_screen.dart::_formatDate()` : composants de date extraits SANS
+   `.toLocal()` préalable → corrigé.
+3. `provider_earnings_tab.dart` : même gap (extraction date sans `.toLocal()`) → corrigé.
+
+1 gap réel identifié mais **PAS ENCORE corrigé** (P3, cosmétique) : connecteur `'à'` codé en dur
+dans le formatage date/heure (au lieu de `'at'`/`'a las'` en EN/ES) — 3 fonctions concernées,
+voir détail et plan de correction dans `docs/PHASE7_QA_PLAN.md`.
+
+`flutter analyze` → 3 infos pré-existantes non liées, 0 erreur. `flutter test` → 469/469 PASS
+(464 Bloc K + 5 nouveaux `k2_utc_local_boundary_test.dart`), 0 régression.
+
+**BLOC K2 : ⚠️ PAS ENCORE FERMÉ.** P0 ouverts = 0. P1 ouverts = 0. P2 = 0 (les 3 gaps trouvés
+ont été corrigés). P3 ouvert = 1 (connecteur `'à'` codé en dur, K2-3).
+
+**Reprise prévue** : terminer K2-3 (connecteur i18n date/heure) puis K2-7 (confirmer N/A DST ou
+traiter), déclarer BLOC K2 fermé, puis démarrer Bloc L (Accessibilité MVP) sans s'arrêter.
