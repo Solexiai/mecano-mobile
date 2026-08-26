@@ -207,6 +207,48 @@ describe("createDeliveryRequest — cas négatifs", () => {
       createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { ...baseInput }))
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
+
+  // 🔒 BLOC O — GAP COMBLÉ : distanceKm/estimatedDurationMinutes négatifs ou
+  // non-numériques n'étaient validés que côté calculateDeliveryQuote()
+  // (devis), jamais ici (voir createDeliveryRequest.ts). Un devis n'est
+  // qu'un chiffre indicatif consommé au moment de la mission — cette
+  // fonction est le SEUL point d'écriture réel de `delivery_requests`, donc
+  // le seul endroit où cette donnée devient persistante et rejouée plus
+  // tard par acceptDelivery() pour le recalcul serveur du prix.
+  it("distanceKm négatif échoue avec invalid-argument (aucune mission créée)", async () => {
+    await seedQuote();
+    await expect(
+      createDeliveryRequest.run(
+        buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput, distanceKm: -5 })
+      )
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+
+    const quoteSnap = await db.collection("delivery_quotes").doc(QUOTE_ID).get();
+    expect(quoteSnap.data()!.is_consumed).toBe(false);
+  });
+
+  it("estimatedDurationMinutes négatif échoue avec invalid-argument (aucune mission créée)", async () => {
+    await seedQuote();
+    await expect(
+      createDeliveryRequest.run(
+        buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput, estimatedDurationMinutes: -1 })
+      )
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
+
+  it("distanceKm non-numérique (NaN) échoue avec invalid-argument", async () => {
+    await seedQuote();
+    await expect(
+      createDeliveryRequest.run(
+        buildRequest(CUSTOMER_ID, {
+          quoteId: QUOTE_ID,
+          ...baseInput,
+          // @ts-expect-error payload volontairement invalide
+          distanceKm: "douze",
+        })
+      )
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -1096,5 +1096,32 @@ Flutter/Dart touché ce bloc.
 **BLOC N : ✅ FERMÉ.** P0 = 0, P1 = 0 (2 corrigés). P2 DEFERRED = 2 (réaffirmés). P3 = 1
 (nouveau, documenté).
 
-**PROCHAINE ACTION : Bloc O (Cloud Functions hardening) → Bloc P (Storage hardening),
-sans arrêt intermédiaire (règle explicite de cette session).**
+## MISE À JOUR — BLOC O : ✅ FERMÉ (Cloud Functions hardening)
+
+Reconnaissance déjà faite en amont (non refaite ce tour, conformément à la consigne explicite).
+Matrice consolidée écrite dans `docs/PHASE7_QA_MATRIX.md` (18 fonctions : auth/validation/
+transaction/idempotence/erreurs/statut). Résultat : 16 fonctions déjà COUVERTES par des tests
+existants (référencés, non dupliqués — notamment `refundPayment.test.ts` IDEMPOTENCE+CONCURRENCE
+pour O-2, `createDeliveryRequestIdempotency.test.ts` Cas B/C, `completeDelivery.test.ts`/
+`completePickup.test.ts` doubles-appels rejetés, `calculateDriverPayout.test.ts` marquage
+`included_in_payout_id`, `reverseDriverPayout.test.ts` état terminal REVERSED, `missionCancellation
+PaymentRelease.test.ts` idempotence trigger, `adminPrivilegedActions.test.ts`/
+`authSessionClaims.test.ts` auth/rôles, `disputeOrchestration.test.ts` pour `updateDisputeStatus`).
+
+**1 gap réel comblé (BUG-O-01, P2)** : `createDeliveryRequest.ts` n'avait aucune validation
+runtime de `distanceKm`/`estimatedDurationMinutes` (seul le devis, en amont, les validait) — fix +
+3 tests dédiés (`createDeliveryRequest.test.ts`).
+
+**2 points documentés P3/DEFERRED, non-bloquants** : message d'erreur `acceptDelivery` légèrement
+imprécis sur un retry même-chauffeur (fonctionnellement sûr, aucune duplication possible) ; absence
+d'un type d'anomalie `payment_stuck_authorized` dans `reconciliationEngine.ts` (DEFERRED → Phase 8,
+faible probabilité, aucun risque financier direct). Classification I-4 (redélivrance trigger
+notification) réaffirmée sans nouvelle preuve l'invalidant.
+
+**Validation Bloc O** : `npx tsc --noEmit` 0 erreur, `npm run lint` 0 erreur, Jest unit 109/109
+PASS, intégration ciblée (createDeliveryRequest) 16/16 PASS — suite complète ré-exécutée en
+validation finale groupée N→O→P (voir plus bas).
+
+**BLOC O : ✅ FERMÉ.** P0 = 0, P1 = 0, P2 corrigé = 1 (BUG-O-01), P3 documentés = 2.
+
+**PROCHAINE ACTION : Bloc P (Storage hardening), sans arrêt intermédiaire.**

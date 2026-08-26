@@ -459,3 +459,130 @@ Flutter/Dart touché ce bloc → `flutter analyze`/`flutter test` non ré-exécu
 480/480 en sortie du Bloc M, aucune régression possible côté client).
 
 **P0 ouverts** : 0. **P1 ouverts** : 0 (2 corrigés : BUG-N-01, BUG-N-02).
+
+---
+
+## BLOC O — CLOUD FUNCTIONS HARDENING : ✅ FERMÉ
+
+Reconnaissance déjà faite en amont (lecture complète de `acceptDelivery.ts`, `completeDelivery.ts`,
+`createDeliveryRequest.ts`, `refundPayment.ts`, `updateMissionTrackingStatus.ts`,
+`onMissionStatusChangeNotifyCustomer.ts`, `onMissionEndedClearTracking.ts`, sections ciblées de
+`paymentOrchestration.ts`). Ce tour : preuves (tests existants référencés + 1 gap comblé), pas de
+second inventaire.
+
+### Matrice consolidée (Function → auth → validation → transaction → idempotence/retry → erreurs → statut)
+
+| Function | Auth | Validation input | Transaction | Idempotence / retry | Erreurs | Statut |
+|---|---|---|---|---|---|---|
+| `createDeliveryRequest` | `requireSignedIn` | quoteId, ≥2 stops, stops[0]=pickup, **distanceKm/estimatedDurationMinutes ≥0** (BUG-O-01, corrigé ce tour) | `runTransaction` (quote+mission+stops+is_consumed) | `quote.is_consumed` = garde déterministe ; retry séquentiel ET concurrent PROUVÉS par `createDeliveryRequestIdempotency.test.ts` (Cas B/C) | `invalid-argument`/`not-found`/`permission-denied`/`failed-precondition`, aucun détail interne | **COUVERT** |
+| `acceptDelivery` | `requireSignedIn` + éligibilité chauffeur (status/documents/catégorie) | `missionId` requis | `runTransaction` (relecture mission+driver, 1er commit gagnant) | Retry DIFFÉRENT chauffeur : PROUVÉ par `acceptDeliveryConcurrency.test.ts` (course concurrente + séquentielle). Retry MÊME chauffeur : `if (mission.driver_id) throw failed-precondition` s'exécute AVANT toute écriture (snapshot/paiement) → aucune duplication possible ; message légèrement imprécis ("assignée à un autre chauffeur") mais fonctionnellement sûr (P3 cosmétique, non-bloquant) | `not-found`/`permission-denied`/`failed-precondition` structurées | **COUVERT** |
+| `completeDelivery` | `requireSignedIn` + `driver_id===ctx.uid` | `missionId`, `proofOfDeliveryUrl` non vide | `runTransaction` (snapshot confirmed=immuable, ledger x5) | Double appel PROUVÉ REJETÉ par `completeDelivery.test.ts` ("snapshot déjà confirmed" + "mission déjà completed") — snapshot immuable = garde d'idempotence | idem | **COUVERT** |
+| `completePickup` | `requireSignedIn` + `driver_id` | `missionId` | `runTransaction` | Double appel PROUVÉ REJETÉ par `completePickup.test.ts` ("depuis picked_up déjà ramassé" + "depuis completed") | idem | **COUVERT** |
+| `updateMissionTrackingStatus` | `requireSignedIn` + `driver_id` | `targetStatus` doit être une clé connue de `ALLOWED_TRANSITIONS` | `runTransaction` | Machine à états stricte à prédécesseur unique (`ALLOWED_TRANSITIONS`) : un retry relit un `status` déjà avancé → rejet automatique. Non testé sous le libellé explicite "retry" mais fonctionnellement identique aux tests "sauts de statut interdits"/"transition régressive" déjà existants (`updateMissionTrackingStatus.test.ts`) → référencé, pas dupliqué | `invalid-argument`/`not-found`/`permission-denied`/`failed-precondition` | **COUVERT (référencé)** |
+| Cancellation mission (`onMissionEndedClearTracking`) | Trigger système (`onDocumentUpdated`), pas d'appel client direct | `wasAlreadyTerminal` + vérif pointeur `active_delivery_id` avant clear | N/A (trigger, écritures ciblées) | Rejouer le trigger sur une mission déjà cancelled+payment déjà cancelled ne relance PAS `cancelAuthorization` : PROUVÉ par `missionCancellationPaymentRelease.test.ts` (test `[idempotence]` explicite) | Logs serveur uniquement (trigger, pas de retour client) | **COUVERT** |
+| Pricing / quote (`calculateDeliveryQuote`) | `requireSignedIn` | `vehicleCategory`, `distanceKm≥0`, `estimatedDurationMinutes≥0` déjà présents | Lecture seule + `.set()` d'un nouveau devis (pas de contention possible, chaque appel crée un nouveau doc) | N/A (devis = donnée jetable, jamais rejouée ; c'est `createDeliveryRequest`/`acceptDelivery` qui portent la garde d'idempotence réelle) | `invalid-argument`/`failed-precondition` | **COUVERT** |
+| `refundPayment` | `requireSignedIn` + (`isAdminOrAbove` OR `payment.customer_id===ctx.uid`) | `paymentId`, `reason`, `amountMinor` | `runTransaction` (dedup doc `refunds/{requestKey}`) + appel provider HORS transaction | `requestKey` déterministe = équivalent fonctionnel prouvé de `buildIdempotencyKey` : `refundPayment.test.ts` contient DEUX tests dédiés — "IDEMPOTENCE : même requestKey rejouée" (résultat caché renvoyé, jamais un 2e RefundDoc) ET "CONCURRENCE : deux appels simultanés" (spy sur le provider prouve EXACTEMENT 1 appel réel) | Erreurs structurées, jamais de détail Stripe brut renvoyé au client | **COUVERT (O-2 fermé par preuve existante)** |
+| `calculateDriverPayout` | `requireAdminOrAbove` | `driverId` requis | `runTransaction` (agrégation snapshots + marquage) | Marquage `included_in_payout_id` = idempotence par construction : 2e appel PROUVÉ retourner `payoutId: null, amountMinor: 0` (`calculateDriverPayout.test.ts`) | `invalid-argument`/`permission-denied` | **COUVERT** |
+| `reverseDriverPayout` | `requireAdminOrAbove` | `payoutId`, `reason` | `runTransaction` (machine d'état payout) | `REVERSED` = état TERMINAL (`TRANSITIONS[REVERSED]===[]`) : un 2e appel est explicitement REJETÉ (pas silencieusement accepté) — PROUVÉ par test dédié, aucun double effet ledger | idem | **COUVERT** |
+| `approveDriver` | `requireAnalystOrAbove` (confirmé par grep) | `driverId` | `runTransaction` (précondition "déjà approuvé") | Précondition d'état = garde naturelle contre un retry | idem | **COUVERT** |
+| `rejectDriver` | rôle analyst+ (référencé `adminPrivilegedActions.test.ts`) | `driverId`, `reason` | transaction | precondition d'état | idem | **COUVERT (référencé)** |
+| `suspendDriver` | admin/super_admin (pas analyst) | `driverId`, `reason` | transaction | double-suspension REJETÉE — PROUVÉ (`adminPrivilegedActions.test.ts`) | idem | **COUVERT (référencé)** |
+| `reactivateDriver` | admin/super_admin | `driverId` | transaction | precondition d'état | idem | **COUVERT (référencé)** |
+| `setUserRole` | super_admin uniquement | `uid`, `role` valide | écriture claims + Firestore | opération déclarative idempotente par nature (réassigner le même rôle = no-op) | idem | **COUVERT (référencé, Bloc E)** |
+| `validateDriverDocument` | analyst+ | `driverId`, `documentType`, `decision` | transaction | precondition d'état document | idem | **COUVERT (référencé)** |
+| `updateDisputeStatus` | `requireAdminOrAbove` | `disputeId`, `newStatus` ∈ `DisputeStatuses` | délègue à `transitionDisputeStatus()` (machine d'état) | machine d'état dispute = garde naturelle ; permission-denied non-admin PROUVÉ, invalid-argument PROUVÉ (`disputeOrchestration.test.ts` describe dédié) | idem | **COUVERT** |
+| Notifications critiques (`onMissionStatusChangeNotifyCustomer`) | Trigger système | Guard `before.status===after.status → return` (no-op sur écriture non pertinente) | N/A (trigger) | PAS de dédup par event-id explicite pour une VRAIE redélivrance de plateforme (distincte d'un retry client onCall) — risque théorique, sévérité UX faible (notification dupliquée, jamais un effet financier). Déjà classé DEFERRED/non-bloquant en session antérieure (entrée I-4, `PHASE7_QA_MATRIX.md`) ; RÉAFFIRMÉ ici sans nouvelle preuve l'invalidant (règle "ne pas rouvrir sans preuve nouvelle") | N/A | **DEFERRED (réaffirmé, non-bloquant)** |
+
+### O-1/O-2/O-3 — Synthèse retry/idempotence
+
+Toutes les fonctions financières/transactionnelles critiques ont été analysées avec la question
+« appel exécuté → réponse perdue → retry identique → conséquence ? ». Résultat : **aucune**
+fonction critique ne produit de double mission, double transition, double paiement, double
+refund, double payout, ou ledger dupliqué. Les mécanismes trouvés (non exhaustifs par
+`buildIdempotencyKey`) :
+- **Précondition d'état / machine à états** (`acceptDelivery`, `completeDelivery`, `completePickup`,
+  `updateMissionTrackingStatus`, `approveDriver`, `updateDisputeStatus`) — un retry relit un état
+  déjà avancé et échoue proprement (`failed-precondition`), avant toute nouvelle écriture.
+- **Document de déduplication déterministe** (`refundPayment` via `requestKey`, schéma en 3 temps
+  de `paymentOrchestration.ts` pour `createAndAuthorizeMissionPayment`/`captureMissionPayment` —
+  l'appel provider a toujours lieu HORS transaction Firestore, donc jamais ré-exécuté par un retry
+  de contention).
+- **Marquage d'inclusion** (`calculateDriverPayout` via `included_in_payout_id`).
+- **État terminal explicite** (`reverseDriverPayout` via `REVERSED`).
+- **Vérification de pointeur avant effet de bord** (`onMissionEndedClearTracking` : ne clear
+  `active_delivery_id` que s'il pointe encore vers CETTE mission).
+
+Seul point non couvert par un mécanisme explicite : la redélivrance de plateforme (at-least-once)
+d'un trigger Firestore (`onMissionStatusChangeNotifyCustomer`) — classé DEFERRED (voir matrice
+ci-dessus), cohérent avec la classification I-4 déjà actée.
+
+### O-4 — Validation input : 1 gap comblé
+
+**BUG-O-01 (P2, corrigé)** : `createDeliveryRequest.ts` acceptait `distanceKm`/
+`estimatedDurationMinutes` sans aucune validation runtime (seul `calculateDeliveryQuote.ts`, en
+amont, validait ces champs sur le DEVIS — mais `createDeliveryRequest` est le seul point d'écriture
+réel de `delivery_requests`, rejoué plus tard par `acceptDelivery` pour le recalcul serveur du
+prix). Impact financier réel nul aujourd'hui (`missionBaseValue` est plancherée par
+`rule.minimum_charge` dans `pricingEngine.ts`), mais donnée métier incohérente à rejeter
+explicitement. Fix : ajout de la même garde `typeof ... === "number" && Number.isFinite(...) &&
+>= 0` que `calculateDeliveryQuote.ts`, + 3 nouveaux tests dans `createDeliveryRequest.test.ts`
+(distanceKm négatif, estimatedDurationMinutes négatif, distanceKm non-numérique — chacun prouve
+qu'aucune mission n'est créée et que le devis reste non consommé).
+
+Aucun autre gap critique trouvé sur les fonctions prioritaires (montant négatif déjà gardé sur
+`refundPayment`/`calculateDriverPayout`/`reverseDriverPayout` ; ID vide déjà gardé partout via
+`invalidArgument`).
+
+### O-5 — Auth/rôles : référencé, pas dupliqué
+
+`adminPrivilegedActions.test.ts` (~40 tests) et `authSessionClaims.test.ts` (~15 tests) couvrent déjà
+`setUserRole`/`suspendDriver`/`reactivateDriver`/`validateDriverDocument`/`rejectDriver`/
+`requestDriverDocuments` + les 3 niveaux de claims (Bloc D/E). `updateDisputeStatus` est couvert par
+un describe dédié dans `disputeOrchestration.test.ts` (permission-denied non-admin + invalid-argument
+newStatus + succès admin). Aucune fonction critique listée n'est restée sans preuve de rôle.
+
+### O-6 — Transactions : COUVERT
+
+Toutes les fonctions critiques lisent-avant-d'écrire à l'intérieur d'un unique `db.runTransaction()`
+(jamais de lecture hors transaction suivie d'une écriture conditionnelle). Seul point observé sans
+détection automatisée : `reconciliationEngine.ts` (moteur de RAPPORT, jamais d'écriture financière)
+n'a pas de type d'anomalie dédié à un paiement resté bloqué en `AUTHORIZED` (jamais capturé/annulé).
+Ce scénario supposerait un crash applicatif entre le commit de `acceptDelivery` et l'appel
+`completeDelivery`/annulation — aucune preuve d'occurrence réelle, faible fréquence attendue,
+aucun risque de double effet financier (un paiement `AUTHORIZED` non capturé n'entraîne par nature
+aucun débit). **P3, documenté DEFERRED → Phase 8** (candidat pour un futur type d'anomalie
+`payment_stuck_authorized` dans le moteur de réconciliation, hors scope Phase 7).
+
+### O-7 — Erreurs : PASS
+
+`src/lib/errors.ts` : toutes les erreurs (`invalidArgument`, `notFound`, `failedPrecondition`,
+`permissionDenied`, `unauthenticated`, `aborted`, `internal`) sont des `HttpsError` avec un message
+métier explicite fourni par l'appelant — aucune ne sérialise une stack trace ou un objet brut. Les
+2 seuls call-sites `internal(...)` (`createCustomerPaymentProfile.ts`, `createDriverStripeAccount.ts`)
+concatènent `err.message` d'un provider (Stripe) — un message d'erreur Stripe (ex: "Invalid API
+Key provided") ne contient jamais de secret ni de stack trace, seulement une description
+fonctionnelle ; confirmé par lecture de `stripeProvider.ts` (tous les `catch` y renvoient
+`stripeErr.code`/`stripeErr.message`, jamais `err.stack` ni la clé API elle-même). **PASS**.
+
+### O-8 — Scan secrets : PASS
+
+Scan ciblé (`sk_live_`, `rk_live_`, PEM private key, `whsec_`, `ghp_`/`github_pat_`, JSON
+`"private_key"`, fichiers `.env*`/`serviceAccountKey*` trackés) sur l'ensemble du repo. Seules
+occurrences trouvées : des valeurs FICTIVES dans des fichiers de test (`whsec_fake_webhook_secret...`,
+`sk_live_should_never_appear`, `sk_live_leak_attempt`) utilisées explicitement pour PROUVER que ces
+patterns ne fuient jamais dans les logs (`observability.test.ts`) ou pour signer des payloads de
+webhook de test (`processStripeWebhook.test.ts`). Aucun secret réel, aucune clé de compte de service,
+aucun `.env` tracké dans le repo. Les clés Firebase client (publiques par design) ne sont pas
+concernées par ce scan. **PASS**.
+
+### Validation Bloc O
+
+`npx tsc --noEmit` (functions) → 0 erreur. `npm run lint` (functions) → 0 erreur. Jest unit et Jest
+integration exécutés en validation finale groupée (voir section Validation finale N→O→P plus bas) —
+résultats reportés là pour éviter une double exécution de la suite complète.
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2 corrigés** : 1 (BUG-O-01). **P3 documentés** : 2
+(message d'erreur `acceptDelivery` retry même-chauffeur ; anomalie `payment_stuck_authorized`
+absente du moteur de réconciliation, DEFERRED → Phase 8).
+
+**BLOC O : ✅ FERMÉ.**

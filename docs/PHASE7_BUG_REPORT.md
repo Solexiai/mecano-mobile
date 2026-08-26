@@ -833,3 +833,37 @@ serveur) — inoffensif, juste sur-provisionné ; note ajoutée à
 **BLOC N : ✅ FERMÉ** — P0=0, P1=0 (2 corrigés : BUG-N-01, BUG-N-02), P2=2 (réaffirmés
 DEFERRED), P3=1 (nouveau, documenté). Validation : `npx tsc --noEmit` 0 erreur,
 `npm run lint` 0 erreur, Jest unit 109/109 PASS, Jest integration 512/512 PASS.
+
+## MISE À JOUR — Bloc O (Cloud Functions Hardening, cette session)
+
+**BUG-O-01 (P2, corrigé)** : `functions/src/functions/createDeliveryRequest.ts` acceptait
+`distanceKm`/`estimatedDurationMinutes` sans AUCUNE validation runtime — seul
+`calculateDeliveryQuote.ts` (le devis, en amont) validait ces champs (`typeof === "number" &&
+>= 0`). Or `createDeliveryRequest` est le SEUL point d'écriture réel de `delivery_requests`
+(`firestore.rules` interdit `create` direct), et ces valeurs sont relues plus tard par
+`acceptDelivery()` pour le recalcul serveur du prix (`calculateCustomerQuote()`). Un client
+pouvait donc persister une distance/durée négative ou non-numérique. Impact financier réel
+NUL aujourd'hui (`missionBaseValue` est plancherée par `rule.minimum_charge` dans
+`pricingEngine.ts` — un `rawBase` négatif est simplement remplacé par le minimum), mais il
+s'agit d'une donnée métier incohérente à rejeter explicitement plutôt que de la tolérer
+silencieusement. **Fix** : ajout des mêmes gardes que `calculateDeliveryQuote.ts`
+(`typeof input.X !== "number" || !Number.isFinite(input.X) || input.X < 0` → `invalid-argument`).
+**Tests** : 3 nouveaux cas dans `createDeliveryRequest.test.ts` (distanceKm négatif,
+estimatedDurationMinutes négatif, distanceKm non-numérique) — chacun prouve qu'aucune mission
+n'est créée et que le devis reste non consommé (`is_consumed: false`). 16/16 tests du fichier
+PASS (13 existants + 3 nouveaux) via émulateur Firestore/Auth.
+
+**Autres analyses O-1 à O-8** : voir la matrice consolidée complète dans
+`docs/PHASE7_QA_MATRIX.md` (section "BLOC O"). Résumé : 16/18 fonctions critiques listées
+étaient déjà couvertes par des tests d'idempotence/retry/auth EXISTANTS (référencés, non
+dupliqués, conformément à la consigne de vitesse de cette session) ; aucun autre gap P0/P1/P2
+trouvé. 2 points P3 documentés (non-bloquants, DEFERRED) : message d'erreur `acceptDelivery`
+sur un retry même-chauffeur (imprécis mais fonctionnellement sûr — la garde
+`if (mission.driver_id) throw failed-precondition` s'exécute avant toute écriture) ; absence
+d'un type d'anomalie `payment_stuck_authorized` dans `reconciliationEngine.ts` (DEFERRED →
+Phase 8). Scan de secrets (O-8) : PASS, aucun secret réel trouvé (uniquement des valeurs
+fictives dans des tests dédiés à prouver l'absence de fuite).
+
+**BLOC O : ✅ FERMÉ** — P0=0, P1=0, P2=1 corrigé (BUG-O-01), P3=2 documentés (non-bloquants).
+Validation : `npx tsc --noEmit` 0 erreur, `npm run lint` 0 erreur, Jest unit 109/109 PASS,
+intégration ciblée 16/16 PASS (suite complète ré-exécutée en validation finale groupée).

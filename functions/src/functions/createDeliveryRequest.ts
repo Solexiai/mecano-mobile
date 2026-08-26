@@ -50,6 +50,25 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   if (input.stops[0].type !== "pickup") {
     throw invalidArgument("stops[0] doit être de type 'pickup'.");
   }
+  // 🔒 BLOC O — GAP COMBLÉ : distanceKm/estimatedDurationMinutes n'étaient
+  // validés que dans calculateDeliveryQuote() (devis), jamais ici. Sans
+  // cette garde, un client pourrait persister un distance_km/estimated_
+  // duration_minutes négatif ou non-numérique sur delivery_requests, relu
+  // ensuite par acceptDelivery() pour le recalcul serveur du prix. Impact
+  // financier réel nul aujourd'hui (missionBaseValue est plancherée à
+  // rule.minimum_charge dans calculateCustomerQuote — voir pricingEngine.ts),
+  // mais il s'agit d'une donnée métier incohérente à rejeter explicitement
+  // plutôt que de la tolérer silencieusement.
+  if (typeof input.distanceKm !== "number" || !Number.isFinite(input.distanceKm) || input.distanceKm < 0) {
+    throw invalidArgument("distanceKm doit être un nombre positif.");
+  }
+  if (
+    typeof input.estimatedDurationMinutes !== "number" ||
+    !Number.isFinite(input.estimatedDurationMinutes) ||
+    input.estimatedDurationMinutes < 0
+  ) {
+    throw invalidArgument("estimatedDurationMinutes doit être un nombre positif.");
+  }
 
   // PHASE 6, point 1/4 — « le moyen de paiement doit être sécurisé AVANT ou
   // PENDANT la mission, jamais seulement après. » On refuse la création
