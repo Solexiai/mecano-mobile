@@ -952,3 +952,30 @@ duplication de test.
 **BLOC Q : ✅ FERMÉ** — P0=0, P1=0, aucun nouveau bug. Validation : aucun nouveau test requis
 (aucun gap de comportement) ; validation complète tsc/lint/Jest/Flutter/Rules exécutée en groupe
 final P→Q→Q2.
+
+## MISE À JOUR — Bloc Q2 (App Check / Anti-Abuse, cette session)
+
+**Aucun P0/P1.** Un seul point P2 documenté DEFERRED :
+
+**GAP-Q2-01 (P2, DEFERRED — non-bloquant)** : `calculateDeliveryQuote` (Cloud Function
+callable) n'a aucune limite de fréquence — un utilisateur authentifié peut générer un nombre
+illimité de devis sans aucun garde. Impact réel évalué FAIBLE : chaque appel écrit un document
+Firestore léger (coût de stockage négligeable), aucun appel provider externe coûteux (Stripe,
+etc.), aucun effet financier (un devis n'est qu'une proposition de prix, jamais une transaction).
+De plus, toute fonction sensible de cette app exige déjà `requireSignedIn()` — aucune fonction
+n'est accessible anonymement (confirmé : pas de `signInAnonymously()` dans
+`firebase_auth_provider.dart`), ce qui constitue déjà une barrière anti-abuse significative
+indépendante de ce gap. **Mécanisme prévu pour combler ce gap : Firebase App Check (enforcement
+Phase 8) + un éventuel rate-limiter dédié**, aucun des deux construits ce tour (conforme à la
+consigne explicite "ne pas construire une plateforme anti-DDoS"). Classé **DEFERRED → Phase 8**.
+
+**Constat factuel important (pas un bug)** : le SDK `firebase_app_check` est présent dans
+`pubspec.yaml` (dépendance installée) mais **aucune intégration réelle n'existe** — ni
+activation client (`FirebaseAppCheck.instance.activate()`), ni provider Android/Web configuré,
+ni `enforceAppCheck` sur aucune des 31 Cloud Functions `onCall`, ni référence `request.app` dans
+les Security Rules. Ce n'est PAS un P0/P1 : App Check production nécessite une configuration
+externe (Play Integrity, reCAPTCHA, App Attest, domaines de production réels) hors de portée du
+développement Phase 7, correctement classée `Phase 8 — EXTERNAL CONFIGURATION`. Aucune fausse
+déclaration faite : nous n'affirmons PAS qu'App Check production est activé, car il ne l'est pas.
+
+**BLOC Q2 : ✅ FERMÉ** — P0=0, P1=0, P2=1 documenté (GAP-Q2-01, DEFERRED → Phase 8).

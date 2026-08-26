@@ -1190,3 +1190,51 @@ exécutée en groupe final P→Q→Q2.
 référencés).
 
 **PROCHAINE ACTION : Bloc Q2 (App Check / Anti-Abuse), sans arrêt intermédiaire.**
+
+## MISE À JOUR — BLOC Q2 : ✅ FERMÉ (App Check / Anti-Abuse)
+
+Reconnaissance courte : distinction claire entre ce qui est vérifiable maintenant vs. ce qui
+nécessite une configuration production Phase 8. Matrice complète dans
+`docs/PHASE7_QA_MATRIX.md` (section "BLOC Q2").
+
+**État réel constaté (Q2-1)** : le SDK `firebase_app_check` (0.3.1+4) est présent dans
+`pubspec.yaml`/`pubspec.lock`, mais **aucune intégration active n'existe** — pas d'appel
+`FirebaseAppCheck.instance.activate()` côté client, aucun provider Android/Web configuré, aucun
+`enforceAppCheck` sur les 31 Cloud Functions `onCall`, aucune référence `request.app` dans
+`firestore.rules`/`storage.rules`. Constat factuel honnête, sans survendre un état qui
+n'existe pas.
+
+**Dev/emulator (Q2-2)** : non cassé, par construction — aucune dépendance App Check n'existe
+dans les tests actuels (Storage Bloc P 19/19 PASS, Firestore Bloc N 512/512 PASS, aucun des deux
+ne référence App Check).
+
+**Plan production (Q2-3)** : documenté comme `Phase 8 — EXTERNAL CONFIGURATION` (Play Integrity,
+reCAPTCHA v3/Enterprise, App Attest iOS, rollout progressif via mode "Monitor" Firebase avant
+tout enforcement dur) — rien demandé à Daniel maintenant, aucune de ces étapes n'est
+indispensable pour continuer le développement Phase 7.
+
+**Endpoints abusables (Q2-4)** : priorisation documentée (`createDeliveryRequest`,
+`calculateDeliveryQuote` en priorité haute ; `acceptDelivery`, upload-related en priorité
+moyenne ; actions admin/paiement déjà protégées en priorité basse) — **aucune activation
+aveugle**, App Check reste un chantier Phase 8.
+
+**Rate/abuse (Q2-5)** : toutes les fonctions exigent déjà `requireSignedIn()` (aucune fonction
+accessible anonymement, pas de `signInAnonymously()` dans le code) — première barrière anti-abuse
+déjà en place indépendamment d'App Check. Seul gap trouvé : `calculateDeliveryQuote` sans limite
+de fréquence — **P2 documenté DEFERRED** (coût faible, aucun risque financier, pas de garde
+ad hoc construit maintenant, conforme à la consigne "pas de plateforme anti-DDoS").
+
+**Idempotence vs rate limiter (Q2-6)** et **Auth vs App Check (Q2-7)** : distinctions
+explicitement documentées pour éviter toute confusion future — l'idempotence protège contre la
+DUPLICATION d'un effet, pas contre la FRÉQUENCE d'appels différents ; App Check ne remplace
+JAMAIS l'autorisation (`requireSignedIn`/claims), il s'y ajoute en complément au niveau
+transport.
+
+**Feature flag (Q2-8)** : aucun système construit ce tour (Bloc X plus tard) — note préparatoire
+sur le mode "Monitor" natif Firebase pour un rollout progressif Phase 8.
+
+**BLOC Q2 : ✅ FERMÉ.** P0 = 0, P1 = 0, P2 documenté = 1 (`calculateDeliveryQuote`, DEFERRED).
+Aucune fausse déclaration : App Check production n'est PAS activé, documenté explicitement
+comme tel.
+
+**PROCHAINE ACTION : validation finale groupée P→Q→Q2, puis rapport unique.**

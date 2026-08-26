@@ -784,3 +784,147 @@ final P→Q→Q2 (voir plus bas), pour éviter une exécution redondante de la s
 blocs référencés : BUG-010 Bloc K, BUG-O-01 Bloc O).
 
 **BLOC Q : ✅ FERMÉ.**
+
+---
+
+## BLOC Q2 — APP CHECK / ANTI-ABUSE : ✅ FERMÉ
+
+Reconnaissance courte (Q2-1) : distinction stricte entre ce qui peut être préparé/vérifié
+maintenant et ce qui nécessite une configuration production Phase 8 (Play Integrity, reCAPTCHA
+Enterprise, Apple App Attest, domaines/signing release) — rien forcé artificiellement en dev.
+
+### Q2-1 — État actuel (constat factuel, sans exagération)
+
+| Élément | État réel constaté | Preuve |
+|---|---|---|
+| SDK Flutter `firebase_app_check` | **Présent** dans `pubspec.yaml` (`0.3.1+4`) et résolu dans `pubspec.lock` (+ `_platform_interface` et `_web`) | `pubspec.yaml:36`, `pubspec.lock:188-207` |
+| Initialisation App Check côté client | **ABSENTE** — `BackendBootstrap.initialize()` (`lib/backend/backend_bootstrap.dart`) appelle `Firebase.initializeApp()` uniquement ; aucun `FirebaseAppCheck.instance.activate(...)` nulle part dans `lib/` (grep exhaustif `appCheck\|AppCheck\|app_check` sur tout `lib/` : 0 occurrence hors `pubspec.*`) | Lecture complète de `backend_bootstrap.dart` + grep repo |
+| Provider Android (Play Integrity) | **Non configuré** — aucune trace de `PlayIntegrityProvider` | grep 0 résultat |
+| Provider Web (reCAPTCHA v3/Enterprise) | **Non configuré** — aucune trace de `ReCaptchaV3Provider`/`ReCaptchaEnterpriseProvider` | grep 0 résultat |
+| Enforcement Cloud Functions (`enforceAppCheck: true`) | **Non activé** — aucune fonction (`onCall<...>`, 31 occurrences) ne passe l'option `enforceAppCheck` ; `firebase-functions@^6.0.1` la supporte nativement si activée | grep `enforceAppCheck`/`consumeAppCheckToken` : 0 résultat sur `functions/src/` |
+| Enforcement Firestore/Storage Rules (`request.app`) | **Non présent** — ni `firestore.rules` ni `storage.rules` ne référencent `request.app` (mécanisme App Check natif des Security Rules) | grep 0 résultat |
+
+**Conclusion Q2-1 : le SDK est présent (dépendance installée) mais AUCUNE intégration réelle
+n'existe encore — ni activation client, ni enforcement serveur.** Ceci est cohérent avec un app
+en développement actif (Phase 7 QA), pas encore en configuration de lancement production.
+
+### Q2-2 — Dev/Emulator : non cassé
+
+Aucune intégration App Check n'existe actuellement → par construction, aucun test ni émulateur
+ne peut être "cassé" par une dépendance App Check inexistante. `createTestEnvWithStorage()`/
+`createTestEnv()` (Bloc N/O/P) continuent de fonctionner sans aucun token App Check, réel ou
+simulé — **vérifié implicitement par l'exécution réussie de la suite Storage Rules (19/19 PASS,
+Bloc P) et par les 512 tests d'intégration Firestore (Bloc N)**, aucun des deux ne référence
+App Check. **COUVERT (par absence de dépendance, pas de risque de régression future tant que
+l'activation n'est pas faite sans y penser explicitement)**.
+
+### Q2-3 — Plan production (documenté, pas exécuté)
+
+`Phase 8 — EXTERNAL CONFIGURATION` (ne peut pas être fait depuis ce sandbox, nécessite des
+actions du compte Firebase/Google Play/Apple réels) :
+- **Android** : activer Play Integrity API dans Google Play Console (nécessite l'app publiée ou
+  en test interne avec un `applicationId` réel signé) + `AndroidProvider.playIntegrity` côté SDK.
+- **Web** : créer une clé reCAPTCHA v3 (ou Enterprise) dans Google Cloud Console liée au domaine
+  de production réel + `ReCaptchaV3Provider(siteKey)` côté SDK.
+- **iOS** (si/quand une cible iOS existe) : App Attest (iOS 14+) ou DeviceCheck fallback.
+- **Cloud Functions** : ajouter `enforceAppCheck: true` aux fonctions ciblées (Q2-4) — nécessite
+  QUE les providers client soient déjà déployés et actifs, sinon coupe les clients légitimes.
+- **Rollout progressif** : Firebase permet un mode "monitor only" (Console App Check) avant
+  enforcement dur — recommandé pour ne jamais couper un client légitime en production.
+
+Aucune de ces étapes n'est indispensable pour continuer le développement Phase 7 — **documenté,
+non demandé à Daniel maintenant**.
+
+### Q2-4 — Fonctions : endpoints abusables identifiés (sans activation aveugle)
+
+| Endpoint abusable potentiel | Coût réel si spammé aujourd'hui | Candidat App Check (Phase 8) |
+|---|---|---|
+| `createDeliveryRequest` | Écriture Firestore (coût faible/appel) ; nécessite un devis `is_consumed==false` valide au préalable (`calculateDeliveryQuote` déjà appelé) — pas gratuit à répéter sans un nouveau devis | **Oui, priorité haute** |
+| `calculateDeliveryQuote` | Écriture Firestore d'un nouveau devis à chaque appel — aucune contrainte de fréquence actuelle | **Oui, priorité haute** |
+| `acceptDelivery` | Lecture/écriture transaction — déjà protégé par précondition d'état (course concurrente gérée, Bloc O), mais spam répété reste possible sans coût financier direct | **Oui, priorité moyenne** |
+| Actions upload-related (`uploadDeliveryProof`, documents chauffeur) | Coût Storage (bande passante + stockage) par appel réussi | **Oui, priorité moyenne** (déjà gardé par `storage.rules` côté auth/ownership, App Check ajouterait une couche anti-bot) |
+| Actions sensibles à l'auth (`setUserRole`, `suspendDriver`, etc.) | Déjà réservées à admin/super_admin — spam nécessite déjà un compte privilégié compromis, App Check n'ajoute qu'une défense en profondeur marginale ici | Priorité basse |
+| Paiement (`refundPayment`, `attachCustomerPaymentMethod`) | Déjà protégé par idempotence stricte (Bloc O) — App Check réduirait le bruit de bots, pas un risque financier direct (aucun double effet possible) | Priorité basse-moyenne |
+
+**Décision Q2-4 : ne pas activer `enforceAppCheck` aveuglément sur toutes les fonctions**
+(conforme à la consigne explicite) — la liste ci-dessus documente une priorisation pour la
+Phase 8, aucune activation faite ce tour (aucun provider client n'est déployé, activer
+l'enforcement serveur maintenant couperait TOUS les clients légitimes).
+
+### Q2-5 — Rate/abuse limits : évaluation, aucun garde ajouté sauf nécessité
+
+Vérification des protections existantes contre le spam :
+- **Toutes** les 31 fonctions `onCall` exigent `requireSignedIn()` — **aucune fonction sensible
+  n'est accessible anonymement** ; aucune trace de `signInAnonymously()` dans
+  `firebase_auth_provider.dart` (grep confirmé). Un spammeur doit donc déjà posséder un compte
+  Firebase Auth réel (email/mot de passe ou fournisseur social) pour appeler quoi que ce soit —
+  première barrière anti-abuse déjà en place, indépendante d'App Check.
+- **`createDeliveryRequest`** : nécessite un `quoteId` valide et non consommé — spammer exige de
+  générer un nouveau devis à chaque tentative (`calculateDeliveryQuote`), donc pas gratuit ni
+  trivial à boucler indéfiniment sans laisser de trace (chaque devis est un document Firestore
+  daté et attribuable à un `uid` précis).
+- **`calculateDeliveryQuote`** : AUCUNE limite de fréquence trouvée — un utilisateur authentifié
+  peut demander un nombre illimité de devis. **Coût réel : faible** (écriture Firestore légère,
+  pas d'appel provider externe coûteux, pas d'effet financier). Évalué **P2** (non-bloquant,
+  cohérent avec Q2-4 : App Check est le mécanisme prévu pour Phase 8, pas un rate-limiter ad hoc
+  construit maintenant).
+- **Notifications** : générées uniquement par des triggers système suite à un changement d'état
+  mission réel (`onMissionStatusChangeNotifyCustomer`) — pas de endpoint client direct pour
+  spammer des notifications.
+- **Brute-force actions/retry abusif** : déjà couvert par les machines à états strictes (Bloc O)
+  — un retry sur une action déjà appliquée échoue immédiatement (`failed-precondition`), sans
+  effet de bord répété, quel que soit le nombre de tentatives.
+
+**Décision** : aucun garde de rate-limiting ad hoc ajouté ce tour — le seul candidat identifié
+(`calculateDeliveryQuote` sans limite) est P2 non-bloquant (coût faible, aucun risque financier,
+App Check + un futur rate-limiter Phase 8 sont les mécanismes prévus), conforme à la consigne
+"ne pas construire une plateforme anti-DDoS".
+
+### Q2-6 — Idempotence comme anti-abuse (distinction documentée)
+
+**Idempotence ≠ rate limiter.** Les mécanismes d'idempotence déjà prouvés (Bloc O : `requestKey`
+déterministe de `refundPayment`, garde `is_consumed` de `createDeliveryRequest`, marquage
+`included_in_payout_id` de `calculateDriverPayout`, état terminal `REVERSED`) protègent contre la
+**duplication d'un effet** (même appel rejoué → même résultat, jamais deux fois l'effet) — ils
+n'empêchent PAS un acteur malveillant d'appeler la fonction un grand nombre de fois avec des
+paramètres DIFFÉRENTS à chaque fois (ex: 1000 devis différents, chacun légitime individuellement
+mais formant un pattern de spam). Un rate limiter (ou App Check comme filtre anti-bot en amont)
+répond à un problème différent : la FRÉQUENCE d'appels légitimes-mais-répétés, pas leur
+duplication. Les deux mécanismes sont complémentaires, jamais substituables l'un à l'autre.
+
+### Q2-7 — Auth vs App Check (distinction documentée et prouvée par l'architecture existante)
+
+**Auth = identité/autorisation. App Check = authenticité du client / réduction d'abus.**
+Preuve architecturale déjà en place (sans avoir eu besoin d'App Check) : TOUTE décision
+d'autorisation de ce repo (Bloc D/E/Q) repose exclusivement sur `request.auth.token.role(s)`
+(Custom Claims Firebase Auth) — jamais sur un en-tête ou un signal App Check. App Check, une fois
+activé en Phase 8, ne remplacera JAMAIS cette logique : il s'ajoutera comme une vérification
+SUPPLÉMENTAIRE au niveau transport ("cette requête provient-elle d'une vraie instance de l'app
+Movi-k, pas d'un script/bot?"), strictement en complément de `requireSignedIn()`/
+`requireAnyRole()`, jamais en remplacement. Documenté explicitement pour éviter toute confusion
+future lors de l'implémentation Phase 8.
+
+### Q2-8 — Feature flag / enforcement progressif (préparé, pas construit)
+
+Aucun système de feature flag complet construit ce tour (Bloc X existe plus tard, conforme à la
+consigne). Note préparatoire pour Phase 8 : Firebase App Check propose nativement un mode
+"Monitor" (Console Firebase) qui journalise les requêtes sans jamais les bloquer — c'est le
+mécanisme natif recommandé pour un rollout progressif sans couper de client légitime, à utiliser
+en Phase 8 AVANT tout `enforceAppCheck: true` définitif. Aucune action requise de notre part
+aujourd'hui au-delà de cette note.
+
+### DONE Q2
+
+| Critère | Statut |
+|---|---|
+| État App Check connu | ✅ SDK présent, aucune intégration active (Q2-1) |
+| Intégration code prête ou plan exact documenté | ✅ Plan Phase 8 documenté (Q2-3), endpoints priorisés (Q2-4) |
+| Dev/emulator non cassé | ✅ Aucune dépendance App Check dans les tests existants (Q2-2) |
+| Endpoints abusables évalués | ✅ Tableau Q2-4, 1 candidat P2 documenté (`calculateDeliveryQuote`) |
+| Gaps P0/P1 corrigés | ✅ Aucun P0/P1 trouvé — seul un P2 non-bloquant identifié |
+| Enforcement production correctement reporté Phase 8 | ✅ Aucune fausse déclaration — App Check production n'est PAS activé, documenté comme tel explicitement |
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2 documenté** : 1 (`calculateDeliveryQuote` sans
+limite de fréquence — coût faible, DEFERRED, mécanisme prévu = App Check + rate-limiter Phase 8).
+
+**BLOC Q2 : ✅ FERMÉ.**
