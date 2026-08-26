@@ -1104,11 +1104,36 @@ information de veille pour une décision produit future si le volume dépasse la
   backend Firebase mécanicien complet, ce qui excède le périmètre de U-0 et constituerait une
   décision produit majeure (statut MVP du module mécanicien) qui n'appartient pas à l'agent.
   À trancher explicitement par le fondateur avant de soit brancher soit désactiver ces boutons.
-- **Tests** : test de régression widget créé puis retiré de ce commit après instabilité de layout
-  (timeouts `pumpAndSettle` liés à la taille du viewport de test) — **À REFAIRE** avant fermeture
-  définitive de U (voir tâches restantes ci-dessous). Le test pré-existant
-  `driver_onboarding_step0_rebuild_test.dart` reste PASS (aucune régression introduite).
+- **Complément de testabilité (même mouvement)** : `_handleSubmit()` lisait `auth.user?.uid` au
+  lieu de `auth.effectiveUid` — le seam de test documenté dans `firebase_auth_provider.dart`
+  (`debugForceUid`) et déjà utilisé pour la même raison dans `driver_active_mission_screen.dart`
+  et `driver_status_screen.dart`. `user` reste `null` par construction dans ce mode simulé, donc
+  lire `user?.uid` rendait ce flux structurellement impossible à tester pour un chauffeur déjà
+  connecté sans mocker tout le SDK Firebase Auth. Correctif d'une ligne, comportement production
+  inchangé (`effectiveUid` == `user!.uid` quand `user` est un vrai `fb.User`).
+- **Tests** : `test/driver/driver_onboarding_document_upload_test.dart` (créé) — 5 cas, couvrant
+  exactement les 4 scénarios critiques demandés plus le cas `NotConfigured*` :
+  1. tap "Sélectionner" (permis) → `FakeImagePickerPlatform` réellement sollicité, nom de fichier
+     affiché immédiatement (état UI mis à jour).
+  2. upload réussi → `DriverDocumentUploadRepository.uploadDriverDocument()` appelé pour les 2
+     documents requis, `DriverRepository.submitDriverDocument()` appelé avec `status: uploaded` et
+     le bon `driverId`, puis `submitForReview()` appelé (flux complet non bloqué).
+  3. upload échoué → `_submitError` affiché, `submitForReview()` **jamais** appelé (aucune
+     transition `pending_review` avec un dossier incomplet), bouton de soumission réactivé (retry
+     possible), fichiers déjà sélectionnés conservés (pas besoin de tout re-choisir).
+  4. document déjà présent → re-tap "Modifier" remplace le fichier existant (pas de duplication),
+     `canProceed(3)` reste cohérent (toujours bloqué tant que l'assurance manque).
+  - Root-cause de l'instabilité précédente (tests retirés du commit initial) identifiée et
+    corrigée : (a) `pumpAndSettle()` ne se stabilise jamais après `showModalBottomSheet` combiné
+    au picker simulé dans ce harnais — remplacé par des `pump(duration)` bornés, pattern isolé
+    dans un seul helper de test, aucun impact sur le code applicatif ; (b) sur la plateforme
+    `dart:io` de `cross_file` (celle utilisée par `flutter test`), `XFile.name` dérive de `path`
+    et NON du paramètre `name` — le fake picker doit fournir `path:` en plus de `name:` pour que
+    `picked.name` soit fidèle à ce qui se passerait en production (plugin natif réel).
+  - Le test pré-existant `driver_onboarding_step0_rebuild_test.dart` reste PASS (aucune
+    régression). Suite complète `test/driver/` : 64/64 PASS (59 pré-existants + 5 nouveaux).
 
-**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur) corrigé et vérifié par `flutter analyze`
-(0 erreur). Tests de régression U-0 à finaliser. Décision mécanicien documentée mais non exécutée.
-U-1 à U-6 non traités dans ce mouvement.
+**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur) **CORRIGÉ ET COUVERT PAR TESTS DE
+RÉGRESSION** (`flutter analyze` 0 erreur ; `flutter test test/driver/` 64/64 PASS). Décision
+mécanicien documentée mais **DIFFÉRÉE** (nécessite arbitrage du fondateur, voir ci-dessus).
+U-1 à U-6 non traités dans ce mouvement — prochaine étape.

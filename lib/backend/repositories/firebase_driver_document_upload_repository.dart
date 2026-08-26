@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
 // FirebaseDriverDocumentUploadRepository — implémentation RÉELLE de
-// DriverDocumentUploadRepository. Même pattern EXACT que
-// FirebaseProofUploadRepository (Phase 5/Bloc C) : `putData` +
-// `SettableMetadata(contentType: ...)` + `getDownloadURL()`. Chemin cible
-// (`driver_documents/{driverId}/{fileName}`) déjà validé par storage.rules
-// (Bloc P) — non modifié ici.
+// DriverDocumentUploadRepository (Phase 7, Bloc U, U-0). Même structure que
+// `FirebaseProofUploadRepository` : un seul appel Storage direct, chemin
+// fixe déjà validé par storage.rules, aucune logique métier supplémentaire
+// ici (la Firestore metadata est écrite séparément par
+// `DriverRepository.submitDriverDocument()`).
 // ---------------------------------------------------------------------------
 
 import 'dart:typed_data';

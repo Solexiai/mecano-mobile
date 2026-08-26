@@ -393,7 +393,16 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         }
       }
 
-      final uid = auth.user?.uid;
+      // BUG-U-01 (complément) : `effectiveUid` (et non `user?.uid`), même
+      // pattern déjà établi dans `driver_active_mission_screen.dart` et
+      // `driver_status_screen.dart` — en production `_user` est un vrai
+      // `fb.User` donc `effectiveUid` == `user!.uid` (aucun changement de
+      // comportement réel) ; en test, seul `debugForceUid` est disponible
+      // (`user` reste `null` par construction du seam), donc lire
+      // `user?.uid` ici rendait ce flux structurellement impossible à
+      // tester pour un chauffeur déjà connecté sans mocker tout le SDK
+      // Firebase Auth.
+      final uid = auth.effectiveUid;
       if (uid == null) {
         throw Exception(t('driver_onboarding_error_invalid_session'));
       }
