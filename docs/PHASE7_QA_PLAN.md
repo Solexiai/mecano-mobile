@@ -1060,3 +1060,41 @@ performance sur `provider_dashboard_shell_status_gate_test.dart`).
 **PROCHAINE ACTION : Bloc N (Firestore/Indexes) puis Bloc O (Cloud Functions hardening)
 — NON DÉMARRÉS dans cette session, à reprendre en state réel du repo (voir règle de
 reprise Phase 7).**
+
+## MISE À JOUR — BLOC N : ✅ FERMÉ (Firestore/Indexes)
+
+**Matrice courte (reconnaissance ~15-18% du budget N)** : voir PHASE7_QA_MATRIX.md —
+18 requêtes critiques cartographiées (missions client/chauffeur, dispatch, notifications,
+admin/driver review, finance, purge GPS) → 16 COUVERT direct, 2 GAP P1 réels démontrés et
+corrigés (BUG-N-01, BUG-N-02), 2 P2 réaffirmés DEFERRED (aucune preuve nouvelle), 1 P3
+documenté (index sur-provisionné, inoffensif).
+
+**Gaps P1 corrigés :**
+- `firestore.indexes.json` : index composite collectionGroup `history(recorded_at asc)`
+  documenté depuis l'étape 10 mais absent du fichier réel → job planifié
+  `cleanupExpiredTrackingHistory` aurait échoué en production (`FAILED_PRECONDITION`).
+  Ajouté et validé JSON.
+- `functions/src/lib/missionFinancialBalance.ts` : scan non borné de TOUS les
+  `driver_payouts` `paid` de la plateforme (au lieu du seul chauffeur concerné) pour
+  attribuer un payout à une mission. Borné par `driver_id` (réutilise l'index #16
+  existant, aucun nouvel index requis).
+
+**P2 réaffirmés DEFERRED** : `watchNotifications()` et `watchDriversByStatus()` sans
+`.limit()` — Bloc N n'a trouvé aucune preuve technique nouvelle forçant un fix MVP
+(volumes faibles, sous-collection/écran admin-only) — restent DEFERRED comme prévu par
+la règle explicite de cette session.
+
+**P3 nouveau documenté** : index #4 (`delivery_requests(customer_id, created_at desc)`)
+non consommé par l'implémentation réelle actuelle (tri en mémoire côté client) — note
+ajoutée à `docs/FIRESTORE_INDEXES.md`, inoffensif, non-bloquant.
+
+**Validation finale N** : `npx tsc --noEmit` (functions) → 0 erreur. `npm run lint`
+(functions) → 0 erreur. Jest unit → **109/109 PASS**. Jest integration complet (émulateur
+Firestore/Auth/Storage) → **35 suites / 512 tests PASS**, 0 régression. Aucun fichier
+Flutter/Dart touché ce bloc.
+
+**BLOC N : ✅ FERMÉ.** P0 = 0, P1 = 0 (2 corrigés). P2 DEFERRED = 2 (réaffirmés). P3 = 1
+(nouveau, documenté).
+
+**PROCHAINE ACTION : Bloc O (Cloud Functions hardening) → Bloc P (Storage hardening),
+sans arrêt intermédiaire (règle explicite de cette session).**

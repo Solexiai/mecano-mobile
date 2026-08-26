@@ -400,3 +400,62 @@ Voir section dédiée ci-dessous.
 
 **Tests** : 480/480 PASS (`flutter test`), 0 erreur `flutter analyze`.
 **P0 ouverts** : 0. **P1 ouverts** : 0. **P2 DEFERRED** : 3 (documentés ci-dessus).
+
+## BLOC N — FIRESTORE / INDEXES : ✅ FERMÉ
+
+Matrice courte (requête critique → where/orderBy → index requis → index existant → statut) :
+
+| Requête critique | where/orderBy | Index requis | Index existant | Statut |
+|---|---|---|---|---|
+| N-1 Missions client (`watchCustomerMissions`) | `where(customer_id)` seul, tri en mémoire | Aucun (equality seule) | #4 existe mais non consommé (voir note doc) | **COUVERT** (P3 doc : index #4 sur-provisionné, non-bloquant) |
+| N-1 Mission active client (`watchMission`) | `.doc(id)` direct | Aucun | N/A | **COUVERT** |
+| N-2 Mission active chauffeur (`watchActiveMissionForDriver`) | `where(driver_id)` seul, filtre statut + tri en mémoire | Aucun (equality seule) | N/A | **COUVERT** |
+| N-2 Historique chauffeur par statut | `where(driver_id).where(status)` + tri | Composite driver_id+status+created_at | #5 présent | **COUVERT** |
+| N-3 Jobs disponibles (dispatch, `dispatchMissionToDrivers.ts`) | `where(status).where(online_status).where(documents_all_valid).where(current_geohash range) .limit(50)` | Composite 4 champs | #1 présent, exact match | **COUVERT** — bien borné (`.limit(50)` + cap mémoire 15) |
+| N-3 Jobs disponibles côté chauffeur (`watchAvailableMissionsForDriver`) | offres `where(driver_id).where(status)`, puis `whereIn` batché 30 sur missions | Composite driver_id+status+expires_at | #8 présent | **COUVERT** (déjà confirmé Bloc M) |
+| N-4 Notifications (`watchNotifications`) | `where(userId)` seul, sans `.limit()` | Aucun (equality seule) | N/A | **COUVERT techniquement — gap `.limit()` reste P2 DEFERRED** (aucune preuve nouvelle ce bloc justifiant un fix) |
+| N-5 Admin driver review (`watchDriversByStatus`) | `where(status)` seul, sans `.limit()` | Aucun (equality seule) | N/A | **COUVERT techniquement — gap `.limit()` reste P2 DEFERRED** (idem, réaffirmé) |
+| N-5 Documents chauffeur en attente | `where(driver_id).where(status)` | Composite driver_id+status | #2 présent | **COUVERT** |
+| N-5 Documents expirants (cron) | `where(status).where(expires_at)` | Composite status+expires_at | #3 présent | **COUVERT** |
+| N-6 Finance — payouts/snapshots chauffeur (`watchPayoutsForDriver`/`watchFinancialSnapshotsForDriver`) | `where(driver_id).orderBy(created_at desc)` | Composite driver_id+created_at | #16 / #12 présents | **COUVERT** |
+| N-6 Finance — solde mission (`missionFinancialBalance.ts`) | 4x `where(mission_id)` équité pure | Aucun (equality seule) | N/A | **COUVERT** |
+| N-6 Finance — payout chauffeur (`calculateDriverPayout.ts`) | `where(driver_id).where(status)` équité pure, sans orderBy | Aucun composite requis | N/A | **COUVERT** |
+| N-6 Finance — réconciliation (`reconciliationEngine.ts`) | ranges `created_at`/`received_at` par période, jobs batch admin | Aucun composite requis (bornées par date, non temps réel) | N/A | **COUVERT** |
+| N-6 Finance — dispute/webhook lookup (`processStripeWebhook.ts`) | `where(provider_*_id)` equality simple | Aucun (auto single-field) | N/A | **COUVERT** |
+| N-7 Purge GPS (`cleanupExpiredTrackingHistory.ts`) | `collectionGroup("history").where(recorded_at <).limit(400)` boucle | Composite collectionGroup `history(recorded_at)` | **ABSENT** → **CORRIGÉ** (ajouté) | **GAP RÉEL P1 → CORRIGÉ** |
+| N-7 Founding driver qualifications (`transitionFoundingDriverPeriods.ts`) | `collectionGroup("qualifications").where(status).where(promotional_period_ends_at)` | Composite collectionGroup | #11 présent | **COUVERT** |
+| N-8 Payout scan mission (`missionFinancialBalance.ts` — `driver_payouts.where(status=='paid')`) | AVANT : scan plateforme entière, sans `.limit()`, sans filtre driver | Aucun composite requis | #16 (driver_id+created_at) réutilisable en filtrant driver_id | **GAP RÉEL P1 → CORRIGÉ** (borné par `driver_id` du snapshot, cf. BUG-N-02) |
+
+**Découverte + correction (Bloc N)** :
+- **BUG-N-01 (P1, corrigé)** : index composite `history` (collectionGroup, `recorded_at` asc)
+  documenté depuis l'étape 10 (`docs/FIRESTORE_INDEXES.md` #20) et référencé dans le code de
+  `cleanupExpiredTrackingHistory.ts`, mais **absent** du fichier `firestore.indexes.json` réel
+  (confirmé par énumération programmatique : 20 entrées seulement, aucune `history`). Aurait
+  provoqué un `FAILED_PRECONDITION` en production dès la première exécution du cron quotidien.
+  **Corrigé** : entrée ajoutée à `firestore.indexes.json`, JSON validé syntaxiquement correct.
+- **BUG-N-02 (P1, corrigé)** : `missionFinancialBalance.ts` lisait **tous** les `driver_payouts`
+  `status=='paid'` de la plateforme entière (sans `.limit()`, sans filtre `driver_id`) pour
+  déterminer si un payout inclut le snapshot d'une mission donnée — un scan qui grossit avec le
+  volume total de payouts payés tous chauffeurs confondus, alors qu'un seul `driver_id` (celui du
+  chauffeur de la mission) peut jamais être concerné. **Corrigé** : la requête est maintenant
+  bornée par `where('driver_id', '==', snapshotsDriverId)` en plus de `status=='paid'` — couverte
+  par l'index composite existant #16 (`driver_payouts(driver_id, created_at desc)`, dont le préfixe
+  `driver_id` seul suffit pour cette equality-only query). Fallback conservé sur l'ancien
+  comportement si `driver_id` ne peut être résolu (cas théorique, ne devrait jamais survenir).
+
+**P2 réaffirmés DEFERRED (aucune preuve nouvelle ne force un fix)** :
+- `watchNotifications()` sans `.limit()` — sous-collection par utilisateur, volume MVP faible.
+- `watchDriversByStatus()` sans `.limit()` — liste admin-only, volume MVP faible.
+
+**P3 documenté** : index #4 (`delivery_requests(customer_id, created_at desc)`) actuellement non
+consommé par l'implémentation réelle de `watchCustomerMissions()` (tri en mémoire, pas d'`.orderBy`
+serveur) — inoffensif, documenté dans `docs/FIRESTORE_INDEXES.md`, non-bloquant.
+
+**Tests** : `npx tsc --noEmit` (functions) → 0 erreur. `npm run lint` (functions) → 0 erreur.
+Jest unit (functions) → **109/109 PASS**. Jest integration complet (émulateur Firestore/Auth/
+Storage) → **35 suites / 512 tests PASS**, 0 régression (dont `missionFinancialBalance.test.ts`
+et `calculateDriverPayout.test.ts` qui exercent directement le code modifié). Aucun fichier
+Flutter/Dart touché ce bloc → `flutter analyze`/`flutter test` non ré-exécutés (déjà verts à
+480/480 en sortie du Bloc M, aucune régression possible côté client).
+
+**P0 ouverts** : 0. **P1 ouverts** : 0 (2 corrigés : BUG-N-01, BUG-N-02).

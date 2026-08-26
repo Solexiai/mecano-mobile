@@ -789,3 +789,47 @@ admin-only, volumes MVP faibles, non mesurés comme un risque réel à ce stade.
 
 **BLOC M : ✅ FERMÉ** — P0=0, P1=0 (4 corrigés), P2=2 (DEFERRED documentés).
 Validation finale : `flutter analyze` 0 erreur, `flutter test` 480/480 PASS.
+
+## MISE À JOUR — Bloc N (Firestore/Indexes, cette session)
+
+**BUG-N-01 (P1, corrigé)** — `firestore.indexes.json` : l'index composite collectionGroup
+`history(recorded_at asc)` — requis par la Cloud Function planifiée
+`cleanupExpiredTrackingHistory` (purge GPS quotidienne, cron 02:00 America/Toronto) et
+documenté depuis l'étape 10 (`docs/FIRESTORE_INDEXES.md` entrée #20) — était en réalité
+**absent** du fichier de configuration réel (confirmé par énumération programmatique :
+seulement 20 entrées, la dernière étant `audit_logs`). Ce job aurait échoué avec
+`FAILED_PRECONDITION` dès sa première exécution contre un vrai Firestore en production
+(`movik-connect-prod`), silencieusement (job planifié, pas de retour utilisateur direct) —
+avec pour conséquence une accumulation indéfinie de points GPS historiques jamais purgés
+(coût de stockage croissant, violation de la politique de rétention 30 jours). Fix : entrée
+ajoutée à `firestore.indexes.json`, validée comme JSON syntaxiquement correct.
+
+**BUG-N-02 (P1, corrigé)** — `functions/src/lib/missionFinancialBalance.ts` : la recherche
+du `driver_payout` `paid` incluant le snapshot financier d'une mission donnée lisait
+**tous** les `driver_payouts` `status=='paid'` de la **plateforme entière**, sans `.limit()`
+ni filtre par chauffeur — un scan qui grossit avec le volume total de payouts payés
+tous-chauffeurs-confondus au fil du temps, alors que seul le `driver_id` du chauffeur de
+CETTE mission peut jamais être pertinent. Ce chemin est exécuté à chaque recalcul de
+solde financier de mission (après capture paiement, refund, tip, ajustement ledger,
+payout) — donc potentiellement très fréquent. Fix : requête bornée par
+`where('driver_id', '==', snapshotsDriverId)` en plus de `status=='paid'`, réutilisant
+l'index composite existant #16 (`driver_payouts(driver_id, created_at desc)`, dont le
+préfixe `driver_id` suffit pour cette equality-only query — pas de nouvel index requis).
+Fallback conservé sur le comportement historique (scan status-only) si `driver_id` n'a pas
+pu être résolu à partir des snapshots (cas théorique). Tests : `missionFinancialBalance.
+test.ts` (24 tests incl. le scénario #6 multi-snapshots/même-payout qui exerce exactement
+ce chemin) + suite intégration complète (512/512) → PASS, 0 régression.
+
+**Réaffirmés DEFERRED (aucune preuve nouvelle Bloc N)** :
+- `watchNotifications()` sans `.limit()` (P2, déjà documenté Bloc M).
+- `watchDriversByStatus()` sans `.limit()` (P2, déjà documenté Bloc M).
+
+**Nouveau P3 documenté (non-bloquant)** : index Firestore #4
+(`delivery_requests(customer_id, created_at desc)`) non consommé par l'implémentation
+réelle de `watchCustomerMissions()` (tri en mémoire côté client, pas de `.orderBy()`
+serveur) — inoffensif, juste sur-provisionné ; note ajoutée à
+`docs/FIRESTORE_INDEXES.md`.
+
+**BLOC N : ✅ FERMÉ** — P0=0, P1=0 (2 corrigés : BUG-N-01, BUG-N-02), P2=2 (réaffirmés
+DEFERRED), P3=1 (nouveau, documenté). Validation : `npx tsc --noEmit` 0 erreur,
+`npm run lint` 0 erreur, Jest unit 109/109 PASS, Jest integration 512/512 PASS.

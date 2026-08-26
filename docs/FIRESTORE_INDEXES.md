@@ -29,6 +29,15 @@ et ne figurent pas ici (index automatique Firestore).
 | 19 | `audit_logs` | `action`, `created_at` desc | Recherche d'audit par type d'action (ex: tous les `approveDriver` récents) pour investigation admin. | Portail admin (recherche d'audit) |
 | 20 | `history` (collection group, sous `driver_locations/*/history`) | `recorded_at` asc | Job planifié de **purge GPS** : trouve tous les points historiques antérieurs à la fenêtre de rétention (30 jours), tous chauffeurs confondus, en une seule requête. | Cloud Function planifiée `cleanupExpiredTrackingHistory` |
 
+> **Correctif Bloc N (Phase 7)** : cet index #20 était documenté ici depuis l'étape 10
+> mais **absent** du fichier `firestore.indexes.json` réellement déployé (confirmé par
+> énumération programmatique — seulement 20 entrées existaient, la dernière étant
+> `audit_logs`, aucune `history`). `cleanupExpiredTrackingHistory` (cron quotidien
+> 02:00 America/Toronto) aurait échoué avec `FAILED_PRECONDITION` en production dès
+> sa première exécution contre un vrai Firestore. **Corrigé** : l'entrée a été ajoutée
+> à `firestore.indexes.json` (validée comme JSON syntaxiquement correct) — la
+> documentation et le fichier réel sont maintenant synchronisés.
+
 ## Requêtes volontairement NON indexées (évitées par design)
 
 - **Aucune requête `orderBy` combinée à un `where` sur un champ non indexé
@@ -43,3 +52,23 @@ et ne figurent pas ici (index automatique Firestore).
   toute la table).
 - Les collections `notifications`, `admin_reviews` (lecture simple par
   utilisateur) n'ont pas besoin d'index composite au-delà de ceux listés.
+
+## Note Bloc N — index #4 potentiellement sur-provisionné (P3, documenté)
+
+L'implémentation actuelle de `MissionRepository.watchCustomerMissions()`
+(`lib/backend/repositories/firebase_mission_repository.dart`) utilise
+volontairement une requête **simple** (`where('customer_id', isEqualTo: ...)`
+seul, tri par date fait **en mémoire** côté client) — voir le commentaire du
+fichier, qui référence explicitement cette convention (cohérence avec
+`FirebaseDriverRepository.watchDriversByStatus()`). Aucun `.orderBy()` n'est
+donc réellement exécuté contre Firestore pour cette requête, et confirmé par
+grep qu'aucune Cloud Function ne combine `customer_id` + `orderBy` non plus.
+L'index #4 (`delivery_requests(customer_id, created_at desc)`) n'est donc
+actuellement consommé par **aucune requête réelle** — il reste inoffensif
+(un index composite non utilisé ne casse rien, coûte seulement un peu
+d'espace de stockage/écriture) mais la ligne #4 ci-dessus est à lire comme
+« conçu pour, mais pas actuellement utilisé par l'implémentation présente ».
+Conservé tel quel (P3, non-bloquant) : le supprimer référencerait un futur
+retour à un tri serveur sans bénéfice MVP démontré ; le garder ne coûte rien
+d'important. À réévaluer si `watchCustomerMissions()` passe un jour à un
+`.orderBy()` serveur (ex: pagination volumineuse).

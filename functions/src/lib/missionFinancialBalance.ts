@@ -117,6 +117,11 @@ export async function computeMissionFinancialBalance(
   let customerServiceFeeMinor = 0;
   let driverEarnedMinor = 0;
   const snapshotIds: string[] = [];
+  // 🔒 BLOC N (Firestore/Indexes) — driver_id du/des snapshot(s) de cette
+  // mission, utilisé ci-dessous pour BORNER la recherche du payout PAID
+  // (voir commentaire sur payoutsQuery). En pratique une mission a un seul
+  // chauffeur assigné donc un seul driver_id possible parmi les snapshots.
+  let snapshotsDriverId: string | null = null;
   for (const doc of snapshotsQuery.docs) {
     const s = doc.data();
     platformCommissionMinor = addMinor(
@@ -132,6 +137,9 @@ export async function computeMissionFinancialBalance(
       toMinorUnits((s.driver_net_mission_earnings as number) ?? 0, DEFAULT_CURRENCY)
     );
     snapshotIds.push(doc.id);
+    if (!snapshotsDriverId && typeof s.driver_id === "string") {
+      snapshotsDriverId = s.driver_id as string;
+    }
   }
 
   // ---- Payouts : driver_paid — somme des driver_payouts PAID dont
@@ -147,10 +155,27 @@ export async function computeMissionFinancialBalance(
   // capture partielle de payout n'existe dans l'architecture actuelle).
   let driverPaidMinor = 0;
   if (snapshotIds.length > 0) {
-    const payoutsQuery = await db
-      .collection("driver_payouts")
-      .where("status", "==", "paid")
-      .get();
+    // 🔒 BLOC N (Firestore/Indexes, gap réel corrigé) — AVANT : ce scan
+    // lisait TOUS les driver_payouts `paid` de la PLATEFORME ENTIÈRE (sans
+    // `.limit()`, sans filtre driver_id) pour trouver celui qui inclut le
+    // snapshot de cette mission. Non risqué en volume MVP immédiat, mais
+    // devient un scan non borné qui grossit avec le nombre TOTAL de payouts
+    // payés toutes-plateformes — alors qu'un seul chauffeur (celui de cette
+    // mission) peut jamais être concerné. On borne maintenant la requête à
+    // `driver_id == snapshotsDriverId`, ce qui est strictement équivalent
+    // fonctionnellement (un payout n'inclut que des snapshots de SON
+    // driver_id, voir calculateDriverPayout.ts) et couvert par l'index
+    // composite existant driver_payouts(driver_id, created_at desc) — voir
+    // firestore.indexes.json. Si driver_id n'a pas pu être résolu (ne
+    // devrait pas arriver en pratique), on retombe sur le scan status-only
+    // historique plutôt que de silencieusement rater un payout existant.
+    const payoutsQuery = snapshotsDriverId
+      ? await db
+          .collection("driver_payouts")
+          .where("driver_id", "==", snapshotsDriverId)
+          .where("status", "==", "paid")
+          .get()
+      : await db.collection("driver_payouts").where("status", "==", "paid").get();
     for (const doc of payoutsQuery.docs) {
       const payout = doc.data();
       const includedIds: string[] = payout.financial_snapshot_ids ?? [];

@@ -166,6 +166,13 @@
         { "fieldPath": "action", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "history",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "recorded_at", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
