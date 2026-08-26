@@ -99,6 +99,42 @@ describe("Storage Rules — driver_documents/{driverId}/{fileName}", () => {
       uploadBytes(fileRef, smallImage, { contentType: "application/x-msdownload" })
     );
   });
+
+  // 5bis (P-4). Taille : un document > 10 Mo est rejeté même pour le
+  // propriétaire (isValidDocumentUpload() exige request.resource.size <
+  // 10*1024*1024).
+  it("5bis. un document dépassant 10 Mo est rejeté même pour le propriétaire", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_oversize", { role: "driver" });
+    const fileRef = ref(driver.storage(), "driver_documents/driver_doc_oversize/gros_fichier.jpg");
+    const oversized = new Uint8Array(10 * 1024 * 1024 + 1);
+    await assertFails(uploadBytes(fileRef, oversized, { contentType: "image/jpeg" }));
+  });
+
+  // 5ter (P-1). Un client (customer) et un utilisateur NON authentifié ne
+  // peuvent ni lire ni écrire un document chauffeur — même logique déjà
+  // prouvée pour delivery_proofs (tests 9/10/12), réaffirmée ici explicitement
+  // pour driver_documents.
+  it("5ter. un client (customer) et un utilisateur non authentifié ne peuvent ni lire ni écrire un document chauffeur", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_vs_customer", { role: "driver" });
+    const fileRef = ref(driver.storage(), "driver_documents/driver_doc_vs_customer/permis.jpg");
+    await uploadBytes(fileRef, smallImage, { contentType: "image/jpeg" });
+
+    const customer = testEnv.authenticatedContext("customer_vs_driver_doc", { role: "customer" });
+    await assertFails(getBytes(ref(customer.storage(), fileRef.fullPath)));
+    await assertFails(
+      uploadBytes(ref(customer.storage(), "driver_documents/driver_doc_vs_customer/autre.jpg"), smallImage, {
+        contentType: "image/jpeg",
+      })
+    );
+
+    const anon = testEnv.unauthenticatedContext();
+    await assertFails(getBytes(ref(anon.storage(), fileRef.fullPath)));
+    await assertFails(
+      uploadBytes(ref(anon.storage(), "driver_documents/driver_doc_vs_customer/anon.jpg"), smallImage, {
+        contentType: "image/jpeg",
+      })
+    );
+  });
 });
 
 describe("Storage Rules — profile_photos/{userId}/{fileName}", () => {
@@ -224,6 +260,23 @@ describe("Storage Rules — delivery_proofs/{missionId}/{fileName}", () => {
         new Uint8Array([1, 2, 3]),
         { contentType: "text/plain" }
       )
+    );
+  });
+
+  // 11bis (P-4). Taille : une preuve de livraison > 5 Mo est rejetée même
+  // pour le chauffeur assigné (isValidImageUpload() exige
+  // request.resource.size < 5*1024*1024).
+  it("11bis. une preuve de livraison dépassant 5 Mo est rejetée même pour le chauffeur assigné", async () => {
+    await seedMission("mission_proof_oversize", {
+      customer_id: "customer_proof_oversize",
+      driver_id: "driver_proof_oversize",
+    });
+    const driver = testEnv.authenticatedContext("driver_proof_oversize", { role: "driver" });
+    const oversized = new Uint8Array(5 * 1024 * 1024 + 1);
+    await assertFails(
+      uploadBytes(ref(driver.storage(), "delivery_proofs/mission_proof_oversize/pod.jpg"), oversized, {
+        contentType: "image/jpeg",
+      })
     );
   });
 

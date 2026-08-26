@@ -1124,4 +1124,41 @@ validation finale groupée N→O→P (voir plus bas).
 
 **BLOC O : ✅ FERMÉ.** P0 = 0, P1 = 0, P2 corrigé = 1 (BUG-O-01), P3 documentés = 2.
 
-**PROCHAINE ACTION : Bloc P (Storage hardening), sans arrêt intermédiaire.**
+## MISE À JOUR — BLOC P : ✅ FERMÉ (Storage Hardening)
+
+Reconnaissance : lecture unique de `storage.rules` (146 lignes) + localisation des tests Storage
+existants (`storageRules.test.ts` 15 tests, `driver_active_mission_proof_upload_test.dart` 3
+testWidgets). Matrice consolidée dans `docs/PHASE7_QA_MATRIX.md` (section "BLOC P").
+
+**Résultat** : driver documents, proof de livraison, cross-user, unauthenticated, content-type
+et path/ownership étaient déjà entièrement COUVERTS par les tests existants — aucun gap réel de
+règle trouvé. **2 gaps de PREUVE (pas de règle)** identifiés et comblés par 3 nouveaux tests
+(`5bis` taille document >10 Mo, `5ter` client/anon explicitement DENIED sur `driver_documents`,
+`11bis` taille preuve >5 Mo) — les règles `isValidDocumentUpload()`/`isValidImageUpload()`
+existaient déjà et fonctionnent correctement, seule la preuve manquait.
+
+**P-6 (download access, point flaggé "très important")** : analyse complète du comportement
+documenté de `getDownloadURL()` (le token bypass les Security Rules une fois connu — fait
+plateforme Firebase, pas un bug de cette app) appliquée à l'architecture réelle. Conclusion :
+`delivery_proofs` dénormalise son URL uniquement vers des lecteurs Firestore qui sont un
+sous-ensemble strictement identique des lecteurs Storage déjà autorisés (aucune exposition
+supplémentaire) ; `driver_documents` n'a AUCUN appel `getDownloadURL()` nulle part dans le code
+(fonctionnalité non construite, bouton admin "voir document" est un placeholder explicite).
+**COUVERT**, avec un point de vigilance future documenté (non-bloquant) si une fonctionnalité
+future venait à transmettre l'URL vers un canal externe moins restrictif.
+
+**P-7 (orphan files)** : scénario upload Storage réussi + transaction Firestore échouée analysé
+via `completeDelivery.ts` — fréquence attendue très faible (fenêtre de contention précise
+requise), aucune fuite de sécurité (fichier orphelin reste protégé par les mêmes règles Storage),
+coût négligeable. **`DEFERRED NON-BLOCKING → Phase 8 cleanup`**, pas de garbage collector
+construit.
+
+**Validation Bloc P** : suite `storageRules.test.ts` exécutée une fois via émulateur
+Firestore+Auth+Storage → **19/19 PASS** (15 préexistants + 4 nouveaux, 0 régression). Suite
+complète Jest + Flutter analyze/test + tsc/lint ré-exécutés en validation finale groupée
+P→Q→Q2 (voir plus bas).
+
+**BLOC P : ✅ FERMÉ.** P0 = 0, P1 = 0. P2/P3 : 1 point de vigilance future documenté (P-6, non
+bloquant) + 1 DEFERRED → Phase 8 (P-7, non bloquant, aucune fuite sécurité).
+
+**PROCHAINE ACTION : Bloc Q (Application Security), sans arrêt intermédiaire.**

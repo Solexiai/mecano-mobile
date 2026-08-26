@@ -867,3 +867,57 @@ fictives dans des tests dédiés à prouver l'absence de fuite).
 **BLOC O : ✅ FERMÉ** — P0=0, P1=0, P2=1 corrigé (BUG-O-01), P3=2 documentés (non-bloquants).
 Validation : `npx tsc --noEmit` 0 erreur, `npm run lint` 0 erreur, Jest unit 109/109 PASS,
 intégration ciblée 16/16 PASS (suite complète ré-exécutée en validation finale groupée).
+
+## MISE À JOUR — Bloc P (Storage Hardening, cette session)
+
+**Aucun P0/P1 trouvé.** Toutes les protections attendues (driver documents propriétaire-only,
+proof de livraison chauffeur-assigné-only, immutabilité, cross-user denied, unauthenticated
+denied, content-type restreint, tailles limitées) étaient déjà implémentées correctement dans
+`storage.rules` (Phase 3) — le travail de ce bloc a consisté à PROUVER cette couverture, pas à
+la corriger.
+
+**Gap de PREUVE comblé (pas un bug de règle)** : `storageRules.test.ts` (15 tests) ne contenait
+aucun test exerçant un rejet pour taille de fichier, malgré des limites numériques déjà définies
+dans `storage.rules` (`isValidDocumentUpload()` : 10 Mo, `isValidImageUpload()` : 5 Mo). 2 tests
+ajoutés (`5bis`, `11bis`) confirment par exécution réelle contre l'émulateur que ces limites
+fonctionnent bien (`assertFails` sur un upload de `10*1024*1024+1`/`5*1024*1024+1` octets). Un
+3e test (`5ter`) réaffirme explicitement pour `driver_documents` (déjà implicite par la règle,
+mais non testé explicitement) qu'un client (customer) et qu'un utilisateur non authentifié sont
+DENIED en lecture ET en écriture — symétrique au comportement déjà prouvé pour `delivery_proofs`
+(tests 9/10/12).
+
+**P-6 (download access, "très important")** : recherche externe confirme que
+`getDownloadURL()` génère une URL dont le token bypass les Security Rules une fois connu — fait
+plateforme Firebase documenté (GitHub firebase-js-sdk #5342, docs officielles), pas un bug
+applicatif. Audit complet de tous les points d'usage réel dans le repo :
+- `driver_documents` : AUCUN appel `getDownloadURL()` nulle part — fonctionnalité non construite
+  (bouton "voir document" admin est un placeholder explicite dans le code). Aucune exposition
+  possible aujourd'hui.
+- `delivery_proofs` : le seul `getDownloadURL()` du repo (`firebase_proof_upload_repository.
+  dart:38`) produit une URL dénormalisée sur `delivery_requests/{id}.proof_of_delivery_url` et
+  `tracking_events/{id}.metadata.proof_of_delivery_url` — tous deux lisibles EXACTEMENT par le
+  même ensemble de parties (`customer_id==uid() || driver_id==uid() || isAnalystOrAbove()`) déjà
+  autorisées à lire le fichier directement via la règle Storage elle-même. Aucune surface
+  d'exposition supplémentaire créée.
+- `disputes/{id}.proof_of_delivery_url` : toujours `null` (jamais réassigné dans
+  `disputeOrchestration.ts`), et la collection `disputes` est lisible uniquement par
+  `isAnalystOrAbove()` — sous-ensemble strict des lecteurs Storage.
+- `profile_photos` : lecture publique par design (`allow read: if true`) — un token ne réduit
+  aucune sécurité déjà nulle par choix produit (avatar non sensible).
+
+**Conclusion P-6 : COUVERT**, aucun fix requis. Point de vigilance documenté pour toute future
+fonctionnalité qui transmettrait cette URL vers un canal externe (export admin, webhook,
+notification push) — à réévaluer à ce moment, non-bloquant aujourd'hui.
+
+**P-7 (orphan files)** : séquence `completeDelivery.ts` confirmée — upload Storage réussi PUIS
+appel `completeDelivery()` PUIS transaction Firestore. Si la transaction échoue (contention,
+statut déjà avancé), le fichier Storage reste sans référence Firestore. Fréquence attendue très
+faible (fenêtre de contention étroite), aucune fuite de sécurité (fichier orphelin reste protégé
+par les mêmes règles Storage restrictives), coût de stockage négligeable (photo unique).
+**Classé `DEFERRED NON-BLOCKING → Phase 8 cleanup`** — candidat pour une future Cloud Function
+de nettoyage périodique, hors scope Phase 7 (pas de garbage collector construit maintenant).
+
+**BLOC P : ✅ FERMÉ** — P0=0, P1=0, aucun bug de règle trouvé (3 tests de preuve ajoutés :
+`5bis`, `5ter`, `11bis`). P2/P3 : 1 point de vigilance future documenté (P-6) + 1 DEFERRED →
+Phase 8 (P-7), ni l'un ni l'autre bloquant. Validation : suite `storageRules.test.ts` 19/19 PASS
+(15 préexistants + 4 nouveaux assertions, 0 régression) via émulateur Firestore+Auth+Storage.

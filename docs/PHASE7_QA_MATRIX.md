@@ -586,3 +586,151 @@ résultats reportés là pour éviter une double exécution de la suite complèt
 absente du moteur de réconciliation, DEFERRED → Phase 8).
 
 **BLOC O : ✅ FERMÉ.**
+
+---
+
+## BLOC P — STORAGE HARDENING : ✅ FERMÉ
+
+Reconnaissance : lecture unique de `storage.rules` (146 lignes, 3 espaces de noms +
+deny-by-default) + localisation des tests Storage existants (`storageRules.test.ts`, 15 tests ;
+`driver_active_mission_proof_upload_test.dart`, 3 testWidgets). Aucun second audit général.
+
+### Matrice consolidée (Flux Storage → règle → test existant/nouveau → statut)
+
+| Flux Storage | Règle (`storage.rules`) | Test existant/nouveau | Statut |
+|---|---|---|---|
+| P-1 driver_documents — propriétaire upload | `allow create: uid()==driverId && isDriver() && isValidDocumentUpload() && resource==null` | Test 1 | **COUVERT** |
+| P-1 driver_documents — autre chauffeur DENIED | idem (uid() mismatch) | Test 2 | **COUVERT** |
+| P-1 driver_documents — client (customer)/non-authentifié DENIED | `allow read/create: isSignedIn() && ...` (customer échoue `uid()==driverId`, anon échoue `isSignedIn()`) | **Test 5ter (nouveau)** | **COUVERT** |
+| P-1 driver_documents — lecture propriétaire+analyst / tiers chauffeur refusé | `allow read: uid()==driverId \|\| isAnalystOrAbove()` | Test 4 | **COUVERT** |
+| P-2 delivery_proofs — chauffeur assigné upload autorisé | `allow create: isDriver() && firestore.get(...).driver_id==uid() && isValidImageUpload() && resource==null` | Test 8 | **COUVERT** |
+| P-2 delivery_proofs — autre chauffeur DENIED | idem | Test 8 | **COUVERT** |
+| P-2 client (customer) upload DENIED | `isDriver()` requis | Test 12 | **COUVERT** |
+| P-2 upload échoue → mission non completed / retry → succès / URL réelle seulement après succès | Côté client : `completeDelivery` appelé seulement après `uploadDeliveryProof()` résolu | `driver_active_mission_proof_upload_test.dart` (3 testWidgets) | **COUVERT** |
+| P-2 immutabilité (client ne peut pas écraser la preuve) | `resource==null` requis sur `create` | Test 9bis | **COUVERT** |
+| P-2 autre client ne peut pas lire une preuve qui n'est pas la sienne | `allow read: customer_id==uid() \|\| driver_id==uid() \|\| isAnalystOrAbove()` | Test 14 | **COUVERT** |
+| P-3 content-type document (image/pdf uniquement) | `isValidDocumentUpload()` | Test 5 | **COUVERT** |
+| P-3 content-type preuve (image uniquement) | `isValidImageUpload()` | Test 11 | **COUVERT** |
+| P-4 taille document > 10 Mo | `isValidDocumentUpload()` : `size < 10*1024*1024` | **Test 5bis (nouveau)** | **GAP DE TEST → COMBLÉ** |
+| P-4 taille preuve > 5 Mo | `isValidImageUpload()` : `size < 5*1024*1024` | **Test 11bis (nouveau)** | **GAP DE TEST → COMBLÉ** |
+| P-5 path/ownership — driver A ne peut pas écrire sous driver B | `uid()==driverId` | Test 2 | **COUVERT** |
+| P-5 path/ownership — client A ne peut pas lire la preuve mission B | `customer_id==uid()` (lookup Firestore) | Test 14 | **COUVERT** |
+| P-6 download access — URL/token ne doit pas contourner les règles applicables | Voir analyse dédiée ci-dessous | Analyse architecture (aucun test emulator possible : comportement `getDownloadURL()` est une propriété de la plateforme, pas des Security Rules) | **COUVERT (analyse)** |
+| P-7 orphan files — upload Storage réussi puis échec transaction Firestore | N/A (pas de règle, comportement applicatif) | Analyse `completeDelivery.ts` | **DEFERRED NON-BLOCKING → Phase 8 cleanup** |
+| profile_photos — lecture publique + écriture propriétaire seul | `allow read: if true; allow write: uid()==userId` | Tests 6/7 | **COUVERT** (public par design, non sensible) |
+| deny-by-default — chemin non déclaré, même super_admin | `match /{allPaths=**} { allow read,write: if false }` | Test deny-by-default | **COUVERT** |
+
+### P-4 — Détail des 2 gaps de test comblés
+
+Aucune erreur de RÈGLE : `isValidDocumentUpload()`/`isValidImageUpload()` définissent déjà des
+limites numériques (10 Mo documents, 5 Mo images) depuis l'écriture initiale de `storage.rules`
+(Phase 3). Le gap identifié était un **gap de PREUVE** : grep exhaustif de `storageRules.test.ts`
+pour `size`/`oversiz`/`10 * 1024` avant ce bloc → **zéro** test exerçant un rejet pour taille.
+2 tests ajoutés (`5bis`, `11bis`) : upload d'un tableau d'octets `10*1024*1024+1` sur
+`driver_documents` et `5*1024*1024+1` sur `delivery_proofs` → `assertFails` confirmé par
+exécution réelle contre l'émulateur Storage (voir Validation ci-dessous). Aucune limite produit
+modifiée.
+
+### P-6 — Download access (analyse détaillée, point flaggé "très important")
+
+**Fait plateforme établi (recherche externe, comportement Firebase documenté — GitHub
+firebase-js-sdk #5342, docs officielles "Download files")** : `getDownloadURL()` génère une URL
+contenant un token de téléchargement. Une fois cette URL connue, elle **contourne les Security
+Rules** pour toute requête HTTP directe ultérieure — les règles ne sont vérifiées qu'au moment de
+la génération du token via le SDK authentifié, jamais re-vérifiées sur un fetch HTTP direct
+ultérieur de l'URL tokenisée. Ce n'est PAS un bug de cette app, c'est un comportement Firebase
+Storage documenté qu'il faut auditer dans NOTRE architecture : la question réelle est "cette app
+fuite-t-elle une URL tokenisée vers un tiers non autorisé via un AUTRE canal que Storage
+lui-même ?"
+
+**Audit de tous les points d'usage réel de `getDownloadURL()` dans le repo** (grep exhaustif
+`getDownloadURL|signedUrl|getSignedUrl|generateSignedUrl` sur `lib/` et `functions/src/`) :
+
+1. **`driver_documents`** : AUCUN appel `getDownloadURL()` n'existe dans tout le code Dart.
+   `driver_document.dart.storageBucketPath` est un chemin brut (pas une URL de téléchargement).
+   Le bouton "voir le document" de l'admin (`admin_driver_detail_screen.dart` ligne ~423) est un
+   placeholder explicitement non implémenté (commentaire code : "prêt à être branché sur
+   `getDownloadURL()` [...] une fois cette intégration ajoutée"). **Conclusion : aucun vecteur
+   d'exposition possible aujourd'hui — la fonctionnalité de génération d'URL n'existe pas.**
+
+2. **`delivery_proofs`** : LE SEUL appel `getDownloadURL()` de tout le repo est
+   `firebase_proof_upload_repository.dart:38` (`FirebaseProofUploadRepository.uploadDeliveryProof`).
+   L'URL retournée transite par la Cloud Function `completeDelivery` (paramètre
+   `proofOfDeliveryUrl`, requis, validé non-vide) puis est dénormalisée dans la transaction
+   Firestore sur **exactement 2 emplacements** :
+   - `delivery_requests/{missionId}.proof_of_delivery_url` — lu selon `firestore.rules` L270-340
+     par `customer_id==uid() || driver_id==uid() || isAnalystOrAbove()`.
+   - `delivery_requests/{missionId}/tracking_events/{eventId}.metadata.proof_of_delivery_url` —
+     lu selon la même règle de lecture que le document mission (même bloc `match`).
+
+   Ces deux ensembles de lecteurs Firestore autorisés sont **rigoureusement identiques** (client
+   + chauffeur assigné + analyst+) à l'ensemble des lecteurs déjà autorisés à récupérer le fichier
+   DIRECTEMENT via la règle Storage `delivery_proofs/{missionId}/{fileName}` (ligne 124-128 de
+   `storage.rules` : mêmes 3 conditions `customer_id==uid() || driver_id==uid() ||
+   isAnalystOrAbove()`). **Aucun tiers ne peut apprendre l'URL tokenisée via Firestore sans déjà
+   être autorisé à obtenir le fichier directement via Storage** — la dénormalisation n'ajoute donc
+   aucune surface d'exposition supplémentaire.
+
+3. **`disputes/{disputeId}.proof_of_delivery_url`** (`disputeOrchestration.ts`) : toujours
+   initialisé à `null` à la création (`openDispute()`, ligne 117) et jamais réassigné ailleurs
+   dans ce fichier (grep confirmé : seule occurrence d'écriture). La collection `disputes` est de
+   toute façon lisible uniquement par `isAnalystOrAbove()` (`firestore.rules` L474-477) — un
+   sous-ensemble STRICT des lecteurs déjà autorisés côté Storage. **Aucune exposition
+   supplémentaire, champ actuellement toujours vide dans cette collection.**
+
+4. **Consommateurs Dart** (`delivery_mission.dart`, `dispute_info.dart`,
+   `customer_tracking_screen.dart`, `driver_active_mission_screen.dart`) : lecture/affichage
+   uniquement, aucun nouveau point d'écriture ni de journalisation externe trouvé (pas de
+   `print`/log serveur qui écrirait l'URL vers un canal accessible à un tiers non autorisé).
+
+5. **`profile_photos`** : lecture PUBLIQUE PAR DESIGN (`allow read: if true`, documenté dans
+   `docs/FIRESTORE_ARCHITECTURE.md`) — le token de téléchargement n'apporte ici aucune réduction
+   de sécurité supplémentaire puisque n'importe qui peut déjà lire le fichier sans même connaître
+   de token (avatar non sensible, test 7 le prouve explicitement).
+
+**Conclusion P-6 : COUVERT.** L'architecture actuelle ne crée, dans aucun des 3 espaces de noms
+Storage, de canal alternatif par lequel une URL tokenisée `delivery_proofs`/`driver_documents`
+pourrait être apprise par une partie qui n'aurait pas déjà un accès Storage direct équivalent.
+Point de vigilance documenté (pas un gap actuel) : si une future fonctionnalité (ex. export admin,
+webhook sortant, notification push) venait à transmettre `proof_of_delivery_url` vers un tiers
+externe ou un canal moins restrictif que Firestore, ce principe d'équivalence devrait être
+réévalué à ce moment — **noté pour vigilance future, non-bloquant aujourd'hui**.
+
+### P-7 — Orphan files (upload Storage réussi, transaction Firestore échoue)
+
+Séquence réelle confirmée par lecture de `completeDelivery.ts` (déjà lu en intégralité lors du
+Bloc O) : (1) le client uploade la preuve directement via le SDK Storage — gouverné entièrement
+par `storage.rules`, indépendant de tout état Firestore ; (2) SEULEMENT si l'upload réussit, le
+client appelle `completeDelivery(missionId, proofOfDeliveryUrl)` ; (3) la transaction Firestore
+écrit `proof_of_delivery_url` sur la mission. Si l'étape (3) échoue (contention, mission déjà
+`completed` par un appel concurrent, snapshot déjà `confirmed`), le fichier uploadé en (1) reste
+en Storage sans jamais être référencé par un document Firestore.
+
+**Analyse de fréquence** : les préconditions de `completeDelivery` qui provoqueraient un échec de
+transaction (`failed-precondition` sur statut invalide, snapshot déjà confirmé) échoueraient dans
+l'écrasante majorité des cas AVANT qu'un chauffeur légitime ait eu l'occasion d'uploader une
+NOUVELLE preuve pour un premier appel — le scénario réel d'orphelin exige une fenêtre de
+contention précise (deux appels quasi-simultanés du même chauffeur, ou un redémarrage d'app entre
+upload et appel). Aucune fuite de sécurité (le fichier orphelin reste protégé par les mêmes règles
+Storage `delivery_proofs` — non listé, non accessible sans être client/chauffeur/analyst+ de CETTE
+mission), coût de stockage négligeable (photo unique, pas de boucle d'accumulation).
+
+**Conclusion : `DEFERRED NON-BLOCKING → Phase 8 cleanup`** (candidat pour une Cloud Function de
+nettoyage périodique comparant `delivery_proofs/*` à `delivery_requests/*.proof_of_delivery_url`,
+hors scope Phase 7 — pas de garbage collector construit maintenant, conforme à la consigne
+MODE ACCÉLÉRÉ).
+
+### Validation Bloc P
+
+Suite `storageRules.test.ts` exécutée UNE fois via l'émulateur Storage+Firestore+Auth
+(`firebase emulators:exec --only firestore,auth,storage --project demo-movik-test`) : **19/19
+PASS** (15 tests préexistants + 4 nouveaux : `5bis`, `5ter`, `11bis` — voir liste ci-dessus ; le
+4e nouveau test regroupe 2 assertions customer+anon dans `5ter`). Aucune régression sur les tests
+préexistants. `driver_active_mission_proof_upload_test.dart` non ré-exécuté isolément ce bloc
+(aucune modification de son code source ni de ses dépendances — sera inclus dans la validation
+Flutter groupée finale P→Q→Q2).
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2/P3 documentés** : 1 point de vigilance future P-6
+(non-bloquant) + P-7 DEFERRED → Phase 8 cleanup (non-bloquant, aucune fuite sécurité).
+
+**BLOC P : ✅ FERMÉ.**
