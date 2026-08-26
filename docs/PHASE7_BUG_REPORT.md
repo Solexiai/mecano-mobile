@@ -659,3 +659,27 @@ ont été corrigés). P3 ouvert = 1 (connecteur `'à'` codé en dur, K2-3).
 
 **Reprise prévue** : terminer K2-3 (connecteur i18n date/heure) puis K2-7 (confirmer N/A DST ou
 traiter), déclarer BLOC K2 fermé, puis démarrer Bloc L (Accessibilité MVP) sans s'arrêter.
+
+---
+
+## MISE À JOUR — Bloc K2 : ✅ FERMÉ (K2-3 corrigé + K2-7 documenté N/A, ce tour)
+
+**K2-3 (P3, cosmétique) résolu** : nouvelle clé i18n `datetime_connector_at` (fr='à', en='at',
+es='a las') créée et câblée dans tous les points d'appel identifiés (`money_format.dart`,
+`mission_finance_section.dart`, `notifications_screen.dart`, et propagation à
+`provider_payouts_section.dart`, `admin_payment_detail_screen.dart`,
+`admin_driver_detail_screen.dart`). Plus aucun `'à'` codé en dur dans les chemins de production
+identifiés. 2 nouveaux tests ajoutés (`test/timezone/k2_utc_local_boundary_test.dart`), PASS.
+
+**K2-7 (DST) — N/A, aucun bug** : grep ciblé confirme l'absence de calcul de durée basé sur
+l'heure locale dans les 4 fichiers d'expiration/durée déjà identifiés — 0 occurrence de
+`Duration(days`/`Duration(hours`/`add(const Duration`/`subtract(const Duration`.
+
+> K2-7 : N/A — les décisions métier utilisent des instants/timestamps absolus; aucun calcul
+> métier DST-sensitive identifié.
+
+**Validation** : `flutter analyze` → 3 infos pré-existantes non liées, 0 erreur. `flutter test`
+complet → **471/471 PASS** (469 + 2 nouveaux), 0 régression.
+
+**BLOC K2 : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0. P2 ouverts = 0. P3 ouverts = 0 (le seul
+P3 identifié, connecteur codé en dur, est maintenant corrigé).

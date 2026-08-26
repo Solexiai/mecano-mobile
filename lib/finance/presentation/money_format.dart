@@ -21,12 +21,18 @@ String formatMajorAmount(double major, {String currencySymbol = '\$'}) {
   return '${major.toStringAsFixed(2)} $currencySymbol';
 }
 
-String formatDisplayDate(DateTime dt) {
+/// [connector] : mot de liaison localisé entre la date et l'heure
+/// (Bloc K2, K2-3). Fonction pure sans accès à `LocaleProvider` : la
+/// locale doit être résolue par l'appelant via
+/// `AppStrings.t('datetime_connector_at', locale)`. Valeur par défaut
+/// `'à'` conservée pour rétrocompatibilité avec les appels existants non
+/// encore mis à jour.
+String formatDisplayDate(DateTime dt, {String connector = 'à'}) {
   final local = dt.toLocal();
   final d = local.day.toString().padLeft(2, '0');
   final m = local.month.toString().padLeft(2, '0');
   final y = local.year.toString();
   final h = local.hour.toString().padLeft(2, '0');
   final min = local.minute.toString().padLeft(2, '0');
-  return '$d/$m/$y à $h:$min';
+  return '$d/$m/$y $connector $h:$min';
 }

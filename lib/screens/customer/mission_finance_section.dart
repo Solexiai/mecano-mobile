@@ -49,14 +49,16 @@ String formatMajorAmount(double major, {String currencySymbol = '\$'}) {
   return '${major.toStringAsFixed(2)} $currencySymbol';
 }
 
-String _formatDate(DateTime dt) {
+// [connector] : Bloc K2 (K2-3), connecteur localisé au lieu de 'à' codé en
+// dur ; défaut rétrocompatible pour tout appel non encore mis à jour.
+String _formatDate(DateTime dt, {String connector = 'à'}) {
   final local = dt.toLocal();
   final d = local.day.toString().padLeft(2, '0');
   final m = local.month.toString().padLeft(2, '0');
   final y = local.year.toString();
   final h = local.hour.toString().padLeft(2, '0');
   final min = local.minute.toString().padLeft(2, '0');
-  return '$d/$m/$y à $h:$min';
+  return '$d/$m/$y $connector $h:$min';
 }
 
 class MissionFinanceSection extends StatelessWidget {
@@ -430,12 +432,12 @@ class _PaymentSection extends StatelessWidget {
         if (p.capturedAt != null)
           _LineRow(
             label: t('finance_payment_date'),
-            value: _formatDate(p.capturedAt!),
+            value: _formatDate(p.capturedAt!, connector: t('datetime_connector_at')),
           )
         else if (p.authorizedAt != null)
           _LineRow(
             label: t('finance_payment_date'),
-            value: _formatDate(p.authorizedAt!),
+            value: _formatDate(p.authorizedAt!, connector: t('datetime_connector_at')),
           ),
       ],
     );
@@ -622,7 +624,7 @@ class _HistorySection extends StatelessWidget {
             ),
           )
         else
-          for (final item in items) _HistoryRow(item: item),
+          for (final item in items) _HistoryRow(item: item, t: t),
       ],
     );
   }
@@ -672,7 +674,8 @@ class _HistoryItem {
 
 class _HistoryRow extends StatelessWidget {
   final _HistoryItem item;
-  const _HistoryRow({required this.item});
+  final String Function(String) t;
+  const _HistoryRow({required this.item, required this.t});
 
   @override
   Widget build(BuildContext context) {
@@ -694,7 +697,7 @@ class _HistoryRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  _formatDate(item.date),
+                  _formatDate(item.date, connector: t('datetime_connector_at')),
                   style: const TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,

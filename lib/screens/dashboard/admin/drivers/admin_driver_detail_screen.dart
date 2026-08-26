@@ -358,12 +358,12 @@ class _DocumentTile extends StatelessWidget {
             // (ex: "2026-08-26 12:24:28.123456") — formatage localisé via
             // `formatDisplayDate` (déjà utilisé ailleurs pour la finance),
             // cohérent avec le reste de l'app.
-            '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt)}',
+            '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt, connector: t('datetime_connector_at'))}',
             style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
           if (doc.expiresAt != null)
             Text(
-              '${t('admin_driver_doc_expires_at')}: ${formatDisplayDate(doc.expiresAt!)}',
+              '${t('admin_driver_doc_expires_at')}: ${formatDisplayDate(doc.expiresAt!, connector: t('datetime_connector_at'))}',
               style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
             ),
           if (doc.rejectionReason != null && doc.rejectionReason!.isNotEmpty)

@@ -177,7 +177,7 @@ class _PaymentSummaryCard extends StatelessWidget {
               MetaChip(
                 icon: Icons.event_outlined,
                 label:
-                    '${t('admin_payments_col_date')}: ${formatDisplayDate(payment.createdAt)}',
+                    '${t('admin_payments_col_date')}: ${formatDisplayDate(payment.createdAt, connector: t('datetime_connector_at'))}',
               ),
               if (payment.provider.isNotEmpty)
                 MetaChip(

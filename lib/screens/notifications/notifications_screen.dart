@@ -143,7 +143,8 @@ class _NotificationTile extends StatelessWidget {
     final m = local.month.toString().padLeft(2, '0');
     final h = local.hour.toString().padLeft(2, '0');
     final min = local.minute.toString().padLeft(2, '0');
-    return '$d/$m à $h:$min';
+    // Bloc K2 (K2-3) : connecteur localisé au lieu de 'à' codé en dur.
+    return '$d/$m ${t('datetime_connector_at')} $h:$min';
   }
 
   @override

@@ -353,16 +353,15 @@ réels non affectée, uniquement l'affichage textuel du connecteur.
 | K2-0 Reconnaissance | 144 occurrences date/heure cartographiées (41 fichiers `lib/`), backend `functions/` sans logique day-boundary sensible au fuseau | **FAIT** |
 | K2-1 Storage | Timestamps métier = vrais `Timestamp` Firestore (instants réels), `parseFirestoreDate()` fuseau-agnostique | **CONFORME** |
 | K2-2 Affichage local | 3 gaps réels trouvés et **corrigés** (Timestamp brut visible + 2x `.toLocal()` manquant) | **PARTIEL** |
-| K2-3 Formats FR/EN/ES | Gap réel identifié (connecteur `'à'` codé en dur, 3 fonctions) — **PAS ENCORE corrigé** | **GAP OUVERT** |
+| K2-3 Formats FR/EN/ES | Clé `datetime_connector_at` (fr/en/es) créée, câblée dans `money_format.dart`, `mission_finance_section.dart`, `notifications_screen.dart` + 3 fichiers propagés (`provider_payouts_section.dart`, `admin_payment_detail_screen.dart`, `admin_driver_detail_screen.dart`) | **CORRIGÉ** |
 | K2-4 Frontière UTC/local | `test/timezone/k2_utc_local_boundary_test.dart` créé (5 tests permanents, PASS) | **FAIT** |
 | K2-5 Expirations business | Comparaisons sur instants réels (`isBefore`/`isAfter`/`<=`), jamais sur strings | **CONFORME** |
 | K2-6 Tri | ~25 `.sort()`/`.orderBy()` tous sur `DateTime.compareTo()` réel | **CONFORME** |
-| K2-7 DST | NON EXAMINÉ ce tour | **À FAIRE** |
+| K2-7 DST | Grep ciblé sur `founding_driver.dart`, `commission_resolver.dart`, `payout_policy_configuration.dart`, `detectExpiringDocuments.ts` (`Duration(days`/`Duration(hours`/`add(const Duration`/`subtract(const Duration`) → 0 occurrence | **N/A (documenté)** |
 
-**Bloc K2 : ⚠️ EN COURS, PAS FERMÉ.** `flutter analyze` 3 infos pré-existantes / 0 erreur.
-`flutter test` complet → **469/469 PASS** (464 Bloc K + 5 nouveaux K2-4), 0 régression.
-Reprise : K2-3 (connecteur i18n) puis K2-7 (confirmer N/A ou traiter), voir détail dans
-`docs/PHASE7_QA_PLAN.md`.
+**BLOC K2 : ✅ FERMÉ.** `flutter analyze` 3 infos pré-existantes / 0 erreur.
+`flutter test` complet → **471/471 PASS** (469 précédents + 2 nouveaux tests K2-3), 0 régression.
+P0 ouverts = 0. P1 ouverts = 0.
 
 ## Accessibilité MVP (Bloc L)
-NON DÉMARRÉ — reprise après clôture réelle de K2.
+Voir section dédiée ci-dessous.

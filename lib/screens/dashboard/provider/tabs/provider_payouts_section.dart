@@ -350,7 +350,7 @@ class _MissionTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            formatDisplayDate(snapshot.createdAt),
+            formatDisplayDate(snapshot.createdAt, connector: t('datetime_connector_at')),
             style: const TextStyle(
               fontSize: 11.5,
               color: AppColors.textSecondary,
@@ -532,7 +532,7 @@ class _PayoutTile extends StatelessWidget {
           const SizedBox(height: 8),
           _DetailRow(
             label: t('payout_created_at'),
-            value: formatDisplayDate(payout.createdAt),
+            value: formatDisplayDate(payout.createdAt, connector: t('datetime_connector_at')),
           ),
           if (showHoldInfo) ...[
             _DetailRow(
@@ -542,13 +542,13 @@ class _PayoutTile extends StatelessWidget {
             ),
             _DetailRow(
               label: t('payout_eligible_at'),
-              value: formatDisplayDate(payout.payoutEligibleAt),
+              value: formatDisplayDate(payout.payoutEligibleAt, connector: t('datetime_connector_at')),
             ),
           ],
           if (payout.isPaid && payout.paidAt != null)
             _DetailRow(
               label: t('payout_paid_at'),
-              value: formatDisplayDate(payout.paidAt!),
+              value: formatDisplayDate(payout.paidAt!, connector: t('datetime_connector_at')),
             ),
           if (payout.isHeld || payout.isPending) ...[
             const SizedBox(height: 8),
@@ -559,7 +559,7 @@ class _PayoutTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                '${t('payout_held_message')} ${formatDisplayDate(payout.payoutEligibleAt)}',
+                '${t('payout_held_message')} ${formatDisplayDate(payout.payoutEligibleAt, connector: t('datetime_connector_at'))}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

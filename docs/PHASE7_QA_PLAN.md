@@ -947,3 +947,52 @@ d'itérations atteinte honnêtement documentée — PAS de fausse clôture.
   ajouté)
 - `test/timezone/k2_utc_local_boundary_test.dart` (nouveau, 5 tests K2-4)
 - `docs/PHASE7_QA_PLAN.md` (ce fichier)
+
+---
+
+## MISE À JOUR — BLOC K2 : ✅ FERMÉ (K2-3 + K2-7 traités ce tour)
+
+**K2-3 (connecteur date/heure localisé)** : nouvelle clé `datetime_connector_at`
+(fr='à', en='at', es='a las') ajoutée dans `app_strings.dart`. Câblée directement :
+- `money_format.dart::formatDisplayDate` — paramètre optionnel `connector = 'à'` (défaut
+  rétrocompatible), appelé avec `connector: t('datetime_connector_at')` depuis
+  `provider_payouts_section.dart` (5 sites), `admin_payment_detail_screen.dart` (1 site).
+- `mission_finance_section.dart::_formatDate` — même pattern paramètre optionnel ; 3 sites
+  d'appel mis à jour, y compris `_HistoryRow` qui ne recevait pas encore `t` (champ ajouté +
+  propagation via constructeur).
+- `notifications_screen.dart::_formatDateTime` — interpolation directe `t('datetime_connector_at')`
+  (accès direct à `t` sans paramètre nécessaire).
+- `admin_driver_detail_screen.dart::_DocumentTile` — 2 sites `formatDisplayDate` mis à jour
+  (extension du fix K2-2 du tour précédent).
+- 2 nouveaux tests dans `test/timezone/k2_utc_local_boundary_test.dart` : existence/traduction
+  de la clé (fr/en/es) + comportement du connecteur dans `formatDisplayDate()`.
+
+**K2-7 (DST)** : grep ciblé sur les 4 fichiers déjà identifiés en K2-5 comme porteurs de logique
+d'expiration/durée (`founding_driver.dart`, `commission_resolver.dart`,
+`payout_policy_configuration.dart`, `detectExpiringDocuments.ts`) avec les patterns
+`Duration(days`, `Duration(hours`, `add(const Duration`, `subtract(const Duration` — **0
+occurrence trouvée**. Conclusion documentée :
+
+> K2-7 : N/A — les décisions métier utilisent des instants/timestamps absolus; aucun calcul
+> métier DST-sensitive identifié.
+
+**Validation finale K2** : `flutter test test/timezone/` → 7/7 PASS. `flutter analyze` (projet
+complet) → 3 infos pré-existantes non liées, 0 erreur. `flutter test` (suite complète) →
+**471/471 PASS** (469 précédents + 2 nouveaux), 0 régression. Backend non modifié ce tour
+(lecture seule pour le grep K2-7) → `npx tsc --noEmit`/`npm run lint` non requis.
+
+**BLOC K2 : ✅ FERMÉ.** P0 = 0, P1 = 0. Tous les sous-blocs K2-0 à K2-7 traités.
+
+**Fichiers modifiés ce tour (clôture K2)** :
+- `lib/l10n/app_strings.dart` (clé `datetime_connector_at`)
+- `lib/finance/presentation/money_format.dart` (paramètre `connector`)
+- `lib/screens/dashboard/provider/tabs/provider_payouts_section.dart` (5 sites)
+- `lib/screens/dashboard/admin/finance/tabs/admin_payment_detail_screen.dart` (1 site)
+- `lib/screens/notifications/notifications_screen.dart` (interpolation directe)
+- `lib/screens/customer/mission_finance_section.dart` (signature + 3 sites + `_HistoryRow.t`)
+- `lib/screens/dashboard/admin/drivers/admin_driver_detail_screen.dart` (2 sites)
+- `test/timezone/k2_utc_local_boundary_test.dart` (+2 tests)
+- `docs/PHASE7_QA_PLAN.md`, `docs/PHASE7_QA_MATRIX.md`, `docs/PHASE7_BUG_REPORT.md`
+
+**PROCHAINE ACTION** : démarrer immédiatement **Bloc L — ACCESSIBILITÉ MVP** (L-0 à L-8), sans
+rapport intermédiaire, selon les spécifications déjà fournies par l'utilisateur.

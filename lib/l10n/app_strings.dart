@@ -256,6 +256,9 @@ class AppStrings {
       'es': 'Nada que mostrar todavía',
     },
     'common_retry': {'fr': 'Réessayer', 'en': 'Retry', 'es': 'Reintentar'},
+    // Bloc K2 (K2-3) : connecteur date/heure localisé, ex. "12/01/2026 à 14:30"
+    // (fr) / "01/12/2026 at 2:30 PM"-style (en, connecteur seul ici) / "a las" (es).
+    'datetime_connector_at': {'fr': 'à', 'en': 'at', 'es': 'a las'},
     'common_see_all': {'fr': 'Tout voir', 'en': 'See all', 'es': 'Ver todo'},
     'common_upload_photo': {
       'fr': 'Ajouter des photos',

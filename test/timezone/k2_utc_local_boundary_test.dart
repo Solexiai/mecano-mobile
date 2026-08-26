@@ -21,6 +21,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:movik_connect/finance/presentation/money_format.dart';
+import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/screens/dashboard/admin/finance/finance_ui_helpers.dart';
 
 void main() {
@@ -143,4 +144,29 @@ void main() {
       });
     },
   );
+
+  group('K2-3 — Connecteur date/heure localisé (datetime_connector_at)', () {
+    test('la clé existe et est traduite en fr/en/es (fr="à", en="at", '
+        'es="a las")', () {
+      expect(AppStrings.t('datetime_connector_at', 'fr'), equals('à'));
+      expect(AppStrings.t('datetime_connector_at', 'en'), equals('at'));
+      expect(AppStrings.t('datetime_connector_at', 'es'), equals('a las'));
+    });
+
+    test('formatDisplayDate() utilise le connecteur fourni au lieu du '
+        "'à' codé en dur, y compris en anglais/espagnol", () {
+      final dt = DateTime(2026, 3, 10, 14, 5);
+      expect(
+        formatDisplayDate(dt, connector: AppStrings.t('datetime_connector_at', 'en')),
+        contains(' at '),
+      );
+      expect(
+        formatDisplayDate(dt, connector: AppStrings.t('datetime_connector_at', 'es')),
+        contains(' a las '),
+      );
+      // Comportement par défaut (aucun connecteur fourni) reste 'à' pour
+      // rétrocompatibilité des appels non encore mis à jour.
+      expect(formatDisplayDate(dt), contains(' à '));
+    });
+  });
 }
