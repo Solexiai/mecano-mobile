@@ -734,3 +734,53 @@ Flutter groupée finale P→Q→Q2).
 (non-bloquant) + P-7 DEFERRED → Phase 8 cleanup (non-bloquant, aucune fuite sécurité).
 
 **BLOC P : ✅ FERMÉ.**
+
+---
+
+## BLOC Q — APPLICATION SECURITY : ✅ FERMÉ
+
+Beaucoup déjà prouvé dans Phase 3 Security, Bloc D (rôles), Bloc E (Auth/Claims), Bloc F
+(cross-user/routing), Bloc N (Firestore), Bloc O (Cloud Functions), Bloc P (Storage) — aucun de
+ces audits n'est refait. Ce bloc cherche uniquement les surfaces critiques encore non couvertes.
+
+### Matrice consolidée (surface d'attaque → protection existante → test → statut)
+
+| Surface d'attaque | Protection existante | Test / preuve | Statut |
+|---|---|---|---|
+| Q-1 Autorisation missions/finance/admin/roles/documents/tracking — server-side, pas juste UI | 31/34 Cloud Functions avec `invalidArgument` explicite ; toutes les fonctions privilégiées utilisent `requireSignedIn`/`requireAdminOrAbove`/`requireAnalystOrAbove` (grep confirmé sur `functions/src/functions/*.ts`) ; Firestore Rules `allow write: if false` sur toutes les collections financières (miroir serveur) | Bloc O (18 fonctions), Bloc D/E (claims) | **COUVERT (référencé)** |
+| Q-2 IDOR — client A/mission B, chauffeur A/mission B, documents, tracking, finance | `firestore.rules` : chaque collection sensible filtre par `customer_id==uid()`/`driver_id==uid()`/`isAnalystOrAbove()` | Bloc F (cross-user), Bloc N, tests `storageRules.test.ts` (Bloc P) | **COUVERT (référencé)** |
+| Q-2 IDOR — domaine non encore audité : `driver_locations` (tracking position live) | `allow read: uid()==driverId \|\| isAnalystOrAbove() \|\| (isCustomer() && active_delivery_id lié à CE chauffeur ET client)` — vérifié par double `get()` (mission existe + les 2 IDs correspondent) | Lecture directe de la règle ce tour (nouveau) | **COUVERT (vérifié ce tour, aucun gap)** |
+| Q-2 IDOR — `driver_internal_notes` (notes analyste privées) | `allow read: isAnalystOrAbove()` uniquement — jamais exposé au chauffeur concerné, même propriétaire du dossier | Lecture directe de la règle ce tour (nouveau) | **COUVERT (vérifié ce tour, aucun gap)** |
+| Q-3 Mass assignment — status/driver_id/customer_total/commission/payout/role/approval | `financial_snapshots`/`transaction_ledger`/`payments`/`driver_payouts`/`refunds` : `allow write: if false` intégral (Cloud-Functions-only) ; `users.roles` protégé par égalité stricte `request.resource.data.roles == resource.data.roles` ; `driver_profiles` : ~15 champs sensibles protégés individuellement par `get(champ,null)==get(champ,null)` | Lecture directe des règles (ce tour) + Bloc D/E/N | **COUVERT** |
+| Q-4 Input abuse — texte long, IDs arbitraires, valeurs négatives, statuts impossibles | 31/34 fonctions valident explicitement ; machines à états strictes (`ALLOWED_TRANSITIONS`) rejettent tout statut impossible ; BUG-O-01 (Bloc O) a déjà comblé le seul gap réel trouvé (distanceKm/duration négatifs) | Bloc O (matrice complète) | **COUVERT (référencé)** |
+| Q-5 Data exposure — emails/documents/paiement/erreurs internes/tokens/stack traces | `src/lib/errors.ts` : toutes `HttpsError` avec message métier, jamais de stack ; les 2 seuls `internal(...)` (Stripe) ne concatènent que `err.message` (jamais `err.stack` ni clé API, confirmé Bloc O) ; BUG-010 (Bloc K) a corrigé les 6 messages d'exception brute affichés côté admin | Bloc O (O-7), Bloc K (BUG-010) | **COUVERT (référencé)** |
+| Q-6 Secrets committés | Re-scan ciblé ce tour (`sk_live_`, `rk_live_`, `whsec_`, PEM private key, `ghp_`/`github_pat_`, `.env*`, `serviceAccountKey*`) sur l'ensemble du repo | Seules occurrences : le pattern regex `whsec_` lui-même dans `observability.ts` (bibliothèque de rédaction) + un commentaire d'exemple — aucun secret réel, aucun `.env`/service account tracké | **COUVERT (re-scan ce tour, PASS)** |
+| Q-7 Client trust — prix/commission/payout/rôle/statut critique doivent venir du backend | `financial_snapshots` (prix/commission figés), `transaction_ledger`, `driver_payouts` : 100% Cloud-Functions-only (`allow write: if false`) ; `roles` : uniquement `setUserRole()` ; transitions de statut mission : machines à états côté Cloud Function, jamais un `update` Firestore direct sur les champs critiques | Bloc O, lecture directe des règles ce tour | **COUVERT** |
+| Q-8 Security Rules ciblées — cas critiques manquants | Storage (Bloc P, 19 tests), Firestore (Bloc N/O référencés) ; aucun nouveau cas critique trouvé nécessitant un test dédié ce tour (Q-2 ci-dessus vérifié par lecture de règle, pas par gap de comportement) | Suite `storageRules.test.ts` (Bloc P) + suite intégration Firestore existante | **COUVERT (référencé, pas de nouveau test requis)** |
+| Q-9 Open redirect / routing | `lib/router/app_router.dart` (GoRouter) — déjà audité Bloc F, aucune régression depuis (aucun fichier routing touché N/O/P) | Bloc F (`notifications_deep_link_test.dart` etc.) | **COUVERT (référencé, non ré-audité)** |
+| Q-10 Logs/erreurs — client-exposed errors propres | Confirmé ce tour par relecture directe des 2 seuls call-sites `internal(...)` (`createCustomerPaymentProfile.ts`, `createDriverStripeAccount.ts`) : `err.message` uniquement (jamais `err.stack`/clé API) | Bloc O (O-7) + relecture ciblée ce tour | **COUVERT (référencé + vérifié)** |
+
+### Q-2 — Détail des 2 domaines nouvellement vérifiés
+
+Aucun gap trouvé, mais 2 domaines n'avaient pas de mention explicite dans les blocs précédents et
+ont été vérifiés directement dans `firestore.rules` ce tour (lecture de règle, pas de nouveau
+test requis puisqu'aucun comportement dangereux n'est permis) :
+- **`driver_locations/{driverId}`** (position GPS live) : un client ne peut lire la position d'un
+  chauffeur QUE s'il a une mission active AVEC CE chauffeur précis (double `get()` : le document
+  `active_delivery_id` référencé doit exister ET son `customer_id`/`driver_id` doivent correspondre
+  exactement au lecteur et au chauffeur ciblé). Aucun accès cross-mission possible.
+- **`driver_internal_notes/{noteId}`** (notes analyste sur un chauffeur) : lecture strictement
+  réservée à `isAnalystOrAbove()` — le chauffeur concerné lui-même ne peut JAMAIS les lire, même
+  propriétaire du dossier. Écriture exclusivement via `addDriverInternalNote()` (garantit
+  `author_user_id`/`author_role` non falsifiables).
+
+### Validation Bloc Q
+
+Aucun nouveau test créé (aucun gap de comportement trouvé — uniquement des vérifications de
+règles déjà correctes). Validation complète (tsc/lint/Jest/Flutter/Rules) exécutée en groupe
+final P→Q→Q2 (voir plus bas), pour éviter une exécution redondante de la suite complète.
+
+**P0 ouverts** : 0. **P1 ouverts** : 0. **P2/P3** : aucun nouveau (tous déjà documentés dans les
+blocs référencés : BUG-010 Bloc K, BUG-O-01 Bloc O).
+
+**BLOC Q : ✅ FERMÉ.**

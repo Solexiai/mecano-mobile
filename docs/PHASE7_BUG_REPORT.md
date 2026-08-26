@@ -921,3 +921,34 @@ de nettoyage périodique, hors scope Phase 7 (pas de garbage collector construit
 `5bis`, `5ter`, `11bis`). P2/P3 : 1 point de vigilance future documenté (P-6) + 1 DEFERRED →
 Phase 8 (P-7), ni l'un ni l'autre bloquant. Validation : suite `storageRules.test.ts` 19/19 PASS
 (15 préexistants + 4 nouveaux assertions, 0 régression) via émulateur Firestore+Auth+Storage.
+
+## MISE À JOUR — Bloc Q (Application Security, cette session)
+
+**Aucun P0/P1/P2/P3 nouveau trouvé.** Ce bloc a explicitement référencé les protections déjà
+prouvées dans Phase 3 Security, Bloc D, E, F, N, O, P — sans dupliquer d'audit. Les seules
+vérifications NOUVELLES effectuées ce tour (lecture directe de règle, aucun gap trouvé) :
+
+- **`driver_locations/{driverId}`** (Q-2, IDOR tracking) : la règle Firestore exige un double
+  `get()` — le document `active_delivery_id` référencé doit exister ET son `customer_id` ainsi
+  que son `driver_id` doivent correspondre exactement au lecteur ET au chauffeur ciblé. Aucun
+  accès cross-mission possible : un client ne peut jamais lire la position d'un chauffeur avec
+  lequel il n'a aucune mission active en cours.
+- **`driver_internal_notes/{noteId}`** (Q-2, IDOR notes analyste) : `allow read:
+  isAnalystOrAbove()` — confirmé que le chauffeur concerné, même propriétaire du dossier, ne peut
+  JAMAIS lire ses propres notes internes.
+- **Q-6 (secrets)** : re-scan complet du repo (patterns Stripe/PEM/GitHub, fichiers
+  `.env*`/`serviceAccountKey*`) — PASS, aucun secret réel, seules occurrences étant le pattern de
+  rédaction lui-même (`observability.ts`) et un commentaire d'exemple.
+- **Q-10 (logs/erreurs)** : relecture ciblée des 2 seuls call-sites `internal(...)`
+  (`createCustomerPaymentProfile.ts`, `createDriverStripeAccount.ts`) confirmant qu'ils ne
+  concatènent que `err.message` (jamais `err.stack` ni une clé API) — cohérent avec la
+  conclusion O-7 du Bloc O.
+
+Toutes les autres sous-catégories (Q-1 authorization server-side, Q-3 mass assignment, Q-4 input
+abuse, Q-5 data exposure, Q-7 client trust, Q-8 Rules ciblées, Q-9 routing) étaient déjà
+entièrement couvertes par des preuves existantes des blocs D/E/F/K/N/O/P — référencées sans
+duplication de test.
+
+**BLOC Q : ✅ FERMÉ** — P0=0, P1=0, aucun nouveau bug. Validation : aucun nouveau test requis
+(aucun gap de comportement) ; validation complète tsc/lint/Jest/Flutter/Rules exécutée en groupe
+final P→Q→Q2.

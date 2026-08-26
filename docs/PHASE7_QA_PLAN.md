@@ -1161,4 +1161,32 @@ P→Q→Q2 (voir plus bas).
 **BLOC P : ✅ FERMÉ.** P0 = 0, P1 = 0. P2/P3 : 1 point de vigilance future documenté (P-6, non
 bloquant) + 1 DEFERRED → Phase 8 (P-7, non bloquant, aucune fuite sécurité).
 
-**PROCHAINE ACTION : Bloc Q (Application Security), sans arrêt intermédiaire.**
+## MISE À JOUR — BLOC Q : ✅ FERMÉ (Application Security)
+
+Aucun second audit général — le bloc référence explicitement Phase 3 Security, Bloc D (rôles),
+Bloc E (Auth/Claims), Bloc F (cross-user/routing), Bloc N (Firestore), Bloc O (Cloud Functions),
+Bloc P (Storage). Matrice complète dans `docs/PHASE7_QA_MATRIX.md` (section "BLOC Q").
+
+**Résultat** : Q-1 (authorization server-side), Q-3 (mass assignment/champs financiers), Q-4
+(input abuse), Q-5 (data exposure), Q-6 (secrets), Q-7 (client trust), Q-8 (Rules ciblées), Q-9
+(routing) et Q-10 (logs/erreurs) étaient déjà entièrement couverts par les blocs précédents —
+aucun gap réel trouvé, tout référencé sans duplication.
+
+**Q-2 (IDOR/cross-user)** : 2 domaines non explicitement mentionnés dans les blocs précédents
+vérifiés directement par lecture de règle (`driver_locations` — accès position live limité au
+client ayant une mission active avec CE chauffeur précis ; `driver_internal_notes` — jamais
+visibles au chauffeur concerné, même propriétaire du dossier, analyst+ uniquement). Aucun gap,
+aucun nouveau test requis (comportement déjà correct).
+
+**Q-6 (secrets)** : re-scan ciblé sur l'ensemble du repo (`sk_live_`, `rk_live_`, `whsec_`, PEM
+private key, tokens GitHub, `.env*`, `serviceAccountKey*`) — PASS, aucun secret réel, seules
+occurrences étant le pattern de rédaction lui-même dans `observability.ts`.
+
+**Validation Bloc Q** : aucun nouveau test créé (aucun gap de comportement, uniquement des
+vérifications de règles déjà correctes) — validation complète tsc/lint/Jest/Flutter/Rules
+exécutée en groupe final P→Q→Q2.
+
+**BLOC Q : ✅ FERMÉ.** P0 = 0, P1 = 0, aucun nouveau P2/P3 (tous déjà documentés dans les blocs
+référencés).
+
+**PROCHAINE ACTION : Bloc Q2 (App Check / Anti-Abuse), sans arrêt intermédiaire.**
