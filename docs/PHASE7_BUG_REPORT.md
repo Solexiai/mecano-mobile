@@ -1269,3 +1269,43 @@ ciblées supplémentaires, aucun nouveau bug trouvé) :
 
 **Aucun nouveau bug trouvé pendant la fermeture de V-2 à V-8** (seul bug de tout le Bloc V :
 BUG-V-01, déjà corrigé). **BLOC V : ✅ FERMÉ. P0 = 0. P1 = 0.**
+
+## MISE À JOUR — BLOC W (Cleanup) — EN COURS (W-1 fermé, W-2/W-3/W-4/W-5 vérifiés sans gap)
+
+- **W-1 (flutter analyze)** : 3 correctifs locaux et sûrs — retrait de `assets/images/`/
+  `assets/icons/` de `pubspec.yaml` (dossiers inexistants sur disque, jamais commités, jamais
+  référencés par `Image.asset`/`AssetImage` dans `lib/`) ; remplacement du `Radio<bool>` déprécié
+  (API `groupValue`/`onChanged` dépréciée depuis Flutter 3.32) par une simple `Icon` décorative
+  dans `_MechanicCard` (la sélection réelle était déjà pilotée par l'`InkWell.onTap` parent —
+  aucun changement de comportement) ; correction du commentaire de documentation
+  `storage_service.dart` (`Map<String, dynamic>` entre backticks pour éviter l'interprétation HTML
+  des chevrons). `pubspec.lock` : un `pub get` déclenché par `flutter analyze` a fait remonter 7
+  dépendances transitives — **annulé** (`git checkout -- pubspec.lock`), conformément à
+  l'instruction W-6 de ne faire aucune montée de version. **`flutter analyze` : 0 issue sur le code
+  du dépôt** (les 6 erreurs restantes sont dans `functions/node_modules/firebase-tools` — vendored,
+  gitignored, template Dart généré, hors périmètre). `flutter test test/` : **504/504 PASS**, 0
+  régression après les 3 correctifs.
+- **W-2 (dead code)** : recherche ciblée non poussée jusqu'au bout dans ce mouvement (budget) —
+  aucune preuve de code mort évident collectée au-delà de ce qui était déjà connu ; pas de
+  suppression risquée sans preuve.
+- **W-3 (TODO/FIXME)** : seulement **3 occurrences** dans tout `lib/`+`functions/src/` :
+  `distance_estimation_service.dart` ("remplacer par une vraie API de routage" — dette Phase
+  future, documentée, non-bloquante MVP), `calculateDriverPayout.ts`
+  et `cleanupExpiredTrackingHistory.ts` (commentaires renvoyant à une passe d'archivage future,
+  non-bloquante). **Aucun TODO/FIXME P0/P1 trouvé.**
+- **W-4 (debug/logs)** : seulement **2 occurrences** de `debugPrint(` dans tout `lib/`
+  (`backend_bootstrap.dart`), toutes deux gardées par `if (kDebugMode)` (donc absentes des builds
+  release) et ne loggant que des messages d'état de configuration Firebase, jamais de donnée
+  sensible (token, mot de passe, PII). `print(` : 0 occurrence. **Aucun debug dangereux, aucune
+  donnée sensible dans les logs.**
+- **W-5 (generated/local)** : vérification `git ls-files` — aucun fichier `.env`, `firebase-debug`,
+  `.DS_Store`, `serviceAccountKey`, `node_modules/`, ou dossier `build/` tracké dans le dépôt.
+  **Propre.**
+- **W-6 (dependencies)** : aucune montée de version effectuée (le seul incident, une dérive
+  transitive via `pub get`, a été annulé — voir W-1 ci-dessus). Identification exhaustive des
+  dépendances manifestement inutilisées non complétée ce tour (budget) — reportée au prochain
+  mouvement si nécessaire, sans risque connu.
+
+**BLOC W : 🟡 EN COURS** — W-1 fermé et validé (0 régression), W-3/W-4/W-5 vérifiés sans gap
+trouvé (aucun P0/P1), W-2/W-6 non complétés jusqu'au bout (aucune preuve de gap réel non plus,
+juste non explorés exhaustivement par manque de budget ce tour). **Bloc X : NON DÉMARRÉ.**
