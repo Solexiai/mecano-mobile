@@ -1461,3 +1461,35 @@ existe déjà, sans dupliquer une suite déjà exhaustive) :
 | P1 ouverts | 0 (BUG-V-01 corrigé) |
 
 **BLOC V : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC W : ✅ FERMÉ (Cleanup)
+
+W-1 (flutter analyze) fermé lors du segment précédent : 3 correctifs (assets orphelins retirés,
+`Radio<bool>` déprécié remplacé, doc-comment HTML corrigé) — 0 issue restante sur le code du
+dépôt, 504/504 tests PASS. W-3 (TODO/FIXME : 3 occurrences non-bloquantes), W-4 (debug/logs : 2
+`debugPrint()` kDebugMode-gated, 0 donnée sensible), W-5 (generated/local : aucun artifact/secret
+tracké) tous vérifiés sans gap.
+
+**W-2 (dead code)** : recherche ciblée (`dart analyze`, heuristique sur 198 méthodes privées,
+recherche de classes legacy/dupliquées, recherche de blocs commentés) — **aucune preuve de code
+mort trouvée**, rien supprimé (conforme à la consigne de ne jamais supprimer sans preuve).
+`npm run lint` (functions) : 0 warning, 44/44 fichiers de Cloud Functions exportés et utilisés.
+
+**W-6 (dependencies)** : 3 dépendances Flutter directes confirmées inutilisées et retirées
+(`cupertino_icons`, `intl`, `http` — 0 usage direct dans `lib/`, `intl`/`http` restent
+disponibles en transitif sans changement de version, `cupertino_icons` n'est plus nécessaire).
+Côté `functions/package.json` : 0 dépendance inutilisée (3 runtime + 8 tooling, toutes
+manifestement utilisées) — **PASS documenté**. Aucune montée de version majeure/mineure.
+
+Validation post-W-2/W-6 : `dart analyze lib/` 0 issue, `flutter test test/` **504/504 PASS**,
+`npm run lint` 0 warning.
+
+### DONE W
+
+| Critère | Statut |
+|---|---|
+| W-1 à W-6 | ✅ tous fermés |
+| P0 ouverts | 0 |
+| P1 ouverts | 0 |
+
+**BLOC W : ✅ FERMÉ.**
