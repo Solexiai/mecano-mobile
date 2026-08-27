@@ -525,7 +525,17 @@ class _MechanicCard extends StatelessWidget {
               children: [
                 Text('${provider.hourlyRate.toStringAsFixed(0)}\$/h', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.success)),
                 const SizedBox(height: 4),
-                Radio<bool>(value: true, groupValue: selected ? true : null, onChanged: (_) => onTap()),
+                // Bloc W (Phase 7, cleanup) : `Radio<bool>(groupValue:/onChanged:)` est
+                // déprécié depuis Flutter 3.32 (RadioGroup ancestor requis). Ce radio est
+                // purement DÉCORATIF ici — la sélection réelle est déjà gérée par
+                // `InkWell.onTap` sur toute la carte (voir plus haut) — remplacé par un
+                // indicateur visuel équivalent sans API dépréciée, aucun changement de
+                // comportement (le tap sur l'icône déclenche toujours `onTap()` via
+                // l'InkWell parent, comme le reste de la carte).
+                Icon(
+                  selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: selected ? AppColors.success : AppColors.textSecondary,
+                ),
               ],
             ),
           ],

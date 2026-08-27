@@ -1,7 +1,7 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// Thin wrapper around Hive boxes used for local persistence.
-/// No custom TypeAdapters are needed: we store plain Map<String, dynamic>
+/// No custom TypeAdapters are needed: we store plain `Map<String, dynamic>`
 /// structures, which Hive supports natively.
 class StorageService {
   static const String usersBox = 'movik_users';
