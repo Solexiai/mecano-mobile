@@ -1133,7 +1133,55 @@ information de veille pour une décision produit future si le volume dépasse la
   - Le test pré-existant `driver_onboarding_step0_rebuild_test.dart` reste PASS (aucune
     régression). Suite complète `test/driver/` : 64/64 PASS (59 pré-existants + 5 nouveaux).
 
-**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur) **CORRIGÉ ET COUVERT PAR TESTS DE
-RÉGRESSION** (`flutter analyze` 0 erreur ; `flutter test test/driver/` 64/64 PASS). Décision
-mécanicien documentée mais **DIFFÉRÉE** (nécessite arbitrage du fondateur, voir ci-dessus).
-U-1 à U-6 non traités dans ce mouvement — prochaine étape.
+## MISE À JOUR — Bloc U, complément U-0 (module mécanicien) — GAP-U-MECHANIC
+
+**Décision produit reçue explicitement** (non ré-auditée) : pour la Phase 7/MVP actuel, ne PAS
+construire de backend Firebase mécanicien complet dans cette session. Confirmation reprise de
+l'investigation BUG-U-01 : aucun `MechanicRepository` Firebase, aucune règle Storage/Firestore
+dédiée au mécanicien n'existent dans le repo — ce module reste entièrement backé par l'ancien
+`AuthProvider`/Hive (`signInOrRegister`).
+
+**GAP-U-MECHANIC — remédiation UX (pas un P0/P1 classique, un défaut UX trompeur corrigé par
+mesure de cohérence produit)** :
+
+- **Repro (avant correctif)** : `mechanic_onboarding_screen.dart` — 4 boutons
+  `OutlinedButton.icon(onPressed: () {})` ("Certifications", "Pièce d'identité", "Assurance
+  responsabilité civile", "Numéro d'entreprise") étaient présentés comme des actions
+  fonctionnelles alors qu'ils ne faisaient strictement rien. Trompeur pour l'usager (il pouvait
+  croire avoir "cliqué pour rien" ou que l'app était cassée), sans bloquer l'inscription
+  (`canProceed` ne les exige déjà pas).
+- **Fix** : les 4 actions sont remplacées par un nouveau widget `_ComingSoonActionRow` — un
+  `Container`/`Row` STRICTEMENT non interactif (aucun `onPressed`/`GestureDetector`/`InkWell`
+  nulle part, plus fort qu'un simple bouton désactivé) affichant l'icône + le libellé existant +
+  le `ComingSoonBadge` déjà existant, réutilisé tel quel (aucun nouveau composant créé), dont le
+  texte provient de la clé i18n `common_coming_soon` déjà traduite en FR/EN/ES
+  ("Bientôt disponible"/"Coming soon"/"Próximamente"). Aucun faux succès, aucun faux upload :
+  rien n'est simulé, l'état "indisponible" est honnête.
+- **Bug additionnel trouvé et corrigé au passage (BUG-003, nouvelle occurrence, même cause
+  racine que `DeliveryRequestFlowScreen`/`DriverOnboardingScreen`)** : à l'étape 0 (Profil) de
+  `MechanicOnboardingScreen`, `canProceed(0)` lit `_nameController.text`/`_emailController.text`
+  directement, mais les `TextField` correspondants n'avaient aucun `onChanged` déclenchant un
+  rebuild parent — le bouton "Suivant" restait figé désactivé après une saisie complète et
+  valide. Détecté en écrivant le test GAP-U-MECHANIC (le wizard ne progressait jamais au-delà de
+  l'étape 0). Corrigé avec le même correctif que les occurrences précédentes
+  (`onChanged: (_) => setState(() {})` sur les 2 champs lus par `canProceed`). Rattaché à
+  **BUG-003** (pas de nouveau numéro, cause racine identique).
+- **Tests** : `test/mechanic/mechanic_onboarding_coming_soon_test.dart` (créé), 3 cas :
+  1. Étape "Spécialités" : le libellé "Certifications" reste visible mais n'a plus d'ancêtre
+     `OutlinedButton`/`ElevatedButton`/`TextButton` avec `onPressed != null` ; le badge "Bientôt
+     disponible" est visible ; taper sur la ligne ne provoque aucune exception ni effet
+     observable.
+  2. Étape "Documents" : les 3 libellés (pièce d'identité, assurance responsabilité civile,
+     numéro d'entreprise) restent visibles, ne sont plus portés par un bouton fonctionnel, et
+     chacun affiche son propre badge "Bientôt disponible" (3 badges distincts) ; aucune exception
+     en tapant dessus.
+  3. Sanity i18n (EN) : le même badge apparaît traduit ("Coming soon"), confirmant l'absence de
+     chaîne FR codée en dur.
+  - Suite complète `flutter test test/` : 493/493 PASS (490 pré-existants + 3 nouveaux), aucune
+    régression. `flutter analyze` sur les fichiers touchés : 0 erreur.
+
+**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur, BUG-U-01) **CORRIGÉ ET COUVERT PAR TESTS
+DE RÉGRESSION**. U-0 (cas mécanicien, GAP-U-MECHANIC) **CORRIGÉ ET COUVERT PAR TESTS DE
+RÉGRESSION** (aucun backend mécanicien construit, conformément à la décision produit).
+`flutter analyze` 0 erreur ; `flutter test test/` 493/493 PASS. U-1 à U-6 non traités dans ce
+mouvement — prochaine étape.
