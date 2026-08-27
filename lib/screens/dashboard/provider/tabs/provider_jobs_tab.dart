@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
@@ -279,7 +280,20 @@ class _JobCard extends StatelessWidget {
           if (errorCode != null) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: Text(t('driver_jobs_accept_error'), style: const TextStyle(color: AppColors.error, fontSize: 12.5)),
+              // 🔒 Phase 7, Bloc X (X-10) — un refus par kill switch
+              // (`allow_driver_acceptance`/`payments_enabled` désactivé)
+              // affiche le message générique traduit
+              // (`service_temporarily_unavailable`), JAMAIS le message
+              // "mission déjà acceptée par un autre chauffeur"
+              // (`driver_jobs_accept_error`) qui serait trompeur ici — voir
+              // FirebaseMissionRepository.acceptMission() pour le mapping
+              // errorCode == kKillSwitchErrorCode.
+              child: Text(
+                errorCode == kKillSwitchErrorCode
+                    ? t('service_temporarily_unavailable')
+                    : t('driver_jobs_accept_error'),
+                style: const TextStyle(color: AppColors.error, fontSize: 12.5),
+              ),
             ),
           ],
           SizedBox(
