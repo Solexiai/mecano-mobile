@@ -2044,6 +2044,37 @@ class AppStrings {
       'en': 'Upload insurance certificate',
       'es': 'Subir el certificado de seguro',
     },
+    // ---------- BUG-U-01 (Phase 7, Bloc U) — sélection réelle de document ----------
+    'driver_onboarding_document_source_camera': {
+      'fr': 'Prendre une photo',
+      'en': 'Take a photo',
+      'es': 'Tomar una foto',
+    },
+    'driver_onboarding_document_source_gallery': {
+      'fr': 'Choisir depuis la galerie',
+      'en': 'Choose from gallery',
+      'es': 'Elegir de la galería',
+    },
+    'driver_onboarding_document_none_selected': {
+      'fr': 'Aucun fichier sélectionné',
+      'en': 'No file selected',
+      'es': 'Ningún archivo seleccionado',
+    },
+    'driver_onboarding_document_select': {
+      'fr': 'Sélectionner',
+      'en': 'Select',
+      'es': 'Seleccionar',
+    },
+    'driver_onboarding_document_edit': {
+      'fr': 'Modifier',
+      'en': 'Edit',
+      'es': 'Modificar',
+    },
+    'driver_onboarding_error_document_pick_failed': {
+      'fr': 'Impossible de sélectionner ce fichier. Réessayez.',
+      'en': 'Unable to select this file. Please try again.',
+      'es': 'No se pudo seleccionar este archivo. Inténtelo de nuevo.',
+    },
     'driver_onboarding_consent_verification': {
       'fr':
           'Je consens à la vérification de mon identité et de mes documents.',

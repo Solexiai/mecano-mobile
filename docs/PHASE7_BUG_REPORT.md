@@ -1060,3 +1060,80 @@ aucune preuve de coût réel excessif n'a été mesurée (émulateur uniquement)
 information de veille pour une décision produit future si le volume dépasse largement le cadre MVP.
 
 **BLOC T2 : ✅ FERMÉ** — P0=0, P1=0, P2=0.
+
+## MISE À JOUR — Bloc U, U-0 (dead upload button chauffeur) — EN COURS
+
+**BUG-U-01 — P1, CORRIGÉ.**
+
+- **Repro** : `driver_onboarding_screen.dart`, étapes "Véhicule" et "Documents" — 3 boutons
+  (`vehicle_photos`, `upload_license`, `upload_insurance`) avaient `onPressed: () {}`. `canProceed(3)`
+  ne vérifiait aucun document : un chauffeur pouvait atteindre `pending_review` sans jamais fournir
+  permis/assurance/photo véhicule.
+- **Cause** : aucun repository d'upload binaire Storage n'existait pour les documents chauffeur
+  (contrairement à `ProofUploadRepository` pour la preuve de livraison) — `submitDriverDocument`
+  n'écrit que les métadonnées Firestore, jamais le fichier lui-même. Vérification exhaustive
+  (`driver_status_screen.dart`) : aucune autre voie fonctionnelle d'upload n'existe ailleurs dans
+  l'app → classé P1 (contrôle présenté comme upload, inerte, faussant le parcours d'inscription).
+- **Fix** :
+  - Nouveau `DriverDocumentUploadRepository` (+ `FirebaseDriverDocumentUploadRepository` +
+    `NotConfiguredDriverDocumentUploadRepository`), même pattern exact que `ProofUploadRepository`,
+    ciblant le chemin Storage déjà spécifié par `storage.rules` (Bloc P, non modifié) :
+    `driver_documents/{driverId}/{fileName}`. Enregistré dans `BackendLocator` avec le même seam de
+    test (`driverDocumentUploadRepositoryOverride`).
+  - Les 3 boutons ouvrent maintenant une sélection réelle (`ImagePicker`, seul mécanisme déjà
+    abstrait dans le repo — caméra ou galerie via bottom sheet), avec état visuel du fichier
+    sélectionné (nom affiché, remplaçable).
+  - **Décision d'architecture** : le compte Firebase Auth + le custom claim `driver` (requis par
+    `storage.rules` pour écrire sous `driver_documents/{driverId}/...`) ne sont créés/rafraîchis
+    qu'à la soumission finale du wizard (`_handleSubmit`). Les boutons du wizard ne font donc
+    QUE une sélection locale (bytes en mémoire) ; l'upload Storage réel + l'écriture des métadonnées
+    (`submitDriverDocument`, déjà existant) ont lieu dans `_handleSubmit()`, juste après
+    `refreshClaims()` et avant `submitForReview()` — jamais avant que le claim ne soit visible.
+  - `canProceed(3)` exige maintenant permis ET assurance réellement sélectionnés (photo véhicule
+    reste optionnelle, étape "Véhicule"). Échec d'upload → `_submitError` affiché, aucune
+    transition vers `pending_review`, fichiers déjà sélectionnés conservés (retry sans tout
+    re-choisir). Aucune nouvelle architecture parallèle : réutilisation stricte du repository
+    Storage (nouveau, mais même pattern), des chemins/règles Storage existants (Bloc P) et du
+    modèle `DriverDocument` existant.
+- **Cas mécanicien (`mechanic_onboarding_screen.dart`)** : investigation confirme que ce module
+  reste actuellement backé par `AuthProvider`/Hive (`signInOrRegister`, `StorageService.mechanicBox`)
+  et non par Firebase — aucun `MechanicRepository` Firebase, aucune règle Storage/Firestore dédiée
+  au mécanicien n'existe dans le repo. Le fix des 3 boutons dead (`certifications`, `upload_id`,
+  `upload_liability_insurance`) pour ce module est **DIFFÉRÉ** dans ce même mouvement (traité comme
+  un point séparé, non résolu ici) : appliquer le même correctif nécessiterait de construire un
+  backend Firebase mécanicien complet, ce qui excède le périmètre de U-0 et constituerait une
+  décision produit majeure (statut MVP du module mécanicien) qui n'appartient pas à l'agent.
+  À trancher explicitement par le fondateur avant de soit brancher soit désactiver ces boutons.
+- **Complément de testabilité (même mouvement)** : `_handleSubmit()` lisait `auth.user?.uid` au
+  lieu de `auth.effectiveUid` — le seam de test documenté dans `firebase_auth_provider.dart`
+  (`debugForceUid`) et déjà utilisé pour la même raison dans `driver_active_mission_screen.dart`
+  et `driver_status_screen.dart`. `user` reste `null` par construction dans ce mode simulé, donc
+  lire `user?.uid` rendait ce flux structurellement impossible à tester pour un chauffeur déjà
+  connecté sans mocker tout le SDK Firebase Auth. Correctif d'une ligne, comportement production
+  inchangé (`effectiveUid` == `user!.uid` quand `user` est un vrai `fb.User`).
+- **Tests** : `test/driver/driver_onboarding_document_upload_test.dart` (créé) — 5 cas, couvrant
+  exactement les 4 scénarios critiques demandés plus le cas `NotConfigured*` :
+  1. tap "Sélectionner" (permis) → `FakeImagePickerPlatform` réellement sollicité, nom de fichier
+     affiché immédiatement (état UI mis à jour).
+  2. upload réussi → `DriverDocumentUploadRepository.uploadDriverDocument()` appelé pour les 2
+     documents requis, `DriverRepository.submitDriverDocument()` appelé avec `status: uploaded` et
+     le bon `driverId`, puis `submitForReview()` appelé (flux complet non bloqué).
+  3. upload échoué → `_submitError` affiché, `submitForReview()` **jamais** appelé (aucune
+     transition `pending_review` avec un dossier incomplet), bouton de soumission réactivé (retry
+     possible), fichiers déjà sélectionnés conservés (pas besoin de tout re-choisir).
+  4. document déjà présent → re-tap "Modifier" remplace le fichier existant (pas de duplication),
+     `canProceed(3)` reste cohérent (toujours bloqué tant que l'assurance manque).
+  - Root-cause de l'instabilité précédente (tests retirés du commit initial) identifiée et
+    corrigée : (a) `pumpAndSettle()` ne se stabilise jamais après `showModalBottomSheet` combiné
+    au picker simulé dans ce harnais — remplacé par des `pump(duration)` bornés, pattern isolé
+    dans un seul helper de test, aucun impact sur le code applicatif ; (b) sur la plateforme
+    `dart:io` de `cross_file` (celle utilisée par `flutter test`), `XFile.name` dérive de `path`
+    et NON du paramètre `name` — le fake picker doit fournir `path:` en plus de `name:` pour que
+    `picked.name` soit fidèle à ce qui se passerait en production (plugin natif réel).
+  - Le test pré-existant `driver_onboarding_step0_rebuild_test.dart` reste PASS (aucune
+    régression). Suite complète `test/driver/` : 64/64 PASS (59 pré-existants + 5 nouveaux).
+
+**BLOC U : 🟡 TOUJOURS EN COURS** — U-0 (cas chauffeur) **CORRIGÉ ET COUVERT PAR TESTS DE
+RÉGRESSION** (`flutter analyze` 0 erreur ; `flutter test test/driver/` 64/64 PASS). Décision
+mécanicien documentée mais **DIFFÉRÉE** (nécessite arbitrage du fondateur, voir ci-dessus).
+U-1 à U-6 non traités dans ce mouvement — prochaine étape.
