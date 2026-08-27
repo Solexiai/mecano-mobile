@@ -1221,3 +1221,27 @@ scope) ; `flutter test test/` **504/504 PASS** (493 préexistants + 11 nouveaux 
 --noEmit` (functions) : 0 erreur.
 
 **P0 ouverts (global T/T2/U) : 0. P1 ouverts : 0.**
+
+## MISE À JOUR — BLOC V (Global Validation) — EN COURS
+
+**BUG-V-01 (P1)** — `firestore.rules` : `delivery_requests/{missionId}` permettait à un client
+propriétaire d'annuler (status -> `cancelled`) une mission **déjà dans un état terminal**
+(`completed`, `cancelled`, `disputed`, `refunded`) via écriture Firestore directe. La règle ne
+vérifiait que le statut **cible**, jamais le statut **actuel**. PREUVE : test ad hoc confirmant
+qu'un client pouvait rouvrir en `cancelled` une mission `completed` (financièrement déjà close,
+paiement capturé, ledger déjà écrit) — violation directe de la règle métier des états terminaux
+(V-8). CORRECTIF : ajout de la condition
+`!(resource.data.status in ['completed','cancelled','disputed','refunded'])` à la branche
+"Annulation" de la règle `allow update`. Test de régression permanent ajouté à
+`functions/test/integration/securityRules.test.ts` (5 nouveaux cas : blocage depuis
+completed/cancelled/disputed/refunded + non-régression depuis `assigned`). **185/185 PASS** sur le
+fichier complet après correctif (180 préexistants + 5 nouveaux).
+
+**Reconnaissance V-1 à V-8** : chaînes E2E déjà existantes couvrant client↔chauffeur↔finance sur
+mission unique confirmées et référencées (`e2eDeliveryLifecycle.test.ts`,
+`e2eFinancialLifecycle.test.ts`, `onMissionStatusChangeNotifyCustomer.test.ts`,
+`missionCancellationPaymentRelease.test.ts`, `adminPrivilegedActions.test.ts`,
+`securityRules.test.ts`) — BUG-V-01 est le seul gap réel confirmé par une PREUVE à ce stade.
+
+**Bloc V : 🟡 EN COURS** (BUG-V-01 fermé ; V-2 à V-8 restent à confirmer explicitement/documenter
+avant fermeture officielle). **Bloc W et Bloc X : NON DÉMARRÉS.**

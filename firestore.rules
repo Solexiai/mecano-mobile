@@ -288,6 +288,17 @@ service cloud.firestore {
 
       // Le client peut modifier UNIQUEMENT des champs non sensibles tant
       // qu'aucun chauffeur n'est assigné, ou annuler après assignation.
+      //
+      // BUG-V-01 (Phase 7, Bloc V) — CORRECTIF : la branche "Annulation"
+      // ci-dessous vérifiait uniquement le statut CIBLE
+      // (request.resource.data.status == 'cancelled') sans jamais vérifier
+      // le statut ACTUEL (resource.data.status). Un client propriétaire
+      // pouvait donc annuler directement une mission déjà 'completed'
+      // (ou déjà 'cancelled'/'disputed'/'refunded'), rouvrant à tort un état
+      // terminal — violation de la règle métier "completed/cancelled restent
+      // terminaux" (voir V-8). CORRIGÉ en exigeant explicitement que le
+      // statut ACTUEL soit encore actif (jamais déjà terminal) avant
+      // d'autoriser la transition vers 'cancelled'.
       allow update: if isSignedIn() && resource.data.customer_id == uid() && (
         (resource.data.driver_id == null &&
          request.resource.data.driver_id == resource.data.driver_id &&
@@ -296,8 +307,10 @@ service cloud.firestore {
          request.resource.data.customer_total == resource.data.customer_total &&
          request.resource.data.payment_status == resource.data.payment_status &&
          request.resource.data.pricing_version == resource.data.pricing_version) ||
-        // Annulation : seul le champ status -> 'cancelled' + cancellation_reason.
+        // Annulation : seul le champ status -> 'cancelled' + cancellation_reason,
+        // et UNIQUEMENT depuis un statut ACTUEL non terminal.
         (request.resource.data.status == 'cancelled' &&
+         !(resource.data.status in ['completed', 'cancelled', 'disputed', 'refunded']) &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
          request.resource.data.customer_total == resource.data.customer_total &&
