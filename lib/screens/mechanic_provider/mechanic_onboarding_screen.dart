@@ -7,8 +7,36 @@ import '../../providers/auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/demo_data_service.dart';
 import '../../widgets/app_shell.dart';
+import '../../widgets/coming_soon_badge.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/step_progress_form.dart';
+
+// ---------------------------------------------------------------------------
+// GAP-U-MECHANIC (Phase 7, Bloc U, complément U-0) — DÉCISION PRODUIT reçue :
+// ne PAS construire de backend Firebase mécanicien dans cette session (aucun
+// `MechanicRepository` Firebase, aucune règle Storage/Firestore dédiée
+// n'existent — ce module reste entièrement backé par l'ancien `AuthProvider`/
+// Hive, `signInOrRegister`, cf. investigation BUG-U-01).
+//
+// AVANT ce correctif : 4 boutons `OutlinedButton.icon(onPressed: () {})`
+// ("Certifications", "Pièce d'identité", "Assurance responsabilité civile",
+// "Numéro d'entreprise") étaient présentés comme des actions fonctionnelles
+// alors qu'ils ne faisaient rien — trompeur pour l'usager (il pouvait croire
+// avoir "cliqué pour rien" ou que l'app était cassée), sans pour autant
+// bloquer l'inscription (canProceed ne les exige déjà pas).
+//
+// CORRECTIF (remédiation produit demandée, PAS un nouveau backend) : ces 4
+// actions sont désormais rendues avec `onPressed: null` (désactivées
+// explicitement, jamais un bouton actif qui ne fait rien) + `ComingSoonBadge`
+// existant déjà réutilisé tel quel (aucun nouveau composant créé) pour
+// signaler clairement "Bientôt disponible" (FR/EN/ES via
+// `common_coming_soon`, déjà traduit dans les 3 langues). Aucun faux succès,
+// aucun faux upload : rien n'est simulé, l'état "indisponible" est honnête.
+// Documenté comme GAP-U-MECHANIC (pas un "bug" au sens P0/P1 classique — le
+// comportement dysfonctionnel initial n'empêchait aucune soumission
+// possible, contrairement à BUG-U-01 — mais un défaut UX trompeur corrigé
+// par mesure de cohérence produit).
+// ---------------------------------------------------------------------------
 
 class MechanicOnboardingScreen extends StatefulWidget {
   final String locale;
@@ -110,11 +138,19 @@ class _MechanicOnboardingScreenState extends State<MechanicOnboardingScreen> {
                   stepBuilders: [
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            TextField(controller: _nameController, decoration: InputDecoration(labelText: t('auth_full_name'))),
+                            // BUG-003 (récurrence, même cause racine que
+                            // `DeliveryRequestFlowScreen`/`DriverOnboardingScreen`) :
+                            // `canProceed(0)` lit `_nameController.text` /
+                            // `_emailController.text` directement, mais ces
+                            // `TextField` n'avaient aucun `onChanged` déclenchant
+                            // un rebuild parent -> le bouton "Suivant" restait
+                            // figé désactivé selon l'ordre de saisie. Correctif
+                            // identique aux occurrences déjà documentées.
+                            TextField(controller: _nameController, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: t('auth_full_name'))),
                             const SizedBox(height: 16),
                             TextField(controller: _businessController, decoration: InputDecoration(labelText: "${t('mechanic_onboarding_business_name')} (${t('common_optional')})")),
                             const SizedBox(height: 16),
-                            TextField(controller: _emailController, decoration: InputDecoration(labelText: t('auth_email'))),
+                            TextField(controller: _emailController, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: t('auth_email'))),
                             const SizedBox(height: 16),
                             TextField(controller: _phoneController, decoration: InputDecoration(labelText: t('auth_phone'))),
                             const SizedBox(height: 20),
@@ -134,7 +170,7 @@ class _MechanicOnboardingScreenState extends State<MechanicOnboardingScreen> {
                             const SizedBox(height: 16),
                             TextField(controller: _experienceController, decoration: InputDecoration(labelText: t('mechanic_onboarding_years_experience')), keyboardType: TextInputType.number),
                             const SizedBox(height: 16),
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.workspace_premium_outlined), label: Text(t('mechanic_onboarding_certifications'))),
+                            _ComingSoonActionRow(icon: Icons.workspace_premium_outlined, label: t('mechanic_onboarding_certifications')),
                             const SizedBox(height: 20),
                             SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t('mechanic_onboarding_emergency_availability'), style: const TextStyle(fontSize: 14)), value: _emergencyAvailable, onChanged: (v) => setState(() => _emergencyAvailable = v), activeThumbColor: AppColors.success),
                             SwitchListTile(contentPadding: EdgeInsets.zero, title: Text(t('mechanic_onboarding_evening_availability'), style: const TextStyle(fontSize: 14)), value: _eveningAvailable, onChanged: (v) => setState(() => _eveningAvailable = v), activeThumbColor: AppColors.success),
@@ -160,11 +196,11 @@ class _MechanicOnboardingScreenState extends State<MechanicOnboardingScreen> {
                         ),
                     (context) => StepFormCard(
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.badge_outlined), label: Text(t('mechanic_onboarding_upload_id'))),
+                            _ComingSoonActionRow(icon: Icons.badge_outlined, label: t('mechanic_onboarding_upload_id')),
                             const SizedBox(height: 12),
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.description_outlined), label: Text(t('mechanic_onboarding_upload_liability_insurance'))),
+                            _ComingSoonActionRow(icon: Icons.description_outlined, label: t('mechanic_onboarding_upload_liability_insurance')),
                             const SizedBox(height: 12),
-                            OutlinedButton.icon(onPressed: () {}, icon: const Icon(Icons.business_outlined), label: Text(t('mechanic_onboarding_business_number'))),
+                            _ComingSoonActionRow(icon: Icons.business_outlined, label: t('mechanic_onboarding_business_number')),
                             const SizedBox(height: 20),
                             CheckboxListTile(
                               contentPadding: EdgeInsets.zero,
@@ -212,5 +248,42 @@ class _MechanicOnboardingScreenState extends State<MechanicOnboardingScreen> {
     _hourlyController.dispose();
     _travelFeeController.dispose();
     super.dispose();
+  }
+}
+
+/// GAP-U-MECHANIC — remplace les anciens `OutlinedButton.icon(onPressed: () {})`.
+/// Action explicitement DÉSACTIVÉE (`onPressed: null`, jamais un bouton actif
+/// qui ne fait rien) + `ComingSoonBadge` existant (aucun nouveau composant),
+/// pour que l'usager comprenne immédiatement que la fonctionnalité n'est pas
+/// encore disponible plutôt que de croire à un bug de l'app.
+class _ComingSoonActionRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _ComingSoonActionRow({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5, color: AppColors.textSecondary),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const ComingSoonBadge(small: true),
+        ],
+      ),
+    );
   }
 }
