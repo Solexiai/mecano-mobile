@@ -1254,3 +1254,18 @@ anticipation spéculative ce tour).
 | U-6 Mobile sanity | ✅ PASS (après correction) | Nouveau `test/responsive/bloc_u_mobile_sanity_test.dart` (11 tests, 320/360px) sur les 5 écrans jamais testés à largeur étroite. 2 bugs réels trouvés (BUG-U-02, BUG-U-03) et corrigés. |
 
 **BLOC U : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0. P2 corrigés ce tour : 2 (BUG-U-02, BUG-U-03).
+
+## MISE À JOUR — BLOC V (Global Validation)
+
+| Sous-bloc | Statut | Référence de preuve |
+|---|---|---|
+| V-1 Parcours global | ✅ PASS | `e2eDeliveryLifecycle.test.ts` — chaîne réelle sur 1 missionId, transitions non-sautables prouvées par le 2e describe() |
+| V-2 Notifications cross-role | ✅ PASS | `onMissionStatusChangeNotifyCustomer.test.ts` + `fireNotifyTriggerAndAssert` — 0 fuite cross-customer ; driver-side confirmé par design (stream temps réel, pas de notif) |
+| V-3 Finance cross-flow | ✅ PASS | `e2eFinancialLifecycle.test.ts` — payment→capture→snapshot→earnings→commission→payout→réconciliation, montants 100% serveur |
+| V-4 Cancellation intégration | ✅ PASS | `missionCancellationPaymentRelease.test.ts` (BUG-001) + BUG-V-01 (ce bloc) |
+| V-5 Admin cross-role | ✅ PASS | UI admin exhaustive + `calculateDriverPayout.test.ts` L204 + `reconciliationEngine.test.ts` L658-680 (permission-denied confirmés) |
+| V-6 Authorization global | ✅ PASS | `securityRules.test.ts` L827 (cross-customer) + `OTHER_DRIVER_ID` (3 fichiers CF) + `adminPrivilegedActions.test.ts` (12 callables) |
+| V-7 I18N global sanity | ✅ PASS | 747 clés fr/en/es sans valeur vide ; 0 clé utilisée non définie (1 faux positif Hive) |
+| V-8 États terminaux | ✅ PASS | BUG-V-01 (rules) + `completeDelivery.test.ts` + `updateMissionTrackingStatus.test.ts` + absence de règle `allow update` chauffeur |
+
+**BLOC V : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0 (BUG-V-01 corrigé, 5 tests régression, 185/185 PASS).

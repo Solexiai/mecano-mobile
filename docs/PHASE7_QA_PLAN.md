@@ -1363,3 +1363,101 @@ téléphone). Suite complète `flutter test test/` : **504/504 PASS** (493 + 11 
 régression. `flutter analyze` : 0 erreur nouvelle. `npx tsc --noEmit` (functions) : 0 erreur.
 
 **BLOC U : ✅ FERMÉ** (U-1 à U-6 tous PASS, P0=0, P1=0 ; 2 P2 corrigés + testés en régression).
+
+## MISE À JOUR — BLOC V : ✅ FERMÉ (Global Validation)
+
+**BUG-V-01 (P1, corrigé — voir détail complet dans `PHASE7_BUG_REPORT.md`)** : `firestore.rules`
+`delivery_requests/{missionId}` permettait à un client d'annuler une mission déjà **terminale**
+(`completed`/`cancelled`/`disputed`/`refunded`). Corrigé, 5 tests de régression ajoutés,
+`securityRules.test.ts` **185/185 PASS**.
+
+Fermeture de V-1 à V-8, méthode PREUVE ACTIVE (référence de tests existants quand la preuve exacte
+existe déjà, sans dupliquer une suite déjà exhaustive) :
+
+- **V-1 (parcours global)** : `e2eDeliveryLifecycle.test.ts` (describe "cycle de vie complet")
+  chaîne RÉELLEMENT `calculateDeliveryQuote → createDeliveryRequest → acceptDelivery → 4×
+  updateMissionTrackingStatus → completePickup → completeDelivery` sur **un seul missionId**,
+  avec assertions à chaque étape : même client (`customer_id`), même chauffeur (`driver_id`),
+  transitions strictement dans l'ordre (le 2e describe du même fichier prouve qu'aucune étape ne
+  peut être sautée : `completeDelivery` depuis `assigned` échoue, double-`acceptDelivery` échoue,
+  devis rejoué échoue). État final vérifié des deux côtés : `status=completed` +
+  `proof_of_delivery_url` (client), ledger `DRIVER_EARNING` + `completed_missions+1` (chauffeur).
+  **PASS — référencé, aucun nouveau test nécessaire.**
+
+- **V-2 (notifications cross-role)** : `onMissionStatusChangeNotifyCustomer.test.ts` +
+  `fireNotifyTriggerAndAssert()` dans `e2eDeliveryLifecycle.test.ts` prouvent, à CHAQUE transition
+  (assigned/driver_to_pickup/arrived_at_pickup/picked_up/in_transit/arrived_at_dropoff/completed) :
+  exactement 1 notification créée, bon `customer_id` (destinataire), bon `related_mission_id`, bon
+  `type`, pas de doublon sur un statut inchangé, pas de fuite cross-customer (test dédié avec
+  `OTHER_CUSTOMER_ID` → 0 notification). **Architecture confirmée (lecture `NOTIFICATION_BY_STATUS`
+  + repositories Flutter `lib/backend/repositories/mission_repository.dart`) : il n'existe
+  AUCUNE notification Firestore côté chauffeur pour les changements de statut de mission — le
+  dashboard chauffeur (`provider_jobs_tab.dart`) s'appuie exclusivement sur les streams temps réel
+  `watchActiveMissionForDriver`/`watchAvailableMissionsForDriver` (missions ouvertes via
+  `delivery_offers/{id}`, créées par le trigger `dispatchMissionToDrivers`), jamais sur une
+  sous-collection `notifications`. C'est un choix d'architecture cohérent et NON un gap : le
+  chauffeur voit l'état de sa mission active en direct sans latence, une notification poussée
+  serait redondante.** **PASS — référencé.**
+
+- **V-3 (finance cross-flow)** : `e2eFinancialLifecycle.test.ts` chaîne réellement, sur une même
+  mission complétée : `acceptDelivery` (autorisation, montant calculé serveur depuis le snapshot
+  figé — PAS depuis le devis client) → mutation admin de `tax_configs`/pricing PUIS preuve que le
+  `financial_snapshot` déjà créé reste inchangé (immuabilité) → `completeDelivery` (capture,
+  `amount_captured_minor === amount_authorized_minor`, exactement 5 entrées de ledger) →
+  `recordTip` → `mission_financial_balance` → `calculateDriverPayout` (admin-only) →
+  `processScheduledDriverPayouts` (PENDING→PAID) → `runReconciliationNow` (OK, 0 anomalie).
+  Chaque montant vérifié comme calculé serveur, jamais depuis une donnée client manipulable.
+  **PASS — référencé, aucune nouvelle suite finance créée (Phase 6 réutilisée telle quelle).**
+
+- **V-4 (cancellation intégration)** : `missionCancellationPaymentRelease.test.ts` (BUG-001, déjà
+  fermé) confirme que l'annulation post-assignation avec paiement `authorized` déclenche bien
+  `cancelMissionPaymentAuthorization()` via `onMissionEndedClearTracking`. BUG-V-01 (ce bloc)
+  couvre le gap complémentaire (annulation depuis un état déjà terminal). Les deux mécanismes sont
+  DISTINCTS (Cloud Function logique vs. règle Firestore) et tous deux couverts. **PASS — référencé,
+  aucun réaudit de BUG-001/MIS-C-05.**
+
+- **V-5 (admin cross-role visibility)** : UI admin existante et exhaustive
+  (`admin_drivers_list_screen.dart`, `admin_driver_detail_screen.dart`,
+  `admin_finance_shell.dart` + 6 onglets payments/payouts/refunds/disputes/ledger/reconciliation).
+  Côté backend, vérification ciblée des 2 callables admin-only financiers non couverts par
+  `adminPrivilegedActions.test.ts` (qui couvre `setUserRole`/`suspendDriver`/`reactivateDriver`/
+  etc.) : `calculateDriverPayout` a son propre test "refuse (permission-denied) si l'appelant n'est
+  pas admin/super_admin" (`calculateDriverPayout.test.ts` L204) ; `runReconciliationNow` a ses
+  propres tests "refuse (permission-denied) customer" ET "driver" (`reconciliationEngine.test.ts`
+  L658-680). **Aucun gap réel — couverture confirmée existante dans des fichiers dédiés, pas dans
+  `adminPrivilegedActions.test.ts` (fausse piste initiale corrigée par la preuve).** **PASS.**
+
+- **V-6 (authorization global)** : matrice minimale vérifiée par preuve directe existante :
+  client A → mission client B → DENIED (`securityRules.test.ts` L827, `assertFails` get+update) ;
+  chauffeur non-assigné → action sur mission d'un autre chauffeur → DENIED
+  (`completePickup.test.ts`, `updateMissionTrackingStatus.test.ts`, `completeDelivery.test.ts`,
+  tous avec `OTHER_DRIVER_ID` → `permission-denied`) ; non-admin → action privilégiée → DENIED
+  (`adminPrivilegedActions.test.ts`, 12 callables ; + `calculateDriverPayout`/
+  `runReconciliationNow` ci-dessus). **PASS — référencé.**
+
+- **V-7 (i18n global sanity)** : vérification ciblée (pas de réaudit K) — script jetable confirmant
+  les **747 clés** `fr`/`en`/`es` de `app_strings.dart` n'ont AUCUNE valeur vide, et les clés de
+  notification introduites pour V-2
+  (`notif_driver_assigned_*`/`notif_in_transit_*`/`notif_completed_*`/`notif_cancelled_*`, etc.)
+  sont bien traduites dans les 3 langues. Recherche de clés utilisées côté Dart mais non définies :
+  **0 gap réel** (1 faux positif : `currentUserId`, une clé de stockage Hive, pas une clé i18n).
+  **PASS.**
+
+- **V-8 (états terminaux)** : BUG-V-01 (couche Security Rules) + 2 preuves supplémentaires à la
+  couche Cloud Function : `completeDelivery.test.ts` ("une mission déjà 'completed' (double appel)
+  est REJETÉE avec failed-precondition — pas de nouvelle écriture") et
+  `updateMissionTrackingStatus.test.ts` ("completed -> in_transit est REJETÉ"). Renforcé par
+  lecture directe de `firestore.rules` : le chauffeur n'a **AUCUNE** règle `allow update` sur
+  `delivery_requests` (seul `customer_id == uid()` a un chemin d'écriture, strictement limité à
+  l'annulation depuis un état actif) — un chauffeur ne peut donc PAS rouvrir une mission terminale
+  même par écriture directe. **PASS — aucun nouveau correctif nécessaire (BUG-V-01 suffit).**
+
+### DONE V
+
+| Critère | Statut |
+|---|---|
+| V-1 à V-8 | ✅ tous PASS (référencés ou prouvés directement) |
+| P0 ouverts | 0 |
+| P1 ouverts | 0 (BUG-V-01 corrigé) |
+
+**BLOC V : ✅ FERMÉ.**

@@ -1245,3 +1245,27 @@ mission unique confirmées et référencées (`e2eDeliveryLifecycle.test.ts`,
 
 **Bloc V : 🟡 EN COURS** (BUG-V-01 fermé ; V-2 à V-8 restent à confirmer explicitement/documenter
 avant fermeture officielle). **Bloc W et Bloc X : NON DÉMARRÉS.**
+
+## MISE À JOUR — BLOC V : ✅ FERMÉ
+
+V-2 à V-8 confirmés PASS par preuve active (référence de tests existants + 2 vérifications
+ciblées supplémentaires, aucun nouveau bug trouvé) :
+
+- **V-2** : investigation initiale a soulevé une question ouverte ("existe-t-il des notifications
+  côté chauffeur ?"). Réponse confirmée par lecture du code : **NON, par choix d'architecture** —
+  le dashboard chauffeur utilise des streams Firestore temps réel (`watchActiveMissionForDriver`,
+  `watchAvailableMissionsForDriver` sur `delivery_offers/{id}`), pas une sous-collection
+  `notifications`. Seul `transitionFoundingDriverPeriods.ts` écrit des notifications chauffeur
+  (programme founding driver, sans rapport avec le statut de mission). **Ce n'est pas un gap.**
+- **V-5** : investigation a soulevé une question ouverte ("calculateDriverPayout et
+  runReconciliationNow ont-ils un test de refus non-admin ?"). `adminPrivilegedActions.test.ts` ne
+  les référence pas — mais preuve trouvée qu'ils ont chacun leur PROPRE test dédié dans leur
+  fichier respectif (`calculateDriverPayout.test.ts` L204, `reconciliationEngine.test.ts`
+  L658-680). **Fausse alerte, aucun gap réel, aucun fix nécessaire.**
+- **V-1, V-3, V-4, V-6, V-8** : couverture existante confirmée suffisante par lecture directe des
+  suites déjà identifiées, aucune duplication créée.
+- **V-7** : script jetable de sanity FR/EN/ES (747 clés vérifiées, 0 valeur vide, 0 clé utilisée
+  non définie) — aucun fichier repo modifié par le script lui-même.
+
+**Aucun nouveau bug trouvé pendant la fermeture de V-2 à V-8** (seul bug de tout le Bloc V :
+BUG-V-01, déjà corrigé). **BLOC V : ✅ FERMÉ. P0 = 0. P1 = 0.**
