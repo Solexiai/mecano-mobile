@@ -1269,3 +1269,16 @@ anticipation spéculative ce tour).
 | V-8 États terminaux | ✅ PASS | BUG-V-01 (rules) + `completeDelivery.test.ts` + `updateMissionTrackingStatus.test.ts` + absence de règle `allow update` chauffeur |
 
 **BLOC V : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0 (BUG-V-01 corrigé, 5 tests régression, 185/185 PASS).
+
+## MISE À JOUR — BLOC W (Cleanup)
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| W-1 Flutter analyze | ✅ PASS | 3 correctifs (assets orphelins, Radio déprécié, doc-comment HTML) — 0 issue restante sur code du dépôt |
+| W-2 Dead code | ✅ PASS | `dart analyze` 0 issue + heuristique 198 méthodes privées (0 suspect) + `npm run lint` 0 warning — aucune preuve de code mort, rien supprimé |
+| W-3 TODO/FIXME | ✅ PASS | 3 occurrences totales, toutes dette future non-bloquante, 0 P0/P1 |
+| W-4 Debug/logs | ✅ PASS | 2 `debugPrint()` kDebugMode-gated, 0 `print()`, 0 donnée sensible |
+| W-5 Generated/local | ✅ PASS | 0 fichier `.env`/secret/artifact de build tracké dans git |
+| W-6 Dependencies | ✅ PASS | 3 deps Flutter directes inutilisées retirées (`cupertino_icons`/`intl`/`http`, transitif préservé sans changement de version) ; 0 dep inutilisée côté Functions ; aucune montée de version |
+
+**BLOC W : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0.

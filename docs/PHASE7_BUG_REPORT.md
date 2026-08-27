@@ -1309,3 +1309,56 @@ BUG-V-01, déjà corrigé). **BLOC V : ✅ FERMÉ. P0 = 0. P1 = 0.**
 **BLOC W : 🟡 EN COURS** — W-1 fermé et validé (0 régression), W-3/W-4/W-5 vérifiés sans gap
 trouvé (aucun P0/P1), W-2/W-6 non complétés jusqu'au bout (aucune preuve de gap réel non plus,
 juste non explorés exhaustivement par manque de budget ce tour). **Bloc X : NON DÉMARRÉ.**
+
+## MISE À JOUR — BLOC W : ✅ FERMÉ (W-2 + W-6 traités)
+
+- **W-2 (dead code, recherche ciblée)** : (1) `dart analyze lib/` → **0 issue** (inclut
+  `unused_element`/`unused_import`/`unused_field` quand détectables avec confiance par
+  l'analyseur). (2) Script heuristique complémentaire sur les **198 méthodes privées**
+  (`_xxx()`) de tout `lib/` : recherche du nombre total d'occurrences de chaque identifiant dans
+  l'ensemble du code — **0 suspect** (aucune méthode privée dont l'unique occurrence serait sa
+  propre déclaration). (3) Recherche de classes legacy/dupliquées (`Legacy`/`_Old`/`Deprecated`,
+  motif `V1` sans `V2` correspondant côté usage réel) : `DriverProfileV2` est la seule classe
+  numérotée mais AUCUNE `DriverProfile` (V1) n'existe en parallèle — nommage historique, pas une
+  duplication à nettoyer. (4) Recherche de blocs de code commenté (5+ lignes commentées
+  consécutives contenant de la syntaxe de code) : 28 occurrences détectées par le script, **toutes
+  vérifiées manuellement = commentaires explicatifs légitimes** (documentation de décisions
+  d'architecture), aucun vrai code mort commenté trouvé. **Conclusion : aucune preuve de code mort
+  à supprimer — rien supprimé, conformément à la consigne de ne pas retirer sans preuve.**
+  Côté `functions/src/` : `npm run lint` (règle `@typescript-eslint/no-unused-vars` déjà active)
+  → **0 warning** ; les 44 fichiers de `src/functions/` sont tous exportés et déployés depuis
+  `src/index.ts` (44 exports pour 44 fichiers, aucun fichier orphelin non branché).
+
+- **W-6 (dépendances manifestement inutilisées)** : comparaison de chaque dépendance directe de
+  `pubspec.yaml` contre son usage réel (`grep -rl "package:<nom>/"` dans `lib/`). **3 dépendances
+  directes confirmées inutilisées** : `cupertino_icons` (0 `CupertinoIcons.` nulle part),
+  `intl` (0 `import 'package:intl'`/`DateFormat`/`Intl.` nulle part — le formatage de dates du
+  projet est fait manuellement, voir `finance/presentation/money_format.dart`), `http` (0
+  `import 'package:http'`/`http.get`/`http.Client` nulle part — toutes les communications réseau
+  passent par les SDK Firebase). **Retirées de `pubspec.yaml`** (déclaration directe uniquement) ;
+  `flutter pub get` confirme qu'`intl`/`http` restent disponibles comme dépendances
+  **transitives** (tirées par `flutter_localizations`/autres packages Firebase — aucune version
+  modifiée, seulement `dependency: direct main` → `dependency: transitive`), donc **rien ne
+  casse** ; `cupertino_icons` n'est plus téléchargé du tout (n'était nécessaire à rien).
+  `functions/package.json` : 3 dépendances runtime (`firebase-admin`, `firebase-functions`,
+  `stripe`) toutes manifestement utilisées + 8 devDependencies de tooling standard (jest,
+  eslint, typescript) — **aucune dépendance inutilisée trouvée côté Functions, PASS documenté**.
+  **Aucune montée de version majeure/mineure effectuée** (conforme à la consigne).
+
+- **Validation post W-2/W-6** : `dart analyze lib/` → 0 issue. `flutter test test/` →
+  **504/504 PASS**, 0 régression. `npm run lint` (functions) → 0 warning.
+
+### DONE W
+
+| Critère | Statut |
+|---|---|
+| W-1 flutter analyze | ✅ 0 issue sur code du dépôt |
+| W-2 dead code | ✅ recherche ciblée exhaustive, 0 preuve de code mort, rien supprimé sans preuve |
+| W-3 TODO/FIXME | ✅ 3 occurrences, 0 P0/P1 |
+| W-4 debug/logs | ✅ 2 `debugPrint()` kDebugMode-gated, 0 donnée sensible |
+| W-5 generated/local | ✅ aucun artifact/secret tracké |
+| W-6 dependencies | ✅ 3 dépendances directes inutilisées retirées (Flutter), 0 côté Functions, aucune montée de version |
+| P0 ouverts | 0 |
+| P1 ouverts | 0 |
+
+**BLOC W : ✅ FERMÉ.**
