@@ -54,6 +54,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/
-    - assets/icons/
+  # Bloc W (Phase 7, cleanup) : `assets/images/` et `assets/icons/` étaient
+  # déclarés ici mais n'existent PAS sur disque (0 fichier, jamais commités)
+  # et ne sont référencés par AUCUN `Image.asset()`/`AssetImage()` dans
+  # `lib/` (vérifié par recherche exhaustive) — source du warning
+  # `asset_directory_does_not_exist` signalé depuis plusieurs blocs
+  # précédents (T2/U). Retiré : ce ne sont pas des assets utilisés par
+  # l'app, juste une déclaration orpheline. `assets/icon/app_icon.png`
+  # (singulier, non lié à ce bloc) reste sur disque mais n'est pas non
+  # plus déclaré ici car aucune Cloud Function/écran ne le charge via
+  # `Image.asset` — c'est un fichier source pour la génération d'icônes
+  # de lancement (hors scope `flutter:assets`), pas un asset embarqué.
