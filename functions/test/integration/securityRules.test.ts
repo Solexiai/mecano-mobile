@@ -2610,3 +2610,94 @@ describe("Security Rules — deny-by-default", () => {
     await assertFails(getDoc(doc(superAdmin.firestore(), "some_undeclared_collection/doc_001")));
   });
 });
+
+// -----------------------------------------------------------------------
+// BUG-V-01 (Phase 7, Bloc V) — delivery_requests/{missionId} : un client
+// propriétaire ne doit JAMAIS pouvoir "annuler" (status -> 'cancelled') une
+// mission déjà dans un état TERMINAL (completed/cancelled/disputed/refunded)
+// via une écriture directe. Avant correctif, la règle ne vérifiait que le
+// statut CIBLE, jamais le statut ACTUEL — un client pouvait rouvrir une
+// mission 'completed' en 'cancelled' (financièrement déjà close, paiement
+// capturé, ledger déjà écrit), ce qui aurait pu déclencher à tort le trigger
+// onMissionEndedClearTracking (nettoyage tracking) sur une mission qui
+// n'aurait jamais dû redevenir "active" côté état métier.
+// -----------------------------------------------------------------------
+describe("Security Rules — delivery_requests/{missionId} : BUG-V-01 (états terminaux protégés contre l'annulation cliente)", () => {
+  afterEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await Promise.all(
+        ["bugv01_completed", "bugv01_cancelled", "bugv01_disputed", "bugv01_refunded", "bugv01_assigned"].map((id) =>
+          deleteDoc(doc(ctx.firestore(), `delivery_requests/${id}`))
+        )
+      );
+    });
+  });
+
+  async function seed(id: string, status: string, customerId: string): Promise<void> {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `delivery_requests/${id}`), {
+        customer_id: customerId,
+        driver_id: "bugv01_driver_001",
+        status,
+        driver_offer_amount: 85,
+        customer_total: 100,
+        pricing_version: "V1",
+      });
+    });
+  }
+
+  it("un client ne peut PAS annuler une mission déjà 'completed'", async () => {
+    await seed("bugv01_completed", "completed", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_completed"), {
+        status: "cancelled",
+        cancellation_reason: "tentative de réouverture",
+      })
+    );
+  });
+
+  it("un client ne peut PAS ré-annuler une mission déjà 'cancelled' (idempotence défensive)", async () => {
+    await seed("bugv01_cancelled", "cancelled", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_cancelled"), {
+        status: "cancelled",
+        cancellation_reason: "second essai",
+      })
+    );
+  });
+
+  it("un client ne peut PAS annuler une mission 'disputed'", async () => {
+    await seed("bugv01_disputed", "disputed", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_disputed"), {
+        status: "cancelled",
+        cancellation_reason: "tentative pendant litige",
+      })
+    );
+  });
+
+  it("un client ne peut PAS annuler une mission 'refunded'", async () => {
+    await seed("bugv01_refunded", "refunded", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_refunded"), {
+        status: "cancelled",
+        cancellation_reason: "tentative post-remboursement",
+      })
+    );
+  });
+
+  it("[non-régression] un client PEUT toujours annuler une mission encore active ('assigned')", async () => {
+    await seed("bugv01_assigned", "assigned", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertSucceeds(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_assigned"), {
+        status: "cancelled",
+        cancellation_reason: "changement de plan",
+      })
+    );
+  });
+});
