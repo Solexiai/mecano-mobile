@@ -14,6 +14,7 @@ import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionStatuses } from "../lib/types";
+import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -41,6 +42,18 @@ export interface CreateDeliveryRequestRequest {
 
 export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
   const ctx = requireSignedIn(request);
+
+  // 🔒 Phase 7, Bloc X (X-6) — kill switch. OFF => aucune NOUVELLE mission
+  // n'est créée. N'affecte jamais une mission déjà existante (ce contrôle
+  // est placé AVANT toute lecture/écriture, donc ne peut interférer avec
+  // le cycle de vie d'une mission déjà créée). Vérifié en tout premier
+  // (avant même la validation d'input) pour éviter tout travail inutile
+  // et pour qu'un client modifié ne puisse jamais contourner ce contrôle
+  // serveur-autoritaire.
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS))) {
+    throw killSwitchRefusal();
+  }
+
   const input = request.data;
 
   if (!input.quoteId) throw invalidArgument("quoteId est requis.");

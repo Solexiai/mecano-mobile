@@ -43,6 +43,7 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
+import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import {
   DEFAULT_JURISDICTION,
   applyTaxSnapshotToQuote,
@@ -59,6 +60,16 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   const ctx = requireSignedIn(request);
   const driverId = ctx.uid;
   const { missionId } = request.data;
+
+  // 🔒 Phase 7, Bloc X (X-7) — kill switch. OFF => aucune NOUVELLE
+  // attribution de mission n'est possible. Les missions DÉJÀ assignées
+  // (statut != OPEN_FOR_ACCEPTANCE_STATUSES) continuent leur cycle de vie
+  // normalement (aucun autre point du code ne consulte ce flag). Vérifié
+  // AVANT toute lecture Firestore pour qu'un client modifié ne puisse
+  // jamais contourner ce contrôle serveur-autoritaire.
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
+    throw killSwitchRefusal();
+  }
 
   if (!missionId || typeof missionId !== "string") {
     throw invalidArgument("missionId est requis.");

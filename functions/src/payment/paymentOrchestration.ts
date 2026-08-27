@@ -58,6 +58,18 @@ import {
   resolveCorrelationId,
   startFinancialOperationTimer,
 } from "../lib/observability";
+import { RuntimeFlagKeys, isRuntimeFlagEnabled } from "../lib/runtimeFlags";
+
+// 🔒 Phase 7, Bloc X — codes de failure_code INTERNES (jamais exposés au
+// client, voir CreateAndAuthorizePaymentOutcome/SubmitDriverPayoutOutcome :
+// seul `failureMessage`, un texte générique, est éventuellement propagé).
+// Distincts de `KILL_SWITCH_ERROR_CODE` (lib/runtimeFlags.ts), qui est le
+// code HttpsError renvoyé par les gardes SERVEUR (createDeliveryRequest.ts,
+// acceptDelivery.ts) qui lèvent AVANT toute écriture — ici, à l'inverse, on
+// doit journaliser un échec métier cohérent (payment_failed / payout FAILED)
+// via la voie de compensation existante, pas lever une exception brute.
+const PAYMENTS_KILL_SWITCH_FAILURE_CODE = "payments_disabled";
+const PAYOUTS_KILL_SWITCH_FAILURE_CODE = "driver_payouts_disabled";
 
 export interface CreateAndAuthorizePaymentInput {
   missionId: string;
@@ -92,6 +104,27 @@ export async function createAndAuthorizeMissionPayment(
   // (déclenché par acceptDelivery(), pas par un webhook/évènement externe).
   const correlationId = resolveCorrelationId(undefined);
   const operationStartedAt = startFinancialOperationTimer();
+
+  // 🔒 Phase 7, Bloc X (X-8) — kill switch. OFF => aucune NOUVELLE
+  // exposition financière client (nouvelle autorisation de paiement) n'est
+  // créée. Vérifié AVANT toute écriture Firestore (aucun `payments/{id}`
+  // n'est créé) — utilise la MÊME voie de compensation que les autres échecs
+  // précoces (`failMissionPayment`) : la mission bascule en `payment_failed`
+  // et est désassignée, exactement comme un refus d'autorisation ordinaire,
+  // pour ne jamais laisser la mission dans un état incohérent "assignée mais
+  // sans paiement". N'affecte JAMAIS refund/cancel/dispute/reversal — ces
+  // chemins n'appellent pas cette fonction (voir refundPayment(),
+  // cancelMissionPaymentAuthorization(), reverseDriverPayout() ci-dessous).
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
+    return await failMissionPayment(
+      missionId,
+      null,
+      PAYMENTS_KILL_SWITCH_FAILURE_CODE,
+      "Nouvelle autorisation de paiement temporairement indisponible.",
+      null,
+      { correlationId, operationStartedAt, operation: "create_payment" }
+    );
+  }
 
   const paymentProfileSnap = await db.collection("payment_profiles").doc(customerId).get();
   if (!paymentProfileSnap.exists) {
@@ -685,6 +718,36 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
   const correlationId = resolveCorrelationId(undefined);
   const operationStartedAt = startFinancialOperationTimer();
   const payoutRef = db.collection("driver_payouts").doc(payoutId);
+
+  // 🔒 Phase 7, Bloc X (X-9) — kill switch. `submitDriverPayout()` est LE
+  // SEUL point du système qui appelle réellement
+  // `PaymentProvider.createDriverPayout()` (calculateDriverPayout.ts ET
+  // processScheduledDriverPayouts.ts convergent tous les deux ici avant tout
+  // appel fournisseur) — l'enforcement à CE point unique garantit qu'il
+  // n'existe aucun second chemin de contournement (directive X-9). OFF =>
+  // AUCUN nouvel appel fournisseur. Le versement reste DÉLIBÉRÉMENT dans son
+  // statut actuel (ELIGIBLE, jamais transitionné vers FAILED) : ce n'est pas
+  // un échec métier du versement, seulement une pause temporaire — le cron
+  // `processScheduledDriverPayouts` (ou un nouvel appel admin) le
+  // resoumettra automatiquement dès que le flag repasse à `true`, sans
+  // qu'aucune action de récupération manuelle (retry FAILED -> SCHEDULED) ne
+  // soit nécessaire. N'affecte JAMAIS `reverseDriverPayout()` (compensation
+  // comptable sur un versement déjà PAID) ni la réconciliation — ces chemins
+  // n'appellent pas cette fonction.
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.DRIVER_PAYOUTS_ENABLED))) {
+    logFinancialFailure(
+      "submit_driver_payout",
+      operationStartedAt,
+      PAYOUTS_KILL_SWITCH_FAILURE_CODE,
+      { payoutId },
+      { correlationId }
+    );
+    return {
+      success: false,
+      status: PayoutStatuses.ELIGIBLE,
+      failureMessage: "Versements chauffeur temporairement indisponibles.",
+    };
+  }
 
   // ---- Étape 1 : transaction — ELIGIBLE -> SCHEDULED -> PROCESSING ----
   type PreparedPayout = {

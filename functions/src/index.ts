@@ -71,3 +71,6 @@ export { detectExpiringDocuments } from "./functions/detectExpiringDocuments";
 export { expireDriverPromotions } from "./functions/expireDriverPromotions";
 export { transitionFoundingDriverPeriods } from "./functions/transitionFoundingDriverPeriods";
 export { cleanupExpiredTrackingHistory } from "./functions/cleanupExpiredTrackingHistory";
+
+// ---- Feature flags / kill switches (Phase 7, Bloc X) ----
+export { updateRuntimeFlags } from "./functions/updateRuntimeFlags";

@@ -531,6 +531,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // system_config/{docId} — kill switches / feature flags MVP (Phase 7,
+    // bloc X), notamment `runtime_flags` (accept_new_delivery_requests,
+    // allow_driver_acceptance, payments_enabled, driver_payouts_enabled).
+    // Paramètre interne serveur-autoritaire : lecture réservée aux admins
+    // (pas d'affichage client), écriture STRICTEMENT via la Cloud Function
+    // privilégiée updateRuntimeFlags — jamais directement par un client,
+    // même admin (aucun bypass possible en modifiant l'app cliente).
+    match /system_config/{docId} {
+      allow read: if isAdminOrAbove();
+      allow write: if false;
+    }
+
     // mission_financial_balance/{missionId} — état financier dérivé du
     // ledger (point 7, directive 38 points). Lisible par le client et le
     // chauffeur de LEUR PROPRE mission (UI client/chauffeur, points 22/24),
