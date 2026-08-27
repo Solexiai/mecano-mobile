@@ -1241,3 +1241,16 @@ anticipation spéculative ce tour).
 | Aucun P0/P1 coût/performance ignoré | ✅ — les 2 P2 `.limit()` connus (Bloc M/N) sont des GAPS de performance déjà documentés, pas des GAPS de coût nouveaux |
 
 **P0 ouverts** : 0. **P1 ouverts** : 0. **BLOC T2 : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC U (U-1 à U-6)
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| U-1 Client bug bash | ✅ PASS | Parcours login→completed relu en entier ; 15/15 `MissionStatus` traduits FR/EN/ES ; scoping repository correct ; aucun bouton mort. |
+| U-2 Driver post-onboarding | ✅ PASS | `DriverActiveMissionScreen` (824 lignes), `provider_jobs_tab.dart`, `provider_earnings_tab.dart`, `driver_status_screen.dart` relus ; ledger atomique confirmé (`completeDelivery.ts`) ; aucun bouton mort, aucun `$e` affiché. |
+| U-3 Admin | ✅ PASS | Approve/reject/suspend/reactivate/documents/notes fonctionnels ; refunds/disputes confirmés en lecture-seule PAR CONCEPTION (pas de bouton mort) ; "voir document" = gap déjà documenté (P-6), non-bloquant. |
+| U-4 Error sanity | ✅ PASS | Network/permission cross-user/session expirée/Firestore partiel — tous déjà couverts, `DeliveryMission.fromJson` 100% défensif. |
+| U-5 FR/EN/ES sanity | ✅ PASS | 224 clés `t()` des écrans U extraites et vérifiées 100% complètes FR/EN/ES via `AppStrings.allEntries` (script jetable, 0 fichier repo modifié). |
+| U-6 Mobile sanity | ✅ PASS (après correction) | Nouveau `test/responsive/bloc_u_mobile_sanity_test.dart` (11 tests, 320/360px) sur les 5 écrans jamais testés à largeur étroite. 2 bugs réels trouvés (BUG-U-02, BUG-U-03) et corrigés. |
+
+**BLOC U : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0. P2 corrigés ce tour : 2 (BUG-U-02, BUG-U-03).

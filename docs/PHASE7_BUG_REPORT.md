@@ -1185,3 +1185,39 @@ DE RÉGRESSION**. U-0 (cas mécanicien, GAP-U-MECHANIC) **CORRIGÉ ET COUVERT PA
 RÉGRESSION** (aucun backend mécanicien construit, conformément à la décision produit).
 `flutter analyze` 0 erreur ; `flutter test test/` 493/493 PASS. U-1 à U-6 non traités dans ce
 mouvement — prochaine étape.
+
+**BLOC U : ✅ FERMÉ** (U-1 à U-6 tous PASS). Récapitulatif final :
+
+- **BUG-U-01** (P1, chauffeur, corrigé — PR #1) : boutons upload documents onboarding chauffeur
+  inertes (`onPressed: () {}`), aucun document jamais fourni. Corrigé : sélection réelle via
+  `ImagePicker`, upload Storage réel, permis+assurance obligatoires pour soumission.
+- **GAP-U-MECHANIC** (P1, mécanicien, corrigé — PR #2) : mêmes boutons inertes côté onboarding
+  mécanicien, mais AUCUN backend mécanicien construit (décision produit) → corrigé en remplaçant
+  les boutons inertes par des badges "Bientôt disponible" explicites (pas de simulation d'upload).
+- **BUG-U-02** (P2, U-6, corrigé ce tour) : `_Step2Addresses` de `DeliveryRequestFlowScreen`
+  — les en-têtes "Adresse de ramassage"/"Adresse de livraison" (`Icon` + `Text` non contraint dans
+  un `Row`) provoquent un `RenderFlex overflowed` de 41 à 81px à largeur téléphone réelle
+  (320-360px), révélé par `test/responsive/bloc_u_mobile_sanity_test.dart` (U-6.1). Repro : ouvrir
+  l'étape 2 du flux de création de mission à 320px de large. Cause : `Text` non enveloppé dans un
+  `Expanded`/`Flexible` alors que le libellé traduit peut dépasser l'espace disponible une fois
+  l'icône et son espacement soustraits. Correctif : `Expanded(child: Text(..., overflow:
+  TextOverflow.ellipsis))` sur les deux en-têtes (pickup et dropoff). Test de régression :
+  `U-6.1` (2 cas, 320px/360px) — vert après correctif.
+- **BUG-U-03** (P2, U-6, corrigé ce tour) : `_DocumentPickerRow` (étape Documents de
+  `DriverOnboardingScreen`, réutilisée pour permis/assurance) — l'`OutlinedButton`
+  "Sélectionner"/"Modifier" à taille par défaut provoque un `RenderFlex overflowed` de 11 à 51px
+  à largeur téléphone réelle (320-360px), révélé par `test/responsive/bloc_u_mobile_sanity_test.dart`
+  (U-6.4). Repro : atteindre l'étape Documents du wizard chauffeur à 320px de large. Cause :
+  `OutlinedButton` par défaut (padding/`minimumSize`/taille de texte standard Material) trop large
+  une fois combiné à l'icône + colonne texte déjà `Expanded` dans le même `Row`. Correctif : style
+  compact dédié (`padding` réduit, `minimumSize: Size.zero`, `tapTargetSize:
+  MaterialTapTargetSize.shrinkWrap`, `textStyle` 11.5px) sur ce bouton précis, sans toucher au
+  style global des boutons de l'app. Test de régression : `U-6.4` (2 cas, 320px/360px) — vert
+  après correctif.
+
+**Validation finale unique T→T2→U** : `flutter analyze` (0 erreur nouvelle, seuls les warnings
+préexistants assets/images-icons et le generated template firebase-tools/dart subsistent, hors
+scope) ; `flutter test test/` **504/504 PASS** (493 préexistants + 11 nouveaux U-6) ; `npx tsc
+--noEmit` (functions) : 0 erreur.
+
+**P0 ouverts (global T/T2/U) : 0. P1 ouverts : 0.**

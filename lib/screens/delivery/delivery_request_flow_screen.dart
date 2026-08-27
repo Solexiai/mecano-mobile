@@ -535,7 +535,13 @@ class _Step2Addresses extends StatelessWidget {
             children: [
               const Icon(Icons.trip_origin, color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
-              Text(t('delivery_pickup_address'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Text(
+                  t('delivery_pickup_address'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -591,7 +597,13 @@ class _Step2Addresses extends StatelessWidget {
             children: [
               const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 18),
               const SizedBox(width: 8),
-              Text(t('delivery_dropoff_address'), style: const TextStyle(fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Text(
+                  t('delivery_dropoff_address'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),

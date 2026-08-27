@@ -707,6 +707,12 @@ class _DocumentPickerRow extends StatelessWidget {
           const SizedBox(width: 8),
           OutlinedButton(
             onPressed: busy ? null : onPick,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              textStyle: const TextStyle(fontSize: 11.5),
+            ),
             child: busy
                 ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
                 : Text(hasFile ? t('driver_onboarding_document_edit') : t('driver_onboarding_document_select')),

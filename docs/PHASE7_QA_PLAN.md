@@ -1343,3 +1343,23 @@ levier d'optimisation future si besoin réel mesuré). Voir `docs/PHASE7_QA_MATR
 complet.
 
 **BLOC T2 : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC U (U-1 à U-6, méthode accélérée)
+
+U-1 (client), U-2 (chauffeur post-onboarding), U-3 (admin), U-4 (error sanity), U-5 (FR/EN/ES
+sanity) : parcours réel du code (pas de nouvelle reconnaissance longue) confirmant **PASS** sur
+chacun — aucun bouton mort, aucun faux succès, aucune erreur `$e` brute, aucune traduction
+manquante sur les écrans touchés (224 clés `t()` vérifiées exhaustivement complètes FR/EN/ES via
+`AppStrings.allEntries`). Gaps déjà documentés (aperçu document admin en SnackBar,
+disputes/refunds admin en lecture seule) reconfirmés non-bloquants, pas de nouveau bug.
+
+U-6 (mobile sanity) : nouveau fichier `test/responsive/bloc_u_mobile_sanity_test.dart` (11 tests)
+couvrant les 5 écrans jamais testés à largeur téléphone étroite (320/360px) : création mission,
+mission active chauffeur (+ modal preuve de livraison), onboarding chauffeur (upload documents),
+notifications, suivi client. **2 bugs réels d'overflow trouvés et corrigés** (BUG-U-02, BUG-U-03,
+voir `docs/PHASE7_BUG_REPORT.md`) — tous deux P2 (overflow horizontal visuel, aucune perte de
+fonctionnalité ni donnée cachée de façon critique, mais rendu incorrect à largeur réelle de
+téléphone). Suite complète `flutter test test/` : **504/504 PASS** (493 + 11 nouveaux U-6), 0
+régression. `flutter analyze` : 0 erreur nouvelle. `npx tsc --noEmit` (functions) : 0 erreur.
+
+**BLOC U : ✅ FERMÉ** (U-1 à U-6 tous PASS, P0=0, P1=0 ; 2 P2 corrigés + testés en régression).
