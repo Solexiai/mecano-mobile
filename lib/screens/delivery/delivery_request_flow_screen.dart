@@ -287,7 +287,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       if (!mounted) return;
       setState(() {
         _phase = _FlowPhase.form;
-        _errorMessage = _describeError(e);
+        _errorMessage = _describeError(e, genericKey: 'delivery_quote_error');
       });
     }
   }
@@ -357,25 +357,50 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       if (!mounted) return;
       setState(() {
         _phase = _FlowPhase.quoted;
-        _errorMessage = _describeError(e);
+        _errorMessage = _describeError(e, genericKey: 'delivery_mission_error');
       });
     }
   }
 
-  String _describeError(Object e) {
+  // Phase 7, Bloc AB (AB-3, gap AB-3-A) — GAP RÉEL corrigé : cette fonction
+  // renvoyait AUPARAVANT directement `e.message`/`e.toString()` au client
+  // final — c'est-à-dire le message BRUT interne du serveur
+  // (`CloudFunctionException.message` porte le texte français non traduit
+  // de la Cloud Function, ex. "requestQuote: delivery_quotes/xyz introuvable
+  // après calculateDeliveryQuote." ou "Aucune configuration tarifaire active
+  // (pricing_configs/active)."). Ce texte :
+  //   - révèle des noms de collections Firestore internes et de Cloud
+  //     Functions ;
+  //   - n'est jamais traduit (toujours en français, même en EN/ES ->
+  //     mélange de langues, AB-7) ;
+  //   - n'est pas "compréhensible" pour un client final (jargon technique).
+  // Corrigé : toute erreur métier/backend (hors kill switch, déjà mappé
+  // séparément vers `service_temporarily_unavailable`) est désormais
+  // toujours mappée vers la clé i18n générique déjà existante et traduite
+  // FR/EN/ES passée par l'appelant (`genericKey` : `delivery_quote_error`
+  // pour le devis, `delivery_mission_error` pour la création de mission —
+  // ces deux clés existaient déjà dans app_strings.dart mais
+  // `delivery_mission_error` n'était jamais effectivement utilisée avant ce
+  // correctif). Le message technique brut n'est plus jamais affiché au
+  // client — il reste disponible pour le débogage via les logs
+  // (`debugPrint`) uniquement, jamais dans l'UI.
+  String _describeError(Object e, {required String genericKey}) {
     // 🔒 Phase 7, Bloc X (X-10) — un refus par kill switch
     // (`accept_new_delivery_requests`/`payments_enabled` désactivé côté
     // `system_config/runtime_flags`) doit afficher le message générique
-    // traduit, JAMAIS le message brut du serveur (qui ne révèle rien de
-    // sensible ici, mais le principe reste : le mapping est centralisé et
-    // cohérent avec tous les autres points d'entrée protégés). Vérifié
-    // AVANT le cas générique `CloudFunctionException` ci-dessous.
+    // traduit, JAMAIS le message brut du serveur. Vérifié AVANT le cas
+    // générique ci-dessous.
     if (isKillSwitchException(e)) {
       return context.read<LocaleProvider>().t('service_temporarily_unavailable');
     }
-    if (e is CloudFunctionException) return e.message;
-    if (e is BackendNotConfiguredException) return e.message;
-    return e.toString();
+    if (e is CloudFunctionException || e is BackendNotConfiguredException) {
+      debugPrint('DeliveryRequestFlowScreen error (not shown to user): $e');
+      return context.read<LocaleProvider>().t(genericKey);
+    }
+    // Erreur inattendue (ex: exception réseau brute non enveloppée par le
+    // repository) : message générique également, jamais `e.toString()`.
+    debugPrint('DeliveryRequestFlowScreen unexpected error (not shown to user): $e');
+    return context.read<LocaleProvider>().t(genericKey);
   }
 }
 
@@ -743,6 +768,10 @@ class _Step4Quote extends StatelessWidget {
     }
 
     if (errorMessage != null && quote == null) {
+      // Phase 7, Bloc AB (AB-3-A) — `errorMessage` est désormais TOUJOURS un
+      // texte déjà traduit et compréhensible (voir `_describeError()`),
+      // jamais le message brut du serveur. On l'affiche donc directement
+      // (une seule fois, pas de doublon avec un titre générique fixe).
       return StepFormCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -751,11 +780,9 @@ class _Step4Quote extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline, color: AppColors.error),
                 const SizedBox(width: 8),
-                Expanded(child: Text(t('delivery_quote_error'), style: const TextStyle(color: AppColors.error))),
+                Expanded(child: Text(errorMessage!, style: const TextStyle(color: AppColors.error))),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(errorMessage!, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: Text(t('common_retry'))),
           ],
