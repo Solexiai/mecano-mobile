@@ -31,6 +31,8 @@ import 'repositories/proof_upload_repository.dart';
 import 'repositories/firebase_proof_upload_repository.dart';
 import 'repositories/driver_document_upload_repository.dart';
 import 'repositories/firebase_driver_document_upload_repository.dart';
+import 'repositories/rating_repository.dart';
+import 'repositories/firebase_rating_repository.dart';
 import 'payment/payment_provider.dart';
 
 class BackendLocator {
@@ -83,6 +85,14 @@ class BackendLocator {
   // bucket. Ne jamais positionner en dehors de `test/`.
   @visibleForTesting
   static DriverDocumentUploadRepository? driverDocumentUploadRepositoryOverride;
+
+  // Même seam que ci-dessus, pour `RatingRepository` (Phase 7, Bloc AB,
+  // AB-10 — GAP PRODUIT RÉEL comblé) : permet aux widget tests d'injecter un
+  // état de notation déterministe (déjà noté / pas encore noté / échec
+  // d'écriture) sans dépendre de Firebase. Ne jamais positionner en dehors
+  // de `test/`.
+  @visibleForTesting
+  static RatingRepository? ratingRepositoryOverride;
 
   static DriverRepository get driverRepository {
     final override = driverRepositoryOverride;
@@ -143,6 +153,15 @@ class BackendLocator {
       return const NotConfiguredDriverDocumentUploadRepository();
     }
     return FirebaseDriverDocumentUploadRepository();
+  }
+
+  static RatingRepository get ratingRepository {
+    final override = ratingRepositoryOverride;
+    if (override != null) return override;
+    if (!BackendBootstrap.status.isConfigured) {
+      return const NotConfiguredRatingRepository();
+    }
+    return FirebaseRatingRepository();
   }
 
   static PaymentProvider get paymentProvider {

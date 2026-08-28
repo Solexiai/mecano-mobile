@@ -27,6 +27,7 @@ import 'package:provider/provider.dart';
 
 import '../../backend/backend_locator.dart';
 import '../../backend/models/delivery_mission.dart';
+import '../../backend/models/mission_rating.dart';
 import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
@@ -344,6 +345,19 @@ class _CompletedMissionView extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 20),
+          // Phase 7, Bloc AB (AB-10) — GAP PRODUIT RÉEL comblé : requirement
+          // initial Movi-k ("après une livraison terminée, le client peut
+          // évaluer le chauffeur de 1 à 5 étoiles avec commentaire
+          // optionnel") n'avait AUCUNE implémentation (ni Cloud Function, ni
+          // repository, ni UI) malgré une Security Rule `ratings/{ratingId}`
+          // déjà correctement conçue depuis Phase 2/3 (commit 3af089f).
+          // N'affiché que si un chauffeur a bien été assigné (toujours vrai
+          // pour une mission `completed`, mais gardé explicite plutôt
+          // qu'implicite — cohérent avec le reste de cet écran).
+          if (mission.driverId != null) ...[
+            _RateDriverCard(mission: mission, t: t),
+            const SizedBox(height: 20),
+          ],
           // Bloc J — vue financière client (résumé, paiement, remboursement,
           // historique). Intégrée directement au détail de la mission plutôt
           // que dans un onglet global dédié : les données financières sont
@@ -352,6 +366,332 @@ class _CompletedMissionView extends StatelessWidget {
           MissionFinanceSection(missionId: mission.id, t: t),
         ],
       ),
+    );
+  }
+}
+
+/// Carte de notation client -> chauffeur (Phase 7, Bloc AB, AB-10).
+///
+/// États gérés explicitement (méthode AB : PARCOURS RÉEL -> GAP RÉEL) :
+///   - chargement de l'état existant (FutureBuilder sur
+///     `getMyRatingForMission`) : indicateur discret, jamais un spinner
+///     éternel ni un écran vide incompréhensible ;
+///   - déjà noté : message de remerciement + étoiles déjà attribuées en
+///     lecture seule, AUCUN moyen de re-soumettre (pas de double rating
+///     incohérent, cohérent avec `allow update: if false` côté serveur) ;
+///   - pas encore noté : 5 boutons étoile + champ commentaire optionnel +
+///     bouton d'envoi ;
+///   - erreur de chargement : traité comme "pas encore noté" (fail-open sur
+///     la LECTURE uniquement — l'écriture reste protégée par la Security
+///     Rule serveur, donc afficher le formulaire par défaut ne crée aucun
+///     risque de double rating, seulement au pire une tentative de `create`
+///     qui échouera proprement en `permission-denied` si une notation
+///     existe déjà).
+class _RateDriverCard extends StatefulWidget {
+  final DeliveryMission mission;
+  final String Function(String) t;
+  const _RateDriverCard({required this.mission, required this.t});
+
+  @override
+  State<_RateDriverCard> createState() => _RateDriverCardState();
+}
+
+class _RateDriverCardState extends State<_RateDriverCard> {
+  late Future<MissionRating?> _existingRatingFuture;
+  int _selectedStars = 0;
+  final TextEditingController _commentController = TextEditingController();
+  bool _submitting = false;
+  bool _justSubmitted = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingRating();
+  }
+
+  void _loadExistingRating() {
+    final customerId = widget.mission.customerId;
+    _existingRatingFuture = BackendLocator.ratingRepository
+        .getMyRatingForMission(
+          missionId: widget.mission.id,
+          customerId: customerId,
+        )
+        .catchError((_) => null);
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final t = widget.t;
+    if (_selectedStars < 1 || _selectedStars > 5) {
+      setState(() {
+        _errorMessage = t('customer_tracking_rate_driver_select_stars_error');
+      });
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await BackendLocator.ratingRepository.submitDriverRating(
+        missionId: widget.mission.id,
+        customerId: widget.mission.customerId,
+        stars: _selectedStars,
+        comment: _commentController.text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _justSubmitted = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _errorMessage = t('customer_tracking_rate_driver_error');
+      });
+    }
+  }
+
+  Widget _buildCard({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildThanks(String Function(String) t) {
+    return _buildCard(
+      child: Row(
+        children: [
+          const Icon(Icons.favorite, color: AppColors.success, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('customer_tracking_rate_driver_thanks_title'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  t('customer_tracking_rate_driver_thanks_message'),
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlreadyRated(String Function(String) t, MissionRating rating) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t('customer_tracking_rate_driver_thanks_title'),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          _StarDisplay(stars: rating.stars, t: t),
+          if (rating.comment != null && rating.comment!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              rating.comment!,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm(String Function(String) t) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t('customer_tracking_rate_driver_title'),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            t('customer_tracking_rate_driver_subtitle'),
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _StarSelector(
+            selected: _selectedStars,
+            starLabel: t('customer_tracking_rate_driver_star_semantic'),
+            onChanged: (v) {
+              setState(() {
+                _selectedStars = v;
+                _errorMessage = null;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _commentController,
+            minLines: 2,
+            maxLines: 4,
+            maxLength: 500,
+            decoration: InputDecoration(
+              hintText: t('customer_tracking_rate_driver_comment_hint'),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              isDense: true,
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _submitting ? null : _submit,
+              child: _submitting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
+                      ),
+                    )
+                  : Text(t('customer_tracking_rate_driver_submit')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.t;
+    if (_justSubmitted) return _buildThanks(t);
+
+    return FutureBuilder<MissionRating?>(
+      future: _existingRatingFuture,
+      builder: (context, snap) {
+        // Chargement : jamais un spinner éternel ni un écran vide — la
+        // carte occupe déjà son espace final (évite un "layout jump"), on
+        // affiche juste un indicateur discret à la place du contenu.
+        if (snap.connectionState == ConnectionState.waiting) {
+          return _buildCard(
+            child: const Center(
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        final existing = snap.data;
+        if (existing != null) return _buildAlreadyRated(t, existing);
+        return _buildForm(t);
+      },
+    );
+  }
+}
+
+/// Sélecteur de 1 à 5 étoiles, appuyable, avec sémantique accessible
+/// (AB-9 sanity — chaque étoile annonce son rang, ex: "3 étoile(s)").
+class _StarSelector extends StatelessWidget {
+  final int selected;
+  final String starLabel;
+  final ValueChanged<int> onChanged;
+  const _StarSelector({
+    required this.selected,
+    required this.starLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(5, (index) {
+        final value = index + 1;
+        final filled = value <= selected;
+        return Semantics(
+          label: '$value $starLabel',
+          selected: filled,
+          child: IconButton(
+            onPressed: () => onChanged(value),
+            icon: Icon(
+              filled ? Icons.star : Icons.star_border,
+              color: filled ? AppColors.warningText : AppColors.textSecondary,
+              size: 32,
+            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+/// Affichage en LECTURE SEULE d'une notation déjà soumise (pas de bouton,
+/// pas d'action possible — cohérent avec l'immutabilité serveur).
+class _StarDisplay extends StatelessWidget {
+  final int stars;
+  final String Function(String) t;
+  const _StarDisplay({required this.stars, required this.t});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(5, (index) {
+        final filled = index < stars;
+        return Icon(
+          filled ? Icons.star : Icons.star_border,
+          color: filled ? AppColors.warningText : AppColors.textSecondary,
+          size: 22,
+        );
+      }),
     );
   }
 }
