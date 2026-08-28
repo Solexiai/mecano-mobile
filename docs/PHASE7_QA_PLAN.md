@@ -1807,9 +1807,65 @@ cette session : BUG-AB-08-01, BUG-AB-09-01, BUG-AB-09-02 (3/3 corrigés + testé
 AB-1 à AB-10 tous ✅. Tests verts. P0=0, P1=0. Commit `0a63937` (code+tests AB-8/AB-9) + commit
 de clôture documentaire (ce tour). PR #9 mise à jour, NON mergée (AC continue sur la même PR).
 
-## PROCHAIN GROUPE — AC (Pilot Readiness, dernier bloc de la Phase 7)
+## MISE À JOUR — BLOC AC (Pilot Readiness) : ✅ FERMÉ
 
-- **AC — Pilot Readiness** : `docs/PILOT_READINESS.md`, checklist finale avant pilote réel.
+Dernier bloc de la Phase 7. `docs/PILOT_READINESS.md` créé, répondant à *« Qu'est-ce qui est
+prêt pour un pilote réel, et qu'est-ce qui doit être configuré/décidé en Phase 8 ? »* — aucune
+ligne de code modifiée pour ce bloc, uniquement de la documentation consolidant les preuves déjà
+établies en Phase 2 → Phase 7.
 
-Ce bloc constitue le DERNIER GROUPE de la Phase 7, à traiter dans une session
-ultérieure. Après leur fermeture : FERMETURE FINALE DE LA PHASE 7.
+- **AC-1 — Readiness Matrix** : CLIENT (10 fonctions), DRIVER (12 fonctions), ADMIN (11
+  fonctions) — statuts `READY`/`PHASE 8 REQUIRED` uniquement, aucun faux READY. Items PHASE 8
+  REQUIRED identifiés sans ambiguïté : paiement/payout réels, push FCM/APNs, GPS/upload sur
+  device physique réel.
+- **AC-2 — Phase 8 Required** : 11 items externes déjà connus (Stripe, App Check, FCM/APNs, GPS
+  réel, backups, monitoring externe, runtime flags bootstrap prod, rate limiting) + GAP-S-04
+  classé `PRODUCT DECISION REQUIRED` + privacy/retention/RPO-RTO classés `LEGAL/FOUNDER DECISION
+  REQUIRED` — reprend fidèlement les décisions déjà documentées en Blocs Q2/S/X/Y/Z/AA, aucune
+  invention.
+- **AC-3 — Physical Device Plan** : liste explicite de ce qui n'a JAMAIS été validé que par
+  émulateur/widget test (GPS réel, permissions runtime, caméra, background/écran verrouillé,
+  batterie) — aucun de ces points marqué READY.
+- **AC-4 — Pilot Strategy** : cadre d'un pilote petit/réversible (zone, chauffeurs, clients,
+  volume) — tous les chiffres exacts explicitement laissés en `FOUNDER/OPERATIONS DECISION`, non
+  inventés.
+- **AC-5 — GO/NO-GO Checklist** : conclusion honnête — le logiciel (code+tests) est prêt
+  (P0=0, P1=0, suite complète verte), le GO reste bloqué uniquement par des items PHASE 8
+  REQUIRED externes et des décisions LEGAL/FOUNDER, aucun d'entre eux n'étant un bug Phase 7.
+- **AC-6 — Legal/Policy** : 8 documents identifiés comme requis (ToS, Privacy Policy, driver
+  terms, payment/refund policy, GPS consent, document handling, retention policy, account
+  deletion process) — aucun rédigé dans ce repo, tous classés `LEGAL/FOUNDER REVIEW REQUIRED`.
+- **AC-7 — Operational Accounts** : 7 comptes/services listés (Firebase/GCP, Stripe, Stripe
+  Connect, FCM/APNs, admin prod, support email, monitoring) — aucun credential fictif créé.
+- **AC-8 — Support Pilot** : flux support réutilisant intégralement Bloc Y (monitoring) et Bloc
+  AA (disaster recovery), sans nouveau mécanisme technique.
+- **AC-9 — Release Checklist** : 18 étapes ordonnées par dépendance logique, de la
+  configuration secrets jusqu'au lancement pilote.
+
+**Aucun bug de code trouvé pendant AC** (bloc documentaire uniquement, comme annoncé). Aucune
+régression : `flutter analyze`/`flutter test` et la suite functions restent dans l'état de
+clôture AB (0 issue / 531/531 PASS Flutter ; 0 erreur tsc / 0 warning lint / 109 unit + 559
+intégration PASS functions), aucun fichier de code touché par ce bloc.
+
+**BLOC AC : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
+
+# PHASE 7 : ✅ TERMINÉE
+
+Tous les blocs A → AC sont fermés (A, B, C, D, E, F, G, H, I, J, K, K2, L, M, N, O, P, Q, Q2, R,
+R2, S, T, T2, U, V, W, X, Y, Z, AA, AB, AC). État final consolidé :
+
+- **Flutter** : `flutter analyze` → 0 issue. `flutter test --concurrency=4` → 531/531 PASS.
+- **Functions** : `npx tsc --noEmit` → 0 erreur. `npm run lint` → 0 warning. Jest unit →
+  109/109 PASS. Jest intégration (émulateurs) → 38 suites / 559 tests PASS.
+- **P0 ouverts (Phase 7 entière)** : 0. **P1 ouverts (Phase 7 entière)** : 0.
+- **Documents produits** : `docs/PHASE7_QA_PLAN.md`, `docs/PHASE7_QA_MATRIX.md`,
+  `docs/PHASE7_BUG_REPORT.md`, `docs/MONITORING_RUNBOOK.md`, `docs/DATA_RETENTION.md`,
+  `docs/DISASTER_RECOVERY.md`, `docs/PILOT_READINESS.md`.
+- **Décisions Phase 8 les plus importantes reportées honnêtement** (synthèse, détail dans
+  `docs/PILOT_READINESS.md` AC-2) : backups Firestore/Storage non activés, Stripe live non
+  configuré, App Check enforcement absent, push FCM/APNs absent, GPS jamais validé sur device
+  réel, monitoring externe non branché, retention policy légale non finalisée, RPO/RTO non
+  fixés, GAP-S-04 en attente de décision produit.
+
+Aucune ligne de code de production Movi-K ne reste dans un état connu de bug P0/P1 non corrigé à
+la fin de la Phase 7.

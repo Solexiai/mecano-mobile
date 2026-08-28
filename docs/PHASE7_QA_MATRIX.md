@@ -1381,3 +1381,17 @@ Bloc X).
 (AB)** : 0. P2 trouvés et corrigés : BUG-AB-08-01, BUG-AB-09-01, BUG-AB-09-02 (3/3).
 
 **BLOC AB : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC AC (Pilot Readiness) : ✅ FERMÉ
+
+Dernier bloc de la Phase 7, purement documentaire (`docs/PILOT_READINESS.md`) — aucun code
+touché, aucune nouvelle matrice de test requise. Voir `docs/PHASE7_QA_PLAN.md` (section "MISE À
+JOUR — BLOC AC") pour le détail complet AC-1 → AC-9 et `docs/PILOT_READINESS.md` pour le
+contenu intégral (Readiness Matrix CLIENT/DRIVER/ADMIN, Phase 8 Required, Physical Device Plan,
+GO/NO-GO, Legal/Policy, Operational Accounts, Support Pilot, Release Checklist).
+
+**BLOC AC : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
+
+# PHASE 7 : ✅ TERMINÉE
+
+Tous les blocs A → AC fermés. Voir `docs/PHASE7_QA_PLAN.md` pour la synthèse finale complète.

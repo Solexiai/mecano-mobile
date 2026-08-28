@@ -1624,3 +1624,21 @@ k')` toujours trouvé, `tester.takeException()` null.
 BUG-AB-09-01, BUG-AB-09-02 (3/3).
 
 # BLOC AB : ✅ FERMÉ
+
+## BLOC AC — Pilot Readiness : ✅ FERMÉ
+
+Dernier bloc de la Phase 7. **Aucun bug de code trouvé** — bloc purement documentaire
+(`docs/PILOT_READINESS.md`), consolidant honnêtement les décisions Phase 8 déjà identifiées dans
+les blocs précédents (Q2, S, X, Y, Z, AA) sans en inventer de nouvelles. Détail complet dans
+`docs/PILOT_READINESS.md` (AC-1 → AC-9) et `docs/PHASE7_QA_PLAN.md` (section "MISE À JOUR —
+BLOC AC").
+
+**BLOC AC : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
+
+# PHASE 7 : ✅ TERMINÉE
+
+Tous les blocs A → AC fermés. **P0 ouverts (Phase 7 entière)** : 0. **P1 ouverts (Phase 7
+entière)** : 0. `flutter analyze` → 0 issue. `flutter test --concurrency=4` → 531/531 PASS.
+Functions : `npx tsc --noEmit` 0 erreur, `npm run lint` 0 warning, Jest unit 109/109 PASS, Jest
+intégration 38 suites/559 tests PASS. Décisions Phase 8 les plus importantes : voir
+`docs/PILOT_READINESS.md` (AC-2).
