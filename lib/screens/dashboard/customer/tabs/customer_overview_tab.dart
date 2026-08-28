@@ -24,7 +24,7 @@ class CustomerOverviewTab extends StatelessWidget {
     final locale = localeProvider.locale;
     final t = localeProvider.t;
 
-    if (!auth.isSignedIn || auth.user == null) {
+    if (!auth.isSignedIn || auth.effectiveUid == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -33,14 +33,46 @@ class CustomerOverviewTab extends StatelessWidget {
       );
     }
 
-    final customerId = auth.user!.uid;
-    final displayName = auth.user!.displayName ?? auth.user!.email ?? '';
+    // Phase 7, Bloc AB (AB-2) — utilise `effectiveUid`/`effectiveDisplayName`
+    // (seam de test déjà établi, voir `FirebaseAuthProvider` et son usage
+    // dans `CustomerTrackingScreen`) plutôt que `auth.user!.uid` : ce dernier
+    // reste `null` en mode `debugForceSignedIn` (widget tests), rendant cet
+    // écran impossible à tester sans un vrai `fb.User` (classe opaque du SDK
+    // non constructible manuellement). Comportement runtime identique avec
+    // un vrai utilisateur Firebase (`effectiveUid` retombe sur `user!.uid`).
+    final customerId = auth.effectiveUid!;
+    final displayName = auth.effectiveDisplayName ?? auth.effectiveEmail ?? '';
     final firstName = displayName.trim().isEmpty ? '' : displayName.trim().split(' ').first;
     final mechanicJobs = context.watch<MechanicRequestProvider>().forCustomer(customerId);
 
     return StreamBuilder<List<DeliveryMission>>(
       stream: BackendLocator.missionRepository.watchCustomerMissions(customerId),
       builder: (context, snapshot) {
+        // Phase 7, Bloc AB (AB-2) — GAP RÉEL corrigé : cette StreamBuilder
+        // ne testait jamais `snapshot.hasError`. En cas d'échec réel du
+        // flux (réseau, permission transitoire), `snapshot.data` reste
+        // `null` -> `deliveries` devient `[]` -> si le client n'a aucune
+        // mission mécanique non plus, l'écran affichait silencieusement
+        // _EmptyState ("vous n'avez encore aucune demande"), c'est-à-dire
+        // une VRAIE ERREUR TECHNIQUE déguisée en zéro-état légitime — very
+        // exactement l'anti-pattern interdit par AB-2. `CustomerRequestsTab`
+        // (onglet voisin) gère déjà ce cas explicitement ; on applique ici
+        // le même traitement pour rester cohérent.
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, color: AppColors.error, size: 32),
+                  const SizedBox(height: 8),
+                  Text(t('requests_error'), textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          );
+        }
         final deliveries = snapshot.data ?? const <DeliveryMission>[];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
         final total = deliveries.length + mechanicJobs.length;
