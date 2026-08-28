@@ -171,7 +171,7 @@ void main() {
     BackendLocator.ratingRepositoryOverride = null;
   });
 
-  FirebaseAuthProvider _authAsCustomer() =>
+  FirebaseAuthProvider authAsCustomer() =>
       FirebaseAuthProvider(backendConfigured: false)
         ..debugForceSignedIn = true
         ..debugForceUid = _customerId;
@@ -179,7 +179,7 @@ void main() {
   testWidgets(
     'AB-10 : mission completed sans notation existante affiche le formulaire de notation (5 étoiles + commentaire)',
     (tester) async {
-      await tester.pumpWidget(_wrap(_authAsCustomer()));
+      await tester.pumpWidget(_wrap(authAsCustomer()));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -201,7 +201,7 @@ void main() {
   testWidgets(
     'AB-10 : envoyer sans sélectionner d\'étoile affiche une erreur claire et n\'appelle JAMAIS le repository',
     (tester) async {
-      await tester.pumpWidget(_wrap(_authAsCustomer()));
+      await tester.pumpWidget(_wrap(authAsCustomer()));
       await tester.pumpAndSettle();
 
       final submitButton = find.text(
@@ -226,7 +226,7 @@ void main() {
   testWidgets(
     'AB-10 : sélectionner 4 étoiles + commentaire + envoyer appelle submitDriverRating avec les bonnes valeurs, puis affiche le remerciement',
     (tester) async {
-      await tester.pumpWidget(_wrap(_authAsCustomer()));
+      await tester.pumpWidget(_wrap(authAsCustomer()));
       await tester.pumpAndSettle();
 
       // Tap sur la 4e étoile (index 3 parmi les 5 boutons star_border).
@@ -280,7 +280,7 @@ void main() {
         comment: 'Parfait',
       );
 
-      await tester.pumpWidget(_wrap(_authAsCustomer()));
+      await tester.pumpWidget(_wrap(authAsCustomer()));
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -305,7 +305,7 @@ void main() {
     (tester) async {
       fakeRatingRepo.throwOnSubmit = true;
 
-      await tester.pumpWidget(_wrap(_authAsCustomer()));
+      await tester.pumpWidget(_wrap(authAsCustomer()));
       await tester.pumpAndSettle();
 
       final starButtons = find.byIcon(Icons.star_border);
@@ -344,7 +344,7 @@ void main() {
           MultiProvider(
             providers: [
               ChangeNotifierProvider(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider.value(value: _authAsCustomer()),
+              ChangeNotifierProvider.value(value: authAsCustomer()),
             ],
             child: Consumer<LocaleProvider>(
               builder: (context, localeProvider, _) {

@@ -6,7 +6,6 @@ import '../../providers/locale_provider.dart';
 import '../../services/demo_data_service.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
-import '../../widgets/coming_soon_badge.dart';
 
 class DeliveryLandingScreen extends StatelessWidget {
   final String locale;
@@ -77,21 +76,32 @@ class DeliveryLandingScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   _StepsRow(isDesktop: isDesktop),
                   const SizedBox(height: 48),
-                  Row(
+                  // Phase 7, Bloc AB (AB-1) — GAP RÉEL corrigé : ces deux
+                  // lignes affichaient un badge "Bientôt disponible" alors
+                  // que le suivi GPS en direct (`LiveTrackingMap` +
+                  // `watchDriverLocation`, voir CustomerTrackingScreen) et
+                  // le calcul de devis instantané (Cloud Function
+                  // `calculateDeliveryQuote`, voir
+                  // DeliveryRequestFlowScreen._requestQuote) sont déjà
+                  // pleinement implémentés et utilisés par tout nouveau
+                  // client dès sa première commande. Un badge "à venir" sur
+                  // une fonctionnalité déjà active induit le client en
+                  // erreur dès la page d'accueil du parcours livraison.
+                  const Row(
                     children: [
-                      const Icon(Icons.gps_fixed, color: AppColors.textSecondary),
-                      const SizedBox(width: 10),
-                      const Expanded(child: Text('Suivi GPS en direct pendant la livraison', style: TextStyle(color: AppColors.textSecondary))),
-                      const ComingSoonBadge(small: true),
+                      Icon(Icons.gps_fixed, color: AppColors.success),
+                      SizedBox(width: 10),
+                      Expanded(child: Text('Suivi GPS en direct pendant la livraison', style: TextStyle(color: AppColors.textSecondary))),
+                      Icon(Icons.check_circle, color: AppColors.success, size: 18),
                     ],
                   ),
                   const SizedBox(height: 14),
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(Icons.flash_on_outlined, color: AppColors.textSecondary),
-                      const SizedBox(width: 10),
-                      const Expanded(child: Text('Tarification instantanée automatisée', style: TextStyle(color: AppColors.textSecondary))),
-                      const ComingSoonBadge(small: true),
+                      Icon(Icons.flash_on_outlined, color: AppColors.success),
+                      SizedBox(width: 10),
+                      Expanded(child: Text('Tarification instantanée automatisée', style: TextStyle(color: AppColors.textSecondary))),
+                      Icon(Icons.check_circle, color: AppColors.success, size: 18),
                     ],
                   ),
                   const SizedBox(height: 40),
@@ -124,12 +134,21 @@ class _StepsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Phase 7, Bloc AB (AB-1) — GAP RÉEL corrigé : l'étape 3 annonçait
+    // "Comparez les chauffeurs", ce qui ne correspond à AUCUN écran réel du
+    // parcours. Le flux réel (DeliveryRequestFlowScreen, voir commentaire
+    // d'en-tête du fichier) ne propose jamais de comparaison ni de choix
+    // manuel de chauffeur : après confirmation du devis, la mission passe
+    // en recherche automatique (`searching_driver`) et un chauffeur est
+    // assigné côté serveur. Présenter une étape de comparaison inexistante
+    // sur la toute première page vue par un nouveau client crée une attente
+    // fausse dès le premier contact.
     final steps = [
       ('1', 'Décrivez l\'objet', Icons.inventory_2_outlined),
       ('2', 'Ajoutez les emplacements', Icons.place_outlined),
-      ('3', 'Comparez les chauffeurs', Icons.people_outline),
-      ('4', 'Réservez un créneau', Icons.event_available_outlined),
-      ('5', 'Confirmez et évaluez', Icons.star_border_rounded),
+      ('3', 'Obtenez un devis instantané', Icons.request_quote_outlined),
+      ('4', 'Un chauffeur vous est assigné', Icons.local_shipping_outlined),
+      ('5', 'Suivez et évaluez la livraison', Icons.star_border_rounded),
     ];
     final tiles = steps
         .map((s) => Container(
