@@ -1518,3 +1518,109 @@ Décision Phase 8 la plus importante identifiée : aucun backup Firestore/Storag
 intégration complète (émulateurs) : **38 suites / 559 tests PASS**, y compris
 `processStripeWebhook.test.ts` (flake connu, PASS cette exécution, non masqué/skip) et le nouveau
 `disasterRecovery.test.ts` (3/3 PASS). **P0 = 0. P1 = 0** sur l'ensemble Y+Z+AA.
+
+## BLOC AB — First User Experience : ✅ FERMÉ
+
+Simulation du parcours réel d'un nouveau client/chauffeur novice (client, chauffeur, admin),
+recherche de GAPS RÉELS sur les écrans First-Use — pas un retest des blocs déjà fermés. 3 bugs
+P2 trouvés et corrigés cette session, en plus des gaps déjà corrigés lors des sessions
+précédentes (AB-1 à AB-4, AB-10).
+
+### BUG-AB-08-01 — P2 — CORRIGÉ
+
+**Cause** : `_LineRow` (`lib/screens/customer/mission_finance_section.dart`) affichait
+libellé + valeur dans un `Row(mainAxisAlignment: spaceBetween)` sans `Expanded`/`Flexible` sur le
+libellé. Tout libellé traduit suffisamment long (ex. `finance_summary_mission_price` en FR/EN)
+combiné à une valeur monétaire dépassait la largeur disponible sur téléphone réel (320-360px),
+produisant un `RenderFlex overflowed`.
+
+**Fix** : libellé enveloppé dans `Expanded(child: Text(..., overflow: TextOverflow.ellipsis))` ;
+la valeur monétaire garde sa taille naturelle (jamais tronquable sans perdre un montant réel).
+
+**Second overflow trouvé au passage (même fichier, même famille de bug)** : le titre de section
+`_FinanceSectionBody` (`Icon` + `Text(t('finance_section_title'))`) n'avait pas non plus
+d'`Expanded`/ellipsis — corrigé avec le même pattern. Ce second gap n'avait jamais été détecté
+car la tentative de test précédente ne construisait jamais un état "chargé" réel de l'écran
+(fixture `snapshot == null`, qui ne fait jamais rendre `_LineRow` ni le header).
+
+**Preuve (test permanent)** : `test/finance/mission_finance_section_test.dart` — réécrit avec un
+nouveau seam `BackendLocator.financeRepositoryOverride` (même pattern que les autres
+repositories) permettant d'injecter un `FinancialSnapshot` NON-NULL et d'exercer le VRAI
+`MissionFinanceSection` (pas un widget recréé). 4/4 PASS :
+- État vide/non configuré (préservé, régression) — `NotConfiguredFinanceRepository`.
+- 320px, snapshot réel, 5 `_LineRow` rendues (prix mission, frais, taxes, pourboire, total),
+  aucune exception.
+- 320px, snapshot réel, libellé délibérément extrême (via injection de traduction) — la VALEUR
+  monétaire reste entièrement visible/non tronquée, le LIBELLÉ a bien `overflow:
+  TextOverflow.ellipsis` actif (preuve que la branche corrigée est utilisée), aucune exception.
+- 360px, locale EN, ligne total correcte, aucune exception.
+
+`flutter analyze` sur les fichiers concernés : **0 issue**.
+
+### BUG-AB-09-01 — P2 — CORRIGÉ
+
+**Cause** : le bouton "Sélectionner"/"Modifier" document (permis/assurance,
+`_DocumentPickerRow` dans `lib/screens/driver/driver_onboarding_screen.dart`) mesurait ~24px de
+hauteur réelle sur écran — bien sous la recommandation Android/WCAG de 48px — sur une action
+critique du parcours First-Use chauffeur (sélection de document). Régression introduite par le
+correctif précédent BUG-U-03 (`minimumSize: Size.zero` + `tapTargetSize: shrinkWrap`, utilisé
+pour éliminer un `RenderFlex overflow` à 320-360px).
+
+**Fix** : `minimumSize` porté à `Size(0, 40)` (hauteur ≥40px) tout en conservant
+`tapTargetSize: MaterialTapTargetSize.shrinkWrap` (qui ne concerne que la zone de détection HORS
+bornes visibles, pas la taille visible du bouton) et la largeur/padding du bouton inchangés —
+donc SANS régression sur le correctif BUG-U-03.
+
+**Preuve (test permanent)** : nouveau test dans
+`test/accessibility/critical_accessibility_test.dart` (groupe "AB-9 — Document upload chauffeur
+(onboarding) : tap target") mesurant `RenderBox.size.height >= 40` sur les 2 boutons de
+sélection de document, sans overflow à 320px. Régression vérifiée : `test/responsive/
+bloc_u_mobile_sanity_test.dart` (U-6.4, qui teste déjà l'absence d'overflow à 320-360px) toujours
+**11/11 PASS** après le fix.
+
+`flutter analyze` : **0 issue**.
+
+### BUG-AB-09-02 — P2 — CORRIGÉ
+
+**Cause** : `_MovikAppBar` (`lib/widgets/app_shell.dart`), partagé par ~18 écrans (auth,
+onboarding chauffeur/mécanicien, statut chauffeur, pages légales/info, etc.), avait son bandeau
+logo+"Movi-k" comme enfant direct (non flexible) du `Row` de titre. Sur mobile (`isDesktop ==
+false`), ce bandeau est le SEUL enfant du Row : sans `Flexible`, le Row garde la taille
+intrinsèque du contenu, qui grandit avec `textScale` (accessibilité utilisateur) jusqu'à
+dépasser la largeur disponible de la zone de titre sur un téléphone 320px. Trouvé en testant
+`DriverOnboardingScreen` (écran First-Use hôte de `AppShell`) à plusieurs échelles de texte
+(1.0/1.3/1.5) — overflow confirmé de 2.8px, exclusivement à `textScale >= 1.5`.
+
+**Fix** : le bloc logo+texte est désormais enveloppé dans `Flexible`, et le texte "Movi-k" a
+`overflow: TextOverflow.ellipsis` en dernier recours. La mise en page desktop (>=900px, largeur
+non contrainte) n'est pas affectée.
+
+**Preuve (test permanent)** : nouveau test dans
+`test/accessibility/critical_accessibility_test.dart` (groupe "AB-9 — AppShell (logo/marque)
+sous textScale élevé") — `DriverOnboardingScreen` rendu à `textScale=1.5` sur 320px, `Text('Movi-
+k')` toujours trouvé, `tester.takeException()` null.
+
+`flutter analyze` : **0 issue**.
+
+### Synthèse AB-1 → AB-10
+
+| Item | Statut | Bugs trouvés |
+|---|---|---|
+| AB-1 (landing client) | ✅ | 2 badges trompeurs + 1 libellé de flux incorrect (corrigés, `ec6a839`) |
+| AB-2 (zero state client) | ✅ | Erreur stream déguisée en zéro-état (corrigé, `d2c4969`) |
+| AB-3 (premier échec client) | ✅ | Texte brut backend exposé (corrigé, `058a76c`) |
+| AB-4 (nouveau chauffeur) | ✅ | Texte brut backend onboarding + AppBar 100% FR codé en dur (corrigés, `b42cb6e`/`218a13c`) |
+| AB-5 (statuts chauffeur) | ✅ | Aucun gap réel trouvé — évidence déjà en place (`driver_status_screen_test.dart`) |
+| AB-6 (admin sanity) | ✅ | Aucun gap réel trouvé — évidence déjà en place (i18n + dates admin) |
+| AB-7 (i18n sweep First-Use) | ✅ | Aucun gap résiduel trouvé (sweep ciblé, réutilise K/K2/AB-3/AB-4/AB-10) |
+| AB-8 (mobile réaliste) | ✅ | BUG-AB-08-01 + second overflow header finance (corrigés) ; gap `provider_jobs_tab` comblé |
+| AB-9 (accessibilité First-Use) | ✅ | BUG-AB-09-01 + BUG-AB-09-02 (corrigés) ; rating Semantics confirmé conforme |
+| AB-10 (rating chauffeur) | ✅ | Feature produit absente (implémentée de bout en bout, `c657368`) |
+
+**Validation finale AB** : `flutter analyze` (project-wide) → **0 issue**. `flutter test
+--concurrency=4` → **531/531 PASS**, 0 skip, 0 rouge.
+
+**P0 ouverts (AB)** : 0. **P1 ouverts (AB)** : 0. P2 trouvés et corrigés (AB) : BUG-AB-08-01,
+BUG-AB-09-01, BUG-AB-09-02 (3/3).
+
+# BLOC AB : ✅ FERMÉ

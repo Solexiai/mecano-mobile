@@ -1357,3 +1357,27 @@ interférence avec le reste de la suite. Aucun fichier Flutter/Dart touché dans
 Bloc X).
 
 **P0 ouverts (Y+Z+AA)** : 0. **P1 ouverts (Y+Z+AA)** : 0.
+
+## MISE À JOUR — BLOC AB (First User Experience) : ✅ FERMÉ
+
+| Domaine | Fonction | Statut | Preuve |
+|---|---|---|---|
+| Client | Landing / première impression | ✅ COUVERT | `ec6a839` — badges "Bientôt disponible" trompeurs + libellé flux incorrect corrigés |
+| Client | Zero state (aucune mission) | ✅ COUVERT | `d2c4969` — erreur stream ne se déguise plus en zéro-état ; test dédié 2/2 PASS |
+| Client | Premier échec (quote/mission) | ✅ COUVERT | `058a76c` — texte brut backend éliminé, mappage i18n systématique ; 4/4 tests PASS |
+| Client | Finance mission terminée (320-360px) | ✅ COUVERT | BUG-AB-08-01 corrigé + testé (4/4 PASS), second overflow header corrigé |
+| Client | Rating chauffeur (i18n + accessibilité) | ✅ COUVERT | `c657368` (6/6 PASS) + nouveau test Semantics AB-9 (labels + état sélectionné) |
+| Chauffeur | Onboarding (texte brut + i18n) | ✅ COUVERT | `b42cb6e` — texte brut backend éliminé ; 2 tests dédiés |
+| Chauffeur | Dashboard (i18n AppBar) | ✅ COUVERT | `218a13c` — 3 chaînes FR codées en dur remplacées, testé en EN (0 occurrence résiduelle) |
+| Chauffeur | Statuts (pending/documents/approved/rejected/suspended/inactive) | ✅ COUVERT | `test/driver/driver_status_screen_test.dart` — 7/7 statuts + cas transverses |
+| Chauffeur | Document upload (tap target) | ✅ COUVERT | BUG-AB-09-01 corrigé (24px → ≥40px), test permanent (mesure `RenderBox.size`) |
+| Chauffeur | Première mission disponible (320-360px) | ✅ COUVERT | Nouveau test AB-8 `provider_jobs_tab_test.dart` — carte + CTA visibles, texte long, pas d'overflow |
+| Chauffeur | Preuve de livraison (fonctionnel) | ✅ COUVERT | `driver_active_mission_proof_upload_test.dart` (déjà existant, réutilisé sans duplication) |
+| Admin | Liste/détail chauffeur (i18n + dates) | ✅ COUVERT | `k5_residual_screens_locale_render_test.dart` (i18n) + `k2_utc_local_boundary_test.dart` (dates localisées) |
+| Transverse | AppShell (textScale élevé) | ✅ COUVERT | BUG-AB-09-02 corrigé (Flexible+ellipsis), test permanent `textScale=1.5`/320px |
+
+**Validation associée** : `flutter analyze` (project-wide) → **0 issue**. `flutter test
+--concurrency=4` → **531/531 PASS**, 0 skip, 0 rouge. **P0 ouverts (AB)** : 0. **P1 ouverts
+(AB)** : 0. P2 trouvés et corrigés : BUG-AB-08-01, BUG-AB-09-01, BUG-AB-09-02 (3/3).
+
+**BLOC AB : ✅ FERMÉ.**
