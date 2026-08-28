@@ -749,11 +749,28 @@ class _DocumentPickerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // BUG-AB-09-01 (P2, AB-9) — GAP RÉEL trouvé pendant le sanity
+          // accessibilité : le style compact introduit par BUG-U-03 (pour
+          // corriger un `RenderFlex overflow` à 320-360px) fixait
+          // `minimumSize: Size.zero` + `tapTargetSize: shrinkWrap`, ce qui
+          // produisait une cible tactile mesurée de seulement 24px de haut
+          // (bien sous les 48px recommandés Android/WCAG) sur une action
+          // critique du parcours chauffeur (sélection de document
+          // permis/assurance). Corrigé en portant `minimumSize` à une
+          // hauteur de 40px tout en gardant `tapTargetSize: shrinkWrap`
+          // (qui ne concerne que la zone de détection HORS bornes visibles,
+          // pas la taille du bouton lui-même) — la largeur du bouton ne
+          // change pas, donc le correctif BUG-U-03 (absence d'overflow
+          // 320-360px) reste intact. Test de régression :
+          // `test/responsive/bloc_u_mobile_sanity_test.dart` (U-6.4, qui
+          // vérifie déjà l'absence d'overflow à ces largeurs) +
+          // `test/accessibility/critical_accessibility_test.dart`
+          // (BUG-AB-09-01).
           OutlinedButton(
             onPressed: busy ? null : onPick,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              minimumSize: const Size(0, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               textStyle: const TextStyle(fontSize: 11.5),
             ),

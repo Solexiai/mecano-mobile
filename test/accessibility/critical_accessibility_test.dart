@@ -26,6 +26,7 @@
 // ---------------------------------------------------------------------------
 
 import 'dart:math' as math;
+import 'dart:ui' show SemanticsFlag;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,15 +35,20 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:movik_connect/backend/backend_locator.dart';
+import 'package:movik_connect/backend/backend_status.dart';
+import 'package:movik_connect/backend/models/delivery_mission.dart';
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
 import 'package:movik_connect/backend/repositories/driver_repository.dart';
+import 'package:movik_connect/backend/repositories/mission_repository.dart';
 import 'package:movik_connect/core/app_colors.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/auth/auth_screen.dart';
+import 'package:movik_connect/screens/customer/customer_tracking_screen.dart';
 import 'package:movik_connect/screens/dashboard/provider/provider_dashboard_shell.dart';
+import 'package:movik_connect/screens/driver/driver_onboarding_screen.dart';
 import 'package:movik_connect/widgets/notification_bell.dart';
 import 'package:movik_connect/backend/repositories/notification_repository.dart';
 import 'package:movik_connect/backend/models/app_notification.dart';
@@ -353,8 +359,245 @@ void main() {
           reason: 'documente le gap réel de la couleur warning brute (non utilisée pour du texte critique)');
     });
   });
+
+  // ---------------------------------------------------------------------
+  // AB-9 — Accessibilité First-Use (Phase 7, Bloc AB). Sanity ciblée, ne
+  // refait PAS le Bloc L complet : réutilise les patterns/harnais déjà
+  // établis ci-dessus (AuthScreen, ProviderDashboardShell) et couvre en
+  // plus les écrans/actions spécifiquement listés par la directive AB-9
+  // (rating, document upload chauffeur).
+  // ---------------------------------------------------------------------
+  group('AB-9 — Rating (1-5 étoiles) accessible', () {
+    testWidgets(
+      'chaque étoile 1..5 est identifiable via Semantics, l\'état sélectionné '
+      'est distinct, et le bouton submit est accessible',
+      (tester) async {
+        // Réutilise EXACTEMENT le seam déjà établi par AB-10
+        // (customer_tracking_rating_test.dart) : mission `completed`, pas
+        // de notation existante -> le formulaire de notation est rendu.
+        BackendLocator.missionRepositoryOverride =
+            _FakeCompletedMissionRepository(_completedMissionForRating());
+
+        await tester.pumpWidget(_wrapCustomerTracking());
+        await tester.pumpAndSettle();
+
+        // Les 5 étoiles sont chacune identifiables individuellement par un
+        // lecteur d'écran : Semantics(label: 'N étoile', selected: bool).
+        for (var value = 1; value <= 5; value++) {
+          final label = '$value ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}';
+          final semanticsFinder = find.bySemanticsLabel(label);
+          expect(
+            semanticsFinder,
+            findsOneWidget,
+            reason: 'étoile $value doit être identifiable individuellement',
+          );
+        }
+
+        // Avant sélection : aucune étoile n'annonce `selected: true`.
+        final beforeNode = tester.getSemantics(find.bySemanticsLabel(
+          '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
+        ));
+        // ignore: deprecated_member_use
+        expect(beforeNode.hasFlag(SemanticsFlag.isSelected), isFalse);
+
+        // Sélectionner la 3e étoile -> l'état "sélectionné" devient
+        // compréhensible (flag Semantics isSelected passe à true pour
+        // cette étoile), ce qui est distinct d'un simple changement de
+        // couleur (annoncé aux lecteurs d'écran, pas seulement visuel).
+        // Écran par défaut 800x600 en `SingleChildScrollView` : le
+        // formulaire de notation n'est pas forcément visible sans scroll
+        // explicite (même convention que customer_tracking_rating_test.dart).
+        final thirdStar = find.byIcon(Icons.star_border).at(2);
+        await tester.ensureVisible(thirdStar);
+        await tester.pumpAndSettle();
+        await tester.tap(thirdStar);
+        await tester.pumpAndSettle();
+
+        final afterNode = tester.getSemantics(find.bySemanticsLabel(
+          '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
+        ));
+        // ignore: deprecated_member_use
+        expect(afterNode.hasFlag(SemanticsFlag.isSelected), isTrue);
+
+        // Le bouton d'envoi de la notation est accessible (texte lisible,
+        // pas icon-only).
+        final submitButton = find.text(
+          AppStrings.t('customer_tracking_rate_driver_submit', 'fr'),
+        );
+        await tester.ensureVisible(submitButton);
+        expect(submitButton, findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    tearDown(() {
+      BackendLocator.missionRepositoryOverride = null;
+    });
+  });
+
+  group('AB-9 — Document upload chauffeur (onboarding) : tap target', () {
+    testWidgets(
+      'BUG-AB-09-01 (P2, CORRIGÉ) : bouton "Sélectionner" document permis/'
+      'assurance mesure désormais >= 40px de hauteur (au lieu de 24px '
+      'avant correctif), tout en restant sans overflow à 320px',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final auth = FirebaseAuthProvider(backendConfigured: false);
+        final router = GoRouter(
+          initialLocation: '/fr/devenir-chauffeur/inscription',
+          routes: [
+            GoRoute(
+              path: '/fr/devenir-chauffeur/inscription',
+              builder: (c, s) => const DriverOnboardingScreen(locale: 'fr'),
+            ),
+            GoRoute(
+              path: '/fr/devenir-chauffeur/statut',
+              builder: (c, s) => const Scaffold(body: Text('STATUS_STUB')),
+            ),
+          ],
+        );
+        await tester.pumpWidget(MultiProvider(
+          providers: [
+            ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+            ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+            Provider<BackendStatus>.value(value: const BackendStatus.ready()),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(find.byType(TextField).at(0), 'Jean Tremblay');
+        await tester.enterText(find.byType(TextField).at(1), 'jean.tremblay@example.com');
+        await tester.enterText(find.byType(TextField).at(2), 'motdepasse123');
+        await tester.pump();
+        for (var i = 0; i < 3; i++) {
+          final nextButton = find.widgetWithText(ElevatedButton, AppStrings.t('common_next', 'fr'));
+          await tester.ensureVisible(nextButton);
+          await tester.pumpAndSettle();
+          await tester.tap(nextButton);
+          await tester.pumpAndSettle();
+        }
+
+        final selectButtons = find.widgetWithText(
+          OutlinedButton,
+          AppStrings.t('driver_onboarding_document_select', 'fr'),
+        );
+        expect(selectButtons, findsNWidgets(2));
+        for (final element in selectButtons.evaluate()) {
+          final size = (element.renderObject as RenderBox).size;
+          expect(
+            size.height,
+            greaterThanOrEqualTo(40),
+            reason: 'BUG-AB-09-01 : le bouton devait mesurer >= 40px de haut après correctif',
+          );
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('AB-9 — AppShell (logo/marque) sous textScale élevé', () {
+    testWidgets(
+      'BUG-AB-09-02 (P2, CORRIGÉ) : le bandeau "Movi-k" de _MovikAppBar ne '
+      'provoque plus de RenderFlex overflow à textScale=1.5 sur 320px '
+      '(DriverOnboardingScreen, écran First-Use partagé via AppShell)',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 900);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final auth = FirebaseAuthProvider(backendConfigured: false);
+        await tester.pumpWidget(MultiProvider(
+          providers: [
+            ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+            ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+            Provider<BackendStatus>.value(value: const BackendStatus.ready()),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: child!,
+            ),
+            home: const DriverOnboardingScreen(locale: 'fr'),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Movi-k'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
 }
 
 double _srgbToLinear(double v) {
   return v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+}
+
+// ---------------------------------------------------------------------------
+// Fixtures AB-9 — réutilisent le pattern déjà établi (mission `completed`,
+// watch-only) de `customer_tracking_rating_test.dart` sans le dupliquer
+// intégralement (seule la mission est reconstruite ici, aucun nouveau seam).
+// ---------------------------------------------------------------------------
+const _ab9CustomerId = 'customer_ab09';
+const _ab9MissionId = 'mission_ab09_completed';
+
+DeliveryMission _completedMissionForRating() {
+  return DeliveryMission(
+    id: _ab9MissionId,
+    customerId: _ab9CustomerId,
+    customerDisplayName: 'Client AB-9',
+    itemCategoryKey: 'cat_furniture',
+    description: 'Colis test AB-9',
+    requiredVehicleCategory: VehicleCategory.cargoVan,
+    status: MissionStatus.completed,
+    driverId: 'driver_ab09',
+    driverDisplayName: 'Chauffeur AB-9',
+    pricingVersion: 'TEST',
+    createdAt: DateTime(2026, 1, 1),
+    completedAt: DateTime(2026, 1, 1, 12, 0),
+    driverOfferAmount: 30,
+    customerTotal: 45,
+  );
+}
+
+class _FakeCompletedMissionRepository implements MissionRepository {
+  final DeliveryMission mission;
+  const _FakeCompletedMissionRepository(this.mission);
+
+  @override
+  Stream<DeliveryMission?> watchMission(String missionId) => Stream.value(mission);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+Widget _wrapCustomerTracking() {
+  final auth = FirebaseAuthProvider(backendConfigured: false)
+    ..debugForceSignedIn = true
+    ..debugForceUid = _ab9CustomerId;
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+    ],
+    child: MaterialApp.router(
+      routerConfig: GoRouter(
+        initialLocation: '/fr/livraison/suivi/$_ab9MissionId',
+        routes: [
+          GoRoute(
+            path: '/fr/livraison/suivi/:missionId',
+            builder: (c, s) => CustomerTrackingScreen(
+              missionId: s.pathParameters['missionId']!,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }

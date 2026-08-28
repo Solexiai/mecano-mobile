@@ -164,11 +164,23 @@ class _FinanceSectionBody extends StatelessWidget {
                 color: AppColors.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                t('finance_section_title'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+              // BUG-AB-08-01 (P2, AB-8) — même famille de GAP que `_LineRow`
+              // ci-dessous : ce `Text` non contraint pouvait, avec un
+              // libellé traduit long (`finance_section_title`) combiné à
+              // l'icône, dépasser la largeur disponible à 320px (téléphone
+              // réel), provoquant un `RenderFlex overflowed`. Corrigé en
+              // enveloppant le titre dans un `Expanded` avec ellipsis — voir
+              // test de régression permanent :
+              // `test/finance/mission_finance_section_test.dart` (groupe
+              // "BUG-AB-08-01").
+              Expanded(
+                child: Text(
+                  t('finance_section_title'),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ],
@@ -295,8 +307,9 @@ class _LineRow extends StatelessWidget {
     // `RenderFlex overflowed`. Corrigé en enveloppant le libellé dans un
     // `Expanded` (il peut s'abréger par ellipsis si nécessaire) tandis que
     // la valeur — toujours courte et jamais tronquable sans perdre un
-    // montant réel — garde sa taille naturelle. Test de régression :
-    // `mission_finance_section_viewport_test.dart`.
+    // montant réel — garde sa taille naturelle. Test de régression
+    // permanent : `test/finance/mission_finance_section_test.dart`
+    // (groupe "BUG-AB-08-01").
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
