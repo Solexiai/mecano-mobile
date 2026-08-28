@@ -41,6 +41,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
 import 'package:movik_connect/backend/repositories/driver_repository.dart';
+import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
@@ -103,22 +104,24 @@ class _FakeDriverRepository implements DriverRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-Widget _wrap(FirebaseAuthProvider auth) {
+Widget _wrap(FirebaseAuthProvider auth, {String locale = 'fr'}) {
   return MultiProvider(
     providers: [
-      ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider<LocaleProvider>(
+        create: (_) => LocaleProvider()..setLocale(locale),
+      ),
       ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
     ],
     child: MaterialApp.router(
       routerConfig: GoRouter(
-        initialLocation: '/fr/provider/dashboard',
+        initialLocation: '/$locale/provider/dashboard',
         routes: [
           GoRoute(
-            path: '/fr/provider/dashboard',
+            path: '/$locale/provider/dashboard',
             builder: (c, s) => const ProviderDashboardShell(),
           ),
           GoRoute(
-            path: '/fr/connexion',
+            path: '/$locale/connexion',
             builder: (c, s) => const Scaffold(body: Text('AUTH_SCREEN')),
           ),
         ],
@@ -270,6 +273,39 @@ void main() {
       // Aucun crash non capturé : ProviderDashboardShell._toggleAvailability
       // capture l'exception dans un try/catch et affiche un SnackBar.
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  // Phase 7, Bloc AB (AB-4, gap AB-4-B) — GAP RÉEL corrigé : le titre
+  // "Espace fournisseur" et les libellés "Disponible"/"Hors ligne" de
+  // l'AppBar étaient codés en dur en français, donc affichés tels quels
+  // même en EN/ES (mélange de langue visible dans le tableau de bord
+  // chauffeur — viole AB-7). Vérifie ici que la locale EN ne montre plus
+  // AUCUN de ces 3 textes français.
+  testWidgets(
+    'Phase 7, Bloc AB (AB-4, gap AB-4-B) -> locale EN : aucun texte français codé en dur '
+    "(titre \"Espace fournisseur\", libellés \"Disponible\"/\"Hors ligne\")",
+    (tester) async {
+      final fakeRepo = _FakeDriverRepository(
+        _buildProfile(status: DriverStatus.approved),
+      );
+      BackendLocator.driverRepositoryOverride = fakeRepo;
+
+      await tester.pumpWidget(_wrap(_signedInDriver(), locale: 'en'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Espace fournisseur'), findsNothing);
+      expect(find.text('Disponible'), findsNothing);
+      expect(find.text('Hors ligne'), findsNothing);
+
+      // Le titre traduit et le libellé "hors ligne" (offline par défaut)
+      // doivent être visibles à la place.
+      expect(find.text(AppStrings.t('nav_provider_space', 'en')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_status_offline_label_short', 'en')),
+        findsOneWidget,
+      );
     },
   );
 }

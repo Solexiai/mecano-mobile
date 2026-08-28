@@ -164,11 +164,23 @@ class _FinanceSectionBody extends StatelessWidget {
                 color: AppColors.primary,
               ),
               const SizedBox(width: 8),
-              Text(
-                t('finance_section_title'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+              // BUG-AB-08-01 (P2, AB-8) — même famille de GAP que `_LineRow`
+              // ci-dessous : ce `Text` non contraint pouvait, avec un
+              // libellé traduit long (`finance_section_title`) combiné à
+              // l'icône, dépasser la largeur disponible à 320px (téléphone
+              // réel), provoquant un `RenderFlex overflowed`. Corrigé en
+              // enveloppant le titre dans un `Expanded` avec ellipsis — voir
+              // test de régression permanent :
+              // `test/finance/mission_finance_section_test.dart` (groupe
+              // "BUG-AB-08-01").
+              Expanded(
+                child: Text(
+                  t('finance_section_title'),
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ],
@@ -285,17 +297,34 @@ class _LineRow extends StatelessWidget {
       fontSize: bold ? 14 : 13,
       fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
     );
+    // BUG-AB-08-01 (P2, AB-8) — GAP RÉEL trouvé pendant le sweep mobile de
+    // la vue "mission complétée" (carte finance, sous la notation AB-10) :
+    // `label` et `value` en `Row(mainAxisAlignment: spaceBetween)` SANS
+    // aucun `Expanded`/`Flexible` — dès qu'un libellé traduit long (ex.
+    // "finance_summary_mission_price" en FR/EN) est combiné à une valeur
+    // monétaire, la somme des deux largeurs naturelles dépasse la largeur
+    // disponible à 320-360px de large (téléphone réel), provoquant un
+    // `RenderFlex overflowed`. Corrigé en enveloppant le libellé dans un
+    // `Expanded` (il peut s'abréger par ellipsis si nécessaire) tandis que
+    // la valeur — toujours courte et jamais tronquable sans perdre un
+    // montant réel — garde sa taille naturelle. Test de régression
+    // permanent : `test/finance/mission_finance_section_test.dart`
+    // (groupe "BUG-AB-08-01").
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: style.copyWith(
-              color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+          Expanded(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: style.copyWith(
+                color: bold ? AppColors.textPrimary : AppColors.textSecondary,
+              ),
             ),
           ),
+          const SizedBox(width: 8),
           Text(value, style: style),
         ],
       ),

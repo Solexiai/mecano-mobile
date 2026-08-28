@@ -68,6 +68,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../backend/backend_exceptions.dart';
 import '../../backend/backend_locator.dart';
 import '../../backend/backend_status.dart';
 import '../../backend/models/driver_document.dart';
@@ -461,9 +462,52 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _submitError = '${t('driver_onboarding_error_generic_prefix')} $e';
+        _submitError = _describeSubmitError(e, t);
       });
     }
+  }
+
+  // Phase 7, Bloc AB (AB-4, gap AB-4-A) — GAP RÉEL corrigé : `_handleSubmit`
+  // affichait AUPARAVANT `'${t('driver_onboarding_error_generic_prefix')}
+  // $e'` — c'est-à-dire le préfixe traduit SUIVI du texte BRUT de
+  // l'exception. Or `submitDriverOnboarding`/`submitDriverVehicle`/
+  // `submitForReview` (voir `firebase_driver_repository.dart`) lèvent
+  // `BackendNotConfiguredException`/`CloudFunctionException` avec des
+  // messages internes en français non traduits (ex. "submitDriverOnboarding:
+  // registerAsDriver a échoué (failed-precondition): driver_profiles/xyz
+  // introuvable."), qui :
+  //   - révèlent des noms de Cloud Functions / collections Firestore
+  //     internes à un chauffeur candidat qui vient tout juste de démarrer
+  //     son inscription (AB-4 : "sait-il quoi faire ensuite ?" — non, un
+  //     texte technique en français brut ne répond pas à cette exigence,
+  //     même quand la locale active est EN ou ES : c'est le même
+  //     anti-pattern de mélange de langues déjà corrigé en AB-3-A) ;
+  //   - ne sont jamais traduits, donc cassent l'exigence AB-7 (aucun
+  //     mélange de langue, aucun texte technique visible) ;
+  //   - dans le cas d'un refus par kill switch (Bloc X), auraient affiché
+  //     le préfixe générique de préinscription au lieu du message stable
+  //     `service_temporarily_unavailable`, bien qu'aucun chemin connu du
+  //     flux d'inscription ne soit actuellement protégé par un kill switch
+  //     — la vérification est faite ici par défense en profondeur, pour
+  //     rester cohérente avec le pattern établi en AB-3 et éviter une
+  //     régression future si un kill switch venait à protéger l'inscription.
+  //
+  // Correctif (même pattern que AB-3-A, voir `delivery_request_flow_screen.
+  // dart::_describeError`) : le détail brut de l'exception n'est plus
+  // JAMAIS affiché à l'utilisateur ; seul un message entièrement traduit
+  // est montré (préfixe existant seul, ou clé i18n kill switch dédiée), le
+  // détail technique est journalisé via `debugPrint` pour le développeur.
+  String _describeSubmitError(Object e, String Function(String) t) {
+    if (isKillSwitchException(e)) {
+      debugPrint('DriverOnboardingScreen kill-switch refusal: $e');
+      return t('service_temporarily_unavailable');
+    }
+    if (e is CloudFunctionException || e is BackendNotConfiguredException) {
+      debugPrint('DriverOnboardingScreen error (not shown to user): $e');
+      return t('driver_onboarding_error_generic_prefix');
+    }
+    debugPrint('DriverOnboardingScreen unexpected error (not shown to user): $e');
+    return t('driver_onboarding_error_generic_prefix');
   }
 
   /// BUG-U-01 : sélection RÉELLE d'un fichier (photo ou PDF) via
@@ -705,11 +749,28 @@ class _DocumentPickerRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          // BUG-AB-09-01 (P2, AB-9) — GAP RÉEL trouvé pendant le sanity
+          // accessibilité : le style compact introduit par BUG-U-03 (pour
+          // corriger un `RenderFlex overflow` à 320-360px) fixait
+          // `minimumSize: Size.zero` + `tapTargetSize: shrinkWrap`, ce qui
+          // produisait une cible tactile mesurée de seulement 24px de haut
+          // (bien sous les 48px recommandés Android/WCAG) sur une action
+          // critique du parcours chauffeur (sélection de document
+          // permis/assurance). Corrigé en portant `minimumSize` à une
+          // hauteur de 40px tout en gardant `tapTargetSize: shrinkWrap`
+          // (qui ne concerne que la zone de détection HORS bornes visibles,
+          // pas la taille du bouton lui-même) — la largeur du bouton ne
+          // change pas, donc le correctif BUG-U-03 (absence d'overflow
+          // 320-360px) reste intact. Test de régression :
+          // `test/responsive/bloc_u_mobile_sanity_test.dart` (U-6.4, qui
+          // vérifie déjà l'absence d'overflow à ces largeurs) +
+          // `test/accessibility/critical_accessibility_test.dart`
+          // (BUG-AB-09-01).
           OutlinedButton(
             onPressed: busy ? null : onPick,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              minimumSize: const Size(0, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               textStyle: const TextStyle(fontSize: 11.5),
             ),

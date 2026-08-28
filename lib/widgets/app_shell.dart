@@ -82,22 +82,43 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: isDesktop ? 24 : 0,
       title: Row(
         children: [
-          GestureDetector(
-            onTap: () => context.go('/$locale'),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.deliveryGradient,
-                    borderRadius: BorderRadius.circular(10),
+          // BUG-AB-09-02 (P2, AB-9) — le logo/marque était un enfant direct
+          // (non flexible) de ce Row de titre. Sur mobile (`isDesktop ==
+          // false`), c'est le SEUL enfant du Row : sans `Flexible`, le Row
+          // conserve la taille intrinsèque du `GestureDetector`, qui grandit
+          // avec `textScale` (accessibilité) jusqu'à dépasser la largeur
+          // disponible de la zone de titre sur un téléphone 320 px — d'où un
+          // `RenderFlex overflowed` visible seulement à `textScale >= 1.5`.
+          // Corrigé en rendant le bloc logo+texte flexible, et en permettant
+          // au texte "Movi-k" de s'ellipser en dernier recours, sans jamais
+          // changer la mise en page desktop (>=900px, non affectée). Test de
+          // régression permanent :
+          // `test/accessibility/critical_accessibility_test.dart`
+          // (groupe "AB-9 — AppShell").
+          Flexible(
+            child: GestureDetector(
+              onTap: () => context.go('/$locale'),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.deliveryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.bolt, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.bolt, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Text('Movi-k', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 20)),
-              ],
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      'Movi-k',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (isDesktop) const SizedBox(width: 40),

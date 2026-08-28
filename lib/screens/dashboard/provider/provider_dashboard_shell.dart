@@ -117,10 +117,10 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           IconButton(onPressed: () => context.go('/$locale'), icon: const Icon(Icons.arrow_back)),
           if (!isNarrowPhone) const SizedBox(width: 4),
           if (!isNarrowPhone)
-            const Expanded(
+            Expanded(
               child: Text(
-                'Espace fournisseur',
-                style: TextStyle(fontWeight: FontWeight.w700),
+                t('nav_provider_space'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -132,7 +132,14 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
               final profile = snap.data;
               final online = profile?.onlineStatus == DriverOnlineStatus.online;
               final canGoOnline = profile?.status.canGoOnline ?? false;
-              final statusLabel = online ? 'Disponible' : 'Hors ligne';
+              // Phase 7, Bloc AB (AB-4, gap AB-4-B) — GAP RÉEL corrigé :
+              // ces libellés étaient codés en dur en français
+              // ("Disponible"/"Hors ligne"), donc affichés tels quels
+              // même en EN/ES (mélange de langue visible dans l'AppBar
+              // du tableau de bord chauffeur — viole AB-7).
+              final statusLabel = online
+                  ? t('driver_status_online_label_short')
+                  : t('driver_status_offline_label_short');
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [

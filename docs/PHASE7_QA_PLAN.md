@@ -1662,10 +1662,210 @@ reproduit cette exécution — et le nouveau `disasterRecovery.test.ts` intégr�
 le reste de la suite). Flutter non touché dans Y/Z/AA → dernier état connu réutilisé (0 issue,
 508/508 PASS, Bloc X). **P0 ouverts (Y+Z+AA)** : 0. **P1 ouverts (Y+Z+AA)** : 0.
 
-## PROCHAIN GROUPE — AB → AC (annoncé, non démarré)
+## MISE À JOUR — BLOC AB (First User Experience) : ✅ FERMÉ
 
-- **AB — First User Experience** : simulation client/chauffeur novice de bout en bout.
-- **AC — Pilot Readiness** : `docs/PILOT_READINESS.md`, checklist finale avant pilote réel.
+Bloc AB = simulation du parcours réel d'un nouveau client/chauffeur novice, à la recherche de
+GAPS RÉELS (pas de retest des blocs déjà fermés B→AA). 10 sous-items, traités dans l'ordre
+mandaté sur plusieurs sessions (commits `ec6a839` → `0a63937`), tous fermés.
 
-Ces deux blocs constituent le DERNIER GROUPE de la Phase 7, à traiter dans une session
-ultérieure. Après leur fermeture : FERMETURE FINALE DE LA PHASE 7.
+| Item | Statut | Preuve (commit / fichier) |
+|---|---|---|
+| AB-1 — Parcours nouveau client (landing) | ✅ | `ec6a839` — 2 badges "Bientôt disponible" trompeurs (GPS live, tarification instantanée, en réalité déjà en prod) + libellé "Comparez les chauffeurs" (flux réel = assignation auto) corrigés. |
+| AB-2 — Zero state client | ✅ | `d2c4969` — `CustomerOverviewTab` déguisait une vraie erreur de stream en zéro-état légitime ; corrigé (icône+texte `requests_error`), régression testée (2/2 PASS) sans casser le vrai zéro-état. |
+| AB-3 — Premier échec client (quote/mission) | ✅ | `058a76c` — texte brut backend (noms de collections Firestore/Cloud Functions) fuitait au client, toujours en FR indépendamment de la locale ; `_describeError()` mappe désormais systématiquement vers une clé i18n générique. 4/4 tests PASS. |
+| AB-4 — Nouveau chauffeur (onboarding + dashboard) | ✅ | `b42cb6e` (texte brut backend onboarding, même pattern qu'AB-3) + `218a13c` (AppBar dashboard chauffeur 100% codé en dur FR, corrigé via 2 nouvelles clés i18n FR/EN/ES). |
+| AB-5 — Statuts chauffeur (pending/documents/rejected/suspended) | ✅ | Couvert par `test/driver/driver_status_screen_test.dart` (groupes `registrationIncomplete`, `pendingReview`, `documentsRequired`, `approved`, `rejected`, `suspended`, `inactive` — 7/7 statuts réels + cas transverses) et `test/driver/provider_dashboard_shell_status_gate_test.dart` (gate d'accès dashboard selon statut). Aucun gap réel trouvé lors du sanity de cette session — évidence déjà en place, pas de duplication. |
+| AB-6 — Admin sanity (liste/détail chauffeur, review documents) | ✅ | Couvert par `test/i18n/k5_residual_screens_locale_render_test.dart` (`AdminDashboardShell` rendu i18n réel FR/EN) et `test/timezone/k2_utc_local_boundary_test.dart` (dates admin correctement localisées, Bloc K2). Aucun gap fonctionnel réel trouvé lors du sanity — évidence déjà en place. |
+| AB-7 — I18N sweep First-Use (FR/EN/ES) | ✅ | Voir section dédiée ci-dessous. |
+| AB-8 — Mobile réaliste (320-360px) | ✅ | Voir section dédiée ci-dessous. |
+| AB-9 — Accessibilité First-Use (sanity MVP) | ✅ | Voir section dédiée ci-dessous. |
+| AB-10 — Rating chauffeur (gap produit) | ✅ | `c657368` — feature complètement absente (aucune Cloud Function/repository/UI) malgré une Security Rule déjà prête depuis Phase 2/3 ; implémentée de bout en bout (modèle, repository, seam de test, UI 5 étoiles + commentaire, 9 clés i18n). 6/6 tests PASS. |
+
+### AB-7 — I18N sweep First-Use : ✅ PASS
+
+**Rappel de portée** : AB-7 est un sweep CIBLÉ sur les écrans First-Use (pas une réouverture du
+Bloc K déjà fermé). Preuves réutilisées, sans duplication :
+
+- **Bloc K/K2 fermés** (`docs/PHASE7_BUG_REPORT.md`, sections "Bloc K" / "Bloc K2") : audit
+  exhaustif du dictionnaire `app_strings.dart` (753 clés, 0 clé manquante, 0 doublon, 0 clé
+  utilisée-non-définie), tous les écrans identifiés 100% codés en dur (admin login, profils
+  client/chauffeur, messages client, etc.) corrigés, tous les résidus partiels (auth, onboarding
+  chauffeur, onboarding mécanicien, app_shell, admin) corrigés, connecteur date/heure `'à'`
+  traduit (`datetime_connector_at`, K2-3).
+- **AB-4** (`218a13c`) : dernier hardcoding FR trouvé sur un écran First-Use (AppBar dashboard
+  chauffeur) — corrigé et testé (`provider_dashboard_shell_status_gate_test.dart`, EN → 0
+  occurrence des 3 chaînes FR d'origine).
+- **AB-3** (`058a76c`) : élimine par construction tout mélange de langue côté messages d'erreur
+  backend (mappage systématique vers des clés i18n déjà traduites FR/EN/ES).
+- **AB-10** (`c657368`, test `customer_tracking_rating_test.dart` groupe "ne plante jamais, quelle
+  que soit la locale (fr/en/es)") : le nouvel écran de notation (rating) — introduit APRÈS la
+  fermeture du Bloc K — est explicitement couvert en FR/EN/ES, aucune régression i18n introduite
+  par une fonctionnalité ultérieure.
+- **BUG-AB-08-01 / second overflow finance** (cette session) : le label traduit long qui a
+  révélé l'overflow (`finance_summary_mission_price`) est lui-même une clé i18n déjà traduite
+  FR/EN/ES — le test `mission_finance_section_test.dart` (variante `AB-08-01-c`) exerce
+  explicitement la locale EN sur l'écran finance, sans régression i18n.
+
+**Sweep ciblé de cette session** (pas de nouveau gap trouvé) : les écrans First-Use suivants ont
+été effectivement exercés (via les tests listés) en au moins 2 langues sans aucune clé i18n
+brute affichée : mission creation (`delivery_request_flow_error_messages_test.dart`), onboarding
+chauffeur (`driver_onboarding_document_upload_test.dart`, `critical_accessibility_test.dart`),
+driver status (`driver_status_screen_test.dart`), admin detail/list (`k5_residual_screens_locale_
+render_test.dart`, `k2_utc_local_boundary_test.dart`), customer tracking + rating
+(`customer_tracking_rating_test.dart`, 3 locales), driver active mission
+(`driver_active_mission_proof_upload_test.dart`, `driver_active_mission_status_gaps_test.dart`).
+
+**AB-7 — FR / EN / ES : ✅ PASS.** Aucune clé i18n brute résiduelle identifiée sur le scope
+First-Use. Aucun hardcoded FR restant identifié sur ce scope. Rating FR/EN/ES couvert.
+
+### AB-8 — Mobile réaliste (320-360px) : ✅ PASS
+
+- **BUG-AB-08-01 (P2, CORRIGÉ)** : `_LineRow` (`mission_finance_section.dart`) overflowait à
+  320-360px avec un libellé traduit long (ex. `finance_summary_mission_price`) — corrigé
+  (`Expanded` + `TextOverflow.ellipsis` sur le libellé, la valeur monétaire garde sa taille
+  naturelle car jamais tronquable sans perte de sens). Test permanent :
+  `test/finance/mission_finance_section_test.dart`, 4/4 PASS, avec une VRAIE fixture
+  `FinancialSnapshot` non-null (via le nouveau seam `BackendLocator.financeRepositoryOverride`)
+  exerçant réellement `MissionFinanceSection` (pas un widget recréé), 320px/360px, label
+  volontairement extrême.
+- **Second overflow (même famille, trouvé en construisant la fixture ci-dessus)** : le titre de
+  section `_FinanceSectionBody` (icône + `Text(t('finance_section_title'))`) n'avait pas non
+  plus d'`Expanded`/ellipsis — corrigé avec le même pattern. Ce gap n'était jamais détecté
+  auparavant car la tentative de test précédente (`snapshot == null`) n'atteignait jamais l'état
+  chargé de l'écran.
+- **`provider_jobs_tab` (première mission disponible)** : testé à 320px/360px avec catégorie
+  d'objet longue, adresses longues et description longue
+  (`test/driver/provider_jobs_tab_test.dart`, nouveau groupe "AB-8"). La carte mission + CTA
+  "Accepter" restent visibles, aucun `RenderFlex overflow`. Les tests J-1/J-2 existants
+  (`critical_screens_viewport_test.dart`) ne couvraient PAS ce cas exact (ils ne peuplent jamais
+  `missionRepositoryOverride` avec de vraies missions, donc `ProviderJobsTab` y rend son état
+  vide) — gap réel comblé, pas de duplication.
+- **Couverture des parcours mobiles AB restants** (vérifiée sans duplication, évidence déjà en
+  place) : erreur création mission (`delivery_request_flow_error_messages_test.dart`, testé à
+  travers les tailles de `critical_screens_viewport_test.dart`), onboarding chauffeur
+  (`bloc_u_mobile_sanity_test.dart` groupes U-6.1 à U-6.6, 320/360px), pending/documents
+  (`driver_status_screen_test.dart` + `bloc_u_mobile_sanity_test.dart` U-6.4), première mission
+  (nouveau test AB-8 ci-dessus), preuve de livraison (`bloc_u_mobile_sanity_test.dart` U-6.5/U-6.6
+  couvrent le tracking en cours ; `driver_active_mission_proof_upload_test.dart` couvre le flux
+  fonctionnel), rating (`customer_tracking_rating_test.dart`, testé à 320px via
+  `critical_screens_viewport_test.dart` J-3 pour l'écran hôte `CustomerTrackingScreen`), finance
+  mission terminée (nouveau test AB-8-01 ci-dessus, seul gap réel trouvé sur ce scope).
+
+**AB-8 — Mobile réaliste : ✅ PASS.**
+
+### AB-9 — Accessibilité First-Use : ✅ PASS
+
+**Portée** : sanity accessibilité ciblé MVP sur les écrans First-Use (PAS une certification WCOG
+complète, PAS une réouverture du Bloc L déjà fermé). 2 gaps réels trouvés et corrigés cette
+session, en plus d'une confirmation positive sur le rating.
+
+- **Rating (1→5 étoiles)** : nouveau test dédié
+  (`test/accessibility/critical_accessibility_test.dart`, groupe "AB-9 — Rating") confirmant que
+  chaque étoile 1..5 est identifiable individuellement via `Semantics`
+  (`find.bySemanticsLabel('$n étoile')`), que l'état sélectionné est distinct et compréhensible
+  (`SemanticsFlag.isSelected` passe de `false` à `true` lors de la sélection — pas seulement un
+  changement de couleur), et que le bouton d'envoi est accessible (texte lisible, pas icon-only).
+  Aucun gap trouvé : l'implémentation `_StarSelector` existante est confirmée conforme.
+- **BUG-AB-09-01 (P2, CORRIGÉ)** : le bouton "Sélectionner" document (permis/assurance, onboarding
+  chauffeur, `_DocumentPickerRow`) mesurait ~24px de hauteur réelle — bien sous la recommandation
+  Android/WCAG de 48px — sur une action critique du parcours chauffeur. Régression introduite par
+  le correctif précédent BUG-U-03 (`minimumSize: Size.zero` pour éliminer un overflow 320-360px).
+  Corrigé en portant `minimumSize` à `Size(0, 40)` tout en conservant `tapTargetSize: shrinkWrap`
+  et la largeur/padding du bouton, donc SANS régression sur BUG-U-03 (`bloc_u_mobile_sanity_test.
+  dart` U-6.4 re-testé : toujours vert). Test permanent ajouté (mesure `RenderBox.size.height >=
+  40`).
+- **BUG-AB-09-02 (P2, CORRIGÉ)** : `AppShell`/`_MovikAppBar` (bandeau logo+"Movi-k", partagé par
+  ~18 écrans : auth, onboarding, statut chauffeur, pages légales/info, mécanicien, etc.)
+  produisait un vrai `RenderFlex overflow` de 2.8px à `textScale=1.5` sur un viewport 320px —
+  trouvé en testant `DriverOnboardingScreen` (écran First-Use hôte de `AppShell`) à plusieurs
+  échelles de texte, exigé explicitement par AB-9 au-delà du seul `AuthScreen` déjà testé en Bloc
+  L. Corrigé en rendant le bloc logo+texte `Flexible` et en autorisant le texte "Movi-k" à
+  s'ellipser en dernier recours, SANS changer la mise en page desktop (>=900px, non affectée).
+  Test permanent ajouté (`textScale=1.5`, 320px, via `DriverOnboardingScreen`).
+- **Client (mission-creation fields, form errors, main buttons, loading states)** : labels
+  explicites déjà prouvés (`AuthScreen` Bloc L, `test/customer/delivery_request_flow_error_
+  messages_test.dart`), erreur combinant icône+texte jamais couleur seule (`delivery_request_flow_
+  screen.dart`, grep vérifié : `Icon(Icons.error_outline)` + `Text`), boutons double-submit déjà
+  couverts (Bloc B/C, réutilisé sans duplication).
+- **Driver (onboarding, document upload, online/offline, first job, proof delivery)** : online/
+  offline Switch déjà accessible (Tooltip, BUG-007, Bloc L) ; document upload traité ci-dessus
+  (BUG-AB-09-01) ; first job = nouveau test AB-8 (CTA texte lisible, pas icon-only) ; proof
+  delivery couvert fonctionnellement par `driver_active_mission_proof_upload_test.dart`.
+
+**Rappel honnête** : ceci est un sanity/accessibility MVP ciblé, PAS une certification WCAG
+complète. AB-9 — Accessibilité First-Use : ✅ PASS.
+
+## VALIDATION FINALE AB
+
+`flutter analyze` (project-wide) : **0 issue**. `flutter test --concurrency=4` : **531/531 PASS**
+(dernier baseline connu 514/514 avant cette session + 17 nouveaux/étendus tests AB-8/AB-9),
+aucun skip, aucun rouge. **P0 ouverts (AB)** : 0. **P1 ouverts (AB)** : 0. P2 trouvés et corrigés
+cette session : BUG-AB-08-01, BUG-AB-09-01, BUG-AB-09-02 (3/3 corrigés + testés).
+
+# BLOC AB : ✅ FERMÉ
+
+AB-1 à AB-10 tous ✅. Tests verts. P0=0, P1=0. Commit `0a63937` (code+tests AB-8/AB-9) + commit
+de clôture documentaire (ce tour). PR #9 mise à jour, NON mergée (AC continue sur la même PR).
+
+## MISE À JOUR — BLOC AC (Pilot Readiness) : ✅ FERMÉ
+
+Dernier bloc de la Phase 7. `docs/PILOT_READINESS.md` créé, répondant à *« Qu'est-ce qui est
+prêt pour un pilote réel, et qu'est-ce qui doit être configuré/décidé en Phase 8 ? »* — aucune
+ligne de code modifiée pour ce bloc, uniquement de la documentation consolidant les preuves déjà
+établies en Phase 2 → Phase 7.
+
+- **AC-1 — Readiness Matrix** : CLIENT (10 fonctions), DRIVER (12 fonctions), ADMIN (11
+  fonctions) — statuts `READY`/`PHASE 8 REQUIRED` uniquement, aucun faux READY. Items PHASE 8
+  REQUIRED identifiés sans ambiguïté : paiement/payout réels, push FCM/APNs, GPS/upload sur
+  device physique réel.
+- **AC-2 — Phase 8 Required** : 11 items externes déjà connus (Stripe, App Check, FCM/APNs, GPS
+  réel, backups, monitoring externe, runtime flags bootstrap prod, rate limiting) + GAP-S-04
+  classé `PRODUCT DECISION REQUIRED` + privacy/retention/RPO-RTO classés `LEGAL/FOUNDER DECISION
+  REQUIRED` — reprend fidèlement les décisions déjà documentées en Blocs Q2/S/X/Y/Z/AA, aucune
+  invention.
+- **AC-3 — Physical Device Plan** : liste explicite de ce qui n'a JAMAIS été validé que par
+  émulateur/widget test (GPS réel, permissions runtime, caméra, background/écran verrouillé,
+  batterie) — aucun de ces points marqué READY.
+- **AC-4 — Pilot Strategy** : cadre d'un pilote petit/réversible (zone, chauffeurs, clients,
+  volume) — tous les chiffres exacts explicitement laissés en `FOUNDER/OPERATIONS DECISION`, non
+  inventés.
+- **AC-5 — GO/NO-GO Checklist** : conclusion honnête — le logiciel (code+tests) est prêt
+  (P0=0, P1=0, suite complète verte), le GO reste bloqué uniquement par des items PHASE 8
+  REQUIRED externes et des décisions LEGAL/FOUNDER, aucun d'entre eux n'étant un bug Phase 7.
+- **AC-6 — Legal/Policy** : 8 documents identifiés comme requis (ToS, Privacy Policy, driver
+  terms, payment/refund policy, GPS consent, document handling, retention policy, account
+  deletion process) — aucun rédigé dans ce repo, tous classés `LEGAL/FOUNDER REVIEW REQUIRED`.
+- **AC-7 — Operational Accounts** : 7 comptes/services listés (Firebase/GCP, Stripe, Stripe
+  Connect, FCM/APNs, admin prod, support email, monitoring) — aucun credential fictif créé.
+- **AC-8 — Support Pilot** : flux support réutilisant intégralement Bloc Y (monitoring) et Bloc
+  AA (disaster recovery), sans nouveau mécanisme technique.
+- **AC-9 — Release Checklist** : 18 étapes ordonnées par dépendance logique, de la
+  configuration secrets jusqu'au lancement pilote.
+
+**Aucun bug de code trouvé pendant AC** (bloc documentaire uniquement, comme annoncé). Aucune
+régression : `flutter analyze`/`flutter test` et la suite functions restent dans l'état de
+clôture AB (0 issue / 531/531 PASS Flutter ; 0 erreur tsc / 0 warning lint / 109 unit + 559
+intégration PASS functions), aucun fichier de code touché par ce bloc.
+
+**BLOC AC : ✅ FERMÉ.** P0 ouverts = 0. P1 ouverts = 0.
+
+# PHASE 7 : ✅ TERMINÉE
+
+Tous les blocs A → AC sont fermés (A, B, C, D, E, F, G, H, I, J, K, K2, L, M, N, O, P, Q, Q2, R,
+R2, S, T, T2, U, V, W, X, Y, Z, AA, AB, AC). État final consolidé :
+
+- **Flutter** : `flutter analyze` → 0 issue. `flutter test --concurrency=4` → 531/531 PASS.
+- **Functions** : `npx tsc --noEmit` → 0 erreur. `npm run lint` → 0 warning. Jest unit →
+  109/109 PASS. Jest intégration (émulateurs) → 38 suites / 559 tests PASS.
+- **P0 ouverts (Phase 7 entière)** : 0. **P1 ouverts (Phase 7 entière)** : 0.
+- **Documents produits** : `docs/PHASE7_QA_PLAN.md`, `docs/PHASE7_QA_MATRIX.md`,
+  `docs/PHASE7_BUG_REPORT.md`, `docs/MONITORING_RUNBOOK.md`, `docs/DATA_RETENTION.md`,
+  `docs/DISASTER_RECOVERY.md`, `docs/PILOT_READINESS.md`.
+- **Décisions Phase 8 les plus importantes reportées honnêtement** (synthèse, détail dans
+  `docs/PILOT_READINESS.md` AC-2) : backups Firestore/Storage non activés, Stripe live non
+  configuré, App Check enforcement absent, push FCM/APNs absent, GPS jamais validé sur device
+  réel, monitoring externe non branché, retention policy légale non finalisée, RPO/RTO non
+  fixés, GAP-S-04 en attente de décision produit.
+
+Aucune ligne de code de production Movi-K ne reste dans un état connu de bug P0/P1 non corrigé à
+la fin de la Phase 7.

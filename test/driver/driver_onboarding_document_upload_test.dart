@@ -44,6 +44,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
 
+import 'package:movik_connect/backend/backend_exceptions.dart';
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/backend_status.dart';
 import 'package:movik_connect/backend/models/driver_document.dart';
@@ -225,6 +226,54 @@ class _FakeDriverRepository implements DriverRepository {
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) =>
       throw UnimplementedError();
+}
+
+/// `DriverRepository` fake — simule un refus par kill switch (Bloc X) sur
+/// `submitDriverOnboarding`, pour la régression AB-4-A ci-dessous.
+class _KillSwitchDriverRepository implements DriverRepository {
+  @override
+  Future<void> submitDriverOnboarding(DriverProfileV2 profile) async {
+    throw const CloudFunctionException('failed-precondition', kKillSwitchServerMessage);
+  }
+
+  @override
+  Future<void> submitDriverVehicle(DriverVehicle vehicle) => throw UnimplementedError();
+  @override
+  Future<void> submitDriverDocument(DriverDocument document) => throw UnimplementedError();
+  @override
+  Future<void> submitForReview() => throw UnimplementedError();
+  @override
+  Future<DriverProfileV2?> getDriverProfile(String driverId) => throw UnimplementedError();
+  @override
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => throw UnimplementedError();
+  @override
+  Future<List<DriverDocument>> getDriverDocuments(String driverId) => throw UnimplementedError();
+  @override
+  Stream<List<DriverDocument>> watchDriverDocuments(String driverId) => throw UnimplementedError();
+  @override
+  Future<List<DriverVehicle>> getDriverVehicles(String driverId) => throw UnimplementedError();
+  @override
+  Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => throw UnimplementedError();
+  @override
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) => throw UnimplementedError();
+  @override
+  Future<void> approveDriver(String driverId) => throw UnimplementedError();
+  @override
+  Future<void> rejectDriver(String driverId, String reason) => throw UnimplementedError();
+  @override
+  Future<void> requestDriverDocuments(String driverId, String reason) => throw UnimplementedError();
+  @override
+  Future<void> suspendDriver(String driverId, String reason) => throw UnimplementedError();
+  @override
+  Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
+  @override
+  Future<void> addDriverInternalNote(String driverId, String text) => throw UnimplementedError();
+  @override
+  Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId) => throw UnimplementedError();
+  @override
+  Future<void> logDriverReviewOpened(String driverId) => throw UnimplementedError();
+  @override
+  Future<void> setDriverOnlineStatus(String driverId, bool online) => throw UnimplementedError();
 }
 
 Widget _buildTestApp(FirebaseAuthProvider auth) {
@@ -506,6 +555,93 @@ void main() {
       await tester.ensureVisible(submitButton);
       await tester.pumpAndSettle();
       expect(tester.widget<ElevatedButton>(submitButton).onPressed, isNull);
+    },
+  );
+
+  testWidgets(
+    'Phase 7, Bloc AB (AB-4, gap AB-4-A) -> texte brut backend JAMAIS affiché, message générique traduit affiché à la place',
+    (tester) async {
+      final failingRepo = _FailingDriverDocumentUploadRepository();
+      BackendLocator.driverDocumentUploadRepositoryOverride = failingRepo;
+
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await goToDocumentsStep(tester);
+
+      await tapDocumentPicker(tester, AppStrings.t('driver_onboarding_upload_license', 'fr'));
+      await tapDocumentPicker(tester, AppStrings.t('driver_onboarding_upload_insurance', 'fr'));
+      await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.pump();
+      await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.pump();
+
+      final submitButton = find.widgetWithText(
+        ElevatedButton,
+        AppStrings.t('driver_onboarding_submit', 'fr'),
+      );
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+      await tester.tap(submitButton);
+      await tester.pumpAndSettle();
+
+      // GAP AB-4-A (avant correctif) : `_submitError` concatenait le
+      // préfixe traduit avec `e.toString()` brut, ce qui affichait
+      // littéralement le texte interne de l'exception simulée ici
+      // ("Échec réseau Firebase Storage (simulation test)") à l'écran.
+      // Ce texte ne doit PLUS JAMAIS apparaître dans l'arbre de widgets.
+      expect(
+        find.textContaining('Échec réseau Firebase Storage (simulation test)'),
+        findsNothing,
+      );
+      expect(find.textContaining('Exception:'), findsNothing);
+
+      // Seul le message entièrement traduit doit être visible.
+      expect(
+        find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'Phase 7, Bloc AB (AB-4, gap AB-4-A régression) -> refus kill switch mappé vers service_temporarily_unavailable, jamais le préfixe générique',
+    (tester) async {
+      // Défense en profondeur : même si aucun chemin connu de l'inscription
+      // n'est actuellement protégé par un kill switch, on vérifie que SI
+      // une des 3 écritures (`submitDriverOnboarding`/`submitDriverVehicle`/
+      // `submitForReview`) venait à lever un refus kill switch, l'écran ne
+      // l'afficherait jamais comme une erreur d'inscription ordinaire.
+      final killSwitchRepo = _KillSwitchDriverRepository();
+      BackendLocator.driverRepositoryOverride = killSwitchRepo;
+
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await goToDocumentsStep(tester);
+
+      await tapDocumentPicker(tester, AppStrings.t('driver_onboarding_upload_license', 'fr'));
+      await tapDocumentPicker(tester, AppStrings.t('driver_onboarding_upload_insurance', 'fr'));
+      await tester.tap(find.byType(CheckboxListTile).at(0));
+      await tester.pump();
+      await tester.tap(find.byType(CheckboxListTile).at(1));
+      await tester.pump();
+
+      final submitButton = find.widgetWithText(
+        ElevatedButton,
+        AppStrings.t('driver_onboarding_submit', 'fr'),
+      );
+      await tester.ensureVisible(submitButton);
+      await tester.pumpAndSettle();
+      await tester.tap(submitButton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.t('service_temporarily_unavailable', 'fr')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+        findsNothing,
+      );
     },
   );
 

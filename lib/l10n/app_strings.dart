@@ -1175,6 +1175,53 @@ class AppStrings {
       'es': 'No hay prueba de entrega disponible para esta misión.',
     },
 
+    // ---------- Rating chauffeur (Phase 7, Bloc AB, AB-10) ----------
+    'customer_tracking_rate_driver_title': {
+      'fr': 'Évaluez votre chauffeur',
+      'en': 'Rate your driver',
+      'es': 'Califica a tu conductor',
+    },
+    'customer_tracking_rate_driver_subtitle': {
+      'fr': 'Votre avis nous aide à améliorer Movi-k.',
+      'en': 'Your feedback helps us improve Movi-k.',
+      'es': 'Tu opinión nos ayuda a mejorar Movi-k.',
+    },
+    'customer_tracking_rate_driver_comment_hint': {
+      'fr': 'Un commentaire ? (optionnel)',
+      'en': 'Any comments? (optional)',
+      'es': '¿Algún comentario? (opcional)',
+    },
+    'customer_tracking_rate_driver_submit': {
+      'fr': 'Envoyer mon évaluation',
+      'en': 'Submit rating',
+      'es': 'Enviar calificación',
+    },
+    'customer_tracking_rate_driver_select_stars_error': {
+      'fr': 'Choisissez une note de 1 à 5 étoiles avant d\'envoyer.',
+      'en': 'Choose a rating from 1 to 5 stars before submitting.',
+      'es': 'Elige una calificación de 1 a 5 estrellas antes de enviar.',
+    },
+    'customer_tracking_rate_driver_error': {
+      'fr': 'Impossible d\'envoyer votre évaluation pour le moment. Réessayez.',
+      'en': 'Unable to submit your rating right now. Please try again.',
+      'es': 'No se pudo enviar tu calificación por ahora. Inténtalo de nuevo.',
+    },
+    'customer_tracking_rate_driver_thanks_title': {
+      'fr': 'Merci pour votre évaluation !',
+      'en': 'Thank you for your rating!',
+      'es': '¡Gracias por tu calificación!',
+    },
+    'customer_tracking_rate_driver_thanks_message': {
+      'fr': 'Votre évaluation a été enregistrée.',
+      'en': 'Your rating has been recorded.',
+      'es': 'Tu calificación ha sido registrada.',
+    },
+    'customer_tracking_rate_driver_star_semantic': {
+      'fr': 'étoile',
+      'en': 'star',
+      'es': 'estrella',
+    },
+
     // ---------- Notifications (Phase 5, partie 3) ----------
     'notifications_title': {
       'fr': 'Notifications',
@@ -3198,6 +3245,20 @@ class AppStrings {
       'fr': 'Vous êtes hors ligne',
       'en': 'You are offline',
       'es': 'Está desconectado',
+    },
+    // Phase 7, Bloc AB (AB-4, gap AB-4-B) : versions courtes des libellés
+    // ci-dessus, pour l'AppBar de ProviderDashboardShell (espace limité,
+    // affichées à côté du Switch en ligne/hors ligne — voir
+    // provider_dashboard_shell.dart).
+    'driver_status_online_label_short': {
+      'fr': 'Disponible',
+      'en': 'Available',
+      'es': 'Disponible',
+    },
+    'driver_status_offline_label_short': {
+      'fr': 'Hors ligne',
+      'en': 'Offline',
+      'es': 'Fuera de línea',
     },
 
     // ---------- Bloc J — Finance client (Phase 6) ----------
