@@ -58,6 +58,20 @@ import {
   resolveCorrelationId,
   startFinancialOperationTimer,
 } from "../lib/observability";
+import { RuntimeFlagKeys, isRuntimeFlagEnabled } from "../lib/runtimeFlags";
+
+// 🔒 Phase 7, Bloc X — code de failure_code INTERNE (jamais exposé au
+// client, voir SubmitDriverPayoutOutcome : seul `failureMessage`, un texte
+// générique, est éventuellement propagé). Distinct de
+// `KILL_SWITCH_ERROR_CODE` (lib/runtimeFlags.ts), qui est le code HttpsError
+// renvoyé par les gardes SERVEUR (createDeliveryRequest.ts,
+// acceptDelivery.ts) qui lèvent AVANT toute écriture — ici, à l'inverse, on
+// doit journaliser un échec métier cohérent (payout NON transitionné vers un
+// état terminal, voir submitDriverPayout ci-dessous) via l'observabilité
+// existante, pas lever une exception brute (submitDriverPayout() n'est
+// jamais appelée directement par un client — voir calculateDriverPayout.ts /
+// processScheduledDriverPayouts.ts).
+const PAYOUTS_KILL_SWITCH_FAILURE_CODE = "driver_payouts_disabled";
 
 export interface CreateAndAuthorizePaymentInput {
   missionId: string;
@@ -93,6 +107,23 @@ export async function createAndAuthorizeMissionPayment(
   const correlationId = resolveCorrelationId(undefined);
   const operationStartedAt = startFinancialOperationTimer();
 
+  // 🔒 Phase 7, Bloc X (X-8) — GAP P1 CORRIGÉ (voir docs/PHASE7_BUG_REPORT.md,
+  // BUG-X-01). Le contrôle `payments_enabled` a été DÉPLACÉ dans
+  // acceptDelivery.ts, AVANT sa transaction d'assignation (seul et unique
+  // appelant de cette fonction — voir grep de contrôle dans X-8) : un OFF y
+  // est refusé (killSwitchRefusal(), HttpsError propre) AVANT que la mission
+  // ne soit assignée, AVANT toute écriture Firestore, donc sans jamais
+  // toucher aux fonds ni à l'état de la mission. Un contrôle ICI (après le
+  // commit de la transaction d'assignation) utilisait à tort
+  // `failMissionPayment()`, qui bascule la mission vers
+  // `MissionStatuses.PAYMENT_FAILED` — un statut documenté comme TERMINAL,
+  // SANS REPRISE (voir types.ts : "le client doit créer une nouvelle
+  // demande"). Un kill switch représente une indisponibilité TEMPORAIRE du
+  // service, jamais un échec définitif de paiement : cette sémantique était
+  // incorrecte et a été retirée d'ici plutôt que "réparée" localement,
+  // conformément à la consigne de ne pas complexifier la finance Phase 6
+  // au-delà du nécessaire — un SEUL point d'enforcement (acceptDelivery.ts)
+  // est plus sûr que deux points avec des sémantiques différentes.
   const paymentProfileSnap = await db.collection("payment_profiles").doc(customerId).get();
   if (!paymentProfileSnap.exists) {
     // Ne devrait jamais arriver si createDeliveryRequest() a bien validé le
@@ -685,6 +716,36 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
   const correlationId = resolveCorrelationId(undefined);
   const operationStartedAt = startFinancialOperationTimer();
   const payoutRef = db.collection("driver_payouts").doc(payoutId);
+
+  // 🔒 Phase 7, Bloc X (X-9) — kill switch. `submitDriverPayout()` est LE
+  // SEUL point du système qui appelle réellement
+  // `PaymentProvider.createDriverPayout()` (calculateDriverPayout.ts ET
+  // processScheduledDriverPayouts.ts convergent tous les deux ici avant tout
+  // appel fournisseur) — l'enforcement à CE point unique garantit qu'il
+  // n'existe aucun second chemin de contournement (directive X-9). OFF =>
+  // AUCUN nouvel appel fournisseur. Le versement reste DÉLIBÉRÉMENT dans son
+  // statut actuel (ELIGIBLE, jamais transitionné vers FAILED) : ce n'est pas
+  // un échec métier du versement, seulement une pause temporaire — le cron
+  // `processScheduledDriverPayouts` (ou un nouvel appel admin) le
+  // resoumettra automatiquement dès que le flag repasse à `true`, sans
+  // qu'aucune action de récupération manuelle (retry FAILED -> SCHEDULED) ne
+  // soit nécessaire. N'affecte JAMAIS `reverseDriverPayout()` (compensation
+  // comptable sur un versement déjà PAID) ni la réconciliation — ces chemins
+  // n'appellent pas cette fonction.
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.DRIVER_PAYOUTS_ENABLED))) {
+    logFinancialFailure(
+      "submit_driver_payout",
+      operationStartedAt,
+      PAYOUTS_KILL_SWITCH_FAILURE_CODE,
+      { payoutId },
+      { correlationId }
+    );
+    return {
+      success: false,
+      status: PayoutStatuses.ELIGIBLE,
+      failureMessage: "Versements chauffeur temporairement indisponibles.",
+    };
+  }
 
   // ---- Étape 1 : transaction — ELIGIBLE -> SCHEDULED -> PROCESSING ----
   type PreparedPayout = {

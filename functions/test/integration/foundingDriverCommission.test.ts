@@ -38,6 +38,7 @@ import {
 } from "../../src/lib/pricingEngine";
 import { CommissionConfigDoc, FoundingDriverStatuses, MissionStatuses } from "../../src/lib/types";
 import { toMinorUnits } from "../../src/lib/money";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 // ---------------------------------------------------------------------------
 // Constantes partagées — mêmes distance/durée pour TOUS les scénarios afin
@@ -367,6 +368,14 @@ function computeExpected(cfg: ScenarioConfig, nowMillis: number) {
 // ===========================================================================
 // SCÉNARIOS A -> F — résolution de commission via le VRAI acceptDelivery()
 // ===========================================================================
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
+
 describe("Bloc O — foundingDriverCommission — Scénarios A-F (résolution réelle via acceptDelivery)", () => {
   beforeAll(() => {
     setPaymentProviderForTesting(new FakePaymentProvider());

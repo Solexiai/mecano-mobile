@@ -16,6 +16,12 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
+    # functions/ is a separate Node.js/TypeScript (Cloud Functions) project,
+    # not part of the Flutter app. Its node_modules can contain npm-bundled
+    # scaffolding files (e.g. firebase-tools' `dart` init template) that are
+    # NOT part of this app and must never be analyzed as app code (Phase 7,
+    # Bloc X — flutter analyze noise found while validating X-10).
+    - functions/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

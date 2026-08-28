@@ -1493,3 +1493,129 @@ Validation post-W-2/W-6 : `dart analyze lib/` 0 issue, `flutter test test/` **50
 | P1 ouverts | 0 |
 
 **BLOC W : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC X : ✅ FERMÉ (Feature Flags / Kill Switches)
+
+Bloc X introduit 4 interrupteurs d'urgence MVP, centralisés, server-authoritative, permettant à
+un admin de couper une opération critique sans republier l'application :
+`accept_new_delivery_requests`, `allow_driver_acceptance`, `payments_enabled`,
+`driver_payouts_enabled` — un seul document Firestore `system_config/runtime_flags`, un seul
+helper de lecture (`resolveRuntimeFlag()`/`isRuntimeFlagEnabled()`, `functions/src/lib/
+runtimeFlags.ts`), jamais de logique de fail-safe dupliquée dans chaque Cloud Function
+consommatrice.
+
+**X-1 à X-10 (architecture, enforcement, UI)** : les 4 flags sont vérifiés côté serveur
+UNIQUEMENT, chacun à son point d'entrée unique et démontré sans second chemin de contournement —
+`createDeliveryRequest.ts` (création), `acceptDelivery.ts` (acceptation, AVANT la transaction
+d'assignation et AVANT toute exposition financière — voir BUG-X-01 ci-dessous),
+`submitDriverPayout()` (le seul point du système qui appelle réellement le fournisseur de
+paiement pour verser un chauffeur, convergent depuis `calculateDriverPayout.ts` ET le cron
+`processScheduledDriverPayouts.ts`). Écriture strictement réservée à la Cloud Function admin-only
+`updateRuntimeFlags` (`requireAdminOrAbove`) — `firestore.rules` refuse toute écriture directe
+cliente sur `system_config/runtime_flags`. Chaque changement est audité
+(`writeAuditLogInTransaction`, old/new values, clés modifiées, `wasBootstrapped`) via
+l'infrastructure d'audit déjà existante, aucun second système de logs créé. Câblage UI Flutter
+(X-10) : le message stable `service_temporarily_unavailable` est reconnu
+(`isKillSwitchException()`) et traduit FR/EN/ES, jamais un message technique brut affiché au
+client.
+
+**X-11 (tests d'intégration)** : `functions/test/integration/runtimeFlags.test.ts` (29 tests,
+sections A→K : résolution de config, création mission ON/OFF, acceptation chauffeur ON/OFF,
+paiements ON/OFF + preuve permanente BUG-X-01, payouts ON/OFF sur les 2 points d'entrée,
+corrections payout non bloquées, admin-only, écriture Firestore directe refusée, audit,
+runtime/no-cache, bootstrap) — **29/29 PASS**. Les 17 suites d'intégration historiques
+(pré-Bloc X) qui exercent un chemin désormais protégé ont été adaptées via un helper explicite
+partagé `functions/test/testUtils/runtimeFlagsFixture.ts`
+(`seedDefaultRuntimeFlagsEnabled()`), appelé en `beforeEach` — PAS un hook Jest global, pas de
+second framework de test créé. `runtimeFlags.test.ts` garde sa maîtrise explicite complète de
+l'état du document (absent/partiel/invalide/ON/OFF) en réutilisant les mêmes fonctions
+sous-jacentes directement. Suite d'intégration complète (émulateurs) : **37/37 suites, 556/556
+tests PASS**, confirmé sur deux exécutions complètes consécutives (0 rouge).
+
+**BUG-X-01 (P1, corrigé)** — voir entrée détaillée dans `docs/PHASE7_BUG_REPORT.md`. Résumé : le
+contrôle `payments_enabled` a été déplacé de `createAndAuthorizeMissionPayment()` (où un refus
+tardif pouvait faire transiter la mission vers l'état TERMINAL `PAYMENT_FAILED`) vers
+`acceptDelivery.ts`, avant toute assignation/écriture financière. Preuve permanente : section D de
+`runtimeFlags.test.ts`.
+
+### X-12 — Runtime / No-cache / Coût
+
+**Runtime** : `system_config/runtime_flags` est lu par une lecture Firestore directe à **chaque**
+appel serveur protégé (`resolveRuntimeFlag()`/`isRuntimeFlagEnabled()`). Architecture actuelle :
+aucun cache applicatif, aucun TTL, aucune mémorisation entre appels (pas de variable
+process-local, pas de SDK client de feature flags). L'appel serveur suivant observe donc
+toujours la dernière configuration Firestore commitée — un admin qui bascule un flag voit l'effet
+dès le **tout prochain** appel serveur, jamais après un délai de propagation de cache. Cette
+propriété est explicitement prouvée par `runtimeFlags.test.ts` (section J).
+
+**Coût** : chaque action serveur protégée ajoute approximativement **1 lecture Firestore** du
+document `runtime_flags` (document singleton, taille négligeable). Actions actuellement
+protégées : création de nouvelle mission (`createDeliveryRequest`), acceptation chauffeur
+(`acceptDelivery`), nouvelle exposition financière côté paiement (`createAndAuthorizeMission
+Payment`, via `acceptDelivery`), nouveau payout chauffeur (`submitDriverPayout`, via
+`calculateDriverPayout`/`processScheduledDriverPayouts`).
+
+**Décision explicite** : ne pas créer de cache pendant la Phase 7. Toute optimisation future de
+ce coût (ex: cache court avec invalidation) devra impérativement préserver la capacité de
+kill-switch quasi-instantané — c'est la propriété la plus importante de ce mécanisme, pas le coût
+d'une lecture Firestore additionnelle par action critique (jugé négligeable au volume MVP, voir
+Bloc T2).
+
+### X-13 — Bootstrap Phase 8
+
+Avant tout pilote/mise en production, la checklist suivante doit être exécutée explicitement
+(aucune automatisation silencieuse, aucun défaut permissif codé en dur) :
+
+1. Vérifier si `system_config/runtime_flags` existe déjà.
+2. S'il n'existe pas : le premier appel admin à `updateRuntimeFlags` le crée automatiquement
+   (`ensureRuntimeFlagsBootstrapped` / auto-bootstrap intégré à `updateRuntimeFlags.ts`) avec les
+   4 flags à `true` (`RUNTIME_FLAG_BOOTSTRAP_DEFAULTS`) — Movi-K doit démarrer **opérationnel**,
+   jamais bloqué par défaut.
+3. Définir/confirmer explicitement `accept_new_delivery_requests`.
+4. Définir/confirmer explicitement `allow_driver_acceptance`.
+5. Définir/confirmer explicitement `payments_enabled`.
+6. Définir/confirmer explicitement `driver_payouts_enabled`.
+7. Vérifier le comportement OFF de chacun des 4 flags (aucune régression du fail-closed).
+8. Vérifier le comportement ON de chacun des 4 flags (reprise normale).
+9. Vérifier qu'un compte non-admin ne peut PAS modifier les flags (`updateRuntimeFlags` refuse,
+   écriture Firestore directe refusée par `firestore.rules`).
+10. Vérifier que chaque changement produit une entrée d'audit avec old/new values.
+11. Vérifier le comportement fail-closed si la configuration est absente ou invalide (document
+    manquant, champ manquant, type invalide, erreur Firestore) — DOIT rester `false`/refusé,
+    jamais un défaut permissif.
+
+**Règle explicite** : aucun défaut de production permissif ne doit être codé en dur pour
+contourner cette procédure de bootstrap. L'absence/invalidité de configuration DOIT rester
+fail-closed conformément à l'architecture X (`RUNTIME_FLAG_FAIL_SAFE_DEFAULTS`, tous à `false`) —
+seul le bootstrap explicite (étape 2 ci-dessus) initialise le document à `true`, jamais le
+fail-safe de lecture.
+
+### DONE X
+
+| Critère | Statut |
+|---|---|
+| Runtime flags centralisés (1 document, 1 helper) | ✅ |
+| 4 kill switches (`accept_new_delivery_requests`, `allow_driver_acceptance`, `payments_enabled`, `driver_payouts_enabled`) | ✅ |
+| Enforcement server-side uniquement, point d'entrée unique par flag | ✅ |
+| Fail-closed (config absente/invalide/erreur Firestore) | ✅ |
+| Création mission ON/OFF | ✅ |
+| Acceptation chauffeur ON/OFF | ✅ |
+| Paiements ON/OFF | ✅ |
+| BUG-X-01 : reprise OFF→ON sans séquelle | ✅ |
+| Refunds/corrections jamais bloqués par un kill switch | ✅ |
+| Payout ON/OFF (2 points d'entrée convergents) | ✅ |
+| Payout : reprise OFF→ON (reste ELIGIBLE, jamais FAILED) | ✅ |
+| Corrections payout (`reverseDriverPayout`) non bloquées | ✅ |
+| Admin-only (`updateRuntimeFlags`) | ✅ |
+| Écriture Firestore directe refusée (règles) | ✅ |
+| Audit (old/new values, acteur, clés modifiées) | ✅ |
+| UI Flutter structurée FR/EN/ES (`service_temporarily_unavailable`) | ✅ |
+| Runtime no-cache (X-12) | ✅ |
+| Bootstrap Phase 8 documenté (X-13) | ✅ |
+| `runtimeFlags.test.ts` | ✅ 29/29 PASS |
+| Suite d'intégration complète | ✅ 37/37 suites, 556/556 PASS |
+| Flutter (`analyze` + `test`) | ✅ 0 issue, 508/508 PASS |
+| P0 ouverts | 0 |
+| P1 ouverts | 0 |
+
+**BLOC X : ✅ FERMÉ.**

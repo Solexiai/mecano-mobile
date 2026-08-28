@@ -43,6 +43,7 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
+import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import {
   DEFAULT_JURISDICTION,
   applyTaxSnapshotToQuote,
@@ -59,6 +60,42 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   const ctx = requireSignedIn(request);
   const driverId = ctx.uid;
   const { missionId } = request.data;
+
+  // 🔒 Phase 7, Bloc X (X-7) — kill switch. OFF => aucune NOUVELLE
+  // attribution de mission n'est possible. Les missions DÉJÀ assignées
+  // (statut != OPEN_FOR_ACCEPTANCE_STATUSES) continuent leur cycle de vie
+  // normalement (aucun autre point du code ne consulte ce flag). Vérifié
+  // AVANT toute lecture Firestore pour qu'un client modifié ne puisse
+  // jamais contourner ce contrôle serveur-autoritaire.
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
+    throw killSwitchRefusal();
+  }
+
+  // 🔒 Phase 7, Bloc X (X-8) — GAP P1 CORRIGÉ (voir docs/PHASE7_BUG_REPORT.md,
+  // BUG-X-01). acceptDelivery() déclenche TOUJOURS une autorisation de
+  // paiement immédiatement après avoir assigné la mission (voir
+  // createAndAuthorizeMissionPayment ci-dessous) — l'acceptation et le
+  // paiement forment ici une seule opération métier indissociable. Vérifier
+  // `payments_enabled` ICI, AVANT la transaction d'assignation, garantit
+  // qu'un OFF :
+  //   - ne touche à AUCUN fonds (aucun appel provider, aucun payments/{id})
+  //   - ne modifie AUCUN état de mission (aucune transaction n'a encore
+  //     commité — la mission reste `searching_driver`/`offered`, disponible
+  //     pour une reprise propre par CE chauffeur ou un autre dès que le
+  //     flag repasse à `true`)
+  //   - retourne l'erreur structurée standard (killSwitchRefusal())
+  // Ancien comportement (CORRIGÉ) : le contrôle était fait APRÈS la
+  // transaction d'assignation, à l'intérieur de createAndAuthorizeMissionPayment
+  // — la mission était donc déjà assignée puis basculée en
+  // MissionStatuses.PAYMENT_FAILED, un statut documenté comme TERMINAL/SANS
+  // REPRISE ("le client doit créer une nouvelle demande" — voir types.ts).
+  // Un kill switch représente une indisponibilité TEMPORAIRE du service, pas
+  // un échec définitif de paiement : ce statut terminal était donc une
+  // sémantique incorrecte pour ce cas précis (voir X-8, section "IMPORTANT —
+  // TESTER LA SÉMANTIQUE de failMissionPayment()").
+  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
+    throw killSwitchRefusal();
+  }
 
   if (!missionId || typeof missionId !== "string") {
     throw invalidArgument("missionId est requis.");

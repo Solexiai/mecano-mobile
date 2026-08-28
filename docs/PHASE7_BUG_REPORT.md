@@ -1362,3 +1362,120 @@ juste non explorés exhaustivement par manque de budget ce tour). **Bloc X : NON
 | P1 ouverts | 0 |
 
 **BLOC W : ✅ FERMÉ.**
+
+## MISE À JOUR — BLOC X (Feature Flags / Kill Switches) : ✅ FERMÉ
+
+**BUG-X-01 — P1 — Kill switch paiement appliqué trop tard**
+
+**Symptôme** : avec `payments_enabled = false`, l'ancien flux pouvait appeler
+`failMissionPayment()` (dans `createAndAuthorizeMissionPayment()`, `paymentOrchestration.ts`)
+**après** le début du processus d'acceptation, c'est-à-dire après que la mission ait déjà été
+mutée vers un état d'assignation.
+
+**Conséquence** : une indisponibilité temporaire du service de paiement (kill switch activé
+volontairement par un admin, ou détecté par le mécanisme fail-closed) pouvait transformer la
+mission en `PAYMENT_FAILED` — un état **terminal, non reprenable** — alors qu'aucune tentative de
+paiement réelle n'avait de raison légitime d'échouer de façon définitive : il s'agissait
+seulement d'une pause temporaire du service, pas d'un échec métier du paiement.
+
+**Risque** : une simple activation défensive du kill switch paiement (ex: pour investiguer un
+incident fournisseur) pouvait rendre une mission par ailleurs parfaitement valide
+**irrécupérable**, alors qu'aucun nouveau paiement ne devait simplement être autorisé pendant la
+coupure — un effet de bord disproportionné par rapport à l'intention (une pause temporaire ne
+doit jamais produire un dommage permanent).
+
+**Correction** : le contrôle `payments_enabled` est désormais effectué dans `acceptDelivery.ts`
+(`isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED)` + `killSwitchRefusal()`), **avant** la
+transaction d'assignation et **avant** toute exposition financière (avant tout appel à
+`createAndAuthorizeMissionPayment()`). Effet quand le flag est OFF :
+- aucun chauffeur assigné (`driver_id` reste vide) ;
+- aucun paiement créé (aucune autorisation, aucune capture) ;
+- aucune écriture de ledger indue ;
+- la mission reste dans son état pré-acceptation valide (`searching_driver`/`offered`) ;
+- **aucune transition vers `PAYMENT_FAILED`**.
+
+Quand le flag repasse à `true`, le même appel `acceptDelivery` réussit normalement — le parcours
+reprend sans aucune séquelle, assignation et paiement créés exactement une fois.
+
+Ce correctif ne modifie **jamais** un chemin de remboursement, de dispute, de compensation ou de
+correction de ledger sur un paiement déjà existant — le kill switch `payments_enabled` n'empêche
+que de **prendre** plus d'argent (nouvelles autorisations), jamais d'en **rendre** ou d'en
+**corriger**.
+
+**Preuve permanente** : `functions/test/integration/runtimeFlags.test.ts`, section D (« Bloc X
+(X-11, section D) — BUG-X-01 : payments_enabled=false n'envoie plus la mission en
+PAYMENT_FAILED »), 3 tests :
+- OFF → `acceptDelivery` refuse proprement (`failed-precondition` / `service_temporarily_unavailable`),
+  aucune mutation, mission inchangée, 0 payment, 0 financial_snapshot, 0 ledger, chauffeur reste
+  `online`, aucun `tracking_event` `driver_assigned`.
+- OFF → ON → la même mission (non modifiée par le refus) est ensuite acceptée normalement,
+  assignée **une seule fois**, avec un workflow de paiement normal (`AUTHORIZED`).
+- `payments_enabled=false` n'affecte JAMAIS `accept_new_delivery_requests`/
+  `allow_driver_acceptance` par ailleurs — le refus est spécifique au paiement, pas une panne
+  globale.
+
+**Statut** : ✅ CORRIGÉ ET TESTÉ.
+
+### Récapitulatif Bloc X
+
+Bloc X a introduit 4 kill switches MVP centralisés (`accept_new_delivery_requests`,
+`allow_driver_acceptance`, `payments_enabled`, `driver_payouts_enabled`), server-authoritative,
+fail-closed sur toute configuration absente/invalide/inaccessible, admin-only en écriture
+(`updateRuntimeFlags`, écriture Firestore directe refusée par les règles), intégralement audités
+(old/new values), sans aucun cache/TTL (effet immédiat au prochain appel serveur — voir X-12,
+`docs/PHASE7_QA_PLAN.md`), avec une procédure de bootstrap Phase 8 explicitement documentée
+(X-13) garantissant qu'aucun défaut permissif n'est codé en dur dans le chemin de lecture.
+
+**X-11 (fixture des tests d'intégration)** : les 17 suites d'intégration historiques
+(pré-Bloc X), qui exercent un chemin désormais protégé sans tester elles-mêmes le comportement
+des kill switches, ont été adaptées via un helper explicite partagé
+(`functions/test/testUtils/runtimeFlagsFixture.ts`, `seedDefaultRuntimeFlagsEnabled()`), appelé
+en `beforeEach` — pas un hook Jest global, pas de second framework de test créé.
+`runtimeFlags.test.ts` conserve sa maîtrise explicite complète de l'état du document
+(absent/partiel/invalide/ON/OFF) en réutilisant directement les mêmes fonctions sous-jacentes.
+
+**Aucun autre bug trouvé dans le Bloc X** — BUG-X-01 est le seul gap réel confirmé par une
+preuve.
+
+**Tests finaux** :
+- `runtimeFlags.test.ts` : **29/29 PASS**.
+- Suite d'intégration complète (émulateurs) : **37/37 suites, 556/556 tests PASS** (confirmé sur
+  deux exécutions complètes consécutives, 0 rouge — le seul rouge observé lors d'une exécution
+  intermédiaire, `processStripeWebhook.test.ts` § « WEBHOOK DUPLIQUÉ CONCURRENT », a été identifié
+  comme un flake de timing sous charge complète, sans lien avec Bloc X, confirmé PASS 18/18 en
+  isolation et PASS sur la suite complète rejouée).
+- Jest unit : **109/109 PASS**.
+- `npx tsc --noEmit` : 0 erreur.
+- `npm run lint` (functions) : 0 warning.
+- `flutter analyze` : 0 issue.
+- `flutter test` : **508/508 PASS**.
+
+### DONE X
+
+| Critère | Statut |
+|---|---|
+| Runtime flags centralisés (1 document, 1 helper) | ✅ |
+| 4 kill switches | ✅ |
+| Server-side enforcement (point d'entrée unique par flag) | ✅ |
+| Fail-closed (config absente/invalide/erreur Firestore) | ✅ |
+| Création mission ON/OFF | ✅ |
+| Acceptation chauffeur ON/OFF | ✅ |
+| Paiement ON/OFF | ✅ |
+| BUG-X-01 reprise OFF→ON | ✅ CORRIGÉ ET TESTÉ |
+| Refunds/corrections non bloqués | ✅ |
+| Payout ON/OFF | ✅ |
+| Payout reprise OFF→ON (reste ELIGIBLE) | ✅ |
+| Corrections payout non bloquées | ✅ |
+| Admin-only | ✅ |
+| Écriture Firestore directe refusée | ✅ |
+| Audit | ✅ |
+| UI structurée FR/EN/ES | ✅ |
+| Runtime no-cache (X-12) | ✅ |
+| Bootstrap Phase 8 documenté (X-13) | ✅ |
+| `runtimeFlags.test.ts` | ✅ 29/29 |
+| Suite d'intégration | ✅ 556/556 |
+| Flutter | ✅ 508/508 |
+| P0 ouverts | 0 |
+| P1 ouverts | 0 |
+
+**BLOC X : ✅ FERMÉ.**

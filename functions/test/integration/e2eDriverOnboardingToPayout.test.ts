@@ -58,6 +58,7 @@ import { LedgerEntryTypes, MissionStatuses, DriverStatuses } from "../../src/lib
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "e2e_onb_customer_001";
 const DRIVER_ID = "e2e_onb_driver_001";
@@ -242,6 +243,14 @@ async function cleanupAll(missionId: string | null, documentIds: string[], payou
 
   await Promise.all(ops);
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calculateDriverPayout", () => {
   let missionId: string | null = null;

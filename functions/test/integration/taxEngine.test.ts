@@ -32,6 +32,7 @@ import { readActiveTaxConfigs, calculateTaxes } from "../../src/lib/taxEngine";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const ADMIN_ID = "tax_admin_001";
 const SUPER_ADMIN_ID = "tax_super_admin_001";
@@ -73,6 +74,14 @@ async function cleanupAuditLogs(targetIdPrefix: string): Promise<void> {
       .map((d) => d.ref.delete())
   );
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("updateTaxConfiguration", () => {
   afterEach(async () => {

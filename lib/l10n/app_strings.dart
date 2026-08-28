@@ -250,6 +250,15 @@ class AppStrings {
       'en': 'An error occurred',
       'es': 'Ocurrió un error',
     },
+    // Phase 7, Bloc X (X-10) — message générique affiché quand un kill
+    // switch serveur (system_config/runtime_flags) refuse une action. Ne
+    // révèle JAMAIS le nom du flag, sa valeur, ni le fonctionnement interne
+    // — voir functions/src/lib/runtimeFlags.ts (KILL_SWITCH_ERROR_CODE).
+    'service_temporarily_unavailable': {
+      'fr': 'Service temporairement indisponible. Merci de réessayer plus tard.',
+      'en': 'Service temporarily unavailable. Please try again later.',
+      'es': 'Servicio temporalmente no disponible. Inténtelo de nuevo más tarde.',
+    },
     'common_empty': {
       'fr': "Rien à afficher pour l'instant",
       'en': 'Nothing to show yet',

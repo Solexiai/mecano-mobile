@@ -363,6 +363,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   }
 
   String _describeError(Object e) {
+    // 🔒 Phase 7, Bloc X (X-10) — un refus par kill switch
+    // (`accept_new_delivery_requests`/`payments_enabled` désactivé côté
+    // `system_config/runtime_flags`) doit afficher le message générique
+    // traduit, JAMAIS le message brut du serveur (qui ne révèle rien de
+    // sensible ici, mais le principe reste : le mapping est centralisé et
+    // cohérent avec tous les autres points d'entrée protégés). Vérifié
+    // AVANT le cas générique `CloudFunctionException` ci-dessous.
+    if (isKillSwitchException(e)) {
+      return context.read<LocaleProvider>().t('service_temporarily_unavailable');
+    }
     if (e is CloudFunctionException) return e.message;
     if (e is BackendNotConfiguredException) return e.message;
     return e.toString();

@@ -66,6 +66,7 @@ import type {
   ProviderPaymentSummary,
   ProviderPayoutSummary,
 } from "../../src/payment/paymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 // ---------------------------------------------------------------------------
 // Constantes du scénario — isolées avec un préfixe dédié pour ne jamais
@@ -231,6 +232,14 @@ async function cleanupAll(missionId: string | null, payoutId: string | null): Pr
     .get();
   await Promise.all(policyAudit.docs.map((d) => d.ref.delete()));
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout PAID -> réconciliation PASS", () => {
   let missionId: string | null = null;

@@ -247,7 +247,22 @@ class FirebaseMissionRepository implements MissionRepository {
       // Codes attendus : permission-denied, failed-precondition, not-found —
       // voir acceptDelivery.ts. Le frontend affiche errorCode, il ne décide
       // jamais lui-même qui "gagne" l'acceptation.
-      return AcceptMissionResult(success: false, errorCode: e.code);
+      //
+      // 🔒 Phase 7, Bloc X (X-10) — `allow_driver_acceptance`/
+      // `payments_enabled` désactivés lèvent TOUS LES DEUX un
+      // `failed-precondition` (même code HttpsError que "mission déjà
+      // acceptée par un autre chauffeur" — voir OPEN_FOR_ACCEPTANCE_STATUSES
+      // dans acceptDelivery.ts). On distingue le kill switch par son message
+      // STABLE (`kKillSwitchServerMessage`) plutôt que par son code, pour que
+      // l'UI affiche le bon message ("service temporairement indisponible")
+      // au lieu du message métier "mission déjà acceptée" — trompeur pour un
+      // refus qui n'a rien à voir avec la concurrence entre chauffeurs.
+      final errorCode = isKillSwitchException(
+        CloudFunctionException(e.code, e.message ?? ''),
+      )
+          ? kKillSwitchErrorCode
+          : e.code;
+      return AcceptMissionResult(success: false, errorCode: errorCode);
     } catch (e) {
       return const AcceptMissionResult(success: false, errorCode: 'unknown_error');
     }

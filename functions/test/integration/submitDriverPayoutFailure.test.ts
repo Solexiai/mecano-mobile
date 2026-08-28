@@ -58,6 +58,7 @@ import { PayoutStatuses } from "../../src/lib/types";
 import { recalculateMissionFinancialBalance } from "../../src/lib/missionFinancialBalance";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const DRIVER_ID = "payout_fail_driver_001";
 const ADMIN_ID = "payout_fail_admin_001";
@@ -145,6 +146,14 @@ async function cleanupPayoutPolicy(): Promise<void> {
   auditSnap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("submitDriverPayout — échec fournisseur (createDriverPayout renvoie success:false)", () => {
   afterEach(async () => {
