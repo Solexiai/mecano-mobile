@@ -3246,6 +3246,20 @@ class AppStrings {
       'en': 'You are offline',
       'es': 'Está desconectado',
     },
+    // Phase 7, Bloc AB (AB-4, gap AB-4-B) : versions courtes des libellés
+    // ci-dessus, pour l'AppBar de ProviderDashboardShell (espace limité,
+    // affichées à côté du Switch en ligne/hors ligne — voir
+    // provider_dashboard_shell.dart).
+    'driver_status_online_label_short': {
+      'fr': 'Disponible',
+      'en': 'Available',
+      'es': 'Disponible',
+    },
+    'driver_status_offline_label_short': {
+      'fr': 'Hors ligne',
+      'en': 'Offline',
+      'es': 'Fuera de línea',
+    },
 
     // ---------- Bloc J — Finance client (Phase 6) ----------
     'finance_section_title': {
