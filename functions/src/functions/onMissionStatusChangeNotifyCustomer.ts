@@ -26,6 +26,11 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
+import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 interface NotificationSpec {
   type: string;
@@ -98,15 +103,50 @@ export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
       .collection("notifications")
       .doc();
 
-    await notifRef.set({
-      id: notifRef.id,
-      type: spec.type,
-      title_key: spec.titleKey,
-      body_key: spec.bodyKey,
-      is_read: false,
-      created_at: admin.firestore.Timestamp.now(),
-      related_mission_id: missionId,
-      metadata: {},
-    });
+    // 🔒 Phase 7, Bloc Y (Y-1/Y-2) — "notification failure" était un GAP
+    // silencieux avant ce correctif : une écriture Firestore échouée ici
+    // (permission dénormalisée, timeout, quota) ne devait jamais faire
+    // planter le trigger (le déclencheur n'a aucun mécanisme de retry
+    // métier ni de statut affiché au client), mais restait totalement
+    // invisible côté observabilité. Le try/catch préserve exactement le
+    // même comportement fonctionnel (jamais d'exception propagée) tout en
+    // rendant l'échec journalisé/alertable (voir docs/MONITORING_RUNBOOK.md).
+    // Aucune donnée sensible journalisée : uniquement mission_id (métier),
+    // jamais customer_id/adresse/contenu de notification.
+    const operationStartedAt = startFinancialOperationTimer();
+    try {
+      await notifRef.set({
+        id: notifRef.id,
+        type: spec.type,
+        title_key: spec.titleKey,
+        body_key: spec.bodyKey,
+        is_read: false,
+        created_at: admin.firestore.Timestamp.now(),
+        related_mission_id: missionId,
+        metadata: {},
+      });
+      logFinancialSuccess(
+        "mission_notification_created",
+        operationStartedAt,
+        { missionId },
+        { metadata: { notificationType: spec.type } }
+      );
+    } catch (err) {
+      logFinancialFailure(
+        "mission_notification_created",
+        operationStartedAt,
+        "notification_write_failed",
+        { missionId },
+        {
+          metadata: {
+            notificationType: spec.type,
+            errorMessage: err instanceof Error ? err.message : String(err),
+          },
+        }
+      );
+      // Ne jamais faire échouer le trigger pour une notification manquée —
+      // la transition de statut métier elle-même a déjà réussi (ce trigger
+      // s'exécute APRÈS l'écriture du document `delivery_requests`).
+    }
   }
 );

@@ -74,9 +74,9 @@ fermeture de bloc pour survivre à une compaction de contexte.
 | V | Validation Globale | NEXT | cascade complète + confirmations |
 | W | Nettoyage | NEXT | risques réels seulement |
 | X | Feature Flags / Kill Switches | NEXT | config serveur/admin |
-| Y | Monitoring/Alertes | NEXT | MONITORING_PLAN.md |
-| Z | Privacy/Data Retention | NEXT | DATA_RETENTION_TECHNICAL_PLAN.md |
-| AA | Disaster Recovery | NEXT | DISASTER_RECOVERY_PLAN.md |
+| Y | Monitoring/Alertes | DONE | `docs/MONITORING_RUNBOOK.md` |
+| Z | Privacy/Data Retention | DONE | `docs/DATA_RETENTION.md` |
+| AA | Disaster Recovery | DONE | `docs/DISASTER_RECOVERY.md` |
 | AB | First User Experience | NEXT | simulation client/chauffeur novice |
 | AC | Pilot Readiness | NEXT | PILOT_READINESS.md |
 
@@ -1619,3 +1619,53 @@ fail-safe de lecture.
 | P1 ouverts | 0 |
 
 **BLOC X : ✅ FERMÉ.**
+
+
+## MISE À JOUR — BLOC Y : ✅ FERMÉ (Monitoring/Alertes)
+
+Observabilité financière déjà en place depuis Phase 6 (`observability.ts` :
+`logFinancialSuccess`/`logFinancialFailure`/`startFinancialOperationTimer`, `sanitizeMetadata()`).
+2 gaps réels comblés ce bloc : `dispatchMissionToDrivers.ts` (aucune trace si 0 chauffeur
+disponible) et `onMissionStatusChangeNotifyCustomer.ts` (écriture notification non observée en cas
+d'échec) — désormais journalisés. `docs/MONITORING_RUNBOOK.md` créé. **BLOC Y : ✅ FERMÉ.**
+P0 = 0, P1 = 0. Commit `7060189`.
+
+## MISE À JOUR — BLOC Z : ✅ FERMÉ (Privacy / Data Retention)
+
+`docs/DATA_RETENTION.md` créé : inventaire complet (Client/Chauffeur/Mission/Finance/Système),
+GPS retention référencée (30j = config technique, pas obligation légale), documents chauffeur
+analysés (rien de supprimable aujourd'hui, politique Phase 8), stratégie minimale account
+deletion conçue (non implémentée, aucune cascade dangereuse), invariants financiers documentés,
+orphan files (P-7) DEFERRED avec algorithme précis → Phase 8, logs référencés Bloc Y, privacy
+access boundaries sanity référencée P/Q/V. Aucun code applicatif modifié (documentation/stratégie
+uniquement). **BLOC Z : ✅ FERMÉ.** P0 = 0, P1 = 0. Commit `b7349ed`.
+
+## MISE À JOUR — BLOC AA : ✅ FERMÉ (Disaster Recovery)
+
+`docs/DISASTER_RECOVERY.md` créé : critical data map, état backup HONNÊTE (aucun backup
+Firestore/Storage actif confirmé — `EXTERNAL CONFIGURATION REQUIRED` Phase 8, risque le plus
+important identifié), runbook incident 11 étapes (réutilise kill switches Bloc X), scénarios
+financial recovery documentés (règle absolue "jamais modifier une entrée ledger" réaffirmée et
+vérifiée structurellement), config recovery (fail-closed prouvé par nouveau test), rollback
+Git-based, SEV-1/2/3, RPO/RTO explicitement `DECISION REQUIRED BEFORE PRODUCTION` (non inventé).
+Nouveau fichier `functions/test/integration/disasterRecovery.test.ts` (3/3 PASS, non destructif,
+émulateurs uniquement — exercice DR réel : runtime flags fail-closed + restauration, incohérence
+financière réconciliable sans correction silencieuse). **BLOC AA : ✅ FERMÉ.** P0 = 0, P1 = 0.
+Commit `c1c4716`.
+
+## VALIDATION FINALE Y → Z → AA
+
+`npx tsc --noEmit` (functions) : 0 erreur. `npm run lint` (functions) : 0 warning. Jest unit :
+**109/109 PASS**. Jest intégration complète (émulateurs Firestore/Auth/Storage) : **38 suites /
+559 tests PASS**, 0 rouge (incluant `processStripeWebhook.test.ts` PASS — flake connu non
+reproduit cette exécution — et le nouveau `disasterRecovery.test.ts` intégré sans régression sur
+le reste de la suite). Flutter non touché dans Y/Z/AA → dernier état connu réutilisé (0 issue,
+508/508 PASS, Bloc X). **P0 ouverts (Y+Z+AA)** : 0. **P1 ouverts (Y+Z+AA)** : 0.
+
+## PROCHAIN GROUPE — AB → AC (annoncé, non démarré)
+
+- **AB — First User Experience** : simulation client/chauffeur novice de bout en bout.
+- **AC — Pilot Readiness** : `docs/PILOT_READINESS.md`, checklist finale avant pilote réel.
+
+Ces deux blocs constituent le DERNIER GROUPE de la Phase 7, à traiter dans une session
+ultérieure. Après leur fermeture : FERMETURE FINALE DE LA PHASE 7.
