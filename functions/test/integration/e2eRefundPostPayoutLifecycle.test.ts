@@ -69,6 +69,7 @@ import type {
   ProviderPayoutSummary,
   ProviderRefundSummary,
 } from "../../src/payment/paymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 // ---------------------------------------------------------------------------
 // Constantes du scénario — préfixe dédié (e2erefundpp) pour ne jamais
@@ -345,6 +346,14 @@ async function cleanupAll(missionId: string | null, payoutId: string | null): Pr
       .map((d) => d.ref.delete())
   );
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("E2E REFUND APRÈS PAYOUT (Bloc R) — payout PAID -> refund client -> payout historique intact -> compensation cohérente", () => {
   let fakeProvider: FakePaymentProvider;

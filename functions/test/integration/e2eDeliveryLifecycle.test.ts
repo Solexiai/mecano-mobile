@@ -47,6 +47,7 @@ import { LedgerEntryTypes, MissionStatuses } from "../../src/lib/types";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 // ---------------------------------------------------------------------------
 // NOTE D'ARCHITECTURE — pourquoi le trigger de notification est invoqué
@@ -245,6 +246,14 @@ async function cleanupAll(missionId: string | null): Promise<void> {
   const notifs = await db.collection("users").doc(CUSTOMER_ID).collection("notifications").get();
   await Promise.all(notifs.docs.map((d) => d.ref.delete()));
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> completed)", () => {
   let missionId: string | null = null;

@@ -17,6 +17,7 @@ import {
 } from "../../src/functions/createDeliveryRequest";
 import { admin, db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "create_customer_001";
 const OTHER_CUSTOMER_ID = "create_customer_002";
@@ -99,6 +100,14 @@ async function cleanup(): Promise<void> {
   );
   createdMissionIds = [];
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("createDeliveryRequest — cas nominal", () => {
   beforeEach(() => seedPaymentProfile(CUSTOMER_ID));

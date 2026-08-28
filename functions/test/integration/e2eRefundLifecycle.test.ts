@@ -53,6 +53,7 @@ import { DEFAULT_CURRENCY, toMinorUnits } from "../../src/lib/money";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import type { ProviderPaymentSummary, ProviderRefundSummary } from "../../src/payment/paymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 // ---------------------------------------------------------------------------
 // Constantes du scénario — préfixe dédié pour ne jamais interférer avec les
@@ -279,6 +280,14 @@ async function cleanupAll(missionId: string | null): Promise<void> {
       .map((d) => d.ref.delete())
   );
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("E2E REFUND (Bloc P->Q) — paiement capturé -> remboursement réel -> ledger compensatoire -> balance -> réconciliation", () => {
   let fakeProvider: FakePaymentProvider;

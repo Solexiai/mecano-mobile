@@ -33,6 +33,7 @@ import { PaymentStatuses } from "../../src/lib/types";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "cancel_release_customer_001";
 const DRIVER_ID = "cancel_release_driver_001";
@@ -135,6 +136,14 @@ async function cleanupAll(missionId: string | null): Promise<void> {
   const quotes = await db.collection("delivery_quotes").where("customer_id", "==", CUSTOMER_ID).get();
   await Promise.all(quotes.docs.map((d) => d.ref.delete()));
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("Phase 7 — Bloc B : annulation client après assignation LIBÈRE l'autorisation de paiement", () => {
   let missionId: string | null = null;

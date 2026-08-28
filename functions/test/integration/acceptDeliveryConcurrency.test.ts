@@ -32,6 +32,7 @@ import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "concurrency_customer_001";
 
@@ -140,6 +141,14 @@ async function cleanupSeed(): Promise<void> {
     ...payments.docs.map((d) => d.ref.delete()),
   ]);
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("acceptDelivery — double acceptation simultanée (premier commit gagnant)", () => {
   // PHASE 6 — acceptDelivery() appelle désormais createAndAuthorizeMissionPayment()

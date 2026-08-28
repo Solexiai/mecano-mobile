@@ -31,6 +31,7 @@ import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const PRICING_VERSION = "TEST-PRICING-LOAD-001";
 
@@ -70,6 +71,14 @@ function trackingRequest(driverId: string, data: RecordTrackingPointRequest): Ca
 // gagnant" tient toujours avec un nombre de concurrents réaliste pour un
 // pilote (plusieurs chauffeurs à proximité d'une même zone de dispatch).
 // -----------------------------------------------------------------------------
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
+
 describe("BLOC T-1 — acceptDelivery avec N=5 chauffeurs concurrents (volume pilote)", () => {
   const MISSION_ID = "load_t1_mission_001";
   const CUSTOMER_ID = "load_t1_customer_001";

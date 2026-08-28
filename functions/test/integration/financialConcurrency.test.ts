@@ -28,6 +28,7 @@ import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderF
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
 import { PaymentStatuses, PayoutStatuses } from "../../src/lib/types";
 import type { ScheduledEvent } from "firebase-functions/v2/scheduler";
+import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const DRIVER_ID = "concurrency_fin_driver_001";
 
@@ -137,6 +138,14 @@ function buildFakeScheduledEvent(): ScheduledEvent {
     jobName: "processScheduledDriverPayouts-test",
   } as unknown as ScheduledEvent;
 }
+
+
+// Bloc X (X-11) — fixture standard : "Movi-K fonctionne normalement, tous les
+// services critiques sont actifs" (voir test/testUtils/runtimeFlagsFixture.ts).
+// Suite historique (pré-Bloc X) : ne teste PAS elle-même les kill switches.
+beforeEach(async () => {
+  await seedDefaultRuntimeFlagsEnabled();
+});
 
 describe("BLOC N — concurrence financière : double capture / double payout / collision cron+manuel", () => {
   let fakeProvider: FakePaymentProvider;
