@@ -1282,3 +1282,25 @@ anticipation spéculative ce tour).
 | W-6 Dependencies | ✅ PASS | 3 deps Flutter directes inutilisées retirées (`cupertino_icons`/`intl`/`http`, transitif préservé sans changement de version) ; 0 dep inutilisée côté Functions ; aucune montée de version |
 
 **BLOC W : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0.
+
+## MISE À JOUR — BLOC X (Feature Flags / Kill Switches) : ✅ FERMÉ
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| X-1..X-9 Architecture + enforcement | ✅ PASS | 1 document (`system_config/runtime_flags`), 1 helper de lecture unique (`resolveRuntimeFlag`/`isRuntimeFlagEnabled`), 1 point d'entrée serveur par flag, admin-only en écriture (`updateRuntimeFlags`), écriture Firestore directe refusée par les règles |
+| X-10 UI Flutter | ✅ PASS | `isKillSwitchException()` reconnaît le message stable `service_temporarily_unavailable`, traduit FR/EN/ES, jamais un message technique brut affiché |
+| X-11 Tests d'intégration | ✅ PASS | `runtimeFlags.test.ts` 29/29 PASS (sections A→K) ; 17 suites historiques adaptées via `runtimeFlagsFixture.ts` (`seedDefaultRuntimeFlagsEnabled()`) ; suite complète 37/37 suites, 556/556 tests PASS (2 exécutions complètes consécutives, 0 rouge) |
+| X-12 Runtime/no-cache/coût | ✅ PASS | Aucun cache/TTL — lecture Firestore directe à chaque appel protégé, effet immédiat au prochain appel ; coût ≈ 1 lecture Firestore par action protégée |
+| X-13 Bootstrap Phase 8 | ✅ PASS | Checklist documentée (`docs/PHASE7_QA_PLAN.md`) ; auto-bootstrap intégré à `updateRuntimeFlags` (flags à `true` si document absent) ; aucun défaut permissif codé en dur dans le chemin de lecture (fail-safe reste à `false`) |
+| BUG-X-01 (P1) | ✅ CORRIGÉ | Contrôle `payments_enabled` déplacé avant la transaction d'assignation (`acceptDelivery.ts`) — plus aucune transition vers l'état terminal `PAYMENT_FAILED` causée par un kill switch. Preuve permanente : section D de `runtimeFlags.test.ts` |
+
+### Matrice des 4 flags (implémentation réelle, `functions/src/lib/runtimeFlags.ts`)
+
+| Flag | Default/fail-safe | Action protégée | Effet OFF | Autorité | Config absente/invalide | Audit |
+|---|---|---|---|---|---|---|
+| `accept_new_delivery_requests` | fail-closed (`false`) | `createDeliveryRequest` (création d'une NOUVELLE mission) | Aucune nouvelle mission créée ; les missions déjà existantes ne sont jamais affectées | Serveur uniquement (`isRuntimeFlagEnabled` + `killSwitchRefusal`) ; écriture admin-only via `updateRuntimeFlags` | Fail-closed → `false` (refusé) | Oui (`writeAuditLogInTransaction`, old/new values) |
+| `allow_driver_acceptance` | fail-closed (`false`) | `acceptDelivery` (acceptation d'une NOUVELLE mission par un chauffeur) | Aucune nouvelle assignation ; une mission déjà assignée/en livraison n'est jamais affectée | Serveur uniquement ; écriture admin-only | Fail-closed → `false` (refusé) | Oui |
+| `payments_enabled` | fail-closed (`false`) | Nouvelle exposition financière côté client (autorisation de paiement), vérifiée dans `acceptDelivery.ts` AVANT la transaction d'assignation (BUG-X-01) | Aucun nouveau paiement autorisé ; mission reste dans son état pré-acceptation valide (jamais `PAYMENT_FAILED`) ; refunds/disputes/compensations/corrections ledger sur un paiement déjà existant ne sont JAMAIS bloqués | Serveur uniquement ; écriture admin-only | Fail-closed → `false` (refusé) | Oui |
+| `driver_payouts_enabled` | fail-closed (`false`) | `submitDriverPayout` (nouvel appel réel au fournisseur pour verser un chauffeur — point de convergence unique de `calculateDriverPayout` et `processScheduledDriverPayouts`) | Payout reste `ELIGIBLE` (jamais transitionné vers `FAILED`) — resoumis automatiquement dès que le flag repasse à `true`, aucune action de récupération manuelle nécessaire ; `reverseDriverPayout` (compensation sur un versement déjà `PAID`) et la réconciliation ne sont JAMAIS bloqués | Serveur uniquement ; écriture admin-only | Fail-closed → `false` (refusé) | Oui |
+
+**BLOC X : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0 (BUG-X-01 corrigé, preuve permanente 29/29 PASS).
