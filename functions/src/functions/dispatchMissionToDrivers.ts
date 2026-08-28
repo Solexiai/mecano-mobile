@@ -23,12 +23,24 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { admin, db } from "../lib/admin";
 import { geohashUpperBound } from "../lib/geohash";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
+import {
+  logFinancialFailure,
+  logFinancialSuccess,
+  startFinancialOperationTimer,
+} from "../lib/observability";
 
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
 const MAX_CANDIDATE_DRIVERS = 15;
 
 async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): Promise<void> {
+  // 🔒 Phase 7, Bloc Y (Y-1/Y-2) — un correlation_id + timer couvrent tout
+  // le cycle de dispatch (recherche -> succès|aucun candidat), pour rendre
+  // "dispatch échoué" (aucun chauffeur trouvé) observable/alertable côté
+  // Cloud Logging sans jamais logger de PII (voir sanitizeMetadata) — seul
+  // mission_id (identifiant métier) est transmis, jamais les coordonnées
+  // GPS brutes ni un identifiant client/chauffeur non pertinent ici.
+  const operationStartedAt = startFinancialOperationTimer();
   const zonePrefix = mission.dispatch_zone_geohash.slice(0, DISPATCH_ZONE_PREFIX_LENGTH);
 
   const candidatesSnap = await db
@@ -50,7 +62,19 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
   if (eligible.length === 0) {
     // Aucun chauffeur dispo dans la zone immédiate — laissé en
     // 'searching_driver' ; un job planifié pourra élargir le rayon de
-    // recherche (hors scope de ce squelette).
+    // recherche (hors scope de ce squelette). NE PLANTE JAMAIS (comportement
+    // métier normal, pas une erreur système) — mais DOIT rester observable
+    // (Y-1 : "dispatch échoué" était un GAP silencieux avant ce correctif) :
+    // journalisé en "failure" opérationnelle (jamais une exception levée)
+    // pour permettre une alerte HIGH si ce cas se répète massivement (voir
+    // docs/MONITORING_RUNBOOK.md, Y-5).
+    logFinancialFailure(
+      "dispatch_no_driver_available",
+      operationStartedAt,
+      "no_eligible_driver_in_zone",
+      { missionId },
+      { metadata: { candidatesScanned: candidatesSnap.size, zonePrefix } }
+    );
     return;
   }
 
@@ -72,6 +96,15 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
     status: MissionStatuses.OFFERED,
   });
   await batch.commit();
+
+  // Log APRÈS le commit réussi — ne jamais annoncer un succès avant que les
+  // écritures (offres + statut OFFERED) soient réellement persistées.
+  logFinancialSuccess(
+    "dispatch_offers_created",
+    operationStartedAt,
+    { missionId },
+    { metadata: { offersCreated: eligible.length, candidatesScanned: candidatesSnap.size } }
+  );
 }
 
 /** Déclenché à la création d'une mission (créée par createDeliveryRequest()). */
