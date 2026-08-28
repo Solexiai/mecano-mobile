@@ -1479,3 +1479,42 @@ preuve.
 | P1 ouverts | 0 |
 
 **BLOC X : ✅ FERMÉ.**
+
+## BLOC Y — Monitoring/Alertes : ✅ FERMÉ (aucun nouveau bug de sévérité P0/P1 — 2 gaps d'observabilité comblés)
+
+- **GAP-Y-01 (P2, comblé)** : `dispatchMissionToDrivers.ts` n'émettait aucune trace observability
+  quand aucun chauffeur n'était disponible pour une mission — corrigé par `logFinancialFailure("dispatch_no_driver_available", ...)`.
+- **GAP-Y-02 (P2, comblé)** : `onMissionStatusChangeNotifyCustomer.ts` n'observait pas les échecs
+  d'écriture de notification — corrigé par try/catch + `logFinancialSuccess`/`logFinancialFailure`.
+
+Aucun bug fonctionnel trouvé — gaps d'observabilité uniquement. `docs/MONITORING_RUNBOOK.md` créé.
+
+## BLOC Z — Privacy/Data Retention : ✅ FERMÉ (aucun bug — documentation/stratégie uniquement)
+
+Aucun bug de code trouvé. `docs/DATA_RETENTION.md` créé (inventaire, GPS, driver documents,
+account deletion, financial safety, orphan files P-7 DEFERRED avec algorithme, logs, access
+boundaries). Décisions Phase 8 identifiées : retention policy légale (durées), retention policy
+documents chauffeur, cleanup orphan files, Cloud Logging retention.
+
+## BLOC AA — Disaster Recovery : ✅ FERMÉ (aucun bug — documentation + nouveau test DR)
+
+Aucun bug de code trouvé dans le code de production. `docs/DISASTER_RECOVERY.md` créé (critical
+data map, backup state honnête, runbook incident, financial recovery, config recovery, rollback,
+SEV, RPO/RTO). Bug de TEST trouvé et corrigé pendant la rédaction de `disasterRecovery.test.ts`
+(pas un bug de production) :
+
+- **Bug de test (corrigé avant commit)** : le premier jet du test seedait un webhook
+  `received_at` à seulement 1 minute dans le passé, sous le seuil de staleness de 15 minutes
+  (`STALE_WEBHOOK_THRESHOLD_MS` dans `reconciliationEngine.ts`) — l'anomalie
+  `WEBHOOK_UNPROCESSED` attendue n'était donc jamais détectée (`Expected: >= 1, Received: 0`).
+  Corrigé en portant le timestamp à 20 minutes dans le passé. Retest : 3/3 PASS.
+
+Décision Phase 8 la plus importante identifiée : aucun backup Firestore/Storage actif confirmé
+(`EXTERNAL CONFIGURATION REQUIRED`).
+
+## VALIDATION FINALE Y → Z → AA — Aucun rouge
+
+`npx tsc --noEmit` : 0 erreur. `npm run lint` : 0 warning. Jest unit : 109/109 PASS. Jest
+intégration complète (émulateurs) : **38 suites / 559 tests PASS**, y compris
+`processStripeWebhook.test.ts` (flake connu, PASS cette exécution, non masqué/skip) et le nouveau
+`disasterRecovery.test.ts` (3/3 PASS). **P0 = 0. P1 = 0** sur l'ensemble Y+Z+AA.

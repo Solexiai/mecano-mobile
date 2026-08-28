@@ -1304,3 +1304,56 @@ anticipation spéculative ce tour).
 | `driver_payouts_enabled` | fail-closed (`false`) | `submitDriverPayout` (nouvel appel réel au fournisseur pour verser un chauffeur — point de convergence unique de `calculateDriverPayout` et `processScheduledDriverPayouts`) | Payout reste `ELIGIBLE` (jamais transitionné vers `FAILED`) — resoumis automatiquement dès que le flag repasse à `true`, aucune action de récupération manuelle nécessaire ; `reverseDriverPayout` (compensation sur un versement déjà `PAID`) et la réconciliation ne sont JAMAIS bloqués | Serveur uniquement ; écriture admin-only | Fail-closed → `false` (refusé) | Oui |
 
 **BLOC X : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0 (BUG-X-01 corrigé, preuve permanente 29/29 PASS).
+
+## MISE À JOUR — BLOC Y (Monitoring/Alertes) : ✅ FERMÉ
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| Y-1..Y-6 Observabilité finance | ✅ PASS | `logFinancialSuccess`/`logFinancialFailure`/`startFinancialOperationTimer` déjà en place (Phase 6, `observability.ts`), `sanitizeMetadata()` confirmé (aucun secret/token/paiement brut en log) |
+| Gap réel comblé | ✅ CORRIGÉ | `dispatchMissionToDrivers.ts` (aucun log si 0 chauffeur dispo) et `onMissionStatusChangeNotifyCustomer.ts` (écriture notification non observée en cas d'échec) — désormais journalisés (`logFinancialFailure`/`logFinancialSuccess`) |
+| Runbook | ✅ FAIT | `docs/MONITORING_RUNBOOK.md` créé |
+
+**BLOC Y : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0. Commit `7060189`.
+
+## MISE À JOUR — BLOC Z (Privacy / Data Retention) : ✅ FERMÉ
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| Z-1 Inventaire données | ✅ FAIT | `docs/DATA_RETENTION.md` — matrice complète Client/Chauffeur/Mission/Finance/Système |
+| Z-2 GPS/Tracking | ✅ COUVERT (référencé) | `cleanupExpiredTrackingHistory.ts` (30j) documenté comme config technique actuelle, pas obligation légale |
+| Z-3 Driver documents | ✅ ANALYSÉ | Rien de supprimable aujourd'hui (Storage immutable, aucune fonction delete) — politique décidée Phase 8 |
+| Z-4 Account deletion | ✅ STRATÉGIE DOCUMENTÉE | Aucun workflow existant ; stratégie minimale anonymisation conçue (non implémentée), aucune cascade dangereuse |
+| Z-5 Financial safety | ✅ INVARIANTS DOCUMENTÉS | Aucun risque actuel (pas de workflow deletion), invariants pour Phase 8 |
+| Z-6 Orphan files (P-7) | ✅ DEFERRED avec algorithme précis | Non implémenté ce tour (grace period + preuve d'orphelin avant suppression) → Phase 8 |
+| Z-7 Logs/retention | ✅ RÉFÉRENCÉ | Garanties Bloc Y réutilisées ; durée Cloud Logging → Phase 8 config externe |
+| Z-8 Privacy access boundaries | ✅ SANITY | Référencé Blocs P/Q/V, aucune Security Rule modifiée |
+
+**BLOC Z : ✅ FERMÉ.** Aucun code applicatif modifié (documentation/stratégie uniquement). P0 ouverts : 0. P1 ouverts : 0. Commit `b7349ed`.
+
+## MISE À JOUR — BLOC AA (Disaster Recovery) : ✅ FERMÉ
+
+| Sous-bloc | Statut | Détail |
+|---|---|---|
+| AA-1 Critical data map | ✅ FAIT | `docs/DISASTER_RECOVERY.md` — table donnée/criticité/reconstructible/source de vérité |
+| AA-2 Backups (état honnête) | ✅ HONNÊTE | Aucun backup Firestore/Storage actif confirmé — `EXTERNAL CONFIGURATION REQUIRED` Phase 8 (risque le plus important identifié) |
+| AA-3 Runbook incident | ✅ FAIT | 11 étapes, réutilise kill switches Bloc X |
+| AA-4 Financial recovery | ✅ DOCUMENTÉ | Scénarios mappés sur mécanismes existants (idempotency, reconciliationEngine, compensating entries) ; règle absolue "jamais modifier une entrée ledger" réaffirmée et vérifiée structurellement |
+| AA-5 Config recovery | ✅ PROUVÉ | Fail-closed runtime flags prouvé par nouveau test (Scénario A) |
+| AA-6 Deployment rollback | ✅ DOCUMENTÉ | Procédure Git-based, aucune CI/CD nouvelle construite (confirmé absente) |
+| AA-7 Incident severity | ✅ FAIT | SEV-1/2/3 définis avec exemples Movi-K |
+| AA-8 RPO/RTO | ✅ NON INVENTÉ | `RPO/RTO TARGETS — DECISION REQUIRED BEFORE PRODUCTION` + recommandations techniques séparées |
+| AA-9 DR Exercise | ✅ FAIT ET TESTÉ | `functions/test/integration/disasterRecovery.test.ts` — 3/3 PASS (non destructif, émulateurs uniquement) |
+
+**BLOC AA : ✅ FERMÉ.** P0 ouverts : 0. P1 ouverts : 0. Commit `c1c4716`.
+
+## VALIDATION FINALE Y → Z → AA
+
+`npx tsc --noEmit` (functions) : 0 erreur. `npm run lint` (functions) : 0 warning. Jest unit :
+**109/109 PASS**. Jest intégration complète (émulateurs Firestore/Auth/Storage) : **38 suites /
+559 tests PASS**, 0 rouge, incluant `processStripeWebhook.test.ts` PASS (flake connu non
+reproduit cette exécution) et le nouveau `disasterRecovery.test.ts` (3/3 PASS) intégré sans
+interférence avec le reste de la suite. Aucun fichier Flutter/Dart touché dans Y/Z/AA →
+`flutter analyze`/`flutter test` non ré-exécutés (dernier état connu : 0 issue / 508/508 PASS,
+Bloc X).
+
+**P0 ouverts (Y+Z+AA)** : 0. **P1 ouverts (Y+Z+AA)** : 0.
