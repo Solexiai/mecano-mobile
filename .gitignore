@@ -33,6 +33,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Phase 8 — SDK Flutter local (cloné par scripts/vercel_build.sh pour Vercel).
+# Ne JAMAIS committer le SDK Flutter lui-même : uniquement le script.
+.flutter/
+
 # Symbolication related
 app.*.symbols
 
