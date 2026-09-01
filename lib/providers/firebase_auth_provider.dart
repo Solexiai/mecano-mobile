@@ -94,7 +94,8 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// ce getter plutôt que `user!.uid` directement, pour rester testables
   /// sans dépendance à un vrai utilisateur Firebase.
   String? get effectiveUid => _user?.uid ?? debugForceUid;
-  String? get effectiveDisplayName => _user?.displayName ?? debugForceDisplayName;
+  String? get effectiveDisplayName =>
+      _user?.displayName ?? debugForceDisplayName;
   String? get effectiveEmail => _user?.email ?? debugForceEmail;
   List<PlatformRole> get roles => debugForceRoles ?? _roles;
   bool get isLoading => _isLoading;
@@ -110,7 +111,8 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// (erreur réseau/interop transitoire), PAS si l'utilisateur n'a
   /// simplement aucun rôle. Permet à l'UI/AdminLoginScreen de proposer un
   /// nouvel essai plutôt que de déconnecter à tort un compte légitime.
-  bool get claimsFetchFailed => debugForceClaimsFetchFailed ?? _claimsFetchFailed;
+  bool get claimsFetchFailed =>
+      debugForceClaimsFetchFailed ?? _claimsFetchFailed;
 
   bool hasRole(PlatformRole role) => roles.contains(role);
   bool get isAdminOrAbove =>
@@ -122,8 +124,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// pour autant avoir les droits admin/super_admin complets. Reflète
   /// exactement `PlatformRoleX.canReviewDrivers` côté serveur
   /// (functions/src/lib/auth.ts: requireAnalystOrAbove).
-  bool get isAnalystOrAbove =>
-      hasRole(PlatformRole.analyst) || isAdminOrAbove;
+  bool get isAnalystOrAbove => hasRole(PlatformRole.analyst) || isAdminOrAbove;
 
   Future<void> _onAuthChanged(fb.User? user) async {
     _user = user;
@@ -154,9 +155,15 @@ class FirebaseAuthProvider extends ChangeNotifier {
             ?.map((e) => e.toString())
             .toList();
         if (rawRoles != null && rawRoles.isNotEmpty) {
-          _roles = rawRoles.map(PlatformRoleX.fromClaim).toList();
+          _roles = rawRoles
+              .map(PlatformRoleX.tryFromClaim)
+              .whereType<PlatformRole>()
+              .toList();
         } else if (claims?['role'] != null) {
-          _roles = [PlatformRoleX.fromClaim(claims!['role'] as String)];
+          final parsedRole = PlatformRoleX.tryFromClaim(
+            claims!['role'] as String,
+          );
+          _roles = parsedRole == null ? [] : [parsedRole];
         } else {
           _roles = [];
         }
@@ -243,21 +250,25 @@ class FirebaseAuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final cred = await fb.FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password,
-      );
+      final cred = await fb.FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password,
+          );
       await cred.user?.updateDisplayName(fullName.trim());
 
-      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set({
-        'uid': cred.user!.uid,
-        'email': email.trim(),
-        'full_name': fullName.trim(),
-        'roles': ['customer'],
-        'created_at': DateTime.now().toIso8601String(),
-        'is_disabled': false,
-        'email_verified': false,
-      });
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(cred.user!.uid)
+          .set({
+            'uid': cred.user!.uid,
+            'email': email.trim(),
+            'full_name': fullName.trim(),
+            'roles': ['customer'],
+            'created_at': DateTime.now().toIso8601String(),
+            'is_disabled': false,
+            'email_verified': false,
+          });
 
       _user = cred.user;
       _claimsLoaded = false;
