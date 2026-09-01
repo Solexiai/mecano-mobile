@@ -49,26 +49,30 @@ class AppUserV2 {
       hasRole(PlatformRole.superAdmin);
 
   Map<String, dynamic> toJson() => {
-        'uid': uid,
-        'email': email,
-        'phone': phone,
-        'full_name': fullName,
-        'profile_photo_url': profilePhotoUrl,
-        'roles': roles.map((r) => r.claimValue).toList(),
-        'created_at': createdAt.toIso8601String(),
-        'is_disabled': isDisabled,
-        'email_verified': emailVerified,
-      };
+    'uid': uid,
+    'email': email,
+    'phone': phone,
+    'full_name': fullName,
+    'profile_photo_url': profilePhotoUrl,
+    'roles': roles.map((r) => r.claimValue).toList(),
+    'created_at': createdAt.toIso8601String(),
+    'is_disabled': isDisabled,
+    'email_verified': emailVerified,
+  };
 
   factory AppUserV2.fromJson(String uid, Map<String, dynamic> json) {
-    final rawRoles = (json['roles'] as List?)?.cast<String>() ?? const ['customer'];
+    final rawRoles =
+        (json['roles'] as List?)?.cast<String>() ?? const ['customer'];
     return AppUserV2(
       uid: uid,
       email: json['email'] as String? ?? '',
       phone: json['phone'] as String?,
       fullName: json['full_name'] as String? ?? '',
       profilePhotoUrl: json['profile_photo_url'] as String?,
-      roles: rawRoles.map(PlatformRoleX.fromClaim).toList(),
+      roles: rawRoles
+          .map(PlatformRoleX.tryFromClaim)
+          .whereType<PlatformRole>()
+          .toList(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
