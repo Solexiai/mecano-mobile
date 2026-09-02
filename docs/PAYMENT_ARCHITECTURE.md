@@ -200,3 +200,136 @@ opérationnel** par construction : toute tentative d'utilisation sans
 `STRIPE_SECRET_KEY` configuré échoue explicitement (voir
 `functions/src/payment/stripeProvider.ts`), jamais de simulation silencieuse
 de paiement réussi.
+
+## 10. Audit branchement Stripe LIVE (Phase 8B) — référence de vérité
+
+Cette section documente l'audit exhaustif du code réel effectué AVANT toute
+demande de secrets LIVE à Daniel (projet `movik-connect-prod`). Aucune
+architecture existante n'a été refaite — uniquement 2 bugs de configuration
+Cloud Functions v2 corrigés (voir 10.4).
+
+### 10.1 Cloud Function webhook
+
+- **Nom** : `processStripeWebhook` (`functions/src/functions/processStripeWebhook.ts`).
+- **Type** : `onRequest` (v2, HTTPS publique, PAS `onCall`).
+- **Région** : aucun `region()`/`setGlobalOptions()` n'est déclaré nulle part
+  dans `functions/src/` → région par défaut Cloud Functions v2/v1 =
+  **`us-central1`**. À confirmer une seule fois par une lecture
+  `firebase functions:list` après le premier déploiement (jamais supposée
+  au-delà de ce défaut documenté par Firebase).
+- **URL publique LIVE** (format Cloud Functions v2 / Cloud Run) :
+  `https://us-central1-movik-connect-prod.cloudfunctions.net/processStripeWebhook`
+  — c'est CETTE URL qui doit être saisie comme endpoint dans le Dashboard
+  Stripe (mode LIVE), identique en forme à l'endpoint TEST (seul le Secret
+  Manager change, jamais l'URL).
+
+### 10.2 Événements Stripe strictement nécessaires
+
+Liste exhaustive extraite du `switch` réel de `processStripeWebhook.ts` (tout
+autre type d'évènement est accusé réception 200 et ignoré, sans effet) :
+
+- `payment_intent.succeeded`
+- `payment_intent.payment_failed`
+- `charge.refund.updated`
+- `refund.updated`
+- `payout.paid`
+- `payout.failed`
+- `charge.dispute.created`
+- `charge.dispute.updated`
+- `charge.dispute.closed`
+- `account.updated` (Connected Accounts — synchronise `stripe_charges_enabled`/
+  `stripe_payouts_enabled` sur `driver_profiles/{driverId}`)
+
+### 10.3 Stripe Connect
+
+- **Type de compte** : Express (`stripe.accounts.create({ type: "express", ... })`,
+  `stripeProvider.ts::createDriverAccount`).
+- **Return URL** : `https://movik.ca/chauffeur/onboarding/complete`
+  (codée en dur dans `stripeProvider.ts`).
+- **Refresh URL** : `https://movik.ca/chauffeur/onboarding/refresh`
+  (codée en dur dans `stripeProvider.ts`).
+- ⚠️ **Point ouvert non-bloquant pour la configuration LIVE, mais à
+  corriger avant le pilote** : ces deux chemins ne correspondent à AUCUNE
+  route déclarée dans `lib/router/app_router.dart` (Flutter). L'app Flutter
+  Connect UI (Bloc 8B, PR #13) ouvre l'URL d'onboarding hébergée Stripe via
+  `url_launcher` en `LaunchMode.externalApplication` (navigateur externe) —
+  le chauffeur revient donc manuellement à l'app, l'absence de route
+  `/chauffeur/onboarding/complete|refresh` n'empêche PAS la configuration
+  LIVE (Stripe ne dépend pas d'un rendu par ces URLs pour fonctionner) mais
+  produira un 404 générique si un chauffeur clique un lien affiché par
+  Stripe sur ces chemins. Non requis pour ce tour (portée : ne pas refaire
+  l'architecture Stripe) — signalé pour un tour ultérieur.
+
+### 10.4 Bugs de configuration corrigés dans cet audit (BUG LIVE-01/02)
+
+Deux Cloud Functions appellent réellement Stripe via
+`payment/paymentOrchestration.ts` mais NE déclaraient PAS `secrets: [...]`
+dans leurs options v2 — en Cloud Functions v2, un secret Secret Manager
+n'est injecté dans le runtime QUE si la fonction le déclare explicitement.
+Sans ce correctif, `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` auraient été
+absents à l'exécution même correctement configurés dans Secret Manager,
+provoquant un échec SILENCIEUX ("fournisseur non configuré") de toute
+opération réelle :
+
+- **BUG LIVE-01** : `refundPayment.ts` (callable, appelle
+  `refundPaymentOrchestration` → `provider.refundPayment()`) — corrigé,
+  déclare maintenant `{ secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] }`.
+- **BUG LIVE-02** : `processScheduledDriverPayouts.ts` (cron horaire, appelle
+  `submitDriverPayout` → `provider.createDriverPayout()`) — corrigé, déclare
+  maintenant `{ schedule: "every 60 minutes", secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] }`.
+
+Tests unitaires (109/109) + intégration ciblée (`refundPayment.test.ts` 15/15,
+`e2eFinancialLifecycle`/`submitDriverPayoutFailure`/`financialConcurrency`
+6/6) re-passés après correctif, aucune régression (ces tests utilisent
+`setPaymentProviderForTesting()` en émulateur, indépendant des secrets réels
+— la correction ne change donc que le comportement PRODUCTION, jamais le
+comportement testé en émulateur).
+
+Fonctions confirmées SANS besoin de secret Stripe (aucun appel
+`getPaymentProvider()`/Stripe direct) : `updateDisputeStatus.ts` (délègue à
+`disputeOrchestration.ts`, qui ne fait jamais d'appel réseau Stripe — un
+litige est déjà un fait acquis côté Stripe au moment du webhook),
+`reverseDriverPayout.ts` (compensation comptable pure, documente
+explicitement qu'aucun appel provider n'existe côté Stripe pour annuler un
+payout déjà `PAID`).
+
+### 10.5 Cartographie exacte des secrets par fonction
+
+| Fonction | `STRIPE_SECRET_KEY` | `STRIPE_WEBHOOK_SECRET` | Résultat de l'audit |
+|---|---|---|---|
+| `processStripeWebhook` | ✅ | ✅ | déjà correct |
+| `createDriverStripeAccount` | ✅ | ✅ (non utilisé en pratique — `createDriverAccount()` ne vérifie aucune signature ; déclaré par prudence/symétrie historique, non corrigé ce tour car sans impact fonctionnel ni risque) | déjà correct (surdéclaration bénigne) |
+| `acceptDelivery` | ✅ | ✅ | déjà correct |
+| `completeDelivery` | ✅ | ✅ | déjà correct |
+| `attachCustomerPaymentMethod` | ✅ | ✅ | déjà correct |
+| `createCustomerPaymentProfile` | ✅ | ✅ | déjà correct |
+| `runReconciliationNow` / `runDailyReconciliation` | ✅ | ✅ | déjà correct |
+| `refundPayment` | ✅ (corrigé ce tour) | ✅ (corrigé ce tour) | **BUG LIVE-01 corrigé** |
+| `processScheduledDriverPayouts` | ✅ (corrigé ce tour) | ✅ (corrigé ce tour) | **BUG LIVE-02 corrigé** |
+| `updateDisputeStatus` | — (n'appelle jamais Stripe) | — | correct par conception |
+| `reverseDriverPayout` | — (n'appelle jamais Stripe) | — | correct par conception |
+
+### 10.6 Surface API Stripe réellement utilisée (analyse Restricted Key)
+
+Ressources/méthodes Stripe SDK effectivement appelées dans
+`stripeProvider.ts` (liste exhaustive, grep confirmé) :
+
+- `customers.create`
+- `paymentMethods.attach`
+- `paymentIntents.create` / `.confirm` / `.capture` / `.cancel` / `.retrieve` / `.list`
+- `refunds.create` / `.retrieve` / `.list`
+- `payouts.create` / `.retrieve` / `.list`
+- `accounts.create`
+- `accountLinks.create`
+- `webhooks.constructEvent` (vérification de signature — ne consomme pas la
+  clé secrète API, uniquement `STRIPE_WEBHOOK_SECRET`)
+
+Toutes ces ressources correspondent à des permissions granulaires standard
+d'une **Restricted API Key** Stripe (Customers: Write, Payment Intents:
+Write, Charges: Read, Refunds: Write, Payouts: Write, Connected Accounts:
+Write). Stripe recommande explicitement une Restricted Key quand le
+périmètre peut être scopé (docs.stripe.com/keys#limit-access) — c'est le
+cas ici : AUCUNE méthode utilisée ne requiert un accès non-scopable (pas de
+gestion de compte plateforme globale, pas de Radar rules, pas de Billing/
+Tax API, pas de Terminal). **Recommandation : Restricted Key LIVE**, pas la
+clé secrète complète `sk_live_...`.
