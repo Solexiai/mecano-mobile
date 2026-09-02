@@ -446,3 +446,131 @@ transfert réel.
   `payments_enabled: false` et `driver_payouts_enabled: false` (créer le
   document avec ces valeurs s'il n'existe pas encore). Ne PAS se reposer
   uniquement sur le fail-closed du code pour cette phase de configuration.
+
+### 10.9 BLOQUEUR WEBHOOK PRODUCTION (Bloc 8B LIVE) — architecture à 2 endpoints
+
+**Origine du bloqueur** : Daniel a vérifié personnellement Firebase Console
+> `movik-connect-prod` > Functions et **confirmé que `processStripeWebhook`
+N'EXISTE PAS** dans les Functions déployées. Ceci transforme la mise en
+garde "NON VÉRIFIABLE" du §10.7 en **BLOCAGE CONFIRMÉ**. Avant toute
+correction, la question posée était : Stripe exige-t-il UN seul endpoint
+webhook capable de recevoir à la fois les 9 événements plateforme et
+`account.updated` (Connect), ou DEUX endpoints distincts ?
+
+**Réponse confirmée (docs.stripe.com/connect/webhooks, crawl réel)** :
+chaque endpoint webhook Stripe est scopé **exclusivement** à "Your account"
+(événements PLATEFORME, paramètre API `connect: false`) OU "Connected
+accounts" (événements sur un compte CONNECTÉ, `connect: true`) — c'est un
+scope PAR ENDPOINT, jamais par type d'événement à l'intérieur d'un même
+endpoint. Comme Movi-K a besoin des deux (9 événements plateforme +
+`account.updated` en Connect), **2 endpoints webhook distincts sont
+requis**, chacun avec son propre secret de signature `whsec_...` (jamais
+partagé, même s'ils appartiennent au même compte Stripe).
+
+**Architecture implémentée** (`functions/src/functions/processStripeWebhook.ts`) :
+
+- `dispatchStripeEvent(event, sourceFunctionName)` — logique métier
+  100% PARTAGÉE, inchangée dans son contenu (switch/case par type
+  d'événement), désormais paramétrée par `sourceFunctionName` pour que
+  chaque `writeAuditLog()` interne reflète l'endpoint HTTP réel qui a reçu
+  la requête (bug découvert et corrigé pendant cette session : ces appels
+  hardcodaient auparavant littéralement `"processStripeWebhook"`, y compris
+  pour `account.updated` qui transitera TOUJOURS par l'endpoint Connect en
+  production — voir ci-dessous).
+- `buildStripeWebhookHandler(sourceFunctionName, getWebhookSecretValue)` —
+  fabrique le handler `onRequest` complet (vérification de signature,
+  idempotence `provider_webhook_events/{event.id}`, dispatch, audit,
+  observabilité) ; SEULE différence entre les deux endpoints exportés :
+  quel secret sert à vérifier la signature et quel nom est journalisé
+  comme `sourceFunction`.
+- `StripeProvider.constructVerifiedEvent(rawBody, signatureHeader, secretOverride?)`
+  accepte désormais un secret explicite par appel (retombe sur l'ancien
+  `this.webhookSecret` legacy si omis, pour compatibilité).
+- Deux exports Cloud Functions v2 (`functions/src/index.ts`) :
+
+  ```typescript
+  export const processStripeWebhook = onRequest(
+    { secrets: [STRIPE_SECRET_KEY, STRIPE_PLATFORM_WEBHOOK_SECRET] },
+    buildStripeWebhookHandler("processStripeWebhook", () => STRIPE_PLATFORM_WEBHOOK_SECRET.value())
+  );
+
+  export const processStripeConnectWebhook = onRequest(
+    { secrets: [STRIPE_SECRET_KEY, STRIPE_CONNECT_WEBHOOK_SECRET] },
+    buildStripeWebhookHandler("processStripeConnectWebhook", () => STRIPE_CONNECT_WEBHOOK_SECRET.value())
+  );
+  ```
+
+- **Aucune duplication de logique métier** : les deux endpoints appellent
+  le même `dispatchStripeEvent()` et partagent le même registre
+  d'idempotence `provider_webhook_events/{event.id}` (l'ID d'événement
+  Stripe est unique tous endpoints confondus, aucun risque de collision).
+
+**Secrets Secret Manager requis (`functions/src/lib/secrets.ts`)** :
+
+| Nom du secret | Consommé par | Remplace |
+|---|---|---|
+| `STRIPE_PLATFORM_WEBHOOK_SECRET` | `processStripeWebhook` (endpoint "Your account") | — nouveau |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | `processStripeConnectWebhook` (endpoint "Connected accounts") | — nouveau |
+| `STRIPE_WEBHOOK_SECRET` | conservé `@deprecated`, legacy, aucun des deux endpoints réels ne l'utilise plus pour la vérification de signature | ancien nom unique, insuffisant pour 2 endpoints |
+
+Aucun secret n'est ni committé dans Git, ni écrit en dur, ni exposé côté
+Flutter — inchangé par rapport aux règles déjà en vigueur (point 30 du
+cahier des charges).
+
+**URLs des deux endpoints LIVE** (format Cloud Functions v2, région
+`us-central1` confirmée par défaut — voir §10.1) :
+
+- Webhook plateforme : `https://us-central1-movik-connect-prod.cloudfunctions.net/processStripeWebhook`
+- Webhook Connect : `https://us-central1-movik-connect-prod.cloudfunctions.net/processStripeConnectWebhook`
+
+**Pourquoi rien n'est actuellement déployé (cause racine confirmée)** :
+absence totale de pipeline CI/CD — `ls -la .github` confirme qu'aucun
+répertoire `.github/workflows/` n'existe dans ce dépôt, et `find . -iname
+"*.yml" -o -iname "*.yaml"` ne retourne que `analysis_options.yaml`/
+`pubspec.yaml` (Flutter), aucun fichier de workflow. `functions/package.json`
+définit `"deploy": "firebase deploy --only functions"` comme un script
+**manuel**, jamais déclenché automatiquement par un merge/push GitHub. Ceci
+explique pourquoi `processStripeWebhook` — et très probablement TOUTES les
+autres Cloud Functions du projet — n'a jamais été réellement poussée vers
+`movik-connect-prod` : le déploiement a toujours nécessité une exécution
+manuelle avec des identifiants Firebase CLI réels, jamais disponibles dans
+ce sandbox, et apparemment jamais exécutée par personne côté production
+avant la découverte de ce bloqueur.
+
+**Restricted Key et `payouts.create` — recherche complémentaire** :
+`docs.stripe.com/keys/restricted-api-keys` confirme littéralement : *"If you
+use Connect, you can also select the permission to allow for this key when
+accessing connected accounts"* — ceci confirme qu'un accès Connect
+("Connected accounts") est une dimension de permission **séparée** de la
+grille Read/Write/None par ressource (Payouts, Customers, etc.), nécessaire
+en plus de "Payouts: Write" pour que `payouts.create(..., {stripeAccount:
+acct_...})` fonctionne (voir aussi §10.6.1). Le libellé Dashboard exact de
+ce bascule n'a pas pu être confirmé mot pour mot dans la documentation
+officielle malgré plusieurs recherches ciblées ; son existence est en
+revanche certaine. **Conclusion honnête : "À CONFIRMER", pas "OUI"** — la
+méthode de vérification faisant autorité, recommandée par Stripe
+elle-même, est de créer la clé en mode **TEST**, effectuer un
+`payouts.create` réel vers un compte connecté TEST, et consulter Dashboard
+Stripe > Developers > API keys > cette clé > "Voir les logs de requêtes" en
+cas d'erreur 403 pour identifier précisément la permission manquante, AVANT
+de répliquer la même configuration en LIVE.
+
+**Bug corrigé pendant cette implémentation** : les appels `writeAuditLog()`
+internes à `dispatchStripeEvent()` (branches `payment_intent.*`,
+`charge.refund.updated`/`refund.updated`, `payout.*`, `account.updated`)
+journalisaient auparavant un `sourceFunction: "processStripeWebhook"`
+littéral et figé, quel que soit l'endpoint réel ayant reçu la requête —
+ceci aurait rendu les journaux d'audit de `account.updated` (qui transite
+TOUJOURS par `processStripeConnectWebhook` en production) trompeurs pour
+toute investigation de traçabilité future. Corrigé en propageant
+`sourceFunctionName` depuis le handler appelant jusqu'à chaque
+`writeAuditLog()` interne. Couvert par un test d'intégration dédié
+(`processStripeWebhook.test.ts`, assertion sur
+`audit_logs.source_function == "processStripeConnectWebhook"`).
+
+**Tests** : 24/24 tests d'intégration `processStripeWebhook.test.ts` verts
+(incluant 2 nouveaux tests : rejet croisé secret Connect utilisé sur
+l'endpoint plateforme et vice-versa, "secrets non interchangeables") ;
+3/3 `e2eDisputeChargebackLifecycle.test.ts` verts (endpoint plateforme
+uniquement, adapté pour fixer `STRIPE_PLATFORM_WEBHOOK_SECRET` en variable
+d'environnement de test) ; 109/109 tests unitaires inchangés.
