@@ -16,6 +16,7 @@
 // -----------------------------------------------------------------------------
 
 import Stripe from "stripe";
+import { getDriverStripeRefreshUrl, getDriverStripeReturnUrl } from "../lib/appConfig";
 import {
   AttachPaymentMethodParams,
   AttachPaymentMethodResult,
@@ -304,10 +305,17 @@ export class StripeProvider extends PaymentProvider {
 
     let onboardingUrl: string | null = null;
     try {
+      // GAP 8B LIVE FERMÉ (voir docs/PAYMENT_ARCHITECTURE.md §10.7) : ces
+      // deux URLs étaient codées en dur sur `movik.ca`, un domaine confirmé
+      // NE PAS servir l'app Movi-K (échec TLS constaté). Elles pointent
+      // maintenant vers `APP_PUBLIC_BASE_URL` (voir lib/appConfig.ts, valeur
+      // par défaut = domaine Vercel réellement vérifié en ligne), et vers
+      // les routes Flutter dédiées `chauffeur/onboarding/complete|refresh`
+      // (voir lib/router/app_router.dart + driver_stripe_onboarding_return_screen.dart).
       const accountLink = await this.stripe.accountLinks.create({
         account: account.id,
-        refresh_url: "https://movik.ca/chauffeur/onboarding/refresh",
-        return_url: "https://movik.ca/chauffeur/onboarding/complete",
+        refresh_url: getDriverStripeRefreshUrl(),
+        return_url: getDriverStripeReturnUrl(),
         type: "account_onboarding",
       });
       onboardingUrl = accountLink.url;

@@ -244,21 +244,44 @@ autre type d'évènement est accusé réception 200 et ignoré, sans effet) :
 
 - **Type de compte** : Express (`stripe.accounts.create({ type: "express", ... })`,
   `stripeProvider.ts::createDriverAccount`).
-- **Return URL** : `https://movik.ca/chauffeur/onboarding/complete`
-  (codée en dur dans `stripeProvider.ts`).
-- **Refresh URL** : `https://movik.ca/chauffeur/onboarding/refresh`
-  (codée en dur dans `stripeProvider.ts`).
-- ⚠️ **Point ouvert non-bloquant pour la configuration LIVE, mais à
-  corriger avant le pilote** : ces deux chemins ne correspondent à AUCUNE
-  route déclarée dans `lib/router/app_router.dart` (Flutter). L'app Flutter
-  Connect UI (Bloc 8B, PR #13) ouvre l'URL d'onboarding hébergée Stripe via
-  `url_launcher` en `LaunchMode.externalApplication` (navigateur externe) —
-  le chauffeur revient donc manuellement à l'app, l'absence de route
-  `/chauffeur/onboarding/complete|refresh` n'empêche PAS la configuration
-  LIVE (Stripe ne dépend pas d'un rendu par ces URLs pour fonctionner) mais
-  produira un 404 générique si un chauffeur clique un lien affiché par
-  Stripe sur ces chemins. Non requis pour ce tour (portée : ne pas refaire
-  l'architecture Stripe) — signalé pour un tour ultérieur.
+- **GAP FERMÉ (Bloc 8B LIVE, "DERNIER CHECK AVANT SECRETS")** : les URLs de
+  retour/refresh étaient codées en dur sur `https://movik.ca/...`. Vérif
+  réseau réelle (`curl -sv https://movik.ca`) : échec de handshake TLS
+  (`SSL routines::ssl/tls alert handshake failure`) et `curl http://movik.ca`
+  → `error code: 1001` — **ce domaine ne sert PAS l'app Movi-K
+  actuellement**. Le domaine RÉELLEMENT en ligne, vérifié (`curl -sI` → HTTP
+  200, `<title>movik_connect</title>`), est
+  `https://mecano-mobile-delta.vercel.app`.
+- **Correctif appliqué** :
+  - `functions/src/lib/appConfig.ts` (nouveau) déclare `APP_PUBLIC_BASE_URL`
+    via `defineString` (NON un secret — c'est une URL publique) avec pour
+    valeur par défaut le domaine Vercel ci-dessus.
+  - `stripeProvider.ts::createDriverAccount` utilise maintenant
+    `getDriverStripeReturnUrl()`/`getDriverStripeRefreshUrl()` (au lieu des
+    chaînes en dur) → **Return URL final** :
+    `https://mecano-mobile-delta.vercel.app/fr/chauffeur/onboarding/complete` ;
+    **Refresh URL final** :
+    `https://mecano-mobile-delta.vercel.app/fr/chauffeur/onboarding/refresh`.
+  - Si Daniel branche plus tard un domaine public final différent (ex.
+    `movik.ca` une fois correctement configuré), il suffit de définir le
+    paramètre `APP_PUBLIC_BASE_URL` côté Firebase (Console > Functions >
+    Configuration des paramètres, ou `.env.movik-connect-prod`) — AUCUNE
+    modification de code requise.
+  - Nouvelles routes Flutter (FR/EN/ES) ajoutées dans
+    `lib/router/app_router.dart`, gérées par
+    `DriverStripeOnboardingReturnScreen` (nouveau fichier) : couvrent (a)
+    retour onboarding complété, (b) refresh/retry, (c) relecture de l'état
+    Connect (réutilise le `watchDriverProfile` stream existant, aucune
+    logique dupliquée), (d) retour propre vers l'onglet Profil du chauffeur
+    (`ProviderDashboardShell` accepte maintenant `initialTabIndex`, défaut
+    `0` inchangé pour tout appelant existant).
+  - Tests ajoutés : `test/driver/driver_stripe_onboarding_return_screen_test.dart`
+    (12 tests, couvrant les 3 nouvelles routes FR/EN/ES, les 2 modes, la
+    relecture d'état, et la navigation vers l'onglet Profil) — tous verts,
+    aucune régression sur les suites existantes
+    (`app_router_invalid_routes_test.dart`,
+    `provider_dashboard_shell_status_gate_test.dart`,
+    `provider_stripe_connect_section_test.dart`).
 
 ### 10.4 Bugs de configuration corrigés dans cet audit (BUG LIVE-01/02)
 
@@ -325,11 +348,101 @@ Ressources/méthodes Stripe SDK effectivement appelées dans
   clé secrète API, uniquement `STRIPE_WEBHOOK_SECRET`)
 
 Toutes ces ressources correspondent à des permissions granulaires standard
-d'une **Restricted API Key** Stripe (Customers: Write, Payment Intents:
-Write, Charges: Read, Refunds: Write, Payouts: Write, Connected Accounts:
-Write). Stripe recommande explicitement une Restricted Key quand le
-périmètre peut être scopé (docs.stripe.com/keys#limit-access) — c'est le
-cas ici : AUCUNE méthode utilisée ne requiert un accès non-scopable (pas de
-gestion de compte plateforme globale, pas de Radar rules, pas de Billing/
-Tax API, pas de Terminal). **Recommandation : Restricted Key LIVE**, pas la
+d'une **Restricted API Key** Stripe. Stripe recommande explicitement une
+Restricted Key quand le périmètre peut être scopé
+(docs.stripe.com/keys/restricted-api-keys) — c'est le cas ici : AUCUNE
+méthode utilisée ne requiert un accès non-scopable (pas de gestion de
+compte plateforme globale, pas de Radar rules, pas de Billing/Tax API, pas
+de Terminal). **Recommandation confirmée : Restricted Key LIVE**, pas la
 clé secrète complète `sk_live_...`.
+
+#### 10.6.1 LISTE FINALE EXHAUSTIVE des permissions (vérification "DERNIER CHECK")
+
+Vérification ciblée par re-lecture du code réel (`attachCustomerPaymentMethod.ts`
+→ `getPaymentProvider().attachPaymentMethod()` → `stripeProvider.ts` ligne 77
+`this.stripe.paymentMethods.attach(...)`) + grep exhaustif de
+`this.stripe.transfers|balance|externalAccounts|external_accounts|topups`
+(0 match, confirmé) :
+
+| Ressource Dashboard Stripe | Permission | Requis | Preuve code |
+|---|---|---|---|
+| Customers | **Write** | OUI | `customers.create` (`createCustomerPaymentProfile.ts`) |
+| **Payment Methods** | **Write** | **OUI** (absent de la 1ère liste — corrigé ici) | `paymentMethods.attach` (`attachCustomerPaymentMethod.ts` → `stripeProvider.ts:77`) |
+| Payment Intents | Write | OUI | `.create/.confirm/.capture/.cancel/.retrieve/.list` |
+| Charges | Read | OUI (implicite, lecture de `charge.dispute.*`/`charge.refund.updated` via webhook, pas d'appel API direct côté serveur) | `processStripeWebhook.ts` (événements) |
+| Refunds | Write | OUI | `refunds.create/.retrieve/.list` |
+| Payouts | Write | OUI | `payouts.create/.retrieve/.list` (avec `{stripeAccount}`) |
+| Connected accounts (Accounts) | Write | OUI | `accounts.create` |
+| Account Links | Write | OUI | `accountLinks.create` |
+| **Transfers** | — | **NON** | 0 appel `stripe.transfers.*` dans tout le code — le mouvement de fonds passe exclusivement par `transfer_data.destination` sur `paymentIntents.create()` (destination charges, docs.stripe.com/connect/destination-charges), jamais par un appel `/v1/transfers` séparé |
+| **Balance** | — | **NON** | 0 appel `stripe.balance.*` |
+| **External Accounts** | — | **NON** | 0 appel `externalAccounts`/`external_accounts` (Stripe gère l'ajout du RIB du chauffeur dans le flow d'onboarding hébergé lui-même, jamais via l'API Movi-K) |
+| **Connected accounts (accès Connect)** | Case "Connected accounts" cochée | OUI | requis dès qu'on appelle `payouts.create(..., {stripeAccount: id})` "as the connected account" (docs.stripe.com/connect/authentication) |
+| Webhooks | (n/a — `STRIPE_WEBHOOK_SECRET`, pas la clé API) | — | `webhooks.constructEvent` ne consomme pas la clé secrète API |
+
+**Note d'honnêteté épistémique** : cette liste est déduite du code source
+réel (grep + lecture complète), pas d'une supposition. Le mapping exact
+"nom technique API → libellé Dashboard Restricted Key" doit être confirmé
+visuellement par Daniel au moment de créer la clé (les libellés Dashboard
+peuvent différer légèrement de la documentation `stripe-apps/reference/permissions`
+utilisée ici pour le raisonnement). Si un appel échoue en mode LIVE malgré
+cette liste, le Dashboard Stripe > Developers > API keys > cette clé >
+"Voir les logs de requêtes" indique exactement quelle permission manquante
+a causé le refus — c'est la méthode de vérification faisant autorité
+recommandée par Stripe elle-même, à utiliser en TEST avant tout premier
+transfert réel.
+
+### 10.7 Webhook — statut de déploiement et événements Connect (DERNIER CHECK)
+
+- **Endpoint exact** : `https://us-central1-movik-connect-prod.cloudfunctions.net/processStripeWebhook`
+- **Région réelle** : `us-central1` (défaut Cloud Functions v2, confirmé par
+  absence de `region()`/`setGlobalOptions()` dans tout `functions/src/`).
+- **Actuellement déployé : NON VÉRIFIABLE depuis ce sandbox.** Ce sandbox
+  n'a aucun accès Firebase CLI authentifié ni console GCP pour le projet
+  réel `movik-connect-prod` (pas de `firebase` CLI installé/connecté, pas de
+  `GOOGLE_APPLICATION_CREDENTIALS`). Le code est **CODE READY** (build+lint
+  OK, la fonction est exportée dans `index.ts`) mais je ne peux pas
+  transformer cela en une affirmation "DEPLOYED"/"VERIFIED LIVE" sans
+  vérification externe réelle (règle de non-fabrication déjà appliquée dans
+  les tours précédents). **Action Daniel** : confirmer via
+  `firebase functions:list --project movik-connect-prod` (ou Firebase
+  Console > Functions) que `processStripeWebhook` apparaît bien dans la
+  liste déployée, AVANT de créer l'endpoint webhook LIVE dans le Dashboard
+  Stripe.
+- **`account.updated` doit être configuré comme événement Connected
+  Account** dans le Dashboard Stripe (case "Listen to events on Connected
+  accounts" ou équivalent lors de la création de l'endpoint webhook LIVE) —
+  c'est le seul des 10 événements qui concerne un compte CONNECTÉ (le
+  chauffeur), pas le compte plateforme.
+- **Les 9 autres événements sont des événements PLATEFORME** (pas Connect) :
+  dans l'architecture "destination charges" utilisée ici
+  (`transfer_data.destination` sur `PaymentIntent`), Stripe débite les
+  paiements, remboursements, litiges et frais sur le compte PLATEFORME, pas
+  sur le compte connecté (docs.stripe.com/connect/destination-charges,
+  "For destination charges... Stripe debits dispute amounts and fees from
+  your platform account") — donc `payment_intent.*`, `charge.refund.updated`,
+  `refund.updated`, `payout.*` (payout du solde du compte connecté mais
+  l'événement webhook lui-même, dans ce flow, est écouté côté plateforme via
+  l'endpoint unique), `charge.dispute.*` doivent rester des événements
+  plateforme standard (pas cochés "Connected accounts").
+
+### 10.8 Kill switches — statut production réel (DERNIER CHECK, honnêteté requise)
+
+- **Comportement CODE (déjà vérifié, inchangé)** : `runtimeFlags.ts` retourne
+  `false` en fail-closed pour `payments_enabled`/`driver_payouts_enabled` si
+  le document `system_config/runtime_flags` (ou le champ) est absent/invalide
+  — comportement CODE READY, testé.
+- **Nuance BOOTSTRAP (déjà identifiée)** : si un admin a DÉJÀ appelé
+  `updateRuntimeFlags` au moins une fois (même par le passé, pour un autre
+  flag), le document existe et les 4 flags ont été initialisés à `true` au
+  premier appel avant patch — donc l'état réel dépend de CE QUI A DÉJÀ ÉTÉ
+  ÉCRIT en production, pas seulement du défaut fail-closed.
+- **NON VÉRIFIABLE depuis ce sandbox** : aucun accès Firestore/console au
+  projet réel `movik-connect-prod`. Je ne peux pas affirmer la valeur réelle
+  actuelle de ces deux flags en production sans fabrication.
+- **Action Daniel (OBLIGATOIRE avant toute clé LIVE)** : ouvrir Firebase
+  Console > Firestore > `movik-connect-prod` > collection `system_config` >
+  document `runtime_flags`, et confirmer/forcer explicitement :
+  `payments_enabled: false` et `driver_payouts_enabled: false` (créer le
+  document avec ces valeurs s'il n'existe pas encore). Ne PAS se reposer
+  uniquement sur le fail-closed du code pour cette phase de configuration.

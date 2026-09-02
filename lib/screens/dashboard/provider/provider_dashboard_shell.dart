@@ -15,14 +15,24 @@ import 'tabs/provider_earnings_tab.dart';
 import 'tabs/provider_profile_tab.dart';
 
 class ProviderDashboardShell extends StatefulWidget {
-  const ProviderDashboardShell({super.key});
+  // Bloc 8B LIVE (gap fermé) — `_index` par défaut est 0 (onglet "Missions
+  // disponibles"), PAS l'onglet Profil (index 3) où vit
+  // `ProviderStripeConnectSection`. Un retour brut vers ce shell après
+  // l'onboarding Stripe Connect n'afficherait donc jamais la confirmation
+  // d'état attendue par le chauffeur. `initialTabIndex` permet à un appelant
+  // (ex. `DriverStripeOnboardingReturnScreen`) de forcer l'onglet Profil
+  // sans dupliquer la logique du shell — reste `0` (comportement identique
+  // à avant) pour tout appelant existant qui ne le fournit pas.
+  final int initialTabIndex;
+
+  const ProviderDashboardShell({super.key, this.initialTabIndex = 0});
 
   @override
   State<ProviderDashboardShell> createState() => _ProviderDashboardShellState();
 }
 
 class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
-  int _index = 0;
+  late int _index = widget.initialTabIndex.clamp(0, 3).toInt();
   bool _togglingAvailability = false;
 
   // Bloc M (gap performance, même classe de bug que Bloc C item 3) :
