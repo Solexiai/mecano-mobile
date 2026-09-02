@@ -30,6 +30,7 @@ import { failedPrecondition, invalidArgument, notFound, permissionDenied } from 
 import { writeAuditLog } from "../lib/audit";
 import { PaymentDoc, RefundReason, RefundReasons } from "../lib/types";
 import { refundPayment as refundPaymentOrchestration } from "../payment/paymentOrchestration";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import {
   logFinancialSuccess,
   resolveCorrelationId,
@@ -54,7 +55,18 @@ export interface RefundPaymentRequest {
 
 const VALID_REASONS: string[] = Object.values(RefundReasons);
 
-export const refundPayment = onCall<RefundPaymentRequest>(async (request) => {
+// 🔒 BUG LIVE-01 (audit Bloc 8B, passage Stripe LIVE) — cette fonction
+// appelle réellement Stripe (via `refundPaymentOrchestration` ->
+// `provider.refundPayment()`) mais ne déclarait PAS `secrets` dans ses
+// options `onCall`. En Cloud Functions v2, un secret Secret Manager n'est
+// injecté dans le runtime QUE si la fonction le déclare explicitement — sans
+// cette déclaration, `STRIPE_SECRET_KEY.value()` échoue en production même
+// avec un secret correctement configuré, ce qui aurait fait échouer
+// SILENCIEUSEMENT tout remboursement réel (503 "fournisseur non
+// configuré"). Corrigé ICI, avant toute demande de secrets LIVE à Daniel.
+export const refundPayment = onCall<RefundPaymentRequest>(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (request) => {
   const ctx = requireSignedIn(request);
   const { paymentId, reason, clientRequestId } = request.data;
   const amountMinorInput = request.data.amountMinor;
@@ -151,4 +163,5 @@ export const refundPayment = onCall<RefundPaymentRequest>(async (request) => {
   });
 
   return outcome;
-});
+  }
+);

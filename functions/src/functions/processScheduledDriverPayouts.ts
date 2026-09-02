@@ -27,11 +27,20 @@ import { admin, db } from "../lib/admin";
 import { writeAuditLog } from "../lib/audit";
 import { DriverPayoutDoc, DriverProfileDoc, PayoutStatuses } from "../lib/types";
 import { submitDriverPayout } from "../payment/paymentOrchestration";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 const BATCH_LIMIT = 100;
 
+// 🔒 BUG LIVE-02 (audit Bloc 8B, passage Stripe LIVE) — ce cron appelle
+// réellement Stripe (via `submitDriverPayout` -> `provider.createDriverPayout()`)
+// mais ne déclarait PAS `secrets` dans ses options `onSchedule`. Sans cette
+// déclaration, Cloud Functions v2 n'injecte PAS le secret Secret Manager
+// dans le runtime planifié — tout versement chauffeur réel aurait échoué
+// SILENCIEUSEMENT (503 "fournisseur non configuré") toutes les 60 minutes,
+// même avec `STRIPE_SECRET_KEY` correctement configuré. Corrigé ICI, avant
+// toute demande de secrets LIVE à Daniel.
 export const processScheduledDriverPayouts = onSchedule(
-  { schedule: "every 60 minutes" },
+  { schedule: "every 60 minutes", secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async () => {
     const now = admin.firestore.Timestamp.now();
 
