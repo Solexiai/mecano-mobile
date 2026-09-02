@@ -46,7 +46,7 @@ export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyC
 export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
 export { refundPayment } from "./functions/refundPayment";
 export { updateDisputeStatus } from "./functions/updateDisputeStatus";
-export { processStripeWebhook } from "./functions/processStripeWebhook";
+export { processStripeWebhook, processStripeConnectWebhook } from "./functions/processStripeWebhook";
 
 // ---- Taxes (Phase 6, bloc E — moteur de taxes configurable) ----
 export { updateTaxConfiguration } from "./functions/updateTaxConfiguration";

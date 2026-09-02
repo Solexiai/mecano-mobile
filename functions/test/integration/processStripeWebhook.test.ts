@@ -33,7 +33,7 @@
 import type { Request } from "firebase-functions/v2/https";
 import type { Response } from "express";
 import Stripe from "stripe";
-import { processStripeWebhook } from "../../src/functions/processStripeWebhook";
+import { processStripeWebhook, processStripeConnectWebhook } from "../../src/functions/processStripeWebhook";
 import { admin, db } from "../../src/lib/admin";
 import {
   DisputeStatuses,
@@ -43,7 +43,28 @@ import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderF
 import { StripeProvider } from "../../src/payment/stripeProvider";
 
 const TEST_SECRET_KEY = "sk_test_fake_key_for_webhook_tests_only";
-const TEST_WEBHOOK_SECRET = "whsec_fake_webhook_secret_for_tests";
+// 🔒 Bloc 8B LIVE (BLOQUEUR WEBHOOK PRODUCTION) : deux endpoints webhook
+// distincts, chacun avec son PROPRE secret de signature (voir
+// docs/PAYMENT_ARCHITECTURE.md §10.9 + lib/secrets.ts). Les tests
+// ci-dessous doivent donc signer avec le secret PROPRE à l'endpoint testé
+// (processStripeWebhook => secret plateforme, processStripeConnectWebhook
+// => secret Connect) — jamais un secret unique partagé, pour rester fidèle
+// au comportement réel Stripe.
+const TEST_PLATFORM_WEBHOOK_SECRET = "whsec_fake_platform_webhook_secret_for_tests";
+const TEST_CONNECT_WEBHOOK_SECRET = "whsec_fake_connect_webhook_secret_for_tests";
+// Rétro-compat locale (ancien nom utilisé par le corps des tests plateforme
+// existants) — pointe vers le secret PLATEFORME.
+const TEST_WEBHOOK_SECRET = TEST_PLATFORM_WEBHOOK_SECRET;
+
+// `STRIPE_PLATFORM_WEBHOOK_SECRET.value()`/`STRIPE_CONNECT_WEBHOOK_SECRET.value()`
+// lisent `process.env.<NOM>` à l'exécution (voir
+// node_modules/firebase-functions/lib/params/types.js::SecretParam) — en
+// émulateur/test, AUCUN Secret Manager réel n'existe, donc ces variables
+// doivent être positionnées explicitement ici pour que la vérification de
+// signature des DEUX endpoints fonctionne exactement comme en production
+// (secret propre à chaque endpoint, jamais partagé).
+process.env.STRIPE_PLATFORM_WEBHOOK_SECRET = TEST_PLATFORM_WEBHOOK_SECRET;
+process.env.STRIPE_CONNECT_WEBHOOK_SECRET = TEST_CONNECT_WEBHOOK_SECRET;
 
 // Instance Stripe RÉELLE (SDK), UNIQUEMENT pour signer les payloads de test
 // localement — aucun appel réseau n'est jamais effectué (generateTestHeaderString
@@ -52,6 +73,10 @@ const TEST_WEBHOOK_SECRET = "whsec_fake_webhook_secret_for_tests";
 const signingStripe = new Stripe(TEST_SECRET_KEY, { apiVersion: "2026-07-29.dahlia" });
 
 function signPayload(payload: string, secret = TEST_WEBHOOK_SECRET): string {
+  return signingStripe.webhooks.generateTestHeaderString({ payload, secret });
+}
+
+function signConnectPayload(payload: string, secret = TEST_CONNECT_WEBHOOK_SECRET): string {
   return signingStripe.webhooks.generateTestHeaderString({ payload, secret });
 }
 
@@ -92,6 +117,23 @@ async function invokeWebhook(
   // retourne directement le handler, éventuellement enveloppé par
   // wrapTraceContext/withInit qui préservent la signature (req, res)).
   await (processStripeWebhook as unknown as (req: Request, res: Response) => Promise<void>)(req, res);
+  return { status: statusCode(), body: body() };
+}
+
+/**
+ * Invoque l'endpoint webhook CONNECT (`processStripeConnectWebhook`,
+ * "Connected accounts" côté Stripe — voir docs/PAYMENT_ARCHITECTURE.md
+ * §10.9). Structurellement identique à `invokeWebhook` (même
+ * `dispatchStripeEvent`/idempotence partagés), seule la fonction appelée
+ * (et donc le secret utilisé pour vérifier la signature) diffère.
+ */
+async function invokeConnectWebhook(
+  rawBody: string,
+  signature: string | undefined
+): Promise<{ status: number; body: unknown }> {
+  const req = buildFakeRequest(rawBody, signature);
+  const { res, statusCode, body } = buildFakeResponse();
+  await (processStripeConnectWebhook as unknown as (req: Request, res: Response) => Promise<void>)(req, res);
   return { status: statusCode(), body: body() };
 }
 
@@ -242,7 +284,12 @@ async function cleanupAll(opts: {
   }
   const auditSnap = await db
     .collection("audit_logs")
-    .where("source_function", "in", ["processStripeWebhook", "openDispute", "transitionDisputeStatus"])
+    .where("source_function", "in", [
+      "processStripeWebhook",
+      "processStripeConnectWebhook",
+      "openDispute",
+      "transitionDisputeStatus",
+    ])
     .get();
   auditSnap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
@@ -881,10 +928,41 @@ describe("processStripeWebhook", () => {
   });
 
   // ---------------------------------------------------------------------
-  // 6. account.updated (GAP-8B-01, Bloc 8B) — synchronisation onboarding
-  //    Stripe Connect chauffeur (stripe_charges_enabled/stripe_payouts_enabled)
+  // 6. account.updated (GAP-8B-01, Bloc 8B ; endpoint CONNECT séparé au
+  //    Bloc 8B LIVE "BLOQUEUR WEBHOOK PRODUCTION" — voir
+  //    docs/PAYMENT_ARCHITECTURE.md §10.9) — synchronisation onboarding
+  //    Stripe Connect chauffeur (stripe_charges_enabled/stripe_payouts_enabled).
+  //    `account.updated` est un évènement "Connected accounts" côté Stripe
+  //    => reçu par `processStripeConnectWebhook` (endpoint séparé, secret
+  //    `STRIPE_CONNECT_WEBHOOK_SECRET` DIFFÉRENT du secret plateforme),
+  //    jamais par `processStripeWebhook`. Signé ici avec
+  //    `signConnectPayload` (secret Connect), invoqué via
+  //    `invokeConnectWebhook` — mais `dispatchStripeEvent()` et
+  //    l'idempotence `provider_webhook_events/{event.id}` restent
+  //    exactement les MÊMES fonctions partagées, aucune logique dupliquée.
   // ---------------------------------------------------------------------
-  test("account.updated => synchronise stripe_charges_enabled/stripe_payouts_enabled sur driver_profiles", async () => {
+  test("account.updated (endpoint Connect) => signature vérifiée avec le secret Connect (pas le secret plateforme) => 200", async () => {
+    // 🔒 Preuve explicite de la séparation des secrets : signer avec le
+    // secret PLATEFORME (comme un event.type plateforme classique) sur
+    // l'endpoint CONNECT doit échouer en 400 — les deux endpoints ne
+    // partagent JAMAIS le même secret de vérification.
+    const eventId = "evt_account_updated_wrong_secret_001";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: "acct_wrong_secret_001",
+      charges_enabled: true,
+      payouts_enabled: true,
+      metadata: { movik_driver_id: "irrelevant" },
+    });
+    const wrongSecretSig = signPayload(payload); // secret PLATEFORME, pas Connect
+    const { status, body } = await invokeConnectWebhook(payload, wrongSecretSig);
+    expect(status).toBe(400);
+    expect(body as string).toMatch(/Signature invalide/);
+
+    const doc = await getEventDoc(eventId);
+    expect(doc).toBeNull();
+  });
+
+  test("account.updated (endpoint Connect) => synchronise stripe_charges_enabled/stripe_payouts_enabled sur driver_profiles", async () => {
     const driverId = "webhook_driver_account_updated_001";
     const connectedAccountId = "acct_webhook_account_updated_001";
     await seedDriverProfile(driverId, connectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
@@ -896,7 +974,7 @@ describe("processStripeWebhook", () => {
       payouts_enabled: true,
       metadata: { movik_driver_id: driverId },
     });
-    const { status } = await invokeWebhook(payload, signPayload(payload));
+    const { status } = await invokeConnectWebhook(payload, signConnectPayload(payload));
     expect(status).toBe(200);
 
     const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
@@ -906,10 +984,17 @@ describe("processStripeWebhook", () => {
     const eventDoc = await getEventDoc(eventId);
     expect(eventDoc!.related_driver_id).toBe(driverId);
 
+    const auditSnap = await db
+      .collection("audit_logs")
+      .where("target_id", "==", driverId)
+      .where("source_function", "==", "processStripeConnectWebhook")
+      .get();
+    expect(auditSnap.size).toBe(1);
+
     await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
   });
 
-  test("account.updated rejoué (même event.id) => idempotent, aucune double écriture/audit", async () => {
+  test("account.updated (endpoint Connect) rejoué (même event.id) => idempotent, aucune double écriture/audit", async () => {
     const driverId = "webhook_driver_account_updated_002";
     const connectedAccountId = "acct_webhook_account_updated_002";
     await seedDriverProfile(driverId, connectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
@@ -921,8 +1006,8 @@ describe("processStripeWebhook", () => {
       payouts_enabled: false,
       metadata: { movik_driver_id: driverId },
     });
-    await invokeWebhook(payload, signPayload(payload));
-    const { status } = await invokeWebhook(payload, signPayload(payload));
+    await invokeConnectWebhook(payload, signConnectPayload(payload));
+    const { status } = await invokeConnectWebhook(payload, signConnectPayload(payload));
     expect(status).toBe(200);
 
     const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
@@ -932,7 +1017,7 @@ describe("processStripeWebhook", () => {
     await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
   });
 
-  test("account.updated avec metadata.movik_driver_id pointant vers un profil dont le compte connecté diffère => IGNORÉ (pas d'écrasement)", async () => {
+  test("account.updated (endpoint Connect) avec metadata.movik_driver_id pointant vers un profil dont le compte connecté diffère => IGNORÉ (pas d'écrasement)", async () => {
     const driverId = "webhook_driver_account_updated_003";
     const realConnectedAccountId = "acct_webhook_account_updated_003_real";
     const spoofedConnectedAccountId = "acct_webhook_account_updated_003_spoofed";
@@ -945,7 +1030,7 @@ describe("processStripeWebhook", () => {
       payouts_enabled: true,
       metadata: { movik_driver_id: driverId },
     });
-    const { status } = await invokeWebhook(payload, signPayload(payload));
+    const { status } = await invokeConnectWebhook(payload, signConnectPayload(payload));
     expect(status).toBe(200);
 
     const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
@@ -955,16 +1040,33 @@ describe("processStripeWebhook", () => {
     await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
   });
 
-  test("account.updated sans metadata.movik_driver_id => IGNORÉ proprement (200, aucun crash)", async () => {
+  test("account.updated (endpoint Connect) sans metadata.movik_driver_id => IGNORÉ proprement (200, aucun crash)", async () => {
     const eventId = "evt_account_updated_004";
     const payload = buildStripeEventPayload(eventId, "account.updated", {
       id: "acct_webhook_account_updated_004_orphan",
       charges_enabled: true,
       payouts_enabled: true,
     });
-    const { status } = await invokeWebhook(payload, signPayload(payload));
+    const { status } = await invokeConnectWebhook(payload, signConnectPayload(payload));
     expect(status).toBe(200);
 
     await cleanupAll({ eventIds: [eventId] });
+  });
+
+  // ---------------------------------------------------------------------
+  // 7. Endpoint PLATEFORME ne doit JAMAIS accepter le secret Connect, et
+  //    vice-versa — preuve directe que les 2 endpoints sont réellement
+  //    isolés (pas seulement nominalement).
+  // ---------------------------------------------------------------------
+  test("évènement plateforme signé avec le secret CONNECT sur l'endpoint plateforme => 400 (secrets non interchangeables)", async () => {
+    const eventId = "evt_platform_wrong_secret_001";
+    const payload = buildStripeEventPayload(eventId, "payment_intent.succeeded", { id: "pi_wrong_secret" });
+    const connectSig = signConnectPayload(payload); // secret CONNECT sur endpoint PLATEFORME
+    const { status, body } = await invokeWebhook(payload, connectSig);
+    expect(status).toBe(400);
+    expect(body as string).toMatch(/Signature invalide/);
+
+    const doc = await getEventDoc(eventId);
+    expect(doc).toBeNull();
   });
 });

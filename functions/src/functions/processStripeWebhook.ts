@@ -1,21 +1,45 @@
 // -----------------------------------------------------------------------------
-// processStripeWebhook — Endpoint HTTP RÉEL (onRequest) recevant les
-// webhooks Stripe signés (Phase 6, directive 38 points, Bloc D / point 11).
+// processStripeWebhook / processStripeConnectWebhook — Endpoints HTTP RÉELS
+// (onRequest) recevant les webhooks Stripe signés (Phase 6, directive 38
+// points, Bloc D / point 11 ; scindés en 2 endpoints au Bloc 8B LIVE, voir
+// docs/PAYMENT_ARCHITECTURE.md §10.9 "BLOQUEUR WEBHOOK PRODUCTION").
 //
-// EXIGENCES NON NÉGOCIABLES :
+// 🔒 POURQUOI DEUX ENDPOINTS (Bloc 8B LIVE) :
+// docs.stripe.com/connect/webhooks documente que chaque endpoint webhook
+// Stripe est scopé EXCLUSIVEMENT à "Your account" (événements PLATEFORME) OU
+// "Connected accounts" (événements sur un compte CONNECTÉ) — jamais les deux
+// à la fois dans un seul endpoint (paramètre API `connect: false|true`,
+// sélecteur "Events from" dans Workbench). Chaque endpoint a SON PROPRE
+// secret de signature `whsec_...`. Movi-K a besoin des deux scopes :
+//   - `processStripeWebhook` (ce fichier, endpoint "Your account") :
+//     9 événements PLATEFORME (payment_intent.*, charge.refund.updated,
+//     refund.updated, payout.*, charge.dispute.*) — vérifiés avec
+//     `STRIPE_PLATFORM_WEBHOOK_SECRET`.
+//   - `processStripeConnectWebhook` (ce fichier, endpoint "Connected
+//     accounts") : `account.updated` uniquement — vérifié avec
+//     `STRIPE_CONNECT_WEBHOOK_SECRET`.
+// Les DEUX endpoints appellent le MÊME `dispatchStripeEvent()` ci-dessous
+// (logique métier factorisée, JAMAIS dupliquée) — seule la vérification de
+// signature (secret utilisé) et le nom source d'audit diffèrent.
+//
+// EXIGENCES NON NÉGOCIABLES (inchangées, s'appliquent aux DEUX endpoints) :
 //   - signature Stripe-Signature OBLIGATOIRE et vérifiée via
 //     `StripeProvider.constructVerifiedEvent()` (stripe.webhooks.constructEvent)
 //     sur le RAW BODY (`request.rawBody`, jamais `request.body` reparsé —
-//     voir docs.stripe.com/webhooks#verify-events).
+//     voir docs.stripe.com/webhooks#verify-events), avec le secret PROPRE à
+//     l'endpoint qui reçoit la requête (jamais le secret de l'autre endpoint).
 //   - AUCUNE confiance dans le payload avant vérification de signature :
 //     toute signature absente/invalide => 400 immédiat, aucune écriture.
 //   - IDEMPOTENCE stricte sur `event.id` via `provider_webhook_events/{id}`
-//     (l'ID Stripe de l'évènement EST l'ID du document — verrou naturel).
-//     Un évènement déjà `processed` est ré-accusé 200 SANS ré-exécuter le
-//     moindre effet financier (retry-safe : Stripe re-livre parfois le même
-//     évènement plusieurs fois).
+//     (l'ID Stripe de l'évènement EST l'ID du document — verrou naturel,
+//     PARTAGÉ entre les deux endpoints : un `event.id` Stripe est unique
+//     tous endpoints confondus). Un évènement déjà `processed` est
+//     ré-accusé 200 SANS ré-exécuter le moindre effet financier (retry-safe :
+//     Stripe re-livre parfois le même évènement plusieurs fois).
 //   - Chaque évènement traité est audité (`audit_logs`, action
-//     `webhook_event_processed` / `webhook_event_failed`).
+//     `webhook_event_processed` / `webhook_event_failed`), avec
+//     `sourceFunction` distinguant `processStripeWebhook` vs
+//     `processStripeConnectWebhook` pour traçabilité.
 //   - AUCUNE double écriture financière : le handler ne fait QUE relayer
 //     vers les fonctions d'orchestration déjà validées
 //     (captureMissionPayment/refundPayment/submitDriverPayout/
@@ -23,11 +47,14 @@
 //     interne (idempotency_key / requestKey / provider_dispute_id comme ID
 //     de document) — ce handler ne réimplémente jamais la logique métier.
 //
-// ÉVÈNEMENTS MINIMAUX SUPPORTÉS (point D du prompt) :
-//   payment_intent.succeeded / payment_intent.payment_failed
-//   charge.refund.updated (succeeded/failed)
-//   payout.paid / payout.failed
-//   charge.dispute.created / charge.dispute.updated / charge.dispute.closed
+// ÉVÈNEMENTS SUPPORTÉS :
+//   processStripeWebhook (plateforme) :
+//     payment_intent.succeeded / payment_intent.payment_failed
+//     charge.refund.updated (succeeded/failed) / refund.updated
+//     payout.paid / payout.failed
+//     charge.dispute.created / charge.dispute.updated / charge.dispute.closed
+//   processStripeConnectWebhook (Connected accounts) :
+//     account.updated
 // -----------------------------------------------------------------------------
 
 import { onRequest } from "firebase-functions/v2/https";
@@ -46,6 +73,11 @@ import {
   logFinancialSuccess,
   startFinancialOperationTimer,
 } from "../lib/observability";
+import {
+  STRIPE_CONNECT_WEBHOOK_SECRET,
+  STRIPE_PLATFORM_WEBHOOK_SECRET,
+  STRIPE_SECRET_KEY,
+} from "../lib/secrets";
 
 /**
  * Mappe le statut de litige brut Stripe vers notre `DisputeStatus` interne.
@@ -77,8 +109,19 @@ function mapStripeDisputeStatus(stripeStatus: string): DisputeStatus | null {
  * identifiants liés pour traçabilité dans `provider_webhook_events`.
  * Toute exception ici est capturée par l'appelant, qui marque l'évènement
  * `failed` (jamais `processed`) — permet un retry Stripe ultérieur.
+ *
+ * `sourceFunctionName` est propagé jusqu'aux `writeAuditLog()` internes
+ * (payment_captured/failed, refund_succeeded/failed, payout_paid/failed,
+ * driver_stripe_account_status_synced) afin que `audit_logs.source_function`
+ * reflète TOUJOURS l'endpoint HTTP réel qui a reçu la requête Stripe
+ * (`processStripeWebhook` plateforme ou `processStripeConnectWebhook`),
+ * jamais une valeur littérale figée — essentiel pour la traçabilité une fois
+ * les deux endpoints déployés (voir docs/PAYMENT_ARCHITECTURE.md §10.9).
  */
-async function dispatchStripeEvent(event: Stripe.Event): Promise<{
+async function dispatchStripeEvent(
+  event: Stripe.Event,
+  sourceFunctionName: "processStripeWebhook" | "processStripeConnectWebhook"
+): Promise<{
   relatedPaymentId: string | null;
   relatedPayoutId: string | null;
   relatedRefundId: string | null;
@@ -118,7 +161,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
           actorUserId: "system",
           actorRole: "system",
           action: isSucceeded ? "payment_captured" : "payment_failed",
-          sourceFunction: "processStripeWebhook",
+          sourceFunction: sourceFunctionName,
           targetId: doc.id,
           metadata: { providerPaymentIntentId: intent.id, eventType: event.type },
         });
@@ -181,7 +224,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         actorUserId: "system",
         actorRole: "system",
         action: refundObj.status === "succeeded" ? "refund_succeeded" : "refund_failed",
-        sourceFunction: "processStripeWebhook",
+        sourceFunction: sourceFunctionName,
         targetId: relatedRefundId ?? refundObj.id,
         metadata: { providerRefundId: refundObj.id, status: refundObj.status },
       });
@@ -237,7 +280,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
         actorUserId: "system",
         actorRole: "system",
         action: event.type === "payout.paid" ? "payout_paid" : "payout_failed",
-        sourceFunction: "processStripeWebhook",
+        sourceFunction: sourceFunctionName,
         targetId: relatedPayoutId ?? payout.id,
         metadata: { providerPayoutId: payout.id, status: payout.status },
       });
@@ -380,7 +423,7 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
                 actorUserId: "system",
                 actorRole: "system",
                 action: "driver_stripe_account_status_synced",
-                sourceFunction: "processStripeWebhook",
+                sourceFunction: sourceFunctionName,
                 targetId: driverId,
                 metadata: {
                   connectedAccountId: account.id,
@@ -422,9 +465,22 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
   };
 }
 
-export const processStripeWebhook = onRequest(
-  { secrets: ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] },
-  async (request: Request, response: Response) => {
+/**
+ * Fabrique un handler `onRequest` webhook Stripe générique, partagé par
+ * `processStripeWebhook` (plateforme) et `processStripeConnectWebhook`
+ * (Connected accounts). SEULE différence entre les deux endpoints : le
+ * secret utilisé pour vérifier la signature (`webhookSecretValue`, propre à
+ * CET endpoint — jamais celui de l'autre) et le nom source d'audit
+ * (`sourceFunctionName`, pour distinguer les deux dans `audit_logs`). La
+ * logique métier (`dispatchStripeEvent`) et l'idempotence
+ * (`provider_webhook_events/{event.id}`) sont 100% PARTAGÉES — aucune
+ * duplication (voir bloc de commentaire en tête de fichier).
+ */
+function buildStripeWebhookHandler(
+  sourceFunctionName: "processStripeWebhook" | "processStripeConnectWebhook",
+  getWebhookSecretValue: () => string
+): (request: Request, response: Response) => Promise<void> {
+  return async (request: Request, response: Response) => {
     // ---- 1. Signature obligatoire, sur le RAW BODY exclusivement ----
     const signatureHeader = request.headers["stripe-signature"];
     if (!signatureHeader || typeof signatureHeader !== "string") {
@@ -442,7 +498,14 @@ export const processStripeWebhook = onRequest(
 
     let event: Stripe.Event;
     try {
-      event = provider.constructVerifiedEvent(request.rawBody, signatureHeader);
+      // 🔒 Secret PROPRE à cet endpoint (voir bloc de commentaire en tête de
+      // fichier) — jamais le secret legacy `STRIPE_WEBHOOK_SECRET`, jamais
+      // celui de l'AUTRE endpoint webhook.
+      event = provider.constructVerifiedEvent(
+        request.rawBody,
+        signatureHeader,
+        getWebhookSecretValue()
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       response.status(400).send(`Signature invalide: ${message}`);
@@ -450,6 +513,9 @@ export const processStripeWebhook = onRequest(
     }
 
     // ---- 2. Idempotence : registre provider_webhook_events/{event.id} ----
+    // Partagé entre les deux endpoints — un `event.id` Stripe est unique
+    // tous endpoints confondus, aucun risque de collision entre plateforme
+    // et Connect.
     const eventRef = db.collection("provider_webhook_events").doc(event.id);
     const now = admin.firestore.Timestamp.now();
 
@@ -502,7 +568,7 @@ export const processStripeWebhook = onRequest(
     // ---- 3. Dispatch métier (délégation aux orchestrations idempotentes) ----
     const startedAt = Date.now();
     try {
-      const related = await dispatchStripeEvent(event);
+      const related = await dispatchStripeEvent(event, sourceFunctionName);
       const durationMs = Date.now() - startedAt;
 
       await eventRef.update({
@@ -522,12 +588,12 @@ export const processStripeWebhook = onRequest(
         actorUserId: "system",
         actorRole: "system",
         action: "webhook_event_processed",
-        sourceFunction: "processStripeWebhook",
+        sourceFunction: sourceFunctionName,
         targetId: event.id,
         metadata: {
           eventType: event.type,
           correlationId: event.id,
-          operation: "processStripeWebhook",
+          operation: sourceFunctionName,
           result: "success",
           durationMs,
           ...related,
@@ -552,7 +618,7 @@ export const processStripeWebhook = onRequest(
           payoutId: related.relatedPayoutId,
           disputeId: related.relatedDisputeId,
         },
-        { correlationId: event.id, metadata: { eventType: event.type } }
+        { correlationId: event.id, metadata: { eventType: event.type, sourceFunction: sourceFunctionName } }
       );
 
       response.status(200).send({ received: true });
@@ -570,12 +636,12 @@ export const processStripeWebhook = onRequest(
         actorUserId: "system",
         actorRole: "system",
         action: "webhook_event_failed",
-        sourceFunction: "processStripeWebhook",
+        sourceFunction: sourceFunctionName,
         targetId: event.id,
         metadata: {
           eventType: event.type,
           correlationId: event.id,
-          operation: "processStripeWebhook",
+          operation: sourceFunctionName,
           result: "failure",
           durationMs,
           errorCode: "webhook_dispatch_failed",
@@ -592,7 +658,11 @@ export const processStripeWebhook = onRequest(
         startedAt,
         "webhook_dispatch_failed",
         { providerEventId: event.id },
-        { correlationId: event.id, message, metadata: { eventType: event.type } }
+        {
+          correlationId: event.id,
+          message,
+          metadata: { eventType: event.type, sourceFunction: sourceFunctionName },
+        }
       );
 
       // 🔒 500 explicite => Stripe RETENTE automatiquement cet évènement
@@ -601,5 +671,26 @@ export const processStripeWebhook = onRequest(
       // au prochain essai de repasser par le même chemin (retry-safe).
       response.status(500).send({ received: false, error: message });
     }
-  }
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Endpoint PLATEFORME ("Your account" dans Stripe Workbench/API
+// `connect: false`) — reçoit les 9 événements plateforme. Secret dédié :
+// `STRIPE_PLATFORM_WEBHOOK_SECRET`.
+// -----------------------------------------------------------------------------
+export const processStripeWebhook = onRequest(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_PLATFORM_WEBHOOK_SECRET] },
+  buildStripeWebhookHandler("processStripeWebhook", () => STRIPE_PLATFORM_WEBHOOK_SECRET.value())
+);
+
+// -----------------------------------------------------------------------------
+// Endpoint CONNECT ("Connected accounts" dans Stripe Workbench/API
+// `connect: true`) — reçoit UNIQUEMENT `account.updated` (voir
+// dispatchStripeEvent, case "account.updated" — logique INCHANGÉE, partagée
+// avec l'endpoint plateforme). Secret dédié : `STRIPE_CONNECT_WEBHOOK_SECRET`.
+// -----------------------------------------------------------------------------
+export const processStripeConnectWebhook = onRequest(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_CONNECT_WEBHOOK_SECRET] },
+  buildStripeWebhookHandler("processStripeConnectWebhook", () => STRIPE_CONNECT_WEBHOOK_SECRET.value())
 );

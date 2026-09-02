@@ -75,6 +75,20 @@ const TEST_SECRET_KEY = "sk_test_fake_key_for_dispute_e2e_tests_only";
 const TEST_WEBHOOK_SECRET = "whsec_fake_webhook_secret_for_dispute_e2e_tests";
 const signingStripe = new Stripe(TEST_SECRET_KEY, { apiVersion: "2026-07-29.dahlia" });
 
+// 🔒 Bloc 8B LIVE (BLOQUEUR WEBHOOK PRODUCTION) : `processStripeWebhook`
+// (endpoint PLATEFORME, seul utilisé par ce fichier — tous les évènements
+// de dispute/chargeback ici sont des évènements PLATEFORME, jamais
+// `account.updated`) vérifie désormais la signature avec
+// `STRIPE_PLATFORM_WEBHOOK_SECRET.value()` (et non plus le legacy
+// `STRIPE_WEBHOOK_SECRET`) — voir lib/secrets.ts et
+// docs/PAYMENT_ARCHITECTURE.md §10.9. `SecretParam.value()` lit
+// `process.env.<NOM>` à l'exécution (confirmé via
+// node_modules/firebase-functions/lib/params/types.js), donc on doit fixer
+// cette variable d'environnement AVANT tout appel à `invokeWebhook()` pour
+// que la vérification de signature (avec le MÊME secret que celui utilisé
+// pour signer ci-dessous) réussisse.
+process.env.STRIPE_PLATFORM_WEBHOOK_SECRET = TEST_WEBHOOK_SECRET;
+
 function signPayload(payload: string): string {
   return signingStripe.webhooks.generateTestHeaderString({ payload, secret: TEST_WEBHOOK_SECRET });
 }

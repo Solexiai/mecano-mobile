@@ -390,9 +390,25 @@ export class StripeProvider extends PaymentProvider {
     return { eventId: event.id, eventType: event.type, handled: false };
   }
 
-  /** Expose l'évènement Stripe complet vérifié (usage interne du handler). */
-  constructVerifiedEvent(rawBody: Buffer, signatureHeader: string): Stripe.Event {
-    return this.stripe.webhooks.constructEvent(rawBody, signatureHeader, this.webhookSecret);
+  /**
+   * Expose l'évènement Stripe complet vérifié (usage interne des handlers
+   * webhook). `secretOverride` permet de vérifier la signature avec le
+   * secret d'un endpoint SPÉCIFIQUE (voir docs.stripe.com/connect/webhooks :
+   * chaque endpoint — "Your account" vs "Connected accounts" — a son PROPRE
+   * `whsec_...`, jamais partagé). Si omis, retombe sur `this.webhookSecret`
+   * (legacy `STRIPE_WEBHOOK_SECRET`, conservé pour compat mais plus utilisé
+   * par aucun des deux endpoints webhook réels — voir lib/secrets.ts).
+   */
+  constructVerifiedEvent(
+    rawBody: Buffer,
+    signatureHeader: string,
+    secretOverride?: string
+  ): Stripe.Event {
+    return this.stripe.webhooks.constructEvent(
+      rawBody,
+      signatureHeader,
+      secretOverride ?? this.webhookSecret
+    );
   }
 
   // ---- 13. reconcileTransaction ----
