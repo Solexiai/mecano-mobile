@@ -163,6 +163,9 @@ class _FakeDriverRepository implements DriverRepository {
       throw UnimplementedError();
   @override
   Future<void> logDriverReviewOpened(String driverId) => throw UnimplementedError();
+  @override
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() =>
+      throw UnimplementedError();
 }
 
 /// `DriverProfileV2` n'a pas de `copyWith()` : reconstruction manuelle
