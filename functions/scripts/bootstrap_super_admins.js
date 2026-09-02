@@ -1,41 +1,45 @@
 // -----------------------------------------------------------------------------
 // bootstrap_super_admins.js — Script ONE-SHOT pour attribuer le rôle
-// super_admin aux tout premiers comptes, avant que `setUserRole` (qui exige
-// déjà un super_admin appelant) ne puisse être utilisé normalement.
+// canonique `super_admin` aux premiers comptes privilégiés Movi-K.
+//
+// OBJECTIFS :
+// - lookup des comptes par EMAIL (pas de cible codée en dur dans le code)
+// - écriture des Custom Claims Firebase Auth (source de vérité)
+// - mise à jour du miroir Firestore `users/{uid}`
+// - révocation des refresh tokens pour forcer un refresh de session
+// - écriture d'une trace dans `audit_logs`
 //
 // SÉCURITÉ :
 // - Aucune clé privée de compte de service (Admin SDK JSON) n'est utilisée.
 // - Ce script utilise les credentials OAuth de la session CLI locale
 //   (celle créée par `firebase login`), via google-auth-library, exactement
 //   comme le fait la Firebase CLI elle-même pour ses propres appels API.
-// - Ces credentials sont liées au compte Google humain qui a exécuté
-//   `firebase login` (dantang3030@gmail.com) et à ses permissions IAM sur le
-//   projet — ce n'est PAS un compte de service, donc aucun risque de fuite
-//   de clé Admin SDK long-lived.
-// - Ce script est destiné à être exécuté UNE SEULE FOIS pour le bootstrap
-//   initial. Toute modification de rôle ultérieure DOIT passer par la
-//   Cloud Function `setUserRole` (protégée par vérification super_admin).
+// - Ces credentials sont liés au compte Google humain qui a exécuté
+//   `firebase login` et à ses permissions IAM sur le projet.
+// - Ce script est destiné au bootstrap initial / à une promotion opérée
+//   manuellement par un opérateur du projet ; les promotions courantes doivent
+//   ensuite passer par la Cloud Function `setUserRole`.
 //
 // USAGE :
-//   node scripts/bootstrap_super_admins.js
+//   node scripts/bootstrap_super_admins.js dantang3030@gmail.com stanguay24@hotmail.com
+//
+// COMPORTEMENT :
+// - idempotent côté état final : relancer le script réécrit le même rôle
+//   `super_admin` sans supprimer de données existantes.
+// - non-idempotent côté audit : une nouvelle entrée `audit_logs` est ajoutée à
+//   chaque exécution voulue (traçabilité append-only).
 // -----------------------------------------------------------------------------
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { GoogleAuth } = require("google-auth-library");
+const { OAuth2Client } = require("google-auth-library");
 const admin = require("firebase-admin");
 
 const PROJECT_ID = "movik-connect-prod";
+const SUPER_ADMIN_ROLE = "super_admin";
 
-// Comptes à bootstrapper en super_admin (email -> uid, fournis par l'utilisateur
-// après création manuelle dans Firebase Console > Authentication > Users).
-const TARGETS = [
-  { email: "dantang3030@gmail.com", uid: "DrnCrQZcBvZHRE9SdsgEeQo8OfM2" },
-  { email: "stanguay24@hotmail.com", uid: "whCF0OPpJoaRyzXZLabiwrh5kOH2" },
-];
-
-function loadCliCredentials() {
+function loadCliSession() {
   const configPath = path.join(os.homedir(), ".config", "configstore", "firebase-tools.json");
   const raw = JSON.parse(fs.readFileSync(configPath, "utf8"));
   const tokens = raw.tokens;
@@ -44,30 +48,64 @@ function loadCliCredentials() {
       "Aucun refresh_token trouvé dans la session `firebase login`. Relancez `firebase login --no-localhost` d'abord.",
     );
   }
-  return tokens;
+  return {
+    refreshToken: tokens.refresh_token,
+    operatorEmail: raw.user?.email || null,
+  };
+}
+
+function extractCurrentRoles(userRecord) {
+  const claims = userRecord.customClaims || {};
+  if (Array.isArray(claims.roles) && claims.roles.length > 0) {
+    return claims.roles.map((r) => String(r));
+  }
+  if (claims.role) {
+    return [String(claims.role)];
+  }
+  return [];
+}
+
+async function writeAuditLog(firestoreClient, {
+  actorUserId,
+  actorRole,
+  action,
+  sourceFunction,
+  targetId,
+  metadata,
+}) {
+  const ref = firestoreClient.collection("audit_logs").doc();
+  const { FieldValue } = require("@google-cloud/firestore");
+  await ref.set({
+    id: ref.id,
+    actor_user_id: actorUserId,
+    actor_role: actorRole,
+    action,
+    source_function: sourceFunction,
+    target_id: targetId ?? null,
+    metadata: metadata ?? {},
+    created_at: FieldValue.serverTimestamp(),
+  });
 }
 
 async function main() {
-  const tokens = loadCliCredentials();
+  const targetEmails = process.argv.slice(2).map((s) => s.trim()).filter(Boolean);
+  if (targetEmails.length === 0) {
+    console.error(
+      "Usage: node scripts/bootstrap_super_admins.js <email1> <email2> [...emailN]",
+    );
+    process.exit(1);
+  }
+
+  const session = loadCliSession();
 
   // Client OAuth public de la Firebase CLI (identique à celui utilisé par
   // firebase-tools lui-même — voir lib/api.js du package firebase-tools).
-  // Ce n'est PAS un secret applicatif : il est déjà public dans le code
-  // source open-source de firebase-tools.
   const CLI_CLIENT_ID = "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com";
   const CLI_CLIENT_SECRET = "j9iVZfS8kkCEFUPaAeJV0sAi";
 
-  const { OAuth2Client } = require("google-auth-library");
   const oauth2Client = new OAuth2Client(CLI_CLIENT_ID, CLI_CLIENT_SECRET);
-  oauth2Client.setCredentials({ refresh_token: tokens.refresh_token });
+  oauth2Client.setCredentials({ refresh_token: session.refreshToken });
 
-  // firebase-admin exige strictement une instance ServiceAccountCredential ou
-  // ApplicationDefault pour son wrapper Firestore (vérification `instanceof`
-  // interne) — un credential OAuth utilisateur ad-hoc ne passe pas cette
-  // vérification. On utilise donc `admin.auth()` (qui accepte un credential
-  // custom via getAccessToken) pour les Custom Claims, ET la bibliothèque
-  // `@google-cloud/firestore` DIRECTEMENT (elle accepte nativement un
-  // `authClient` google-auth-library arbitraire) pour le mirror Firestore.
   admin.initializeApp({
     projectId: PROJECT_ID,
     credential: {
@@ -85,41 +123,77 @@ async function main() {
   });
 
   const authAdmin = admin.auth();
+  const operatorId = session.operatorEmail
+    ? `local_cli:${session.operatorEmail}`
+    : "local_cli:unknown";
 
-  for (const target of TARGETS) {
-    console.log(`\n--- Traitement de ${target.email} (uid=${target.uid}) ---`);
+  console.log(`Projet Firebase ciblé : ${PROJECT_ID}`);
+  console.log(`Opérateur CLI         : ${session.operatorEmail || "inconnu"}`);
 
-    // Vérification que l'utilisateur existe bien et correspond à l'email attendu.
-    const userRecord = await authAdmin.getUser(target.uid);
-    if (userRecord.email !== target.email) {
-      throw new Error(
-        `MISMATCH: uid ${target.uid} correspond à l'email ${userRecord.email}, pas ${target.email}. Abandon par sécurité.`,
-      );
-    }
+  for (const email of targetEmails) {
+    console.log(`\n--- Traitement de ${email} ---`);
 
-    await authAdmin.setCustomUserClaims(target.uid, {
-      role: "super_admin",
-      roles: ["super_admin"],
+    const userRecord = await authAdmin.getUserByEmail(email);
+    const oldRoles = extractCurrentRoles(userRecord);
+
+    console.log(`UID                  : ${userRecord.uid}`);
+    console.log(`Email vérifié        : ${userRecord.emailVerified ? "OUI" : "NON"}`);
+    console.log(`Rôles actuels        : ${oldRoles.length ? oldRoles.join(", ") : "(aucun)"}`);
+
+    await authAdmin.setCustomUserClaims(userRecord.uid, {
+      role: SUPER_ADMIN_ROLE,
+      roles: [SUPER_ADMIN_ROLE],
     });
 
-    // Mirror Firestore (display-only, jamais utilisé pour l'autorisation réelle
-    // — voir setUserRole.ts pour le même pattern).
-    await firestoreClient.collection("users").doc(target.uid).set(
+    await authAdmin.revokeRefreshTokens(userRecord.uid);
+
+    await firestoreClient.collection("users").doc(userRecord.uid).set(
       {
-        email: target.email,
-        roles: ["super_admin"],
-        role: "super_admin",
+        uid: userRecord.uid,
+        email,
+        role: SUPER_ADMIN_ROLE,
+        roles: [SUPER_ADMIN_ROLE],
+        email_verified: userRecord.emailVerified,
         updated_at: FieldValue.serverTimestamp(),
-        bootstrapped_by: "bootstrap_super_admins.js",
+        promoted_by: operatorId,
+        promotion_source: "bootstrap_super_admins.js",
       },
       { merge: true },
     );
 
-    console.log(`✔ ${target.email} => super_admin (Custom Claims + mirror Firestore)`);
+    await writeAuditLog(firestoreClient, {
+      actorUserId: operatorId,
+      actorRole: "bootstrap_operator",
+      action: "bootstrap_super_admin",
+      sourceFunction: "bootstrap_super_admins.js",
+      targetId: userRecord.uid,
+      metadata: {
+        email,
+        oldRoles,
+        newRoles: [SUPER_ADMIN_ROLE],
+      },
+    });
+
+    const verifiedRecord = await authAdmin.getUser(userRecord.uid);
+    const verifiedRoles = extractCurrentRoles(verifiedRecord);
+    const ok =
+      verifiedRoles.length === 1 &&
+      verifiedRoles[0] === SUPER_ADMIN_ROLE &&
+      verifiedRecord.customClaims?.role === SUPER_ADMIN_ROLE;
+
+    if (!ok) {
+      throw new Error(
+        `Vérification post-écriture échouée pour ${email} (${userRecord.uid}). Claims relues=${JSON.stringify(verifiedRecord.customClaims || {})}`,
+      );
+    }
+
+    console.log(`✔ ${email} => super_admin confirmé (claims + miroir Firestore + revoke + audit)`);
   }
 
-  console.log("\n✅ Bootstrap terminé. Les comptes doivent se reconnecter (ou appeler");
-  console.log("   getIdTokenResult(forceRefresh: true)) pour que le nouveau claim soit visible.");
+  console.log("\n✅ Bootstrap terminé.");
+  console.log(
+    "Les comptes doivent se déconnecter / reconnecter, ou forcer getIdTokenResult(true), pour voir le nouveau rôle côté client.",
+  );
 }
 
 main()

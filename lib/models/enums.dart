@@ -47,12 +47,65 @@ enum VerificationStatus { pending, verified, rejected }
 enum PlatformRole { customer, driver, mechanic, analyst, admin, superAdmin }
 
 extension PlatformRoleX on PlatformRole {
-  String get claimValue => name;
+  /// Valeur canonique utilisée par le backend Firebase / Security Rules.
+  ///
+  /// IMPORTANT : `super_admin` reste la convention source de vérité côté
+  /// serveur. On conserve toutefois une compatibilité de lecture avec
+  /// l'ancien alias camelCase `superAdmin` via [tryFromClaim]/[fromClaim].
+  String get claimValue {
+    switch (this) {
+      case PlatformRole.superAdmin:
+        return 'super_admin';
+      case PlatformRole.customer:
+      case PlatformRole.driver:
+      case PlatformRole.mechanic:
+      case PlatformRole.analyst:
+      case PlatformRole.admin:
+        return name;
+    }
+  }
 
-  static PlatformRole fromClaim(String value) => PlatformRole.values.firstWhere(
-    (r) => r.name == value,
-    orElse: () => PlatformRole.customer,
-  );
+  /// Parse un custom claim Firebase/Firestore en [PlatformRole].
+  ///
+  /// Retourne `null` pour toute valeur inconnue afin d'éviter d'accorder des
+  /// privilèges par défaut. Les appelants qui consomment des données non
+  /// fiables (claims, Firestore) doivent préférer cette méthode et appliquer
+  /// leur propre comportement fail-safe (généralement : aucun rôle).
+  static PlatformRole? tryFromClaim(String? value) {
+    switch (value?.trim()) {
+      case 'customer':
+        return PlatformRole.customer;
+      case 'driver':
+        return PlatformRole.driver;
+      case 'mechanic':
+        return PlatformRole.mechanic;
+      case 'analyst':
+        return PlatformRole.analyst;
+      case 'admin':
+        return PlatformRole.admin;
+      case 'super_admin':
+      case 'superAdmin':
+        return PlatformRole.superAdmin;
+      default:
+        return null;
+    }
+  }
+
+  /// Variante stricte : lance une erreur si la valeur n'est pas reconnue.
+  ///
+  /// À utiliser dans les tests / points d'appel contrôlés. Pour les données
+  /// externes non fiables, préférer [tryFromClaim] puis filtrer `null`.
+  static PlatformRole fromClaim(String value) {
+    final parsed = tryFromClaim(value);
+    if (parsed == null) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'Unknown PlatformRole claim. Expected one of: customer, driver, mechanic, analyst, admin, super_admin, superAdmin.',
+      );
+    }
+    return parsed;
+  }
 
   /// Roles allowed to review/approve driver documents and applications.
   bool get canReviewDrivers =>
