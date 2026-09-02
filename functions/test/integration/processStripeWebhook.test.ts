@@ -204,6 +204,21 @@ async function getEventDoc(eventId: string) {
   return snap.exists ? snap.data()! : null;
 }
 
+async function seedDriverProfile(
+  driverId: string,
+  connectedAccountId: string,
+  opts: { chargesEnabled?: boolean; payoutsEnabled?: boolean } = {}
+): Promise<void> {
+  await db.collection("driver_profiles").doc(driverId).set(
+    {
+      stripe_connected_account_id: connectedAccountId,
+      stripe_charges_enabled: opts.chargesEnabled ?? false,
+      stripe_payouts_enabled: opts.payoutsEnabled ?? false,
+    },
+    { merge: true }
+  );
+}
+
 async function cleanupAll(opts: {
   eventIds?: string[];
   paymentIds?: string[];
@@ -211,6 +226,7 @@ async function cleanupAll(opts: {
   refundIds?: string[];
   payoutIds?: string[];
   disputeIds?: string[];
+  driverProfileIds?: string[];
 }): Promise<void> {
   const batch = db.batch();
   (opts.eventIds ?? []).forEach((id) => batch.delete(db.collection("provider_webhook_events").doc(id)));
@@ -218,6 +234,7 @@ async function cleanupAll(opts: {
   (opts.refundIds ?? []).forEach((id) => batch.delete(db.collection("refunds").doc(id)));
   (opts.payoutIds ?? []).forEach((id) => batch.delete(db.collection("driver_payouts").doc(id)));
   (opts.disputeIds ?? []).forEach((id) => batch.delete(db.collection("disputes").doc(id)));
+  (opts.driverProfileIds ?? []).forEach((id) => batch.delete(db.collection("driver_profiles").doc(id)));
   for (const mid of opts.missionIds ?? []) {
     const ledgerSnap = await db.collection("transaction_ledger").where("mission_id", "==", mid).get();
     ledgerSnap.docs.forEach((d) => batch.delete(d.ref));
@@ -861,5 +878,93 @@ describe("processStripeWebhook", () => {
       missionIds: [missionId],
       disputeIds: [disputeId],
     });
+  });
+
+  // ---------------------------------------------------------------------
+  // 6. account.updated (GAP-8B-01, Bloc 8B) — synchronisation onboarding
+  //    Stripe Connect chauffeur (stripe_charges_enabled/stripe_payouts_enabled)
+  // ---------------------------------------------------------------------
+  test("account.updated => synchronise stripe_charges_enabled/stripe_payouts_enabled sur driver_profiles", async () => {
+    const driverId = "webhook_driver_account_updated_001";
+    const connectedAccountId = "acct_webhook_account_updated_001";
+    await seedDriverProfile(driverId, connectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
+
+    const eventId = "evt_account_updated_001";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: connectedAccountId,
+      charges_enabled: true,
+      payouts_enabled: true,
+      metadata: { movik_driver_id: driverId },
+    });
+    const { status } = await invokeWebhook(payload, signPayload(payload));
+    expect(status).toBe(200);
+
+    const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
+    expect(driverSnap.data()!.stripe_charges_enabled).toBe(true);
+    expect(driverSnap.data()!.stripe_payouts_enabled).toBe(true);
+
+    const eventDoc = await getEventDoc(eventId);
+    expect(eventDoc!.related_driver_id).toBe(driverId);
+
+    await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
+  });
+
+  test("account.updated rejoué (même event.id) => idempotent, aucune double écriture/audit", async () => {
+    const driverId = "webhook_driver_account_updated_002";
+    const connectedAccountId = "acct_webhook_account_updated_002";
+    await seedDriverProfile(driverId, connectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
+
+    const eventId = "evt_account_updated_002";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: connectedAccountId,
+      charges_enabled: true,
+      payouts_enabled: false,
+      metadata: { movik_driver_id: driverId },
+    });
+    await invokeWebhook(payload, signPayload(payload));
+    const { status } = await invokeWebhook(payload, signPayload(payload));
+    expect(status).toBe(200);
+
+    const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
+    expect(driverSnap.data()!.stripe_charges_enabled).toBe(true);
+    expect(driverSnap.data()!.stripe_payouts_enabled).toBe(false);
+
+    await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
+  });
+
+  test("account.updated avec metadata.movik_driver_id pointant vers un profil dont le compte connecté diffère => IGNORÉ (pas d'écrasement)", async () => {
+    const driverId = "webhook_driver_account_updated_003";
+    const realConnectedAccountId = "acct_webhook_account_updated_003_real";
+    const spoofedConnectedAccountId = "acct_webhook_account_updated_003_spoofed";
+    await seedDriverProfile(driverId, realConnectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
+
+    const eventId = "evt_account_updated_003";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: spoofedConnectedAccountId,
+      charges_enabled: true,
+      payouts_enabled: true,
+      metadata: { movik_driver_id: driverId },
+    });
+    const { status } = await invokeWebhook(payload, signPayload(payload));
+    expect(status).toBe(200);
+
+    const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
+    expect(driverSnap.data()!.stripe_charges_enabled).toBe(false);
+    expect(driverSnap.data()!.stripe_payouts_enabled).toBe(false);
+
+    await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
+  });
+
+  test("account.updated sans metadata.movik_driver_id => IGNORÉ proprement (200, aucun crash)", async () => {
+    const eventId = "evt_account_updated_004";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: "acct_webhook_account_updated_004_orphan",
+      charges_enabled: true,
+      payouts_enabled: true,
+    });
+    const { status } = await invokeWebhook(payload, signPayload(payload));
+    expect(status).toBe(200);
+
+    await cleanupAll({ eventIds: [eventId] });
   });
 });

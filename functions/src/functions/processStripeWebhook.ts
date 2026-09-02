@@ -38,7 +38,7 @@ import { admin, db } from "../lib/admin";
 import { writeAuditLog } from "../lib/audit";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { StripeProvider } from "../payment/stripeProvider";
-import { WebhookProcessingStatuses } from "../lib/types";
+import { DriverProfileDoc, WebhookProcessingStatuses } from "../lib/types";
 import { openDispute, transitionDisputeStatus } from "../payment/disputeOrchestration";
 import { DisputeStatuses, DisputeStatus } from "../lib/types";
 import {
@@ -84,12 +84,14 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
   relatedRefundId: string | null;
   relatedDisputeId: string | null;
   relatedMissionId: string | null;
+  relatedDriverId: string | null;
 }> {
   let relatedPaymentId: string | null = null;
   let relatedPayoutId: string | null = null;
   let relatedRefundId: string | null = null;
   let relatedDisputeId: string | null = null;
   let relatedMissionId: string | null = null;
+  let relatedDriverId: string | null = null;
 
   switch (event.type) {
     // ---- Paiement : autorisation/capture réussie ou échouée ----
@@ -338,13 +340,86 @@ async function dispatchStripeEvent(event: Stripe.Event): Promise<{
       break;
     }
 
+    // ---- Connect : synchronisation statut onboarding compte chauffeur ----
+    case "account.updated": {
+      // 🔒 GAP-8B-01 (Bloc 8B, comblé cette session) : sans ce handler,
+      // `driver_profiles.stripe_charges_enabled`/`stripe_payouts_enabled`
+      // restaient figés à `false` pour toujours après `createDriverStripeAccount`
+      // (aucun autre code ne les mettait à jour) — l'admin ne pouvait JAMAIS
+      // voir qu'un chauffeur avait réellement complété son onboarding Stripe
+      // hébergé. Les payouts eux-mêmes ne dépendent QUE de
+      // `stripe_connected_account_id` (voir calculateDriverPayout.ts /
+      // paymentOrchestration.ts) — ce n'était donc pas un bloqueur fonctionnel
+      // des versements, mais une donnée d'état trompeuse pour l'admin/support.
+      const branchStartedAt = startFinancialOperationTimer();
+      const account = event.data.object as Stripe.Account;
+      const driverId = (account.metadata?.movik_driver_id as string | undefined) ?? null;
+
+      if (driverId) {
+        const driverRef = db.collection("driver_profiles").doc(driverId);
+        const driverSnap = await driverRef.get();
+        if (driverSnap.exists) {
+          const driver = driverSnap.data() as DriverProfileDoc;
+          // 🔒 Ne met à jour QUE si ce compte Stripe est bien celui déjà
+          // enregistré pour ce chauffeur (défense contre un metadata
+          // falsifié/obsolète pointant vers le mauvais profil).
+          if (driver.stripe_connected_account_id === account.id) {
+            relatedDriverId = driverId;
+            const chargesEnabled = account.charges_enabled === true;
+            const payoutsEnabled = account.payouts_enabled === true;
+            if (
+              driver.stripe_charges_enabled !== chargesEnabled ||
+              driver.stripe_payouts_enabled !== payoutsEnabled
+            ) {
+              await driverRef.update({
+                stripe_charges_enabled: chargesEnabled,
+                stripe_payouts_enabled: payoutsEnabled,
+                updated_at: admin.firestore.FieldValue.serverTimestamp(),
+              });
+              await writeAuditLog({
+                actorUserId: "system",
+                actorRole: "system",
+                action: "driver_stripe_account_status_synced",
+                sourceFunction: "processStripeWebhook",
+                targetId: driverId,
+                metadata: {
+                  connectedAccountId: account.id,
+                  chargesEnabled,
+                  payoutsEnabled,
+                  previousChargesEnabled: driver.stripe_charges_enabled ?? false,
+                  previousPayoutsEnabled: driver.stripe_payouts_enabled ?? false,
+                },
+              });
+              logFinancialSuccess(
+                "driver_stripe_account_status_synced",
+                branchStartedAt,
+                { providerEventId: event.id },
+                {
+                  correlationId: event.id,
+                  metadata: { driverId, connectedAccountId: account.id, chargesEnabled, payoutsEnabled },
+                }
+              );
+            }
+          }
+        }
+      }
+      break;
+    }
+
     default:
       // Évènement reçu mais non couvert par notre dispatch minimal — pas
       // une erreur : accusé réception (`ignored`), aucun effet.
       break;
   }
 
-  return { relatedPaymentId, relatedPayoutId, relatedRefundId, relatedDisputeId, relatedMissionId };
+  return {
+    relatedPaymentId,
+    relatedPayoutId,
+    relatedRefundId,
+    relatedDisputeId,
+    relatedMissionId,
+    relatedDriverId,
+  };
 }
 
 export const processStripeWebhook = onRequest(
@@ -414,6 +489,7 @@ export const processStripeWebhook = onRequest(
         related_refund_id: null,
         related_dispute_id: null,
         related_mission_id: null,
+        related_driver_id: null,
       });
       return { alreadyProcessed: false as const };
     });
@@ -437,6 +513,7 @@ export const processStripeWebhook = onRequest(
         related_refund_id: related.relatedRefundId,
         related_dispute_id: related.relatedDisputeId,
         related_mission_id: related.relatedMissionId,
+        related_driver_id: related.relatedDriverId,
         last_error: null,
         error_code: null,
       });
