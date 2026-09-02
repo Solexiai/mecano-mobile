@@ -4577,6 +4577,46 @@ class AppStrings {
       'en': 'Unable to open the Stripe link. Please try again.',
       'es': 'No se pudo abrir el enlace de Stripe. Vuelva a intentarlo.',
     },
+
+    // ---------- Bloc 8B LIVE — Retour Stripe Connect (gap fermé) ----------
+    // Écran affiché quand Stripe redirige le navigateur du chauffeur vers
+    // `return_url` (onboarding complété) ou `refresh_url` (lien expiré /
+    // abandonné) — voir `driver_stripe_onboarding_return_screen.dart`.
+    'driver_onboarding_return_title': {
+      'fr': 'Retour depuis Stripe',
+      'en': 'Back from Stripe',
+      'es': 'De vuelta desde Stripe',
+    },
+    'driver_onboarding_return_complete_message': {
+      'fr': "Merci ! Nous vérifions l'état de votre compte de versement Stripe.",
+      'en': "Thank you! We're checking the status of your Stripe payout account.",
+      'es': '¡Gracias! Estamos verificando el estado de su cuenta de pagos de Stripe.',
+    },
+    'driver_onboarding_return_refresh_message': {
+      'fr': "Le lien d'onboarding Stripe a expiré ou a été abandonné. Vous pouvez le reprendre depuis votre profil.",
+      'en': 'The Stripe onboarding link expired or was left incomplete. You can resume it from your profile.',
+      'es': 'El enlace de incorporación de Stripe caducó o quedó incompleto. Puede reanudarlo desde su perfil.',
+    },
+    'driver_onboarding_return_status_active': {
+      'fr': 'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
+      'en': 'Your Stripe account is active: you can receive charges and payouts.',
+      'es': 'Su cuenta de Stripe está activa: puede recibir cobros y pagos.',
+    },
+    'driver_onboarding_return_status_pending': {
+      'fr': 'Onboarding pas encore terminé. Ouvrez votre profil pour le compléter.',
+      'en': 'Onboarding is not complete yet. Open your profile to finish it.',
+      'es': 'La incorporación aún no está completa. Abra su perfil para finalizarla.',
+    },
+    'driver_onboarding_return_go_to_profile': {
+      'fr': 'Retour à mon profil',
+      'en': 'Back to my profile',
+      'es': 'Volver a mi perfil',
+    },
+    'driver_onboarding_return_refresh_state': {
+      'fr': "Actualiser l'état",
+      'en': 'Refresh status',
+      'es': 'Actualizar estado',
+    },
   };
 
   static String t(String key, String locale) {

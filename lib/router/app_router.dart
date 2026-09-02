@@ -9,6 +9,7 @@ import '../screens/mechanic/mechanic_request_flow_screen.dart';
 import '../screens/driver/driver_landing_screen.dart';
 import '../screens/driver/driver_onboarding_screen.dart';
 import '../screens/driver/driver_status_screen.dart';
+import '../screens/driver/driver_stripe_onboarding_return_screen.dart';
 import '../screens/driver/driver_active_mission_screen.dart';
 import '../screens/customer/customer_tracking_screen.dart';
 import '../screens/mechanic_provider/mechanic_provider_landing_screen.dart';
@@ -29,6 +30,21 @@ import '../screens/dashboard/admin/admin_dashboard_shell.dart';
 import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
+
+/// Bloc 8B LIVE — lit un `initialTabIndex` optionnel passé via
+/// `GoRouterState.extra` (ex. depuis `DriverStripeOnboardingReturnScreen`,
+/// qui navigue avec `extra: {'initialTabIndex': 3}` pour rouvrir
+/// directement l'onglet Profil, où vit `ProviderStripeConnectSection`,
+/// plutôt que l'onglet par défaut). Défaut `0` si absent/invalide —
+/// comportement identique à avant pour tout appelant qui ne le fournit pas
+/// (ex. navigation directe vers `/fournisseur/tableau-de-bord` depuis un
+/// lien favori, sans `extra`).
+int _extraInitialTabIndex(Object? extra) {
+  if (extra is Map && extra['initialTabIndex'] is int) {
+    return extra['initialTabIndex'] as int;
+  }
+  return 0;
+}
 
 /// Locale-prefixed routing (/fr, /en, /es) as required for SEO-friendly
 /// multilingual URLs. The locale segment is informational for routing;
@@ -279,11 +295,70 @@ class AppRouter {
 
             GoRoute(
               path: 'fournisseur/tableau-de-bord',
-              builder: (c, s) => const ProviderDashboardShell(),
+              builder: (c, s) => ProviderDashboardShell(
+                initialTabIndex: _extraInitialTabIndex(s.extra),
+              ),
             ),
             GoRoute(
               path: 'provider/dashboard',
-              builder: (c, s) => const ProviderDashboardShell(),
+              builder: (c, s) => ProviderDashboardShell(
+                initialTabIndex: _extraInitialTabIndex(s.extra),
+              ),
+            ),
+
+            // Bloc 8B LIVE (gap fermé AVANT onboarding Stripe LIVE) — routes
+            // de retour Stripe Connect. Stripe redirige le navigateur du
+            // chauffeur ici après l'onboarding hébergé (voir
+            // `functions/src/payment/stripeProvider.ts::createDriverAccount`,
+            // `return_url`/`refresh_url`, et `functions/src/lib/appConfig.ts`
+            // pour le domaine public réellement branché côté Cloud Functions).
+            // FR/EN/ES : mêmes chemins que le reste de l'app (préfixe
+            // `/fr|/en|/es` déjà géré par `supportedLocales.map(...)`
+            // ci-dessus) ; la Cloud Function utilise systématiquement le
+            // préfixe `/fr` par défaut (Stripe n'a pas connaissance de la
+            // langue du chauffeur), et cet écran affiche ensuite dans la
+            // langue réellement active de l'app (`LocaleProvider`).
+            GoRoute(
+              path: 'chauffeur/onboarding/complete',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.complete,
+              ),
+            ),
+            GoRoute(
+              path: 'driver/onboarding/complete',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.complete,
+              ),
+            ),
+            GoRoute(
+              path: 'conductor/incorporacion/completado',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.complete,
+              ),
+            ),
+            GoRoute(
+              path: 'chauffeur/onboarding/refresh',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.refresh,
+              ),
+            ),
+            GoRoute(
+              path: 'driver/onboarding/refresh',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.refresh,
+              ),
+            ),
+            GoRoute(
+              path: 'conductor/incorporacion/reintentar',
+              builder: (c, s) => DriverStripeOnboardingReturnScreen(
+                locale: loc,
+                mode: DriverStripeOnboardingReturnMode.refresh,
+              ),
             ),
 
             // Mission Active Chauffeur — route dédiée (paramétrée par
