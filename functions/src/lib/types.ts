@@ -697,6 +697,9 @@ export interface ProviderWebhookEventDoc {
   related_refund_id?: string | null;
   related_dispute_id?: string | null;
   related_mission_id?: string | null;
+  // 🔒 Phase 8, Bloc 8B — GAP-8B-01 comblé : lié à `account.updated`
+  // (synchronisation stripe_charges_enabled/stripe_payouts_enabled).
+  related_driver_id?: string | null;
 }
 
 /**
