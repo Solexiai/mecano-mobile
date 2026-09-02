@@ -226,6 +226,10 @@ class _FakeDriverRepository implements DriverRepository {
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) =>
       throw UnimplementedError();
+
+  @override
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() =>
+      throw UnimplementedError();
 }
 
 /// `DriverRepository` fake — simule un refus par kill switch (Bloc X) sur
@@ -274,6 +278,9 @@ class _KillSwitchDriverRepository implements DriverRepository {
   Future<void> logDriverReviewOpened(String driverId) => throw UnimplementedError();
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) => throw UnimplementedError();
+  @override
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() =>
+      throw UnimplementedError();
 }
 
 Widget _buildTestApp(FirebaseAuthProvider auth) {

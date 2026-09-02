@@ -51,6 +51,15 @@ dependencies:
   geolocator: 13.0.2
   permission_handler: 11.3.1
 
+  # --- Stripe Connect Onboarding (Bloc 8B, PRIORITÉ 1) ---
+  # Ouvre l'URL d'onboarding hébergée par Stripe (jamais un formulaire de
+  # carte/compte bancaire dans Movi-K lui-même — voir stripeProvider.ts
+  # ::createDriverAccount, accountLinks.create). Aucun secret Stripe n'est
+  # jamais chargé côté Flutter : cette dépendance ne fait qu'ouvrir un
+  # navigateur externe/onglet vers une URL déjà générée par la Cloud
+  # Function `createDriverStripeAccount`.
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

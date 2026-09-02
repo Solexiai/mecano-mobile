@@ -33,6 +33,16 @@ class DriverProfileV2 {
   final DateTime? documentsRequiredAt;
   final String? suspensionReason;
   final DateTime? suspendedAt;
+  // Bloc 8B (Connect Onboarding Flutter) — miroir exact des 4 champs
+  // Stripe Connect écrits par la Cloud Function `createDriverStripeAccount`
+  // (création) et par le webhook `account.updated` (synchronisation des
+  // capacités, voir GAP-8B-01) sur `driver_profiles/{uid}`. Lecture seule
+  // côté Flutter : jamais écrits directement par ce modèle/repository, voir
+  // `driver_repository.dart::createOrRetrieveDriverStripeAccount()`.
+  final String? stripeConnectedAccountId;
+  final String? stripeOnboardingUrl;
+  final bool stripeChargesEnabled;
+  final bool stripePayoutsEnabled;
 
   const DriverProfileV2({
     required this.uid,
@@ -56,6 +66,10 @@ class DriverProfileV2 {
     this.documentsRequiredAt,
     this.suspensionReason,
     this.suspendedAt,
+    this.stripeConnectedAccountId,
+    this.stripeOnboardingUrl,
+    this.stripeChargesEnabled = false,
+    this.stripePayoutsEnabled = false,
   });
 
   bool get canGoOnline => status.canGoOnline;
@@ -97,6 +111,10 @@ class DriverProfileV2 {
         'documents_required_at': documentsRequiredAt?.toIso8601String(),
         'suspension_reason': suspensionReason,
         'suspended_at': suspendedAt?.toIso8601String(),
+        'stripe_connected_account_id': stripeConnectedAccountId,
+        'stripe_onboarding_url': stripeOnboardingUrl,
+        'stripe_charges_enabled': stripeChargesEnabled,
+        'stripe_payouts_enabled': stripePayoutsEnabled,
       };
 
   // Les Cloud Functions écrivent ces champs via
@@ -146,6 +164,10 @@ class DriverProfileV2 {
       documentsRequiredAt: _parseDate(json['documents_required_at']),
       suspensionReason: json['suspension_reason'] as String?,
       suspendedAt: _parseDate(json['suspended_at']),
+      stripeConnectedAccountId: json['stripe_connected_account_id'] as String?,
+      stripeOnboardingUrl: json['stripe_onboarding_url'] as String?,
+      stripeChargesEnabled: json['stripe_charges_enabled'] as bool? ?? false,
+      stripePayoutsEnabled: json['stripe_payouts_enabled'] as bool? ?? false,
     );
   }
 }

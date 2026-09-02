@@ -7,6 +7,7 @@ import '../../../../widgets/coming_soon_badge.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../models/enums.dart';
+import 'provider_stripe_connect_section.dart';
 
 class ProviderProfileTab extends StatelessWidget {
   const ProviderProfileTab({super.key});
@@ -133,6 +134,18 @@ class ProviderProfileTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
+              // Bloc 8B (PRIORITÉ 1, Connect Onboarding Flutter) —
+              // configuration paiement/payout : seul écran d'entrée réel
+              // vers Stripe Connect (voir provider_stripe_connect_section.dart
+              // pour la justification complète du gap corrigé et du flow).
+              // Affiché uniquement pour un chauffeur déjà approuvé : un
+              // chauffeur en attente de revue ne peut pas encore recevoir
+              // de missions, donc pas encore de versement à configurer, et
+              // afficher ce CTA prématurément créerait une confusion inutile.
+              if (profile?.status == DriverStatus.approved) ...[
+                ProviderStripeConnectSection(profile: profile, t: t),
+                const SizedBox(height: 20),
+              ],
               _SectionCard(
                 title: t('provider_profile_reviews_received'),
                 children: [

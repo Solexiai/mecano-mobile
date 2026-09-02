@@ -25,6 +25,26 @@ import '../models/driver_internal_note.dart';
 import '../../models/enums.dart';
 import '../backend_exceptions.dart';
 
+/// Résultat de `createOrRetrieveDriverStripeAccount()` — miroir exact de la
+/// réponse `{success, connectedAccountId, onboardingUrl, alreadyExisted}` de
+/// la Cloud Function `createDriverStripeAccount` (voir
+/// `functions/src/functions/createDriverStripeAccount.ts`). Ce repository ne
+/// fait QUE relayer cet appel : aucune logique Stripe, aucun secret, jamais
+/// d'écriture Firestore directe des champs `stripe_*` depuis Flutter.
+class DriverStripeAccountResult {
+  final bool success;
+  final String? connectedAccountId;
+  final String? onboardingUrl;
+  final bool alreadyExisted;
+
+  const DriverStripeAccountResult({
+    required this.success,
+    this.connectedAccountId,
+    this.onboardingUrl,
+    this.alreadyExisted = false,
+  });
+}
+
 abstract class DriverRepository {
   /// Retourne le profil chauffeur, ou null s'il n'existe pas encore.
   Future<DriverProfileV2?> getDriverProfile(String driverId);
@@ -118,6 +138,24 @@ abstract class DriverRepository {
   /// cet appel se heurte à un refus Security Rules (PERMISSION_DENIED),
   /// jamais à un faux succès.
   Future<void> setDriverOnlineStatus(String driverId, bool online);
+
+  // -------------------------------------------------------------------
+  // Bloc 8B — Connect Onboarding Flutter (PRIORITÉ 1, PR #12 follow-up).
+  // -------------------------------------------------------------------
+
+  /// Crée (première fois) ou récupère (idempotent) le compte Stripe Connect
+  /// Express du chauffeur COURANT via la Cloud Function existante
+  /// `createDriverStripeAccount` — RÉUTILISÉE telle quelle, jamais dupliquée
+  /// ni réimplémentée côté client. Ne transporte, ne stocke, ni ne calcule
+  /// AUCUN secret Stripe : le retour ne contient qu'un identifiant de
+  /// compte connecté (opaque) et une URL d'onboarding hébergée par Stripe
+  /// elle-même (le chauffeur y est redirigé, jamais de formulaire de carte/
+  /// compte bancaire affiché dans Movi-K). L'état réel (`charges_enabled`,
+  /// `payouts_enabled`) n'est JAMAIS déduit de ce retour : il est lu
+  /// séparément depuis `DriverProfileV2` (synchronisé par le webhook
+  /// `account.updated`, voir GAP-8B-01), qui reste la seule source de
+  /// vérité après le retour d'onboarding.
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount();
 }
 
 /// Implémentation sûre utilisée quand Firebase n'est pas configuré.
@@ -218,5 +256,11 @@ class NotConfiguredDriverRepository implements DriverRepository {
   Future<void> setDriverOnlineStatus(String driverId, bool online) {
     throw BackendNotConfiguredException(
         'setDriverOnlineStatus: Firebase Firestore non configuré.');
+  }
+
+  @override
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() {
+    throw BackendNotConfiguredException(
+        'createOrRetrieveDriverStripeAccount: Firebase Functions non configuré.');
   }
 }

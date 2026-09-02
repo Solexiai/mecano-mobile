@@ -4495,6 +4495,88 @@ class AppStrings {
       'en': 'Payout reversed.',
       'es': 'Pago revertido.',
     },
+
+    // ---------- Bloc 8B — Connect Onboarding Flutter (Stripe Connect) ----------
+    'provider_stripe_connect_title': {
+      'fr': 'Configuration des versements (Stripe Connect)',
+      'en': 'Payout setup (Stripe Connect)',
+      'es': 'Configuración de pagos (Stripe Connect)',
+    },
+    'provider_stripe_connect_status_none': {
+      'fr': 'Non configuré',
+      'en': 'Not set up',
+      'es': 'No configurado',
+    },
+    'provider_stripe_connect_status_pending': {
+      'fr': 'Onboarding incomplet',
+      'en': 'Onboarding incomplete',
+      'es': 'Incorporación incompleta',
+    },
+    'provider_stripe_connect_status_active': {
+      'fr': 'Actif',
+      'en': 'Active',
+      'es': 'Activo',
+    },
+    'provider_stripe_connect_description_none': {
+      'fr': 'Configurez votre compte de versement Stripe pour pouvoir être payé après vos missions.',
+      'en': 'Set up your Stripe payout account to get paid after your missions.',
+      'es': 'Configure su cuenta de pagos de Stripe para recibir pagos después de sus misiones.',
+    },
+    'provider_stripe_connect_description_pending': {
+      'fr': 'Votre compte a été créé, mais l\'onboarding Stripe n\'est pas encore terminé. Complétez-le pour recevoir vos versements.',
+      'en': 'Your account was created, but Stripe onboarding is not complete yet. Finish it to receive your payouts.',
+      'es': 'Su cuenta fue creada, pero la incorporación de Stripe aún no está completa. Finalícela para recibir sus pagos.',
+    },
+    'provider_stripe_connect_description_active': {
+      'fr': 'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
+      'en': 'Your Stripe account is active: you can receive charges and payouts.',
+      'es': 'Su cuenta de Stripe está activa: puede recibir cobros y pagos.',
+    },
+    'provider_stripe_connect_charges_enabled': {
+      'fr': 'Paiements activés (charges_enabled)',
+      'en': 'Charges enabled',
+      'es': 'Cobros habilitados',
+    },
+    'provider_stripe_connect_payouts_enabled': {
+      'fr': 'Versements activés (payouts_enabled)',
+      'en': 'Payouts enabled',
+      'es': 'Pagos habilitados',
+    },
+    'provider_stripe_connect_start': {
+      'fr': 'Configurer les versements',
+      'en': 'Set up payouts',
+      'es': 'Configurar pagos',
+    },
+    'provider_stripe_connect_resume': {
+      'fr': 'Continuer l\'onboarding Stripe',
+      'en': 'Continue Stripe onboarding',
+      'es': 'Continuar la incorporación de Stripe',
+    },
+    'provider_stripe_connect_reopen_link': {
+      'fr': 'Rouvrir le lien Stripe',
+      'en': 'Reopen Stripe link',
+      'es': 'Reabrir el enlace de Stripe',
+    },
+    'provider_stripe_connect_loading': {
+      'fr': 'Connexion à Stripe…',
+      'en': 'Connecting to Stripe…',
+      'es': 'Conectando con Stripe…',
+    },
+    'provider_stripe_connect_error_generic': {
+      'fr': 'Impossible de configurer les versements pour le moment. Réessayez plus tard.',
+      'en': 'Unable to set up payouts right now. Please try again later.',
+      'es': 'No se pudo configurar los pagos en este momento. Inténtelo más tarde.',
+    },
+    'provider_stripe_connect_error_not_configured': {
+      'fr': 'Le service de versement n\'est pas disponible actuellement.',
+      'en': 'The payout service is currently unavailable.',
+      'es': 'El servicio de pagos no está disponible actualmente.',
+    },
+    'provider_stripe_connect_error_open_link': {
+      'fr': 'Impossible d\'ouvrir le lien Stripe. Réessayez.',
+      'en': 'Unable to open the Stripe link. Please try again.',
+      'es': 'No se pudo abrir el enlace de Stripe. Vuelva a intentarlo.',
+    },
   };
 
   static String t(String key, String locale) {

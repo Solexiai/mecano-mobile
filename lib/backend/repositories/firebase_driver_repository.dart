@@ -304,4 +304,33 @@ class FirebaseDriverRepository implements DriverRepository {
       throw BackendNotConfiguredException('setDriverOnlineStatus a échoué: $e');
     }
   }
+
+  // -------------------------------------------------------------------
+  // Bloc 8B — Connect Onboarding Flutter.
+  // -------------------------------------------------------------------
+
+  @override
+  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() async {
+    try {
+      // RÉUTILISATION STRICTE de la Cloud Function existante — aucune
+      // nouvelle fonction backend créée pour ce Bloc (directive PRIORITÉ 1).
+      // Le secret Stripe (STRIPE_SECRET_KEY) ne quitte jamais le serveur :
+      // seule cette Cloud Function le charge (voir
+      // createDriverStripeAccount.ts, { secrets: [...] }), Flutter ne reçoit
+      // que l'identifiant de compte (opaque) et une URL d'onboarding.
+      final result = await _functions.httpsCallable('createDriverStripeAccount').call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      return DriverStripeAccountResult(
+        success: data['success'] == true,
+        connectedAccountId: data['connectedAccountId'] as String?,
+        onboardingUrl: data['onboardingUrl'] as String?,
+        alreadyExisted: data['alreadyExisted'] == true,
+      );
+    } on FirebaseFunctionsException catch (e) {
+      throw BackendNotConfiguredException(
+          'createOrRetrieveDriverStripeAccount a échoué (${e.code}): ${e.message}');
+    } catch (e) {
+      throw BackendNotConfiguredException('createOrRetrieveDriverStripeAccount a échoué: $e');
+    }
+  }
 }
