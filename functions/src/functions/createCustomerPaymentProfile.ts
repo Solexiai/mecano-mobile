@@ -52,6 +52,9 @@ export const createCustomerPaymentProfile = onCall(
       provider: "stripe",
       provider_customer_id: created.providerCustomerId,
       default_payment_method_id: null,
+      // 🔒 Phase 8B (item f) — tague ce NOUVEAU profil avec l'environnement
+      // Stripe réellement actif à sa création (voir `provider` ci-dessus).
+      stripe_environment: provider.environment,
       created_at: now,
       updated_at: now,
     };

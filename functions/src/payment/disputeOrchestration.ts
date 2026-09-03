@@ -116,6 +116,16 @@ export async function openDispute(input: OpenDisputeInput): Promise<OpenDisputeO
         evidence_due_at: input.evidenceDueAt ? admin.firestore.Timestamp.fromDate(input.evidenceDueAt) : null,
         proof_of_delivery_url: null,
         provider_metadata: input.providerMetadata ?? null,
+        // 🔒 Phase 8B (item f) — HÉRITÉ du PaymentDoc parent (`payment`,
+        // déjà lu ci-dessus), PAS obtenu via `getPaymentProvider()` : ce
+        // fichier n'appelle JAMAIS PaymentProvider (l'évènement Stripe a
+        // déjà eu lieu avant que ce code ne s'exécute, voir en-tête de
+        // fichier) — introduire une dépendance au provider ICI casserait
+        // cette frontière architecturale sans aucun bénéfice, puisqu'AUCUN
+        // garde-fou de cohérence d'environnement ne consomme jamais ce
+        // champ pour un DisputeDoc (purement informatif/traçabilité —
+        // décision documentée dans le RAPPORT Phase 8B).
+        stripe_environment: payment.stripe_environment ?? undefined,
         created_at: now,
         updated_at: now,
         resolved_at: null,
