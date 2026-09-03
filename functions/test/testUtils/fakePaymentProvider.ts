@@ -48,6 +48,7 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
 } from "../../src/payment/paymentProvider";
+import { StripeEnvironment } from "../../src/lib/stripeEnvironment";
 
 export interface FakePaymentProviderOptions {
   /** Si vrai, `authorizePayment()` renvoie un échec déterministe (carte refusée simulée). */
@@ -81,6 +82,15 @@ function nextId(prefix: string): string {
 }
 
 export class FakePaymentProvider extends PaymentProvider {
+  // 🔒 Phase 8B (item f, isolation d'environnement) — le FakePaymentProvider
+  // ne manipule JAMAIS de fonds réels : toujours "test" par convention (voir
+  // src/payment/paymentProvider.ts, doc du champ `environment`). Jamais
+  // reconfigurable — un test qui aurait besoin de simuler un mélange
+  // test/live doit construire deux FakePaymentProvider distincts et vérifier
+  // le rejet via assertStripeReferenceEnvironmentConsistency() directement,
+  // jamais en modifiant cette valeur.
+  readonly environment: StripeEnvironment = "test";
+
   constructor(private readonly options: FakePaymentProviderOptions = {}) {
     super();
   }

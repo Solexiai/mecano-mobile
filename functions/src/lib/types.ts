@@ -19,6 +19,13 @@
 // prescrit (étape 11 = Cloud Functions uniquement).
 // -----------------------------------------------------------------------------
 
+// 🔒 Phase 8B (item f, isolation d'environnement Stripe) — voir
+// lib/stripeEnvironment.ts pour la justification complète. Réexporté ici
+// uniquement pour éviter d'alourdir chaque import de types.ts avec un
+// second fichier — la définition canonique du TYPE reste stripeEnvironment.ts.
+import { StripeEnvironment } from "./stripeEnvironment";
+export type { StripeEnvironment };
+
 export const PlatformRoles = {
   CUSTOMER: "customer",
   DRIVER: "driver",
@@ -435,6 +442,13 @@ export interface PaymentProfileDoc {
   default_payment_method_id: string | null;
   created_at: admin_Timestamp;
   updated_at: admin_Timestamp;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — environnement Stripe
+  // (test|live) actif AU MOMENT de la création de `provider_customer_id`
+  // chez Stripe (voir lib/stripeEnvironment.ts). Optionnel UNIQUEMENT pour
+  // les documents créés AVANT l'introduction de ce champ (rétro-compatibilité
+  // — voir assertStripeReferenceEnvironmentConsistency(), qui refuse fail
+  // closed toute absence de tag dès que l'environnement actif est "live").
+  stripe_environment?: StripeEnvironment;
 }
 
 export interface DeliveryMissionDoc {
@@ -525,6 +539,12 @@ export interface PaymentDoc {
   failure_message?: string | null;
   created_at: admin_Timestamp;
   updated_at: admin_Timestamp;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — voir même champ sur
+  // PaymentProfileDoc ci-dessus pour la justification complète. Tague
+  // l'environnement Stripe actif au moment de la création de
+  // `provider_payment_intent_id`/`connected_account_id` (l'appel
+  // createPayment() initial, avant toute autorisation/capture).
+  stripe_environment?: StripeEnvironment;
 }
 
 /**
@@ -550,6 +570,12 @@ export interface DriverPayoutDoc {
   reversed_at?: admin_Timestamp | null;
   reversal_reason?: string | null;
   idempotency_key: string;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — environnement Stripe
+  // actif au moment de la création de ce document (à l'agrégation des
+  // snapshots par calculateDriverPayout.ts, AVANT tout appel provider réel
+  // dans submitDriverPayout()). `connected_account_id` DOIT appartenir à ce
+  // même environnement — voir assertStripeReferenceEnvironmentConsistency().
+  stripe_environment?: StripeEnvironment;
 }
 
 /** payout_policy_configs/default — configuration ADMIN (jamais hardcodée). */
@@ -646,6 +672,11 @@ export interface RefundDoc {
   processing_at?: admin_Timestamp | null;
   completed_at?: admin_Timestamp | null;
   failed_reason?: string | null;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — environnement Stripe
+  // actif au moment de la création de cette demande, DOIT être identique à
+  // celui de `payments/{payment_id}` correspondant (voir
+  // assertStripeReferenceEnvironmentConsistency() dans refundPayment()).
+  stripe_environment?: StripeEnvironment;
 }
 
 /**
@@ -670,6 +701,15 @@ export interface DisputeDoc {
   updated_at: admin_Timestamp;
   resolved_at?: admin_Timestamp | null;
   closed_at?: admin_Timestamp | null;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — environnement Stripe
+  // du webhook `charge.dispute.created` d'origine (voir
+  // processStripeWebhook.ts -> openDispute()). Purement informatif/
+  // diagnostique ici : `openDispute()` ne réutilise jamais cette référence
+  // pour un appel PaymentProvider (voir disputeOrchestration.ts, aucun
+  // appel provider n'y existe) — champ conservé pour compléter la
+  // traçabilité et la réconciliation, jamais consommé par un garde-fou
+  // fail-closed.
+  stripe_environment?: StripeEnvironment;
 }
 
 /**
