@@ -59,6 +59,26 @@ import {
   startFinancialOperationTimer,
 } from "../lib/observability";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled } from "../lib/runtimeFlags";
+import {
+  assertStripeReferenceEnvironmentConsistencyOrLog,
+  STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
+  StripeEnvironment,
+} from "../lib/stripeEnvironment";
+
+// 🔒 Phase 8B (item f, isolation d'environnement Stripe) — CHAQUE fonction
+// ci-dessous qui RÉUTILISE une référence Stripe déjà stockée (au lieu d'en
+// créer une nouvelle) doit valider `assertStripeReferenceEnvironmentConsistencyOrLog()`
+// AVANT tout appel `provider.xxx()` réel. En cas d'incohérence : FAIL CLOSED
+// (aucun appel Stripe n'est jamais effectué), l'opération est journalisée
+// (BLOC I) et traitée comme une ÉCHEC MÉTIER TERMINAL via le MÊME chemin de
+// code que les échecs provider déjà gérés (capture refusée, annulation
+// refusée, remboursement refusé, versement refusé) — jamais un chemin
+// d'erreur distinct qui complexifierait la machine d'état. Voir
+// lib/stripeEnvironment.ts pour la table de vérité fail-closed complète et
+// docs/PAYMENT_ARCHITECTURE.md pour la justification (un seul projet
+// Firebase, TEST/LIVE distingués uniquement par la clé Stripe active).
+const ENVIRONMENT_MISMATCH_GENERIC_MESSAGE =
+  "Incohérence d'environnement de paiement détectée. Opération refusée par sécurité — veuillez contacter le support.";
 
 // 🔒 Phase 7, Bloc X — code de failure_code INTERNE (jamais exposé au
 // client, voir SubmitDriverPayoutOutcome : seul `failureMessage`, un texte
@@ -147,6 +167,17 @@ export async function createAndAuthorizeMissionPayment(
   const amountMinor = toMinorUnits(customerTotalMajor, DEFAULT_CURRENCY);
   const applicationFeeMinor = toMinorUnits(applicationFeeMajor, DEFAULT_CURRENCY);
 
+  // 🔒 Phase 8B (item f) — `provider` est obtenu ICI, AVANT l'étape 1,
+  // plutôt qu'à l'étape 2 comme dans une version antérieure de ce fichier :
+  // ce paiement est un NOUVEAU document, sa création doit être TAGUÉE avec
+  // l'environnement Stripe RÉELLEMENT actif au moment de sa création
+  // (`stripe_environment`, voir lib/types.ts) — nécessite de connaître
+  // `provider.environment` avant même d'écrire le PaymentDoc. Un SEUL appel
+  // à `getPaymentProvider()` pour toute la fonction (jamais un second appel
+  // à l'étape 2) — évite toute divergence entre le provider qui a tagué le
+  // document et celui qui exécute réellement l'appel Stripe.
+  const provider = getPaymentProvider();
+
   // ---- Étape 1 : Transaction Firestore — crée payments/{id} en CREATED ----
   const paymentRef = db.collection("payments").doc();
   const paymentId = paymentRef.id;
@@ -184,6 +215,12 @@ export async function createAndAuthorizeMissionPayment(
       provider_payment_intent_id: null,
       provider_charge_id: null,
       connected_account_id: connectedAccountId,
+      // 🔒 Phase 8B (item f) — tague ce NOUVEAU paiement avec l'environnement
+      // Stripe réellement actif à sa création (voir provider ci-dessus).
+      // Consommé par assertStripeReferenceEnvironmentConsistencyOrLog() à
+      // chaque réutilisation future de ce paiement (capture/annulation/
+      // remboursement).
+      stripe_environment: provider.environment,
       idempotency_key: createIdempotencyKey,
       authorized_at: null,
       authorization_expires_at: null,
@@ -203,7 +240,8 @@ export async function createAndAuthorizeMissionPayment(
   });
 
   // ---- Étape 2 : appels Stripe RÉELS, hors transaction ----
-  const provider = getPaymentProvider();
+  // (provider déjà obtenu ci-dessus, avant l'étape 1, pour le tagging du
+  // PaymentDoc — pas de second appel getPaymentProvider() ici.)
   try {
     const created = await provider.createPayment({
       providerCustomerId: paymentProfile.provider_customer_id,
@@ -413,9 +451,16 @@ export async function captureMissionPayment(
   const operationStartedAt = startFinancialOperationTimer();
   const payRef = db.collection("payments").doc(paymentId);
 
+  // 🔒 Phase 8B (item f) — `provider` obtenu AVANT l'étape 1 : ce paiement
+  // est une référence STOCKÉE (créée par createAndAuthorizeMissionPayment,
+  // potentiellement dans un environnement Stripe DIFFÉRENT de celui
+  // actuellement actif) — voir garde-fou ci-dessous, appliqué juste après
+  // l'étape 1, AVANT tout appel Stripe réel de capture.
+  const provider = getPaymentProvider();
+
   // Étape 1 : transaction — CAPTURE_PENDING.
-  const { providerPaymentIntentId, amountToCaptureMinor, idempotencyKey } = await db.runTransaction(
-    async (tx) => {
+  const { providerPaymentIntentId, amountToCaptureMinor, idempotencyKey, storedEnvironment } =
+    await db.runTransaction(async (tx) => {
       const paySnap = await tx.get(payRef);
       if (!paySnap.exists) throw new Error(`payments/${paymentId} introuvable.`);
       const payment = paySnap.data() as PaymentDoc;
@@ -428,12 +473,55 @@ export async function captureMissionPayment(
         providerPaymentIntentId: payment.provider_payment_intent_id!,
         amountToCaptureMinor: payment.amount_authorized_minor,
         idempotencyKey: key,
+        storedEnvironment: payment.stripe_environment ?? null,
       };
-    }
-  );
+    });
+
+  // 🔒 Phase 8B (item f) — GARDE-FOU D'ISOLATION D'ENVIRONNEMENT. Valide que
+  // ce PaymentIntent stocké appartient au MÊME environnement Stripe (test|
+  // live) que le provider ACTUELLEMENT actif, AVANT tout appel Stripe réel.
+  // FAIL CLOSED : en cas d'incohérence, AUCUN appel `provider.capturePayment()`
+  // n'est jamais effectué — le paiement est basculé en FAILED via le MÊME
+  // chemin que tout autre échec de capture (jamais un chemin d'erreur
+  // distinct), l'échec est journalisé (BLOC I) et le client reçoit un
+  // message métier générique.
+  try {
+    assertStripeReferenceEnvironmentConsistencyOrLog({
+      activeEnvironment: provider.environment,
+      storedEnvironment,
+      operation: "capture_payment",
+      operationStartedAt,
+      correlationId,
+      identifiers: { missionId, paymentId },
+      refType: `payments/${paymentId}`,
+    });
+  } catch {
+    await db.runTransaction(async (tx) => {
+      const paySnap = await tx.get(payRef);
+      if (!paySnap.exists) return;
+      const payment = paySnap.data() as PaymentDoc;
+      if (payment.status === PaymentStatuses.FAILED) return; // déjà appliqué (concurrence/retry)
+      assertValidPaymentTransition(payment.status, PaymentStatuses.FAILED);
+      const now = admin.firestore.Timestamp.now();
+      tx.update(payRef, {
+        status: PaymentStatuses.FAILED,
+        failed_at: now,
+        failure_code: STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
+        failure_message: ENVIRONMENT_MISMATCH_GENERIC_MESSAGE,
+        updated_at: now,
+      });
+      const missionRef = db.collection("delivery_requests").doc(missionId);
+      tx.update(missionRef, { payment_status: PaymentStatuses.FAILED });
+    });
+    await recalculateMissionFinancialBalance(missionId);
+    return {
+      success: false,
+      status: PaymentStatuses.FAILED,
+      failureMessage: ENVIRONMENT_MISMATCH_GENERIC_MESSAGE,
+    };
+  }
 
   // Étape 2 : appel Stripe réel, hors transaction.
-  const provider = getPaymentProvider();
   const result = await provider.capturePayment({
     providerPaymentIntentId,
     amountToCaptureMinor,
@@ -565,7 +653,12 @@ export async function cancelMissionPaymentAuthorization(
   type PrepOutcome =
     | { kind: "already_cancelled" }
     | { kind: "skipped"; status: string }
-    | { kind: "proceed"; providerPaymentIntentId: string; idempotencyKey: string };
+    | {
+        kind: "proceed";
+        providerPaymentIntentId: string;
+        idempotencyKey: string;
+        storedEnvironment: StripeEnvironment | null;
+      };
 
   const prep: PrepOutcome = await db.runTransaction(async (tx): Promise<PrepOutcome> => {
     const paySnap = await tx.get(payRef);
@@ -585,6 +678,7 @@ export async function cancelMissionPaymentAuthorization(
       kind: "proceed",
       providerPaymentIntentId: payment.provider_payment_intent_id!,
       idempotencyKey,
+      storedEnvironment: payment.stripe_environment ?? null,
     };
   });
 
@@ -597,6 +691,37 @@ export async function cancelMissionPaymentAuthorization(
 
   // ---- Étape 2 : appel PaymentProvider RÉEL, HORS transaction ----
   const provider = getPaymentProvider();
+
+  // 🔒 Phase 8B (item f) — GARDE-FOU D'ISOLATION D'ENVIRONNEMENT. Cette
+  // autorisation stockée doit appartenir au MÊME environnement Stripe que
+  // le provider ACTUELLEMENT actif, AVANT tout appel
+  // `provider.cancelAuthorization()` réel. FAIL CLOSED : en cas
+  // d'incohérence, AUCUN appel Stripe n'est jamais effectué. Contrairement à
+  // `captureMissionPayment` (où FAILED est un état terminal légitime), une
+  // AUTORISATION n'est PAS nécessairement une impasse ici : on réutilise
+  // donc le MÊME chemin d'échec que celui déjà utilisé pour toute erreur
+  // provider dans cette fonction (log + retour d'un échec, SANS forcer de
+  // transition d'état Firestore) plutôt que d'inventer un état dédié.
+  try {
+    assertStripeReferenceEnvironmentConsistencyOrLog({
+      activeEnvironment: provider.environment,
+      storedEnvironment: prep.storedEnvironment,
+      operation: "cancel_authorization",
+      operationStartedAt,
+      correlationId,
+      identifiers: { missionId, paymentId },
+      refType: `payments/${paymentId}`,
+    });
+  } catch {
+    return {
+      success: false,
+      alreadyCancelled: false,
+      skipped: false,
+      status: "error",
+      failureMessage: ENVIRONMENT_MISMATCH_GENERIC_MESSAGE,
+    };
+  }
+
   let cancelResult: { success: boolean; status: string };
   try {
     cancelResult = await provider.cancelAuthorization({
@@ -747,12 +872,20 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     };
   }
 
+  // 🔒 Phase 8B (item f) — `provider` obtenu AVANT l'étape 1 : ce payout est
+  // une référence STOCKÉE (créée par calculateDriverPayout.ts, potentiellement
+  // dans un environnement Stripe DIFFÉRENT de celui actuellement actif) —
+  // voir garde-fou ci-dessous, appliqué juste après la préparation, AVANT
+  // tout appel Stripe réel de versement.
+  const provider = getPaymentProvider();
+
   // ---- Étape 1 : transaction — ELIGIBLE -> SCHEDULED -> PROCESSING ----
   type PreparedPayout = {
     amountMinor: number;
     currency: string;
     connectedAccountId: string;
     idempotencyKey: string;
+    storedEnvironment: StripeEnvironment | null;
   };
   let prepared: PreparedPayout | null = null;
   try {
@@ -790,6 +923,7 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
         currency: payout.currency,
         connectedAccountId: payout.connected_account_id,
         idempotencyKey: payout.idempotency_key,
+        storedEnvironment: payout.stripe_environment ?? null,
       };
     });
   } catch (err) {
@@ -827,7 +961,7 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     throw err;
   }
 
-  const { amountMinor, currency, connectedAccountId, idempotencyKey } = prepared;
+  const { amountMinor, currency, connectedAccountId, idempotencyKey, storedEnvironment } = prepared;
 
   // 🔒 BLOC H — journalise la soumission RÉELLE au fournisseur (distinct de
   // `payout_created`, journalisé par calculateDriverPayout.ts au moment de
@@ -847,8 +981,46 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
     { correlationId, metadata: { amountMinor, connectedAccountId } }
   );
 
+  // 🔒 Phase 8B (item f) — GARDE-FOU D'ISOLATION D'ENVIRONNEMENT. Valide que
+  // ce payout stocké appartient au MÊME environnement Stripe que le
+  // provider ACTUELLEMENT actif, AVANT tout appel `provider.createDriverPayout()`
+  // réel. FAIL CLOSED : en cas d'incohérence, AUCUN appel Stripe n'est jamais
+  // effectué — le payout est basculé en FAILED via le MÊME chemin qu'une
+  // erreur provider (transaction dédiée, `failure_reason` renseigné),
+  // jamais un chemin d'erreur distinct.
+  try {
+    assertStripeReferenceEnvironmentConsistencyOrLog({
+      activeEnvironment: provider.environment,
+      storedEnvironment,
+      operation: "submit_driver_payout",
+      operationStartedAt,
+      correlationId,
+      identifiers: { payoutId },
+      refType: `driver_payouts/${payoutId}`,
+    });
+  } catch {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(payoutRef);
+      if (!snap.exists) return;
+      const payout = snap.data() as DriverPayoutDoc;
+      if (isTerminalPayout(payout.status)) return;
+      assertValidPayoutTransition(payout.status, PayoutStatuses.FAILED);
+      tx.update(payoutRef, {
+        status: PayoutStatuses.FAILED,
+        failed_at: admin.firestore.Timestamp.now(),
+        failure_reason: STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
+      });
+    });
+    return {
+      success: false,
+      status: PayoutStatuses.FAILED,
+      failureMessage: ENVIRONMENT_MISMATCH_GENERIC_MESSAGE,
+    };
+  }
+
   // ---- Étape 2 : appel Stripe réel, hors transaction ----
-  const provider = getPaymentProvider();
+  // (provider déjà obtenu ci-dessus, avant l'étape 1, pour le garde-fou —
+  // pas de second appel getPaymentProvider() ici.)
   let result;
   try {
     result = await provider.createDriverPayout({
@@ -1163,6 +1335,15 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
   // résultat (ou attend/échoue proprement s'il est encore en cours).
   const refundRef = db.collection("refunds").doc(requestKey);
 
+  // 🔒 Phase 8B (item f) — `provider` obtenu AVANT la transaction de
+  // préparation : ce NOUVEAU RefundDoc doit être tagué avec l'environnement
+  // Stripe réellement actif à sa création (même raison que
+  // createAndAuthorizeMissionPayment), ET ce même provider sert ensuite à
+  // valider la cohérence d'environnement du PAIEMENT PARENT remboursé
+  // (voir garde-fou ci-dessous). Un SEUL appel à `getPaymentProvider()`
+  // pour toute la fonction.
+  const provider = getPaymentProvider();
+
   type PreparedRefund = {
     refundId: string;
     providerPaymentIntentId: string;
@@ -1173,6 +1354,7 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
     missionId: string;
     isPostPayout: boolean;
     relatedPayoutId: string | null;
+    storedEnvironment: StripeEnvironment | null;
   };
 
   // 🔒 La transaction RETOURNE son résultat (union discriminée) au lieu de
@@ -1299,6 +1481,9 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
       reverse_transfer: !!payment.connected_account_id,
       refund_application_fee: !!payment.connected_account_id,
       idempotency_key: idempotencyKey,
+      // 🔒 Phase 8B (item f) — tague ce NOUVEAU refund avec l'environnement
+      // Stripe réellement actif à sa création (voir `provider` ci-dessus).
+      stripe_environment: provider.environment,
       created_at: now,
       processing_at: now,
       completed_at: null,
@@ -1322,6 +1507,11 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
           missionId: payment.mission_id,
           isPostPayout,
           relatedPayoutId,
+          // 🔒 Phase 8B (item f) — environnement du PAIEMENT PARENT (celui
+          // réellement remboursé), PAS celui du nouveau RefundDoc — c'est
+          // la référence Stripe (`provider_payment_intent_id`) du paiement
+          // qui est réutilisée par `provider.refundPayment()` ci-dessous.
+          storedEnvironment: payment.stripe_environment ?? null,
         },
       };
     });
@@ -1337,8 +1527,51 @@ export async function refundPayment(input: RefundPaymentInput): Promise<RefundPa
   if (txResult.kind === "already_terminal") return txResult.outcome;
   const p = txResult.data;
 
+  // 🔒 Phase 8B (item f) — GARDE-FOU D'ISOLATION D'ENVIRONNEMENT. Valide que
+  // le PAIEMENT PARENT (dont le `provider_payment_intent_id` est réutilisé
+  // ci-dessous) appartient au MÊME environnement Stripe que le provider
+  // ACTUELLEMENT actif, AVANT tout appel `provider.refundPayment()` réel.
+  // FAIL CLOSED : en cas d'incohérence, AUCUN appel Stripe n'est jamais
+  // effectué — le RefundDoc déjà créé (PROCESSING, voir étape 1 ci-dessus)
+  // est basculé en FAILED via le MÊME chemin que tout autre échec de
+  // remboursement provider (transaction dédiée, `failed_reason` renseigné),
+  // jamais un chemin d'erreur distinct. Le PaymentDoc parent n'est PAS
+  // modifié (son statut CAPTURED/PARTIALLY_REFUNDED reste inchangé — seul
+  // le remboursement lui-même a échoué).
+  try {
+    assertStripeReferenceEnvironmentConsistencyOrLog({
+      activeEnvironment: provider.environment,
+      storedEnvironment: p.storedEnvironment,
+      operation: "refund_payment",
+      operationStartedAt,
+      correlationId,
+      identifiers: { missionId: p.missionId, paymentId, refundId: p.refundId },
+      refType: `payments/${paymentId}`,
+    });
+  } catch {
+    await db.runTransaction(async (tx) => {
+      const refundSnap = await tx.get(refundRef);
+      if (!refundSnap.exists) return;
+      const refundData = refundSnap.data() as RefundDoc;
+      if (refundData.status === RefundStatuses.FAILED) return; // déjà appliqué (concurrence/retry)
+      assertValidRefundTransition(refundData.status, RefundStatuses.FAILED);
+      tx.update(refundRef, {
+        status: RefundStatuses.FAILED,
+        failed_reason: STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
+        completed_at: admin.firestore.Timestamp.now(),
+      });
+    });
+    return {
+      success: false,
+      refundId: p.refundId,
+      status: RefundStatuses.FAILED,
+      failureMessage: ENVIRONMENT_MISMATCH_GENERIC_MESSAGE,
+    };
+  }
+
   // ---- Étape 2 : appel Stripe réel, hors transaction ----
-  const provider = getPaymentProvider();
+  // (provider déjà obtenu ci-dessus, avant l'étape 1, pour le tagging du
+  // RefundDoc et le garde-fou — pas de second appel getPaymentProvider().)
   const result = await provider.refundPayment({
     providerPaymentIntentId: p.providerPaymentIntentId,
     amountMinor: p.amountToRefundMinor,
