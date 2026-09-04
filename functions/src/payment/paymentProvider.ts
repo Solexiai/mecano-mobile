@@ -29,6 +29,7 @@
 // -----------------------------------------------------------------------------
 
 import { Currency } from "../lib/money";
+import { StripeEnvironment } from "../lib/stripeEnvironment";
 
 export interface CreateCustomerParams {
   userId: string;
@@ -231,6 +232,25 @@ export interface ListProviderRefundsResult {
 }
 
 export abstract class PaymentProvider {
+  // ---------------------------------------------------------------------
+  // 🔒 Phase 8B (item f, isolation d'environnement) — CHAQUE implémentation
+  // concrète DOIT exposer l'environnement Stripe (test|live) qu'elle
+  // représente RÉELLEMENT, dérivé UNE SEULE FOIS à la construction (jamais
+  // recalculé à la volée depuis une source qui pourrait diverger). C'est
+  // LA source de vérité unique pour "quel est l'environnement actif en ce
+  // moment" — voir lib/stripeEnvironment.ts,
+  // `assertStripeReferenceEnvironmentConsistency()`, qui compare TOUJOURS
+  // contre `getPaymentProvider().environment`, jamais contre une lecture
+  // séparée de STRIPE_SECRET_KEY.
+  //
+  // `NotConfiguredPaymentProvider` (ci-dessous) et `FakePaymentProvider`
+  // (test uniquement, voir test/testUtils/fakePaymentProvider.ts) exposent
+  // tous deux "test" — aucun des deux ne manipule jamais de fonds réels,
+  // et aucune donnée qu'ils produisent ne doit jamais être traitée comme
+  // "live" par le garde-fou d'isolation.
+  // ---------------------------------------------------------------------
+  abstract readonly environment: StripeEnvironment;
+
   abstract createCustomer(params: CreateCustomerParams): Promise<CreateCustomerResult>;
 
   abstract attachPaymentMethod(
@@ -298,6 +318,10 @@ export class PaymentProviderNotConfiguredError extends Error {
 }
 
 export class NotConfiguredPaymentProvider extends PaymentProvider {
+  // 🔒 Jamais utilisé pour une opération financière réelle (chaque méthode
+  // lève immédiatement) — "test" par convention documentée ci-dessus.
+  readonly environment: StripeEnvironment = "test";
+
   async createCustomer(): Promise<CreateCustomerResult> {
     throw new PaymentProviderNotConfiguredError();
   }

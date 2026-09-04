@@ -48,6 +48,7 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
 } from "../../src/payment/paymentProvider";
+import { StripeEnvironment } from "../../src/lib/stripeEnvironment";
 
 export interface FakePaymentProviderOptions {
   /** Si vrai, `authorizePayment()` renvoie un échec déterministe (carte refusée simulée). */
@@ -81,6 +82,15 @@ function nextId(prefix: string): string {
 }
 
 export class FakePaymentProvider extends PaymentProvider {
+  // 🔒 Phase 8B (item f, isolation d'environnement) — le FakePaymentProvider
+  // ne manipule JAMAIS de fonds réels : toujours "test" par convention (voir
+  // src/payment/paymentProvider.ts, doc du champ `environment`). Jamais
+  // reconfigurable — un test qui aurait besoin de simuler un mélange
+  // test/live doit construire deux FakePaymentProvider distincts et vérifier
+  // le rejet via assertStripeReferenceEnvironmentConsistency() directement,
+  // jamais en modifiant cette valeur.
+  readonly environment: StripeEnvironment = "test";
+
   constructor(private readonly options: FakePaymentProviderOptions = {}) {
     super();
   }
@@ -248,6 +258,20 @@ export class FakePaymentProvider extends PaymentProvider {
   ): Promise<ListProviderRefundsResult> {
     return { refunds: this.options.providerRefunds ?? [], nextPageToken: null };
   }
+}
+
+/**
+ * 🔒 Phase 8B item 4 — variante de test EXPLICITEMENT dédiée à simuler un
+ * provider actif en environnement LIVE, pour les tests d'intégration du
+ * garde-fou d'isolation d'environnement (assertStripeReferenceEnvironmentConsistencyOrLog)
+ * sur les 4 opérations financières. `FakePaymentProvider` reste
+ * délibérément figé sur `"test"` (voir sa doc ci-dessus, jamais modifiée) —
+ * cette sous-classe SÉPARÉE, réservée aux tests de garde-fou, ne redéfinit
+ * QUE `environment`, en héritant de tout le reste (méthodes déterministes)
+ * de `FakePaymentProvider` sans aucune duplication.
+ */
+export class FakeLivePaymentProvider extends FakePaymentProvider {
+  readonly environment: StripeEnvironment = "live";
 }
 
 /**

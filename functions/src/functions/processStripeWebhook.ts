@@ -74,6 +74,10 @@ import {
   startFinancialOperationTimer,
 } from "../lib/observability";
 import {
+  isWebhookLivemodeConsistent,
+  STRIPE_WEBHOOK_LIVEMODE_MISMATCH_ERROR_CODE,
+} from "../lib/stripeEnvironment";
+import {
   STRIPE_CONNECT_WEBHOOK_SECRET,
   STRIPE_PLATFORM_WEBHOOK_SECRET,
   STRIPE_SECRET_KEY,
@@ -509,6 +513,102 @@ function buildStripeWebhookHandler(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       response.status(400).send(`Signature invalide: ${message}`);
+      return;
+    }
+
+    // ---- 1bis. Défense-en-profondeur : event.livemode ↔ environnement actif ----
+    // 🔒 Ne remplace JAMAIS la vérification de signature ci-dessus (déjà
+    // effectuée) — `event.livemode` est un champ natif Stripe authentifié
+    // PAR CETTE MÊME signature. Ce contrôle détecte une incohérence
+    // OPÉRATIONNELLE (endpoint webhook mal configuré côté Dashboard Stripe,
+    // replay manuel depuis le mauvais mode, transition de clé mal
+    // séquencée) : un évènement authentiquement signé mais appartenant au
+    // MAUVAIS mode (test reçu alors que Movi-K tourne en live, ou
+    // l'inverse) ne doit JAMAIS déclencher la moindre logique métier ni la
+    // moindre écriture financière — voir isWebhookLivemodeConsistent()
+    // dans lib/stripeEnvironment.ts pour le détail de la justification.
+    if (!isWebhookLivemodeConsistent({ activeEnvironment: provider.environment, eventLivemode: event.livemode })) {
+      const startedAtMismatch = Date.now();
+      const mismatchMessage =
+        `Évènement Stripe livemode=${event.livemode} reçu alors que l'environnement actif est ` +
+        `"${provider.environment}" — évènement IGNORÉ, aucune logique métier exécutée.`;
+
+      // Enregistré (registre PARTAGÉ, verrou naturel sur event.id) avec un
+      // statut IGNORED — ni PROCESSED (aucun effet métier n'a eu lieu, ne
+      // doit jamais être confondu avec un traitement réussi), ni FAILED
+      // (qui inviterait Stripe à RETENTER indéfiniment un évènement dont le
+      // mismatch structurel ne sera JAMAIS résolu par un nouvel essai —
+      // voir doc processStripeWebhook.ts §HTTP retry semantics). Écriture
+      // idempotente : un retry Stripe sur le même event.id retombe ici et
+      // ré-accuse simplement réception sans dupliquer l'audit ci-dessous.
+      const mismatchEventRef = db.collection("provider_webhook_events").doc(event.id);
+      const mismatchSnap = await mismatchEventRef.get();
+      if (!mismatchSnap.exists) {
+        await mismatchEventRef.set({
+          provider: "stripe",
+          provider_event_id: event.id,
+          event_type: event.type,
+          received_at: admin.firestore.Timestamp.now(),
+          processed_at: null,
+          processing_status: WebhookProcessingStatuses.IGNORED,
+          attempt_count: 1,
+          processing_attempts: 1,
+          last_error: mismatchMessage,
+          error_code: STRIPE_WEBHOOK_LIVEMODE_MISMATCH_ERROR_CODE,
+          related_payment_id: null,
+          related_payout_id: null,
+          related_refund_id: null,
+          related_dispute_id: null,
+          related_mission_id: null,
+          related_driver_id: null,
+        });
+
+        await writeAuditLog({
+          actorUserId: "system",
+          actorRole: "system",
+          action: "webhook_livemode_mismatch",
+          sourceFunction: sourceFunctionName,
+          targetId: event.id,
+          metadata: {
+            eventType: event.type,
+            correlationId: event.id,
+            operation: sourceFunctionName,
+            result: "ignored",
+            errorCode: STRIPE_WEBHOOK_LIVEMODE_MISMATCH_ERROR_CODE,
+            eventLivemode: event.livemode,
+            activeEnvironment: provider.environment,
+          },
+        });
+
+        // 🔒 BLOC I (observabilité) — sévérité ERROR : une incohérence
+        // livemode est une anomalie CRITIQUE de configuration, jamais un
+        // évènement métier ordinaire à ignorer silencieusement.
+        logFinancialFailure(
+          "stripe_webhook_livemode_check",
+          startedAtMismatch,
+          STRIPE_WEBHOOK_LIVEMODE_MISMATCH_ERROR_CODE,
+          { providerEventId: event.id },
+          {
+            correlationId: event.id,
+            message: mismatchMessage,
+            metadata: {
+              eventType: event.type,
+              sourceFunction: sourceFunctionName,
+              eventLivemode: event.livemode,
+              activeEnvironment: provider.environment,
+            },
+          }
+        );
+      }
+
+      // 🔒 200 explicite (jamais 500) : Stripe considère 2xx comme un
+      // accusé de réception définitif et n'effectue AUCUN retry. Un
+      // mismatch structurel event.livemode ↔ environnement actif ne sera
+      // JAMAIS résolu par un nouvel essai — répondre 500 ici créerait une
+      // boucle de retries infinie et inutile (violerait explicitement
+      // l'exigence "comportement HTTP évitant une boucle infinie de
+      // retries").
+      response.status(200).send({ received: true, ignored: true, reason: "livemode_mismatch" });
       return;
     }
 

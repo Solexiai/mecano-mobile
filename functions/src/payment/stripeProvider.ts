@@ -47,10 +47,19 @@ import {
   RefundPaymentParams,
   RefundPaymentResult,
 } from "./paymentProvider";
+import { resolveStripeEnvironmentFromSecretKey, StripeEnvironment } from "../lib/stripeEnvironment";
 
 export class StripeProvider extends PaymentProvider {
   private readonly stripe: Stripe;
   private readonly webhookSecret: string;
+  // 🔒 Phase 8B (item f, isolation d'environnement) — dérivé UNE SEULE FOIS
+  // ici, depuis le PRÉFIXE de la clé secrète réellement utilisée pour
+  // construire ce provider (voir lib/stripeEnvironment.ts). C'est cette
+  // valeur, et UNIQUEMENT elle, que le garde-fou d'isolation consulte comme
+  // "environnement actif" — jamais une relecture séparée de
+  // STRIPE_SECRET_KEY.value() qui pourrait diverger de l'instance provider
+  // réellement en train d'exécuter l'opération.
+  readonly environment: StripeEnvironment;
 
   constructor(secretKey: string, webhookSecret: string) {
     super();
@@ -59,6 +68,7 @@ export class StripeProvider extends PaymentProvider {
     }
     this.stripe = new Stripe(secretKey, { apiVersion: "2026-07-29.dahlia" });
     this.webhookSecret = webhookSecret;
+    this.environment = resolveStripeEnvironmentFromSecretKey(secretKey);
   }
 
   // ---- 1. createCustomer ----

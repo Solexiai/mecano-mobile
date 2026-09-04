@@ -54,12 +54,30 @@ import {
 } from "../lib/types";
 import { readPayoutPolicyConfig, resolveHoldPeriodHours } from "./updatePayoutPolicyConfiguration";
 import { submitDriverPayout } from "../payment/paymentOrchestration";
+import { getPaymentProvider } from "../payment/paymentProviderFactory";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 export interface CalculateDriverPayoutRequest {
   driverId: string;
 }
 
-export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async (request) => {
+// 🔒 Phase 8B (item 6, audit "PHASE 8B — ARCHITECTURE STRIPE DÉFINITIVE
+// LIVE-READY") — GAP CONFIRMÉ, même bug racine que BUG LIVE-02
+// (processScheduledDriverPayouts.ts) : cette fonction callable appelle
+// `submitDriverPayout()` ci-dessous (ligne ~230) quand le versement est
+// immédiatement ELIGIBLE (rétention nulle + compte connecté déjà présent)
+// — et `submitDriverPayout()` déclenche un appel RÉEL
+// `provider.createDriverPayout()` (paymentOrchestration.ts). Sans
+// déclarer `secrets` dans les options `onCall`, Cloud Functions v2
+// n'injecte PAS `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` dans le
+// runtime de CETTE fonction : l'appel provider aurait échoué
+// SILENCIEUSEMENT (503 "fournisseur non configuré") dès qu'un admin
+// déclenche un versement pour un chauffeur déjà onboardé avec une
+// rétention de 0h. Corrigé ICI, avant toute demande de secrets LIVE à
+// Daniel — voir RAPPORT final pour la preuve complète.
+export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (request) => {
   const ctx = requireSignedIn(request);
   requireAdminOrAbove(ctx);
   const { driverId } = request.data;
@@ -93,6 +111,15 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
   const driver = driverSnap.data() as DriverProfileDoc | undefined;
   const connectedAccountId = driver?.stripe_connected_account_id ?? null;
 
+  // 🔒 Phase 8B (item f) — `provider` obtenu ICI, AVANT la transaction de
+  // création : ce NOUVEAU DriverPayoutDoc doit être tagué avec
+  // l'environnement Stripe réellement actif au moment de sa création
+  // (voir `stripe_environment` ci-dessous). Consommé par
+  // `assertStripeReferenceEnvironmentConsistencyOrLog()` dans
+  // `submitDriverPayout()` (paymentOrchestration.ts) à chaque soumission
+  // réelle de ce payout.
+  const provider = getPaymentProvider();
+
   const policy = await readPayoutPolicyConfig();
   const holdPeriodHours = resolveHoldPeriodHours(policy, driver);
 
@@ -124,6 +151,9 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
       payout_eligible_at: payoutEligibleAt,
       provider_payout_id: null,
       connected_account_id: connectedAccountId,
+      // 🔒 Phase 8B (item f) — tague ce NOUVEAU payout avec l'environnement
+      // Stripe réellement actif à sa création (voir `provider` ci-dessus).
+      stripe_environment: provider.environment,
       created_at: now,
       scheduled_at: null,
       processing_at: null,
@@ -229,4 +259,5 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(async 
     status: initialStatus,
     message: `Versement créé, en attente de rétention (${holdPeriodHours}h).`,
   };
-});
+  }
+);
