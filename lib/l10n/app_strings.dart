@@ -706,46 +706,32 @@ class AppStrings {
       'en': 'Quote',
       'es': 'Cotización',
     },
-    'delivery_pickup_line1': {
-      'fr': 'Adresse d\'enlèvement (rue, numéro)',
-      'en': 'Pickup address (street, number)',
-      'es': 'Dirección de recogida (calle, número)',
+    // ---------- Adresse réelle + autocomplete + géocodage ----------
+    // (MOVI-K — CORRECTION UX LIVRAISON) : remplace les anciens champs
+    // séparés adresse/ville/code postal/latitude/longitude par un unique
+    // champ d'adresse avec suggestions. `delivery_lat`/`delivery_lng`/
+    // `delivery_coordinates_note` (SUPPRIMÉS) exposaient des données
+    // techniques que le client ne doit jamais voir ni saisir.
+    'delivery_address_guidance': {
+      'fr': 'Commencez à saisir une adresse et sélectionnez-la dans les suggestions.',
+      'en': 'Start typing an address and select it from the suggestions.',
+      'es': 'Comience a escribir una dirección y selecciónela de las sugerencias.',
     },
-    'delivery_pickup_city': {
-      'fr': 'Ville d\'enlèvement',
-      'en': 'Pickup city',
-      'es': 'Ciudad de recogida',
+    'delivery_address_no_suggestions': {
+      'fr': 'Aucune suggestion trouvée pour cette adresse.',
+      'en': 'No suggestions found for this address.',
+      'es': 'No se encontraron sugerencias para esta dirección.',
     },
-    'delivery_pickup_postal': {
-      'fr': 'Code postal d\'enlèvement',
-      'en': 'Pickup postal code',
-      'es': 'Código postal de recogida',
+    'delivery_address_provider_unavailable': {
+      'fr': 'Service de recherche d\'adresse temporairement indisponible. Réessayez.',
+      'en': 'Address search service temporarily unavailable. Please try again.',
+      'es': 'Servicio de búsqueda de direcciones temporalmente no disponible. Inténtalo de nuevo.',
     },
-    'delivery_dropoff_line1': {
-      'fr': 'Adresse de livraison (rue, numéro)',
-      'en': 'Delivery address (street, number)',
-      'es': 'Dirección de entrega (calle, número)',
+    'delivery_address_invalid_selection': {
+      'fr': 'Veuillez sélectionner une adresse valide dans les suggestions.',
+      'en': 'Please select a valid address from the suggestions.',
+      'es': 'Por favor seleccione una dirección válida de las sugerencias.',
     },
-    'delivery_dropoff_city': {
-      'fr': 'Ville de livraison',
-      'en': 'Delivery city',
-      'es': 'Ciudad de entrega',
-    },
-    'delivery_dropoff_postal': {
-      'fr': 'Code postal de livraison',
-      'en': 'Delivery postal code',
-      'es': 'Código postal de entrega',
-    },
-    'delivery_coordinates_note': {
-      'fr':
-          'Coordonnées GPS approximatives requises (latitude/longitude) — utilisées uniquement pour estimer la distance.',
-      'en':
-          'Approximate GPS coordinates required (latitude/longitude) — used only to estimate distance.',
-      'es':
-          'Se requieren coordenadas GPS aproximadas (latitud/longitud) — usadas solo para estimar la distancia.',
-    },
-    'delivery_lat': {'fr': 'Latitude', 'en': 'Latitude', 'es': 'Latitud'},
-    'delivery_lng': {'fr': 'Longitude', 'en': 'Longitude', 'es': 'Longitud'},
     'delivery_required_vehicle': {
       'fr': 'Type de véhicule requis',
       'en': 'Required vehicle type',

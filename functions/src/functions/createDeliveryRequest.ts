@@ -15,6 +15,7 @@ import { failedPrecondition, invalidArgument, notFound, permissionDenied } from 
 import { encodeGeohash } from "../lib/geohash";
 import { MissionStatuses } from "../lib/types";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
+import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -24,6 +25,15 @@ export interface StopInput {
     postal_code: string;
     lat: number;
     lng: number;
+    // MOVI-K — CORRECTION UX LIVRAISON (adresses réelles + autocomplete +
+    // géocodage) : miroir exact des champs optionnels ajoutés côté client
+    // sur `MissionAddress` (lib/backend/models/mission_address.dart).
+    // Optionnels pour rester rétrocompatibles avec les clients/anciennes
+    // versions qui ne les envoient pas encore. Toujours générés
+    // automatiquement côté client par `AddressAutocompleteProvider`,
+    // jamais saisis manuellement.
+    formatted_address?: string;
+    place_id?: string;
   };
   contactInstructions?: string;
   accessDetails?: string;
@@ -81,6 +91,48 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     input.estimatedDurationMinutes < 0
   ) {
     throw invalidArgument("estimatedDurationMinutes doit être un nombre positif.");
+  }
+
+  // 🔒 MOVI-K — CORRECTION UX LIVRAISON (adresses réelles + autocomplete +
+  // géocodage), défense en profondeur SERVEUR : le client (Flutter) est
+  // désormais fail-closed (refuse d'appeler cette fonction si une adresse
+  // n'a pas été résolue via un fournisseur cartographique), mais cette
+  // Cloud Function reste le SEUL point d'écriture réel de
+  // `delivery_requests` — elle ne doit jamais faire confiance uniquement au
+  // client. Rejette toute adresse dont lat/lng est absente, hors plage
+  // géographique valide, ou correspond au placeholder factice historique
+  // "1,2" (visible sur le screenshot ayant motivé ce correctif) : un client
+  // modifié/bogué ne doit jamais pouvoir persister une mission avec des
+  // coordonnées non résolues.
+  for (const stop of input.stops) {
+    const { lat, lng } = stop.address ?? {};
+    if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw invalidArgument("Adresse invalide : coordonnées manquantes ou non numériques.");
+    }
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      throw invalidArgument("Adresse invalide : coordonnées hors plage géographique valide.");
+    }
+    if (lat === 1 && lng === 2) {
+      throw invalidArgument(
+        "Adresse invalide : coordonnées placeholder détectées (1,2). Une adresse réelle résolue est requise."
+      );
+    }
+  }
+
+  // Zone de service (configurable, désactivée par défaut — voir
+  // lib/serviceZones.ts). Vérifie pickup ET dropoff (dernier stop).
+  const serviceZonesConfig = await getServiceZonesConfig();
+  if (serviceZonesConfig.enabled) {
+    const pickupStop = input.stops[0];
+    const finalStop = input.stops[input.stops.length - 1];
+    const outOfZone = [pickupStop, finalStop].find(
+      (s) => !isWithinServiceZones(s.address.lat, s.address.lng, serviceZonesConfig)
+    );
+    if (outOfZone) {
+      throw failedPrecondition(
+        "Cette adresse se trouve hors de la zone de service Movi-K actuellement disponible."
+      );
+    }
   }
 
   // PHASE 6, point 1/4 — « le moyen de paiement doit être sécurisé AVANT ou

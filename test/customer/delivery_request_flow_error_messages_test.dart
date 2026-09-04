@@ -51,6 +51,9 @@ import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
+import 'package:movik_connect/services/address/address_backend_locator.dart';
+
+import '../helpers/fake_address_autocomplete_provider.dart';
 
 /// Fake `MissionRepository` entièrement paramétrable : permet de simuler
 /// n'importe quel échec de `requestQuote`/`createMissionFromQuote` (kill
@@ -156,15 +159,12 @@ Future<void> fillFormUpToVehicleStep(WidgetTester tester) async {
   await tapEnsuringVisible(tester, find.text(AppStrings.t('common_next', 'fr')));
   await tester.pumpAndSettle();
 
-  final textFields = find.byType(TextField);
-  const values = [
-    '123 rue Test', 'Montréal', 'H2X1Y1', '45.5', '-73.6',
-    '456 rue Cible', 'Laval', 'H7X1Y1', '45.6', '-73.7',
-  ];
-  for (var i = 0; i < values.length; i++) {
-    await tester.ensureVisible(textFields.at(i));
-    await tester.enterText(textFields.at(i), values[i]);
-  }
+  // MOVI-K adresses réelles + autocomplete + géocodage : un seul champ texte
+  // par adresse, sélection RÉELLE d'une suggestion via le fake provider
+  // injecté dans `setUp` (plus de champs lat/lng ni ville/code postal
+  // séparés à remplir par index positionnel).
+  await typeAndSelectAddress(tester, 0, '123 rue Test, Montréal');
+  await typeAndSelectAddress(tester, 1, '456 rue Cible, Laval');
   await tester.pump();
   await tapEnsuringVisible(tester, find.text(AppStrings.t('common_next', 'fr')));
   await tester.pumpAndSettle();
@@ -176,10 +176,13 @@ Future<void> fillFormUpToVehicleStep(WidgetTester tester) async {
 void main() {
   late _ScriptedMissionRepository fakeRepo;
   late FirebaseAuthProvider auth;
+  late FakeAddressAutocompleteProvider fakeAddressProvider;
 
   setUp(() {
     fakeRepo = _ScriptedMissionRepository();
     BackendLocator.missionRepositoryOverride = fakeRepo;
+    fakeAddressProvider = FakeAddressAutocompleteProvider();
+    AddressBackendLocator.autocompleteProviderOverride = fakeAddressProvider;
     auth = FirebaseAuthProvider(backendConfigured: false)
       ..debugForceSignedIn = true
       ..debugForceUid = 'customer_test_001'
@@ -188,6 +191,7 @@ void main() {
 
   tearDown(() {
     BackendLocator.missionRepositoryOverride = null;
+    AddressBackendLocator.autocompleteProviderOverride = null;
   });
 
   testWidgets(
