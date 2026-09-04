@@ -49,6 +49,7 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
 import { cancelMissionPaymentAuthorization } from "../payment/paymentOrchestration";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
   MissionStatuses.CANCELLED,
@@ -56,8 +57,22 @@ const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
   MissionStatuses.REFUNDED,
 ];
 
+// 🔒 Phase 8B (item 6, audit "PHASE 8B — ARCHITECTURE STRIPE DÉFINITIVE
+// LIVE-READY") — 3e occurrence CONFIRMÉE du même bug racine que BUG LIVE-02
+// (processScheduledDriverPayouts.ts) / item 6 (calculateDriverPayout.ts) :
+// ce trigger appelle `cancelMissionPaymentAuthorization()` ci-dessous, qui
+// obtient un PaymentProvider via `getPaymentProvider()` et peut déclencher
+// un appel RÉEL `provider.cancelAuthorization()` (paymentOrchestration.ts)
+// dès qu'un client annule une mission dont le paiement est encore
+// AUTHORIZED. Sans déclarer `secrets` dans les options `onDocumentUpdated`,
+// Cloud Functions v2 n'injecte PAS `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET`
+// dans le runtime de CE trigger : l'appel provider échouerait
+// SILENCIEUSEMENT (503 "fournisseur non configuré", capté par le chemin
+// d'échec générique de cancelMissionPaymentAuthorization) à chaque
+// annulation client réelle — laissant l'autorisation du client bloquée
+// jusqu'à son expiration naturelle chez Stripe. Corrigé ICI.
 export const onMissionEndedClearTracking = onDocumentUpdated(
-  "delivery_requests/{missionId}",
+  { document: "delivery_requests/{missionId}", secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async (event) => {
     const before = event.data?.before.data() as DeliveryMissionDoc | undefined;
     const after = event.data?.after.data() as DeliveryMissionDoc | undefined;
