@@ -123,11 +123,20 @@ async function invokeWebhook(rawBody: string, signature: string | undefined): Pr
   return { status: statusCode(), body: body() };
 }
 
+// `livemode: false` explicite — cohérent avec `TEST_SECRET_KEY = "sk_test_..."`
+// utilisé par ce fichier (provider.environment === "test") : voir
+// isWebhookLivemodeConsistent() dans lib/stripeEnvironment.ts, câblé dans
+// processStripeWebhook.ts (Phase 8B item 2) — un évènement sans champ
+// `livemode` explicite serait `undefined !== false`, ce qui déclencherait
+// à tort le rejet défense-en-profondeur pour CE fichier de test (dont le
+// but est de tester le cycle de vie dispute/chargeback, pas l'isolation
+// d'environnement — voir processStripeWebhook.test.ts pour ces tests dédiés).
 function buildStripeEventPayload(id: string, type: string, dataObject: Record<string, unknown>): string {
   return JSON.stringify({
     id,
     object: "event",
     type,
+    livemode: false,
     data: { object: dataObject },
     created: Math.floor(Date.now() / 1000),
   });

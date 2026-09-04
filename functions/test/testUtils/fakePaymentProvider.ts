@@ -261,6 +261,20 @@ export class FakePaymentProvider extends PaymentProvider {
 }
 
 /**
+ * 🔒 Phase 8B item 4 — variante de test EXPLICITEMENT dédiée à simuler un
+ * provider actif en environnement LIVE, pour les tests d'intégration du
+ * garde-fou d'isolation d'environnement (assertStripeReferenceEnvironmentConsistencyOrLog)
+ * sur les 4 opérations financières. `FakePaymentProvider` reste
+ * délibérément figé sur `"test"` (voir sa doc ci-dessus, jamais modifiée) —
+ * cette sous-classe SÉPARÉE, réservée aux tests de garde-fou, ne redéfinit
+ * QUE `environment`, en héritant de tout le reste (méthodes déterministes)
+ * de `FakePaymentProvider` sans aucune duplication.
+ */
+export class FakeLivePaymentProvider extends FakePaymentProvider {
+  readonly environment: StripeEnvironment = "live";
+}
+
+/**
  * Seed d'un `payment_profiles/{customerId}` minimal et cohérent, prêt à
  * satisfaire la précondition de `createDeliveryRequest.ts` (point 1/4) ET à
  * être consommé par `createAndAuthorizeMissionPayment()`

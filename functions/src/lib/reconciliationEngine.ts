@@ -21,7 +21,7 @@
 //       seule, toujours recalculé à la volée pour la comparaison)
 //     ↕ provider_webhook_events (Firestore)
 //
-// 11 TYPES D'ANOMALIES DÉTECTÉS (énumération stable, voir
+// 12 TYPES D'ANOMALIES DÉTECTÉS (énumération stable, voir
 // ReconciliationAnomalyTypes ci-dessous) :
 //   1. payment_missing_in_movik       — paiement provider absent de Movi-K
 //   2. payment_missing_in_provider    — paiement Movi-K absent du provider
@@ -34,6 +34,11 @@
 //   9. tip_mismatch                   — pourboire incohérent (ledger vs mission_financial_balance)
 //  10. commission_ledger_inconsistency — incohérence commission/ledger
 //  11. webhook_unprocessed            — webhook reçu mais jamais passé à `processed`
+//  12. environment_mismatch          — référence Movi-K (stripe_environment) incompatible avec
+//                                       l'environnement Stripe actif (Phase 8B item 3) : émise à la
+//                                       place d'un faux *_missing_in_provider/payout_missing quand une
+//                                       comparaison test/live serait dangereuse (voir
+//                                       isEnvironmentComparisonSafe() ci-dessous)
 //
 // SCOPE D'EXÉCUTION : `runReconciliation(periodStart, periodEnd)` opère sur
 // une fenêtre temporelle explicite (jamais "tout l'historique" par défaut,
@@ -51,6 +56,7 @@ import {
   resolveCorrelationId,
   startFinancialOperationTimer,
 } from "./observability";
+import { assertStripeReferenceEnvironmentConsistency, StripeEnvironment } from "./stripeEnvironment";
 import {
   DriverPayoutDoc,
   PaymentDoc,
@@ -75,9 +81,50 @@ export const ReconciliationAnomalyTypes = {
   TIP_MISMATCH: "tip_mismatch",
   COMMISSION_LEDGER_INCONSISTENCY: "commission_ledger_inconsistency",
   WEBHOOK_UNPROCESSED: "webhook_unprocessed",
+  /**
+   * 🔒 Phase 8B (item 3, réconciliation environment-aware). Émise à la
+   * place de PAYMENT_MISSING_IN_PROVIDER / REFUND_MISSING_IN_PROVIDER /
+   * PAYOUT_MISSING dès qu'une référence Movi-K (`stripe_environment` stocké
+   * sur le document) est incohérente avec l'environnement Stripe ACTUELLEMENT
+   * ACTIF (`PaymentProvider.environment`) — voir isEnvironmentComparisonSafe()
+   * ci-dessous. Une telle référence n'est JAMAIS comparée au provider actif
+   * (elle appartient structurellement à l'AUTRE mode Stripe) : un
+   * `reconcileTransaction()` dans ce cas produirait TOUJOURS `found: false`
+   * (Stripe rejette nativement l'accès cross-mode), ce qui serait
+   * FAUSSEMENT interprété comme une transaction manquante/perdue alors
+   * qu'il s'agit d'une anomalie de CONFIGURATION/ENVIRONNEMENT (clé active
+   * incohérente avec le moment de création de la référence) — jamais une
+   * vraie divergence financière.
+   */
+  ENVIRONMENT_MISMATCH: "environment_mismatch",
 } as const;
 export type ReconciliationAnomalyType =
   (typeof ReconciliationAnomalyTypes)[keyof typeof ReconciliationAnomalyTypes];
+
+/**
+ * Détermine si une référence Movi-K taguée `storedEnvironment` peut être
+ * comparée SANS DANGER à l'environnement Stripe actuellement actif — variante
+ * NON-LEVANTE (jamais d'exception) de `assertStripeReferenceEnvironmentConsistency()`
+ * (lib/stripeEnvironment.ts), réutilisant EXACTEMENT la même table de vérité
+ * fail-closed (single source of truth : absence de tag tolérée uniquement en
+ * environnement actif TEST, jamais en LIVE — voir la doc de la fonction
+ * source pour la justification complète). La réconciliation ne doit JAMAIS
+ * lever d'exception sur une donnée incohérente (principe non négociable
+ * "ne jamais corriger silencieusement, mais aussi ne jamais planter" — une
+ * anomalie de données doit produire une ANOMALIE RAPPORTÉE, jamais un crash
+ * du job de réconciliation entier).
+ */
+function isEnvironmentComparisonSafe(params: {
+  activeEnvironment: StripeEnvironment;
+  storedEnvironment: StripeEnvironment | null | undefined;
+}): boolean {
+  try {
+    assertStripeReferenceEnvironmentConsistency(params);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export interface RunReconciliationParams {
   periodStartMillis: number;
@@ -289,10 +336,40 @@ export async function runReconciliation(
   // ---- Vérification 5 : refund_missing_in_provider -----------------------
   // Un RefundDoc marqué SUCCEEDED côté Movi-K DOIT exister chez le provider.
   const provider = getPaymentProvider();
+  const activeEnvironment = provider.environment;
   let providerSupportsListing = true;
   try {
     for (const r of refunds) {
       if (r.data.status !== RefundStatuses.SUCCEEDED || !r.data.provider_refund_id) continue;
+      // 🔒 Phase 8B item 3 — jamais comparer une référence TEST à un
+      // provider LIVE (ou l'inverse) : produit une anomalie SPÉCIFIQUE
+      // d'environnement, jamais un faux refund_missing_in_provider.
+      if (
+        !isEnvironmentComparisonSafe({
+          activeEnvironment,
+          storedEnvironment: r.data.stripe_environment,
+        })
+      ) {
+        anomalies.push(
+          newAnomaly(now, {
+            severity: "critical",
+            type: ReconciliationAnomalyTypes.ENVIRONMENT_MISMATCH,
+            mission_id: r.data.mission_id,
+            payment_id: r.data.payment_id,
+            payout_id: null,
+            refund_id: r.id,
+            expected_amount_minor: null,
+            actual_amount_minor: null,
+            description:
+              `refunds/${r.id} : stripe_environment stocké ("${r.data.stripe_environment ?? "absent"}") ` +
+              `incompatible avec l'environnement Stripe actif ("${activeEnvironment}") — comparaison ` +
+              `avec le provider IGNORÉE (jamais de faux refund_missing_in_provider sur un mélange ` +
+              `test/live).`,
+            resolution_notes: null,
+          })
+        );
+        continue;
+      }
       const result = await provider.reconcileTransaction({
         providerRefundId: r.data.provider_refund_id,
       });
@@ -343,6 +420,35 @@ export async function runReconciliation(
       if (!payment.data.provider_payment_intent_id) continue;
       // Statuts jamais autorisés/capturés côté provider : rien à vérifier.
       if (payment.data.amount_captured_minor <= 0) continue;
+      // 🔒 Phase 8B item 3 — voir vérification 5 ci-dessus pour la
+      // justification complète : jamais de faux payment_missing_in_provider
+      // sur une référence appartenant structurellement à l'autre mode Stripe.
+      if (
+        !isEnvironmentComparisonSafe({
+          activeEnvironment,
+          storedEnvironment: payment.data.stripe_environment,
+        })
+      ) {
+        anomalies.push(
+          newAnomaly(now, {
+            severity: "critical",
+            type: ReconciliationAnomalyTypes.ENVIRONMENT_MISMATCH,
+            mission_id: payment.data.mission_id,
+            payment_id: payment.id,
+            payout_id: null,
+            refund_id: null,
+            expected_amount_minor: null,
+            actual_amount_minor: null,
+            description:
+              `payments/${payment.id} : stripe_environment stocké ` +
+              `("${payment.data.stripe_environment ?? "absent"}") incompatible avec l'environnement ` +
+              `Stripe actif ("${activeEnvironment}") — comparaison avec le provider IGNORÉE (jamais ` +
+              `de faux payment_missing_in_provider sur un mélange test/live).`,
+            resolution_notes: null,
+          })
+        );
+        continue;
+      }
       const result = await provider.reconcileTransaction({
         providerPaymentIntentId: payment.data.provider_payment_intent_id,
       });
@@ -394,6 +500,34 @@ export async function runReconciliation(
   try {
     for (const payout of payouts) {
       if (payout.data.status !== PayoutStatuses.PAID || !payout.data.provider_payout_id) continue;
+      // 🔒 Phase 8B item 3 — voir vérification 5 pour la justification
+      // complète : jamais de faux payout_missing sur un mélange test/live.
+      if (
+        !isEnvironmentComparisonSafe({
+          activeEnvironment,
+          storedEnvironment: payout.data.stripe_environment,
+        })
+      ) {
+        anomalies.push(
+          newAnomaly(now, {
+            severity: "critical",
+            type: ReconciliationAnomalyTypes.ENVIRONMENT_MISMATCH,
+            mission_id: null,
+            payment_id: null,
+            payout_id: payout.id,
+            refund_id: null,
+            expected_amount_minor: null,
+            actual_amount_minor: null,
+            description:
+              `driver_payouts/${payout.id} : stripe_environment stocké ` +
+              `("${payout.data.stripe_environment ?? "absent"}") incompatible avec l'environnement ` +
+              `Stripe actif ("${activeEnvironment}") — comparaison avec le provider IGNORÉE (jamais ` +
+              `de faux payout_missing sur un mélange test/live).`,
+            resolution_notes: null,
+          })
+        );
+        continue;
+      }
       const result = await provider.reconcileTransaction({
         providerPayoutId: payout.data.provider_payout_id,
       });

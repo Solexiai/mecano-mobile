@@ -137,11 +137,24 @@ async function invokeConnectWebhook(
   return { status: statusCode(), body: body() };
 }
 
-function buildStripeEventPayload(id: string, type: string, dataObject: Record<string, unknown>): string {
+// `livemode` par défaut à `false` (mode TEST) — cohérent avec
+// `TEST_SECRET_KEY = "sk_test_..."` utilisé par TOUTES les suites de tests
+// existantes de ce fichier (provider.environment === "test" =>
+// isWebhookLivemodeConsistent() attend event.livemode === false). Les
+// tests dédiés au mismatch livemode (voir describe "3. event.livemode ↔
+// environnement actif") passent explicitement `livemode: true` pour
+// simuler un évènement Stripe LIVE authentique reçu par erreur.
+function buildStripeEventPayload(
+  id: string,
+  type: string,
+  dataObject: Record<string, unknown>,
+  livemode = false
+): string {
   return JSON.stringify({
     id,
     object: "event",
     type,
+    livemode,
     data: { object: dataObject },
     created: Math.floor(Date.now() / 1000),
   });
@@ -1068,5 +1081,195 @@ describe("processStripeWebhook", () => {
 
     const doc = await getEventDoc(eventId);
     expect(doc).toBeNull();
+  });
+
+  // ---------------------------------------------------------------------
+  // 8. event.livemode ↔ environnement actif (défense-en-profondeur,
+  //    Phase 8B item 2) — voir isWebhookLivemodeConsistent() dans
+  //    lib/stripeEnvironment.ts. Le provider de test actif dans TOUTE
+  //    cette suite est construit avec `sk_test_...` (TEST_SECRET_KEY),
+  //    donc provider.environment === "test" pendant ces 4 tests.
+  // ---------------------------------------------------------------------
+  describe("8. event.livemode ↔ environnement actif (défense-en-profondeur)", () => {
+    test("évènement LIVE (event.livemode=true) reçu sur environnement TEST => IGNORÉ (200), aucune logique métier, aucun document financier modifié", async () => {
+      const eventId = "evt_livemode_live_on_test_001";
+      const missionId = "webhook_mission_livemode_001";
+      const paymentId = "webhook_payment_livemode_001";
+      const providerPaymentIntentId = "pi_livemode_mismatch_001";
+      await seedPayment(paymentId, missionId, {
+        status: PaymentStatuses.AUTHORIZED,
+        providerPaymentIntentId,
+      });
+
+      // event.livemode=true alors que le provider actif est TEST
+      // (sk_test_...) — signature valide (signée avec le MÊME secret de
+      // test), donc authentiquement "signée" mais appartenant au MAUVAIS
+      // mode Stripe.
+      const payload = buildStripeEventPayload(
+        eventId,
+        "payment_intent.succeeded",
+        { id: providerPaymentIntentId },
+        /* livemode */ true
+      );
+      const sig = signPayload(payload);
+
+      const { status, body } = await invokeWebhook(payload, sig);
+
+      expect(status).toBe(200);
+      expect(body).toEqual({ received: true, ignored: true, reason: "livemode_mismatch" });
+
+      // Enregistré comme IGNORED (jamais processed) — aucun effet métier.
+      const doc = await getEventDoc(eventId);
+      expect(doc).not.toBeNull();
+      expect(doc!.processing_status).toBe("ignored");
+      expect(doc!.error_code).toBe("stripe_webhook_livemode_mismatch");
+      expect(doc!.related_payment_id).toBeNull();
+
+      // Le paiement n'a SUBI AUCUNE modification (toujours AUTHORIZED,
+      // jamais CAPTURED) — preuve directe qu'aucune logique métier n'a
+      // été exécutée malgré une signature valide.
+      const paymentSnap = await db.collection("payments").doc(paymentId).get();
+      expect(paymentSnap.data()!.status).toBe(PaymentStatuses.AUTHORIZED);
+
+      await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId] });
+    });
+
+    test("évènement TEST (event.livemode=false) reçu sur environnement LIVE => IGNORÉ (200), aucune logique métier", async () => {
+      const eventId = "evt_livemode_test_on_live_001";
+      const missionId = "webhook_mission_livemode_002";
+      const paymentId = "webhook_payment_livemode_002";
+      const providerPaymentIntentId = "pi_livemode_mismatch_002";
+      await seedPayment(paymentId, missionId, {
+        status: PaymentStatuses.AUTHORIZED,
+        providerPaymentIntentId,
+      });
+
+      // Bascule temporaire du provider de test vers un environnement LIVE
+      // simulé (clé sk_live_ factice) — nécessaire pour que
+      // provider.environment === "live" pendant ce test précis. Le secret
+      // webhook reste le même (signature toujours vérifiable), seul le
+      // PRÉFIXE de la clé secrète change l'environnement dérivé (voir
+      // resolveStripeEnvironmentFromSecretKey()).
+      setPaymentProviderForTesting(
+        new StripeProvider("sk_live_fake_key_for_webhook_tests_only", TEST_WEBHOOK_SECRET)
+      );
+
+      try {
+        const payload = buildStripeEventPayload(
+          eventId,
+          "payment_intent.succeeded",
+          { id: providerPaymentIntentId },
+          /* livemode */ false
+        );
+        const sig = signPayload(payload);
+
+        const { status, body } = await invokeWebhook(payload, sig);
+
+        expect(status).toBe(200);
+        expect(body).toEqual({ received: true, ignored: true, reason: "livemode_mismatch" });
+
+        const doc = await getEventDoc(eventId);
+        expect(doc).not.toBeNull();
+        expect(doc!.processing_status).toBe("ignored");
+        expect(doc!.error_code).toBe("stripe_webhook_livemode_mismatch");
+
+        const paymentSnap = await db.collection("payments").doc(paymentId).get();
+        expect(paymentSnap.data()!.status).toBe(PaymentStatuses.AUTHORIZED);
+      } finally {
+        // Restaure le provider TEST pour tous les tests suivants.
+        setPaymentProviderForTesting(new StripeProvider(TEST_SECRET_KEY, TEST_WEBHOOK_SECRET));
+      }
+
+      await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId] });
+    });
+
+    test("LIVE/LIVE (event.livemode=true, environnement actif LIVE) => ACCEPTÉ, traitement normal", async () => {
+      const eventId = "evt_livemode_live_on_live_001";
+      const missionId = "webhook_mission_livemode_003";
+      const paymentId = "webhook_payment_livemode_003";
+      const providerPaymentIntentId = "pi_livemode_match_live_001";
+      await seedPayment(paymentId, missionId, {
+        status: PaymentStatuses.AUTHORIZED,
+        providerPaymentIntentId,
+      });
+
+      setPaymentProviderForTesting(
+        new StripeProvider("sk_live_fake_key_for_webhook_tests_only", TEST_WEBHOOK_SECRET)
+      );
+
+      try {
+        const payload = buildStripeEventPayload(
+          eventId,
+          "payment_intent.succeeded",
+          { id: providerPaymentIntentId },
+          /* livemode */ true
+        );
+        const sig = signPayload(payload);
+
+        const { status, body } = await invokeWebhook(payload, sig);
+
+        expect(status).toBe(200);
+        expect(body).toEqual({ received: true });
+
+        const doc = await getEventDoc(eventId);
+        expect(doc).not.toBeNull();
+        expect(doc!.processing_status).toBe("processed");
+        expect(doc!.related_payment_id).toBe(paymentId);
+
+        // Traitement métier RÉELLEMENT exécuté (cohérence livemode) :
+        // l'audit `payment_captured` est bien écrit (le webhook ne mute
+        // jamais lui-même le statut du paiement — voir dispatchStripeEvent,
+        // case payment_intent.succeeded — il ne fait que CONFIRMER/AUDITER
+        // l'état déjà obtenu par l'appel synchrone capturePayment).
+        const auditSnap = await db
+          .collection("audit_logs")
+          .where("target_id", "==", paymentId)
+          .where("action", "==", "payment_captured")
+          .get();
+        expect(auditSnap.size).toBe(1);
+      } finally {
+        setPaymentProviderForTesting(new StripeProvider(TEST_SECRET_KEY, TEST_WEBHOOK_SECRET));
+      }
+
+      await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId] });
+    });
+
+    test("TEST/TEST (event.livemode=false, environnement actif TEST) => ACCEPTÉ, traitement normal", async () => {
+      const eventId = "evt_livemode_test_on_test_001";
+      const missionId = "webhook_mission_livemode_004";
+      const paymentId = "webhook_payment_livemode_004";
+      const providerPaymentIntentId = "pi_livemode_match_test_001";
+      await seedPayment(paymentId, missionId, {
+        status: PaymentStatuses.AUTHORIZED,
+        providerPaymentIntentId,
+      });
+
+      const payload = buildStripeEventPayload(
+        eventId,
+        "payment_intent.succeeded",
+        { id: providerPaymentIntentId },
+        /* livemode */ false
+      );
+      const sig = signPayload(payload);
+
+      const { status, body } = await invokeWebhook(payload, sig);
+
+      expect(status).toBe(200);
+      expect(body).toEqual({ received: true });
+
+      const doc = await getEventDoc(eventId);
+      expect(doc).not.toBeNull();
+      expect(doc!.processing_status).toBe("processed");
+      expect(doc!.related_payment_id).toBe(paymentId);
+
+      const auditSnap = await db
+        .collection("audit_logs")
+        .where("target_id", "==", paymentId)
+        .where("action", "==", "payment_captured")
+        .get();
+      expect(auditSnap.size).toBe(1);
+
+      await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId] });
+    });
   });
 });

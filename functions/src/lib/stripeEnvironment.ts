@@ -161,6 +161,51 @@ export function assertStripeReferenceEnvironmentConsistency(params: {
 }
 
 /**
+ * Code d'erreur INTERNE pour le mismatch `event.livemode` ↔ environnement
+ * actif détecté sur un WEBHOOK Stripe entrant (voir
+ * `isWebhookLivemodeConsistent()` ci-dessous et son usage dans
+ * `functions/processStripeWebhook.ts`). Distinct de
+ * `STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE` (qui concerne une RÉFÉRENCE
+ * Stripe stockée réutilisée par une opération sortante) : celui-ci concerne
+ * un ÉVÈNEMENT ENTRANT dont le mode Stripe natif (`event.livemode`) ne
+ * correspond pas au mode actuellement actif côté Movi-K.
+ */
+export const STRIPE_WEBHOOK_LIVEMODE_MISMATCH_ERROR_CODE = "stripe_webhook_livemode_mismatch";
+
+/**
+ * Vérifie que le champ natif `event.livemode` d'un évènement Stripe déjà
+ * VÉRIFIÉ (signature valide, voir `StripeProvider.constructVerifiedEvent()`)
+ * est cohérent avec l'environnement Stripe ACTUELLEMENT ACTIF
+ * (`PaymentProvider.environment`, dérivé de la clé secrète active).
+ *
+ * 🔒 DÉFENSE-EN-PROFONDEUR, JAMAIS UN REMPLACEMENT DE LA VÉRIFICATION DE
+ * SIGNATURE : `event.livemode` est un champ natif Stripe, authentifié par la
+ * signature `Stripe-Signature` exactement comme le reste du payload — il ne
+ * s'agit PAS d'une seconde vérification cryptographique, mais d'un
+ * contrôle de COHÉRENCE OPÉRATIONNELLE complémentaire : un endpoint webhook
+ * mal configuré côté Dashboard Stripe (secret TEST branché alors que
+ * Movi-K tourne en LIVE, ou inversement), un replay manuel d'évènement
+ * depuis le Dashboard, ou une transition de clé mal séquencée pourraient
+ * livrer un évènement AUTHENTIQUEMENT SIGNÉ mais appartenant au MAUVAIS
+ * mode. Sans ce contrôle, un tel évènement serait traité comme n'importe
+ * quel autre — potentiellement `payment_intent.succeeded` (mode test) vu
+ * comme confirmant un paiement RÉEL, ou l'inverse.
+ *
+ * Pure et sans effet de bord (aucune écriture, aucun log) — l'appelant
+ * (`processStripeWebhook.ts`) est responsable de journaliser/auditer le
+ * rejet et de choisir la réponse HTTP appropriée (jamais un code déclenchant
+ * une boucle de retries infinie côté Stripe, puisqu'un mismatch structurel
+ * ne sera JAMAIS résolu par un simple nouvel essai).
+ */
+export function isWebhookLivemodeConsistent(params: {
+  activeEnvironment: StripeEnvironment;
+  eventLivemode: boolean;
+}): boolean {
+  const expectedLivemode = params.activeEnvironment === "live";
+  return params.eventLivemode === expectedLivemode;
+}
+
+/**
  * Variante journalisée de `assertStripeReferenceEnvironmentConsistency()` —
  * à utiliser à CHAQUE point d'appel métier (jamais la fonction pure
  * ci-dessus directement dans les orchestrations) pour garantir qu'un rejet

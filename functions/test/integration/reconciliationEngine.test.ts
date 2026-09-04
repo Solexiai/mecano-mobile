@@ -76,6 +76,7 @@ async function seedPayment(
     amountRefundedMinor?: number;
     providerPaymentIntentId?: string;
     createdAt?: FirebaseFirestore.Timestamp;
+    stripeEnvironment?: "test" | "live";
   }
 ): Promise<void> {
   const now = opts.createdAt ?? admin.firestore.Timestamp.now();
@@ -91,6 +92,7 @@ async function seedPayment(
     amount_refunded_minor: opts.amountRefundedMinor ?? 0,
     application_fee_minor: Math.round(opts.amountCapturedMinor * 0.15),
     provider: "stripe",
+    ...(opts.stripeEnvironment ? { stripe_environment: opts.stripeEnvironment } : {}),
     provider_customer_id: `fake_cus_${CUSTOMER_ID}`,
     provider_payment_method_id: `fake_pm_${CUSTOMER_ID}`,
     provider_payment_intent_id: opts.providerPaymentIntentId ?? `fake_pi_${paymentId}`,
@@ -618,6 +620,76 @@ describe("reconciliationEngine — détection des 11 anomalies (Bloc G, point 27
     // identiques) malgré l'anomalie détectée (payment_missing_in_provider).
     expect(paymentAfter.data()!.amount_captured_minor).toBe(3000);
     expect(paymentAfter.data()!.status).toBe(PaymentStatuses.CAPTURED);
+  });
+
+  // -------------------------------------------------------------------
+  // (12) environment_mismatch (Phase 8B item 3) — jamais de faux
+  // payment_missing_in_provider sur une référence appartenant
+  // structurellement à l'AUTRE mode Stripe que le provider actif.
+  // -------------------------------------------------------------------
+  it("(12) environment_mismatch : payment stripe_environment=\"live\" comparé à un provider actif \"test\" => ENVIRONMENT_MISMATCH, jamais payment_missing_in_provider", async () => {
+    const missionId = "recon_mission_envmismatch_1";
+    // FakePaymentProvider.environment est TOUJOURS "test" (voir
+    // fakePaymentProvider.ts) — ce paiement est tagué "live", donc
+    // structurellement incomparable au provider actif de ce test.
+    await seedPayment("recon_pay_envmismatch_1", missionId, {
+      amountCapturedMinor: 4200,
+      providerPaymentIntentId: "fake_pi_envmismatch_001",
+      stripeEnvironment: "live",
+    });
+
+    const { report } = await runReconciliation({
+      periodStartMillis: PERIOD_START,
+      periodEndMillis: PERIOD_END,
+    });
+
+    const anomaly = report.anomalies.find((a) => a.payment_id === "recon_pay_envmismatch_1");
+    expect(anomaly).toBeDefined();
+    expect(anomaly!.type).toBe("environment_mismatch");
+    // JAMAIS l'anomalie générique payment_missing_in_provider pour cette
+    // référence précise — le mismatch d'environnement doit être identifié
+    // EXPLICITEMENT, jamais confondu avec une vraie transaction manquante.
+    expect(
+      report.anomalies.some(
+        (a) => a.payment_id === "recon_pay_envmismatch_1" && a.type === "payment_missing_in_provider"
+      )
+    ).toBe(false);
+
+    const paymentAfter = await db.collection("payments").doc("recon_pay_envmismatch_1").get();
+    expect(paymentAfter.data()!.amount_captured_minor).toBe(4200);
+    expect(paymentAfter.data()!.stripe_environment).toBe("live");
+  });
+
+  it("(12b) environment_mismatch : payment stripe_environment=\"test\" cohérent avec provider actif \"test\" => AUCUNE anomalie environment_mismatch (comparaison normale)", async () => {
+    const missionId = "recon_mission_envmatch_1";
+    setPaymentProviderForTesting(
+      new FakePaymentProvider({
+        providerPayments: [
+          {
+            providerPaymentIntentId: "fake_pi_envmatch_001",
+            amountMinor: 1500,
+            status: "succeeded",
+            createdAtMillis: Date.now(),
+          },
+        ],
+      })
+    );
+    await seedPayment("recon_pay_envmatch_1", missionId, {
+      amountCapturedMinor: 1500,
+      providerPaymentIntentId: "fake_pi_envmatch_001",
+      stripeEnvironment: "test",
+    });
+
+    const { report } = await runReconciliation({
+      periodStartMillis: PERIOD_START,
+      periodEndMillis: PERIOD_END,
+    });
+
+    expect(
+      report.anomalies.some(
+        (a) => a.payment_id === "recon_pay_envmatch_1" && a.type === "environment_mismatch"
+      )
+    ).toBe(false);
   });
 });
 
