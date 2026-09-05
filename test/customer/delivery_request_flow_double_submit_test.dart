@@ -36,6 +36,9 @@ import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
+import 'package:movik_connect/services/address/address_backend_locator.dart';
+
+import '../helpers/fake_address_autocomplete_provider.dart';
 
 /// Fake `MissionRepository` qui compte le nombre RÉEL d'appels à
 /// `createMissionFromQuote` et `requestQuote`, avec un délai artificiel
@@ -140,10 +143,13 @@ Widget _buildTestApp(_CountingMissionRepository repo, FirebaseAuthProvider auth)
 void main() {
   late _CountingMissionRepository fakeRepo;
   late FirebaseAuthProvider auth;
+  late FakeAddressAutocompleteProvider fakeAddressProvider;
 
   setUp(() {
     fakeRepo = _CountingMissionRepository();
     BackendLocator.missionRepositoryOverride = fakeRepo;
+    fakeAddressProvider = FakeAddressAutocompleteProvider();
+    AddressBackendLocator.autocompleteProviderOverride = fakeAddressProvider;
     auth = FirebaseAuthProvider(backendConfigured: false);
     auth.debugForceSignedIn = true;
     auth.debugForceUid = 'customer_test_001';
@@ -151,9 +157,10 @@ void main() {
   });
 
   tearDown(() {
-    // CRITIQUE : toujours remettre le seam de test à `null` pour ne jamais
-    // laisser un fake repository fuiter vers un autre test.
+    // CRITIQUE : toujours remettre les seams de test à `null` pour ne jamais
+    // laisser un fake repository/provider fuiter vers un autre test.
     BackendLocator.missionRepositoryOverride = null;
+    AddressBackendLocator.autocompleteProviderOverride = null;
   });
 
   // L'écran est enveloppé dans un `SingleChildScrollView` (AppShell) : le
@@ -178,27 +185,13 @@ void main() {
     await tapEnsuringVisible(tester, find.text(AppStrings.t('common_next', 'fr')));
     await tester.pumpAndSettle();
 
-    // Step 2 : adresses (pickup + dropoff).
-    final textFields = find.byType(TextField);
-    // Ordre des champs dans _Step2Addresses : pickupLine1, pickupCity,
-    // pickupPostal, pickupLat, pickupLng, dropoffLine1, dropoffCity,
-    // dropoffPostal, dropoffLat, dropoffLng, contact, access.
-    const values = [
-      '123 rue Test',
-      'Montréal',
-      'H2X1Y1',
-      '45.5',
-      '-73.6',
-      '456 rue Cible',
-      'Laval',
-      'H7X1Y1',
-      '45.6',
-      '-73.7',
-    ];
-    for (var i = 0; i < values.length; i++) {
-      await tester.ensureVisible(textFields.at(i));
-      await tester.enterText(textFields.at(i), values[i]);
-    }
+    // Step 2 : adresses (pickup + dropoff) — MOVI-K adresses réelles +
+    // autocomplete + géocodage : plus de champs lat/lng ni ville/code postal
+    // séparés, un seul champ texte par adresse avec sélection RÉELLE d'une
+    // suggestion (via le fake provider injecté dans `setUp`), exactement le
+    // geste qu'un client ferait en production.
+    await typeAndSelectAddress(tester, 0, '123 rue Test, Montréal');
+    await typeAndSelectAddress(tester, 1, '456 rue Cible, Laval');
     await tester.pump();
     await tapEnsuringVisible(tester, find.text(AppStrings.t('common_next', 'fr')));
     await tester.pumpAndSettle();

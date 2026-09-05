@@ -60,6 +60,14 @@ dependencies:
   # Function `createDriverStripeAccount`.
   url_launcher: ^6.3.1
 
+  # --- Adresse réelle + autocomplete + géocodage (MOVI-K — CORRECTION UX
+  # LIVRAISON) --- Appels REST directs (Google Places API (New) / Geocoding)
+  # via `GooglePlacesAddressProvider` (lib/services/address/) — pas de SDK
+  # JS/natif, fonctionne identiquement Web + mobile. Clé CLIENT restreinte
+  # par domaine/app (jamais un secret serveur) — voir
+  # lib/services/address/address_provider_config.dart.
+  http: ^1.5.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

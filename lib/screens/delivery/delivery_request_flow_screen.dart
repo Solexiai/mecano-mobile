@@ -33,8 +33,10 @@ import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../services/address/address_suggestion.dart';
 import '../../services/demo_data_service.dart';
 import '../../services/distance_estimation_service.dart';
+import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/step_progress_form.dart';
@@ -59,17 +61,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   bool _isHeavyItem = false;
   bool _isBulkyItem = false;
 
-  // ---- Step 2: addresses ----
-  final _pickupLine1Controller = TextEditingController();
-  final _pickupCityController = TextEditingController();
-  final _pickupPostalController = TextEditingController();
-  final _pickupLatController = TextEditingController();
-  final _pickupLngController = TextEditingController();
-  final _dropoffLine1Controller = TextEditingController();
-  final _dropoffCityController = TextEditingController();
-  final _dropoffPostalController = TextEditingController();
-  final _dropoffLatController = TextEditingController();
-  final _dropoffLngController = TextEditingController();
+  // ---- Step 2: addresses (MOVI-K — adresses réelles + autocomplete +
+  // géocodage) : un seul champ texte par adresse (pickup/dropoff), plus un
+  // état interne (jamais visible/éditable directement) contenant l'adresse
+  // COMPLÈTEMENT résolue par le fournisseur cartographique. `null` tant
+  // qu'aucune adresse valide n'a été sélectionnée OU si le texte a été
+  // modifié après une sélection (voir AddressAutocompleteField.onInvalidated).
+  final _pickupAddressController = TextEditingController();
+  final _dropoffAddressController = TextEditingController();
+  ResolvedAddress? _pickupResolved;
+  ResolvedAddress? _dropoffResolved;
   final _contactController = TextEditingController();
   final _accessController = TextEditingController();
 
@@ -88,16 +89,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   @override
   void dispose() {
     _descController.dispose();
-    _pickupLine1Controller.dispose();
-    _pickupCityController.dispose();
-    _pickupPostalController.dispose();
-    _pickupLatController.dispose();
-    _pickupLngController.dispose();
-    _dropoffLine1Controller.dispose();
-    _dropoffCityController.dispose();
-    _dropoffPostalController.dispose();
-    _dropoffLatController.dispose();
-    _dropoffLngController.dispose();
+    _pickupAddressController.dispose();
+    _dropoffAddressController.dispose();
     _contactController.dispose();
     _accessController.dispose();
     super.dispose();
@@ -150,20 +143,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                   canProceed: (step) {
                     if (step == 0) return _selectedCategory.isNotEmpty && _descController.text.trim().isNotEmpty;
                     if (step == 1) {
-                      return _pickupLine1Controller.text.trim().isNotEmpty &&
-                          _pickupCityController.text.trim().isNotEmpty &&
-                          _pickupPostalController.text.trim().isNotEmpty &&
-                          _pickupLatController.text.trim().isNotEmpty &&
-                          _pickupLngController.text.trim().isNotEmpty &&
-                          _dropoffLine1Controller.text.trim().isNotEmpty &&
-                          _dropoffCityController.text.trim().isNotEmpty &&
-                          _dropoffPostalController.text.trim().isNotEmpty &&
-                          _dropoffLatController.text.trim().isNotEmpty &&
-                          _dropoffLngController.text.trim().isNotEmpty &&
-                          double.tryParse(_pickupLatController.text.trim()) != null &&
-                          double.tryParse(_pickupLngController.text.trim()) != null &&
-                          double.tryParse(_dropoffLatController.text.trim()) != null &&
-                          double.tryParse(_dropoffLngController.text.trim()) != null;
+                      // GAP e/g/n) FAIL CLOSED : ne peut avancer que si les
+                      // DEUX adresses ont été RÉELLEMENT résolues par le
+                      // fournisseur (jamais une simple présence de texte).
+                      return _pickupResolved != null && _dropoffResolved != null;
                     }
                     if (step == 2) return _selectedVehicle != null;
                     // Step 3 (quote) : la soumission finale n'est permise
@@ -203,22 +186,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                           onDescriptionChanged: () => setState(() {}),
                         ),
                     (context) => _Step2Addresses(
-                          pickupLine1: _pickupLine1Controller,
-                          pickupCity: _pickupCityController,
-                          pickupPostal: _pickupPostalController,
-                          pickupLat: _pickupLatController,
-                          pickupLng: _pickupLngController,
-                          dropoffLine1: _dropoffLine1Controller,
-                          dropoffCity: _dropoffCityController,
-                          dropoffPostal: _dropoffPostalController,
-                          dropoffLat: _dropoffLatController,
-                          dropoffLng: _dropoffLngController,
+                          pickupController: _pickupAddressController,
+                          dropoffController: _dropoffAddressController,
                           contactController: _contactController,
                           accessController: _accessController,
-                          // MIS-C-09 / BUG-003 : même correctif que l'étape 1
-                          // — force la réévaluation de `canProceed(step==1)`
-                          // à chaque frappe dans un champ d'adresse.
-                          onAddressFieldChanged: () => setState(() {}),
+                          onPickupResolved: (a) => setState(() => _pickupResolved = a),
+                          onPickupInvalidated: () => setState(() => _pickupResolved = null),
+                          onDropoffResolved: (a) => setState(() => _dropoffResolved = a),
+                          onDropoffInvalidated: () => setState(() => _dropoffResolved = null),
                         ),
                     (context) => _Step3Vehicle(
                           selected: _selectedVehicle,
@@ -243,22 +218,32 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
 
   Future<void> _requestQuote(FirebaseAuthProvider auth) async {
     if (_selectedVehicle == null) return;
+
+    // GAP g)/n) FAIL CLOSED : ne jamais calculer un devis (donc jamais
+    // avancer) si l'une des deux adresses n'a pas été RÉELLEMENT résolue
+    // par le fournisseur cartographique (jamais de coordonnées "1,2" ou
+    // d'adresse tapée mais non sélectionnée dans les suggestions).
+    final pickup = _pickupResolved;
+    final dropoff = _dropoffResolved;
+    if (pickup == null || dropoff == null) {
+      setState(() {
+        _phase = _FlowPhase.form;
+        _errorMessage = context.read<LocaleProvider>().t('delivery_address_invalid_selection');
+      });
+      return;
+    }
+
     setState(() {
       _phase = _FlowPhase.quoting;
       _errorMessage = null;
     });
 
     try {
-      final pickupLat = double.parse(_pickupLatController.text.trim());
-      final pickupLng = double.parse(_pickupLngController.text.trim());
-      final dropoffLat = double.parse(_dropoffLatController.text.trim());
-      final dropoffLng = double.parse(_dropoffLngController.text.trim());
-
       final estimate = _distanceService.estimate(
-        pickupLat: pickupLat,
-        pickupLng: pickupLng,
-        dropoffLat: dropoffLat,
-        dropoffLng: dropoffLng,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        dropoffLat: dropoff.lat,
+        dropoffLng: dropoff.lng,
       );
 
       final quote = await BackendLocator.missionRepository.requestQuote(
@@ -305,6 +290,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     // cours ou déjà terminé (`creating` ou `created`).
     if (_phase == _FlowPhase.creating || _phase == _FlowPhase.created) return;
     if (_quote == null || _selectedVehicle == null || _distanceEstimate == null) return;
+
+    // GAP g)/n) FAIL CLOSED : re-vérifié ICI (pas seulement à l'étape 1) —
+    // un utilisateur pourrait revenir en arrière et modifier le texte d'une
+    // adresse après avoir déjà obtenu un devis (`AddressAutocompleteField`
+    // invalide alors `_pickupResolved`/`_dropoffResolved` via
+    // `onInvalidated`). Une mission ne doit JAMAIS être créée avec une
+    // adresse non résolue, même si un devis avait été calculé plus tôt sur
+    // la base d'une adresse alors valide.
+    final pickup = _pickupResolved;
+    final dropoff = _dropoffResolved;
+    if (pickup == null || dropoff == null) {
+      setState(() {
+        _errorMessage = context.read<LocaleProvider>().t('delivery_address_invalid_selection');
+      });
+      return;
+    }
+
     setState(() {
       _phase = _FlowPhase.creating;
       _errorMessage = null;
@@ -312,18 +314,22 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
 
     try {
       final pickupAddress = MissionAddress(
-        line1: _pickupLine1Controller.text.trim(),
-        city: _pickupCityController.text.trim(),
-        postalCode: _pickupPostalController.text.trim(),
-        lat: double.parse(_pickupLatController.text.trim()),
-        lng: double.parse(_pickupLngController.text.trim()),
+        line1: pickup.line1,
+        city: pickup.city,
+        postalCode: pickup.postalCode,
+        lat: pickup.lat,
+        lng: pickup.lng,
+        formattedAddress: pickup.formattedAddress,
+        placeId: pickup.placeId,
       );
       final dropoffAddress = MissionAddress(
-        line1: _dropoffLine1Controller.text.trim(),
-        city: _dropoffCityController.text.trim(),
-        postalCode: _dropoffPostalController.text.trim(),
-        lat: double.parse(_dropoffLatController.text.trim()),
-        lng: double.parse(_dropoffLngController.text.trim()),
+        line1: dropoff.line1,
+        city: dropoff.city,
+        postalCode: dropoff.postalCode,
+        lat: dropoff.lat,
+        lng: dropoff.lng,
+        formattedAddress: dropoff.formattedAddress,
+        placeId: dropoff.placeId,
       );
 
       final mission = await BackendLocator.missionRepository.createMissionFromQuote(
@@ -521,42 +527,33 @@ class _SwitchRow extends StatelessWidget {
 }
 
 // ---------------- Step 2 : addresses ----------------
+// MOVI-K — CORRECTION UX LIVRAISON (adresses réelles + autocomplete +
+// géocodage) : remplace intégralement les anciens champs séparés
+// adresse/ville/code postal/latitude/longitude par UN SEUL champ par
+// adresse (pickup/dropoff), avec suggestions réelles en direct
+// (`AddressAutocompleteField`). Le client ne voit et ne saisit plus JAMAIS
+// aucune coordonnée — tout est extrait automatiquement en arrière-plan à
+// la sélection d'une suggestion (voir `AddressAutocompleteField.onResolved`,
+// qui remonte un `ResolvedAddress` complet au parent).
 class _Step2Addresses extends StatelessWidget {
-  final TextEditingController pickupLine1;
-  final TextEditingController pickupCity;
-  final TextEditingController pickupPostal;
-  final TextEditingController pickupLat;
-  final TextEditingController pickupLng;
-  final TextEditingController dropoffLine1;
-  final TextEditingController dropoffCity;
-  final TextEditingController dropoffPostal;
-  final TextEditingController dropoffLat;
-  final TextEditingController dropoffLng;
+  final TextEditingController pickupController;
+  final TextEditingController dropoffController;
   final TextEditingController contactController;
   final TextEditingController accessController;
-  // MIS-C-09 (Phase 7, Bloc B, BUG-003) : même pattern que _Step1ItemInfo —
-  // `canProceed(step == 1)` lit directement le `.text` des 10 controllers
-  // d'adresse. Sans callback de rebuild, remplir ces champs dans un ordre
-  // qui ne déclenche pas déjà un `setState` ailleurs laisse le bouton
-  // "Suivant" figé désactivé même une fois tous les champs valides.
-  // (contactController/accessController ne sont PAS dans `canProceed` —
-  // ils sont optionnels — donc pas concernés par ce callback.)
-  final VoidCallback onAddressFieldChanged;
+  final ValueChanged<ResolvedAddress> onPickupResolved;
+  final VoidCallback onPickupInvalidated;
+  final ValueChanged<ResolvedAddress> onDropoffResolved;
+  final VoidCallback onDropoffInvalidated;
 
   const _Step2Addresses({
-    required this.pickupLine1,
-    required this.pickupCity,
-    required this.pickupPostal,
-    required this.pickupLat,
-    required this.pickupLng,
-    required this.dropoffLine1,
-    required this.dropoffCity,
-    required this.dropoffPostal,
-    required this.dropoffLat,
-    required this.dropoffLng,
+    required this.pickupController,
+    required this.dropoffController,
     required this.contactController,
     required this.accessController,
-    required this.onAddressFieldChanged,
+    required this.onPickupResolved,
+    required this.onPickupInvalidated,
+    required this.onDropoffResolved,
+    required this.onDropoffInvalidated,
   });
 
   @override
@@ -580,52 +577,11 @@ class _Step2Addresses extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: pickupLine1,
-            decoration: InputDecoration(labelText: t('delivery_pickup_line1')),
-            onChanged: (_) => onAddressFieldChanged(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: pickupCity,
-                  decoration: InputDecoration(labelText: t('delivery_pickup_city')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: pickupPostal,
-                  decoration: InputDecoration(labelText: t('delivery_pickup_postal')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: pickupLat,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  decoration: InputDecoration(labelText: t('delivery_lat')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: pickupLng,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  decoration: InputDecoration(labelText: t('delivery_lng')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-            ],
+          AddressAutocompleteField(
+            controller: pickupController,
+            label: t('delivery_pickup_address'),
+            onResolved: onPickupResolved,
+            onInvalidated: onPickupInvalidated,
           ),
           const Divider(height: 32),
           Row(
@@ -642,55 +598,12 @@ class _Step2Addresses extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: dropoffLine1,
-            decoration: InputDecoration(labelText: t('delivery_dropoff_line1')),
-            onChanged: (_) => onAddressFieldChanged(),
+          AddressAutocompleteField(
+            controller: dropoffController,
+            label: t('delivery_dropoff_address'),
+            onResolved: onDropoffResolved,
+            onInvalidated: onDropoffInvalidated,
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: dropoffCity,
-                  decoration: InputDecoration(labelText: t('delivery_dropoff_city')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: dropoffPostal,
-                  decoration: InputDecoration(labelText: t('delivery_dropoff_postal')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: dropoffLat,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  decoration: InputDecoration(labelText: t('delivery_lat')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: dropoffLng,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
-                  decoration: InputDecoration(labelText: t('delivery_lng')),
-                  onChanged: (_) => onAddressFieldChanged(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(t('delivery_coordinates_note'), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
           const Divider(height: 32),
           TextField(controller: contactController, decoration: InputDecoration(labelText: '${t('delivery_contact_instructions')} (${t('common_optional')})')),
           const SizedBox(height: 16),

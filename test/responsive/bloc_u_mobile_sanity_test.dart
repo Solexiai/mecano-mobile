@@ -360,11 +360,16 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
 
-          // Étape 2 : adresses — la plus dense en Row à 2 colonnes du flux.
-          // Vérifie que chacun des 10 TextField reste atteignable par scroll
-          // sans provoquer d'exception de layout, même à largeur étroite.
+          // Étape 2 : adresses — MOVI-K adresses réelles + autocomplete +
+          // géocodage : 4 TextField seulement désormais (pickup + dropoff,
+          // chacun encapsulé dans un `AddressAutocompleteField`, plus
+          // contact/accès), contre 10 avant cette évolution (plus de champs
+          // lat/lng/ville/code postal séparés). Vérifie que chacun reste
+          // atteignable par scroll sans provoquer d'exception de layout,
+          // même à largeur étroite.
           final textFields = find.byType(TextField);
-          for (var i = 0; i < 10; i++) {
+          expect(textFields, findsNWidgets(4));
+          for (var i = 0; i < 4; i++) {
             await tester.ensureVisible(textFields.at(i));
             await tester.pump();
             expect(tester.takeException(), isNull);
