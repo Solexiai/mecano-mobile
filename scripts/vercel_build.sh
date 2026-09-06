@@ -70,8 +70,34 @@ echo "[4/5] flutter pub get..."
 "${FLUTTER_BIN}" pub get
 
 # --- 5. Build Web release -----------------------------------------------
-echo "[5/5] flutter build web --release..."
-"${FLUTTER_BIN}" build web --release
+#
+# GOOGLE_MAPS_API_KEY est injectée par Vercel comme variable d'environnement
+# (scope Production). Elle est transmise au build Flutter Web via
+# --dart-define, ce qui l'expose à AddressProviderConfig.googleMapsApiKey
+# (String.fromEnvironment('GOOGLE_MAPS_API_KEY')).
+#
+# IMPORTANT — ne JAMAIS échouer si la variable est absente : les
+# déploiements Preview de Vercel n'ont pas nécessairement cette variable
+# configurée, et le build ne doit pas casser pour autant. En son absence,
+# googleMapsApiKey vaudra une chaîne vide et l'app retombe proprement en
+# fail-closed sur NotConfiguredAddressAutocompleteProvider (voir
+# AddressBackendLocator) — aucune fausse suggestion n'est jamais affichée.
+#
+# SÉCURITÉ — ne jamais logger la valeur de la clé. On expose uniquement un
+# indicateur booléen (configurée / non configurée) pour le diagnostic, sans
+# jamais imprimer le secret lui-même. `set -x` est volontairement absent de
+# ce script pour éviter toute fuite accidentelle dans les traces de build.
+GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY:-}"
+
+if [ -n "${GOOGLE_MAPS_API_KEY}" ]; then
+  echo "[5/5] GOOGLE_MAPS_API_KEY: configurée (valeur non affichée)."
+else
+  echo "[5/5] GOOGLE_MAPS_API_KEY: absente — build en mode fail-closed (NotConfiguredAddressAutocompleteProvider)."
+fi
+
+echo "[5/5] flutter build web --release --dart-define=GOOGLE_MAPS_API_KEY=***"
+"${FLUTTER_BIN}" build web --release \
+  --dart-define=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY}"
 
 echo "=============================================================="
 echo "Build terminé. Sortie attendue : build/web/index.html"
