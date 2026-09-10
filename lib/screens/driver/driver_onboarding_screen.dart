@@ -23,9 +23,9 @@ import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/step_progress_form.dart';
 
-/// Driver registration rebuilt as four coherent sections:
+/// Driver registration in four coherent sections:
 /// 1) contact + verified service-base address,
-/// 2) vehicle,
+/// 2) vehicle identity + verification photos,
 /// 3) service area + accepted deliveries,
 /// 4) verification documents + consents.
 class DriverOnboardingScreen extends StatefulWidget {
@@ -46,7 +46,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   final _provinceController = TextEditingController();
   final _postalController = TextEditingController();
 
-  final _makeModelController = TextEditingController();
+  final _makeController = TextEditingController();
+  final _modelController = TextEditingController();
   final _yearController = TextEditingController();
   final _colorController = TextEditingController();
   final _plateController = TextEditingController();
@@ -61,6 +62,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
 
   Uint8List? _vehiclePhotoBytes;
   String? _vehiclePhotoName;
+  Uint8List? _vehicleRearPhotoBytes;
+  String? _vehicleRearPhotoName;
+  Uint8List? _vehiclePlatePhotoBytes;
+  String? _vehiclePlatePhotoName;
+
   Uint8List? _licenceBytes;
   String? _licenceName;
   Uint8List? _registrationBytes;
@@ -222,7 +228,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             _NoticeBox(
               icon: Icons.verified_user_outlined,
               color: AppColors.success,
-              text: '${_copy('signed_in_account')}${_emailController.text.trim().isEmpty ? '' : ' · ${_emailController.text.trim()}'}',
+              text:
+                  '${_copy('signed_in_account')}${_emailController.text.trim().isEmpty ? '' : ' · ${_emailController.text.trim()}'}',
             )
           else ...[
             _Field(
@@ -321,8 +328,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepIntro(
-            icon: Icons.local_shipping_outlined,
+          // Deliberately text-only: the previous decorative truck/load icon
+          // was removed so the vehicle step is visually cleaner.
+          _PlainStepIntro(
             title: _copy('vehicle_title'),
             subtitle: _copy('vehicle_subtitle'),
           ),
@@ -347,12 +355,34 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 )
                 .toList(),
           ),
-          const SizedBox(height: 20),
-          _Field(
-            controller: _makeModelController,
-            label: t('driver_onboarding_make_model'),
-            capitalization: TextCapitalization.words,
-            onChanged: (_) => setState(() {}),
+          const SizedBox(height: 22),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final make = _Field(
+                controller: _makeController,
+                label: _copy('vehicle_make'),
+                capitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+              );
+              final model = _Field(
+                controller: _modelController,
+                label: _copy('vehicle_model'),
+                capitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
+              );
+              if (constraints.maxWidth < 620) {
+                return Column(
+                  children: [make, const SizedBox(height: 16), model],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: make),
+                  const SizedBox(width: 16),
+                  Expanded(child: model),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
           LayoutBuilder(
@@ -367,6 +397,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 controller: _colorController,
                 label: _copy('vehicle_color'),
                 capitalization: TextCapitalization.words,
+                onChanged: (_) => setState(() {}),
               );
               if (constraints.maxWidth < 620) {
                 return Column(
@@ -394,10 +425,34 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             controller: _payloadController,
             label: t('driver_onboarding_max_payload'),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 7),
+          Text(
+            _copy('payload_help'),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 26),
+          Text(
+            _copy('vehicle_photos_title'),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            _copy('vehicle_photos_subtitle'),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
           _DocumentPickerRow(
-            label: t('driver_onboarding_vehicle_photos'),
+            label: _copy('vehicle_main_photo'),
             icon: Icons.camera_alt_outlined,
             fileName: _vehiclePhotoName,
             busy: _pickingDocument,
@@ -409,13 +464,45 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               }),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            _copy('vehicle_photo_help'),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12.5,
+          const SizedBox(height: 6),
+          _PhotoHelp(text: _copy('vehicle_main_photo_help')),
+          const SizedBox(height: 12),
+          _DocumentPickerRow(
+            label: _copy('vehicle_rear_photo'),
+            icon: Icons.photo_camera_back_outlined,
+            fileName: _vehicleRearPhotoName,
+            busy: _pickingDocument,
+            isRequired: true,
+            onPick: () => _pickImage(
+              onPicked: (bytes, name) => setState(() {
+                _vehicleRearPhotoBytes = bytes;
+                _vehicleRearPhotoName = name;
+              }),
             ),
+          ),
+          const SizedBox(height: 6),
+          _PhotoHelp(text: _copy('vehicle_rear_photo_help')),
+          const SizedBox(height: 12),
+          _DocumentPickerRow(
+            label: _copy('vehicle_plate_photo'),
+            icon: Icons.pin_outlined,
+            fileName: _vehiclePlatePhotoName,
+            busy: _pickingDocument,
+            isRequired: true,
+            onPick: () => _pickImage(
+              onPicked: (bytes, name) => setState(() {
+                _vehiclePlatePhotoBytes = bytes;
+                _vehiclePlatePhotoName = name;
+              }),
+            ),
+          ),
+          const SizedBox(height: 6),
+          _PhotoHelp(text: _copy('vehicle_plate_photo_help')),
+          const SizedBox(height: 16),
+          _NoticeBox(
+            icon: Icons.verified_outlined,
+            text: _copy('vehicle_verification_notice'),
+            color: AppColors.info,
           ),
           const SizedBox(height: 14),
           _RequiredHint(text: _copy('field_required')),
@@ -640,13 +727,22 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     }
     if (step == 1) {
       final year = int.tryParse(_yearController.text.trim());
+      final payload = double.tryParse(
+        _payloadController.text.trim().replaceAll(',', '.'),
+      );
       return _vehicleCategory != null &&
-          _makeModelController.text.trim().isNotEmpty &&
+          _makeController.text.trim().isNotEmpty &&
+          _modelController.text.trim().isNotEmpty &&
           year != null &&
           year >= 1980 &&
           year <= DateTime.now().year + 1 &&
+          _colorController.text.trim().isNotEmpty &&
           _plateController.text.trim().isNotEmpty &&
-          _vehiclePhotoBytes != null;
+          payload != null &&
+          payload > 0 &&
+          _vehiclePhotoBytes != null &&
+          _vehicleRearPhotoBytes != null &&
+          _vehiclePlatePhotoBytes != null;
     }
     if (step == 2) return _acceptedItemKeys.isNotEmpty;
     if (step == 3) {
@@ -735,19 +831,21 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       );
       await BackendLocator.driverRepository.submitDriverOnboarding(profile);
 
+      final makeModel = [
+        _makeController.text.trim(),
+        _modelController.text.trim(),
+      ].where((part) => part.isNotEmpty).join(' ');
       final vehicle = DriverVehicle(
         id: const Uuid().v4(),
         driverId: uid,
         category: category,
-        makeModel: _makeModelController.text.trim(),
+        makeModel: makeModel,
         year: int.parse(_yearController.text.trim()),
         plate: _plateController.text.trim().toUpperCase(),
         maxPayloadKg: double.tryParse(
           _payloadController.text.trim().replaceAll(',', '.'),
         ),
-        color: _colorController.text.trim().isEmpty
-            ? null
-            : _colorController.text.trim(),
+        color: _colorController.text.trim(),
         isVerified: false,
         createdAt: DateTime.now(),
       );
@@ -837,14 +935,16 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     Future<void> upload(
       Uint8List bytes,
       String fileName,
-      DriverDocumentType type,
-    ) async {
+      DriverDocumentType type, {
+      String? storagePrefix,
+    }) async {
       final rawExtension = fileName.contains('.')
           ? fileName.split('.').last.toLowerCase()
           : 'jpg';
       final extension = rawExtension.isEmpty ? 'jpg' : rawExtension;
+      final prefix = storagePrefix ?? type.firestoreValue;
       final storedName =
-          '${type.firestoreValue}_${DateTime.now().microsecondsSinceEpoch}.$extension';
+          '${prefix}_${DateTime.now().microsecondsSinceEpoch}.$extension';
       await uploadRepo.uploadDriverDocument(
         driverId: uid,
         fileName: storedName,
@@ -883,13 +983,24 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       _identityName ?? 'identity.jpg',
       DriverDocumentType.identity,
     );
-    if (_vehiclePhotoBytes != null) {
-      await upload(
-        _vehiclePhotoBytes!,
-        _vehiclePhotoName ?? 'vehicle_photo.jpg',
-        DriverDocumentType.vehiclePhoto,
-      );
-    }
+    await upload(
+      _vehiclePhotoBytes!,
+      _vehiclePhotoName ?? 'vehicle_main_photo.jpg',
+      DriverDocumentType.vehiclePhoto,
+      storagePrefix: 'vehicle_main_photo',
+    );
+    await upload(
+      _vehicleRearPhotoBytes!,
+      _vehicleRearPhotoName ?? 'vehicle_rear_photo.jpg',
+      DriverDocumentType.vehiclePhoto,
+      storagePrefix: 'vehicle_rear_photo',
+    );
+    await upload(
+      _vehiclePlatePhotoBytes!,
+      _vehiclePlatePhotoName ?? 'vehicle_plate_photo.jpg',
+      DriverDocumentType.vehiclePhoto,
+      storagePrefix: 'vehicle_plate_photo',
+    );
   }
 
   String _contentType(String extension) {
@@ -918,7 +1029,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     _cityController.dispose();
     _provinceController.dispose();
     _postalController.dispose();
-    _makeModelController.dispose();
+    _makeController.dispose();
+    _modelController.dispose();
     _yearController.dispose();
     _colorController.dispose();
     _plateController.dispose();
@@ -1003,6 +1115,54 @@ class _StepIntro extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PlainStepIntro extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _PlainStepIntro({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoHelp extends StatelessWidget {
+  final String text;
+  const _PhotoHelp({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 11.8,
+          height: 1.35,
+        ),
+      ),
     );
   }
 }
@@ -1263,6 +1423,106 @@ class _DocumentPickerRow extends StatelessWidget {
     final hasFile = fileName != null;
     final accent = hasFile ? AppColors.success : AppColors.primary;
 
+    Widget info() => Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                hasFile ? Icons.check_circle : icon,
+                color: accent,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                      if (isRequired)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            DriverOnboardingCopy.text(
+                              localeProvider.locale,
+                              'required_badge',
+                            ),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    hasFile
+                        ? fileName!
+                        : t('driver_onboarding_document_none_selected'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: hasFile
+                          ? AppColors.success
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+    Widget action({bool expand = false}) {
+      final button = OutlinedButton(
+        onPressed: busy ? null : onPick,
+        style: OutlinedButton.styleFrom(
+          minimumSize: expand ? const Size.fromHeight(42) : const Size(0, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: const TextStyle(fontSize: 11.5),
+        ),
+        child: busy
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                hasFile
+                    ? t('driver_onboarding_document_edit')
+                    : t('driver_onboarding_document_select'),
+              ),
+      );
+      return expand ? SizedBox(width: double.infinity, child: button) : button;
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1272,101 +1532,26 @@ class _DocumentPickerRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         color: hasFile ? AppColors.success.withValues(alpha: 0.05) : null,
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              hasFile ? Icons.check_circle : icon,
-              color: accent,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 520) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                    if (isRequired)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          DriverOnboardingCopy.text(
-                            localeProvider.locale,
-                            'required_badge',
-                          ),
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  hasFile
-                      ? fileName!
-                      : t('driver_onboarding_document_none_selected'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    color: hasFile
-                        ? AppColors.success
-                        : AppColors.textSecondary,
-                  ),
-                ),
+                info(),
+                const SizedBox(height: 12),
+                action(expand: true),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton(
-            onPressed: busy ? null : onPick,
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              textStyle: const TextStyle(fontSize: 11.5),
-            ),
-            child: busy
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    hasFile
-                        ? t('driver_onboarding_document_edit')
-                        : t('driver_onboarding_document_select'),
-                  ),
-          ),
-        ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: info()),
+              const SizedBox(width: 10),
+              action(),
+            ],
+          );
+        },
       ),
     );
   }
