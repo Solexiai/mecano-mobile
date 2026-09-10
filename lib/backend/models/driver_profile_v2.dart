@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
 // DriverProfile (Firestore-ready) — collection `driver_profiles/{uid}`.
 //
-// Contient les informations d'onboarding et de statut d'un chauffeur.
-// `status` ne doit être modifié QUE par les Cloud Functions
-// `approveDriver()` / `rejectDriver()` (jamais écrit directement par le
-// chauffeur lui-même).
+// Contient les informations d'onboarding, de zone de service et de statut
+// d'un chauffeur. Les champs d'adresse exacte restent privés : les règles
+// Firestore n'autorisent la lecture du profil qu'au chauffeur propriétaire
+// et aux rôles analyst/admin/super_admin.
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
@@ -13,6 +13,21 @@ class DriverProfileV2 {
   final String uid;
   final String fullName;
   final String city;
+
+  // Coordonnées déclaratives d'onboarding. Ces champs sont optionnels pour
+  // rester compatibles avec les profils créés avant la refonte du wizard.
+  final String phone;
+  final String baseAddressFormatted;
+  final String baseAddressLine1;
+  final String baseRegion;
+  final String basePostalCode;
+  final String baseCountry;
+  final String? basePlaceId;
+  final double? baseLat;
+  final double? baseLng;
+  final List<String> spokenLanguages;
+  final bool loadingAssistanceAvailable;
+
   final DriverStatus status;
   final double serviceRadiusKm;
   final List<VehicleCategory> acceptedVehicleCategories;
@@ -27,18 +42,14 @@ class DriverProfileV2 {
   final bool vehicleVerified;
   final DriverOnlineStatus onlineStatus;
   final DateTime? submittedForReviewAt;
-  // Phase 2 — portail analyste (lecture seule côté Flutter ; écrits
-  // exclusivement par requestDriverDocuments/suspendDriver/reactivateDriver).
+
+  // Phase 2 — portail analyste.
   final String? documentsRequiredReason;
   final DateTime? documentsRequiredAt;
   final String? suspensionReason;
   final DateTime? suspendedAt;
-  // Bloc 8B (Connect Onboarding Flutter) — miroir exact des 4 champs
-  // Stripe Connect écrits par la Cloud Function `createDriverStripeAccount`
-  // (création) et par le webhook `account.updated` (synchronisation des
-  // capacités, voir GAP-8B-01) sur `driver_profiles/{uid}`. Lecture seule
-  // côté Flutter : jamais écrits directement par ce modèle/repository, voir
-  // `driver_repository.dart::createOrRetrieveDriverStripeAccount()`.
+
+  // Stripe Connect — lecture seule côté Flutter.
   final String? stripeConnectedAccountId;
   final String? stripeOnboardingUrl;
   final bool stripeChargesEnabled;
@@ -48,6 +59,17 @@ class DriverProfileV2 {
     required this.uid,
     required this.fullName,
     required this.city,
+    this.phone = '',
+    this.baseAddressFormatted = '',
+    this.baseAddressLine1 = '',
+    this.baseRegion = '',
+    this.basePostalCode = '',
+    this.baseCountry = '',
+    this.basePlaceId,
+    this.baseLat,
+    this.baseLng,
+    this.spokenLanguages = const [],
+    this.loadingAssistanceAvailable = false,
     required this.status,
     required this.serviceRadiusKm,
     required this.acceptedVehicleCategories,
@@ -74,10 +96,6 @@ class DriverProfileV2 {
 
   bool get canGoOnline => status.canGoOnline;
 
-  /// Date de dernière mise à jour "significative" du dossier — dérivée en
-  /// mémoire (aucun champ Firestore dédié) à partir des différents
-  /// timestamps d'événements connus. Utilisée par la liste analyste
-  /// (point 4 du cahier des charges Phase 2 : "date dernière mise à jour").
   DateTime get lastUpdatedAt {
     final candidates = <DateTime?>[
       approvedAt,
@@ -93,9 +111,21 @@ class DriverProfileV2 {
         'uid': uid,
         'full_name': fullName,
         'city': city,
+        'phone': phone,
+        'base_address_formatted': baseAddressFormatted,
+        'base_address_line1': baseAddressLine1,
+        'base_region': baseRegion,
+        'base_postal_code': basePostalCode,
+        'base_country': baseCountry,
+        'base_place_id': basePlaceId,
+        'base_lat': baseLat,
+        'base_lng': baseLng,
+        'spoken_languages': spokenLanguages,
+        'loading_assistance_available': loadingAssistanceAvailable,
         'status': status.firestoreValue,
         'service_radius_km': serviceRadiusKm,
-        'accepted_vehicle_categories': acceptedVehicleCategories.map((c) => c.firestoreValue).toList(),
+        'accepted_vehicle_categories':
+            acceptedVehicleCategories.map((c) => c.firestoreValue).toList(),
         'accepted_item_category_keys': acceptedItemCategoryKeys,
         'rating': rating,
         'completed_missions': completedMissions,
@@ -117,10 +147,6 @@ class DriverProfileV2 {
         'stripe_payouts_enabled': stripePayoutsEnabled,
       };
 
-  // Les Cloud Functions écrivent ces champs via
-  // admin.firestore.FieldValue.serverTimestamp(), qui arrive côté client sous
-  // forme d'objet Firestore `Timestamp` (avec .toDate()) et non une String
-  // ISO8601. On accepte donc les deux formats de façon défensive.
   static DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
     if (raw is DateTime) return raw;
@@ -143,13 +169,29 @@ class DriverProfileV2 {
       uid: uid,
       fullName: json['full_name'] as String? ?? '',
       city: json['city'] as String? ?? '',
+      phone: json['phone'] as String? ?? '',
+      baseAddressFormatted: json['base_address_formatted'] as String? ?? '',
+      baseAddressLine1: json['base_address_line1'] as String? ?? '',
+      baseRegion: json['base_region'] as String? ?? '',
+      basePostalCode: json['base_postal_code'] as String? ?? '',
+      baseCountry: json['base_country'] as String? ?? '',
+      basePlaceId: json['base_place_id'] as String?,
+      baseLat: (json['base_lat'] as num?)?.toDouble(),
+      baseLng: (json['base_lng'] as num?)?.toDouble(),
+      spokenLanguages:
+          (json['spoken_languages'] as List?)?.cast<String>() ?? const [],
+      loadingAssistanceAvailable:
+          json['loading_assistance_available'] as bool? ?? false,
       status: DriverStatusX.fromFirestoreValue(json['status'] as String?),
-      serviceRadiusKm: (json['service_radius_km'] as num? ?? 0).toDouble(),
-      acceptedVehicleCategories: ((json['accepted_vehicle_categories'] as List?) ?? [])
-          .map((v) => VehicleCategoryX.fromFirestoreValue(v as String?))
-          .toList(),
+      serviceRadiusKm:
+          (json['service_radius_km'] as num? ?? 0).toDouble(),
+      acceptedVehicleCategories:
+          ((json['accepted_vehicle_categories'] as List?) ?? [])
+              .map((v) => VehicleCategoryX.fromFirestoreValue(v as String?))
+              .toList(),
       acceptedItemCategoryKeys:
-          (json['accepted_item_category_keys'] as List?)?.cast<String>() ?? const [],
+          (json['accepted_item_category_keys'] as List?)?.cast<String>() ??
+              const [],
       rating: (json['rating'] as num? ?? 0).toDouble(),
       completedMissions: json['completed_missions'] as int? ?? 0,
       createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
@@ -158,13 +200,15 @@ class DriverProfileV2 {
       rejectionReason: json['rejection_reason'] as String?,
       identityVerified: json['identity_verified'] as bool? ?? false,
       vehicleVerified: json['vehicle_verified'] as bool? ?? false,
-      onlineStatus: DriverOnlineStatusX.fromFirestoreValue(json['online_status'] as String?),
+      onlineStatus:
+          DriverOnlineStatusX.fromFirestoreValue(json['online_status'] as String?),
       submittedForReviewAt: _parseDate(json['submitted_for_review_at']),
       documentsRequiredReason: json['documents_required_reason'] as String?,
       documentsRequiredAt: _parseDate(json['documents_required_at']),
       suspensionReason: json['suspension_reason'] as String?,
       suspendedAt: _parseDate(json['suspended_at']),
-      stripeConnectedAccountId: json['stripe_connected_account_id'] as String?,
+      stripeConnectedAccountId:
+          json['stripe_connected_account_id'] as String?,
       stripeOnboardingUrl: json['stripe_onboarding_url'] as String?,
       stripeChargesEnabled: json['stripe_charges_enabled'] as bool? ?? false,
       stripePayoutsEnabled: json['stripe_payouts_enabled'] as bool? ?? false,
