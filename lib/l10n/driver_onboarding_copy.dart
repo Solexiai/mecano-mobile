@@ -11,16 +11,8 @@ class DriverOnboardingCopy {
       'en': 'Create your driver file in 4 steps. This information is used to verify eligibility and prepare your delivery area.',
       'es': 'Crea tu expediente de conductor en 4 pasos. Esta información se utiliza para verificar tu elegibilidad y preparar tu zona de entrega.',
     },
-    'step_contact': {
-      'fr': 'Coordonnées',
-      'en': 'Contact',
-      'es': 'Contacto',
-    },
-    'step_vehicle': {
-      'fr': 'Véhicule',
-      'en': 'Vehicle',
-      'es': 'Vehículo',
-    },
+    'step_contact': {'fr': 'Coordonnées', 'en': 'Contact', 'es': 'Contacto'},
+    'step_vehicle': {'fr': 'Véhicule', 'en': 'Vehicle', 'es': 'Vehículo'},
     'step_services': {
       'fr': 'Zone & services',
       'en': 'Area & services',
@@ -67,19 +59,74 @@ class DriverOnboardingCopy {
       'es': 'Tu vehículo de entrega',
     },
     'vehicle_subtitle': {
-      'fr': 'Ces informations permettent de proposer les bonnes livraisons selon la capacité réelle de votre véhicule.',
-      'en': 'This information helps match you with deliveries that fit your vehicle’s actual capacity.',
-      'es': 'Esta información permite proponerte entregas compatibles con la capacidad real de tu vehículo.',
+      'fr': 'Renseignez précisément votre véhicule. Ces informations servent à vérifier votre dossier et à vous proposer uniquement des livraisons adaptées à sa capacité réelle.',
+      'en': 'Describe your vehicle accurately. This information is used to verify your file and only offer deliveries that match its actual capacity.',
+      'es': 'Describe tu vehículo con precisión. Esta información se utiliza para verificar tu expediente y ofrecerte solo entregas adaptadas a su capacidad real.',
+    },
+    'vehicle_make': {
+      'fr': 'Marque du véhicule',
+      'en': 'Vehicle make',
+      'es': 'Marca del vehículo',
+    },
+    'vehicle_model': {
+      'fr': 'Modèle du véhicule',
+      'en': 'Vehicle model',
+      'es': 'Modelo del vehículo',
     },
     'vehicle_color': {
       'fr': 'Couleur du véhicule',
       'en': 'Vehicle colour',
       'es': 'Color del vehículo',
     },
-    'vehicle_photo_help': {
-      'fr': 'Ajoutez une photo claire montrant le véhicule utilisé pour les livraisons.',
-      'en': 'Add a clear photo showing the vehicle you will use for deliveries.',
-      'es': 'Añade una foto clara del vehículo que utilizarás para las entregas.',
+    'payload_help': {
+      'fr': 'Indiquez la charge utile maximale que le véhicule peut transporter. Exemple : 500, 1 000 ou 2 000 kg.',
+      'en': 'Enter the maximum payload the vehicle can carry. Example: 500, 1,000 or 2,000 kg.',
+      'es': 'Indica la carga útil máxima que puede transportar el vehículo. Ejemplo: 500, 1.000 o 2.000 kg.',
+    },
+    'vehicle_photos_title': {
+      'fr': 'Photos de vérification du véhicule',
+      'en': 'Vehicle verification photos',
+      'es': 'Fotos de verificación del vehículo',
+    },
+    'vehicle_photos_subtitle': {
+      'fr': 'Les photos doivent être récentes, nettes et montrer le même véhicule que celui déclaré ci-dessus.',
+      'en': 'Photos must be recent, clear and show the same vehicle declared above.',
+      'es': 'Las fotos deben ser recientes, claras y mostrar el mismo vehículo declarado arriba.',
+    },
+    'vehicle_main_photo': {
+      'fr': 'Photo principale du véhicule',
+      'en': 'Main vehicle photo',
+      'es': 'Foto principal del vehículo',
+    },
+    'vehicle_main_photo_help': {
+      'fr': 'Prenez une vue claire de l’extérieur permettant d’identifier facilement le véhicule.',
+      'en': 'Take a clear exterior view that makes the vehicle easy to identify.',
+      'es': 'Toma una vista exterior clara que permita identificar fácilmente el vehículo.',
+    },
+    'vehicle_rear_photo': {
+      'fr': 'Photo arrière du véhicule',
+      'en': 'Rear vehicle photo',
+      'es': 'Foto trasera del vehículo',
+    },
+    'vehicle_rear_photo_help': {
+      'fr': 'Photographiez clairement l’arrière du véhicule utilisé pour les livraisons.',
+      'en': 'Clearly photograph the rear of the vehicle used for deliveries.',
+      'es': 'Fotografía claramente la parte trasera del vehículo utilizado para las entregas.',
+    },
+    'vehicle_plate_photo': {
+      'fr': 'Photo de la plaque d’immatriculation',
+      'en': 'License plate photo',
+      'es': 'Foto de la placa de matrícula',
+    },
+    'vehicle_plate_photo_help': {
+      'fr': 'La plaque doit être entièrement visible et lisible pour la vérification administrative.',
+      'en': 'The plate must be fully visible and readable for administrative verification.',
+      'es': 'La placa debe estar completamente visible y legible para la verificación administrativa.',
+    },
+    'vehicle_verification_notice': {
+      'fr': 'La plaque saisie et les photos seront comparées au certificat d’immatriculation transmis à l’étape 4.',
+      'en': 'The entered plate and photos will be compared with the vehicle registration certificate submitted in step 4.',
+      'es': 'La placa ingresada y las fotos se compararán con el certificado de matrícula enviado en el paso 4.',
     },
     'service_title': {
       'fr': 'Votre zone et vos services',
