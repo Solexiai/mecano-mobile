@@ -22,6 +22,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 import '../../models/enums.dart';
 import '../models/driver_profile_v2.dart';
@@ -124,12 +125,17 @@ class FirebaseDriverRepository implements DriverRepository {
       //    pourrait jamais créer son document d'onboarding.
       await _functions.httpsCallable('registerAsDriver').call();
 
-      // 2. Forcer le rafraîchissement du token pour que le claim soit
-      //    visible immédiatement dans cette même session (sinon la règle
-      //    Firestore verrait encore l'ancien token sans le rôle driver).
-      // Note: l'appelant (écran d'onboarding) doit avoir déjà déclenché
-      // FirebaseAuthProvider.refreshClaims() après le succès de cette
-      // méthode pour que l'UI reflète aussi le nouveau rôle.
+      // 2. IMPORTANT : `setCustomUserClaims()` ne met pas à jour le jeton
+      //    déjà en cache côté client. Sans ce refresh, l'écriture Firestore
+      //    juste en dessous part encore avec le claim `customer` et la règle
+      //    `isDriver()` refuse un nouveau chauffeur avec PERMISSION_DENIED.
+      //    Forcer ici le renouvellement du token garantit que le claim
+      //    `driver` est effectif AVANT la création de `driver_profiles` et
+      //    avant l'écriture du véhicule qui suit dans le wizard.
+      final currentUser = fb.FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        await currentUser.getIdTokenResult(true);
+      }
 
       // 3. Créer/mettre à jour le document d'onboarding avec un statut sûr.
       await _driverProfiles.doc(profile.uid).set(safeProfile.toJson(), SetOptions(merge: true));
