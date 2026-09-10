@@ -22,13 +22,6 @@ class HowItWorksScreen extends StatelessWidget {
       ('4', 'Réservez un créneau', Icons.event_available_outlined),
       ('5', 'Confirmez la livraison et laissez un avis', Icons.star_border_rounded),
     ];
-    final mechanicSteps = [
-      ('1', 'Décrivez le problème de votre véhicule', Icons.build_outlined),
-      ('2', 'Choisissez votre emplacement et horaire', Icons.place_outlined),
-      ('3', 'Comparez les mécaniciens disponibles', Icons.people_outline),
-      ('4', 'Approuvez la demande de service', Icons.check_circle_outline),
-      ('5', 'Recevez un rapport et laissez un avis', Icons.star_border_rounded),
-    ];
 
     return AppShell(
       locale: locale,
@@ -40,20 +33,30 @@ class HowItWorksScreen extends StatelessWidget {
             children: [
               SectionTitle(title: t('nav_how_it_works')),
               const SizedBox(height: 32),
-              Text(t('nav_delivery'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.primary)),
+              Text(
+                t('nav_delivery'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
               const SizedBox(height: 16),
               _StepsList(steps: deliverySteps, color: AppColors.primary),
               const SizedBox(height: 20),
-              Row(children: [
-                const Icon(Icons.gps_fixed, color: AppColors.textSecondary),
-                const SizedBox(width: 10),
-                const Expanded(child: Text('Suivi GPS en temps réel', style: TextStyle(color: AppColors.textSecondary))),
-                const ComingSoonBadge(small: true),
-              ]),
-              const SizedBox(height: 48),
-              Text(t('nav_mechanic'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.success)),
-              const SizedBox(height: 16),
-              _StepsList(steps: mechanicSteps, color: AppColors.success),
+              Row(
+                children: [
+                  const Icon(Icons.gps_fixed, color: AppColors.textSecondary),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Suivi GPS en temps réel',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  const ComingSoonBadge(small: true),
+                ],
+              ),
             ],
           ),
         ),
@@ -71,18 +74,41 @@ class _StepsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: steps
-          .map((s) => Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
-                child: Row(children: [
-                  CircleAvatar(radius: 20, backgroundColor: color.withValues(alpha: 0.12), child: Text(s.$1, style: TextStyle(color: color, fontWeight: FontWeight.w800))),
+          .map(
+            (s) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: color.withValues(alpha: 0.12),
+                    child: Text(
+                      s.$1,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Icon(s.$3, color: color),
                   const SizedBox(width: 12),
-                  Expanded(child: Text(s.$2, style: const TextStyle(fontWeight: FontWeight.w600))),
-                ]),
-              ))
+                  Expanded(
+                    child: Text(
+                      s.$2,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
     );
   }
