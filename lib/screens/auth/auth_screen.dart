@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
@@ -43,6 +44,21 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _submitting = false;
   String? _error;
 
+  void _goToSignedInHome(FirebaseAuthProvider auth) {
+    // P1 stabilisation pré-pilote : un compte chauffeur ne doit jamais être
+    // envoyé silencieusement vers le tableau de bord CLIENT après connexion.
+    // Le dossier chauffeur est le point d'entrée canonique tant que son état
+    // administratif doit être visible (pending_review, documents_required,
+    // approved, rejected, suspended, etc.). DriverStatusScreen lit l'état
+    // Firestore en temps réel et affiche aussi le motif communiqué par
+    // l'administration lorsqu'une action est requise.
+    if (auth.hasRole(PlatformRole.driver)) {
+      context.go('/${widget.locale}/devenir-chauffeur/statut');
+      return;
+    }
+    context.go('/${widget.locale}/tableau-de-bord');
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
@@ -67,7 +83,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () => context.go('/${widget.locale}/tableau-de-bord'),
+                  onPressed: () => _goToSignedInHome(auth),
                   child: Text(t('nav_dashboard')),
                 ),
               ],
@@ -265,7 +281,7 @@ class _AuthScreenState extends State<AuthScreen> {
         return;
       }
       if (mounted && auth.isSignedIn) {
-        context.go('/${widget.locale}/tableau-de-bord');
+        _goToSignedInHome(auth);
       }
     } catch (e) {
       setState(() => _error = t('auth_error_generic'));
