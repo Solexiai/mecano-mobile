@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../core/app_colors.dart';
-import '../providers/locale_provider.dart';
-import '../providers/firebase_auth_provider.dart';
 import '../models/enums.dart';
+import '../providers/firebase_auth_provider.dart';
+import '../providers/locale_provider.dart';
 import 'language_selector.dart';
+
+String _deliveryTagline(String locale) {
+  switch (locale) {
+    case 'en':
+      return 'Large-item delivery, made local.';
+    case 'es':
+      return 'Entregas de artículos voluminosos, cerca de ti.';
+    default:
+      return 'La livraison de gros objets, près de chez vous.';
+  }
+}
 
 /// Shared public-page shell: responsive header with nav + footer.
 /// Mobile: compact header with hamburger drawer. Desktop: full nav bar.
-///
-/// Also keeps [LocaleProvider] in sync with the /fr|/en|/es URL segment,
-/// so a direct link, bookmark, or browser refresh on a locale-prefixed URL
-/// always renders the matching language (not just whatever locale was
-/// last saved in local storage).
 class AppShell extends StatefulWidget {
   final String locale;
   final Widget child;
@@ -102,11 +109,11 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
                     child: const Icon(Icons.bolt, color: Colors.white, size: 20),
                   ),
                   const SizedBox(width: 10),
-                  Flexible(
+                  const Flexible(
                     child: Text(
                       'Movi-k',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 20,
                       ),
@@ -176,6 +183,7 @@ class _AccountMenu extends StatelessWidget {
     final displayName = auth.user?.displayName ?? auth.user?.email ?? '';
     final isCustomerOnly =
         auth.roles.length == 1 && auth.roles.first == PlatformRole.customer;
+
     return PopupMenuButton<String>(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) {
@@ -224,6 +232,7 @@ class _MobileDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
+
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
           leading: Icon(icon, color: AppColors.primary),
           title: Text(label),
@@ -232,6 +241,7 @@ class _MobileDrawer extends StatelessWidget {
             onTap();
           },
         );
+
     return Drawer(
       child: SafeArea(
         child: ListView(
@@ -410,7 +420,7 @@ class _MovikFooter extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            t('tagline'),
+            _deliveryTagline(locale),
             style: const TextStyle(color: AppColors.textOnDarkSecondary),
           ),
           const SizedBox(height: 28),
