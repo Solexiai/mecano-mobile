@@ -21,6 +21,7 @@ import { requireSignedIn } from "../lib/auth";
 import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
 import { PricingVersionDoc } from "../lib/types";
+import { resolveConfiguredVehicleCategory } from "../lib/vehicleCategory";
 
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
@@ -86,7 +87,17 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   if (!activeConfigSnap.exists) {
     throw failedPrecondition("Aucune configuration tarifaire active (pricing_configs/active).");
   }
-  const activePricingVersion = activeConfigSnap.data()!.active_pricing_version as string;
+
+  // Fail closed si le document existe mais que son pointeur est absent/vide.
+  // Cela produit une erreur métier contrôlée plutôt qu'un `.doc(undefined)`
+  // difficile à diagnostiquer dans les logs.
+  const rawActivePricingVersion = activeConfigSnap.data()?.active_pricing_version;
+  if (typeof rawActivePricingVersion !== "string" || !rawActivePricingVersion.trim()) {
+    throw failedPrecondition(
+      "pricing_configs/active.active_pricing_version est absent ou invalide."
+    );
+  }
+  const activePricingVersion = rawActivePricingVersion.trim();
 
   const versionSnap = await db.collection("pricing_versions").doc(activePricingVersion).get();
   if (!versionSnap.exists) {
@@ -97,11 +108,27 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     throw failedPrecondition("La pricing_version active pointée n'est plus marquée is_active.");
   }
 
+  // Compatibilité historique : Flutter envoie maintenant les catégories
+  // Firestore en snake_case (`cargo_van`, `pickup_truck`, ...), tandis que
+  // certaines anciennes pricing_versions immuables utilisent camelCase
+  // (`cargoVan`, `pickupTruck`, ...). On résout contre la grille réellement
+  // active puis on transmet au moteur la valeur EXACTE stockée dans cette
+  // grille. Aucun tarif n'est inventé ou modifié ici.
+  const configuredVehicleCategory = resolveConfiguredVehicleCategory(
+    config.vehicle_rules.map((rule) => rule.category),
+    input.vehicleCategory
+  );
+  if (!configuredVehicleCategory) {
+    throw failedPrecondition(
+      `Aucune règle de tarification pour la catégorie ${input.vehicleCategory}.`
+    );
+  }
+
   // 2. Premier passage SANS remise — nécessaire pour connaître le subtotal
   // brut (base de calcul d'une remise en pourcentage), sans jamais faire
   // confiance à un montant envoyé par le client.
   const baseArgs = {
-    vehicleCategory: input.vehicleCategory,
+    vehicleCategory: configuredVehicleCategory,
     distanceKm: input.distanceKm,
     estimatedDurationMinutes: input.estimatedDurationMinutes,
     handling: input.handling,
@@ -123,7 +150,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     customerDiscountAmount,
   });
 
-  // 3. Écriture du devis avec durée de validité configurée.
+  // 5. Écriture du devis avec durée de validité configurée.
   const quoteRef = db.collection("delivery_quotes").doc();
   const now = admin.firestore.Timestamp.now();
   const expiresAt = admin.firestore.Timestamp.fromMillis(
