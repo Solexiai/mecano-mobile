@@ -1,23 +1,5 @@
 // ---------------------------------------------------------------------------
-// FirebaseDriverRepository — première implémentation RÉELLE de
-// DriverRepository, branchée sur Cloud Firestore.
-//
-// RÈGLES RESPECTÉES (voir en-tête de driver_repository.dart) :
-// - Lecture : accès direct Firestore (`driver_profiles`, `driver_documents`),
-//   déjà protégé par firestore.rules (un chauffeur ne peut lire que son
-//   propre profil ; un analyste/admin peut lire la file pending_review).
-// - Écriture : `submitDriverOnboarding()` et `submitDriverDocument()` sont
-//   des écritures NON sensibles autorisées explicitement par
-//   firestore.rules (un chauffeur peut créer/mettre à jour son propre
-//   profil tant que `status` reste `registration_incomplete` ou
-//   `pending_review`, jamais `approved` — voir la règle
-//   `driver_profiles` dans firestore.rules).
-// - AUCUNE écriture de champs protégés (status=approved, approved_at,
-//   approved_by_user_id, rating, documents_all_valid, etc.) n'est faite
-//   ici : ces champs sont exclusivement modifiés par les Cloud Functions
-//   `approveDriver`/`rejectDriver`/`validateDriverDocument`.
-// - Toute valeur d'enum sérialisée utilise `firestoreValue` (snake_case),
-//   jamais `.name` (camelCase) — cohérence avec functions/src/lib/types.ts.
+// FirebaseDriverRepository — implémentation réelle de DriverRepository.
 // ---------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -25,16 +7,18 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 import '../../models/enums.dart';
-import '../models/driver_profile_v2.dart';
-import '../models/driver_document.dart';
-import '../models/driver_vehicle.dart';
-import '../models/driver_internal_note.dart';
 import '../backend_exceptions.dart';
+import '../models/driver_document.dart';
+import '../models/driver_internal_note.dart';
+import '../models/driver_profile_v2.dart';
+import '../models/driver_vehicle.dart';
 import 'driver_repository.dart';
 
 class FirebaseDriverRepository implements DriverRepository {
-  FirebaseDriverRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
-      : _db = firestore ?? FirebaseFirestore.instance,
+  FirebaseDriverRepository({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  })  : _db = firestore ?? FirebaseFirestore.instance,
         _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFirestore _db;
@@ -66,27 +50,40 @@ class FirebaseDriverRepository implements DriverRepository {
 
   @override
   Future<List<DriverDocument>> getDriverDocuments(String driverId) async {
-    final snap = await _driverDocuments.where('driver_id', isEqualTo: driverId).get();
-    return snap.docs.map((d) => DriverDocument.fromJson(d.id, d.data())).toList();
+    final snap =
+        await _driverDocuments.where('driver_id', isEqualTo: driverId).get();
+    return snap.docs
+        .map((d) => DriverDocument.fromJson(d.id, d.data()))
+        .toList();
   }
 
   @override
   Stream<List<DriverDocument>> watchDriverDocuments(String driverId) {
-    return _driverDocuments.where('driver_id', isEqualTo: driverId).snapshots().map(
-          (snap) => snap.docs.map((d) => DriverDocument.fromJson(d.id, d.data())).toList(),
+    return _driverDocuments
+        .where('driver_id', isEqualTo: driverId)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => DriverDocument.fromJson(d.id, d.data()))
+              .toList(),
         );
   }
 
   @override
   Future<List<DriverVehicle>> getDriverVehicles(String driverId) async {
-    final snap = await _driverVehicles.where('driver_id', isEqualTo: driverId).get();
-    return snap.docs.map((d) => DriverVehicle.fromJson(d.id, d.data())).toList();
+    final snap =
+        await _driverVehicles.where('driver_id', isEqualTo: driverId).get();
+    return snap.docs
+        .map((d) => DriverVehicle.fromJson(d.id, d.data()))
+        .toList();
   }
 
   @override
   Future<void> submitDriverDocument(DriverDocument document) async {
     try {
-      await _driverDocuments.doc(document.id).set(document.toJson(), SetOptions(merge: true));
+      await _driverDocuments
+          .doc(document.id)
+          .set(document.toJson(), SetOptions(merge: true));
     } catch (e) {
       throw BackendNotConfiguredException('submitDriverDocument a échoué: $e');
     }
@@ -94,23 +91,31 @@ class FirebaseDriverRepository implements DriverRepository {
 
   @override
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) async {
-    // Garde-fou défensif côté client (en plus de firestore.rules) : on
-    // n'autorise jamais ce repository à écrire un statut protégé. Le
-    // statut initial d'un onboarding est TOUJOURS 'registration_incomplete'
-    // (seule valeur autorisée par la règle `create` de driver_profiles) ;
-    // le passage à 'pending_review' se fait via une écriture ultérieure du
-    // chauffeur lui-même une fois le formulaire complet (autorisé par la
-    // règle `update`, qui ne protège que les champs sensibles listés).
     final safeStatus = (profile.status == DriverStatus.approved ||
             profile.status == DriverStatus.rejected ||
             profile.status == DriverStatus.suspended)
         ? DriverStatus.registrationIncomplete
         : profile.status;
 
+    // Conserver tous les champs déclaratifs du nouveau wizard tout en
+    // réinitialisant les champs sensibles à leurs valeurs sûres. L'ancienne
+    // version reconstruisait le modèle en perdant notamment téléphone,
+    // adresse structurée, langues et disponibilité d'aide au chargement.
     final safeProfile = DriverProfileV2(
       uid: profile.uid,
       fullName: profile.fullName,
       city: profile.city,
+      phone: profile.phone,
+      baseAddressFormatted: profile.baseAddressFormatted,
+      baseAddressLine1: profile.baseAddressLine1,
+      baseRegion: profile.baseRegion,
+      basePostalCode: profile.basePostalCode,
+      baseCountry: profile.baseCountry,
+      basePlaceId: profile.basePlaceId,
+      baseLat: profile.baseLat,
+      baseLng: profile.baseLng,
+      spokenLanguages: profile.spokenLanguages,
+      loadingAssistanceAvailable: profile.loadingAssistanceAvailable,
       status: safeStatus,
       serviceRadiusKm: profile.serviceRadiusKm,
       acceptedVehicleCategories: profile.acceptedVehicleCategories,
@@ -119,40 +124,29 @@ class FirebaseDriverRepository implements DriverRepository {
     );
 
     try {
-      // 1. S'assurer que le custom claim `driver` est présent (requis par
-      //    la règle `create` de driver_profiles : isDriver()). Sans appel,
-      //    un tout nouvel utilisateur (rôle customer uniquement) ne
-      //    pourrait jamais créer son document d'onboarding.
       await _functions.httpsCallable('registerAsDriver').call();
 
-      // 2. IMPORTANT : `setCustomUserClaims()` ne met pas à jour le jeton
-      //    déjà en cache côté client. Sans ce refresh, l'écriture Firestore
-      //    juste en dessous part encore avec le claim `customer` et la règle
-      //    `isDriver()` refuse un nouveau chauffeur avec PERMISSION_DENIED.
-      //    Forcer ici le renouvellement du token garantit que le claim
-      //    `driver` est effectif AVANT la création de `driver_profiles` et
-      //    avant l'écriture du véhicule qui suit dans le wizard.
       final currentUser = fb.FirebaseAuth.instance.currentUser;
       if (currentUser != null) {
         await currentUser.getIdTokenResult(true);
       }
 
-      // 3. Créer/mettre à jour le document d'onboarding avec un statut sûr.
-      await _driverProfiles.doc(profile.uid).set(safeProfile.toJson(), SetOptions(merge: true));
+      await _driverProfiles
+          .doc(profile.uid)
+          .set(safeProfile.toJson(), SetOptions(merge: true));
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'submitDriverOnboarding: registerAsDriver a échoué (${e.code}): ${e.message}');
+        'submitDriverOnboarding: registerAsDriver a échoué (${e.code}): ${e.message}',
+      );
     } catch (e) {
-      throw BackendNotConfiguredException('submitDriverOnboarding a échoué: $e');
+      throw BackendNotConfiguredException(
+        'submitDriverOnboarding a échoué: $e',
+      );
     }
   }
 
   @override
   Future<void> submitDriverVehicle(DriverVehicle vehicle) async {
-    // Garde-fou défensif : la règle `create` de driver_vehicles exige
-    // is_verified == false (seule une Cloud Function/analyste peut vérifier
-    // un véhicule ensuite) — on ne fait jamais confiance à une valeur
-    // `true` qui viendrait du modèle passé en paramètre.
     final safeVehicle = DriverVehicle(
       id: vehicle.id,
       driverId: vehicle.driverId,
@@ -163,11 +157,16 @@ class FirebaseDriverRepository implements DriverRepository {
       maxPayloadKg: vehicle.maxPayloadKg,
       isVerified: false,
       createdAt: vehicle.createdAt,
+      color: vehicle.color,
     );
     try {
-      await _driverVehicles.doc(safeVehicle.id).set(safeVehicle.toJson(), SetOptions(merge: true));
+      await _driverVehicles
+          .doc(safeVehicle.id)
+          .set(safeVehicle.toJson(), SetOptions(merge: true));
     } catch (e) {
-      throw BackendNotConfiguredException('submitDriverVehicle a échoué: $e');
+      throw BackendNotConfiguredException(
+        'submitDriverVehicle a échoué: $e',
+      );
     }
   }
 
@@ -177,7 +176,8 @@ class FirebaseDriverRepository implements DriverRepository {
       await _functions.httpsCallable('submitDriverForReview').call();
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'submitForReview: submitDriverForReview a échoué (${e.code}): ${e.message}');
+        'submitForReview: submitDriverForReview a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
@@ -186,34 +186,35 @@ class FirebaseDriverRepository implements DriverRepository {
     return _driverProfiles
         .where('status', isEqualTo: DriverStatus.pendingReview.firestoreValue)
         .snapshots()
-        .map((snap) => snap.docs.map((d) => DriverProfileV2.fromJson(d.id, d.data())).toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
+              .toList(),
+        );
   }
-
-  // -------------------------------------------------------------------
-  // Phase 2 — portail analyste `/admin/chauffeurs`.
-  // -------------------------------------------------------------------
 
   @override
   Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) {
-    // Requête volontairement SIMPLE (un seul .where(), pas de .orderBy())
-    // pour éviter toute dépendance à un index composite Firestore — le tri
-    // (le cas échéant) doit être fait en mémoire côté UI. Voir section
-    // "Firebase Data Type Consistency" des consignes du sandbox.
     final query = status == null
         ? _driverProfiles
         : _driverProfiles.where('status', isEqualTo: status.firestoreValue);
     return query.snapshots().map(
-          (snap) => snap.docs.map((d) => DriverProfileV2.fromJson(d.id, d.data())).toList(),
+          (snap) => snap.docs
+              .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
+              .toList(),
         );
   }
 
   @override
   Future<void> approveDriver(String driverId) async {
     try {
-      await _functions.httpsCallable('approveDriver').call({'driverId': driverId});
+      await _functions
+          .httpsCallable('approveDriver')
+          .call({'driverId': driverId});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'approveDriver a échoué (${e.code}): ${e.message}');
+        'approveDriver a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
@@ -225,7 +226,8 @@ class FirebaseDriverRepository implements DriverRepository {
           .call({'driverId': driverId, 'reason': reason});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'rejectDriver a échoué (${e.code}): ${e.message}');
+        'rejectDriver a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
@@ -237,7 +239,8 @@ class FirebaseDriverRepository implements DriverRepository {
           .call({'driverId': driverId, 'reason': reason});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'requestDriverDocuments a échoué (${e.code}): ${e.message}');
+        'requestDriverDocuments a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
@@ -249,17 +252,21 @@ class FirebaseDriverRepository implements DriverRepository {
           .call({'driverId': driverId, 'reason': reason});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'suspendDriver a échoué (${e.code}): ${e.message}');
+        'suspendDriver a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
   @override
   Future<void> reactivateDriver(String driverId) async {
     try {
-      await _functions.httpsCallable('reactivateDriver').call({'driverId': driverId});
+      await _functions
+          .httpsCallable('reactivateDriver')
+          .call({'driverId': driverId});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'reactivateDriver a échoué (${e.code}): ${e.message}');
+        'reactivateDriver a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
@@ -271,60 +278,58 @@ class FirebaseDriverRepository implements DriverRepository {
           .call({'driverId': driverId, 'text': text});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'addDriverInternalNote a échoué (${e.code}): ${e.message}');
+        'addDriverInternalNote a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
   @override
   Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId) {
-    // Pas de .orderBy() ici non plus (voir watchDriversByStatus) : tri par
-    // date en mémoire côté UI pour éviter un index composite.
-    return _driverInternalNotes.where('driver_id', isEqualTo: driverId).snapshots().map(
-          (snap) => snap.docs.map((d) => DriverInternalNote.fromJson(d.id, d.data())).toList(),
+    return _driverInternalNotes
+        .where('driver_id', isEqualTo: driverId)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => DriverInternalNote.fromJson(d.id, d.data()))
+              .toList(),
         );
   }
 
   @override
   Future<void> logDriverReviewOpened(String driverId) async {
     try {
-      await _functions.httpsCallable('logDriverReviewOpened').call({'driverId': driverId});
+      await _functions
+          .httpsCallable('logDriverReviewOpened')
+          .call({'driverId': driverId});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'logDriverReviewOpened a échoué (${e.code}): ${e.message}');
+        'logDriverReviewOpened a échoué (${e.code}): ${e.message}',
+      );
     }
   }
 
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) async {
     try {
-      // Écriture Firestore directe (pas de Cloud Function dédiée) : ce
-      // champ n'est PAS protégé par firestore.rules, mais la règle
-      // `update` exige `resource.data.status == 'approved'` pour
-      // l'autoriser — voir en-tête de driver_repository.dart. Un chauffeur
-      // non approuvé reçoit donc un PERMISSION_DENIED natif Firestore.
       await _driverProfiles.doc(driverId).update({
-        'online_status': (online ? DriverOnlineStatus.online : DriverOnlineStatus.offline)
+        'online_status': (online
+                ? DriverOnlineStatus.online
+                : DriverOnlineStatus.offline)
             .firestoreValue,
       });
     } catch (e) {
-      throw BackendNotConfiguredException('setDriverOnlineStatus a échoué: $e');
+      throw BackendNotConfiguredException(
+        'setDriverOnlineStatus a échoué: $e',
+      );
     }
   }
 
-  // -------------------------------------------------------------------
-  // Bloc 8B — Connect Onboarding Flutter.
-  // -------------------------------------------------------------------
-
   @override
-  Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() async {
+  Future<DriverStripeAccountResult>
+      createOrRetrieveDriverStripeAccount() async {
     try {
-      // RÉUTILISATION STRICTE de la Cloud Function existante — aucune
-      // nouvelle fonction backend créée pour ce Bloc (directive PRIORITÉ 1).
-      // Le secret Stripe (STRIPE_SECRET_KEY) ne quitte jamais le serveur :
-      // seule cette Cloud Function le charge (voir
-      // createDriverStripeAccount.ts, { secrets: [...] }), Flutter ne reçoit
-      // que l'identifiant de compte (opaque) et une URL d'onboarding.
-      final result = await _functions.httpsCallable('createDriverStripeAccount').call();
+      final result =
+          await _functions.httpsCallable('createDriverStripeAccount').call();
       final data = Map<String, dynamic>.from(result.data as Map);
       return DriverStripeAccountResult(
         success: data['success'] == true,
@@ -334,9 +339,12 @@ class FirebaseDriverRepository implements DriverRepository {
       );
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
-          'createOrRetrieveDriverStripeAccount a échoué (${e.code}): ${e.message}');
+        'createOrRetrieveDriverStripeAccount a échoué (${e.code}): ${e.message}',
+      );
     } catch (e) {
-      throw BackendNotConfiguredException('createOrRetrieveDriverStripeAccount a échoué: $e');
+      throw BackendNotConfiguredException(
+        'createOrRetrieveDriverStripeAccount a échoué: $e',
+      );
     }
   }
 }
