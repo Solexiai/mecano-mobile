@@ -205,8 +205,14 @@ Widget _app(FirebaseAuthProvider auth) {
 Future<void> _tapPicker(WidgetTester tester, String label) async {
   final labelFinder = find.text(label);
   await tester.ensureVisible(labelFinder);
-  final row = find.ancestor(of: labelFinder, matching: find.byType(Container)).first;
-  final button = find.descendant(of: row, matching: find.byType(OutlinedButton));
+  final row = find.ancestor(
+    of: labelFinder,
+    matching: find.byType(Container),
+  ).first;
+  final button = find.descendant(
+    of: row,
+    matching: find.byType(OutlinedButton),
+  );
   await tester.tap(button);
   await tester.pump(const Duration(milliseconds: 200));
   final camera = find.text(
@@ -229,9 +235,8 @@ Future<void> _next(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _goToDocuments(WidgetTester tester) async {
-  // Step 1: signed-in test user -> name, phone, address.
-  var fields = find.byType(TextField);
+Future<void> _completeContactStep(WidgetTester tester) async {
+  final fields = find.byType(TextField);
   await tester.enterText(fields.at(1), '5145551234');
   await tester.enterText(fields.at(2), '100 Rue Principale');
   await tester.pump(const Duration(milliseconds: 400));
@@ -241,22 +246,41 @@ Future<void> _goToDocuments(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   await _next(tester);
+}
 
-  // Step 2: vehicle + mandatory vehicle photo.
+Future<void> _completeVehicleStep(WidgetTester tester) async {
   await tester.tap(find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr')));
   await tester.pump();
-  fields = find.byType(TextField);
-  await tester.enterText(fields.at(0), 'Ford F-150');
-  await tester.enterText(fields.at(1), '2024');
-  await tester.enterText(fields.at(3), 'ABC123');
+
+  final fields = find.byType(TextField);
+  expect(fields, findsNWidgets(6));
+  await tester.enterText(fields.at(0), 'Ford');
+  await tester.enterText(fields.at(1), 'F-150');
+  await tester.enterText(fields.at(2), '2024');
+  await tester.enterText(fields.at(3), 'Bleu');
+  await tester.enterText(fields.at(4), 'ABC123');
+  await tester.enterText(fields.at(5), '900');
   await tester.pump();
+
   await _tapPicker(
     tester,
-    AppStrings.t('driver_onboarding_vehicle_photos', 'fr'),
+    DriverOnboardingCopy.text('fr', 'vehicle_main_photo'),
+  );
+  await _tapPicker(
+    tester,
+    DriverOnboardingCopy.text('fr', 'vehicle_rear_photo'),
+  );
+  await _tapPicker(
+    tester,
+    DriverOnboardingCopy.text('fr', 'vehicle_plate_photo'),
   );
   await _next(tester);
+}
 
-  // Step 3: at least one accepted delivery category.
+Future<void> _goToDocuments(WidgetTester tester) async {
+  await _completeContactStep(tester);
+  await _completeVehicleStep(tester);
+
   await tester.tap(find.text(AppStrings.t('cat_furniture', 'fr')));
   await tester.pump();
   await _next(tester);
@@ -288,7 +312,52 @@ void main() {
   });
 
   testWidgets(
-    'redesigned onboarding requires and uploads vehicle photo plus four verification documents',
+    'vehicle step requires make, model, payload and all three verification photos',
+    (tester) async {
+      await tester.pumpWidget(_app(auth));
+      await tester.pumpAndSettle();
+      await _completeContactStep(tester);
+
+      await tester.tap(
+        find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr')),
+      );
+      await tester.pump();
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'Ford');
+      await tester.enterText(fields.at(1), 'F-150');
+      await tester.enterText(fields.at(2), '2024');
+      await tester.enterText(fields.at(3), 'Bleu');
+      await tester.enterText(fields.at(4), 'ABC123');
+      await tester.enterText(fields.at(5), '900');
+      await tester.pump();
+
+      final next = find.widgetWithText(
+        ElevatedButton,
+        AppStrings.t('common_next', 'fr'),
+      );
+      expect(tester.widget<ElevatedButton>(next).onPressed, isNull);
+
+      await _tapPicker(
+        tester,
+        DriverOnboardingCopy.text('fr', 'vehicle_main_photo'),
+      );
+      expect(tester.widget<ElevatedButton>(next).onPressed, isNull);
+      await _tapPicker(
+        tester,
+        DriverOnboardingCopy.text('fr', 'vehicle_rear_photo'),
+      );
+      expect(tester.widget<ElevatedButton>(next).onPressed, isNull);
+      await _tapPicker(
+        tester,
+        DriverOnboardingCopy.text('fr', 'vehicle_plate_photo'),
+      );
+      await tester.pump();
+      expect(tester.widget<ElevatedButton>(next).onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'redesigned onboarding uploads three vehicle photos and four verification documents',
     (tester) async {
       final uploadRepo = _UploadRepo();
       BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
@@ -297,7 +366,9 @@ void main() {
       await _goToDocuments(tester);
 
       expect(
-        find.text(AppStrings.t('driver_onboarding_document_none_selected', 'fr')),
+        find.text(
+          AppStrings.t('driver_onboarding_document_none_selected', 'fr'),
+        ),
         findsNWidgets(4),
       );
 
@@ -332,8 +403,8 @@ void main() {
       await tester.tap(submit);
       await tester.pumpAndSettle();
 
-      expect(uploadRepo.calls, 5);
-      expect(driverRepo.documents.length, 5);
+      expect(uploadRepo.calls, 7);
+      expect(driverRepo.documents.length, 7);
       expect(
         driverRepo.documents.map((d) => d.type).toSet(),
         containsAll(<DriverDocumentType>{
@@ -344,6 +415,30 @@ void main() {
           DriverDocumentType.vehiclePhoto,
         }),
       );
+
+      final vehiclePhotos = driverRepo.documents
+          .where((d) => d.type == DriverDocumentType.vehiclePhoto)
+          .toList();
+      expect(vehiclePhotos.length, 3);
+      expect(
+        vehiclePhotos.any(
+          (d) => d.storageBucketPath.contains('/vehicle_main_photo_'),
+        ),
+        isTrue,
+      );
+      expect(
+        vehiclePhotos.any(
+          (d) => d.storageBucketPath.contains('/vehicle_rear_photo_'),
+        ),
+        isTrue,
+      );
+      expect(
+        vehiclePhotos.any(
+          (d) => d.storageBucketPath.contains('/vehicle_plate_photo_'),
+        ),
+        isTrue,
+      );
+
       expect(driverRepo.onboardingCalls, 1);
       expect(driverRepo.vehicleCalls, 1);
       expect(driverRepo.submitReviewCalls, 1);
@@ -351,7 +446,12 @@ void main() {
       expect(driverRepo.profile?.baseAddressFormatted, contains('Terrebonne'));
       expect(driverRepo.profile?.baseLat, 45.70);
       expect(driverRepo.vehicle?.makeModel, 'Ford F-150');
-      expect(find.text(AppStrings.t('driver_pending_verification', 'fr')), findsOneWidget);
+      expect(driverRepo.vehicle?.maxPayloadKg, 900);
+      expect(driverRepo.vehicle?.color, 'Bleu');
+      expect(
+        find.text(AppStrings.t('driver_pending_verification', 'fr')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -395,9 +495,14 @@ void main() {
 
       expect(uploadRepo.calls, greaterThanOrEqualTo(1));
       expect(driverRepo.submitReviewCalls, 0);
-      expect(find.text(AppStrings.t('driver_pending_verification', 'fr')), findsNothing);
       expect(
-        find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+        find.text(AppStrings.t('driver_pending_verification', 'fr')),
+        findsNothing,
+      );
+      expect(
+        find.text(
+          AppStrings.t('driver_onboarding_error_generic_prefix', 'fr'),
+        ),
         findsOneWidget,
       );
     },
