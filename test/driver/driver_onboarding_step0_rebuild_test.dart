@@ -1,29 +1,3 @@
-// ---------------------------------------------------------------------------
-// Phase 7, Bloc C, ACTION 1 — BUG-003, occurrence DriverOnboarding.
-//
-// BUG-003 (déjà corrigé sur DeliveryRequestFlowScreen, Bloc B) : `canProceed
-// (step)` lisait `.text` de `TextEditingController`s branchés sur des
-// `TextField` SANS `onChanged` déclenchant un `setState()` parent -> le
-// bouton "Suivant" pouvait rester figé désactivé selon l'ordre de saisie.
-//
-// Root-cause CONFIRMÉ identique sur `DriverOnboardingScreen`, étape 0
-// (Profil) : `canProceed(0)` lit `_nameController.text` /
-// `_emailController.text` / `_passwordController.text`, et les 3 `TextField`
-// correspondants n'avaient AUCUN `onChanged`. Test de diagnostic initial :
-// FAIL (bouton "Suivant" resté `onPressed == null` malgré une saisie
-// complète et valide des 3 champs, sans aucune autre action `setState`
-// intercalée).
-//
-// CORRECTIF appliqué (identique au pattern BUG-003 du Bloc B) : ajout de
-// `onChanged: (_) => setState(() {})` sur les 3 `TextField` concernés
-// (nom, email, password). Aucun nouveau BUG-004 créé — même root-cause,
-// documenté comme "BUG-003 — occurrence DriverOnboarding" dans
-// PHASE7_BUG_REPORT.md.
-//
-// Ce fichier est désormais le test anti-régression permanent pour cette
-// occurrence : DOIT rester PASS.
-// ---------------------------------------------------------------------------
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +7,37 @@ import 'package:movik_connect/backend/backend_status.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/driver/driver_onboarding_screen.dart';
+import 'package:movik_connect/services/address/address_autocomplete_provider.dart';
+import 'package:movik_connect/services/address/address_backend_locator.dart';
+import 'package:movik_connect/services/address/address_suggestion.dart';
+
+class _FakeAddressProvider implements AddressAutocompleteProvider {
+  @override
+  Future<List<AddressSuggestion>> searchSuggestions(String query) async {
+    return const [
+      AddressSuggestion(
+        placeId: 'place-terrebonne',
+        description: '527 Rue Lacasse, Terrebonne, QC J6W 4Y7, Canada',
+      ),
+    ];
+  }
+
+  @override
+  Future<ResolvedAddress> resolvePlace(String placeId) async {
+    return const ResolvedAddress(
+      placeId: 'place-terrebonne',
+      formattedAddress: '527 Rue Lacasse, Terrebonne, QC J6W 4Y7, Canada',
+      streetNumber: '527',
+      street: 'Rue Lacasse',
+      city: 'Terrebonne',
+      region: 'QC',
+      postalCode: 'J6W 4Y7',
+      country: 'Canada',
+      lat: 45.70,
+      lng: -73.64,
+    );
+  }
+}
 
 Widget _buildTestApp(FirebaseAuthProvider auth) {
   final router = GoRouter(
@@ -62,58 +67,60 @@ void main() {
 
   setUp(() {
     auth = FirebaseAuthProvider(backendConfigured: false);
+    AddressBackendLocator.autocompleteProviderOverride = _FakeAddressProvider();
   });
 
-  Future<void> enterTextEnsuringVisible(
+  tearDown(() {
+    AddressBackendLocator.autocompleteProviderOverride = null;
+  });
+
+  Future<void> enter(
     WidgetTester tester,
     Finder finder,
     String text,
   ) async {
     await tester.ensureVisible(finder);
-    await tester.pumpAndSettle();
     await tester.enterText(finder, text);
     await tester.pump();
   }
 
   testWidgets(
-    'BUG-003 (occurrence DriverOnboarding) — étape 0 (Profil) : saisir '
-    'nom+email+password sans autre setState active "Suivant"',
-    (WidgetTester tester) async {
+    'driver onboarding contact step requires contact details and a resolved service-base address',
+    (tester) async {
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      // Les TextField de l'étape 0, dans l'ordre déclaré par
-      // DriverOnboardingScreen : nom, email, password, phone, city.
-      final nameField = find.byType(TextField).at(0);
-      final emailField = find.byType(TextField).at(1);
-      final passwordField = find.byType(TextField).at(2);
-
-      await enterTextEnsuringVisible(tester, nameField, 'Jean Tremblay');
-      await enterTextEnsuringVisible(
-        tester,
-        emailField,
-        'jean.tremblay@example.com',
-      );
-      await enterTextEnsuringVisible(tester, passwordField, 'motdepasse123');
+      final fields = find.byType(TextField);
+      await enter(tester, fields.at(0), 'Jean Tremblay');
+      await enter(tester, fields.at(1), 'jean.tremblay@example.com');
+      await enter(tester, fields.at(2), 'motdepasse123');
+      await enter(tester, fields.at(3), '5145551234');
 
       final nextButtonFinder = find.widgetWithText(ElevatedButton, 'Suivant');
-      expect(nextButtonFinder, findsOneWidget);
       await tester.ensureVisible(nextButtonFinder);
+      expect(tester.widget<ElevatedButton>(nextButtonFinder).onPressed, isNull);
+
+      // AddressAutocompleteField is the fifth TextField. Typing opens the
+      // deterministic suggestion from the fake provider; selecting it
+      // resolves city/province/postal code and the GPS coordinates.
+      await enter(tester, fields.at(4), '527 Rue Lacasse');
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      final nextButton = tester.widget<ElevatedButton>(nextButtonFinder);
-
-      // Test anti-régression BUG-003 (occurrence DriverOnboarding) : le
-      // bouton doit être actif après saisie complète et valide des 3
-      // champs, sans dépendre d'un setState externe (chip/slider).
-      expect(
-        nextButton.onPressed,
-        isNotNull,
-        reason:
-            'Régression BUG-003 (occurrence DriverOnboarding) : les '
-            "TextField de l'étape 0 ne déclenchent plus de rebuild parent, "
-            'canProceed(0) reste figé sur son évaluation initiale (false).',
+      final suggestion = find.text(
+        '527 Rue Lacasse, Terrebonne, QC J6W 4Y7, Canada',
       );
+      expect(suggestion, findsOneWidget);
+      await tester.tap(suggestion);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Adresse validée'), findsOneWidget);
+      expect(find.text('Terrebonne'), findsOneWidget);
+      expect(find.text('QC'), findsOneWidget);
+      expect(find.text('J6W 4Y7'), findsOneWidget);
+
+      final nextButton = tester.widget<ElevatedButton>(nextButtonFinder);
+      expect(nextButton.onPressed, isNotNull);
     },
   );
 }
