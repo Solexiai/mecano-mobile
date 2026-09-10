@@ -7,8 +7,9 @@
 // dédié (/devenir-chauffeur/inscription), qui collecte le profil, le véhicule
 // et les documents requis avant soumission à l'administration.
 //
-// Le mécanicien mobile reste un domaine hors-scope Phase 4 (flux démo isolé) :
-// le choix "Mécanicien mobile" redirige vers son propre parcours existant.
+// Le service de mécanique mobile est temporairement masqué de l'interface
+// publique. Le code métier et les routes restent conservés pour une phase
+// ultérieure, sans être proposés aux utilisateurs.
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -20,7 +21,7 @@ import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
 
-enum _AuthRoleChoice { customer, driver, mechanic }
+enum _AuthRoleChoice { customer, driver }
 
 enum _AuthMode { signIn, signUp }
 
@@ -43,13 +44,6 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _error;
 
   void _goToSignedInHome(FirebaseAuthProvider auth) {
-    // P1 stabilisation pré-pilote : un compte chauffeur ne doit jamais être
-    // envoyé silencieusement vers le tableau de bord CLIENT après connexion.
-    // Le dossier chauffeur est le point d'entrée canonique tant que son état
-    // administratif doit être visible (pending_review, documents_required,
-    // approved, rejected, suspended, etc.). DriverStatusScreen lit l'état
-    // Firestore en temps réel et affiche aussi le motif communiqué par
-    // l'administration lorsqu'une action est requise.
     if (auth.hasRole(PlatformRole.driver)) {
       context.go('/${widget.locale}/devenir-chauffeur/statut');
       return;
@@ -148,29 +142,13 @@ class _AuthScreenState extends State<AuthScreen> {
                         _error = null;
                       }),
                     ),
-                    ChoiceChip(
-                      label: Text(t('auth_role_mechanic')),
-                      selected: _role == _AuthRoleChoice.mechanic,
-                      onSelected: (_) => setState(() {
-                        _role = _AuthRoleChoice.mechanic;
-                        _error = null;
-                      }),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                if (_role == _AuthRoleChoice.customer) ...[
-                  _buildCustomerForm(t),
-                ] else if (_role == _AuthRoleChoice.driver) ...[
+                if (_role == _AuthRoleChoice.customer)
+                  _buildCustomerForm(t)
+                else
                   _buildDriverForm(t),
-                ] else ...[
-                  _buildRedirectCard(
-                    icon: Icons.build_outlined,
-                    message: t('auth_mechanic_redirect_message'),
-                    buttonLabel: t('nav_become_mechanic'),
-                    onPressed: () => context.go('/${widget.locale}/devenir-mecanicien'),
-                  ),
-                ],
               ],
             ),
           ),
