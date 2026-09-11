@@ -35,6 +35,7 @@ class ProviderDashboardShell extends StatefulWidget {
 class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   late int _index = widget.initialTabIndex.clamp(0, 3).toInt();
   bool _togglingAvailability = false;
+  bool _signingOut = false;
 
   // Bloc M (gap performance, même classe de bug que Bloc C item 3) :
   // `watchDriverProfile(driverId)` était appelé directement dans `build()`,
@@ -72,6 +73,24 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
       }
     } finally {
       if (mounted) setState(() => _togglingAvailability = false);
+    }
+  }
+
+  Future<void> _signOutDriver(String driverId, FirebaseAuthProvider auth) async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      // Un compte explicitement déconnecté ne doit plus être candidat au
+      // dispatch ni recevoir de nouvelles offres sur un appareil partagé.
+      // Chaque étape est fail-soft pour garantir que l'utilisateur puisse
+      // toujours terminer sa déconnexion même si le réseau coupe.
+      try {
+        await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, false);
+      } catch (_) {}
+      await PushNotificationService.unregisterCurrentToken();
+      await auth.signOut();
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
     }
   }
 
@@ -180,7 +199,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                     message: statusLabel,
                     child: Switch(
                       value: online,
-                      onChanged: (!canGoOnline || _togglingAvailability)
+                      onChanged: (!canGoOnline || _togglingAvailability || _signingOut)
                           ? null
                           : (v) => _toggleAvailability(driverId, v, t),
                       activeThumbColor: AppColors.success,
@@ -193,7 +212,16 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           NotificationBell(userId: driverId),
           if (!isNarrowPhone) const LanguageSelector(compact: true),
           if (!isNarrowPhone) const SizedBox(width: 8),
-          IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
+          IconButton(
+            onPressed: _signingOut ? null : () => _signOutDriver(driverId, auth),
+            icon: _signingOut
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.logout),
+          ),
           const SizedBox(width: 4),
         ],
       ),
