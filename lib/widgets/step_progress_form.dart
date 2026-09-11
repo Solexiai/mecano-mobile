@@ -15,6 +15,7 @@ class StepProgressForm extends StatefulWidget {
   final String backLabel;
   final String submitLabel;
   final bool Function(int step)? canProceed;
+  final int initialStep;
 
   const StepProgressForm({
     super.key,
@@ -26,14 +27,21 @@ class StepProgressForm extends StatefulWidget {
     required this.backLabel,
     required this.submitLabel,
     this.canProceed,
-  });
+    this.initialStep = 0,
+  }) : assert(initialStep >= 0);
 
   @override
   State<StepProgressForm> createState() => _StepProgressFormState();
 }
 
 class _StepProgressFormState extends State<StepProgressForm> {
-  int _current = 0;
+  late int _current;
+
+  @override
+  void initState() {
+    super.initState();
+    _current = widget.initialStep;
+  }
 
   @override
   Widget build(BuildContext context) {

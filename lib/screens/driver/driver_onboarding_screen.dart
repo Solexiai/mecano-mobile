@@ -30,7 +30,13 @@ import '../../widgets/step_progress_form.dart';
 /// 4) verification documents + consents.
 class DriverOnboardingScreen extends StatefulWidget {
   final String locale;
-  const DriverOnboardingScreen({super.key, required this.locale});
+  final int initialStep;
+
+  const DriverOnboardingScreen({
+    super.key,
+    required this.locale,
+    this.initialStep = 0,
+  });
 
   @override
   State<DriverOnboardingScreen> createState() => _DriverOnboardingScreenState();
@@ -155,7 +161,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 920),
                 child: StepProgressForm(
-                  stepTitles: [
+                  initialStep: widget.initialStep,                  stepTitles: [
                     _copy('step_contact'),
                     _copy('step_vehicle'),
                     _copy('step_services'),
