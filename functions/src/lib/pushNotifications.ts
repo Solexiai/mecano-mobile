@@ -10,6 +10,7 @@
 // cette collection (deny-by-default dans firestore.rules).
 // -----------------------------------------------------------------------------
 
+import type { DocumentReference } from "firebase-admin/firestore";
 import { admin, db } from "./admin";
 import {
   logFinancialFailure,
@@ -91,7 +92,7 @@ export async function sendDeliveryOfferPush(params: {
 
     const byLocale = new Map<SupportedPushLocale, Array<{
       token: string;
-      ref: FirebaseFirestore.DocumentReference;
+      ref: DocumentReference;
     }>>();
 
     for (const doc of tokenSnap.docs) {
@@ -105,7 +106,7 @@ export async function sendDeliveryOfferPush(params: {
 
     let attempted = 0;
     let sent = 0;
-    const staleRefs: FirebaseFirestore.DocumentReference[] = [];
+    const staleRefs: DocumentReference[] = [];
 
     for (const [locale, devices] of byLocale.entries()) {
       const copy = deliveryOfferPushCopy(locale);
@@ -129,7 +130,6 @@ export async function sendDeliveryOfferPush(params: {
             priority: "high",
             ttl: remainingMs,
             notification: {
-              channelId: "delivery_offers",
               sound: "default",
               tag: `delivery-offer-${missionId}`,
             },
