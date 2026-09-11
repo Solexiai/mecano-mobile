@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/app_colors.dart';
+import '../core/responsive.dart';
 import '../models/enums.dart';
 import '../providers/firebase_auth_provider.dart';
 import '../providers/locale_provider.dart';
@@ -20,7 +21,7 @@ String _deliveryTagline(String locale) {
 }
 
 /// Shared public-page shell: responsive header with nav + footer.
-/// Mobile: compact header with hamburger drawer. Desktop: full nav bar.
+/// Phone/tablet: compact header with drawer. Desktop: full navigation.
 class AppShell extends StatefulWidget {
   final String locale;
   final Widget child;
@@ -60,7 +61,9 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = AppBreakpoints.isDesktop(width);
+
     return Scaffold(
       drawer: isDesktop ? null : _MobileDrawer(locale: widget.locale),
       appBar: _MovikAppBar(locale: widget.locale, isDesktop: isDesktop),
@@ -79,6 +82,7 @@ class _AppShellState extends State<AppShell> {
 class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String locale;
   final bool isDesktop;
+
   const _MovikAppBar({required this.locale, required this.isDesktop});
 
   @override
@@ -88,34 +92,40 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
+    final isPhone = AppBreakpoints.isPhone(MediaQuery.sizeOf(context).width);
 
     return AppBar(
       toolbarHeight: 72,
-      titleSpacing: isDesktop ? 24 : 0,
+      titleSpacing: isDesktop ? 24 : (isPhone ? 4 : 12),
       title: Row(
         children: [
           Flexible(
             child: GestureDetector(
               onTap: () => context.go('/$locale'),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: isPhone ? 32 : 36,
+                    height: isPhone ? 32 : 36,
                     decoration: BoxDecoration(
                       gradient: AppColors.deliveryGradient,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.bolt, color: Colors.white, size: 20),
+                    child: Icon(
+                      Icons.bolt,
+                      color: Colors.white,
+                      size: isPhone ? 18 : 20,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  const Flexible(
+                  SizedBox(width: isPhone ? 8 : 10),
+                  Flexible(
                     child: Text(
                       'Movi-k',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 20,
+                        fontSize: isPhone ? 18 : 20,
                       ),
                     ),
                   ),
@@ -129,7 +139,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         if (isDesktop) const LanguageSelector(),
-        const SizedBox(width: 8),
+        if (isDesktop) const SizedBox(width: 8),
         if (isDesktop)
           if (auth.isSignedIn)
             _AccountMenu(locale: locale)
@@ -146,7 +156,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 8),
           ],
         if (!isDesktop) const LanguageSelector(compact: true),
-        if (!isDesktop) const SizedBox(width: 8),
+        if (!isDesktop) SizedBox(width: isPhone ? 4 : 8),
       ],
     );
   }
@@ -162,6 +172,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         );
+
     return [
       item(t('nav_delivery'), '/$locale/livraison'),
       item(t('nav_how_it_works'), '/$locale/comment-ca-marche'),
@@ -174,6 +185,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
 
 class _AccountMenu extends StatelessWidget {
   final String locale;
+
   const _AccountMenu({required this.locale});
 
   @override
@@ -226,6 +238,7 @@ class _AccountMenu extends StatelessWidget {
 
 class _MobileDrawer extends StatelessWidget {
   final String locale;
+
   const _MobileDrawer({required this.locale});
 
   @override
@@ -234,6 +247,7 @@ class _MobileDrawer extends StatelessWidget {
     final auth = context.watch<FirebaseAuthProvider>();
 
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
+          minVerticalPadding: 12,
           leading: Icon(icon, color: AppColors.primary),
           title: Text(label),
           onTap: () {
@@ -322,12 +336,15 @@ class _MobileDrawer extends StatelessWidget {
 
 class _MovikFooter extends StatelessWidget {
   final String locale;
+
   const _MovikFooter({required this.locale});
 
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final width = MediaQuery.sizeOf(context).width;
+    final useColumns = !AppBreakpoints.isPhone(width);
+    final horizontalPadding = AppBreakpoints.pageHorizontalPadding(width);
 
     Widget link(String label, VoidCallback onTap) => InkWell(
           onTap: onTap,
@@ -391,67 +408,83 @@ class _MovikFooter extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      padding: EdgeInsets.symmetric(
+        horizontal: horizontalPadding,
+        vertical: AppBreakpoints.isPhone(width) ? 32 : 40,
+      ),
       color: AppColors.primaryDark,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: AppBreakpoints.contentMaxWidth,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  gradient: AppColors.deliveryGradient,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.bolt, color: Colors.white, size: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.deliveryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.bolt,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Movi-k',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 10),
-              const Text(
-                'Movi-k',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
+              const SizedBox(height: 8),
+              Text(
+                _deliveryTagline(locale),
+                style: const TextStyle(
+                  color: AppColors.textOnDarkSecondary,
+                ),
+              ),
+              const SizedBox(height: 28),
+              if (useColumns)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: columns.map((c) => Expanded(child: c)).toList(),
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: columns
+                      .map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: c,
+                        ),
+                      )
+                      .toList(),
+                ),
+              const SizedBox(height: 24),
+              const Divider(color: AppColors.borderDark),
+              const SizedBox(height: 16),
+              Text(
+                '© ${DateTime.now().year} Movi-k. ${t('footer_rights')}',
+                style: const TextStyle(
+                  color: AppColors.textOnDarkSecondary,
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            _deliveryTagline(locale),
-            style: const TextStyle(color: AppColors.textOnDarkSecondary),
-          ),
-          const SizedBox(height: 28),
-          if (isDesktop)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: columns.map((c) => Expanded(child: c)).toList(),
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: columns
-                  .map(
-                    (c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: c,
-                    ),
-                  )
-                  .toList(),
-            ),
-          const SizedBox(height: 24),
-          const Divider(color: AppColors.borderDark),
-          const SizedBox(height: 16),
-          Text(
-            '© ${DateTime.now().year} Movi-k. ${t('footer_rights')}',
-            style: const TextStyle(
-              color: AppColors.textOnDarkSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
