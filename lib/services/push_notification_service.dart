@@ -85,6 +85,12 @@ class PushNotificationService {
     if (Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null) {
       return;
     }
+
+    // Web Push est volontairement désactivé tant que la clé VAPID publique
+    // n'a pas été provisionnée. Ne pas demander une permission navigateur
+    // qui ne pourrait ensuite produire aucun token utilisable.
+    if (kIsWeb && _webVapidKey.isEmpty) return;
+
     try {
       final settings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
@@ -108,6 +114,8 @@ class PushNotificationService {
     if (Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null) {
       return;
     }
+    if (kIsWeb && _webVapidKey.isEmpty) return;
+
     try {
       final settings = await FirebaseMessaging.instance.getNotificationSettings();
       if (settings.authorizationStatus != AuthorizationStatus.authorized &&
