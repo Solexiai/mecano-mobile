@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../core/app_colors.dart';
+import '../core/responsive.dart';
 
 /// Reusable multi-step form scaffold with a visible progress indicator,
 /// used by delivery request, mechanic request, driver onboarding and
@@ -38,11 +40,41 @@ class _StepProgressFormState extends State<StepProgressForm> {
     final total = widget.stepTitles.length;
     final isLast = _current == total - 1;
     final canGoNext = widget.canProceed?.call(_current) ?? true;
+    final width = MediaQuery.sizeOf(context).width;
+    final isPhone = AppBreakpoints.isPhone(width);
+
+    final backButton = OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+      ),
+      onPressed: () {
+        setState(() => _current -= 1);
+        widget.onStepChanged(_current);
+      },
+      child: Text(widget.backLabel),
+    );
+
+    final primaryButton = ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+      ),
+      onPressed: canGoNext
+          ? () {
+              if (isLast) {
+                widget.onComplete();
+              } else {
+                setState(() => _current += 1);
+                widget.onStepChanged(_current);
+              }
+            }
+          : null,
+      child: Text(isLast ? widget.submitLabel : widget.nextLabel),
+    );
 
     return Column(
       children: [
         _ProgressBar(current: _current, titles: widget.stepTitles),
-        const SizedBox(height: 28),
+        SizedBox(height: isPhone ? 20 : 28),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
           child: KeyedSubtree(
@@ -50,38 +82,26 @@ class _StepProgressFormState extends State<StepProgressForm> {
             child: widget.stepBuilders[_current](context),
           ),
         ),
-        const SizedBox(height: 28),
-        Row(
-          children: [
-            if (_current > 0)
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    setState(() => _current -= 1);
-                    widget.onStepChanged(_current);
-                  },
-                  child: Text(widget.backLabel),
-                ),
-              ),
-            if (_current > 0) const SizedBox(width: 14),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: canGoNext
-                    ? () {
-                        if (isLast) {
-                          widget.onComplete();
-                        } else {
-                          setState(() => _current += 1);
-                          widget.onStepChanged(_current);
-                        }
-                      }
-                    : null,
-                child: Text(isLast ? widget.submitLabel : widget.nextLabel),
-              ),
-            ),
-          ],
-        ),
+        SizedBox(height: isPhone ? 20 : 28),
+        if (isPhone)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_current > 0) ...[
+                backButton,
+                const SizedBox(height: 10),
+              ],
+              primaryButton,
+            ],
+          )
+        else
+          Row(
+            children: [
+              if (_current > 0) Expanded(child: backButton),
+              if (_current > 0) const SizedBox(width: 14),
+              Expanded(flex: 2, child: primaryButton),
+            ],
+          ),
       ],
     );
   }
@@ -90,11 +110,14 @@ class _StepProgressFormState extends State<StepProgressForm> {
 class _ProgressBar extends StatelessWidget {
   final int current;
   final List<String> titles;
+
   const _ProgressBar({required this.current, required this.titles});
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width >= 700;
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = AppBreakpoints.isDesktop(width);
+
     return Column(
       children: [
         Row(
@@ -121,6 +144,8 @@ class _ProgressBar extends StatelessWidget {
               return Expanded(
                 child: Text(
                   '${i + 1}. ${titles[i]}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: i == current ? FontWeight.w700 : FontWeight.w500,
@@ -131,9 +156,18 @@ class _ProgressBar extends StatelessWidget {
             }),
           )
         else
-          Text(
-            '${current + 1}/${titles.length} · ${titles[current]}',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${current + 1}/${titles.length} · ${titles[current]}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
           ),
       ],
     );
@@ -143,16 +177,25 @@ class _ProgressBar extends StatelessWidget {
 /// Standard form container used inside every step.
 class StepFormCard extends StatelessWidget {
   final Widget child;
+
   const StepFormCard({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final padding = AppBreakpoints.isPhone(width)
+        ? 16.0
+        : AppBreakpoints.isTablet(width)
+            ? 20.0
+            : 24.0;
+    final radius = AppBreakpoints.isPhone(width) ? 18.0 : 24.0;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: AppColors.border),
       ),
       child: child,
