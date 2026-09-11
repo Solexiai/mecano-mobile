@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Phase 8D — requis sur Android 13+ pour afficher les notifications
+         FCM lorsque le chauffeur a choisi de passer en mode Disponible. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="movik_connect"
         android:name="${applicationName}"
