@@ -9,6 +9,7 @@ import '../../../widgets/notification_bell.dart';
 import '../../../backend/backend_locator.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
+import '../../../services/push_notification_service.dart';
 import 'tabs/provider_jobs_tab.dart';
 import 'tabs/provider_calendar_tab.dart';
 import 'tabs/provider_earnings_tab.dart';
@@ -55,6 +56,13 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   Future<void> _toggleAvailability(String driverId, bool goOnline, String Function(String) t) async {
     setState(() => _togglingAvailability = true);
     try {
+      // Phase 8D : le moment où le chauffeur se rend disponible est le bon
+      // contexte UX pour demander la permission système de notifications.
+      // Un refus n'empêche JAMAIS de passer en ligne : la cloche Firestore et
+      // le flux temps réel des offres continuent de fonctionner.
+      if (goOnline) {
+        await PushNotificationService.requestPermissionAndSync();
+      }
       await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, goOnline);
     } catch (_) {
       if (mounted) {
