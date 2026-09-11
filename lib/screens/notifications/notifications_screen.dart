@@ -5,9 +5,11 @@
 // Simple mais réellement fonctionnel : compteur non lu, liste triée
 // (récent -> ancien), état lu/non-lu visuellement distinct, date/heure,
 // message traduit (résolu via titleKey/bodyKey + LocaleProvider.t()),
-// tap -> markAsRead + navigation vers la mission liée si `missionId` est
-// présent. La destination de navigation dépend du rôle de l'utilisateur
-// courant (client -> suivi mission, chauffeur -> mission active).
+// tap -> markAsRead + navigation vers la destination liée. Pour une offre
+// chauffeur `delivery_offer`, on ouvre la liste des demandes disponibles
+// (l'offre n'est PAS encore une mission assignée). Pour les notifications de
+// mission déjà attribuée, la navigation reste client -> suivi mission,
+// chauffeur -> mission active.
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -96,17 +98,22 @@ class NotificationsScreen extends StatelessWidget {
                       // Phase 7, Bloc G (gap G-4) : `markAsRead()` est une
                       // écriture Firestore directe (pas de Cloud Function)
                       // qui peut échouer (réseau, permission transitoire).
-                      // AVANT ce correctif, l'échec remontait comme
-                      // exception non gérée (Future rejetée jamais
-                      // catchée) et faisait planter le test/l'app. Le
-                      // marquage lu/non-lu est un confort UX secondaire :
-                      // son échec ne doit JAMAIS bloquer la navigation vers
-                      // la mission liée, qui reste l'action principale de
-                      // ce tap.
+                      // Le marquage lu/non-lu est un confort UX secondaire :
+                      // son échec ne doit JAMAIS bloquer la navigation.
                       BackendLocator.notificationRepository
                           .markAsRead(userId, n.id)
                           .catchError((_) {});
                     }
+
+                    // Phase 8D : une notification `delivery_offer` pointe vers
+                    // la liste des jobs. À ce stade aucun chauffeur n'a encore
+                    // gagné l'acceptation atomique, donc l'écran Mission Active
+                    // serait sémantiquement faux et potentiellement vide.
+                    if (isDriver && n.type == 'delivery_offer') {
+                      context.go('/$locale/fournisseur/tableau-de-bord');
+                      return;
+                    }
+
                     final missionId = n.missionId;
                     if (missionId == null || missionId.isEmpty) return;
                     if (isDriver) {
