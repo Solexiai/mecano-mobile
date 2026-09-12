@@ -2584,6 +2584,22 @@ class AppStrings {
       'en': 'Vehicle photo',
       'es': 'Foto del vehículo',
     },
+    'admin_driver_doc_vehicle_main_photo': {
+      'fr': 'Photo principale du v\u00e9hicule',
+      'en': 'Main vehicle photo',
+      'es': 'Foto principal del veh\u00edculo',
+    },
+    'admin_driver_doc_vehicle_rear_photo': {
+      'fr': 'Photo arri\u00e8re du v\u00e9hicule',
+      'en': 'Rear vehicle photo',
+      'es': 'Foto trasera del veh\u00edculo',
+    },
+    'admin_driver_doc_vehicle_plate_photo': {
+      'fr': 'Photo de la plaque d\u2019immatriculation',
+      'en': 'License plate photo',
+      'es': 'Foto de la placa de matr\u00edcula',
+    },
+
     'doc_type_other': {
       'fr': 'Autre document',
       'en': 'Other document',

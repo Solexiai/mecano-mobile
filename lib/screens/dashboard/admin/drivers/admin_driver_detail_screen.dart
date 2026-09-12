@@ -23,6 +23,7 @@ import '../../../../models/enums.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import 'driver_document_display.dart';
 
 class AdminDriverDetailScreen extends StatefulWidget {
   final String driverId;
@@ -391,7 +392,7 @@ class _DocumentTileState extends State<_DocumentTile> {
                       children: [
                         Expanded(
                           child: Text(
-                            widget.t(widget.doc.type.key),
+                            widget.t(driverDocumentLabelKey(widget.doc)),
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -454,7 +455,7 @@ class _DocumentTileState extends State<_DocumentTile> {
           Row(
             children: [
               Expanded(
-                child: Text(t(doc.type.key), style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(t(driverDocumentLabelKey(doc)), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
