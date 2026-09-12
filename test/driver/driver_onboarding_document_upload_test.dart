@@ -205,22 +205,37 @@ Widget _app(FirebaseAuthProvider auth) {
 Future<void> _tapPicker(WidgetTester tester, String label) async {
   final labelFinder = find.text(label);
   await tester.ensureVisible(labelFinder);
+  await tester.pump();
+
   final row = find.ancestor(
     of: labelFinder,
     matching: find.byType(Container),
   ).first;
+
   final button = find.descendant(
     of: row,
     matching: find.byType(OutlinedButton),
   );
+
+  await tester.ensureVisible(button);
+  await tester.pump();
   await tester.tap(button);
-  await tester.pump(const Duration(milliseconds: 200));
+
+  // Laisser le bottom sheet terminer son animation.
+  // Ne pas utiliser pumpAndSettle ici : le spinner "busy" est animé.
+  await tester.pump(const Duration(milliseconds: 600));
+
   final camera = find.text(
     AppStrings.t('driver_onboarding_document_source_camera', 'fr'),
   );
   expect(camera, findsOneWidget);
+  await tester.ensureVisible(camera);
+  await tester.pump(const Duration(milliseconds: 100));
   await tester.tap(camera);
-  await tester.pump(const Duration(milliseconds: 350));
+
+  // Laisser le bottom sheet se fermer, puis le fake ImagePicker
+  // et le setState terminer.
+  await tester.pump(const Duration(milliseconds: 700));
 }
 
 Future<void> _next(WidgetTester tester) async {
@@ -241,15 +256,21 @@ Future<void> _completeContactStep(WidgetTester tester) async {
   await tester.enterText(fields.at(2), '100 Rue Principale');
   await tester.pump(const Duration(milliseconds: 400));
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.text('100 Rue Principale, Terrebonne, QC J6W 1A1, Canada'),
-  );
+  final addressSuggestion =
+      find.text('100 Rue Principale, Terrebonne, QC J6W 1A1, Canada');
+  await tester.ensureVisible(addressSuggestion);
+  await tester.pumpAndSettle();
+  await tester.tap(addressSuggestion);
   await tester.pumpAndSettle();
   await _next(tester);
 }
 
 Future<void> _completeVehicleStep(WidgetTester tester) async {
-  await tester.tap(find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr')));
+  final pickupTruck =
+      find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr'));
+  await tester.ensureVisible(pickupTruck);
+  await tester.pump();
+  await tester.tap(pickupTruck);
   await tester.pump();
 
   final fields = find.byType(TextField);
@@ -281,7 +302,11 @@ Future<void> _goToDocuments(WidgetTester tester) async {
   await _completeContactStep(tester);
   await _completeVehicleStep(tester);
 
-  await tester.tap(find.text(AppStrings.t('cat_furniture', 'fr')));
+  final furniture =
+      find.text(AppStrings.t('cat_furniture', 'fr'));
+  await tester.ensureVisible(furniture);
+  await tester.pump();
+  await tester.tap(furniture);
   await tester.pump();
   await _next(tester);
 }
@@ -318,9 +343,11 @@ void main() {
       await tester.pumpAndSettle();
       await _completeContactStep(tester);
 
-      await tester.tap(
-        find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr')),
-      );
+      final pickupTruck =
+          find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr'));
+      await tester.ensureVisible(pickupTruck);
+      await tester.pump();
+      await tester.tap(pickupTruck);
       await tester.pump();
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), 'Ford');
@@ -461,7 +488,8 @@ void main() {
       final uploadRepo = _UploadRepo(fail: true);
       BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
       await tester.pumpWidget(_app(auth));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
       await _goToDocuments(tester);
 
       await _tapPicker(
