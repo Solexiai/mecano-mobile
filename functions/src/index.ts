@@ -29,6 +29,9 @@ export { onMissionCreatedDispatch, onMissionReopenedDispatch } from "./functions
 export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
 export { onMissionStatusChangeNotifyCustomer } from "./functions/onMissionStatusChangeNotifyCustomer";
 
+// ---- Notifications push (Phase 8D) ----
+export { registerPushToken, unregisterPushToken } from "./functions/registerPushToken";
+
 // ---- GPS ----
 export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 

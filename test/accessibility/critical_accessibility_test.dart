@@ -452,7 +452,10 @@ void main() {
           routes: [
             GoRoute(
               path: '/fr/devenir-chauffeur/inscription',
-              builder: (c, s) => const DriverOnboardingScreen(locale: 'fr'),
+              builder: (c, s) => const DriverOnboardingScreen(
+                locale: 'fr',
+                initialStep: 3,
+              ),
             ),
             GoRoute(
               path: '/fr/devenir-chauffeur/statut',
@@ -470,23 +473,11 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        await tester.enterText(find.byType(TextField).at(0), 'Jean Tremblay');
-        await tester.enterText(find.byType(TextField).at(1), 'jean.tremblay@example.com');
-        await tester.enterText(find.byType(TextField).at(2), 'motdepasse123');
-        await tester.pump();
-        for (var i = 0; i < 3; i++) {
-          final nextButton = find.widgetWithText(ElevatedButton, AppStrings.t('common_next', 'fr'));
-          await tester.ensureVisible(nextButton);
-          await tester.pumpAndSettle();
-          await tester.tap(nextButton);
-          await tester.pumpAndSettle();
-        }
-
         final selectButtons = find.widgetWithText(
           OutlinedButton,
           AppStrings.t('driver_onboarding_document_select', 'fr'),
         );
-        expect(selectButtons, findsNWidgets(2));
+        expect(selectButtons, findsNWidgets(4));
         for (final element in selectButtons.evaluate()) {
           final size = (element.renderObject as RenderBox).size;
           expect(

@@ -5,6 +5,11 @@
 // section "Dispatch — comment on évite un scan complet") et crée une
 // `delivery_offers/{id}` par chauffeur candidat.
 //
+// Phase 8D : chaque offre crée aussi une notification in-app canonique dans
+// `users/{driverId}/notifications/...` puis tente une notification push FCM.
+// Le push est strictement fail-soft : Firestore reste la source de vérité et
+// une panne FCM ne doit jamais annuler/faire échouer le dispatch métier.
+//
 // Requête utilisée (nécessite l'index composite #1 de firestore.indexes.json:
 // driver_profiles(status, online_status, documents_all_valid, current_geohash)) :
 //   where status == 'approved'
@@ -28,6 +33,7 @@ import {
   logFinancialSuccess,
   startFinancialOperationTimer,
 } from "../lib/observability";
+import { sendDeliveryOfferPush } from "../lib/pushNotifications";
 
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
@@ -91,19 +97,66 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
       expires_at: expiresAt,
       status: "pending",
     });
+
+    // Notification in-app créée DANS LE MÊME batch que l'offre : si le commit
+    // réussit, le chauffeur voit au minimum la cloche/liste en temps réel,
+    // même si son appareil n'a pas autorisé FCM/APNs ou si le push échoue.
+    // ID déterministe par mission/chauffeur pour éviter les doublons lors
+    // d'un retry at-least-once du trigger Firestore.
+    const notificationRef = db
+      .collection("users")
+      .doc(driverDoc.id)
+      .collection("notifications")
+      .doc(`delivery_offer_${missionId}`);
+    batch.set(notificationRef, {
+      id: notificationRef.id,
+      type: "delivery_offer",
+      title_key: "notif_delivery_offer_title",
+      body_key: "notif_delivery_offer_body",
+      is_read: false,
+      created_at: now,
+      related_mission_id: missionId,
+      metadata: {
+        offer_id: offerRef.id,
+        expires_at: expiresAt,
+      },
+    });
   }
   batch.update(db.collection("delivery_requests").doc(missionId), {
     status: MissionStatuses.OFFERED,
   });
   await batch.commit();
 
+  // Push après le commit uniquement : ne jamais avertir un chauffeur d'une
+  // offre qui n'a pas réellement été persistée. sendDeliveryOfferPush() est
+  // fail-soft et ne propage jamais un échec FCM.
+  const pushResults = await Promise.all(
+    eligible.map((driverDoc) =>
+      sendDeliveryOfferPush({
+        driverId: driverDoc.id,
+        missionId,
+        expiresAtMillis: expiresAt.toMillis(),
+      })
+    )
+  );
+  const pushAttempted = pushResults.reduce((sum, result) => sum + result.attempted, 0);
+  const pushSent = pushResults.reduce((sum, result) => sum + result.sent, 0);
+
   // Log APRÈS le commit réussi — ne jamais annoncer un succès avant que les
-  // écritures (offres + statut OFFERED) soient réellement persistées.
+  // écritures (offres + notifications + statut OFFERED) soient persistées.
   logFinancialSuccess(
     "dispatch_offers_created",
     operationStartedAt,
     { missionId },
-    { metadata: { offersCreated: eligible.length, candidatesScanned: candidatesSnap.size } }
+    {
+      metadata: {
+        offersCreated: eligible.length,
+        inAppNotificationsCreated: eligible.length,
+        pushAttempted,
+        pushSent,
+        candidatesScanned: candidatesSnap.size,
+      },
+    }
   );
 }
 

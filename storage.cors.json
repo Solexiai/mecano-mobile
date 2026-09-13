@@ -1,0 +1,24 @@
+[
+  {
+    "origin": [
+      "https://mecano-mobile-delta.vercel.app",
+      "https://mecano-mobile-git-fix-driver-o-89012c-solexis-projects-4c019079.vercel.app",
+      "https://movi-k.com",
+      "https://www.movi-k.com"
+    ],
+    "method": ["GET", "HEAD", "POST", "PUT", "DELETE"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges",
+      "ETag",
+      "Authorization",
+      "X-Goog-Upload-Command",
+      "X-Goog-Upload-Offset",
+      "X-Goog-Upload-Protocol",
+      "X-Goog-Resumable"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,6 +23,7 @@ import '../../../../models/enums.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import 'driver_document_display.dart';
 
 class AdminDriverDetailScreen extends StatefulWidget {
   final String driverId;
@@ -34,24 +36,12 @@ class AdminDriverDetailScreen extends StatefulWidget {
 class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
   bool _actionInProgress = false;
 
-  // Bloc M (gap performance, même classe de bug que Bloc C item 3) : le
-  // StreamBuilder sur `watchDriverProfile()` était instancié directement
-  // dans `build()`. Chaque action admin (Approuver/Refuser/Suspendre/
-  // Réactiver/Demander documents) déclenche un `setState()` via
-  // `onBusyChanged`, recréant le Stream (flicker + re-souscription
-  // Firestore). `widget.driverId` est stable pour la durée de vie de cet
-  // écran, donc le Stream n'a besoin d'être créé qu'une seule fois — pas
-  // de mémoïsation conditionnelle par id nécessaire ici (contrairement aux
-  // shells où le driverId peut changer), un simple champ `late final`
-  // suffit et documente clairement l'intention.
   late final Stream<DriverProfileV2?> _driverProfileStream =
       BackendLocator.driverRepository.watchDriverProfile(widget.driverId);
 
   @override
   void initState() {
     super.initState();
-    // Point 12 — traçabilité : journalise l'ouverture du dossier (audit_logs
-    // action driver_review_opened), sans bloquer l'affichage sur le résultat.
     BackendLocator.driverRepository.logDriverReviewOpened(widget.driverId).catchError((_) {
       // Non bloquant : un échec de journalisation ne doit jamais empêcher
       // l'analyste de consulter le dossier.
@@ -199,13 +189,6 @@ class _ProfileSection extends StatefulWidget {
 }
 
 class _ProfileSectionState extends State<_ProfileSection> {
-  // Bloc M (gap performance) : ce widget est recréé à chaque rebuild du
-  // parent (ex : toggle `_actionInProgress` sur une action admin sans
-  // rapport avec ce champ), et un `FutureBuilder` dont `future:` est
-  // construit en `build()` relance systématiquement une LECTURE FIRESTORE
-  // (`users/{driverId}.get()`) à chaque reconstruction — coûteux et
-  // inutile puisque `driverId` ne change jamais pour cet écran. Le Future
-  // est désormais capturé une seule fois dans `initState()`.
   late final Future<DocumentSnapshot<Map<String, dynamic>>> _userFuture =
       FirebaseFirestore.instance.collection('users').doc(widget.driverId).get();
 
@@ -235,11 +218,6 @@ class _ProfileSectionState extends State<_ProfileSection> {
               _KeyValueRow(label: t('admin_driver_field_last_name'), value: lastName.isEmpty ? na : lastName),
               _KeyValueRow(label: t('admin_driver_field_phone'), value: user?.phone ?? na),
               _KeyValueRow(label: t('admin_driver_field_email'), value: user?.email ?? na),
-              // Champs non capturés par le modèle actuel (AppUserV2/
-              // DriverProfileV2 n'ont ni adresse, ni province, ni code
-              // postal) — voir note d'audit dans app_user_v2.dart : gap
-              // documenté, affichage explicite "non renseigné" plutôt que
-              // de supposer une valeur.
               _KeyValueRow(label: t('admin_driver_field_address'), value: na),
               _KeyValueRow(label: t('admin_driver_field_city'), value: profile.city.isEmpty ? na : profile.city),
               _KeyValueRow(label: t('admin_driver_field_province'), value: na),
@@ -262,9 +240,6 @@ class _VehicleSection extends StatefulWidget {
 }
 
 class _VehicleSectionState extends State<_VehicleSection> {
-  // Bloc M (gap performance) : même correctif que _ProfileSection — évite
-  // de relancer `getDriverVehicles()` (lecture Firestore) à chaque rebuild
-  // du parent déclenché par une action admin sans rapport (toggle busy).
   late final Future<List<DriverVehicle>> _vehiclesFuture =
       BackendLocator.driverRepository.getDriverVehicles(widget.driverId);
 
@@ -345,13 +320,20 @@ class _DocumentsSection extends StatelessWidget {
   }
 }
 
-class _DocumentTile extends StatelessWidget {
+class _DocumentTile extends StatefulWidget {
   final DriverDocument doc;
   final String Function(String) t;
   const _DocumentTile({required this.doc, required this.t});
 
+  @override
+  State<_DocumentTile> createState() => _DocumentTileState();
+}
+
+class _DocumentTileState extends State<_DocumentTile> {
+  bool _opening = false;
+
   Color get _statusColor {
-    switch (doc.status) {
+    switch (widget.doc.status) {
       case DriverDocumentStatus.approved:
         return AppColors.success;
       case DriverDocumentStatus.rejected:
@@ -366,8 +348,100 @@ class _DocumentTile extends StatelessWidget {
     }
   }
 
+  Future<void> _openDocument() async {
+    if (_opening || widget.doc.storageBucketPath.isEmpty) return;
+    setState(() => _opening = true);
+
+    try {
+      // P1 stabilisation pré-pilote : le bouton « Voir le document » était
+      // un placeholder qui affichait uniquement un SnackBar. On charge
+      // maintenant les octets directement avec le SDK Firebase Storage.
+      // Cette lecture reste protégée par storage.rules : seuls le chauffeur
+      // propriétaire et analyst/admin/super_admin y ont accès. Aucune URL
+      // publique permanente ni download token n'est créé/exposé.
+      final ref = FirebaseStorage.instance.ref().child(widget.doc.storageBucketPath);
+      final metadata = await ref.getMetadata();
+      final contentType = metadata.contentType ?? '';
+      if (!contentType.startsWith('image/')) {
+        throw UnsupportedError('Document non image');
+      }
+
+      final bytes = await ref.getData(10 * 1024 * 1024);
+      if (bytes == null || bytes.isEmpty) {
+        throw StateError('Document vide');
+      }
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          final media = MediaQuery.of(dialogContext);
+          return Dialog(
+            insetPadding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 1000,
+                maxHeight: media.size.height * 0.9,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.t(driverDocumentLabelKey(widget.doc)),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: MaterialLocalizations.of(dialogContext).closeButtonTooltip,
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: Container(
+                      width: double.infinity,
+                      color: Colors.black,
+                      padding: const EdgeInsets.all(8),
+                      child: InteractiveViewer(
+                        minScale: 0.5,
+                        maxScale: 5,
+                        child: Center(
+                          child: Image.memory(
+                            bytes,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.t('admin_action_error'))),
+      );
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final doc = widget.doc;
+    final t = widget.t;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -381,7 +455,7 @@ class _DocumentTile extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(t(doc.type.key), style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(t(driverDocumentLabelKey(doc)), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -396,10 +470,6 @@ class _DocumentTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            // Bloc K2 (K2-2) : plus de Timestamp/DateTime brut visible
-            // (ex: "2026-08-26 12:24:28.123456") — formatage localisé via
-            // `formatDisplayDate` (déjà utilisé ailleurs pour la finance),
-            // cohérent avec le reste de l'app.
             '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt, connector: t('datetime_connector_at'))}',
             style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
           ),
@@ -420,19 +490,14 @@ class _DocumentTile extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: doc.storageBucketPath.isEmpty
-                  ? null
-                  : () {
-                      // L'aperçu réel nécessite une URL signée générée à la
-                      // demande (Firebase Storage) — non implémenté dans ce
-                      // repository (hors périmètre Phase 2 : ce bouton est
-                      // prêt à être branché sur getDownloadURL() côté
-                      // Storage une fois cette intégration ajoutée).
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(t('admin_driver_doc_view'))),
-                      );
-                    },
-              icon: const Icon(Icons.visibility_outlined, size: 16),
+              onPressed: doc.storageBucketPath.isEmpty || _opening ? null : _openDocument,
+              icon: _opening
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.visibility_outlined, size: 16),
               label: Text(t('admin_driver_doc_view'), style: const TextStyle(fontSize: 12)),
             ),
           ),
@@ -636,11 +701,6 @@ class _ActionsBar extends StatelessWidget {
     final repo = BackendLocator.driverRepository;
     final auth = context.watch<FirebaseAuthProvider>();
     final canApproveReject = profile.status != DriverStatus.approved;
-    // Suspendre/réactiver un chauffeur est délibérément réservé à
-    // admin/super_admin côté serveur (voir suspendDriver.ts/
-    // reactivateDriver.ts — requireAdminOrAbove). L'UI masque ces actions
-    // à un analyste simple pour éviter un appel Cloud Function voué à un
-    // refus PERMISSION_DENIED, mais la vraie protection reste côté serveur.
     final canSuspendReactivate = auth.isAdminOrAbove;
 
     return Wrap(

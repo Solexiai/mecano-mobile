@@ -527,7 +527,10 @@ void main() {
             routes: [
               GoRoute(
                 path: '/fr/devenir-chauffeur/inscription',
-                builder: (context, state) => const DriverOnboardingScreen(locale: 'fr'),
+                builder: (context, state) => const DriverOnboardingScreen(
+                  locale: 'fr',
+                  initialStep: 3,
+                ),
               ),
               GoRoute(
                 path: '/fr/devenir-chauffeur/statut',
@@ -546,22 +549,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
 
-          // Amener le wizard à l'étape Documents (Profil rempli, puis 3x
-          // "Suivant" — mêmes valeurs que driver_onboarding_document_upload_test.dart).
-          await tester.enterText(find.byType(TextField).at(0), 'Jean Tremblay');
-          await tester.enterText(find.byType(TextField).at(1), 'jean.tremblay@example.com');
-          await tester.enterText(find.byType(TextField).at(2), 'motdepasse123');
-          await tester.pump();
-          for (var i = 0; i < 3; i++) {
-            final nextButton = find.widgetWithText(ElevatedButton, AppStrings.t('common_next', 'fr'));
-            await tester.ensureVisible(nextButton);
-            await tester.pumpAndSettle();
-            await tester.tap(nextButton);
-            await tester.pumpAndSettle();
-            expect(tester.takeException(), isNull);
-          }
-
-          // Étape Documents : les 2 lignes de sélection (permis + assurance)
+          // Étape Documents : les 4 lignes de sélection requises
           // doivent être visibles et leur bouton "Sélectionner" accessible,
           // sans overflow horizontal du Row texte+bouton.
           final licenseLabel = find.text(AppStrings.t('driver_onboarding_upload_license', 'fr'));
@@ -575,7 +563,7 @@ void main() {
             OutlinedButton,
             AppStrings.t('driver_onboarding_document_select', 'fr'),
           );
-          expect(selectButtons, findsNWidgets(2));
+          expect(selectButtons, findsNWidgets(4));
           await tester.ensureVisible(selectButtons.first);
           expect(tester.takeException(), isNull);
         },

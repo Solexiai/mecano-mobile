@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/demo_data_service.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/section_title.dart';
-import '../../widgets/coming_soon_badge.dart' show DemoDataBadge;
+
+String _tr(
+  String locale, {
+  required String fr,
+  required String en,
+  required String es,
+}) {
+  switch (locale) {
+    case 'en':
+      return en;
+    case 'es':
+      return es;
+    default:
+      return fr;
+  }
+}
 
 class HomeScreen extends StatelessWidget {
   final String locale;
@@ -20,10 +36,9 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         children: [
           _Hero(locale: locale),
-          _ServiceCards(locale: locale),
+          _DeliveryService(locale: locale),
           _HowItWorksPreview(locale: locale),
           _WhyMovik(locale: locale),
-          _Testimonials(locale: locale),
           _FinalCta(locale: locale),
         ],
       ),
@@ -50,16 +65,16 @@ class _Hero extends StatelessWidget {
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(child: _HeroText(t: t, locale: locale, isDesktop: isDesktop)),
+                    Expanded(child: _HeroText(locale: locale)),
                     const SizedBox(width: 48),
-                    Expanded(child: _HeroGlassPanel(t: t)),
+                    Expanded(child: _DeliveryGlassPanel(t: t, locale: locale)),
                   ],
                 )
               : Column(
                   children: [
-                    _HeroText(t: t, locale: locale, isDesktop: isDesktop),
+                    _HeroText(locale: locale),
                     const SizedBox(height: 36),
-                    _HeroGlassPanel(t: t),
+                    _DeliveryGlassPanel(t: t, locale: locale),
                   ],
                 ),
         ),
@@ -69,15 +84,15 @@ class _Hero extends StatelessWidget {
 }
 
 class _HeroText extends StatelessWidget {
-  final String Function(String) t;
   final String locale;
-  final bool isDesktop;
-  const _HeroText({required this.t, required this.locale, required this.isDesktop});
+  const _HeroText({required this.locale});
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
     return Column(
-      crossAxisAlignment: isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      crossAxisAlignment:
+          isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -86,11 +101,23 @@ class _HeroText extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
           ),
-          child: const Text('Québec • Canada', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+          child: const Text(
+            'Québec • Canada',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
+          ),
         ),
         const SizedBox(height: 20),
         Text(
-          t('home_hero_headline'),
+          _tr(
+            locale,
+            fr: 'Livrez ce qui ne rentre pas dans votre véhicule.',
+            en: 'Deliver what does not fit in your vehicle.',
+            es: 'Entrega lo que no cabe en tu vehículo.',
+          ),
           textAlign: isDesktop ? TextAlign.left : TextAlign.center,
           style: TextStyle(
             color: Colors.white,
@@ -102,9 +129,18 @@ class _HeroText extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          t('home_hero_subheadline'),
+          _tr(
+            locale,
+            fr: 'Trouvez un chauffeur local de confiance avec le bon véhicule pour vos meubles, électroménagers, achats Marketplace et autres objets volumineux.',
+            en: 'Find a trusted local driver with the right vehicle for furniture, appliances, Marketplace purchases and other large items.',
+            es: 'Encuentra un conductor local de confianza con el vehículo adecuado para muebles, electrodomésticos, compras de Marketplace y otros artículos voluminosos.',
+          ),
           textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: isDesktop ? 18 : 15, height: 1.5),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.85),
+            fontSize: isDesktop ? 18 : 15,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 30),
         Wrap(
@@ -114,13 +150,33 @@ class _HeroText extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () => context.go('/$locale/livraison'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
-              child: Text(t('home_cta_need_service')),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primary,
+              ),
+              child: Text(
+                _tr(
+                  locale,
+                  fr: 'Demander une livraison',
+                  en: 'Request a delivery',
+                  es: 'Solicitar una entrega',
+                ),
+              ),
             ),
             OutlinedButton(
               onPressed: () => context.go('/$locale/devenir-chauffeur'),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
-              child: Text(t('home_cta_offer_service')),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white),
+              ),
+              child: Text(
+                _tr(
+                  locale,
+                  fr: 'Devenir chauffeur',
+                  en: 'Become a driver',
+                  es: 'Convertirse en conductor',
+                ),
+              ),
             ),
           ],
         ),
@@ -129,59 +185,52 @@ class _HeroText extends StatelessWidget {
   }
 }
 
-class _HeroGlassPanel extends StatelessWidget {
+class _DeliveryGlassPanel extends StatelessWidget {
   final String Function(String) t;
-  const _HeroGlassPanel({required this.t});
+  final String locale;
+  const _DeliveryGlassPanel({required this.t, required this.locale});
 
   @override
   Widget build(BuildContext context) {
     return GlassCard(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(gradient: AppColors.deliveryGradient, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.local_shipping_rounded, color: Colors.white),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t('home_card_delivery_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    Text('${DemoDataService.drivers.length}+ chauffeurs vérifiés', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppColors.deliveryGradient,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.local_shipping_rounded, color: Colors.white),
           ),
-          const SizedBox(height: 18),
-          Divider(color: Colors.white.withValues(alpha: 0.2)),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(gradient: AppColors.mechanicGradient, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.build_rounded, color: Colors.white),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t('home_card_mechanic_title'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                    Text('${DemoDataService.mechanics.length}+ mécaniciens vérifiés', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
-                  ],
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('home_card_delivery_title'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-              ),
-            ],
+                Text(
+                  _tr(
+                    locale,
+                    fr: '${DemoDataService.drivers.length}+ chauffeurs de démonstration',
+                    en: '${DemoDataService.drivers.length}+ demo drivers',
+                    es: '${DemoDataService.drivers.length}+ conductores de demostración',
+                  ),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -189,146 +238,130 @@ class _HeroGlassPanel extends StatelessWidget {
   }
 }
 
-class _ServiceCards extends StatelessWidget {
+class _DeliveryService extends StatelessWidget {
   final String locale;
-  const _ServiceCards({required this.locale});
+  const _DeliveryService({required this.locale});
 
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
-    final deliveryCard = _BigServiceCard(
-      gradient: AppColors.deliveryGradient,
-      icon: Icons.local_shipping_rounded,
-      title: t('home_card_delivery_title'),
-      description: t('home_card_delivery_desc'),
-      examples: const ['Meubles', 'Électroménagers', 'Marketplace', 'Matériaux', 'Grand TV', 'BBQ'],
-      ctaLabel: t('home_card_delivery_cta'),
-      cta2Label: t('home_card_delivery_cta2'),
-      onCta: () => context.go('/$locale/livraison'),
-      onCta2: () => context.go('/$locale/devenir-chauffeur'),
-      exampleLabel: t('home_examples'),
-    );
-
-    final mechanicCard = _BigServiceCard(
-      gradient: AppColors.mechanicGradient,
-      icon: Icons.build_rounded,
-      title: t('home_card_mechanic_title'),
-      description: t('home_card_mechanic_desc'),
-      examples: const ['Batterie', 'Freins', 'Huile', 'Diagnostic', 'Pneus', 'Réparations'],
-      ctaLabel: t('home_card_mechanic_cta'),
-      cta2Label: t('home_card_mechanic_cta2'),
-      onCta: () => context.go('/$locale/mecanique-mobile'),
-      onCta2: () => context.go('/$locale/devenir-mecanicien'),
-      exampleLabel: t('home_examples'),
-    );
-
     return ResponsivePadding(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: isDesktop ? 72 : 44),
-        child: isDesktop
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: deliveryCard),
-                  const SizedBox(width: 28),
-                  Expanded(child: mechanicCard),
-                ],
-              )
-            : Column(
-                children: [
-                  deliveryCard,
-                  const SizedBox(height: 24),
-                  mechanicCard,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
                 ],
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.deliveryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.local_shipping_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    t('home_card_delivery_title'),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    t('home_card_delivery_desc'),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(height: 1.5),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    t('home_examples'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ExampleChip(
+                        label: _tr(locale, fr: 'Meubles', en: 'Furniture', es: 'Muebles'),
+                      ),
+                      _ExampleChip(
+                        label: _tr(locale, fr: 'Électroménagers', en: 'Appliances', es: 'Electrodomésticos'),
+                      ),
+                      const _ExampleChip(label: 'Marketplace'),
+                      _ExampleChip(
+                        label: _tr(locale, fr: 'Matériaux', en: 'Materials', es: 'Materiales'),
+                      ),
+                      _ExampleChip(
+                        label: _tr(locale, fr: 'Grand téléviseur', en: 'Large TV', es: 'Televisor grande'),
+                      ),
+                      const _ExampleChip(label: 'BBQ'),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => context.go('/$locale/livraison'),
+                      child: Text(t('home_card_delivery_cta')),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => context.go('/$locale/devenir-chauffeur'),
+                      child: Text(t('home_card_delivery_cta2')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _BigServiceCard extends StatelessWidget {
-  final Gradient gradient;
-  final IconData icon;
-  final String title;
-  final String description;
-  final List<String> examples;
-  final String ctaLabel;
-  final String cta2Label;
-  final VoidCallback onCta;
-  final VoidCallback onCta2;
-  final String exampleLabel;
-
-  const _BigServiceCard({
-    required this.gradient,
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.examples,
-    required this.ctaLabel,
-    required this.cta2Label,
-    required this.onCta,
-    required this.onCta2,
-    required this.exampleLabel,
-  });
+class _ExampleChip extends StatelessWidget {
+  final String label;
+  const _ExampleChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, 12)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: Colors.white, size: 28),
-          ),
-          const SizedBox(height: 20),
-          Text(title, style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 10),
-          Text(description, style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5)),
-          const SizedBox(height: 18),
-          Text(exampleLabel, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.textSecondary)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: examples
-                .map((e) => Chip(
-                      label: Text(e, style: const TextStyle(fontSize: 12)),
-                      padding: EdgeInsets.zero,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ))
-                .toList(),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(onPressed: onCta, child: Text(ctaLabel, textAlign: TextAlign.center)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(onPressed: onCta2, child: Text(cta2Label, textAlign: TextAlign.center)),
-              ),
-            ],
-          ),
-        ],
-      ),
+    return Chip(
+      label: Text(label, style: const TextStyle(fontSize: 12)),
+      padding: EdgeInsets.zero,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
@@ -341,12 +374,29 @@ class _HowItWorksPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
-    final steps = [
-      ('1', Icons.edit_note_rounded, 'Décrivez votre besoin'),
-      ('2', Icons.place_outlined, 'Emplacement et horaire'),
-      ('3', Icons.people_outline, 'Comparez les fournisseurs'),
-      ('4', Icons.check_circle_outline, 'Réservez et confirmez'),
+    final steps = <(String, IconData, String)>[
+      (
+        '1',
+        Icons.edit_note_rounded,
+        _tr(locale, fr: 'Décrivez votre besoin', en: 'Describe your need', es: 'Describe tu necesidad'),
+      ),
+      (
+        '2',
+        Icons.place_outlined,
+        _tr(locale, fr: 'Collecte et livraison', en: 'Pickup and delivery', es: 'Recogida y entrega'),
+      ),
+      (
+        '3',
+        Icons.people_outline,
+        _tr(locale, fr: 'Trouvez un chauffeur', en: 'Find a driver', es: 'Encuentra un conductor'),
+      ),
+      (
+        '4',
+        Icons.check_circle_outline,
+        _tr(locale, fr: 'Confirmez la livraison', en: 'Confirm the delivery', es: 'Confirma la entrega'),
+      ),
     ];
+
     return Container(
       color: AppColors.background,
       width: double.infinity,
@@ -356,11 +406,32 @@ class _HowItWorksPreview extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionTitle(title: t('nav_how_it_works'), subtitle: 'Un processus simple, transparent, en quelques étapes.'),
+              SectionTitle(
+                title: t('nav_how_it_works'),
+                subtitle: _tr(
+                  locale,
+                  fr: 'Un processus simple et transparent, en quelques étapes.',
+                  en: 'A simple and transparent process in just a few steps.',
+                  es: 'Un proceso simple y transparente en pocos pasos.',
+                ),
+              ),
               const SizedBox(height: 32),
               isDesktop
-                  ? Row(children: steps.map((s) => Expanded(child: _StepTile(s))).toList())
-                  : Column(children: steps.map((s) => Padding(padding: const EdgeInsets.only(bottom: 16), child: _StepTile(s))).toList()),
+                  ? Row(
+                      children: steps
+                          .map((s) => Expanded(child: _StepTile(step: s)))
+                          .toList(),
+                    )
+                  : Column(
+                      children: steps
+                          .map(
+                            (s) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _StepTile(step: s),
+                            ),
+                          )
+                          .toList(),
+                    ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/$locale/comment-ca-marche'),
@@ -376,7 +447,7 @@ class _HowItWorksPreview extends StatelessWidget {
 
 class _StepTile extends StatelessWidget {
   final (String, IconData, String) step;
-  const _StepTile(this.step);
+  const _StepTile({required this.step});
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +462,17 @@ class _StepTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 18, backgroundColor: AppColors.primary.withValues(alpha: 0.1), child: Text(step.$1, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800))),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+            child: Text(
+              step.$1,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
           Icon(step.$2, color: AppColors.primary),
           const SizedBox(height: 10),
@@ -409,114 +490,94 @@ class _WhyMovik extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
-    final items = [
-      (Icons.verified_user_outlined, 'Fournisseurs vérifiés', 'Identité et documents examinés avant approbation.'),
-      (Icons.price_change_outlined, 'Prix transparents', 'Une répartition claire des coûts avant toute confirmation.'),
-      (Icons.chat_bubble_outline, 'Communication directe', 'Échangez avec votre fournisseur via la messagerie intégrée.'),
-      (Icons.star_border_rounded, 'Avis vérifiés', 'Seuls les clients ayant complété une réservation peuvent noter.'),
+    final items = <(IconData, String, String)>[
+      (
+        Icons.verified_user_outlined,
+        _tr(locale, fr: 'Chauffeurs vérifiés', en: 'Verified drivers', es: 'Conductores verificados'),
+        _tr(locale, fr: 'Identité et documents examinés avant approbation.', en: 'Identity and documents reviewed before approval.', es: 'Identidad y documentos revisados antes de la aprobación.'),
+      ),
+      (
+        Icons.price_change_outlined,
+        _tr(locale, fr: 'Prix transparents', en: 'Transparent pricing', es: 'Precios transparentes'),
+        _tr(locale, fr: 'Une répartition claire des coûts avant toute confirmation.', en: 'Clear pricing before you confirm.', es: 'Precios claros antes de confirmar.'),
+      ),
+      (
+        Icons.chat_bubble_outline,
+        _tr(locale, fr: 'Communication directe', en: 'Direct communication', es: 'Comunicación directa'),
+        _tr(locale, fr: 'Échangez avec votre chauffeur pendant la livraison.', en: 'Communicate with your driver during the delivery.', es: 'Comunícate con tu conductor durante la entrega.'),
+      ),
+      (
+        Icons.star_border_rounded,
+        _tr(locale, fr: 'Avis vérifiés', en: 'Verified reviews', es: 'Reseñas verificadas'),
+        _tr(locale, fr: 'Les clients peuvent laisser un avis après une livraison complétée.', en: 'Customers can leave a review after a completed delivery.', es: 'Los clientes pueden dejar una reseña después de una entrega completada.'),
+      ),
     ];
+
     return ResponsivePadding(
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: isDesktop ? 72 : 44),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SectionTitle(title: 'Pourquoi choisir Movi-k', subtitle: 'Une plateforme locale conçue pour la confiance et la simplicité.'),
+            SectionTitle(
+              title: _tr(
+                locale,
+                fr: 'Pourquoi choisir Movi-k',
+                en: 'Why choose Movi-k',
+                es: 'Por qué elegir Movi-k',
+              ),
+              subtitle: _tr(
+                locale,
+                fr: 'Une plateforme locale conçue pour la confiance et la simplicité.',
+                en: 'A local platform designed for trust and simplicity.',
+                es: 'Una plataforma local diseñada para la confianza y la simplicidad.',
+              ),
+            ),
             const SizedBox(height: 32),
             GridView.count(
-              crossAxisCount: isDesktop ? 4 : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+              crossAxisCount: isDesktop
+                  ? 4
+                  : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
               childAspectRatio: isDesktop ? 0.85 : 1.6,
               children: items
-                  .map((i) => Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(i.$1, color: AppColors.success, size: 28),
-                            const SizedBox(height: 12),
-                            Text(i.$2, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 6),
-                            Text(i.$3, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
-                          ],
-                        ),
-                      ))
+                  .map(
+                    (item) => Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardTheme.color,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(item.$1, color: AppColors.success, size: 28),
+                          const SizedBox(height: 12),
+                          Text(
+                            item.$2,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            item.$3,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Testimonials extends StatelessWidget {
-  final String locale;
-  const _Testimonials({required this.locale});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
-    return Container(
-      color: AppColors.background,
-      width: double.infinity,
-      child: ResponsivePadding(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: isDesktop ? 72 : 44),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SectionTitle(title: 'Ce que nos utilisateurs disent'),
-              const SizedBox(height: 6),
-              const DemoDataBadge(),
-              const SizedBox(height: 28),
-              isDesktop
-                  ? Row(children: DemoDataService.testimonials.map((r) => Expanded(child: Padding(padding: const EdgeInsets.only(right: 16), child: _TestimonialCard(review: r, label: t('testimonial_placeholder_label'))))).toList())
-                  : Column(children: DemoDataService.testimonials.map((r) => Padding(padding: const EdgeInsets.only(bottom: 16), child: _TestimonialCard(review: r, label: t('testimonial_placeholder_label')))).toList()),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TestimonialCard extends StatelessWidget {
-  final dynamic review;
-  final String label;
-  const _TestimonialCard({required this.review, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: List.generate(5, (i) => Icon(i < review.overall.round() ? Icons.star_rounded : Icons.star_border_rounded, color: AppColors.warning, size: 18)),
-          ),
-          const SizedBox(height: 10),
-          Text('"${review.comment}"', style: const TextStyle(fontStyle: FontStyle.italic, height: 1.5)),
-          const SizedBox(height: 14),
-          Text(review.authorName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-        ],
       ),
     );
   }
@@ -528,7 +589,6 @@ class _FinalCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     return Container(
       width: double.infinity,
@@ -538,11 +598,38 @@ class _FinalCta extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: isDesktop ? 80 : 56),
           child: Column(
             children: [
-              Text(t('home_final_headline'), textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: isDesktop ? 38 : 26, fontWeight: FontWeight.w800, letterSpacing: -0.8)),
+              Text(
+                _tr(
+                  locale,
+                  fr: 'Besoin de transporter quelque chose de gros?',
+                  en: 'Need to move something large?',
+                  es: '¿Necesitas transportar algo grande?',
+                ),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isDesktop ? 38 : 26,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                ),
+              ),
               const SizedBox(height: 16),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 640),
-                child: Text(t('home_final_sub'), textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: isDesktop ? 17 : 15, height: 1.5)),
+                child: Text(
+                  _tr(
+                    locale,
+                    fr: 'Movi-k vous aide à trouver un chauffeur local avec le véhicule adapté à votre livraison.',
+                    en: 'Movi-k helps you find a local driver with the right vehicle for your delivery.',
+                    es: 'Movi-k te ayuda a encontrar un conductor local con el vehículo adecuado para tu entrega.',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: isDesktop ? 17 : 15,
+                    height: 1.5,
+                  ),
+                ),
               ),
               const SizedBox(height: 30),
               Wrap(
@@ -552,18 +639,26 @@ class _FinalCta extends StatelessWidget {
                 children: [
                   ElevatedButton(
                     onPressed: () => context.go('/$locale/livraison'),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: AppColors.primary),
-                    child: Text(t('home_final_cta1')),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primary,
+                    ),
+                    child: Text(
+                      _tr(locale, fr: 'Demander une livraison', en: 'Request a delivery', es: 'Solicitar una entrega'),
+                    ),
                   ),
                   OutlinedButton(
                     onPressed: () => context.go('/$locale/devenir-chauffeur'),
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white)),
-                    child: Text(t('home_final_cta2')),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                    ),
+                    child: Text(
+                      _tr(locale, fr: 'Devenir chauffeur', en: 'Become a driver', es: 'Convertirse en conductor'),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
-              Text(t('home_trust_statement'), style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 13)),
             ],
           ),
         ),

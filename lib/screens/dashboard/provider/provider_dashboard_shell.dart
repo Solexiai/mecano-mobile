@@ -9,6 +9,7 @@ import '../../../widgets/notification_bell.dart';
 import '../../../backend/backend_locator.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
+import '../../../services/push_notification_service.dart';
 import 'tabs/provider_jobs_tab.dart';
 import 'tabs/provider_calendar_tab.dart';
 import 'tabs/provider_earnings_tab.dart';
@@ -34,6 +35,7 @@ class ProviderDashboardShell extends StatefulWidget {
 class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   late int _index = widget.initialTabIndex.clamp(0, 3).toInt();
   bool _togglingAvailability = false;
+  bool _signingOut = false;
 
   // Bloc M (gap performance, même classe de bug que Bloc C item 3) :
   // `watchDriverProfile(driverId)` était appelé directement dans `build()`,
@@ -55,6 +57,13 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   Future<void> _toggleAvailability(String driverId, bool goOnline, String Function(String) t) async {
     setState(() => _togglingAvailability = true);
     try {
+      // Phase 8D : le moment où le chauffeur se rend disponible est le bon
+      // contexte UX pour demander la permission système de notifications.
+      // Un refus n'empêche JAMAIS de passer en ligne : la cloche Firestore et
+      // le flux temps réel des offres continuent de fonctionner.
+      if (goOnline) {
+        await PushNotificationService.requestPermissionAndSync();
+      }
       await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, goOnline);
     } catch (_) {
       if (mounted) {
@@ -64,6 +73,24 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
       }
     } finally {
       if (mounted) setState(() => _togglingAvailability = false);
+    }
+  }
+
+  Future<void> _signOutDriver(String driverId, FirebaseAuthProvider auth) async {
+    if (_signingOut) return;
+    setState(() => _signingOut = true);
+    try {
+      // Un compte explicitement déconnecté ne doit plus être candidat au
+      // dispatch ni recevoir de nouvelles offres sur un appareil partagé.
+      // Chaque étape est fail-soft pour garantir que l'utilisateur puisse
+      // toujours terminer sa déconnexion même si le réseau coupe.
+      try {
+        await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, false);
+      } catch (_) {}
+      await PushNotificationService.unregisterCurrentToken();
+      await auth.signOut();
+    } finally {
+      if (mounted) setState(() => _signingOut = false);
     }
   }
 
@@ -172,7 +199,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                     message: statusLabel,
                     child: Switch(
                       value: online,
-                      onChanged: (!canGoOnline || _togglingAvailability)
+                      onChanged: (!canGoOnline || _togglingAvailability || _signingOut)
                           ? null
                           : (v) => _toggleAvailability(driverId, v, t),
                       activeThumbColor: AppColors.success,
@@ -185,7 +212,16 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           NotificationBell(userId: driverId),
           if (!isNarrowPhone) const LanguageSelector(compact: true),
           if (!isNarrowPhone) const SizedBox(width: 8),
-          IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
+          IconButton(
+            onPressed: _signingOut ? null : () => _signOutDriver(driverId, auth),
+            icon: _signingOut
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.logout),
+          ),
           const SizedBox(width: 4),
         ],
       ),

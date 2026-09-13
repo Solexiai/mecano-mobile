@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +15,7 @@ import 'providers/mechanic_provider.dart';
 import 'providers/review_provider.dart';
 import 'router/app_router.dart';
 import 'services/storage_service.dart';
+import 'services/push_notification_service.dart';
 import 'backend/backend_bootstrap.dart';
 import 'backend/backend_status.dart';
 
@@ -37,6 +40,14 @@ Future<void> main() async {
   final backendStatus = await BackendBootstrap.initialize();
 
   runApp(MovikApp(backendStatus: backendStatus));
+
+  // Phase 8D — initialise le cycle de vie FCM APRÈS runApp afin que le
+  // deep-link d'une notification ouverte dispose déjà du GoRouter monté.
+  // Aucun prompt système n'est affiché ici : la permission est demandée au
+  // moment où un chauffeur passe en mode "Disponible".
+  if (backendStatus.isConfigured) {
+    unawaited(PushNotificationService.initialize());
+  }
 }
 
 class MovikApp extends StatelessWidget {

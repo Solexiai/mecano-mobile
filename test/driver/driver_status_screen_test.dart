@@ -27,10 +27,12 @@
 // ---------------------------------------------------------------------------
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -39,6 +41,7 @@ import 'package:movik_connect/backend/models/driver_document.dart';
 import 'package:movik_connect/backend/models/driver_internal_note.dart';
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
 import 'package:movik_connect/backend/models/driver_vehicle.dart';
+import 'package:movik_connect/backend/repositories/driver_document_upload_repository.dart';
 import 'package:movik_connect/backend/repositories/driver_repository.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
@@ -52,6 +55,48 @@ const _driverId = 'driver_status_test_001';
 /// a besoin ; toute autre méthode lève explicitement `UnimplementedError`
 /// (jamais un faux succès silencieux) si un chemin de test l'appelait par
 /// erreur.
+class _FakeImagePicker extends ImagePickerPlatform {
+  int calls = 0;
+
+  static final Uint8List _png = Uint8List.fromList(const [
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+    0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0, 181, 28, 12, 2, 0,
+    0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 100, 248, 15, 0, 1, 5,
+    1, 1, 39, 24, 227, 102, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66,
+    96, 130,
+  ]);
+
+  @override
+  Future<XFile?> getImageFromSource({
+    required ImageSource source,
+    ImagePickerOptions options = const ImagePickerOptions(),
+  }) async {
+    calls++;
+    return XFile.fromData(
+      _png,
+      path: 'replacement_$calls.jpg',
+      name: 'replacement_$calls.jpg',
+      mimeType: 'image/jpeg',
+    );
+  }
+}
+
+class _FakeDriverDocumentUploadRepository
+    implements DriverDocumentUploadRepository {
+  int calls = 0;
+
+  @override
+  Future<String> uploadDriverDocument({
+    required String driverId,
+    required String fileName,
+    required List<int> bytes,
+    required String contentType,
+  }) async {
+    calls++;
+    return 'https://storage.example/$driverId/$fileName';
+  }
+}
+
 class _FakeDriverRepository implements DriverRepository {
   DriverProfileV2? profile;
 
@@ -62,6 +107,7 @@ class _FakeDriverRepository implements DriverRepository {
   int setDriverOnlineStatusCallCount = 0;
   int watchDriverProfileCallCount = 0;
   bool? lastOnlineValue;
+  final List<DriverDocument> submittedDocuments = [];
 
   /// Si positionné, `submitForReview()` lève cette exception au lieu de
   /// réussir — permet de tester un échec backend simple (ex: règle
@@ -135,7 +181,9 @@ class _FakeDriverRepository implements DriverRepository {
   Future<List<DriverVehicle>> getDriverVehicles(String driverId) =>
       throw UnimplementedError();
   @override
-  Future<void> submitDriverDocument(DriverDocument document) => throw UnimplementedError();
+  Future<void> submitDriverDocument(DriverDocument document) async {
+    submittedDocuments.add(document);
+  }
   @override
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) => throw UnimplementedError();
   @override
@@ -311,9 +359,13 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
 void main() {
   late _FakeDriverRepository fakeRepo;
   late FirebaseAuthProvider auth;
+  late _FakeDriverDocumentUploadRepository uploadRepo;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    ImagePickerPlatform.instance = _FakeImagePicker();
+    uploadRepo = _FakeDriverDocumentUploadRepository();
+    BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
     auth = FirebaseAuthProvider(backendConfigured: false);
     auth.debugForceSignedIn = true;
     auth.debugForceUid = _driverId;
@@ -323,6 +375,7 @@ void main() {
   tearDown(() {
     fakeRepo.dispose();
     BackendLocator.driverRepositoryOverride = null;
+    BackendLocator.driverDocumentUploadRepositoryOverride = null;
   });
 
   Future<void> pumpWithStatus(WidgetTester tester, DriverProfileV2 profile) async {
@@ -333,6 +386,42 @@ void main() {
   }
 
   String t(String key) => AppStrings.t(key, 'fr');
+
+
+  Future<void> selectReplacementDocument(
+    WidgetTester tester,
+    DriverDocumentType type,
+  ) async {
+    final label = find.text(t(type.key));
+    await tester.ensureVisible(label);
+    await tester.pump();
+
+    final row = find.ancestor(
+      of: label,
+      matching: find.byType(Container),
+    ).first;
+
+    final button = find.descendant(
+      of: row,
+      matching: find.byWidgetPredicate((w) => w is TextButton),
+    );
+
+    await tester.ensureVisible(button);
+    await tester.pump();
+    await tester.tap(button);
+
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final camera = find.text(
+      t('driver_onboarding_document_source_camera'),
+    );
+    expect(camera, findsOneWidget);
+    await tester.ensureVisible(camera);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(camera);
+
+    await tester.pump(const Duration(milliseconds: 700));
+  }
 
   group('registrationIncomplete', () {
     testWidgets('affiche le statut, le message et le CTA "compléter inscription" uniquement',
@@ -414,8 +503,8 @@ void main() {
         ),
       );
 
-      expect(find.text(t('driver_status_documents_required')), findsOneWidget);
-      expect(find.text(t('driver_status_documents_required_message')), findsOneWidget);
+      expect(find.text(t('driver_status_documents_required')), findsNWidgets(2));
+      expect(find.text(t('driver_status_documents_required_message')), findsNWidgets(2));
       expect(find.text('Permis de conduire illisible, merci de le re-téléverser.'),
           findsOneWidget);
       expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsOneWidget);
@@ -446,9 +535,26 @@ void main() {
         ),
       );
 
-      await tester.tap(_elevatedButtonWithText(t('driver_status_resubmit')));
+      await selectReplacementDocument(
+        tester,
+        DriverDocumentType.driversLicence,
+      );
+
+      final resubmitButton =
+          _elevatedButtonWithText(t('driver_status_resubmit'));
+      await tester.ensureVisible(resubmitButton);
+      await tester.pump();
+
+      expect(
+        tester.widget<ElevatedButton>(resubmitButton).onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(resubmitButton);
       await tester.pumpAndSettle();
 
+      expect(uploadRepo.calls, 1);
+      expect(fakeRepo.submittedDocuments.length, 1);
       expect(fakeRepo.submitForReviewCallCount, 1);
       expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
       // Le repository fake fait avancer le profil -> l'écran doit refléter
@@ -465,11 +571,23 @@ void main() {
           documentsRequiredReason: 'Photo du véhicule manquante.',
         ),
       );
+      await selectReplacementDocument(
+        tester,
+        DriverDocumentType.vehiclePhoto,
+      );
+
       fakeRepo.pendingSubmitForReviewCompleter = Completer<void>();
 
       final resubmitButton =
           _elevatedButtonWithText(t('driver_status_resubmit'));
       await tester.ensureVisible(resubmitButton);
+      await tester.pump();
+
+      expect(
+        tester.widget<ElevatedButton>(resubmitButton).onPressed,
+        isNotNull,
+      );
+
       await tester.tap(resubmitButton);
       await tester.pump(); // laisse `_runAction` positionner `busy = true`.
 
@@ -499,12 +617,29 @@ void main() {
       );
       fakeRepo.submitForReviewError = Exception('PERMISSION_DENIED: dossier verrouillé côté serveur');
 
-      await tester.tap(_elevatedButtonWithText(t('driver_status_resubmit')));
+      await selectReplacementDocument(
+        tester,
+        DriverDocumentType.insurance,
+      );
+
+      final resubmitButton =
+          _elevatedButtonWithText(t('driver_status_resubmit'));
+      await tester.ensureVisible(resubmitButton);
+      await tester.pump();
+
+      expect(
+        tester.widget<ElevatedButton>(resubmitButton).onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(resubmitButton);
       await tester.pumpAndSettle();
 
+      expect(uploadRepo.calls, 1);
+      expect(fakeRepo.submittedDocuments.length, 1);
       expect(fakeRepo.submitForReviewCallCount, 1);
       // Le profil n'a PAS avancé (l'erreur a été levée avant `advanceTo`).
-      expect(find.text(t('driver_status_documents_required')), findsOneWidget);
+      expect(find.text(t('driver_status_documents_required')), findsNWidgets(2));
       expect(find.text(t('admin_action_error')), findsOneWidget);
     });
   });
