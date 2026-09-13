@@ -193,7 +193,9 @@ class PushNotificationService {
 
   static Future<void> _handleOpenedMessage(RemoteMessage message) async {
     final data = message.data;
-    if (data['type'] != 'delivery_offer') return;
+    final type = data['type'];
+
+    if (type != 'delivery_offer' && type != 'mission_status') return;
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -202,7 +204,15 @@ class PushNotificationService {
 
       // Une offre n'est PAS encore une mission assignée : on ouvre la liste
       // des demandes disponibles, jamais l'écran "mission active".
-      AppRouter.router.go('/$safeLocale/fournisseur/tableau-de-bord');
+      if (type == 'delivery_offer') {
+        AppRouter.router.go('/$safeLocale/fournisseur/tableau-de-bord');
+        return;
+      }
+
+      final missionId = data['missionId'];
+      if (missionId is! String || missionId.trim().isEmpty) return;
+
+      AppRouter.router.go('/$safeLocale/livraison/suivi/$missionId');
     } catch (_) {
       // La notification a tout de même rempli son rôle d'alerte; une erreur
       // de deep-link ne doit pas faire planter l'app.

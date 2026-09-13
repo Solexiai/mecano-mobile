@@ -26,6 +26,8 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
+import { sendCustomerMissionStatusPush } from "../lib/pushNotifications";
+import type { CustomerMissionPushType } from "../lib/pushNotifications";
 import {
   logFinancialFailure,
   logFinancialSuccess,
@@ -33,7 +35,7 @@ import {
 } from "../lib/observability";
 
 interface NotificationSpec {
-  type: string;
+  type: CustomerMissionPushType;
   titleKey: string;
   bodyKey: string;
 }
@@ -131,6 +133,14 @@ export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
         { missionId },
         { metadata: { notificationType: spec.type } }
       );
+
+      // Firestore reste la source de verite : le push part seulement apres
+      // la creation reussie de la notification canonique.
+      await sendCustomerMissionStatusPush({
+        customerId: after.customer_id,
+        missionId,
+        notificationType: spec.type,
+      });
     } catch (err) {
       logFinancialFailure(
         "mission_notification_created",
