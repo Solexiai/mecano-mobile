@@ -873,9 +873,7 @@ class _LoginRequiredNotice extends StatelessWidget {
             Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).canPop()
-                  ? Navigator.of(context).pop()
-                  : GoRouter.of(context).go('/$locale/connexion'),
+              onPressed: () => GoRouter.of(context).go('/$locale/connexion'),
               child: Text(t('delivery_sign_in_button')),
             ),
           ],
