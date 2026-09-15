@@ -1,22 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/app_colors.dart';
-import '../../../providers/locale_provider.dart';
-import '../../../services/demo_data_service.dart';
-import '../../../widgets/coming_soon_badge.dart';
 
-/// Admin dashboard — écran d'accueil `/admin` (résumé du marché +
-/// navigation vers les portails dédiés par domaine métier).
-///
-/// Architecture forward-compatible : chaque domaine (chauffeurs, missions,
-/// paiements, pricing, founding-drivers, analytics) a sa propre route
-/// dédiée sous `/admin/...` (voir app_router.dart). Ce shell n'affiche
-/// QUE le résumé (`_AdminOverviewTab`) et les paramètres plateforme
-/// (`_AdminSettingsTab`) ; le portail "Chauffeurs" navigue vers la vraie
-/// route `/admin/chauffeurs` au lieu d'être un onglet embarqué, afin que
-/// l'URL reflète toujours l'état réel (partage de lien, retour arrière,
-/// deep-linking analyste).
+import '../../../core/app_colors.dart';
+import '../../../providers/firebase_auth_provider.dart';
+import '../../../providers/locale_provider.dart';
+
 class AdminDashboardShell extends StatefulWidget {
   const AdminDashboardShell({super.key});
 
@@ -25,408 +15,412 @@ class AdminDashboardShell extends StatefulWidget {
 }
 
 class _AdminDashboardShellState extends State<AdminDashboardShell> {
-  int _tab = 0;
+  late Future<_AdminMetrics> _metrics;
+
+  @override
+  void initState() {
+    super.initState();
+    _metrics = _loadMetrics();
+  }
+
+  void _refresh() => setState(() => _metrics = _loadMetrics());
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
     final locale = context.watch<LocaleProvider>().locale;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
-
-    final tabs = [const _AdminOverviewTab(), const _AdminSettingsTab()];
-
-    void openDrivers() => context.go('/$locale/admin/chauffeurs');
-    void openUsers() => context.go('/$locale/admin/utilisateurs');
-    void openFinance() => context.go('/$locale/admin/paiements');
+    final auth = context.watch<FirebaseAuthProvider>();
+    final isFrench = locale == 'fr';
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Row(
-          children: [
-            IconButton(
-              onPressed: () => context.go('/$locale'),
-              icon: const Icon(Icons.arrow_back),
-              tooltip: t('common_back'),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              t('admin_dashboard_title'),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
+        title: const Text(
+          'Administration Movi-K',
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        actions: const [
-          Padding(padding: EdgeInsets.only(right: 16), child: DemoDataBadge()),
+        actions: [
+          IconButton(
+            tooltip: isFrench ? 'Actualiser' : 'Refresh',
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh),
+          ),
+          IconButton(
+            tooltip: isFrench ? 'Déconnexion' : 'Sign out',
+            onPressed: () async {
+              await auth.signOut();
+              if (context.mounted) context.go('/$locale');
+            },
+            icon: const Icon(Icons.logout),
+          ),
         ],
       ),
-      body: isDesktop
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _tab == 0 ? 0 : 3,
-                  onDestinationSelected: (i) {
-                    if (i == 1) {
-                      openDrivers();
-                      return;
-                    }
-                    if (i == 2) {
-                      openUsers();
-                      return;
-                    }
-                    if (i == 4) {
-                      openFinance();
-                      return;
-                    }
-                    setState(() => _tab = i == 3 ? 1 : 0);
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  destinations: [
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.dashboard_outlined),
-                      label: Text(t('admin_nav_overview')),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.verified_user_outlined),
-                      label: Text(t('admin_nav_drivers')),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.people_outline),
-                      label: const Text('Utilisateurs'),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.settings_outlined),
-                      label: Text(t('admin_nav_settings')),
-                    ),
-                    NavigationRailDestination(
-                      icon: const Icon(Icons.account_balance_outlined),
-                      label: Text(t('admin_nav_finance')),
-                    ),
-                  ],
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: tabs[_tab]),
-              ],
-            )
-          : Column(
-              children: [
-                Expanded(child: tabs[_tab]),
-                BottomNavigationBar(
-                  currentIndex: _tab == 0 ? 0 : 3,
-                  type: BottomNavigationBarType.fixed,
-                  onTap: (i) {
-                    if (i == 1) {
-                      openDrivers();
-                      return;
-                    }
-                    if (i == 2) {
-                      openUsers();
-                      return;
-                    }
-                    if (i == 4) {
-                      openFinance();
-                      return;
-                    }
-                    setState(() => _tab = i == 3 ? 1 : 0);
-                  },
-                  items: [
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.dashboard_outlined),
-                      label: t('admin_nav_overview'),
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.verified_user_outlined),
-                      label: t('admin_nav_drivers'),
-                    ),
-                    const BottomNavigationBarItem(
-                      icon: Icon(Icons.people_outline),
-                      label: 'Utilisateurs',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.settings_outlined),
-                      label: t('admin_nav_settings'),
-                    ),
-                    BottomNavigationBarItem(
-                      icon: const Icon(Icons.account_balance_outlined),
-                      label: t('admin_nav_finance'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+      body: RefreshIndicator(
+        onRefresh: () async => _refresh(),
+        child: FutureBuilder<_AdminMetrics>(
+          future: _metrics,
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return ListView(
+                children: [_ErrorPanel(onRetry: _refresh, isFrench: isFrench)],
+              );
+            }
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return _DashboardBody(
+              metrics: snapshot.data!,
+              locale: locale,
+              isFrench: isFrench,
+            );
+          },
+        ),
+      ),
     );
+  }
+
+  Future<_AdminMetrics> _loadMetrics() async {
+    final db = FirebaseFirestore.instance;
+    final results = await Future.wait([
+      db.collection('users').get(),
+      db.collection('driver_profiles').get(),
+      db.collection('delivery_requests').get(),
+      db.collection('payments').get(),
+      db.collection('disputes').get(),
+    ]);
+    final users = results[0].docs;
+    final drivers = results[1].docs;
+    final missions = results[2].docs;
+    final payments = results[3].docs;
+    final disputes = results[4].docs;
+
+    const activeStatuses = {
+      'searching_driver',
+      'offered',
+      'assigned',
+      'driver_to_pickup',
+      'arrived_at_pickup',
+      'picked_up',
+      'in_transit',
+      'arrived_at_dropoff',
+    };
+    return _AdminMetrics(
+      customers: users
+          .where((d) => _roles(d.data()).contains('customer'))
+          .length,
+      drivers: drivers.length,
+      pendingDrivers: drivers.where((d) {
+        final status = d.data()['status'];
+        return status == 'pending_review' || status == 'documents_required';
+      }).length,
+      activeMissions: missions
+          .where((d) => activeStatuses.contains(d.data()['status']))
+          .length,
+      completedMissions: missions.where((d) {
+        final status = d.data()['status'];
+        return status == 'completed' || status == 'delivered';
+      }).length,
+      payments: payments.length,
+      openDisputes: disputes
+          .where((d) => d.data()['status'] != 'resolved')
+          .length,
+    );
+  }
+
+  static List<String> _roles(Map<String, dynamic> data) {
+    final raw = data['roles'];
+    if (raw is List) return raw.whereType<String>().toList();
+    final role = data['role'];
+    return role is String ? [role] : const ['customer'];
   }
 }
 
-class _AdminOverviewTab extends StatelessWidget {
-  const _AdminOverviewTab();
+class _DashboardBody extends StatelessWidget {
+  const _DashboardBody({
+    required this.metrics,
+    required this.locale,
+    required this.isFrench,
+  });
+
+  final _AdminMetrics metrics;
+  final String locale;
+  final bool isFrench;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    final metrics = [
-      (
-        t('admin_overview_metric_customers'),
-        '128',
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 1100
+        ? 4
+        : width >= 650
+        ? 2
+        : 1;
+    final padding = width < 600 ? 16.0 : 28.0;
+    final cards = [
+      _Metric(
+        'Clients',
+        metrics.customers,
         Icons.people_outline,
         AppColors.primary,
       ),
-      (
-        t('admin_overview_metric_qualified_drivers'),
-        '${DemoDataService.drivers.length}',
+      _Metric(
+        isFrench ? 'Chauffeurs' : 'Drivers',
+        metrics.drivers,
         Icons.local_shipping_outlined,
         AppColors.success,
       ),
-      (
-        t('admin_overview_metric_qualified_mechanics'),
-        '${DemoDataService.mechanics.length}',
-        Icons.build_outlined,
-        AppColors.success,
-      ),
-      (
-        t('admin_overview_metric_active_requests'),
-        '4',
-        Icons.timelapse,
+      _Metric(
+        isFrench ? 'Dossiers à traiter' : 'Applications to review',
+        metrics.pendingDrivers,
+        Icons.fact_check_outlined,
         AppColors.warning,
       ),
-      (
-        t('admin_overview_metric_completed_bookings'),
-        '20',
+      _Metric(
+        isFrench ? 'Missions actives' : 'Active jobs',
+        metrics.activeMissions,
+        Icons.route_outlined,
+        AppColors.info,
+      ),
+      _Metric(
+        isFrench ? 'Missions terminées' : 'Completed jobs',
+        metrics.completedMissions,
         Icons.check_circle_outline,
         AppColors.success,
       ),
-      (
-        t('admin_overview_metric_disputes'),
-        '0',
-        Icons.report_gmailerrorred_outlined,
+      _Metric(
+        isFrench ? 'Paiements' : 'Payments',
+        metrics.payments,
+        Icons.payments_outlined,
+        AppColors.primary,
+      ),
+      _Metric(
+        isFrench ? 'Litiges ouverts' : 'Open disputes',
+        metrics.openDisputes,
+        Icons.report_problem_outlined,
         AppColors.error,
       ),
     ];
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('admin_overview_market_title'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: EdgeInsets.all(padding),
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1280),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isFrench ? 'Vue d’ensemble' : 'Overview',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                isFrench
+                    ? 'Les données opérationnelles réelles de Movi-K, réunies au même endroit.'
+                    : 'Movi-K real operational data, in one place.',
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: cards.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: columns == 1 ? 2.5 : 1.7,
+                ),
+                itemBuilder: (_, index) => _MetricCard(metric: cards[index]),
+              ),
+              const SizedBox(height: 30),
+              Text(
+                isFrench ? 'Gestion' : 'Management',
+                style: const TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _ActionCard(
+                icon: Icons.people_alt_outlined,
+                title: isFrench ? 'Utilisateurs' : 'Users',
+                subtitle: isFrench
+                    ? 'Consulter et distinguer clients, chauffeurs et administrateurs.'
+                    : 'Review customers, drivers and administrators.',
+                onTap: () => context.go('/$locale/admin/utilisateurs'),
+              ),
+              _ActionCard(
+                icon: Icons.local_shipping_outlined,
+                title: isFrench ? 'Dossiers chauffeurs' : 'Driver applications',
+                subtitle: isFrench
+                    ? 'Approuver, demander des documents, suspendre ou supprimer un dossier.'
+                    : 'Approve, request documents, suspend or delete an application.',
+                badge: metrics.pendingDrivers,
+                onTap: () => context.go('/$locale/admin/chauffeurs'),
+              ),
+              _ActionCard(
+                icon: Icons.account_balance_outlined,
+                title: 'Finances',
+                subtitle: isFrench
+                    ? 'Paiements, remboursements, versements, litiges, taxes et réconciliation.'
+                    : 'Payments, refunds, payouts, disputes, taxes and reconciliation.',
+                badge: metrics.openDisputes,
+                onTap: () => context.go('/$locale/admin/paiements'),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            t('admin_overview_market_subtitle'),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12.5,
-            ),
-          ),
-          const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: isDesktop ? 3 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.3,
-            children: metrics
-                .map(
-                  (m) => Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardTheme.color,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(m.$3, color: m.$4),
-                        const SizedBox(height: 10),
-                        Text(
-                          m.$2,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: m.$4,
-                          ),
-                        ),
-                        Text(
-                          m.$1,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 28),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t('admin_overview_targets_title'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  t('admin_overview_target_mechanics'),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  t('admin_overview_target_drivers'),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  t('admin_overview_target_jobs'),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  t('admin_overview_targets_disclaimer'),
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontStyle: FontStyle.italic,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _AdminSettingsTab extends StatefulWidget {
-  const _AdminSettingsTab();
+class _MetricCard extends StatelessWidget {
+  const _MetricCard({required this.metric});
+  final _Metric metric;
 
   @override
-  State<_AdminSettingsTab> createState() => _AdminSettingsTabState();
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardTheme.color,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: metric.color.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(metric.icon, color: metric.color),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${metric.value}',
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                metric.label,
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
-class _AdminSettingsTabState extends State<_AdminSettingsTab> {
-  bool _commissionEnabled = false;
-  double _commissionPct = 10;
-  double _bookingFee = 0;
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.badge = 0,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final int badge;
 
   @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      leading: Icon(icon, color: AppColors.primary, size: 28),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(subtitle),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            t('admin_settings_title'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.border),
+          if (badge > 0)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '$badge',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t('admin_settings_monetization_title'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  t('admin_settings_monetization_subtitle'),
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(t('admin_settings_enable_commission')),
-                  value: _commissionEnabled,
-                  onChanged: (v) => setState(() => _commissionEnabled = v),
-                  activeThumbColor: AppColors.primary,
-                ),
-                Text(
-                  '${t('admin_settings_commission_percentage')}: ${_commissionPct.round()}%',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Slider(
-                  value: _commissionPct,
-                  min: 8,
-                  max: 12,
-                  divisions: 4,
-                  activeColor: AppColors.primary,
-                  onChanged: _commissionEnabled
-                      ? (v) => setState(() => _commissionPct = v)
-                      : null,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '${t('admin_settings_customer_booking_fee')}: ${_bookingFee.toStringAsFixed(2)}\$',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Slider(
-                  value: _bookingFee,
-                  min: 0,
-                  max: 10,
-                  divisions: 10,
-                  activeColor: AppColors.primary,
-                  onChanged: (v) => setState(() => _bookingFee = v),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: AppColors.info),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    t('admin_settings_local_save_notice'),
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const Icon(Icons.chevron_right),
         ],
       ),
-    );
-  }
+      onTap: onTap,
+    ),
+  );
+}
+
+class _ErrorPanel extends StatelessWidget {
+  const _ErrorPanel({required this.onRetry, required this.isFrench});
+  final VoidCallback onRetry;
+  final bool isFrench;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(32),
+    child: Column(
+      children: [
+        const Icon(Icons.cloud_off_outlined, size: 48, color: AppColors.error),
+        const SizedBox(height: 12),
+        Text(
+          isFrench
+              ? 'Impossible de charger le tableau de bord.'
+              : 'Unable to load the dashboard.',
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: onRetry,
+          child: Text(isFrench ? 'Réessayer' : 'Retry'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _Metric {
+  const _Metric(this.label, this.value, this.icon, this.color);
+  final String label;
+  final int value;
+  final IconData icon;
+  final Color color;
+}
+
+class _AdminMetrics {
+  const _AdminMetrics({
+    required this.customers,
+    required this.drivers,
+    required this.pendingDrivers,
+    required this.activeMissions,
+    required this.completedMissions,
+    required this.payments,
+    required this.openDisputes,
+  });
+  final int customers;
+  final int drivers;
+  final int pendingDrivers;
+  final int activeMissions;
+  final int completedMissions;
+  final int payments;
+  final int openDisputes;
 }
