@@ -67,7 +67,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   Text(
                     t('admin_login_title'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -173,7 +176,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (!ok || !mounted) return;
 
     if (auth.isAnalystOrAbove) {
-      context.go('/fr/admin/chauffeurs');
+      final locale = context.read<LocaleProvider>().locale;
+      context.go('/$locale/admin');
       return;
     }
 
@@ -195,9 +199,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     await auth.signOut();
     if (!mounted) return;
     final t = context.read<LocaleProvider>().t;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(t('admin_login_access_denied'))),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(t('admin_login_access_denied'))));
   }
 
   @override
