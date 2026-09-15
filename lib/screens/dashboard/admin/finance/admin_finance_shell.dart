@@ -79,7 +79,8 @@ final List<_FinanceSection> _kSections = [
 ];
 
 class AdminFinanceShell extends StatefulWidget {
-  const AdminFinanceShell({super.key});
+  const AdminFinanceShell({super.key, this.initialSection = 'payments'});
+  final String initialSection;
 
   @override
   State<AdminFinanceShell> createState() => _AdminFinanceShellState();
@@ -88,12 +89,17 @@ class AdminFinanceShell extends StatefulWidget {
 class _AdminFinanceShellState extends State<AdminFinanceShell>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-  int _railIndex = 0;
+  late int _railIndex;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _kSections.length, vsync: this);
+    _railIndex = widget.initialSection == 'disputes' ? 3 : 0;
+    _tabController = TabController(
+      length: _kSections.length,
+      initialIndex: _railIndex,
+      vsync: this,
+    );
   }
 
   @override

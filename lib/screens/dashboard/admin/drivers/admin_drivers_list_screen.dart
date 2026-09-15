@@ -64,14 +64,21 @@ Color _statusColor(DriverStatus s) {
 }
 
 class AdminDriversListScreen extends StatefulWidget {
-  const AdminDriversListScreen({super.key});
+  const AdminDriversListScreen({super.key, this.initialFilter = 'pending'});
+  final String initialFilter;
 
   @override
   State<AdminDriversListScreen> createState() => _AdminDriversListScreenState();
 }
 
 class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
-  DriverStatus? _filter = DriverStatus.pendingReview;
+  late DriverStatus? _filter;
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = widget.initialFilter == 'all' ? null : DriverStatus.pendingReview;
+  }
 
   @override
   Widget build(BuildContext context) {
