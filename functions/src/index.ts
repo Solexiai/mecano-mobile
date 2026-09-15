@@ -70,6 +70,7 @@ export { updatePricingConfiguration } from "./functions/updatePricingConfigurati
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";
+export { deleteDriverProfile } from "./functions/deleteDriverProfile";
 export { registerAsDriver } from "./functions/registerAsDriver";
 export { submitDriverForReview } from "./functions/submitDriverForReview";
 

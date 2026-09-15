@@ -27,6 +27,7 @@ import '../screens/legal/legal_screen.dart';
 import '../screens/dashboard/customer/customer_dashboard_shell.dart';
 import '../screens/dashboard/provider/provider_dashboard_shell.dart';
 import '../screens/dashboard/admin/admin_dashboard_shell.dart';
+import '../screens/dashboard/admin/users/admin_users_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
@@ -404,6 +405,11 @@ class AppRouter {
                       ),
                     ),
                   ],
+                ),
+                GoRoute(
+                  path: 'utilisateurs',
+                  builder: (c, s) =>
+                      const AdminAuthGate(child: AdminUsersScreen()),
                 ),
                 GoRoute(
                   path: 'paiements',

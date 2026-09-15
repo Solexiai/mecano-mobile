@@ -36,6 +36,7 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
     final tabs = [const _AdminOverviewTab(), const _AdminSettingsTab()];
 
     void openDrivers() => context.go('/$locale/admin/chauffeurs');
+    void openUsers() => context.go('/$locale/admin/utilisateurs');
     void openFinance() => context.go('/$locale/admin/paiements');
 
     return Scaffold(
@@ -62,17 +63,21 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
           ? Row(
               children: [
                 NavigationRail(
-                  selectedIndex: _tab,
+                  selectedIndex: _tab == 0 ? 0 : 3,
                   onDestinationSelected: (i) {
                     if (i == 1) {
                       openDrivers();
                       return;
                     }
-                    if (i == 3) {
+                    if (i == 2) {
+                      openUsers();
+                      return;
+                    }
+                    if (i == 4) {
                       openFinance();
                       return;
                     }
-                    setState(() => _tab = i == 2 ? 1 : 0);
+                    setState(() => _tab = i == 3 ? 1 : 0);
                   },
                   labelType: NavigationRailLabelType.all,
                   destinations: [
@@ -83,6 +88,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
                     NavigationRailDestination(
                       icon: const Icon(Icons.verified_user_outlined),
                       label: Text(t('admin_nav_drivers')),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.people_outline),
+                      label: const Text('Utilisateurs'),
                     ),
                     NavigationRailDestination(
                       icon: const Icon(Icons.settings_outlined),
@@ -102,18 +111,22 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
               children: [
                 Expanded(child: tabs[_tab]),
                 BottomNavigationBar(
-                  currentIndex: _tab,
+                  currentIndex: _tab == 0 ? 0 : 3,
                   type: BottomNavigationBarType.fixed,
                   onTap: (i) {
                     if (i == 1) {
                       openDrivers();
                       return;
                     }
-                    if (i == 3) {
+                    if (i == 2) {
+                      openUsers();
+                      return;
+                    }
+                    if (i == 4) {
                       openFinance();
                       return;
                     }
-                    setState(() => _tab = i == 2 ? 1 : 0);
+                    setState(() => _tab = i == 3 ? 1 : 0);
                   },
                   items: [
                     BottomNavigationBarItem(
@@ -123,6 +136,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.verified_user_outlined),
                       label: t('admin_nav_drivers'),
+                    ),
+                    const BottomNavigationBarItem(
+                      icon: Icon(Icons.people_outline),
+                      label: 'Utilisateurs',
                     ),
                     BottomNavigationBarItem(
                       icon: const Icon(Icons.settings_outlined),
@@ -147,7 +164,12 @@ class _AdminOverviewTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final metrics = [
-      (t('admin_overview_metric_customers'), '128', Icons.people_outline, AppColors.primary),
+      (
+        t('admin_overview_metric_customers'),
+        '128',
+        Icons.people_outline,
+        AppColors.primary,
+      ),
       (
         t('admin_overview_metric_qualified_drivers'),
         '${DemoDataService.drivers.length}',
@@ -160,14 +182,24 @@ class _AdminOverviewTab extends StatelessWidget {
         Icons.build_outlined,
         AppColors.success,
       ),
-      (t('admin_overview_metric_active_requests'), '4', Icons.timelapse, AppColors.warning),
+      (
+        t('admin_overview_metric_active_requests'),
+        '4',
+        Icons.timelapse,
+        AppColors.warning,
+      ),
       (
         t('admin_overview_metric_completed_bookings'),
         '20',
         Icons.check_circle_outline,
         AppColors.success,
       ),
-      (t('admin_overview_metric_disputes'), '0', Icons.report_gmailerrorred_outlined, AppColors.error),
+      (
+        t('admin_overview_metric_disputes'),
+        '0',
+        Icons.report_gmailerrorred_outlined,
+        AppColors.error,
+      ),
     ];
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
@@ -183,7 +215,10 @@ class _AdminOverviewTab extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             t('admin_overview_market_subtitle'),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+            ),
           ),
           const SizedBox(height: 20),
           GridView.count(
