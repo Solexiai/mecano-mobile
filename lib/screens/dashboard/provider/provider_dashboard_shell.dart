@@ -9,6 +9,7 @@ import '../../../widgets/notification_bell.dart';
 import '../../../backend/backend_locator.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
+import '../../../services/driver_location_reporter.dart';
 import '../../../services/push_notification_service.dart';
 import 'tabs/provider_jobs_tab.dart';
 import 'tabs/provider_calendar_tab.dart';
@@ -49,22 +50,42 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   Stream<DriverProfileV2?> _ensureDriverProfileStream(String driverId) {
     if (_cachedDriverId != driverId || _driverProfileStream == null) {
       _cachedDriverId = driverId;
-      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(driverId);
+      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(
+        driverId,
+      );
     }
     return _driverProfileStream!;
   }
 
-  Future<void> _toggleAvailability(String driverId, bool goOnline, String Function(String) t) async {
+  Future<void> _toggleAvailability(
+    String driverId,
+    bool goOnline,
+    String Function(String) t,
+  ) async {
     setState(() => _togglingAvailability = true);
     try {
       // Phase 8D : le moment où le chauffeur se rend disponible est le bon
       // contexte UX pour demander la permission système de notifications.
       // Un refus n'empêche JAMAIS de passer en ligne : la cloche Firestore et
       // le flux temps réel des offres continuent de fonctionner.
+      await BackendLocator.driverRepository.setDriverOnlineStatus(
+        driverId,
+        goOnline,
+      );
+      LocationReporterError? locationError;
       if (goOnline) {
+        // Le statut devient visible immédiatement. La notification et le GPS
+        // sont ensuite synchronisés sans bloquer la disponibilité; l'adresse
+        // de service reste le repli serveur.
         await PushNotificationService.requestPermissionAndSync();
+        locationError = await DriverLocationReporter()
+            .reportCurrentLocationOnce();
       }
-      await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, goOnline);
+      if (locationError != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('provider_availability_location_fallback'))),
+        );
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,7 +97,10 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     }
   }
 
-  Future<void> _signOutDriver(String driverId, FirebaseAuthProvider auth) async {
+  Future<void> _signOutDriver(
+    String driverId,
+    FirebaseAuthProvider auth,
+  ) async {
     if (_signingOut) return;
     setState(() => _signingOut = true);
     try {
@@ -85,7 +109,10 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
       // Chaque étape est fail-soft pour garantir que l'utilisateur puisse
       // toujours terminer sa déconnexion même si le réseau coupe.
       try {
-        await BackendLocator.driverRepository.setDriverOnlineStatus(driverId, false);
+        await BackendLocator.driverRepository.setDriverOnlineStatus(
+          driverId,
+          false,
+        );
       } catch (_) {}
       await PushNotificationService.unregisterCurrentToken();
       await auth.signOut();
@@ -106,11 +133,18 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
+              const Icon(
+                Icons.lock_outline,
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(height: 16),
               Text(t('provider_dashboard_locked_message')),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: Text(t('delivery_sign_in_button'))),
+              ElevatedButton(
+                onPressed: () => context.go('/$locale/connexion'),
+                child: Text(t('delivery_sign_in_button')),
+              ),
             ],
           ),
         ),
@@ -150,18 +184,23 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        title: Row(children: [
-          IconButton(onPressed: () => context.go('/$locale'), icon: const Icon(Icons.arrow_back)),
-          if (!isNarrowPhone) const SizedBox(width: 4),
-          if (!isNarrowPhone)
-            Expanded(
-              child: Text(
-                t('nav_provider_space'),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-                overflow: TextOverflow.ellipsis,
-              ),
+        title: Row(
+          children: [
+            IconButton(
+              onPressed: () => context.go('/$locale'),
+              icon: const Icon(Icons.arrow_back),
             ),
-        ]),
+            if (!isNarrowPhone) const SizedBox(width: 4),
+            if (!isNarrowPhone)
+              Expanded(
+                child: Text(
+                  t('nav_provider_space'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
         actions: [
           StreamBuilder<DriverProfileV2?>(
             stream: _ensureDriverProfileStream(driverId),
@@ -191,7 +230,9 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                       statusLabel,
                       style: TextStyle(
                         fontSize: 12,
-                        color: online ? AppColors.success : AppColors.textSecondary,
+                        color: online
+                            ? AppColors.success
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -199,7 +240,8 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                     message: statusLabel,
                     child: Switch(
                       value: online,
-                      onChanged: (!canGoOnline || _togglingAvailability || _signingOut)
+                      onChanged:
+                          (!canGoOnline || _togglingAvailability || _signingOut)
                           ? null
                           : (v) => _toggleAvailability(driverId, v, t),
                       activeThumbColor: AppColors.success,
@@ -213,7 +255,9 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           if (!isNarrowPhone) const LanguageSelector(compact: true),
           if (!isNarrowPhone) const SizedBox(width: 8),
           IconButton(
-            onPressed: _signingOut ? null : () => _signOutDriver(driverId, auth),
+            onPressed: _signingOut
+                ? null
+                : () => _signOutDriver(driverId, auth),
             icon: _signingOut
                 ? const SizedBox(
                     width: 18,
@@ -249,7 +293,14 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                   selectedIndex: _index,
                   onDestinationSelected: (i) => setState(() => _index = i),
                   labelType: NavigationRailLabelType.all,
-                  destinations: navItems.map((n) => NavigationRailDestination(icon: Icon(n.$1), label: Text(n.$2))).toList(),
+                  destinations: navItems
+                      .map(
+                        (n) => NavigationRailDestination(
+                          icon: Icon(n.$1),
+                          label: Text(n.$2),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const VerticalDivider(width: 1),
                 Expanded(child: tabs[_index]),
@@ -261,7 +312,12 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           : BottomNavigationBar(
               currentIndex: _index,
               onTap: (i) => setState(() => _index = i),
-              items: navItems.map((n) => BottomNavigationBarItem(icon: Icon(n.$1), label: n.$2)).toList(),
+              items: navItems
+                  .map(
+                    (n) =>
+                        BottomNavigationBarItem(icon: Icon(n.$1), label: n.$2),
+                  )
+                  .toList(),
             ),
     );
   }

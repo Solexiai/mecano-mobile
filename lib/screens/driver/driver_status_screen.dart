@@ -32,6 +32,8 @@ import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../services/driver_location_reporter.dart';
+import '../../services/push_notification_service.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/notification_bell.dart';
 
@@ -48,7 +50,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   bool _pickingReplacement = false;
   String? _actionError;
   final Map<DriverDocumentType, _SelectedReplacementDocument>
-      _replacementDocuments = {};
+  _replacementDocuments = {};
 
   String? _cachedUid;
   Stream<DriverProfileV2?>? _driverProfileStream;
@@ -56,9 +58,21 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   Stream<DriverProfileV2?> _ensureDriverProfileStream(String uid) {
     if (_cachedUid != uid || _driverProfileStream == null) {
       _cachedUid = uid;
-      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(uid);
+      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(
+        uid,
+      );
     }
     return _driverProfileStream!;
+  }
+
+  Future<void> _setAvailability(String uid, bool goOnline) async {
+    await BackendLocator.driverRepository.setDriverOnlineStatus(uid, goOnline);
+    if (goOnline) {
+      // Le chauffeur est disponible immédiatement. Le GPS améliore ensuite
+      // la précision; l'adresse de service reste le repli du dispatch.
+      await PushNotificationService.requestPermissionAndSync();
+      await DriverLocationReporter().reportCurrentLocationOnce();
+    }
   }
 
   @override
@@ -94,7 +108,6 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
     }
 
     final uid = auth.effectiveUid!;
-    final repo = BackendLocator.driverRepository;
 
     return StreamBuilder<DriverProfileV2?>(
       stream: _ensureDriverProfileStream(uid),
@@ -140,9 +153,8 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
               actionError: _actionError,
               onCompleteRegistration: () =>
                   context.go('/${widget.locale}/devenir-chauffeur/inscription'),
-              onToggleOnline: (goOnline) => _runAction(
-                () => repo.setDriverOnlineStatus(uid, goOnline),
-              ),
+              onToggleOnline: (goOnline) =>
+                  _runAction(() => _setAvailability(uid, goOnline)),
               onRefresh: () => setState(() {}),
               onGoHome: () => context.go('/${widget.locale}'),
               onGoToDriverDashboard: () =>
@@ -158,10 +170,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
     );
   }
 
-  Widget _buildDocumentCorrectionCard(
-    String uid,
-    String Function(String) t,
-  ) {
+  Widget _buildDocumentCorrectionCard(String uid, String Function(String) t) {
     const types = <DriverDocumentType>[
       DriverDocumentType.driversLicence,
       DriverDocumentType.insurance,
@@ -187,10 +196,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
           const SizedBox(height: 8),
           Text(
             t('driver_status_documents_required_message'),
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              height: 1.4,
-            ),
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           const SizedBox(height: 16),
           ...types.map(
@@ -208,7 +214,8 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
           ),
           const SizedBox(height: 4),
           ElevatedButton.icon(
-            onPressed: _actionInProgress ||
+            onPressed:
+                _actionInProgress ||
                     _pickingReplacement ||
                     _replacementDocuments.isEmpty
                 ? null
@@ -248,8 +255,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
                 title: Text(t('driver_onboarding_document_source_camera')),
-                onTap: () =>
-                    Navigator.of(sheetContext).pop(ImageSource.camera),
+                onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
@@ -280,8 +286,9 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() =>
-          _actionError = t('driver_onboarding_error_document_pick_failed'));
+      setState(
+        () => _actionError = t('driver_onboarding_error_document_pick_failed'),
+      );
     } finally {
       if (mounted) setState(() => _pickingReplacement = false);
     }
@@ -309,8 +316,9 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
         final extension = selectedFile.fileName.contains('.')
             ? selectedFile.fileName.split('.').last.toLowerCase()
             : 'jpg';
-        final contentType =
-            extension == 'pdf' ? 'application/pdf' : 'image/jpeg';
+        final contentType = extension == 'pdf'
+            ? 'application/pdf'
+            : 'image/jpeg';
         final fileName =
             '${type.firestoreValue}_${DateTime.now().microsecondsSinceEpoch}.$extension';
 
@@ -358,7 +366,11 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
     } catch (e) {
       debugPrint('DriverStatusScreen action failed: $e');
       if (!mounted) return;
-      setState(() => _actionError = context.read<LocaleProvider>().t('admin_action_error'));
+      setState(
+        () => _actionError = context.read<LocaleProvider>().t(
+          'admin_action_error',
+        ),
+      );
     } finally {
       if (mounted) setState(() => _actionInProgress = false);
     }
@@ -553,10 +565,7 @@ class _StatusCard extends StatelessWidget {
           Text(
             t(_messageKey),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              height: 1.5,
-            ),
+            style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
           ),
           if (profile.status == DriverStatus.documentsRequired &&
               (profile.documentsRequiredReason?.isNotEmpty ?? false)) ...[
@@ -611,10 +620,7 @@ class _StatusCard extends StatelessWidget {
               ),
             ),
           ],
-          if (actions.isNotEmpty) ...[
-            const SizedBox(height: 22),
-            ...actions,
-          ],
+          if (actions.isNotEmpty) ...[const SizedBox(height: 22), ...actions],
         ],
       ),
     );

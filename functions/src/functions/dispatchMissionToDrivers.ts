@@ -10,23 +10,17 @@
 // Le push est strictement fail-soft : Firestore reste la source de vérité et
 // une panne FCM ne doit jamais annuler/faire échouer le dispatch métier.
 //
-// Requête utilisée (nécessite l'index composite #1 de firestore.indexes.json:
-// driver_profiles(status, online_status, documents_all_valid, current_geohash)) :
+// Requête volontairement simple et bornée :
 //   where status == 'approved'
 //   where online_status == 'online'
-//   where documents_all_valid == true
-//   where current_geohash >= prefix && < prefix+upperBound
-// Le filtre `accepted_vehicle_categories array-contains <categorie>` est
-// appliqué EN MÉMOIRE après la requête (voir docs/FIRESTORE_INDEXES.md,
-// section "non indexées par design") plutôt que dans un index composite
-// supplémentaire, car Firestore ne permet pas de combiner efficacement
-// array-contains avec plusieurs autres filtres d'égalité/plage, et le lot
-// pré-filtré par zone/statut reste toujours petit.
+// Les validations documentaires, la catégorie de véhicule et la zone sont
+// ensuite filtrées en mémoire. La zone utilise d'abord current_geohash, puis
+// les coordonnées de l'adresse de service comme repli avant le premier GPS.
 // -----------------------------------------------------------------------------
 
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../lib/admin";
-import { geohashUpperBound } from "../lib/geohash";
+import { encodeGeohash } from "../lib/geohash";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
 import {
   logFinancialFailure,
@@ -49,20 +43,44 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
   const operationStartedAt = startFinancialOperationTimer();
   const zonePrefix = mission.dispatch_zone_geohash.slice(0, DISPATCH_ZONE_PREFIX_LENGTH);
 
+  // Cherche d'abord les chauffeurs réellement disponibles. Les critères de
+  // zone et de véhicule sont appliqués en mémoire sur ce petit lot borné.
+  // Cela permet de réparer les profils approuvés plus anciens qui n'avaient
+  // pas encore les champs dénormalisés current_geohash/documents_all_valid.
   const candidatesSnap = await db
     .collection("driver_profiles")
     .where("status", "==", "approved")
     .where("online_status", "==", "online")
-    .where("documents_all_valid", "==", true)
-    .where("current_geohash", ">=", zonePrefix)
-    .where("current_geohash", "<", geohashUpperBound(zonePrefix))
-    .limit(50) // garde-fou — filtré ensuite en mémoire, jamais un scan complet
+    .limit(50)
     .get();
 
   const eligible = candidatesSnap.docs
-    .filter((d) =>
-      (d.data().accepted_vehicle_categories as string[]).includes(mission.required_vehicle_category)
-    )
+    .filter((driverDoc) => {
+      const driver = driverDoc.data();
+
+      // La validation documentaire reste obligatoire. Un champ absent sur
+      // un ancien profil est traité comme non validé, jamais comme une
+      // autorisation implicite.
+      if (driver.documents_all_valid !== true) return false;
+
+      const categories = Array.isArray(driver.accepted_vehicle_categories)
+        ? (driver.accepted_vehicle_categories as string[])
+        : [];
+      if (!categories.includes(mission.required_vehicle_category)) return false;
+
+      // La dernière position GPS est prioritaire. Avant le premier partage
+      // GPS, l'adresse de base validée pendant l'onboarding sert de repli :
+      // le chauffeur peut donc recevoir une première offre sans cercle
+      // impossible « mission requise avant activation du GPS ».
+      const currentGeohash =
+        typeof driver.current_geohash === "string" && driver.current_geohash.length >= 3
+          ? driver.current_geohash
+          : typeof driver.base_lat === "number" && typeof driver.base_lng === "number"
+            ? encodeGeohash(driver.base_lat, driver.base_lng, 6)
+            : null;
+
+      return currentGeohash?.slice(0, DISPATCH_ZONE_PREFIX_LENGTH) === zonePrefix;
+    })
     .slice(0, MAX_CANDIDATE_DRIVERS);
 
   if (eligible.length === 0) {
@@ -184,6 +202,37 @@ export const onMissionReopenedDispatch = onDocumentUpdated(
     if (!after) return;
     if (before?.status !== MissionStatuses.SEARCHING_DRIVER && after.status === MissionStatuses.SEARCHING_DRIVER) {
       await dispatchMission(event.params.missionId, after);
+    }
+  }
+);
+
+/**
+ * Relance les demandes déjà en attente lorsqu'un chauffeur devient réellement
+ * disponible. Sans ce déclencheur, une demande créée quelques secondes avant
+ * la mise en ligne du chauffeur pouvait rester bloquée indéfiniment.
+ */
+export const onDriverBecameAvailableDispatch = onDocumentUpdated(
+  "driver_profiles/{driverId}",
+  async (event) => {
+    const before = event.data?.before.data();
+    const after = event.data?.after.data();
+    if (!after) return;
+
+    const isAvailable = (driver: FirebaseFirestore.DocumentData | undefined) =>
+      driver?.status === "approved" &&
+      driver?.online_status === "online" &&
+      driver?.documents_all_valid === true;
+
+    if (!isAvailable(after) || isAvailable(before)) return;
+
+    const pendingMissions = await db
+      .collection("delivery_requests")
+      .where("status", "==", MissionStatuses.SEARCHING_DRIVER)
+      .limit(25)
+      .get();
+
+    for (const missionDoc of pendingMissions.docs) {
+      await dispatchMission(missionDoc.id, missionDoc.data() as DeliveryMissionDoc);
     }
   }
 );

@@ -255,9 +255,11 @@ class AppStrings {
     // révèle JAMAIS le nom du flag, sa valeur, ni le fonctionnement interne
     // — voir functions/src/lib/runtimeFlags.ts (KILL_SWITCH_ERROR_CODE).
     'service_temporarily_unavailable': {
-      'fr': 'Service temporairement indisponible. Merci de réessayer plus tard.',
+      'fr':
+          'Service temporairement indisponible. Merci de réessayer plus tard.',
       'en': 'Service temporarily unavailable. Please try again later.',
-      'es': 'Servicio temporalmente no disponible. Inténtelo de nuevo más tarde.',
+      'es':
+          'Servicio temporalmente no disponible. Inténtelo de nuevo más tarde.',
     },
     'common_empty': {
       'fr': "Rien à afficher pour l'instant",
@@ -370,14 +372,18 @@ class AppStrings {
       'es': 'Crear mi cuenta',
     },
     'auth_driver_redirect_message': {
-      'fr': "Le parcours chauffeur a son propre formulaire d'inscription complet.",
+      'fr':
+          "Le parcours chauffeur a son propre formulaire d'inscription complet.",
       'en': 'The driver journey has its own complete sign-up form.',
-      'es': 'El proceso de conductor tiene su propio formulario de registro completo.',
+      'es':
+          'El proceso de conductor tiene su propio formulario de registro completo.',
     },
     'auth_mechanic_redirect_message': {
-      'fr': "Le parcours mécanicien mobile a son propre formulaire d'inscription.",
+      'fr':
+          "Le parcours mécanicien mobile a son propre formulaire d'inscription.",
       'en': 'The mobile mechanic journey has its own sign-up form.',
-      'es': 'El proceso de mecánico móvil tiene su propio formulario de registro.',
+      'es':
+          'El proceso de mecánico móvil tiene su propio formulario de registro.',
     },
     'auth_error_missing_credentials': {
       'fr': 'Courriel et mot de passe requis.',
@@ -713,9 +719,11 @@ class AppStrings {
     // `delivery_coordinates_note` (SUPPRIMÉS) exposaient des données
     // techniques que le client ne doit jamais voir ni saisir.
     'delivery_address_guidance': {
-      'fr': 'Commencez à saisir une adresse et sélectionnez-la dans les suggestions.',
+      'fr':
+          'Commencez à saisir une adresse et sélectionnez-la dans les suggestions.',
       'en': 'Start typing an address and select it from the suggestions.',
-      'es': 'Comience a escribir una dirección y selecciónela de las sugerencias.',
+      'es':
+          'Comience a escribir una dirección y selecciónela de las sugerencias.',
     },
     'delivery_address_no_suggestions': {
       'fr': 'Aucune suggestion trouvée pour cette adresse.',
@@ -723,9 +731,11 @@ class AppStrings {
       'es': 'No se encontraron sugerencias para esta dirección.',
     },
     'delivery_address_provider_unavailable': {
-      'fr': 'Service de recherche d\'adresse temporairement indisponible. Réessayez.',
+      'fr':
+          'Service de recherche d\'adresse temporairement indisponible. Réessayez.',
       'en': 'Address search service temporarily unavailable. Please try again.',
-      'es': 'Servicio de búsqueda de direcciones temporalmente no disponible. Inténtalo de nuevo.',
+      'es':
+          'Servicio de búsqueda de direcciones temporalmente no disponible. Inténtalo de nuevo.',
     },
     'delivery_address_invalid_selection': {
       'fr': 'Veuillez sélectionner une adresse valide dans les suggestions.',
@@ -1269,6 +1279,14 @@ class AppStrings {
       'en': 'Unable to change your availability status.',
       'es': 'No se pudo cambiar tu estado de disponibilidad.',
     },
+    'provider_availability_location_fallback': {
+      'fr':
+          'Vous êtes en ligne. Votre adresse de service est utilisée jusqu’à ce que la position soit disponible.',
+      'en':
+          'You are online. Your service address is used until your location becomes available.',
+      'es':
+          'Estás en línea. Se usa tu dirección de servicio hasta que tu ubicación esté disponible.',
+    },
 
     // ---------- Profil client (CustomerProfileTab, Bloc K) ----------
     'customer_profile_title': {
@@ -1596,11 +1614,7 @@ class AppStrings {
       'en': 'Urgency level',
       'es': 'Nivel de urgencia',
     },
-    'mechanic_urgency_normal': {
-      'fr': 'Normal',
-      'en': 'Normal',
-      'es': 'Normal',
-    },
+    'mechanic_urgency_normal': {'fr': 'Normal', 'en': 'Normal', 'es': 'Normal'},
     'mechanic_urgency_urgent': {
       'fr': 'Urgent',
       'en': 'Urgent',
@@ -1955,8 +1969,7 @@ class AppStrings {
       'es': 'Registro de conductor',
     },
     'driver_onboarding_subtitle': {
-      'fr':
-          'Complétez votre profil pour commencer à recevoir des demandes.',
+      'fr': 'Complétez votre profil pour commencer à recevoir des demandes.',
       'en': 'Complete your profile to start receiving requests.',
       'es': 'Completa tu perfil para empezar a recibir solicitudes.',
     },
@@ -2028,11 +2041,7 @@ class AppStrings {
       'en': 'Make and model',
       'es': 'Marca y modelo',
     },
-    'driver_onboarding_year': {
-      'fr': 'Année',
-      'en': 'Year',
-      'es': 'Año',
-    },
+    'driver_onboarding_year': {'fr': 'Année', 'en': 'Year', 'es': 'Año'},
     'driver_onboarding_plate': {
       'fr': "Plaque d'immatriculation",
       'en': 'License plate',
@@ -2118,8 +2127,7 @@ class AppStrings {
       'es': 'No se pudo seleccionar este archivo. Inténtelo de nuevo.',
     },
     'driver_onboarding_consent_verification': {
-      'fr':
-          'Je consens à la vérification de mon identité et de mes documents.',
+      'fr': 'Je consens à la vérification de mon identité et de mes documents.',
       'en': 'I consent to the verification of my identity and documents.',
       'es': 'Doy mi consentimiento para verificar mi identidad y documentos.',
     },
@@ -2165,8 +2173,7 @@ class AppStrings {
       'es': 'Registro de mecánico móvil',
     },
     'mechanic_onboarding_subtitle': {
-      'fr':
-          'Complétez votre profil pour commencer à recevoir des demandes.',
+      'fr': 'Complétez votre profil pour commencer à recevoir des demandes.',
       'en': 'Complete your profile to start receiving requests.',
       'es': 'Completa tu perfil para empezar a recibir solicitudes.',
     },
@@ -2343,11 +2350,7 @@ class AppStrings {
       'en': 'Cancellation Policy',
       'es': 'Política de cancelación',
     },
-    'footer_legal_column_title': {
-      'fr': 'Légal',
-      'en': 'Legal',
-      'es': 'Legal',
-    },
+    'footer_legal_column_title': {'fr': 'Légal', 'en': 'Legal', 'es': 'Legal'},
 
     // ---------- Trust ----------
     'trust_identity_verified': {
@@ -3019,7 +3022,8 @@ class AppStrings {
       'es': '• 20 trabajos completados',
     },
     'admin_overview_targets_disclaimer': {
-      'fr': 'Ces cibles sont des hypothèses internes, non des indicateurs publics.',
+      'fr':
+          'Ces cibles sont des hypothèses internes, non des indicateurs publics.',
       'en': 'These targets are internal assumptions, not public indicators.',
       'es': 'Estos objetivos son hipótesis internas, no indicadores públicos.',
     },
@@ -3072,9 +3076,12 @@ class AppStrings {
       'es': 'Administración Movi-K',
     },
     'admin_login_subtitle': {
-      'fr': 'Accès réservé au personnel autorisé (analyste, admin, super-admin).',
-      'en': 'Access restricted to authorized staff (analyst, admin, super admin).',
-      'es': 'Acceso restringido al personal autorizado (analista, admin, super admin).',
+      'fr':
+          'Accès réservé au personnel autorisé (analyste, admin, super-admin).',
+      'en':
+          'Access restricted to authorized staff (analyst, admin, super admin).',
+      'es':
+          'Acceso restringido al personal autorizado (analista, admin, super admin).',
     },
     'admin_login_backend_not_configured': {
       'fr':
@@ -4520,18 +4527,26 @@ class AppStrings {
       'es': 'Activo',
     },
     'provider_stripe_connect_description_none': {
-      'fr': 'Configurez votre compte de versement Stripe pour pouvoir être payé après vos missions.',
-      'en': 'Set up your Stripe payout account to get paid after your missions.',
-      'es': 'Configure su cuenta de pagos de Stripe para recibir pagos después de sus misiones.',
+      'fr':
+          'Configurez votre compte de versement Stripe pour pouvoir être payé après vos missions.',
+      'en':
+          'Set up your Stripe payout account to get paid after your missions.',
+      'es':
+          'Configure su cuenta de pagos de Stripe para recibir pagos después de sus misiones.',
     },
     'provider_stripe_connect_description_pending': {
-      'fr': 'Votre compte a été créé, mais l\'onboarding Stripe n\'est pas encore terminé. Complétez-le pour recevoir vos versements.',
-      'en': 'Your account was created, but Stripe onboarding is not complete yet. Finish it to receive your payouts.',
-      'es': 'Su cuenta fue creada, pero la incorporación de Stripe aún no está completa. Finalícela para recibir sus pagos.',
+      'fr':
+          'Votre compte a été créé, mais l\'onboarding Stripe n\'est pas encore terminé. Complétez-le pour recevoir vos versements.',
+      'en':
+          'Your account was created, but Stripe onboarding is not complete yet. Finish it to receive your payouts.',
+      'es':
+          'Su cuenta fue creada, pero la incorporación de Stripe aún no está completa. Finalícela para recibir sus pagos.',
     },
     'provider_stripe_connect_description_active': {
-      'fr': 'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
-      'en': 'Your Stripe account is active: you can receive charges and payouts.',
+      'fr':
+          'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
+      'en':
+          'Your Stripe account is active: you can receive charges and payouts.',
       'es': 'Su cuenta de Stripe está activa: puede recibir cobros y pagos.',
     },
     'provider_stripe_connect_charges_enabled': {
@@ -4565,9 +4580,11 @@ class AppStrings {
       'es': 'Conectando con Stripe…',
     },
     'provider_stripe_connect_error_generic': {
-      'fr': 'Impossible de configurer les versements pour le moment. Réessayez plus tard.',
+      'fr':
+          'Impossible de configurer les versements pour le moment. Réessayez plus tard.',
       'en': 'Unable to set up payouts right now. Please try again later.',
-      'es': 'No se pudo configurar los pagos en este momento. Inténtelo más tarde.',
+      'es':
+          'No se pudo configurar los pagos en este momento. Inténtelo más tarde.',
     },
     'provider_stripe_connect_error_not_configured': {
       'fr': 'Le service de versement n\'est pas disponible actuellement.',
@@ -4590,24 +4607,34 @@ class AppStrings {
       'es': 'De vuelta desde Stripe',
     },
     'driver_onboarding_return_complete_message': {
-      'fr': "Merci ! Nous vérifions l'état de votre compte de versement Stripe.",
-      'en': "Thank you! We're checking the status of your Stripe payout account.",
-      'es': '¡Gracias! Estamos verificando el estado de su cuenta de pagos de Stripe.',
+      'fr':
+          "Merci ! Nous vérifions l'état de votre compte de versement Stripe.",
+      'en':
+          "Thank you! We're checking the status of your Stripe payout account.",
+      'es':
+          '¡Gracias! Estamos verificando el estado de su cuenta de pagos de Stripe.',
     },
     'driver_onboarding_return_refresh_message': {
-      'fr': "Le lien d'onboarding Stripe a expiré ou a été abandonné. Vous pouvez le reprendre depuis votre profil.",
-      'en': 'The Stripe onboarding link expired or was left incomplete. You can resume it from your profile.',
-      'es': 'El enlace de incorporación de Stripe caducó o quedó incompleto. Puede reanudarlo desde su perfil.',
+      'fr':
+          "Le lien d'onboarding Stripe a expiré ou a été abandonné. Vous pouvez le reprendre depuis votre profil.",
+      'en':
+          'The Stripe onboarding link expired or was left incomplete. You can resume it from your profile.',
+      'es':
+          'El enlace de incorporación de Stripe caducó o quedó incompleto. Puede reanudarlo desde su perfil.',
     },
     'driver_onboarding_return_status_active': {
-      'fr': 'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
-      'en': 'Your Stripe account is active: you can receive charges and payouts.',
+      'fr':
+          'Votre compte Stripe est actif : vous pouvez recevoir des paiements et des versements.',
+      'en':
+          'Your Stripe account is active: you can receive charges and payouts.',
       'es': 'Su cuenta de Stripe está activa: puede recibir cobros y pagos.',
     },
     'driver_onboarding_return_status_pending': {
-      'fr': 'Onboarding pas encore terminé. Ouvrez votre profil pour le compléter.',
+      'fr':
+          'Onboarding pas encore terminé. Ouvrez votre profil pour le compléter.',
       'en': 'Onboarding is not complete yet. Open your profile to finish it.',
-      'es': 'La incorporación aún no está completa. Abra su perfil para finalizarla.',
+      'es':
+          'La incorporación aún no está completa. Abra su perfil para finalizarla.',
     },
     'driver_onboarding_return_go_to_profile': {
       'fr': 'Retour à mon profil',
