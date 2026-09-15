@@ -123,42 +123,49 @@ class _DashboardBody extends StatelessWidget {
         metrics.customers,
         Icons.people_outline,
         AppColors.primary,
+        '/$locale/admin/utilisateurs?filter=customers',
       ),
       _Metric(
         isFrench ? 'Chauffeurs' : 'Drivers',
         metrics.drivers,
         Icons.local_shipping_outlined,
         AppColors.success,
+        '/$locale/admin/chauffeurs?filter=all',
       ),
       _Metric(
         isFrench ? 'Dossiers à traiter' : 'Applications to review',
         metrics.pendingDrivers,
         Icons.fact_check_outlined,
         AppColors.warning,
+        '/$locale/admin/chauffeurs?filter=pending',
       ),
       _Metric(
         isFrench ? 'Missions actives' : 'Active jobs',
         metrics.activeMissions,
         Icons.route_outlined,
         AppColors.info,
+        '/$locale/admin/missions?filter=active',
       ),
       _Metric(
         isFrench ? 'Missions terminées' : 'Completed jobs',
         metrics.completedMissions,
         Icons.check_circle_outline,
         AppColors.success,
+        '/$locale/admin/missions?filter=completed',
       ),
       _Metric(
         isFrench ? 'Paiements' : 'Payments',
         metrics.payments,
         Icons.payments_outlined,
         AppColors.primary,
+        '/$locale/admin/paiements?section=payments',
       ),
       _Metric(
         isFrench ? 'Litiges ouverts' : 'Open disputes',
         metrics.openDisputes,
         Icons.report_problem_outlined,
         AppColors.error,
+        '/$locale/admin/paiements?section=disputes',
       ),
     ];
 
@@ -246,44 +253,51 @@ class _MetricCard extends StatelessWidget {
   final _Metric metric;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: Theme.of(context).cardTheme.color,
+  Widget build(BuildContext context) => Material(
+    color: Theme.of(context).cardTheme.color,
+    shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
+      side: const BorderSide(color: AppColors.border),
     ),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: metric.color.withValues(alpha: .12),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(metric.icon, color: metric.color),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${metric.value}',
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.w900,
-                ),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: () => context.go(metric.path),
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: metric.color.withValues(alpha: .12),
+                borderRadius: BorderRadius.circular(14),
               ),
-              Text(
-                metric.label,
-                style: const TextStyle(color: AppColors.textSecondary),
+              child: Icon(metric.icon, color: metric.color),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${metric.value}',
+                    style: const TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    metric.label,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
         ),
-      ],
+      ),
     ),
   );
 }
@@ -362,11 +376,12 @@ class _ErrorPanel extends StatelessWidget {
 }
 
 class _Metric {
-  const _Metric(this.label, this.value, this.icon, this.color);
+  const _Metric(this.label, this.value, this.icon, this.color, this.path);
   final String label;
   final int value;
   final IconData icon;
   final Color color;
+  final String path;
 }
 
 class _AdminMetrics {

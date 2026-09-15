@@ -31,6 +31,7 @@ import '../screens/dashboard/admin/users/admin_users_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
+import '../screens/dashboard/admin/missions/admin_missions_screen.dart';
 
 /// Bloc 8B LIVE — lit un `initialTabIndex` optionnel passé via
 /// `GoRouterState.extra` (ex. depuis `DriverStripeOnboardingReturnScreen`,
@@ -392,8 +393,13 @@ class AppRouter {
               routes: [
                 GoRoute(
                   path: 'chauffeurs',
-                  builder: (c, s) => const AdminAuthGate(
-                    child: Scaffold(body: AdminDriversListScreen()),
+                  builder: (c, s) => AdminAuthGate(
+                    child: Scaffold(
+                      body: AdminDriversListScreen(
+                        initialFilter:
+                            s.uri.queryParameters['filter'] ?? 'pending',
+                      ),
+                    ),
                   ),
                   routes: [
                     GoRoute(
@@ -408,13 +414,29 @@ class AppRouter {
                 ),
                 GoRoute(
                   path: 'utilisateurs',
-                  builder: (c, s) =>
-                      const AdminAuthGate(child: AdminUsersScreen()),
+                  builder: (c, s) => AdminAuthGate(
+                    child: AdminUsersScreen(
+                      initialFilter: s.uri.queryParameters['filter'] ?? 'all',
+                    ),
+                  ),
+                ),
+                GoRoute(
+                  path: 'missions',
+                  builder: (c, s) => AdminAuthGate(
+                    child: AdminMissionsScreen(
+                      initialFilter:
+                          s.uri.queryParameters['filter'] ?? 'active',
+                    ),
+                  ),
                 ),
                 GoRoute(
                   path: 'paiements',
-                  builder: (c, s) =>
-                      const AdminAuthGate(child: AdminFinanceShell()),
+                  builder: (c, s) => AdminAuthGate(
+                    child: AdminFinanceShell(
+                      initialSection:
+                          s.uri.queryParameters['section'] ?? 'payments',
+                    ),
+                  ),
                 ),
               ],
             ),

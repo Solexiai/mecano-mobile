@@ -8,14 +8,26 @@ import '../../../../providers/locale_provider.dart';
 enum _UserFilter { all, customers, drivers, administrators }
 
 class AdminUsersScreen extends StatefulWidget {
-  const AdminUsersScreen({super.key});
+  const AdminUsersScreen({super.key, this.initialFilter = 'all'});
+  final String initialFilter;
   @override
   State<AdminUsersScreen> createState() => _AdminUsersScreenState();
 }
 
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
   final _searchController = TextEditingController();
-  _UserFilter _filter = _UserFilter.all;
+  late _UserFilter _filter;
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = switch (widget.initialFilter) {
+      'customers' => _UserFilter.customers,
+      'drivers' => _UserFilter.drivers,
+      'administrators' => _UserFilter.administrators,
+      _ => _UserFilter.all,
+    };
+  }
 
   @override
   void dispose() {
