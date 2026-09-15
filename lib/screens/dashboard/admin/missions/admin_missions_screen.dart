@@ -6,6 +6,7 @@ import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/locale_provider.dart';
+import 'admin_mission_assignment_dialog.dart';
 
 enum AdminMissionFilter { all, active, completed }
 
@@ -161,6 +162,26 @@ class _MissionCard extends StatelessWidget {
           _line(Icons.location_on_outlined, dropoff),
           _line(Icons.local_shipping_outlined, driver),
           _line(Icons.tag, mission.id),
+          if (mission.driverId == null &&
+              (mission.status == MissionStatus.searchingDriver ||
+                  mission.status == MissionStatus.offered))
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => showAdminMissionAssignmentDialog(
+                    context,
+                    mission: mission,
+                    isFrench: isFrench,
+                  ),
+                  icon: const Icon(Icons.person_add_alt_1_outlined),
+                  label: Text(
+                    isFrench ? 'Assigner un chauffeur' : 'Assign a driver',
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
