@@ -565,10 +565,26 @@ describe("Bloc X (X-11, section C) — allow_driver_acceptance ON/OFF", () => {
       db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID)),
     ]);
     missionId = await createQuoteAndMission(CUSTOMER_ID, PRICING_VERSION, "flag C ON");
+    const missionRef = db.collection("delivery_requests").doc(missionId);
+    expect((await missionRef.get()).data()!.assignment_mode).toBe("standard");
+
+    // Simule une ancienne mission altérée avant le déploiement des règles :
+    // acceptDelivery doit réimposer le mode standard côté serveur.
+    await missionRef.update({
+      assignment_mode: "internal_test",
+      internal_test_assigned_by: CUSTOMER_ID,
+      internal_test_assigned_at: admin.firestore.Timestamp.now(),
+    });
+
     const result = await acceptDelivery.run(
       authedRequest<AcceptDeliveryRequest>(DRIVER_ID, { missionId: missionId as string })
     );
     expect(result.success).toBe(true);
+
+    const acceptedMission = (await missionRef.get()).data()!;
+    expect(acceptedMission.assignment_mode).toBe("standard");
+    expect(acceptedMission.internal_test_assigned_by).toBeNull();
+    expect(acceptedMission.internal_test_assigned_at).toBeNull();
   });
 
   it(

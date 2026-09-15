@@ -37,6 +37,7 @@ import {
   FoundingDriverProgramDoc,
   FoundingDriverQualificationDoc,
   FoundingDriverStatuses,
+  MissionAssignmentModes,
   MissionStatuses,
   OPEN_FOR_ACCEPTANCE_STATUSES,
   PricingVersionDoc,
@@ -278,6 +279,12 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       status: MissionStatuses.ASSIGNED,
       accepted_at: now,
       driver_offer_amount: compensation.driverOfferAmount,
+      // Défense en profondeur : une acceptation normale reste toujours
+      // financière, même si un ancien document a été altéré avant que les
+      // règles Firestore protègent ce champ serveur.
+      assignment_mode: MissionAssignmentModes.STANDARD,
+      internal_test_assigned_by: null,
+      internal_test_assigned_at: null,
     });
 
     tx.update(driverRef, { online_status: "on_mission" });

@@ -785,6 +785,40 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
     );
   });
 
+  it("un client ne peut jamais activer ni falsifier le mode test interne", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/mission_010_internal_mode"), {
+        customer_id: "customer_001",
+        driver_id: null,
+        status: "searching_driver",
+        description: "Description initiale",
+        driver_offer_amount: 0,
+        customer_total: 100,
+        payment_status: "pending",
+        pricing_version: "MOVIK-PRICING-001",
+        assignment_mode: "standard",
+        internal_test_assigned_by: null,
+        internal_test_assigned_at: null,
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_001", { role: "customer" });
+    const missionRef = doc(
+      customer.firestore(),
+      "delivery_requests/mission_010_internal_mode"
+    );
+
+    await assertSucceeds(
+      updateDoc(missionRef, { description: "Modification légitime" })
+    );
+    await assertFails(
+      updateDoc(missionRef, {
+        assignment_mode: "internal_test",
+        internal_test_assigned_by: "customer_001",
+      })
+    );
+  });
+
   it("le client PEUT annuler sa propre mission NON assignée, mais ne peut PAS modifier driver_id/status une fois assignée", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "delivery_requests/mission_011"), {

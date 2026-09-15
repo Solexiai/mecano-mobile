@@ -299,7 +299,13 @@ service cloud.firestore {
       // terminaux" (voir V-8). CORRIGÉ en exigeant explicitement que le
       // statut ACTUEL soit encore actif (jamais déjà terminal) avant
       // d'autoriser la transition vers 'cancelled'.
-      allow update: if isSignedIn() && resource.data.customer_id == uid() && (
+      allow update: if isSignedIn() &&
+        resource.data.customer_id == uid() &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'assignment_mode',
+          'internal_test_assigned_by',
+          'internal_test_assigned_at'
+        ]) && (
         (resource.data.driver_id == null &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.status == resource.data.status &&

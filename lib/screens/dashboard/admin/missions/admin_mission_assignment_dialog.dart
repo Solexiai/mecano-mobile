@@ -40,8 +40,9 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
 
   Future<void> _loadAccess() async {
     try {
-      final claims =
-          (await FirebaseAuth.instance.currentUser?.getIdTokenResult(true)).claims;
+      final tokenResult =
+          await FirebaseAuth.instance.currentUser?.getIdTokenResult(true);
+      final claims = tokenResult?.claims;
       final rawRoles = claims?['roles'];
       final roles = rawRoles is Iterable
           ? rawRoles.map((role) => role.toString()).toSet()
