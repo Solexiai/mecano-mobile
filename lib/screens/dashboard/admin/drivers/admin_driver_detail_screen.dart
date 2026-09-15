@@ -12,6 +12,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/app_user_v2.dart';
 import '../../../../backend/models/driver_document.dart';
@@ -250,15 +251,27 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 label: t('admin_driver_field_email'),
                 value: user?.email ?? na,
               ),
-              _KeyValueRow(label: t('admin_driver_field_address'), value: na),
+              _KeyValueRow(
+                label: t('admin_driver_field_address'),
+                value: profile.baseAddressFormatted.isNotEmpty
+                    ? profile.baseAddressFormatted
+                    : (profile.baseAddressLine1.isEmpty
+                          ? na
+                          : profile.baseAddressLine1),
+              ),
               _KeyValueRow(
                 label: t('admin_driver_field_city'),
                 value: profile.city.isEmpty ? na : profile.city,
               ),
-              _KeyValueRow(label: t('admin_driver_field_province'), value: na),
+              _KeyValueRow(
+                label: t('admin_driver_field_province'),
+                value: profile.baseRegion.isEmpty ? na : profile.baseRegion,
+              ),
               _KeyValueRow(
                 label: t('admin_driver_field_postal_code'),
-                value: na,
+                value: profile.basePostalCode.isEmpty
+                    ? na
+                    : profile.basePostalCode,
               ),
             ],
           );
@@ -743,11 +756,14 @@ class _ActionsBar extends StatelessWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(t(successKey))));
-    } catch (_) {
+    } catch (error) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(t('admin_action_error'))));
+      final message = error is BackendNotConfiguredException
+          ? error.message
+          : error.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: AppColors.error),
+      );
     } finally {
       onBusyChanged(false);
     }
