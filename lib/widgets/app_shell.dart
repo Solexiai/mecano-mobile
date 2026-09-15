@@ -166,12 +166,9 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
     String Function(String) t,
   ) {
     Widget item(String label, String path) => TextButton(
-          onPressed: () => context.go(path),
-          child: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        );
+      onPressed: () => context.go(path),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
 
     return [
       item(t('nav_delivery'), '/$locale/livraison'),
@@ -207,10 +204,7 @@ class _AccountMenu extends StatelessWidget {
         if (value == 'logout') auth.signOut();
       },
       itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'dashboard',
-          child: Text(t('nav_dashboard')),
-        ),
+        PopupMenuItem(value: 'dashboard', child: Text(t('nav_dashboard'))),
         if (!isCustomerOnly)
           PopupMenuItem(
             value: 'provider',
@@ -247,14 +241,14 @@ class _MobileDrawer extends StatelessWidget {
     final auth = context.watch<FirebaseAuthProvider>();
 
     Widget item(IconData icon, String label, VoidCallback onTap) => ListTile(
-          minVerticalPadding: 12,
-          leading: Icon(icon, color: AppColors.primary),
-          title: Text(label),
-          onTap: () {
-            Navigator.pop(context);
-            onTap();
-          },
-        );
+      minVerticalPadding: 12,
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
 
     return Drawer(
       child: SafeArea(
@@ -313,6 +307,11 @@ class _MobileDrawer extends StatelessWidget {
               t('nav_contact'),
               () => context.go('/$locale/contact'),
             ),
+            item(
+              Icons.admin_panel_settings_outlined,
+              'Administration',
+              () => context.go('/$locale/admin'),
+            ),
             const Divider(),
             if (auth.isSignedIn) ...[
               item(
@@ -347,31 +346,31 @@ class _MovikFooter extends StatelessWidget {
     final horizontalPadding = AppBreakpoints.pageHorizontalPadding(width);
 
     Widget link(String label, VoidCallback onTap) => InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text(
-              label,
-              style: const TextStyle(color: AppColors.textOnDarkSecondary),
-            ),
-          ),
-        );
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          label,
+          style: const TextStyle(color: AppColors.textOnDarkSecondary),
+        ),
+      ),
+    );
 
     Widget column(String title, List<Widget> links) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...links,
-          ],
-        );
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...links,
+      ],
+    );
 
     final columns = [
       column(t('nav_delivery'), [
@@ -387,18 +386,13 @@ class _MovikFooter extends StatelessWidget {
       column('Movi-k', [
         link(t('nav_about'), () => context.go('/$locale/a-propos')),
         link(t('nav_contact'), () => context.go('/$locale/contact')),
+        link('Administration', () => context.go('/$locale/admin')),
         link(t('nav_faq'), () => context.go('/$locale/faq')),
         link(t('nav_safety'), () => context.go('/$locale/securite')),
       ]),
       column(t('footer_legal_column_title'), [
-        link(
-          t('footer_privacy'),
-          () => context.go('/$locale/legal/privacy'),
-        ),
-        link(
-          t('footer_terms'),
-          () => context.go('/$locale/legal/terms'),
-        ),
+        link(t('footer_privacy'), () => context.go('/$locale/legal/privacy')),
+        link(t('footer_terms'), () => context.go('/$locale/legal/terms')),
         link(
           t('footer_cancellation_policy'),
           () => context.go('/$locale/legal/cancellation'),
@@ -450,9 +444,7 @@ class _MovikFooter extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 _deliveryTagline(locale),
-                style: const TextStyle(
-                  color: AppColors.textOnDarkSecondary,
-                ),
+                style: const TextStyle(color: AppColors.textOnDarkSecondary),
               ),
               const SizedBox(height: 28),
               if (useColumns)

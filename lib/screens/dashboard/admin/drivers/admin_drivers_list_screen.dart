@@ -6,6 +6,7 @@
 // donnée locale/simulée : loading/empty/error/realtime states réels.
 // ---------------------------------------------------------------------------
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,6 +14,7 @@ import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
+import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
 
@@ -81,8 +83,10 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('admin_drivers_title'),
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(
+            t('admin_drivers_title'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
@@ -108,8 +112,12 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                       children: [
                         const CircularProgressIndicator(),
                         const SizedBox(height: 12),
-                        Text(t('admin_drivers_loading'),
-                            style: const TextStyle(color: AppColors.textSecondary)),
+                        Text(
+                          t('admin_drivers_loading'),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -163,6 +171,7 @@ class _DriverRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = context.read<LocaleProvider>().locale;
+    final canDelete = context.watch<FirebaseAuthProvider>().isAdminOrAbove;
     final nameParts = driver.fullName.trim().split(RegExp(r'\s+'));
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
     final lastName = nameParts.length > 1 ? nameParts.skip(1).join(' ') : '';
@@ -191,7 +200,10 @@ class _DriverRow extends StatelessWidget {
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -199,17 +211,26 @@ class _DriverRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$firstName $lastName'.trim(),
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text(
+                    '$firstName $lastName'.trim(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Wrap(
                     spacing: 12,
                     runSpacing: 4,
                     children: [
-                      _MetaChip(icon: Icons.local_shipping_outlined, label: vehicleLabel),
+                      _MetaChip(
+                        icon: Icons.local_shipping_outlined,
+                        label: vehicleLabel,
+                      ),
                       _MetaChip(
                         icon: Icons.event_outlined,
-                        label: '${t('admin_drivers_col_updated_at')}: '
+                        label:
+                            '${t('admin_drivers_col_updated_at')}: '
                             '${_formatDate(driver.lastUpdatedAt, locale)}',
                       ),
                     ],
@@ -227,16 +248,87 @@ class _DriverRow extends StatelessWidget {
               child: Text(
                 t(driver.status.key),
                 style: TextStyle(
-                    color: _statusColor(driver.status),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12),
+                  color: _statusColor(driver.status),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            if (canDelete)
+              PopupMenuButton<String>(
+                tooltip: 'Actions',
+                onSelected: (value) {
+                  if (value == 'delete') {
+                    _confirmDeleteDriver(context, driver);
+                  }
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, color: AppColors.error),
+                        SizedBox(width: 8),
+                        Text('Supprimer le dossier chauffeur'),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            else
+              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),
+    );
+  }
+}
+
+Future<void> _confirmDeleteDriver(
+  BuildContext context,
+  DriverProfileV2 driver,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Supprimer le dossier chauffeur?'),
+      content: Text(
+        'Le dossier chauffeur de ${driver.fullName} ainsi que ses documents '
+        'seront supprimés. Son compte client et son historique de livraisons '
+        'seront conservés.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Supprimer'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+
+  try {
+    await FirebaseFunctions.instance.httpsCallable('deleteDriverProfile').call({
+      'driverId': driver.uid,
+    });
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Dossier chauffeur supprimé. Le compte client est conservé.',
+        ),
+      ),
+    );
+  } on FirebaseFunctionsException catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.message ?? 'Suppression impossible.')),
     );
   }
 }
@@ -266,7 +358,10 @@ class _MetaChip extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: AppColors.textSecondary),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
       ],
     );
   }
@@ -283,9 +378,16 @@ class _EmptyState extends StatelessWidget {
       child: Center(
         child: Column(
           children: [
-            const Icon(Icons.inbox_outlined, size: 40, color: AppColors.textSecondary),
+            const Icon(
+              Icons.inbox_outlined,
+              size: 40,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: 12),
-            Text(message, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(
+              message,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           ],
         ),
       ),
