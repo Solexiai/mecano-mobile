@@ -2701,3 +2701,55 @@ describe("Security Rules — delivery_requests/{missionId} : BUG-V-01 (états te
     );
   });
 });
+
+
+describe("Security Rules — notation des missions de test interne", () => {
+  async function seedMission(id: string, assignmentMode?: string): Promise<void> {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `delivery_requests/${id}`), {
+        customer_id: "rating_customer_001",
+        driver_id: "rating_driver_001",
+        status: "completed",
+        ...(assignmentMode ? { assignment_mode: assignmentMode } : {}),
+      });
+    });
+  }
+
+  function ratingPayload(missionId: string) {
+    return {
+      mission_id: missionId,
+      rater_id: "rating_customer_001",
+      rater_role: "customer",
+      stars: 5,
+      created_at: new Date(),
+    };
+  }
+
+  it("autorise encore la notation d’une mission réelle complétée", async () => {
+    await seedMission("rating_standard", "standard");
+    const customer = testEnv.authenticatedContext(
+      "rating_customer_001",
+      { role: "customer" }
+    );
+    await assertSucceeds(
+      setDoc(
+        doc(customer.firestore(), "ratings/rating_standard_customer"),
+        ratingPayload("rating_standard")
+      )
+    );
+  });
+
+  it("refuse la notation d’une mission internal_test", async () => {
+    await seedMission("rating_internal", "internal_test");
+    const customer = testEnv.authenticatedContext(
+      "rating_customer_001",
+      { role: "customer" }
+    );
+    await assertFails(
+      setDoc(
+        doc(customer.firestore(), "ratings/rating_internal_customer"),
+        ratingPayload("rating_internal")
+      )
+    );
+  });
+});

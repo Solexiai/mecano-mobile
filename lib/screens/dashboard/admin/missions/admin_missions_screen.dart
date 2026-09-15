@@ -6,6 +6,7 @@ import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/locale_provider.dart';
+import '../../../../widgets/internal_test_mission_banner.dart';
 import 'admin_mission_assignment_dialog.dart';
 
 enum AdminMissionFilter { all, active, completed }
@@ -158,6 +159,17 @@ class _MissionCard extends StatelessWidget {
         subtitle: Text(_statusLabel(mission.status, isFrench)),
         childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
         children: [
+          if (mission.isInternalTest) ...[
+            InternalTestMissionBanner(
+              title: isFrench
+                  ? 'TEST INTERNE — SANS PAIEMENT'
+                  : 'INTERNAL TEST — NO PAYMENT',
+              message: isFrench
+                  ? 'Aucun paiement, revenu ou versement réel.'
+                  : 'No real payment, revenue, or driver payout.',
+            ),
+            const SizedBox(height: 8),
+          ],
           _line(Icons.trip_origin, pickup),
           _line(Icons.location_on_outlined, dropoff),
           _line(Icons.local_shipping_outlined, driver),

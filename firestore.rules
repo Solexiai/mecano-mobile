@@ -570,6 +570,10 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)) &&
         get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.status == 'completed' &&
         (
+          !('assignment_mode' in get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data) ||
+          get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.assignment_mode != 'internal_test'
+        ) &&
+        (
           (get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.customer_id == uid() &&
            request.resource.data.rater_role == 'customer') ||
           (get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.driver_id == uid() &&

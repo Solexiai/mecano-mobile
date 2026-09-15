@@ -22,7 +22,7 @@
 
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
-import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
+import { requireAdminOrAbove, requireSignedIn, requireSuperAdmin } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import {
@@ -37,6 +37,7 @@ import {
   FoundingDriverProgramDoc,
   FoundingDriverQualificationDoc,
   FoundingDriverStatuses,
+  MissionAssignmentModes,
   MissionStatuses,
   OPEN_FOR_ACCEPTANCE_STATUSES,
   PricingVersionDoc,
@@ -53,6 +54,7 @@ import {
 export interface AdminAssignDeliveryRequest {
   missionId: string;
   driverId: string;
+  assignmentMode?: "standard" | "internal_test";
 }
 
 export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
@@ -62,6 +64,16 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
   requireAdminOrAbove(ctx);
   const actorId = ctx.uid;
   const { missionId, driverId } = request.data;
+  const assignmentMode = request.data.assignmentMode ?? MissionAssignmentModes.STANDARD;
+  if (!Object.values(MissionAssignmentModes).includes(assignmentMode)) {
+    throw invalidArgument("assignmentMode invalide.");
+  }
+  const isInternalTest = assignmentMode === MissionAssignmentModes.INTERNAL_TEST;
+  if (isInternalTest) {
+    // Seul un super-administrateur peut contourner les interrupteurs de
+    // production. Ce chemin n’effectue aucune opération financière.
+    requireSuperAdmin(ctx);
+  }
 
   // 🔒 Phase 7, Bloc X (X-7) — kill switch. OFF => aucune NOUVELLE
   // attribution de mission n'est possible. Les missions DÉJÀ assignées
@@ -69,7 +81,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
   // normalement (aucun autre point du code ne consulte ce flag). Vérifié
   // AVANT toute lecture Firestore pour qu'un client modifié ne puisse
   // jamais contourner ce contrôle serveur-autoritaire.
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
+  if (!isInternalTest && !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
     throw killSwitchRefusal();
   }
 
@@ -95,7 +107,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
   // un échec définitif de paiement : ce statut terminal était donc une
   // sémantique incorrecte pour ce cas précis (voir X-8, section "IMPORTANT —
   // TESTER LA SÉMANTIQUE de failMissionPayment()").
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
+  if (!isInternalTest && !(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
     throw killSwitchRefusal();
   }
 
@@ -147,6 +159,67 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     }
     if (mission.driver_id) {
       throw failedPrecondition("Mission déjà assignée à un autre chauffeur.");
+    }
+
+    if (
+      isInternalTest &&
+      (mission.active_payment_id || mission.active_financial_snapshot_id)
+    ) {
+      throw failedPrecondition(
+        "Une mission déjà liée à un paiement ne peut pas être convertie en test interne."
+      );
+    }
+
+    if (isInternalTest) {
+      const now = admin.firestore.Timestamp.now();
+
+      // Le mode interne assigne réellement le chauffeur pour permettre le
+      // parcours terrain complet, mais ne crée aucun contrat financier.
+      tx.update(missionRef, {
+        driver_id: driverId,
+        driver_display_name: driver.full_name,
+        status: MissionStatuses.ASSIGNED,
+        accepted_at: now,
+        driver_offer_amount: 0,
+        assignment_mode: MissionAssignmentModes.INTERNAL_TEST,
+        internal_test_assigned_by: actorId,
+        internal_test_assigned_at: now,
+        active_financial_snapshot_id: null,
+        active_payment_id: null,
+      });
+      tx.update(driverRef, { online_status: "on_mission" });
+      tx.set(
+        db.collection("driver_locations").doc(driverId),
+        { active_delivery_id: missionId },
+        { merge: true }
+      );
+
+      const eventRef = missionRef.collection("tracking_events").doc();
+      tx.set(eventRef, {
+        event_type: "driver_assigned",
+        actor_uid: actorId,
+        occurred_at: now,
+        metadata: { driverId, assignmentSource: "admin_internal_test" },
+      });
+
+      writeAuditLogInTransaction(tx, {
+        actorUserId: actorId,
+        actorRole: ctx.role ?? "super_admin",
+        action: "adminAssignDeliveryInternalTest",
+        sourceFunction: "adminAssignDelivery",
+        targetId: missionId,
+        metadata: { driverId, assignmentMode: MissionAssignmentModes.INTERNAL_TEST },
+      });
+
+      return {
+        missionId,
+        driverOfferAmount: 0,
+        snapshotId: null,
+        customerId: mission.customer_id as string,
+        customerTotal: 0,
+        applicationFee: 0,
+        internalTest: true,
+      };
     }
 
     // ---- Recalcul financier serveur (jamais un montant client) ----
@@ -286,6 +359,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       status: MissionStatuses.ASSIGNED,
       accepted_at: now,
       driver_offer_amount: compensation.driverOfferAmount,
+      assignment_mode: MissionAssignmentModes.STANDARD,
     });
 
     tx.update(driverRef, { online_status: "on_mission" });
@@ -362,8 +436,21 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       customerId: mission.customer_id as string,
       customerTotal: pricingResult.customerTotal,
       applicationFee: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
+      internalTest: false,
     };
   });
+
+  if (result.internalTest) {
+    return {
+      success: true,
+      missionId: result.missionId,
+      driverOfferAmount: 0,
+      snapshotId: null,
+      paymentId: null,
+      internalTest: true,
+      paymentSkipped: true,
+    };
+  }
 
   // ---- PHASE 6, point 1/5 : sécurisation RÉELLE du paiement -----------------
   // Exécuté APRÈS le commit de la transaction ci-dessus (jamais À L'INTÉRIEUR
@@ -395,6 +482,8 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     driverOfferAmount: result.driverOfferAmount,
     snapshotId: result.snapshotId,
     paymentId: paymentOutcome.paymentId,
+    internalTest: false,
+    paymentSkipped: false,
   };
   }
 );

@@ -66,6 +66,13 @@ export const DriverDocumentStatuses = {
 export type DriverDocumentStatus =
   (typeof DriverDocumentStatuses)[keyof typeof DriverDocumentStatuses];
 
+export const MissionAssignmentModes = {
+  STANDARD: "standard",
+  INTERNAL_TEST: "internal_test",
+} as const;
+export type MissionAssignmentMode =
+  (typeof MissionAssignmentModes)[keyof typeof MissionAssignmentModes];
+
 export const MissionStatuses = {
   DRAFT: "draft",
   QUOTED: "quoted",
@@ -471,6 +478,12 @@ export interface DeliveryMissionDoc {
   payment_status: PaymentStatus;
   active_quote_id?: string | null;
   active_financial_snapshot_id?: string | null;
+  // Mode explicite de l’attribution. Les anciennes missions sans ce champ
+  // sont traitées comme des missions standard. Une mission internal_test ne
+  // doit produire aucun paiement, snapshot financier, ledger ni versement.
+  assignment_mode?: MissionAssignmentMode;
+  internal_test_assigned_by?: string | null;
+  internal_test_assigned_at?: admin_Timestamp | null;
   // PHASE 6 — référence du payments/{id} rattaché à cette mission (créé par
   // acceptDelivery(), capturé par completeDelivery()). Absent sur les
   // missions antérieures à Phase 6 (rétro-compatibilité intentionnelle,

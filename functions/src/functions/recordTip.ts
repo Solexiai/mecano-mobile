@@ -15,7 +15,15 @@ import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
-import { LedgerDirections, LedgerEntryStatuses, LedgerEntryTypes, LedgerParties, MissionStatuses, PricingVersionDoc } from "../lib/types";
+import {
+  LedgerDirections,
+  LedgerEntryStatuses,
+  LedgerEntryTypes,
+  LedgerParties,
+  MissionAssignmentModes,
+  MissionStatuses,
+  PricingVersionDoc,
+} from "../lib/types";
 
 export interface RecordTipRequest {
   missionId: string;
@@ -43,6 +51,11 @@ export const recordTip = onCall<RecordTipRequest>(async (request) => {
     }
     if (mission.status !== MissionStatuses.COMPLETED) {
       throw failedPrecondition("Le pourboire ne peut être ajouté qu'après complétion de la mission.");
+    }
+    if (mission.assignment_mode === MissionAssignmentModes.INTERNAL_TEST) {
+      throw failedPrecondition(
+        "Aucun pourboire financier ne peut être ajouté à une mission de test interne."
+      );
     }
 
     // Résout le pourcentage chauffeur depuis la pricing_version figée sur la

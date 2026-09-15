@@ -131,6 +131,7 @@ async function seedPricing(): Promise<void> {
 
 async function seedMissionForSnapshot(opts: {
   activeSnapshotId?: string | null;
+  internalTest?: boolean;
 }): Promise<void> {
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: CUSTOMER_ID,
@@ -144,6 +145,7 @@ async function seedMissionForSnapshot(opts: {
     customer_discount_amount: 0,
     pricing_version: PRICING_VERSION,
     active_financial_snapshot_id: opts.activeSnapshotId === undefined ? null : opts.activeSnapshotId,
+    assignment_mode: opts.internalTest ? "internal_test" : "standard",
     created_at: admin.firestore.Timestamp.now(),
   });
 }
@@ -865,6 +867,29 @@ describe("Bloc D — createFinancialSnapshot (admin/super_admin — chemin excep
 
     const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
     expect(missionSnap.data()!.active_financial_snapshot_id).toBeNull(); // inchangé
+  });
+
+  it("refuse tout snapshot financier sur une mission de test interne", async () => {
+    await seedPricing();
+    await seedMissionForSnapshot({
+      activeSnapshotId: null,
+      internalTest: true,
+    });
+
+    await expect(
+      createFinancialSnapshot.run(
+        buildRequest<CreateFinancialSnapshotRequest>(
+          SUPER_ADMIN_ID,
+          { missionId: MISSION_ID, reason: "Test de protection financière." },
+          ["super_admin"]
+        )
+      )
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(MISSION_ID).get()
+    ).data()!;
+    expect(mission.active_financial_snapshot_id).toBeNull();
   });
 
   it("refuse (failed-precondition) créer un snapshot si un snapshot CONFIRMÉ existe déjà (immutabilité)", async () => {

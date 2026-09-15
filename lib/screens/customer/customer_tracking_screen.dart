@@ -32,6 +32,7 @@ import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../widgets/internal_test_mission_banner.dart';
 import '../../widgets/live_tracking_map.dart';
 import 'mission_finance_section.dart';
 
@@ -167,6 +168,13 @@ class CustomerTrackingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (mission.isInternalTest) ...[
+                    InternalTestMissionBanner(
+                      title: t('internal_test_mission_title'),
+                      message: t('internal_test_mission_message'),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -265,6 +273,13 @@ class _CompletedMissionView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (mission.isInternalTest) ...[
+            InternalTestMissionBanner(
+              title: t('internal_test_mission_title'),
+              message: t('internal_test_mission_message'),
+            ),
+            const SizedBox(height: 16),
+          ],
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -354,7 +369,7 @@ class _CompletedMissionView extends StatelessWidget {
           // N'affiché que si un chauffeur a bien été assigné (toujours vrai
           // pour une mission `completed`, mais gardé explicite plutôt
           // qu'implicite — cohérent avec le reste de cet écran).
-          if (mission.driverId != null) ...[
+          if (!mission.isInternalTest && mission.driverId != null) ...[
             _RateDriverCard(mission: mission, t: t),
             const SizedBox(height: 20),
           ],
@@ -363,7 +378,8 @@ class _CompletedMissionView extends StatelessWidget {
           // que dans un onglet global dédié : les données financières sont
           // naturellement scopées par mission (voir décision technique
           // Bloc J point 7).
-          MissionFinanceSection(missionId: mission.id, t: t),
+          if (!mission.isInternalTest)
+            MissionFinanceSection(missionId: mission.id, t: t),
         ],
       ),
     );

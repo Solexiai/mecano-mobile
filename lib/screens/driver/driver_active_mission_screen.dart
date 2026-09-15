@@ -41,6 +41,7 @@ import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 import '../../services/driver_location_reporter.dart';
+import '../../widgets/internal_test_mission_banner.dart';
 import '../../widgets/live_tracking_map.dart';
 
 /// Statuts de trajet pendant lesquels le chauffeur doit partager sa
@@ -448,6 +449,13 @@ class _MissionCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (mission.isInternalTest) ...[
+          InternalTestMissionBanner(
+            title: t('internal_test_mission_title'),
+            message: t('internal_test_mission_message'),
+          ),
+          const SizedBox(height: 18),
+        ],
         // --- Statut + progression ---------------------------------------
         Container(
           padding: const EdgeInsets.all(20),

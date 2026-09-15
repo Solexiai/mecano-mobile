@@ -4597,6 +4597,21 @@ class AppStrings {
       'es': 'No se pudo abrir el enlace de Stripe. Vuelva a intentarlo.',
     },
 
+    // ---------- Missions de test interne ----------
+    'internal_test_mission_title': {
+      'fr': 'TEST INTERNE — SANS PAIEMENT',
+      'en': 'INTERNAL TEST — NO PAYMENT',
+      'es': 'PRUEBA INTERNA — SIN PAGO',
+    },
+    'internal_test_mission_message': {
+      'fr':
+          'Cette mission sert aux vérifications internes. Aucun paiement, revenu ni versement réel ne sera effectué.',
+      'en':
+          'This job is for internal verification. No real payment, revenue, or driver payout will occur.',
+      'es':
+          'Este trabajo es para verificaciones internas. No se realizará ningún cobro, ingreso ni pago real.',
+    },
+
     // ---------- Bloc 8B LIVE — Retour Stripe Connect (gap fermé) ----------
     // Écran affiché quand Stripe redirige le navigateur du chauffeur vers
     // `return_url` (onboarding complété) ou `refresh_url` (lien expiré /

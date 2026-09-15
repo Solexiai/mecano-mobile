@@ -32,7 +32,14 @@ function buildRequest(driverId: string, data: CompleteDeliveryRequest): Callable
   };
 }
 
-async function seedMission(status: string, opts: { snapshotId?: string | null; driverId?: string } = {}): Promise<void> {
+async function seedMission(
+  status: string,
+  opts: {
+    snapshotId?: string | null;
+    driverId?: string;
+    internalTest?: boolean;
+  } = {}
+): Promise<void> {
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: "delivery_customer_001",
     driver_id: opts.driverId ?? DRIVER_ID,
@@ -43,6 +50,8 @@ async function seedMission(status: string, opts: { snapshotId?: string | null; d
     driver_offer_amount: 85,
     customer_total: 100,
     active_financial_snapshot_id: opts.snapshotId === undefined ? SNAPSHOT_ID : opts.snapshotId,
+    active_payment_id: null,
+    assignment_mode: opts.internalTest ? "internal_test" : "standard",
     created_at: admin.firestore.Timestamp.now(),
   });
 }
@@ -159,6 +168,45 @@ describe("completeDelivery — transitions valides depuis les 3 prédécesseurs 
       expect(events.docs[0].data().actor_uid).toBe(DRIVER_ID);
     }
   );
+  it("complète un test interne sans capture, ledger ou revenu chauffeur", async () => {
+    await Promise.all([
+      seedMission(MissionStatuses.IN_TRANSIT, {
+        snapshotId: null,
+        internalTest: true,
+      }),
+      seedDriverProfile(),
+    ]);
+
+    const result = await completeDelivery.run(
+      buildRequest(DRIVER_ID, {
+        missionId: MISSION_ID,
+        proofOfDeliveryUrl: PROOF_URL,
+      })
+    );
+    expect(result).toMatchObject({
+      success: true,
+      internalTest: true,
+      paymentSkipped: true,
+      paymentCaptured: false,
+    });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(MISSION_ID).get()
+    ).data()!;
+    expect(mission.status).toBe(MissionStatuses.COMPLETED);
+
+    const ledger = await db
+      .collection("transaction_ledger")
+      .where("mission_id", "==", MISSION_ID)
+      .get();
+    expect(ledger.empty).toBe(true);
+
+    const driver = (
+      await db.collection("driver_profiles").doc(DRIVER_ID).get()
+    ).data()!;
+    expect(driver.completed_missions).toBe(5);
+    expect(driver.online_status).toBe("online");
+  });
 });
 
 describe("completeDelivery — cas négatifs", () => {

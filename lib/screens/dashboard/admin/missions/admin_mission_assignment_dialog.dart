@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../backend/models/delivery_mission.dart';
@@ -27,6 +28,41 @@ class _AssignmentDialog extends StatefulWidget {
 
 class _AssignmentDialogState extends State<_AssignmentDialog> {
   String? _assigningDriverId;
+  bool _internalTest = false;
+  bool _isSuperAdmin = false;
+  bool _loadingAccess = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAccess();
+  }
+
+  Future<void> _loadAccess() async {
+    try {
+      final claims =
+          (await FirebaseAuth.instance.currentUser?.getIdTokenResult(true)).claims;
+      final rawRoles = claims?['roles'];
+      final roles = rawRoles is Iterable
+          ? rawRoles.map((role) => role.toString()).toSet()
+          : <String>{};
+      final superAdmin =
+          roles.contains('super_admin') ||
+          claims?['role']?.toString() == 'super_admin';
+      if (!mounted) return;
+      setState(() {
+        _isSuperAdmin = superAdmin;
+        _internalTest = superAdmin;
+        _loadingAccess = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _internalTest = false;
+        _loadingAccess = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
@@ -64,6 +100,14 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
           return ListView(
             shrinkWrap: true,
             children: [
+              if (_loadingAccess) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 14),
+              ],
+              if (_isSuperAdmin) ...[
+                _modeSelector(),
+                const SizedBox(height: 14),
+              ],
               Text(
                 widget.isFrench
                     ? 'Chauffeurs compatibles avec le véhicule demandé :'
@@ -85,6 +129,37 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
         child: Text(widget.isFrench ? 'Annuler' : 'Cancel'),
       ),
     ],
+  );
+
+  Widget _modeSelector() => Container(
+    decoration: BoxDecoration(
+      color: AppColors.warning.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(
+        color: AppColors.warning.withValues(alpha: 0.45),
+      ),
+    ),
+    child: SwitchListTile.adaptive(
+      value: _internalTest,
+      onChanged: _assigningDriverId == null
+          ? (value) => setState(() => _internalTest = value)
+          : null,
+      secondary: const Icon(
+        Icons.science_outlined,
+        color: AppColors.warningText,
+      ),
+      title: Text(
+        widget.isFrench
+            ? 'Mode test interne'
+            : 'Internal test mode',
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+      subtitle: Text(
+        widget.isFrench
+            ? 'Aucun paiement, revenu ou versement réel.'
+            : 'No real payment, revenue or driver payout.',
+      ),
+    ),
   );
 
   bool _isEligible(DriverProfileV2 driver) =>
@@ -118,10 +193,14 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : FilledButton(
-                onPressed: _assigningDriverId == null
+                onPressed: _assigningDriverId == null && !_loadingAccess
                     ? () => _confirmAndAssign(driver)
                     : null,
-                child: Text(widget.isFrench ? 'Assigner' : 'Assign'),
+                child: Text(
+                  _internalTest
+                      ? (widget.isFrench ? 'Tester' : 'Test')
+                      : (widget.isFrench ? 'Assigner' : 'Assign'),
+                ),
               ),
       ),
     );
@@ -135,11 +214,17 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
           widget.isFrench ? 'Confirmer l’attribution' : 'Confirm assignment',
         ),
         content: Text(
-          widget.isFrench
-              ? 'Assigner cette mission à ${driver.fullName}? '
-                    'Le paiement sera autorisé comme lors d’une acceptation normale.'
-              : 'Assign this job to ${driver.fullName}? '
-                    'Payment will be authorized as with a normal acceptance.',
+          _internalTest
+              ? (widget.isFrench
+                    ? 'Assigner cette mission à ${driver.fullName} en mode test interne? '
+                          'Aucun paiement, revenu ou versement réel ne sera créé.'
+                    : 'Assign this job to ${driver.fullName} in internal test mode? '
+                          'No real payment, revenue or payout will be created.')
+              : (widget.isFrench
+                    ? 'Assigner cette mission à ${driver.fullName}? '
+                          'Le paiement réel sera autorisé comme lors d’une acceptation normale.'
+                    : 'Assign this job to ${driver.fullName}? '
+                          'A real payment will be authorized as with a normal acceptance.'),
         ),
         actions: [
           TextButton(
@@ -158,15 +243,23 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
     try {
       await FirebaseFunctions.instance
           .httpsCallable('adminAssignDelivery')
-          .call({'missionId': widget.mission.id, 'driverId': driver.uid});
+          .call({
+            'missionId': widget.mission.id,
+            'driverId': driver.uid,
+            'assignmentMode': _internalTest ? 'internal_test' : 'standard',
+          });
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.isFrench
-                ? 'Mission assignée à ${driver.fullName}.'
-                : 'Job assigned to ${driver.fullName}.',
+            _internalTest
+                ? (widget.isFrench
+                      ? 'Test interne assigné à ${driver.fullName}. Aucun paiement réel.'
+                      : 'Internal test assigned to ${driver.fullName}. No real payment.')
+                : (widget.isFrench
+                      ? 'Mission réelle assignée à ${driver.fullName}.'
+                      : 'Real job assigned to ${driver.fullName}.'),
           ),
         ),
       );

@@ -43,6 +43,10 @@ import {
 } from "../../src/functions/createDeliveryRequest";
 import { acceptDelivery, AcceptDeliveryRequest } from "../../src/functions/acceptDelivery";
 import {
+  adminAssignDelivery,
+  AdminAssignDeliveryRequest,
+} from "../../src/functions/adminAssignDelivery";
+import {
   updateRuntimeFlags,
   UpdateRuntimeFlagsRequest,
 } from "../../src/functions/updateRuntimeFlags";
@@ -601,6 +605,159 @@ describe("Bloc X (X-11, section C) — allow_driver_acceptance ON/OFF", () => {
       expect(driverProfileAfter.online_status).toBe("online");
     }
   );
+});
+
+// ===========================================================================
+// MODE D’ASSIGNATION INTERNE — super_admin, sans finance
+// ===========================================================================
+
+describe("adminAssignDelivery — mode test interne", () => {
+  const CUSTOMER_ID = "internal_customer_001";
+  const DRIVER_ID = "internal_driver_001";
+  const SUPER_ADMIN_ID = "internal_super_admin_001";
+  const PRICING_VERSION = "INTERNAL-PRICING-001";
+  let missionId: string | null = null;
+
+  afterEach(async () => {
+    await cleanupMission(missionId);
+    missionId = null;
+    await cleanupCommon(PRICING_VERSION, CUSTOMER_ID, DRIVER_ID);
+    await deleteRuntimeFlagsDoc();
+  });
+
+  it("assigne malgré les kill switches OFF sans paiement ni snapshot financier", async () => {
+    await seedAllFlagsOn();
+    await Promise.all([
+      seedPricing(PRICING_VERSION),
+      seedApprovedDriver(DRIVER_ID),
+      db
+        .collection("payment_profiles")
+        .doc(CUSTOMER_ID)
+        .set(buildFakePaymentProfile(CUSTOMER_ID)),
+    ]);
+    missionId = await createQuoteAndMission(
+      CUSTOMER_ID,
+      PRICING_VERSION,
+      "assignation interne"
+    );
+    await seedAllFlagsOn({
+      allow_driver_acceptance: false,
+      payments_enabled: false,
+      driver_payouts_enabled: false,
+    });
+
+    const result = await adminAssignDelivery.run(
+      authedRequest<AdminAssignDeliveryRequest>(
+        SUPER_ADMIN_ID,
+        {
+          missionId,
+          driverId: DRIVER_ID,
+          assignmentMode: "internal_test",
+        },
+        "super_admin"
+      )
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      missionId,
+      internalTest: true,
+      paymentSkipped: true,
+      paymentId: null,
+      snapshotId: null,
+    });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(missionId).get()
+    ).data()!;
+    expect(mission.status).toBe(MissionStatuses.ASSIGNED);
+    expect(mission.driver_id).toBe(DRIVER_ID);
+    expect(mission.assignment_mode).toBe("internal_test");
+    expect(mission.driver_offer_amount).toBe(0);
+    expect(mission.active_payment_id).toBeNull();
+    expect(mission.active_financial_snapshot_id).toBeNull();
+
+    const [payments, snapshots, ledger] = await Promise.all([
+      db.collection("payments").where("mission_id", "==", missionId).get(),
+      db.collection("financial_snapshots").where("mission_id", "==", missionId).get(),
+      db.collection("transaction_ledger").where("mission_id", "==", missionId).get(),
+    ]);
+    expect(payments.empty).toBe(true);
+    expect(snapshots.empty).toBe(true);
+    expect(ledger.empty).toBe(true);
+  });
+
+  it("refuse le mode interne à un admin qui n’est pas super_admin", async () => {
+    await seedAllFlagsOn();
+    await Promise.all([
+      seedPricing(PRICING_VERSION),
+      seedApprovedDriver(DRIVER_ID),
+      db
+        .collection("payment_profiles")
+        .doc(CUSTOMER_ID)
+        .set(buildFakePaymentProfile(CUSTOMER_ID)),
+    ]);
+    missionId = await createQuoteAndMission(
+      CUSTOMER_ID,
+      PRICING_VERSION,
+      "refus rôle admin"
+    );
+
+    await expect(
+      adminAssignDelivery.run(
+        authedRequest<AdminAssignDeliveryRequest>(
+          "internal_admin_001",
+          {
+            missionId,
+            driverId: DRIVER_ID,
+            assignmentMode: "internal_test",
+          },
+          "admin"
+        )
+      )
+    ).rejects.toMatchObject({ code: "permission-denied" });
+  });
+
+  it("refuse de convertir en test interne une mission déjà liée à un paiement", async () => {
+    await seedAllFlagsOn();
+    await Promise.all([
+      seedPricing(PRICING_VERSION),
+      seedApprovedDriver(DRIVER_ID),
+      db
+        .collection("payment_profiles")
+        .doc(CUSTOMER_ID)
+        .set(buildFakePaymentProfile(CUSTOMER_ID)),
+    ]);
+    missionId = await createQuoteAndMission(
+      CUSTOMER_ID,
+      PRICING_VERSION,
+      "protection paiement existant"
+    );
+    await db.collection("delivery_requests").doc(missionId).update({
+      active_payment_id: "payment_already_created",
+      active_financial_snapshot_id: "snapshot_already_created",
+    });
+
+    await expect(
+      adminAssignDelivery.run(
+        authedRequest<AdminAssignDeliveryRequest>(
+          SUPER_ADMIN_ID,
+          {
+            missionId,
+            driverId: DRIVER_ID,
+            assignmentMode: "internal_test",
+          },
+          "super_admin"
+        )
+      )
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(missionId).get()
+    ).data()!;
+    expect(mission.status).not.toBe(MissionStatuses.ASSIGNED);
+    expect(mission.driver_id ?? null).toBeNull();
+  });
 });
 
 // ===========================================================================
