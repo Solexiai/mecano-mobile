@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -79,59 +79,22 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
   }
 
   Future<_AdminMetrics> _loadMetrics() async {
-    final db = FirebaseFirestore.instance;
-    final results = await Future.wait([
-      db.collection('users').get(),
-      db.collection('driver_profiles').get(),
-      db.collection('delivery_requests').get(),
-      db.collection('payments').get(),
-      db.collection('disputes').get(),
-    ]);
-    final users = results[0].docs;
-    final drivers = results[1].docs;
-    final missions = results[2].docs;
-    final payments = results[3].docs;
-    final disputes = results[4].docs;
-
-    const activeStatuses = {
-      'searching_driver',
-      'offered',
-      'assigned',
-      'driver_to_pickup',
-      'arrived_at_pickup',
-      'picked_up',
-      'in_transit',
-      'arrived_at_dropoff',
-    };
+    final response = await FirebaseFunctions.instance
+        .httpsCallable('getAdminDashboardMetrics')
+        .call();
+    final data = Map<String, dynamic>.from(response.data as Map);
     return _AdminMetrics(
-      customers: users
-          .where((d) => _roles(d.data()).contains('customer'))
-          .length,
-      drivers: drivers.length,
-      pendingDrivers: drivers.where((d) {
-        final status = d.data()['status'];
-        return status == 'pending_review' || status == 'documents_required';
-      }).length,
-      activeMissions: missions
-          .where((d) => activeStatuses.contains(d.data()['status']))
-          .length,
-      completedMissions: missions.where((d) {
-        final status = d.data()['status'];
-        return status == 'completed' || status == 'delivered';
-      }).length,
-      payments: payments.length,
-      openDisputes: disputes
-          .where((d) => d.data()['status'] != 'resolved')
-          .length,
+      customers: _asInt(data['customers']),
+      drivers: _asInt(data['drivers']),
+      pendingDrivers: _asInt(data['pendingDrivers']),
+      activeMissions: _asInt(data['activeMissions']),
+      completedMissions: _asInt(data['completedMissions']),
+      payments: _asInt(data['payments']),
+      openDisputes: _asInt(data['openDisputes']),
     );
   }
 
-  static List<String> _roles(Map<String, dynamic> data) {
-    final raw = data['roles'];
-    if (raw is List) return raw.whereType<String>().toList();
-    final role = data['role'];
-    return role is String ? [role] : const ['customer'];
-  }
+  static int _asInt(Object? value) => value is num ? value.toInt() : 0;
 }
 
 class _DashboardBody extends StatelessWidget {
