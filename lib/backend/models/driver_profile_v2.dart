@@ -40,6 +40,7 @@ class DriverProfileV2 {
   final String? rejectionReason;
   final bool identityVerified;
   final bool vehicleVerified;
+  final bool documentsAllValid;
   final DriverOnlineStatus onlineStatus;
   final DateTime? submittedForReviewAt;
 
@@ -82,6 +83,7 @@ class DriverProfileV2 {
     this.rejectionReason,
     this.identityVerified = false,
     this.vehicleVerified = false,
+    this.documentsAllValid = false,
     this.onlineStatus = DriverOnlineStatus.offline,
     this.submittedForReviewAt,
     this.documentsRequiredReason,
@@ -108,44 +110,46 @@ class DriverProfileV2 {
   }
 
   Map<String, dynamic> toJson() => {
-        'uid': uid,
-        'full_name': fullName,
-        'city': city,
-        'phone': phone,
-        'base_address_formatted': baseAddressFormatted,
-        'base_address_line1': baseAddressLine1,
-        'base_region': baseRegion,
-        'base_postal_code': basePostalCode,
-        'base_country': baseCountry,
-        'base_place_id': basePlaceId,
-        'base_lat': baseLat,
-        'base_lng': baseLng,
-        'spoken_languages': spokenLanguages,
-        'loading_assistance_available': loadingAssistanceAvailable,
-        'status': status.firestoreValue,
-        'service_radius_km': serviceRadiusKm,
-        'accepted_vehicle_categories':
-            acceptedVehicleCategories.map((c) => c.firestoreValue).toList(),
-        'accepted_item_category_keys': acceptedItemCategoryKeys,
-        'rating': rating,
-        'completed_missions': completedMissions,
-        'created_at': createdAt.toIso8601String(),
-        'approved_at': approvedAt?.toIso8601String(),
-        'approved_by_user_id': approvedByUserId,
-        'rejection_reason': rejectionReason,
-        'identity_verified': identityVerified,
-        'vehicle_verified': vehicleVerified,
-        'online_status': onlineStatus.firestoreValue,
-        'submitted_for_review_at': submittedForReviewAt?.toIso8601String(),
-        'documents_required_reason': documentsRequiredReason,
-        'documents_required_at': documentsRequiredAt?.toIso8601String(),
-        'suspension_reason': suspensionReason,
-        'suspended_at': suspendedAt?.toIso8601String(),
-        'stripe_connected_account_id': stripeConnectedAccountId,
-        'stripe_onboarding_url': stripeOnboardingUrl,
-        'stripe_charges_enabled': stripeChargesEnabled,
-        'stripe_payouts_enabled': stripePayoutsEnabled,
-      };
+    'uid': uid,
+    'full_name': fullName,
+    'city': city,
+    'phone': phone,
+    'base_address_formatted': baseAddressFormatted,
+    'base_address_line1': baseAddressLine1,
+    'base_region': baseRegion,
+    'base_postal_code': basePostalCode,
+    'base_country': baseCountry,
+    'base_place_id': basePlaceId,
+    'base_lat': baseLat,
+    'base_lng': baseLng,
+    'spoken_languages': spokenLanguages,
+    'loading_assistance_available': loadingAssistanceAvailable,
+    'status': status.firestoreValue,
+    'service_radius_km': serviceRadiusKm,
+    'accepted_vehicle_categories': acceptedVehicleCategories
+        .map((c) => c.firestoreValue)
+        .toList(),
+    'accepted_item_category_keys': acceptedItemCategoryKeys,
+    'rating': rating,
+    'completed_missions': completedMissions,
+    'created_at': createdAt.toIso8601String(),
+    'approved_at': approvedAt?.toIso8601String(),
+    'approved_by_user_id': approvedByUserId,
+    'rejection_reason': rejectionReason,
+    'identity_verified': identityVerified,
+    'vehicle_verified': vehicleVerified,
+    'documents_all_valid': documentsAllValid,
+    'online_status': onlineStatus.firestoreValue,
+    'submitted_for_review_at': submittedForReviewAt?.toIso8601String(),
+    'documents_required_reason': documentsRequiredReason,
+    'documents_required_at': documentsRequiredAt?.toIso8601String(),
+    'suspension_reason': suspensionReason,
+    'suspended_at': suspendedAt?.toIso8601String(),
+    'stripe_connected_account_id': stripeConnectedAccountId,
+    'stripe_onboarding_url': stripeOnboardingUrl,
+    'stripe_charges_enabled': stripeChargesEnabled,
+    'stripe_payouts_enabled': stripePayoutsEnabled,
+  };
 
   static DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
@@ -183,15 +187,14 @@ class DriverProfileV2 {
       loadingAssistanceAvailable:
           json['loading_assistance_available'] as bool? ?? false,
       status: DriverStatusX.fromFirestoreValue(json['status'] as String?),
-      serviceRadiusKm:
-          (json['service_radius_km'] as num? ?? 0).toDouble(),
+      serviceRadiusKm: (json['service_radius_km'] as num? ?? 0).toDouble(),
       acceptedVehicleCategories:
           ((json['accepted_vehicle_categories'] as List?) ?? [])
               .map((v) => VehicleCategoryX.fromFirestoreValue(v as String?))
               .toList(),
       acceptedItemCategoryKeys:
           (json['accepted_item_category_keys'] as List?)?.cast<String>() ??
-              const [],
+          const [],
       rating: (json['rating'] as num? ?? 0).toDouble(),
       completedMissions: json['completed_missions'] as int? ?? 0,
       createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
@@ -200,15 +203,16 @@ class DriverProfileV2 {
       rejectionReason: json['rejection_reason'] as String?,
       identityVerified: json['identity_verified'] as bool? ?? false,
       vehicleVerified: json['vehicle_verified'] as bool? ?? false,
-      onlineStatus:
-          DriverOnlineStatusX.fromFirestoreValue(json['online_status'] as String?),
+      documentsAllValid: json['documents_all_valid'] as bool? ?? false,
+      onlineStatus: DriverOnlineStatusX.fromFirestoreValue(
+        json['online_status'] as String?,
+      ),
       submittedForReviewAt: _parseDate(json['submitted_for_review_at']),
       documentsRequiredReason: json['documents_required_reason'] as String?,
       documentsRequiredAt: _parseDate(json['documents_required_at']),
       suspensionReason: json['suspension_reason'] as String?,
       suspendedAt: _parseDate(json['suspended_at']),
-      stripeConnectedAccountId:
-          json['stripe_connected_account_id'] as String?,
+      stripeConnectedAccountId: json['stripe_connected_account_id'] as String?,
       stripeOnboardingUrl: json['stripe_onboarding_url'] as String?,
       stripeChargesEnabled: json['stripe_charges_enabled'] as bool? ?? false,
       stripePayoutsEnabled: json['stripe_payouts_enabled'] as bool? ?? false,

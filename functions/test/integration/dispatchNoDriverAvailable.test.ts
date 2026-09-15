@@ -195,8 +195,10 @@ describe("Phase 7 — Bloc B (MIS-C-02) : aucun chauffeur disponible à la créa
         vehicle_verified: true,
         online_status: "online",
         documents_all_valid: true,
-        // Même quartier que le pickup (45.5, -73.6) -> préfixe geohash commun.
-        current_geohash: "f25dv",
+        // Aucun current_geohash avant la première mission : l'adresse de
+        // service validée doit suffire au premier dispatch.
+        base_lat: 45.5,
+        base_lng: -73.6,
       }),
     ]);
 

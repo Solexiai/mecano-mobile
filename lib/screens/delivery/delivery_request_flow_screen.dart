@@ -46,7 +46,8 @@ class DeliveryRequestFlowScreen extends StatefulWidget {
   const DeliveryRequestFlowScreen({super.key, required this.locale});
 
   @override
-  State<DeliveryRequestFlowScreen> createState() => _DeliveryRequestFlowScreenState();
+  State<DeliveryRequestFlowScreen> createState() =>
+      _DeliveryRequestFlowScreenState();
 }
 
 enum _FlowPhase { form, quoting, quoted, creating, created }
@@ -105,7 +106,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       return AppShell(
         locale: widget.locale,
         showFooter: false,
-        child: _LoginRequiredNotice(locale: widget.locale, message: t('delivery_login_required')),
+        child: _LoginRequiredNotice(
+          locale: widget.locale,
+          message: t('delivery_login_required'),
+        ),
       );
     }
 
@@ -113,7 +117,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       return AppShell(
         locale: widget.locale,
         showFooter: false,
-        child: _MissionCreatedConfirmation(locale: widget.locale, mission: _mission!),
+        child: _MissionCreatedConfirmation(
+          locale: widget.locale,
+          mission: _mission!,
+        ),
       );
     }
 
@@ -141,12 +148,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                   backLabel: t('common_back'),
                   submitLabel: t('delivery_confirm_and_create'),
                   canProceed: (step) {
-                    if (step == 0) return _selectedCategory.isNotEmpty && _descController.text.trim().isNotEmpty;
+                    if (step == 0) {
+                      return _selectedCategory.isNotEmpty &&
+                          _descController.text.trim().isNotEmpty;
+                    }
                     if (step == 1) {
                       // GAP e/g/n) FAIL CLOSED : ne peut avancer que si les
                       // DEUX adresses ont été RÉELLEMENT résolues par le
                       // fournisseur (jamais une simple présence de texte).
-                      return _pickupResolved != null && _dropoffResolved != null;
+                      return _pickupResolved != null &&
+                          _dropoffResolved != null;
                     }
                     if (step == 2) return _selectedVehicle != null;
                     // Step 3 (quote) : la soumission finale n'est permise
@@ -157,55 +168,63 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                     // Dès l'entrée dans l'étape "devis", on déclenche
                     // automatiquement le calcul du devis réel si ce n'est
                     // pas déjà fait.
-                    if (step == 3 && _quote == null && _phase == _FlowPhase.form) {
+                    if (step == 3 &&
+                        _quote == null &&
+                        _phase == _FlowPhase.form) {
                       _requestQuote(auth);
                     }
                   },
                   onComplete: () => _createMission(auth),
                   stepBuilders: [
                     (context) => _Step1ItemInfo(
-                          categories: DemoDataService.deliveryCategories,
-                          selectedCategory: _selectedCategory,
-                          onCategorySelected: (c) => setState(() => _selectedCategory = c),
-                          descController: _descController,
-                          quantity: _quantity,
-                          onQuantityChanged: (q) => setState(() => _quantity = q),
-                          needsStairs: _needsStairs,
-                          onStairsChanged: (v) => setState(() => _needsStairs = v),
-                          needsSecondHandler: _needsSecondHandler,
-                          onSecondHandlerChanged: (v) => setState(() => _needsSecondHandler = v),
-                          isHeavyItem: _isHeavyItem,
-                          onHeavyChanged: (v) => setState(() => _isHeavyItem = v),
-                          isBulkyItem: _isBulkyItem,
-                          onBulkyChanged: (v) => setState(() => _isBulkyItem = v),
-                          // MIS-C-09 / BUG-003 : force le rebuild du parent
-                          // pour que `canProceed` (qui lit
-                          // `_descController.text`) soit réévalué à chaque
-                          // frappe, sans quoi le bouton "Suivant" peut
-                          // rester bloqué désactivé.
-                          onDescriptionChanged: () => setState(() {}),
-                        ),
+                      categories: DemoDataService.deliveryCategories,
+                      selectedCategory: _selectedCategory,
+                      onCategorySelected: (c) =>
+                          setState(() => _selectedCategory = c),
+                      descController: _descController,
+                      quantity: _quantity,
+                      onQuantityChanged: (q) => setState(() => _quantity = q),
+                      needsStairs: _needsStairs,
+                      onStairsChanged: (v) => setState(() => _needsStairs = v),
+                      needsSecondHandler: _needsSecondHandler,
+                      onSecondHandlerChanged: (v) =>
+                          setState(() => _needsSecondHandler = v),
+                      isHeavyItem: _isHeavyItem,
+                      onHeavyChanged: (v) => setState(() => _isHeavyItem = v),
+                      isBulkyItem: _isBulkyItem,
+                      onBulkyChanged: (v) => setState(() => _isBulkyItem = v),
+                      // MIS-C-09 / BUG-003 : force le rebuild du parent
+                      // pour que `canProceed` (qui lit
+                      // `_descController.text`) soit réévalué à chaque
+                      // frappe, sans quoi le bouton "Suivant" peut
+                      // rester bloqué désactivé.
+                      onDescriptionChanged: () => setState(() {}),
+                    ),
                     (context) => _Step2Addresses(
-                          pickupController: _pickupAddressController,
-                          dropoffController: _dropoffAddressController,
-                          contactController: _contactController,
-                          accessController: _accessController,
-                          onPickupResolved: (a) => setState(() => _pickupResolved = a),
-                          onPickupInvalidated: () => setState(() => _pickupResolved = null),
-                          onDropoffResolved: (a) => setState(() => _dropoffResolved = a),
-                          onDropoffInvalidated: () => setState(() => _dropoffResolved = null),
-                        ),
+                      pickupController: _pickupAddressController,
+                      dropoffController: _dropoffAddressController,
+                      contactController: _contactController,
+                      accessController: _accessController,
+                      onPickupResolved: (a) =>
+                          setState(() => _pickupResolved = a),
+                      onPickupInvalidated: () =>
+                          setState(() => _pickupResolved = null),
+                      onDropoffResolved: (a) =>
+                          setState(() => _dropoffResolved = a),
+                      onDropoffInvalidated: () =>
+                          setState(() => _dropoffResolved = null),
+                    ),
                     (context) => _Step3Vehicle(
-                          selected: _selectedVehicle,
-                          onSelected: (v) => setState(() => _selectedVehicle = v),
-                        ),
+                      selected: _selectedVehicle,
+                      onSelected: (v) => setState(() => _selectedVehicle = v),
+                    ),
                     (context) => _Step4Quote(
-                          phase: _phase,
-                          quote: _quote,
-                          distanceEstimate: _distanceEstimate,
-                          errorMessage: _errorMessage,
-                          onRetry: () => _requestQuote(auth),
-                        ),
+                      phase: _phase,
+                      quote: _quote,
+                      distanceEstimate: _distanceEstimate,
+                      errorMessage: _errorMessage,
+                      onRetry: () => _requestQuote(auth),
+                    ),
                   ],
                 ),
               ),
@@ -228,7 +247,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     if (pickup == null || dropoff == null) {
       setState(() {
         _phase = _FlowPhase.form;
-        _errorMessage = context.read<LocaleProvider>().t('delivery_address_invalid_selection');
+        _errorMessage = context.read<LocaleProvider>().t(
+          'delivery_address_invalid_selection',
+        );
       });
       return;
     }
@@ -289,7 +310,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     // requête `createMissionFromQuote` tant que le premier appel est en
     // cours ou déjà terminé (`creating` ou `created`).
     if (_phase == _FlowPhase.creating || _phase == _FlowPhase.created) return;
-    if (_quote == null || _selectedVehicle == null || _distanceEstimate == null) return;
+    if (_quote == null ||
+        _selectedVehicle == null ||
+        _distanceEstimate == null) {
+      return;
+    }
 
     // GAP g)/n) FAIL CLOSED : re-vérifié ICI (pas seulement à l'étape 1) —
     // un utilisateur pourrait revenir en arrière et modifier le texte d'une
@@ -302,7 +327,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     final dropoff = _dropoffResolved;
     if (pickup == null || dropoff == null) {
       setState(() {
-        _errorMessage = context.read<LocaleProvider>().t('delivery_address_invalid_selection');
+        _errorMessage = context.read<LocaleProvider>().t(
+          'delivery_address_invalid_selection',
+        );
       });
       return;
     }
@@ -332,27 +359,33 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
         placeId: dropoff.placeId,
       );
 
-      final mission = await BackendLocator.missionRepository.createMissionFromQuote(
-        CreateMissionRequest(
-          quoteId: _quote!.id,
-          itemCategoryKey: _selectedCategory,
-          description: _descController.text.trim(),
-          requiredVehicleCategory: _selectedVehicle!,
-          distanceKm: _distanceEstimate!.distanceKm,
-          estimatedDurationMinutes: _distanceEstimate!.estimatedDurationMinutes,
-          stops: [
-            MissionStopInput(
-              type: 'pickup',
-              address: pickupAddress,
-              contactInstructions:
-                  _contactController.text.trim().isEmpty ? null : _contactController.text.trim(),
-              accessDetails: _accessController.text.trim().isEmpty ? null : _accessController.text.trim(),
+      final mission = await BackendLocator.missionRepository
+          .createMissionFromQuote(
+            CreateMissionRequest(
+              quoteId: _quote!.id,
+              itemCategoryKey: _selectedCategory,
+              description: _descController.text.trim(),
+              requiredVehicleCategory: _selectedVehicle!,
+              distanceKm: _distanceEstimate!.distanceKm,
+              estimatedDurationMinutes:
+                  _distanceEstimate!.estimatedDurationMinutes,
+              stops: [
+                MissionStopInput(
+                  type: 'pickup',
+                  address: pickupAddress,
+                  contactInstructions: _contactController.text.trim().isEmpty
+                      ? null
+                      : _contactController.text.trim(),
+                  accessDetails: _accessController.text.trim().isEmpty
+                      ? null
+                      : _accessController.text.trim(),
+                ),
+                MissionStopInput(type: 'dropoff', address: dropoffAddress),
+              ],
+              customerDisplayName:
+                  auth.effectiveDisplayName ?? auth.effectiveEmail ?? 'Client',
             ),
-            MissionStopInput(type: 'dropoff', address: dropoffAddress),
-          ],
-          customerDisplayName: auth.effectiveDisplayName ?? auth.effectiveEmail ?? 'Client',
-        ),
-      );
+          );
 
       if (!mounted) return;
       setState(() {
@@ -397,7 +430,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     // traduit, JAMAIS le message brut du serveur. Vérifié AVANT le cas
     // générique ci-dessous.
     if (isKillSwitchException(e)) {
-      return context.read<LocaleProvider>().t('service_temporarily_unavailable');
+      return context.read<LocaleProvider>().t(
+        'service_temporarily_unavailable',
+      );
     }
     if (e is CloudFunctionException || e is BackendNotConfiguredException) {
       debugPrint('DeliveryRequestFlowScreen error (not shown to user): $e');
@@ -405,7 +440,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     }
     // Erreur inattendue (ex: exception réseau brute non enveloppée par le
     // repository) : message générique également, jamais `e.toString()`.
-    debugPrint('DeliveryRequestFlowScreen unexpected error (not shown to user): $e');
+    debugPrint(
+      'DeliveryRequestFlowScreen unexpected error (not shown to user): $e',
+    );
     return context.read<LocaleProvider>().t(genericKey);
   }
 }
@@ -459,37 +496,55 @@ class _Step1ItemInfo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('delivery_item_category'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            t('delivery_item_category'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: categories
-                .map((c) => ChoiceChip(
-                      label: Text(t(c)),
-                      selected: selectedCategory == c,
-                      onSelected: (_) => onCategorySelected(c),
-                    ))
+                .map(
+                  (c) => ChoiceChip(
+                    label: Text(t(c)),
+                    selected: selectedCategory == c,
+                    onSelected: (_) => onCategorySelected(c),
+                  ),
+                )
                 .toList(),
           ),
           const SizedBox(height: 20),
           TextField(
             controller: descController,
             maxLines: 3,
-            decoration: InputDecoration(labelText: t('delivery_item_description')),
+            decoration: InputDecoration(
+              labelText: t('delivery_item_description'),
+            ),
             onChanged: (_) => onDescriptionChanged(),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Text(t('delivery_item_quantity'), style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(
+                t('delivery_item_quantity'),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               const Spacer(),
               IconButton(
-                onPressed: quantity > 1 ? () => onQuantityChanged(quantity - 1) : null,
+                onPressed: quantity > 1
+                    ? () => onQuantityChanged(quantity - 1)
+                    : null,
                 icon: const Icon(Icons.remove_circle_outline),
                 tooltip: t('delivery_item_quantity_decrease'),
               ),
-              Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(
+                '$quantity',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
               IconButton(
                 onPressed: () => onQuantityChanged(quantity + 1),
                 icon: const Icon(Icons.add_circle_outline),
@@ -498,10 +553,26 @@ class _Step1ItemInfo extends StatelessWidget {
             ],
           ),
           const Divider(height: 32),
-          _SwitchRow(label: t('delivery_item_stairs'), value: needsStairs, onChanged: onStairsChanged),
-          _SwitchRow(label: t('delivery_item_loading_help'), value: needsSecondHandler, onChanged: onSecondHandlerChanged),
-          _SwitchRow(label: t('delivery_item_heavy'), value: isHeavyItem, onChanged: onHeavyChanged),
-          _SwitchRow(label: t('delivery_item_bulky'), value: isBulkyItem, onChanged: onBulkyChanged),
+          _SwitchRow(
+            label: t('delivery_item_stairs'),
+            value: needsStairs,
+            onChanged: onStairsChanged,
+          ),
+          _SwitchRow(
+            label: t('delivery_item_loading_help'),
+            value: needsSecondHandler,
+            onChanged: onSecondHandlerChanged,
+          ),
+          _SwitchRow(
+            label: t('delivery_item_heavy'),
+            value: isHeavyItem,
+            onChanged: onHeavyChanged,
+          ),
+          _SwitchRow(
+            label: t('delivery_item_bulky'),
+            value: isBulkyItem,
+            onChanged: onBulkyChanged,
+          ),
         ],
       ),
     );
@@ -512,7 +583,11 @@ class _SwitchRow extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SwitchRow({required this.label, required this.value, required this.onChanged});
+  const _SwitchRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -586,7 +661,11 @@ class _Step2Addresses extends StatelessWidget {
           const Divider(height: 32),
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, color: AppColors.primary, size: 18),
+              const Icon(
+                Icons.location_on_outlined,
+                color: AppColors.primary,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -605,9 +684,21 @@ class _Step2Addresses extends StatelessWidget {
             onInvalidated: onDropoffInvalidated,
           ),
           const Divider(height: 32),
-          TextField(controller: contactController, decoration: InputDecoration(labelText: '${t('delivery_contact_instructions')} (${t('common_optional')})')),
+          TextField(
+            controller: contactController,
+            decoration: InputDecoration(
+              labelText:
+                  '${t('delivery_contact_instructions')} (${t('common_optional')})',
+            ),
+          ),
           const SizedBox(height: 16),
-          TextField(controller: accessController, decoration: InputDecoration(labelText: '${t('delivery_access_details')} (${t('common_optional')})')),
+          TextField(
+            controller: accessController,
+            decoration: InputDecoration(
+              labelText:
+                  '${t('delivery_access_details')} (${t('common_optional')})',
+            ),
+          ),
         ],
       ),
     );
@@ -627,18 +718,23 @@ class _Step3Vehicle extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('delivery_required_vehicle'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            t('delivery_required_vehicle'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: VehicleCategory.values
                 .where((v) => v != VehicleCategory.other)
-                .map((v) => ChoiceChip(
-                      label: Text(t(v.key)),
-                      selected: selected == v,
-                      onSelected: (_) => onSelected(v),
-                    ))
+                .map(
+                  (v) => ChoiceChip(
+                    label: Text(t(v.key)),
+                    selected: selected == v,
+                    onSelected: (_) => onSelected(v),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -674,7 +770,11 @@ class _Step4Quote extends StatelessWidget {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text(phase == _FlowPhase.creating ? t('delivery_creating_mission') : t('delivery_getting_quote')),
+            Text(
+              phase == _FlowPhase.creating
+                  ? t('delivery_creating_mission')
+                  : t('delivery_getting_quote'),
+            ),
           ],
         ),
       );
@@ -693,7 +793,12 @@ class _Step4Quote extends StatelessWidget {
               children: [
                 const Icon(Icons.error_outline, color: AppColors.error),
                 const SizedBox(width: 8),
-                Expanded(child: Text(errorMessage!, style: const TextStyle(color: AppColors.error))),
+                Expanded(
+                  child: Text(
+                    errorMessage!,
+                    style: const TextStyle(color: AppColors.error),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -725,45 +830,101 @@ class _Step4Quote extends StatelessWidget {
           if (errorMessage != null) ...[
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-              child: Row(children: [
-                const Icon(Icons.error_outline, color: AppColors.error, size: 16),
-                const SizedBox(width: 8),
-                Expanded(child: Text(errorMessage!, style: const TextStyle(fontSize: 12.5, color: AppColors.error))),
-              ]),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.error,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      errorMessage!,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
           ],
-          Text(t('delivery_quote_total'), style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            t('delivery_quote_total'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Column(
               children: [
                 Text(
                   '${quote!.customerTotal.toStringAsFixed(2)} \$',
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
                 ),
                 if (quote!.breakdown != null) ...[
                   const Divider(height: 28),
-                  _BreakdownRow(t('delivery_breakdown_base'), quote!.breakdown!.missionBaseValue),
+                  _BreakdownRow(
+                    t('delivery_breakdown_base'),
+                    quote!.breakdown!.missionBaseValue,
+                  ),
                   if (quote!.breakdown!.handlingFeesTotal > 0)
-                    _BreakdownRow(t('delivery_item_stairs'), quote!.breakdown!.handlingFeesTotal),
+                    _BreakdownRow(
+                      t('delivery_item_stairs'),
+                      quote!.breakdown!.handlingFeesTotal,
+                    ),
                   if (quote!.breakdown!.customerServiceFee > 0)
-                    _BreakdownRow(t('delivery_breakdown_service_fee'), quote!.breakdown!.customerServiceFee),
-                  if (quote!.breakdown!.taxAmount > 0) _BreakdownRow(t('delivery_breakdown_tax'), quote!.breakdown!.taxAmount),
+                    _BreakdownRow(
+                      t('delivery_breakdown_service_fee'),
+                      quote!.breakdown!.customerServiceFee,
+                    ),
+                  if (quote!.breakdown!.taxAmount > 0)
+                    _BreakdownRow(
+                      t('delivery_breakdown_tax'),
+                      quote!.breakdown!.taxAmount,
+                    ),
                   if (quote!.breakdown!.customerDiscountAmount > 0)
-                    _BreakdownRow(t('delivery_breakdown_discount'), -quote!.breakdown!.customerDiscountAmount),
+                    _BreakdownRow(
+                      t('delivery_breakdown_discount'),
+                      -quote!.breakdown!.customerDiscountAmount,
+                    ),
                 ],
               ],
             ),
           ),
           const SizedBox(height: 12),
           if (distanceEstimate != null)
-            Text(t('delivery_quote_distance_note'), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+            Text(
+              t('delivery_quote_distance_note'),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           const SizedBox(height: 8),
-          Text(t('delivery_quote_expires_note'), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            t('delivery_quote_expires_note'),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -782,8 +943,17 @@ class _BreakdownRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          Text('${value.toStringAsFixed(2)} \$', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            '${value.toStringAsFixed(2)} \$',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );
@@ -794,7 +964,10 @@ class _BreakdownRow extends StatelessWidget {
 class _MissionCreatedConfirmation extends StatelessWidget {
   final String locale;
   final DeliveryMission mission;
-  const _MissionCreatedConfirmation({required this.locale, required this.mission});
+  const _MissionCreatedConfirmation({
+    required this.locale,
+    required this.mission,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -811,11 +984,24 @@ class _MissionCreatedConfirmation extends StatelessWidget {
               Container(
                 width: 80,
                 height: 80,
-                decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.12), shape: BoxShape.circle),
-                child: const Icon(Icons.check_circle, color: AppColors.success, size: 44),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle,
+                  color: AppColors.success,
+                  size: 44,
+                ),
               ),
               const SizedBox(height: 24),
-              Text(t('delivery_mission_created_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Text(
+                t('delivery_mission_created_title'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 10),
               Text(
                 t('delivery_searching_driver_desc'),
@@ -832,19 +1018,31 @@ class _MissionCreatedConfirmation extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.hourglass_top_rounded, color: AppColors.info),
+                    const Icon(
+                      Icons.hourglass_top_rounded,
+                      color: AppColors.info,
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: Text(t(mission.status.key), style: const TextStyle(fontWeight: FontWeight.w600))),
+                    Expanded(
+                      child: Text(
+                        t(mission.status.key),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 28),
               ElevatedButton(
-                onPressed: () => context.go('/$locale/tableau-de-bord'),
-                child: Text(t('delivery_view_my_requests')),
+                onPressed: () =>
+                    context.go('/$locale/livraison/suivi/${mission.id}'),
+                child: Text(t('tracking_title')),
               ),
               const SizedBox(height: 12),
-              TextButton(onPressed: () => context.go('/$locale'), child: Text(t('nav_home'))),
+              TextButton(
+                onPressed: () => context.go('/$locale'),
+                child: Text(t('nav_home')),
+              ),
               const SizedBox(height: 40),
             ],
           ),
@@ -868,9 +1066,17 @@ class _LoginRequiredNotice extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
+            const Icon(
+              Icons.lock_outline,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => GoRouter.of(context).go('/$locale/connexion'),

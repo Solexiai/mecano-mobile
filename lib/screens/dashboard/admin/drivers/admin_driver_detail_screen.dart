@@ -30,22 +30,26 @@ class AdminDriverDetailScreen extends StatefulWidget {
   const AdminDriverDetailScreen({super.key, required this.driverId});
 
   @override
-  State<AdminDriverDetailScreen> createState() => _AdminDriverDetailScreenState();
+  State<AdminDriverDetailScreen> createState() =>
+      _AdminDriverDetailScreenState();
 }
 
 class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
   bool _actionInProgress = false;
 
-  late final Stream<DriverProfileV2?> _driverProfileStream =
-      BackendLocator.driverRepository.watchDriverProfile(widget.driverId);
+  late final Stream<DriverProfileV2?> _driverProfileStream = BackendLocator
+      .driverRepository
+      .watchDriverProfile(widget.driverId);
 
   @override
   void initState() {
     super.initState();
-    BackendLocator.driverRepository.logDriverReviewOpened(widget.driverId).catchError((_) {
-      // Non bloquant : un échec de journalisation ne doit jamais empêcher
-      // l'analyste de consulter le dossier.
-    });
+    BackendLocator.driverRepository
+        .logDriverReviewOpened(widget.driverId)
+        .catchError((_) {
+          // Non bloquant : un échec de journalisation ne doit jamais empêcher
+          // l'analyste de consulter le dossier.
+        });
   }
 
   @override
@@ -75,7 +79,11 @@ class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
               children: [
                 _StatusBanner(profile: profile, t: t),
                 const SizedBox(height: 20),
-                _ProfileSection(driverId: widget.driverId, profile: profile, t: t),
+                _ProfileSection(
+                  driverId: widget.driverId,
+                  profile: profile,
+                  t: t,
+                ),
                 const SizedBox(height: 20),
                 _VehicleSection(driverId: widget.driverId, t: t),
                 const SizedBox(height: 20),
@@ -145,7 +153,10 @@ class _SectionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+          ),
           const SizedBox(height: 14),
           child,
         ],
@@ -168,8 +179,13 @@ class _KeyValueRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 150,
-            child: Text(label,
-                style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 13.5))),
         ],
@@ -182,7 +198,11 @@ class _ProfileSection extends StatefulWidget {
   final String driverId;
   final DriverProfileV2 profile;
   final String Function(String) t;
-  const _ProfileSection({required this.driverId, required this.profile, required this.t});
+  const _ProfileSection({
+    required this.driverId,
+    required this.profile,
+    required this.t,
+  });
 
   @override
   State<_ProfileSection> createState() => _ProfileSectionState();
@@ -214,14 +234,32 @@ class _ProfileSectionState extends State<_ProfileSection> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _KeyValueRow(label: t('admin_driver_field_first_name'), value: firstName.isEmpty ? na : firstName),
-              _KeyValueRow(label: t('admin_driver_field_last_name'), value: lastName.isEmpty ? na : lastName),
-              _KeyValueRow(label: t('admin_driver_field_phone'), value: user?.phone ?? na),
-              _KeyValueRow(label: t('admin_driver_field_email'), value: user?.email ?? na),
+              _KeyValueRow(
+                label: t('admin_driver_field_first_name'),
+                value: firstName.isEmpty ? na : firstName,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_last_name'),
+                value: lastName.isEmpty ? na : lastName,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_phone'),
+                value: user?.phone ?? na,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_email'),
+                value: user?.email ?? na,
+              ),
               _KeyValueRow(label: t('admin_driver_field_address'), value: na),
-              _KeyValueRow(label: t('admin_driver_field_city'), value: profile.city.isEmpty ? na : profile.city),
+              _KeyValueRow(
+                label: t('admin_driver_field_city'),
+                value: profile.city.isEmpty ? na : profile.city,
+              ),
               _KeyValueRow(label: t('admin_driver_field_province'), value: na),
-              _KeyValueRow(label: t('admin_driver_field_postal_code'), value: na),
+              _KeyValueRow(
+                label: t('admin_driver_field_postal_code'),
+                value: na,
+              ),
             ],
           );
         },
@@ -240,8 +278,9 @@ class _VehicleSection extends StatefulWidget {
 }
 
 class _VehicleSectionState extends State<_VehicleSection> {
-  late final Future<List<DriverVehicle>> _vehiclesFuture =
-      BackendLocator.driverRepository.getDriverVehicles(widget.driverId);
+  late final Future<List<DriverVehicle>> _vehiclesFuture = BackendLocator
+      .driverRepository
+      .getDriverVehicles(widget.driverId);
 
   @override
   Widget build(BuildContext context) {
@@ -260,25 +299,48 @@ class _VehicleSectionState extends State<_VehicleSection> {
           }
           final vehicles = snap.data ?? const <DriverVehicle>[];
           if (vehicles.isEmpty) {
-            return Text(na, style: const TextStyle(color: AppColors.textSecondary));
+            return Text(
+              na,
+              style: const TextStyle(color: AppColors.textSecondary),
+            );
           }
           final v = vehicles.first;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _KeyValueRow(label: t('admin_driver_field_category'), value: t(v.category.key)),
-              _KeyValueRow(label: t('admin_driver_field_make'), value: v.displayMake.isEmpty ? na : v.displayMake),
-              _KeyValueRow(label: t('admin_driver_field_model'), value: v.displayModel.isEmpty ? na : v.displayModel),
-              _KeyValueRow(label: t('admin_driver_field_year'), value: v.year == 0 ? na : '${v.year}'),
-              _KeyValueRow(label: t('admin_driver_field_color'), value: v.color ?? na),
-              _KeyValueRow(label: t('admin_driver_field_plate'), value: v.plate.isEmpty ? na : v.plate),
+              _KeyValueRow(
+                label: t('admin_driver_field_category'),
+                value: t(v.category.key),
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_make'),
+                value: v.displayMake.isEmpty ? na : v.displayMake,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_model'),
+                value: v.displayModel.isEmpty ? na : v.displayModel,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_year'),
+                value: v.year == 0 ? na : '${v.year}',
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_color'),
+                value: v.color ?? na,
+              ),
+              _KeyValueRow(
+                label: t('admin_driver_field_plate'),
+                value: v.plate.isEmpty ? na : v.plate,
+              ),
               _KeyValueRow(
                 label: t('admin_driver_field_capacity'),
                 value: v.maxPayloadKg != null ? '${v.maxPayloadKg} kg' : na,
               ),
               _KeyValueRow(
                 label: t('admin_driver_field_vehicle_verified'),
-                value: v.isVerified ? t('admin_driver_verified') : t('admin_driver_not_verified'),
+                value: v.isVerified
+                    ? t('admin_driver_verified')
+                    : t('admin_driver_not_verified'),
               ),
             ],
           );
@@ -308,8 +370,10 @@ class _DocumentsSection extends StatelessWidget {
           }
           final docs = snap.data ?? const <DriverDocument>[];
           if (docs.isEmpty) {
-            return Text(t('admin_driver_doc_no_documents'),
-                style: const TextStyle(color: AppColors.textSecondary));
+            return Text(
+              t('admin_driver_doc_no_documents'),
+              style: const TextStyle(color: AppColors.textSecondary),
+            );
           }
           return Column(
             children: docs.map((doc) => _DocumentTile(doc: doc, t: t)).toList(),
@@ -359,7 +423,9 @@ class _DocumentTileState extends State<_DocumentTile> {
       // Cette lecture reste protégée par storage.rules : seuls le chauffeur
       // propriétaire et analyst/admin/super_admin y ont accès. Aucune URL
       // publique permanente ni download token n'est créé/exposé.
-      final ref = FirebaseStorage.instance.ref().child(widget.doc.storageBucketPath);
+      final ref = FirebaseStorage.instance.ref().child(
+        widget.doc.storageBucketPath,
+      );
       final metadata = await ref.getMetadata();
       final contentType = metadata.contentType ?? '';
       if (!contentType.startsWith('image/')) {
@@ -397,7 +463,9 @@ class _DocumentTileState extends State<_DocumentTile> {
                           ),
                         ),
                         IconButton(
-                          tooltip: MaterialLocalizations.of(dialogContext).closeButtonTooltip,
+                          tooltip: MaterialLocalizations.of(
+                            dialogContext,
+                          ).closeButtonTooltip,
                           onPressed: () => Navigator.of(dialogContext).pop(),
                           icon: const Icon(Icons.close),
                         ),
@@ -430,9 +498,9 @@ class _DocumentTileState extends State<_DocumentTile> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.t('admin_action_error'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(widget.t('admin_action_error'))));
     } finally {
       if (mounted) setState(() => _opening = false);
     }
@@ -455,7 +523,10 @@ class _DocumentTileState extends State<_DocumentTile> {
           Row(
             children: [
               Expanded(
-                child: Text(t(driverDocumentLabelKey(doc)), style: const TextStyle(fontWeight: FontWeight.w700)),
+                child: Text(
+                  t(driverDocumentLabelKey(doc)),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -463,20 +534,32 @@ class _DocumentTileState extends State<_DocumentTile> {
                   color: _statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(t(doc.status.key),
-                    style: TextStyle(color: _statusColor, fontSize: 11, fontWeight: FontWeight.w700)),
+                child: Text(
+                  t(doc.status.key),
+                  style: TextStyle(
+                    color: _statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt, connector: t('datetime_connector_at'))}',
-            style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppColors.textSecondary,
+            ),
           ),
           if (doc.expiresAt != null)
             Text(
               '${t('admin_driver_doc_expires_at')}: ${formatDisplayDate(doc.expiresAt!, connector: t('datetime_connector_at'))}',
-              style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: AppColors.textSecondary,
+              ),
             ),
           if (doc.rejectionReason != null && doc.rejectionReason!.isNotEmpty)
             Padding(
@@ -490,7 +573,9 @@ class _DocumentTileState extends State<_DocumentTile> {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: doc.storageBucketPath.isEmpty || _opening ? null : _openDocument,
+              onPressed: doc.storageBucketPath.isEmpty || _opening
+                  ? null
+                  : _openDocument,
               icon: _opening
                   ? const SizedBox(
                       width: 16,
@@ -498,7 +583,10 @@ class _DocumentTileState extends State<_DocumentTile> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.visibility_outlined, size: 16),
-              label: Text(t('admin_driver_doc_view'), style: const TextStyle(fontSize: 12)),
+              label: Text(
+                t('admin_driver_doc_view'),
+                style: const TextStyle(fontSize: 12),
+              ),
             ),
           ),
         ],
@@ -525,15 +613,20 @@ class _NotesSectionState extends State<_NotesSection> {
     if (text.isEmpty) return;
     setState(() => _submitting = true);
     try {
-      await BackendLocator.driverRepository.addDriverInternalNote(widget.driverId, text);
+      await BackendLocator.driverRepository.addDriverInternalNote(
+        widget.driverId,
+        text,
+      );
       if (!mounted) return;
       _controller.clear();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(widget.t('admin_action_success_note'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.t('admin_action_success_note'))),
+      );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(widget.t('admin_action_error'))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(widget.t('admin_action_error'))));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -554,39 +647,53 @@ class _NotesSectionState extends State<_NotesSection> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           StreamBuilder<List<DriverInternalNote>>(
-            stream: BackendLocator.driverRepository.watchDriverInternalNotes(widget.driverId),
+            stream: BackendLocator.driverRepository.watchDriverInternalNotes(
+              widget.driverId,
+            ),
             builder: (context, snap) {
               final notes = [...(snap.data ?? const <DriverInternalNote>[])]
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
               if (notes.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(t('admin_note_empty'),
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12.5)),
+                  child: Text(
+                    t('admin_note_empty'),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12.5,
+                    ),
+                  ),
                 );
               }
               return Column(
                 children: notes
-                    .map((n) => Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(n.text, style: const TextStyle(fontSize: 13)),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${n.authorRole} • ${n.createdAt.toLocal()}'.split('.').first,
-                                style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+                    .map(
+                      (n) => Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(n.text, style: const TextStyle(fontSize: 13)),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${n.authorRole} • ${n.createdAt.toLocal()}'
+                                  .split('.')
+                                  .first,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                color: AppColors.textSecondary,
                               ),
-                            ],
-                          ),
-                        ))
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
                     .toList(),
               );
             },
@@ -624,22 +731,33 @@ class _ActionsBar extends StatelessWidget {
     required this.t,
   });
 
-  Future<void> _run(BuildContext context, Future<void> Function() action, String successKey) async {
+  Future<void> _run(
+    BuildContext context,
+    Future<void> Function() action,
+    String successKey,
+  ) async {
     onBusyChanged(true);
     try {
       await action();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t(successKey))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t(successKey))));
     } catch (_) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(t('admin_action_error'))));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(t('admin_action_error'))));
     } finally {
       onBusyChanged(false);
     }
   }
 
-  Future<String?> _promptReason(BuildContext context, String labelKey, String hintKey) async {
+  Future<String?> _promptReason(
+    BuildContext context,
+    String labelKey,
+    String hintKey,
+  ) async {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
@@ -700,7 +818,11 @@ class _ActionsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = BackendLocator.driverRepository;
     final auth = context.watch<FirebaseAuthProvider>();
-    final canApproveReject = profile.status != DriverStatus.approved;
+    // Les anciens profils pouvaient être marqués approuvés avant que les
+    // documents soient finalisés. Le bouton reste disponible pour terminer
+    // cette validation en une seule action explicite de l'administrateur.
+    final canApproveReject =
+        profile.status != DriverStatus.approved || !profile.documentsAllValid;
     final canSuspendReactivate = auth.isAdminOrAbove;
 
     return Wrap(
@@ -790,10 +912,10 @@ class _ActionsBar extends StatelessWidget {
             onPressed: busy
                 ? null
                 : () => _run(
-                      context,
-                      () => repo.reactivateDriver(profile.uid),
-                      'admin_action_success_reactivate',
-                    ),
+                    context,
+                    () => repo.reactivateDriver(profile.uid),
+                    'admin_action_success_reactivate',
+                  ),
             icon: const Icon(Icons.restart_alt, size: 18),
             label: Text(t('admin_action_reactivate')),
           ),

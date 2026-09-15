@@ -62,6 +62,20 @@ class DriverLocationReporter {
     _timer = null;
   }
 
+  /// Envoie une position immédiatement, sans démarrer la boucle périodique.
+  /// Utilisé quand le chauffeur passe en ligne afin qu'il soit localisable
+  /// pour le dispatch avant même d'avoir accepté sa première mission.
+  Future<LocationReporterError?> reportCurrentLocationOnce() async {
+    LocationReporterError? lastError;
+    void captureError(LocationReporterError error) => lastError = error;
+
+    final ready = await _ensurePermission(captureError);
+    if (!ready) return lastError;
+
+    await _tick(captureError);
+    return lastError;
+  }
+
   Future<bool> _ensurePermission(
     void Function(LocationReporterError) onError,
   ) async {

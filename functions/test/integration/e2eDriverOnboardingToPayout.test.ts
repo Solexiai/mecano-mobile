@@ -17,9 +17,8 @@
 //   -> écriture directe driver_vehicles (is_verified: false, comme le fait
 //      submitDriverVehicle() côté Flutter)
 //   -> écriture directe driver_documents (status: 'uploaded')
-//   -> validateDriverDocument (analyst) x4 -> documents_all_valid = true
 //   -> submitDriverForReview (driver)      => pending_review
-//   -> approveDriver (analyst)             => approved
+//   -> approveDriver (analyst)             => documents approuvés + profil approved
 //   -> acceptDelivery (driver, mission ouverte préparée en parallèle)
 //   -> updateMissionTrackingStatus x4 (driver_to_pickup, arrived_at_pickup
 //      SONT enchaînés via completePickup ; in_transit, arrived_at_dropoff)
@@ -39,7 +38,6 @@
 import type { CallableRequest, Request } from "firebase-functions/v2/https";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import { registerAsDriver } from "../../src/functions/registerAsDriver";
-import { validateDriverDocument, ValidateDriverDocumentRequest } from "../../src/functions/validateDriverDocument";
 import { submitDriverForReview } from "../../src/functions/submitDriverForReview";
 import { approveDriver, ApproveDriverRequest } from "../../src/functions/approveDriver";
 import { rejectDriver, RejectDriverRequest } from "../../src/functions/rejectDriver";
@@ -294,21 +292,14 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       expect(driverSnap.data()!.status).toBe(DriverStatuses.REGISTRATION_INCOMPLETE);
       expect(driverSnap.data()!.documents_all_valid).toBe(false);
 
-      // ---- 3. Analyste valide chaque document (seul point d'entrée pour
-      // faire évoluer driver_documents.status et recalculer
-      // documents_all_valid) ----
-      for (const docId of documentIds) {
-        const result = await validateDriverDocument.run(
-          buildRequest<ValidateDriverDocumentRequest>(
-            ANALYST_ID,
-            { documentId: docId, newStatus: "approved" },
-            ["analyst"]
-          )
-        );
-        expect(result.success).toBe(true);
-      }
-      driverSnap = await db.collection("driver_profiles").doc(DRIVER_ID).get();
-      expect(driverSnap.data()!.documents_all_valid).toBe(true);
+      // ---- 3. Les documents sont téléversés, mais pas encore approuvés
+      // individuellement : l'action finale de l'analyste doit pouvoir
+      // valider le dossier complet en une seule étape explicite. ----
+      const docsBeforeApproval = await db
+        .collection("driver_documents")
+        .where("driver_id", "==", DRIVER_ID)
+        .get();
+      expect(docsBeforeApproval.docs.every((d) => d.data().status === "uploaded")).toBe(true);
 
       // ---- 4. Chauffeur soumet sa candidature pour révision ----
       const submitResult = await submitDriverForReview.run(buildRequest(DRIVER_ID, undefined, ["driver"]));
@@ -323,7 +314,13 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       expect(approveResult.success).toBe(true);
       driverSnap = await db.collection("driver_profiles").doc(DRIVER_ID).get();
       expect(driverSnap.data()!.status).toBe(DriverStatuses.APPROVED);
+      expect(driverSnap.data()!.documents_all_valid).toBe(true);
       expect(driverSnap.data()!.approved_by_user_id).toBe(ANALYST_ID);
+      const docsAfterApproval = await db
+        .collection("driver_documents")
+        .where("driver_id", "==", DRIVER_ID)
+        .get();
+      expect(docsAfterApproval.docs.every((d) => d.data().status === "approved")).toBe(true);
 
       // ---- 6. Passage en ligne (écriture directe côté Flutter,
       // autorisée par firestore.rules UNIQUEMENT si status == 'approved' —
