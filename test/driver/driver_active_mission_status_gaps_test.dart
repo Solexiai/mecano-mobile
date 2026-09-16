@@ -81,7 +81,9 @@ class FakeGeolocatorPlatform extends GeolocatorPlatform {
   Future<LocationPermission> requestPermission() async => permissionOnRequest;
 
   @override
-  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async {
+  Future<Position> getCurrentPosition({
+    LocationSettings? locationSettings,
+  }) async {
     return Position(
       longitude: -73.7,
       latitude: 45.6,
@@ -109,11 +111,13 @@ class _FakeLocationRepository implements LocationRepository {
   }
 
   @override
-  Stream<DriverLocation?> watchDriverLocation(String driverId) => Stream.value(null);
+  Stream<DriverLocation?> watchDriverLocation(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(String driverId) =>
-      Stream.value(const []);
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId,
+  ) => Stream.value(const []);
 }
 
 /// `MissionRepository` fake — permet de rejouer la mission avec un nouveau
@@ -189,29 +193,43 @@ class _FakeMissionRepository implements MissionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
-      throw UnimplementedError();
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => Stream.value(const []);
-
-  @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
+  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       Stream.value(const []);
 
   @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => Stream.value(const []);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => Stream.value(const []);
 
   @override
-  Future<AcceptMissionResult> acceptMission({required String missionId, required String driverId}) async {
-    return const AcceptMissionResult(success: false, errorCode: 'not_used_in_test');
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Future<AcceptMissionResult> acceptMission({
+    required String missionId,
+    required String driverId,
+  }) async {
+    return const AcceptMissionResult(
+      success: false,
+      errorCode: 'not_used_in_test',
+    );
   }
 
   @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {}
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) async {}
 }
 
 DeliveryMission _copyWithStatus(DeliveryMission m, MissionStatus status) {
@@ -284,12 +302,14 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
     routes: [
       GoRoute(
         path: '/fr/provider/mission/:missionId',
-        builder: (context, state) =>
-            DriverActiveMissionScreen(missionId: state.pathParameters['missionId']!),
+        builder: (context, state) => DriverActiveMissionScreen(
+          missionId: state.pathParameters['missionId']!,
+        ),
       ),
       GoRoute(
         path: '/fr/provider/dashboard',
-        builder: (context, state) => const Scaffold(body: Text('DASHBOARD_STUB')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('DASHBOARD_STUB')),
       ),
     ],
   );
@@ -330,7 +350,9 @@ void main() {
   testWidgets(
     'assigned : seul le bouton "partir vers le pickup" est visible ; tap -> updateTrackingStatus(driverToPickup)',
     (tester) async {
-      final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.assigned));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.assigned),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -342,13 +364,26 @@ void main() {
         btn('driver_active_mission_start_to_pickup'),
       );
       expect(startButton, findsOneWidget);
+      expect(
+        find.widgetWithText(
+          OutlinedButton,
+          btn('driver_active_mission_open_google_maps'),
+        ),
+        findsOneWidget,
+      );
       // Aucune action d'une autre étape ne doit être visible simultanément.
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_arrived_at_pickup')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_arrived_at_pickup'),
+        ),
         findsNothing,
       );
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_mark_pickup')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_mark_pickup'),
+        ),
         findsNothing,
       );
 
@@ -361,7 +396,10 @@ void main() {
       // La mission a avancé (rejouée par le fake) : le bouton correspondant
       // au NOUVEAU statut apparaît désormais, l'ancien a disparu.
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_arrived_at_pickup')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_arrived_at_pickup'),
+        ),
         findsOneWidget,
       );
       expect(startButton, findsNothing);
@@ -371,8 +409,9 @@ void main() {
   testWidgets(
     'driverToPickup : bouton "arrivé au pickup" ; tap -> updateTrackingStatus(arrivedAtPickup)',
     (tester) async {
-      final fakeRepo =
-          _FakeMissionRepository(_buildMission(status: MissionStatus.driverToPickup));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.driverToPickup),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -392,7 +431,10 @@ void main() {
       expect(fakeRepo.updateTrackingStatusCallCount, 1);
       expect(fakeRepo.lastTargetStatus, MissionStatus.arrivedAtPickup);
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_mark_pickup')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_mark_pickup'),
+        ),
         findsOneWidget,
       );
     },
@@ -401,8 +443,9 @@ void main() {
   testWidgets(
     'arrivedAtPickup : bouton "confirmer prise en charge" ; tap -> markPickupCompleted (jamais updateTrackingStatus)',
     (tester) async {
-      final fakeRepo =
-          _FakeMissionRepository(_buildMission(status: MissionStatus.arrivedAtPickup));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.arrivedAtPickup),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -426,7 +469,10 @@ void main() {
       expect(fakeRepo.markPickupCompletedCallCount, 1);
       expect(fakeRepo.updateTrackingStatusCallCount, 0);
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_start_transit')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_start_transit'),
+        ),
         findsOneWidget,
       );
     },
@@ -435,7 +481,9 @@ void main() {
   testWidgets(
     'pickedUp : bouton "démarrer le trajet" ; tap -> updateTrackingStatus(inTransit)',
     (tester) async {
-      final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.pickedUp));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.pickedUp),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -455,7 +503,10 @@ void main() {
       expect(fakeRepo.updateTrackingStatusCallCount, 1);
       expect(fakeRepo.lastTargetStatus, MissionStatus.inTransit);
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_arrived_at_dropoff')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_arrived_at_dropoff'),
+        ),
         findsOneWidget,
       );
     },
@@ -464,7 +515,9 @@ void main() {
   testWidgets(
     'inTransit : bouton "arrivé à destination" ; tap -> updateTrackingStatus(arrivedAtDropoff)',
     (tester) async {
-      final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.inTransit));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.inTransit),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -486,11 +539,17 @@ void main() {
       // Une fois à arrivedAtDropoff : SEUL le bouton de capture photo est
       // proposé — aucune action de trajet résiduelle (in_transit, etc.).
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_capture_photo')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_capture_photo'),
+        ),
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_arrived_at_dropoff')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_arrived_at_dropoff'),
+        ),
         findsNothing,
       );
     },
@@ -499,8 +558,9 @@ void main() {
   testWidgets(
     'arrivedAtDropoff : aucune action de trajet résiduelle visible (seule la capture photo, couverte en détail ailleurs)',
     (tester) async {
-      final fakeRepo =
-          _FakeMissionRepository(_buildMission(status: MissionStatus.arrivedAtDropoff));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.arrivedAtDropoff),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -508,7 +568,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.widgetWithText(ElevatedButton, btn('driver_active_mission_capture_photo')),
+        find.widgetWithText(
+          ElevatedButton,
+          btn('driver_active_mission_capture_photo'),
+        ),
         findsOneWidget,
       );
       for (final leftoverKey in [
@@ -521,7 +584,8 @@ void main() {
         expect(
           find.widgetWithText(ElevatedButton, btn(leftoverKey)),
           findsNothing,
-          reason: 'Le bouton "$leftoverKey" ne doit pas être visible au statut arrivedAtDropoff',
+          reason:
+              'Le bouton "$leftoverKey" ne doit pas être visible au statut arrivedAtDropoff',
         );
       }
     },
@@ -530,7 +594,9 @@ void main() {
   testWidgets(
     'completed : écran "déjà complétée" affiché, aucune action de trajet, aucun bouton de capture',
     (tester) async {
-      final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.completed));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.completed),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -554,7 +620,8 @@ void main() {
         expect(
           find.widgetWithText(ElevatedButton, btn(leftoverKey)),
           findsNothing,
-          reason: 'Le bouton "$leftoverKey" ne doit jamais apparaître une fois completed',
+          reason:
+              'Le bouton "$leftoverKey" ne doit jamais apparaître une fois completed',
         );
       }
       // Seul le CTA générique de retour à la liste des jobs est présent.
@@ -569,8 +636,9 @@ void main() {
     'erreur GPS pendant le trajet (service désactivé) : bandeau affiché SANS bloquer les actions de trajet',
     (tester) async {
       fakeGeolocator.serviceEnabled = false;
-      final fakeRepo =
-          _FakeMissionRepository(_buildMission(status: MissionStatus.driverToPickup));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.driverToPickup),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 
@@ -606,7 +674,9 @@ void main() {
   testWidgets(
     'double-tap rapide sur une action de trajet ne déclenche updateTrackingStatus qu une seule fois (busy bloque le second tap)',
     (tester) async {
-      final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.pickedUp));
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.pickedUp),
+      );
       BackendLocator.missionRepositoryOverride = fakeRepo;
       addTearDown(fakeRepo.dispose);
 

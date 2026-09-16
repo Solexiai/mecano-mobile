@@ -49,13 +49,49 @@ DeliveryMission _buildAvailableMission({String id = 'mission_available_001'}) {
     pricingVersion: 'TEST-V1',
     createdAt: DateTime.now(),
     pickupAddress: const MissionAddress(
-      line1: '123 rue Test', city: 'Montréal', postalCode: 'H2X1Y1', lat: 45.5, lng: -73.6,
+      line1: '123 rue Test',
+      city: 'Montréal',
+      postalCode: 'H2X1Y1',
+      lat: 45.5,
+      lng: -73.6,
     ),
     dropoffAddress: const MissionAddress(
-      line1: '456 rue Cible', city: 'Laval', postalCode: 'H7X1Y1', lat: 45.6, lng: -73.7,
+      line1: '456 rue Cible',
+      city: 'Laval',
+      postalCode: 'H7X1Y1',
+      lat: 45.6,
+      lng: -73.7,
     ),
     driverOfferAmount: 80,
     customerTotal: 120,
+  );
+}
+
+DeliveryMission _buildActiveMission() {
+  return DeliveryMission(
+    id: 'mission_active_001',
+    customerId: 'customer_jobs_002',
+    itemCategoryKey: 'cat_furniture',
+    description: 'Mission déjà assignée',
+    requiredVehicleCategory: VehicleCategory.cargoVan,
+    status: MissionStatus.assigned,
+    driverId: _driverId,
+    pricingVersion: 'TEST-V1',
+    createdAt: DateTime.now(),
+    pickupAddress: const MissionAddress(
+      line1: '123 rue Test',
+      city: 'Montréal',
+      postalCode: 'H2X1Y1',
+      lat: 45.5,
+      lng: -73.6,
+    ),
+    dropoffAddress: const MissionAddress(
+      line1: '456 rue Cible',
+      city: 'Laval',
+      postalCode: 'H7X1Y1',
+      lat: 45.6,
+      lng: -73.7,
+    ),
   );
 }
 
@@ -64,6 +100,7 @@ DeliveryMission _buildAvailableMission({String id = 'mission_available_001'}) {
 /// `UnimplementedError` (jamais appelées par cet écran).
 class _FakeMissionRepository implements MissionRepository {
   List<DeliveryMission> availableMissions;
+  DeliveryMission? activeMission;
   int acceptMissionCallCount = 0;
   final List<String> acceptedMissionIds = [];
   final List<String> acceptedDriverIds = [];
@@ -73,16 +110,20 @@ class _FakeMissionRepository implements MissionRepository {
   Completer<AcceptMissionResult>? pendingAcceptCompleter;
 
   /// Résultat renvoyé immédiatement si `pendingAcceptCompleter` est null.
-  AcceptMissionResult nextAcceptResult = const AcceptMissionResult(success: true);
+  AcceptMissionResult nextAcceptResult = const AcceptMissionResult(
+    success: true,
+  );
 
   _FakeMissionRepository(this.availableMissions);
 
   @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
-      Stream.value(availableMissions);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => Stream.value(availableMissions);
 
   @override
-  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
+      Stream.value(activeMission);
 
   @override
   Future<AcceptMissionResult> acceptMission({
@@ -104,43 +145,50 @@ class _FakeMissionRepository implements MissionRepository {
     required String itemCategoryKey,
     required String vehicleCategoryName,
     required Map<String, dynamic> missionDetails,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
-      throw UnimplementedError();
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchMission(String missionId) => throw UnimplementedError();
+  Stream<DeliveryMission?> watchMission(String missionId) =>
+      throw UnimplementedError();
 
   @override
   Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       throw UnimplementedError();
 
   @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => throw UnimplementedError();
-
-  @override
-  Future<void> markPickupCompleted(String missionId) => throw UnimplementedError();
-
-  @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) =>
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> markPickupCompleted(String missionId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) => throw UnimplementedError();
 
   @override
   Future<void> updateTrackingStatus({
     required String missionId,
     required MissionStatus targetStatus,
-  }) =>
-      throw UnimplementedError();
+  }) => throw UnimplementedError();
 }
 
 Widget _buildTestApp(FirebaseAuthProvider auth) {
   final router = GoRouter(
     initialLocation: '/fr/provider/jobs',
     routes: [
-      GoRoute(path: '/fr/provider/jobs', builder: (context, state) => const Scaffold(body: ProviderJobsTab())),
+      GoRoute(
+        path: '/fr/provider/jobs',
+        builder: (context, state) => const Scaffold(body: ProviderJobsTab()),
+      ),
       GoRoute(
         path: '/fr/provider/mission/:missionId',
         builder: (context, state) => const Scaffold(body: Text('MISSION_STUB')),
@@ -174,14 +222,48 @@ void main() {
     BackendLocator.missionRepositoryOverride = null;
   });
 
-  testWidgets('chauffeur admissible voit la mission disponible avec son offre', (tester) async {
-    await tester.pumpWidget(_buildTestApp(auth));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'chauffeur admissible voit la mission disponible avec son offre',
+    (tester) async {
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
 
-    expect(find.text(AppStrings.t('driver_jobs_title', 'fr')), findsOneWidget);
-    expect(find.text('80\$'), findsOneWidget);
-    expect(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')), findsOneWidget);
-  });
+      expect(
+        find.text(AppStrings.t('driver_jobs_title', 'fr')),
+        findsOneWidget,
+      );
+      expect(find.text('80\$'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'mission active : affiche seulement la reprise et masque les nouvelles offres',
+    (tester) async {
+      fakeRepo.activeMission = _buildActiveMission();
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(AppStrings.t('driver_active_mission_resume_banner', 'fr')),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('80\$'), findsNothing);
+    },
+  );
 
   testWidgets('liste vide affiche driver_jobs_empty', (tester) async {
     fakeRepo.availableMissions = [];
@@ -198,7 +280,12 @@ void main() {
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(fakeRepo.acceptMissionCallCount, 1);
@@ -209,25 +296,38 @@ void main() {
     },
   );
 
-  testWidgets('loading pendant la requête : bouton désactivé et spinner affiché', (tester) async {
-    fakeRepo.pendingAcceptCompleter = Completer<AcceptMissionResult>();
-    await tester.pumpWidget(_buildTestApp(auth));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'loading pendant la requête : bouton désactivé et spinner affiché',
+    (tester) async {
+      fakeRepo.pendingAcceptCompleter = Completer<AcceptMissionResult>();
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')));
-    await tester.pump(); // un seul frame : la requête est encore "en vol"
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      await tester.pump(); // un seul frame : la requête est encore "en vol"
 
-    expect(find.text(AppStrings.t('driver_jobs_accepting', 'fr')), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_jobs_accepting', 'fr')),
+        findsOneWidget,
+      );
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
-    expect(button.onPressed, isNull);
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+      expect(button.onPressed, isNull);
 
-    // Nettoyage : résout la requête en attente pour ne pas laisser de Timer/
-    // Future pendant après le test.
-    fakeRepo.pendingAcceptCompleter!.complete(const AcceptMissionResult(success: true));
-    await tester.pumpAndSettle();
-  });
+      // Nettoyage : résout la requête en attente pour ne pas laisser de Timer/
+      // Future pendant après le test.
+      fakeRepo.pendingAcceptCompleter!.complete(
+        const AcceptMissionResult(success: true),
+      );
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets(
     'aucune double acceptation UI : double-tap rapide ne déclenche acceptMission qu une seule fois',
@@ -236,18 +336,29 @@ void main() {
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      final buttonFinder = find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr'));
+      final buttonFinder = find.widgetWithText(
+        ElevatedButton,
+        AppStrings.t('driver_jobs_accept', 'fr'),
+      );
       await tester.tap(buttonFinder);
       await tester.pump();
       // Deuxième tap immédiat : le bouton est déjà désactivé (onPressed:
       // null pendant `isAccepting`), donc `tester.tap()` ne déclenche rien
       // de plus — on le vérifie explicitement via le compteur.
-      await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accepting', 'fr')), warnIfMissed: false);
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accepting', 'fr'),
+        ),
+        warnIfMissed: false,
+      );
       await tester.pump();
 
       expect(fakeRepo.acceptMissionCallCount, 1);
 
-      fakeRepo.pendingAcceptCompleter!.complete(const AcceptMissionResult(success: true));
+      fakeRepo.pendingAcceptCompleter!.complete(
+        const AcceptMissionResult(success: true),
+      );
       await tester.pumpAndSettle();
     },
   );
@@ -255,20 +366,37 @@ void main() {
   testWidgets(
     'backend refusal (erreur inconnue) affiché proprement, sans navigation',
     (tester) async {
-      fakeRepo.nextAcceptResult = const AcceptMissionResult(success: false, errorCode: 'unknown_error');
+      fakeRepo.nextAcceptResult = const AcceptMissionResult(
+        success: false,
+        errorCode: 'unknown_error',
+      );
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text(AppStrings.t('driver_jobs_accept_error', 'fr')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_jobs_accept_error', 'fr')),
+        findsOneWidget,
+      );
       // Toujours sur l'écran des jobs, pas de navigation vers la mission.
-      expect(find.text(AppStrings.t('driver_jobs_title', 'fr')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_jobs_title', 'fr')),
+        findsOneWidget,
+      );
       expect(find.text('MISSION_STUB'), findsNothing);
       // Le bouton redevient actif (retry possible), le chauffeur n'est pas bloqué.
       final button = tester.widget<ElevatedButton>(
-        find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')),
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
       );
       expect(button.onPressed, isNotNull);
     },
@@ -277,16 +405,26 @@ void main() {
   testWidgets(
     'mission déjà prise (delivery_already_assigned) gérée proprement : erreur affichée, pas de crash',
     (tester) async {
-      fakeRepo.nextAcceptResult =
-          const AcceptMissionResult(success: false, errorCode: 'delivery_already_assigned');
+      fakeRepo.nextAcceptResult = const AcceptMissionResult(
+        success: false,
+        errorCode: 'delivery_already_assigned',
+      );
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text(AppStrings.t('driver_jobs_accept_error', 'fr')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_jobs_accept_error', 'fr')),
+        findsOneWidget,
+      );
       expect(find.text('MISSION_STUB'), findsNothing);
     },
   );
@@ -301,11 +439,19 @@ void main() {
       await tester.pumpWidget(_buildTestApp(auth));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(ElevatedButton, AppStrings.t('driver_jobs_accept', 'fr')));
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.text(AppStrings.t('driver_jobs_accept_error', 'fr')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('driver_jobs_accept_error', 'fr')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -393,15 +539,19 @@ class _ThrowingMissionRepository implements MissionRepository {
   _ThrowingMissionRepository(this.delegate);
 
   @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
-      delegate.watchAvailableMissionsForDriver(driverId);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => delegate.watchAvailableMissionsForDriver(driverId);
 
   @override
   Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
       delegate.watchActiveMissionForDriver(driverId);
 
   @override
-  Future<AcceptMissionResult> acceptMission({required String missionId, required String driverId}) async {
+  Future<AcceptMissionResult> acceptMission({
+    required String missionId,
+    required String driverId,
+  }) async {
     throw Exception('Erreur réseau simulée (test).');
   }
 
@@ -411,30 +561,38 @@ class _ThrowingMissionRepository implements MissionRepository {
     required String itemCategoryKey,
     required String vehicleCategoryName,
     required Map<String, dynamic> missionDetails,
-  }) =>
+  }) => throw UnimplementedError();
+
+  @override
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
+
+  @override
+  Stream<DeliveryMission?> watchMission(String missionId) =>
       throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
+  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchMission(String missionId) => throw UnimplementedError();
-
-  @override
-  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => throw UnimplementedError();
-
-  @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => throw UnimplementedError();
-
-  @override
-  Future<void> markPickupCompleted(String missionId) => throw UnimplementedError();
-
-  @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) =>
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
       throw UnimplementedError();
 
   @override
-  Future<void> updateTrackingStatus({required String missionId, required MissionStatus targetStatus}) =>
+  Future<void> markPickupCompleted(String missionId) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> updateTrackingStatus({
+    required String missionId,
+    required MissionStatus targetStatus,
+  }) => throw UnimplementedError();
 }

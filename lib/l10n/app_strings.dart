@@ -1054,6 +1054,18 @@ class AppStrings {
       'es': 'Misión en curso — reanudar',
     },
 
+    'driver_active_mission_open_google_maps': {
+      'fr': 'Ouvrir l\'itinéraire dans Google Maps',
+      'en': 'Open route in Google Maps',
+      'es': 'Abrir la ruta en Google Maps',
+    },
+    'driver_active_mission_maps_error': {
+      'fr': 'Impossible d\'ouvrir Google Maps sur cet appareil. Réessayez.',
+      'en': 'Unable to open Google Maps on this device. Try again.',
+      'es':
+          'No se pudo abrir Google Maps en este dispositivo. Inténtelo de nuevo.',
+    },
+
     // ---------- Tracking GPS temps réel (Phase 5) ----------
     'driver_active_mission_gps_disabled': {
       'fr':
