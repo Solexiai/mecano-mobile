@@ -49,8 +49,11 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       return;
     }
     _cachedDriverId = driverId;
-    _availableMissionsStream = BackendLocator.missionRepository.watchAvailableMissionsForDriver(driverId);
-    _activeMissionStream = BackendLocator.missionRepository.watchActiveMissionForDriver(driverId);
+    _availableMissionsStream = BackendLocator.missionRepository
+        .watchAvailableMissionsForDriver(driverId);
+    _activeMissionStream = BackendLocator.missionRepository
+        .watchActiveMissionForDriver(driverId)
+        .asBroadcastStream();
   }
 
   Future<void> _accept(DeliveryMission mission, String driverId) async {
@@ -95,7 +98,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Text(t('delivery_login_required'), textAlign: TextAlign.center),
+          child: Text(
+            t('delivery_login_required'),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
@@ -108,7 +114,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('driver_jobs_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(
+            t('driver_jobs_title'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 16),
           // Bannière de reprise : si ce chauffeur a déjà une mission en
           // trajet (assigned -> arrived_at_dropoff), on lui permet d'y
@@ -143,10 +152,21 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(t('driver_active_mission_resume_banner'),
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                                Text(
+                                  t('driver_active_mission_resume_banner'),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
-                                Text(t(active.status.key), style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+                                Text(
+                                  t(active.status.key),
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -159,56 +179,97 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
               );
             },
           ),
-          StreamBuilder<List<DeliveryMission>>(
-            stream: _availableMissionsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 12),
-                        Text(t('driver_jobs_loading'), style: const TextStyle(color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ),
+          StreamBuilder<DeliveryMission?>(
+            stream: _activeMissionStream,
+            builder: (context, activeSnapshot) {
+              if (activeSnapshot.connectionState == ConnectionState.waiting) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  child: Center(child: CircularProgressIndicator()),
                 );
               }
-              if (snapshot.hasError) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 32),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        const Icon(Icons.error_outline, color: AppColors.error, size: 32),
-                        const SizedBox(height: 8),
-                        Text(t('driver_jobs_error'), textAlign: TextAlign.center),
-                        const SizedBox(height: 12),
-                        OutlinedButton(onPressed: () => setState(() {}), child: Text(t('requests_retry'))),
-                      ],
-                    ),
-                  ),
-                );
+              // Un chauffeur déjà en mission ne doit jamais voir ni accepter
+              // de nouvelles offres. La bannière ci-dessus reste son unique
+              // chemin d'action jusqu'à la fin de la mission active.
+              if (activeSnapshot.data != null) {
+                return const SizedBox.shrink();
               }
-              final missions = snapshot.data ?? const <DeliveryMission>[];
-              if (missions.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Center(child: Text(t('driver_jobs_empty'), style: const TextStyle(color: AppColors.textSecondary))),
-                );
-              }
-              return Column(
-                children: missions
-                    .map((m) => _JobCard(
-                          mission: m,
-                          t: t,
-                          isAccepting: _accepting.contains(m.id),
-                          errorCode: _acceptErrors[m.id],
-                          onAccept: () => _accept(m, driverId),
-                        ))
-                    .toList(),
+              return StreamBuilder<List<DeliveryMission>>(
+                stream: _availableMissionsStream,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 12),
+                            Text(
+                              t('driver_jobs_loading'),
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  if (snapshot.hasError) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              t('driver_jobs_error'),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              onPressed: () => setState(() {}),
+                              child: Text(t('requests_retry')),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  final missions = snapshot.data ?? const <DeliveryMission>[];
+                  if (missions.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Center(
+                        child: Text(
+                          t('driver_jobs_empty'),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: missions
+                        .map(
+                          (m) => _JobCard(
+                            mission: m,
+                            t: t,
+                            isAccepting: _accepting.contains(m.id),
+                            errorCode: _acceptErrors[m.id],
+                            onAccept: () => _accept(m, driverId),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               );
             },
           ),
@@ -251,31 +312,69 @@ class _JobCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(gradient: AppColors.deliveryGradient, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 18),
+                decoration: BoxDecoration(
+                  gradient: AppColors.deliveryGradient,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.local_shipping_outlined,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  mission.itemCategoryKey.isEmpty ? t('delivery_item_category') : t(mission.itemCategoryKey),
+                  mission.itemCategoryKey.isEmpty
+                      ? t('delivery_item_category')
+                      : t(mission.itemCategoryKey),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              Text('${mission.driverOfferAmount.toStringAsFixed(0)}\$', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 16)),
+              Text(
+                '${mission.driverOfferAmount.toStringAsFixed(0)}\$',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
           if (pickup != null && dropoff != null)
-            _InfoRow(icon: Icons.route_outlined, text: '${pickup.line1}, ${pickup.city} → ${dropoff.line1}, ${dropoff.city}')
+            _InfoRow(
+              icon: Icons.route_outlined,
+              text:
+                  '${pickup.line1}, ${pickup.city} → ${dropoff.line1}, ${dropoff.city}',
+            )
           else
-            _InfoRow(icon: Icons.place_outlined, text: t('delivery_step_addresses_title')),
-          _InfoRow(icon: Icons.local_shipping, text: t(mission.requiredVehicleCategory.key)),
+            _InfoRow(
+              icon: Icons.place_outlined,
+              text: t('delivery_step_addresses_title'),
+            ),
+          _InfoRow(
+            icon: Icons.local_shipping,
+            text: t(mission.requiredVehicleCategory.key),
+          ),
           if (mission.distanceKm != null)
-            _InfoRow(icon: Icons.social_distance, text: '${t('driver_jobs_distance')} : ${mission.distanceKm!.toStringAsFixed(1)} km'),
+            _InfoRow(
+              icon: Icons.social_distance,
+              text:
+                  '${t('driver_jobs_distance')} : ${mission.distanceKm!.toStringAsFixed(1)} km',
+            ),
           if (mission.estimatedDurationMinutes != null)
-            _InfoRow(icon: Icons.schedule, text: '${mission.estimatedDurationMinutes!.round()} min'),
-          _InfoRow(icon: Icons.attach_money, text: '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$'),
-          if (mission.description.isNotEmpty) _InfoRow(icon: Icons.info_outline, text: mission.description),
+            _InfoRow(
+              icon: Icons.schedule,
+              text: '${mission.estimatedDurationMinutes!.round()} min',
+            ),
+          _InfoRow(
+            icon: Icons.attach_money,
+            text:
+                '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$',
+          ),
+          if (mission.description.isNotEmpty)
+            _InfoRow(icon: Icons.info_outline, text: mission.description),
           const SizedBox(height: 14),
           if (errorCode != null) ...[
             Padding(
@@ -304,7 +403,14 @@ class _JobCard extends StatelessWidget {
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        ),
                         const SizedBox(width: 10),
                         Text(t('driver_jobs_accepting')),
                       ],
@@ -331,7 +437,15 @@ class _InfoRow extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: AppColors.textSecondary),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
         ],
       ),
     );

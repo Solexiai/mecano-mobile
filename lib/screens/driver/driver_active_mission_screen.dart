@@ -26,12 +26,12 @@
 //   informations d'un autre chauffeur.
 // ---------------------------------------------------------------------------
 
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../backend/backend_locator.dart';
 import '../../backend/backend_exceptions.dart';
@@ -70,6 +70,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
   String? _actionErrorKey;
   final DriverLocationReporter _locationReporter = DriverLocationReporter();
   String? _gpsWarningKey;
+  String? _navigationErrorKey;
   // Preuve de livraison (Phase 5, partie 3) : distinct de _actionInProgress
   // pour afficher un message spécifique ("Téléversement de la preuve…")
   // pendant l'upload Storage, avant même l'appel à completeDelivery().
@@ -123,6 +124,65 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
         'driver_active_mission_gps_report_failed',
     };
     setState(() => _gpsWarningKey = key);
+  }
+
+  Future<void> _openGoogleMaps(DeliveryMission mission) async {
+    final useDropoff = {
+      MissionStatus.pickedUp,
+      MissionStatus.inTransit,
+      MissionStatus.arrivedAtDropoff,
+      MissionStatus.delivered,
+      MissionStatus.completed,
+    }.contains(mission.status);
+    final target = useDropoff ? mission.dropoffAddress : mission.pickupAddress;
+
+    if (target == null) {
+      if (mounted) {
+        setState(
+          () => _navigationErrorKey = 'driver_active_mission_maps_error',
+        );
+      }
+      return;
+    }
+
+    final hasCoordinates =
+        target.lat.isFinite &&
+        target.lng.isFinite &&
+        (target.lat != 0 || target.lng != 0);
+    final destination = hasCoordinates
+        ? '${target.lat},${target.lng}'
+        : (target.formattedAddress?.trim().isNotEmpty ?? false)
+        ? target.formattedAddress!.trim()
+        : '${target.line1}, ${target.city}, ${target.postalCode}';
+    final uri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      'destination': destination,
+      'travelmode': 'driving',
+    });
+
+    if (mounted) setState(() => _navigationErrorKey = null);
+    try {
+      var launched = await launchUrl(
+        uri,
+        mode: kIsWeb
+            ? LaunchMode.platformDefault
+            : LaunchMode.externalApplication,
+      );
+      if (!launched && !kIsWeb) {
+        launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+      if (!launched && mounted) {
+        setState(
+          () => _navigationErrorKey = 'driver_active_mission_maps_error',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _navigationErrorKey = 'driver_active_mission_maps_error',
+        );
+      }
+    }
   }
 
   Future<void> _runAction(Future<void> Function() action) async {
@@ -198,12 +258,13 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       // storage.rules (seul le chauffeur assigné peut y écrire).
       final fileName =
           'delivery_proof_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final url = await BackendLocator.proofUploadRepository.uploadDeliveryProof(
-        missionId: mission.id,
-        fileName: fileName,
-        bytes: bytes,
-        contentType: 'image/jpeg',
-      );
+      final url = await BackendLocator.proofUploadRepository
+          .uploadDeliveryProof(
+            missionId: mission.id,
+            fileName: fileName,
+            bytes: bytes,
+            contentType: 'image/jpeg',
+          );
 
       final repo = BackendLocator.missionRepository;
       await repo.markDeliveryCompleted(mission.id, proofOfDeliveryUrl: url);
@@ -212,7 +273,9 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       setState(() => _actionErrorKey = 'driver_active_mission_cf_error');
     } catch (_) {
       if (!mounted) return;
-      setState(() => _actionErrorKey = 'driver_active_mission_proof_upload_error');
+      setState(
+        () => _actionErrorKey = 'driver_active_mission_proof_upload_error',
+      );
     } finally {
       if (mounted) setState(() => _uploadingProof = false);
     }
@@ -359,6 +422,8 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
           uploadingProof: _uploadingProof,
           errorKey: _actionErrorKey,
           gpsWarningKey: _gpsWarningKey,
+          navigationErrorKey: _navigationErrorKey,
+          onOpenNavigation: () => _openGoogleMaps(mission),
           onStartToPickup: () => _runAction(
             () => repo.updateTrackingStatus(
               missionId: mission.id,
@@ -413,6 +478,8 @@ class _MissionCard extends StatelessWidget {
   final bool uploadingProof;
   final String? errorKey;
   final String? gpsWarningKey;
+  final String? navigationErrorKey;
+  final VoidCallback onOpenNavigation;
   final VoidCallback onStartToPickup;
   final VoidCallback onArrivedAtPickup;
   final VoidCallback onConfirmPickup;
@@ -427,6 +494,8 @@ class _MissionCard extends StatelessWidget {
     this.uploadingProof = false,
     required this.errorKey,
     this.gpsWarningKey,
+    this.navigationErrorKey,
+    required this.onOpenNavigation,
     required this.onStartToPickup,
     required this.onArrivedAtPickup,
     required this.onConfirmPickup,
@@ -556,6 +625,21 @@ class _MissionCard extends StatelessWidget {
           ),
         ),
 
+        const SizedBox(height: 18),
+        OutlinedButton.icon(
+          onPressed: busy ? null : onOpenNavigation,
+          icon: const Icon(Icons.navigation_outlined),
+          label: Text(t('driver_active_mission_open_google_maps')),
+        ),
+        if (navigationErrorKey != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            t(navigationErrorKey!),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.error, fontSize: 12.5),
+          ),
+        ],
+
         // --- Ma position (Phase 5) — confirmation visuelle que le
         // partage GPS fonctionne, avec repères pickup/dropoff. ---------
         const SizedBox(height: 18),
@@ -577,7 +661,11 @@ class _MissionCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.gps_off, color: AppColors.warningText, size: 18),
+                const Icon(
+                  Icons.gps_off,
+                  color: AppColors.warningText,
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -630,8 +718,11 @@ class _MissionCard extends StatelessWidget {
   }
 
   List<Widget> _buildActions(BuildContext context) {
-    Widget button(String labelKey, VoidCallback onPressed, {bool disabled = false}) =>
-        SizedBox(
+    Widget button(
+      String labelKey,
+      VoidCallback onPressed, {
+      bool disabled = false,
+    }) => SizedBox(
       width: double.infinity,
       child: ElevatedButton(
         onPressed: (busy || disabled) ? null : onPressed,
