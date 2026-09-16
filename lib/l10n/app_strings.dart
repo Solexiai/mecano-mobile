@@ -768,12 +768,10 @@ class AppStrings {
       'es': 'Total estimado (cotización oficial)',
     },
     'delivery_quote_distance_note': {
-      'fr':
-          'Distance/durée estimées automatiquement (approximation à vol d\'oiseau, pas un itinéraire réel).',
-      'en':
-          'Distance/duration estimated automatically (straight-line approximation, not a real route).',
+      'fr': 'Distance et durée calculées selon un itinéraire routier réel.',
+      'en': 'Distance and duration calculated from a real driving route.',
       'es':
-          'Distancia/duración estimadas automáticamente (aproximación en línea recta, no una ruta real).',
+          'Distancia y duración calculadas según una ruta real por carretera.',
     },
     'delivery_quote_expires_note': {
       'fr': 'Ce devis expire après un court délai — confirmez rapidement.',

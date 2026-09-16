@@ -9,7 +9,7 @@
 //   -> saisie pickup (adresse structurée + lat/lng)
 //   -> saisie destination (adresse structurée + lat/lng)
 //   -> choix du véhicule requis + informations sur l'objet
-//   -> DistanceEstimationService.estimate() (Haversine, provisoire)
+//   -> DistanceEstimationService.estimate() (itinéraire routier Google)
 //   -> MissionRepository.requestQuote() -> Cloud Function calculateDeliveryQuote
 //   -> affichage du devis réel (DeliveryQuote.customerTotal, jamais recalculé)
 //   -> confirmation du client
@@ -260,7 +260,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     });
 
     try {
-      final estimate = _distanceService.estimate(
+      final estimate = await _distanceService.estimate(
         pickupLat: pickup.lat,
         pickupLng: pickup.lng,
         dropoffLat: dropoff.lat,
@@ -910,7 +910,9 @@ class _Step4Quote extends StatelessWidget {
           const SizedBox(height: 12),
           if (distanceEstimate != null)
             Text(
-              t('delivery_quote_distance_note'),
+              '${distanceEstimate!.distanceKm.toStringAsFixed(1)} km • '
+              '${distanceEstimate!.estimatedDurationMinutes.round()} min\n'
+              '${t('delivery_quote_distance_note')}',
               style: const TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,

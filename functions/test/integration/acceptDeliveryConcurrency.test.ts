@@ -32,7 +32,7 @@ import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
-import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "concurrency_customer_001";
 
@@ -389,5 +389,54 @@ describe("acceptDelivery — cas négatifs (chauffeur non éligible / mission no
     await expect(acceptDelivery.run(request)).rejects.toMatchObject({
       code: "not-found",
     });
+  });
+});
+
+describe("acceptDelivery — mission d'essai interne", () => {
+  beforeEach(async () => {
+    await Promise.all([seedApprovedDriver(DRIVER_A_ID), seedOpenMission()]);
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      assignment_mode: "internal_test",
+    });
+    await seedRuntimeFlags({
+      allow_driver_acceptance: false,
+      payments_enabled: false,
+    });
+  });
+
+  afterEach(async () => {
+    await cleanupSeed();
+  });
+
+  it("assigne le chauffeur sans Stripe ni snapshot financier", async () => {
+    const result = await acceptDelivery.run(
+      buildDriverRequest(DRIVER_A_ID)
+    );
+    expect(result).toMatchObject({
+      success: true,
+      missionId: MISSION_ID,
+      snapshotId: null,
+      paymentId: null,
+      internalTest: true,
+    });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(MISSION_ID).get()
+    ).data()!;
+    expect(mission.status).toBe("assigned");
+    expect(mission.driver_id).toBe(DRIVER_A_ID);
+    expect(mission.assignment_mode).toBe("internal_test");
+    expect(mission.active_financial_snapshot_id).toBeNull();
+
+    const [snapshots, payments] = await Promise.all([
+      db.collection("financial_snapshots")
+        .where("mission_id", "==", MISSION_ID)
+        .get(),
+      db.collection("payments")
+        .where("mission_id", "==", MISSION_ID)
+        .get(),
+    ]);
+    expect(snapshots.empty).toBe(true);
+    expect(payments.empty).toBe(true);
   });
 });
