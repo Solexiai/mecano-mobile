@@ -188,6 +188,9 @@ class FirebaseDriverRepository implements DriverRepository {
         .snapshots()
         .map(
           (snap) => snap.docs
+              .where(
+                (d) => (d.data()['migrated_to_uid'] ?? '').toString().isEmpty,
+              )
               .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
               .toList(),
         );
@@ -200,6 +203,9 @@ class FirebaseDriverRepository implements DriverRepository {
         : _driverProfiles.where('status', isEqualTo: status.firestoreValue);
     return query.snapshots().map(
           (snap) => snap.docs
+              .where(
+                (d) => (d.data()['migrated_to_uid'] ?? '').toString().isEmpty,
+              )
               .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
               .toList(),
         );
