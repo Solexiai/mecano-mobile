@@ -16,6 +16,7 @@ export interface AuthContext {
   uid: string;
   role: PlatformRole | undefined;
   roles: PlatformRole[];
+  email?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,7 +27,12 @@ export function requireSignedIn(request: CallableRequest<any>): AuthContext {
   const token = request.auth.token as Record<string, unknown>;
   const role = token.role as PlatformRole | undefined;
   const roles = (token.roles as PlatformRole[] | undefined) ?? (role ? [role] : []);
-  return { uid: request.auth.uid, roles, role };
+  return {
+    uid: request.auth.uid,
+    roles,
+    role,
+    email: typeof token.email === "string" ? token.email.toLowerCase() : undefined,
+  };
 }
 
 export function requireAnyRole(ctx: AuthContext, allowed: PlatformRole[]): void {
@@ -55,6 +61,14 @@ export function isAdminOrAbove(ctx: AuthContext): boolean {
 
 export function isSuperAdmin(ctx: AuthContext): boolean {
   return ctx.roles.includes(PlatformRoles.SUPER_ADMIN);
+}
+
+const INTERNAL_DEMO_CUSTOMER_EMAILS = new Set([
+  "demo.client.160926@movi-k.com",
+]);
+
+export function isInternalDemoCustomer(ctx: AuthContext): boolean {
+  return ctx.email !== undefined && INTERNAL_DEMO_CUSTOMER_EMAILS.has(ctx.email);
 }
 
 export function requireAnalystOrAbove(ctx: AuthContext): void {

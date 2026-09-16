@@ -17,7 +17,7 @@ import {
 } from "../../src/functions/createDeliveryRequest";
 import { admin, db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
-import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "create_customer_001";
 const OTHER_CUSTOMER_ID = "create_customer_002";
@@ -38,11 +38,17 @@ async function cleanupPaymentProfile(customerId: string): Promise<void> {
 
 function buildRequest(
   customerId: string,
-  data: CreateDeliveryRequestRequest
+  data: CreateDeliveryRequestRequest,
+  roles: string[] = [],
+  email?: string
 ): CallableRequest<CreateDeliveryRequestRequest> {
   return {
     data,
-    auth: { uid: customerId, token: {} as DecodedIdToken, rawToken: "fake-raw-token-for-emulator-test" },
+    auth: {
+      uid: customerId,
+      token: { roles, email } as unknown as DecodedIdToken,
+      rawToken: "fake-raw-token-for-emulator-test",
+    },
     rawRequest: {} as Request,
     acceptsStreaming: false,
   };
@@ -301,5 +307,63 @@ describe("createDeliveryRequest — Phase 6 : précondition moyen de paiement", 
     );
     expect(result.missionId).toBeTruthy();
     createdMissionIds.push(result.missionId);
+  });
+});
+
+describe("createDeliveryRequest — démonstration interne autorisée", () => {
+  afterEach(async () => {
+    await cleanup();
+    await cleanupPaymentProfile(CUSTOMER_ID);
+  });
+
+  it("crée une mission internal_test sans carte pour le compte client démo autorisé", async () => {
+    await seedRuntimeFlags({
+      accept_new_delivery_requests: false,
+      allow_driver_acceptance: false,
+      payments_enabled: false,
+    });
+    await seedQuote();
+
+    const result = await createDeliveryRequest.run(
+      buildRequest(
+        CUSTOMER_ID,
+        { quoteId: QUOTE_ID, ...baseInput },
+        [],
+        "demo.client.160926@movi-k.com"
+      )
+    );
+    createdMissionIds.push(result.missionId);
+
+    const mission = (
+      await db.collection("delivery_requests").doc(result.missionId).get()
+    ).data()!;
+    expect(result.internalTest).toBe(true);
+    expect(mission.assignment_mode).toBe("internal_test");
+    expect(mission.active_financial_snapshot_id).toBeNull();
+  });
+
+  it("crée une mission internal_test sans carte pour un super_admin en superlogin", async () => {
+    await seedRuntimeFlags({
+      accept_new_delivery_requests: false,
+      allow_driver_acceptance: false,
+      payments_enabled: false,
+    });
+    await seedQuote();
+
+    const result = await createDeliveryRequest.run(
+      buildRequest(
+        CUSTOMER_ID,
+        { quoteId: QUOTE_ID, ...baseInput },
+        ["super_admin"]
+      )
+    );
+    createdMissionIds.push(result.missionId);
+
+    const mission = (
+      await db.collection("delivery_requests").doc(result.missionId).get()
+    ).data()!;
+    expect(result.internalTest).toBe(true);
+    expect(mission.assignment_mode).toBe("internal_test");
+    expect(mission.active_financial_snapshot_id).toBeNull();
   });
 });

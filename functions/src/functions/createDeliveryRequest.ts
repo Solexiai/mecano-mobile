@@ -10,7 +10,7 @@
 
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
-import { requireSignedIn } from "../lib/auth";
+import { isInternalDemoCustomer, isSuperAdmin, requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
@@ -52,6 +52,10 @@ export interface CreateDeliveryRequestRequest {
 
 export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
   const ctx = requireSignedIn(request);
+  // Seuls les superadministrateurs en superlogin et le compte client de
+  // démonstration explicitement autorisé créent une mission interne sans
+  // opération Stripe. Les clients ordinaires restent protégés.
+  const isInternalTest = isSuperAdmin(ctx) || isInternalDemoCustomer(ctx);
 
   // 🔒 Phase 7, Bloc X (X-6) — kill switch. OFF => aucune NOUVELLE mission
   // n'est créée. N'affecte jamais une mission déjà existante (ce contrôle
@@ -60,7 +64,10 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // (avant même la validation d'input) pour éviter tout travail inutile
   // et pour qu'un client modifié ne puisse jamais contourner ce contrôle
   // serveur-autoritaire.
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS))) {
+  if (
+    !isInternalTest &&
+    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS))
+  ) {
     throw killSwitchRefusal();
   }
 
@@ -143,11 +150,13 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // UI, typiquement à l'écran de devis). Ceci NE déclenche PAS encore
   // l'autorisation réelle — celle-ci n'a lieu qu'à acceptDelivery(), une
   // fois le chauffeur connu et le montant final recalculé serveur.
-  const paymentProfileSnap = await db.collection("payment_profiles").doc(ctx.uid).get();
-  if (!paymentProfileSnap.exists || !paymentProfileSnap.data()?.default_payment_method_id) {
-    throw failedPrecondition(
-      "Aucun moyen de paiement enregistré. Veuillez ajouter une carte avant de créer une demande de livraison."
-    );
+  if (!isInternalTest) {
+    const paymentProfileSnap = await db.collection("payment_profiles").doc(ctx.uid).get();
+    if (!paymentProfileSnap.exists || !paymentProfileSnap.data()?.default_payment_method_id) {
+      throw failedPrecondition(
+        "Aucun moyen de paiement enregistré. Veuillez ajouter une carte avant de créer une demande de livraison."
+      );
+    }
   }
 
   const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
@@ -197,7 +206,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       // resolvePromoDiscountAmount() dans calculateDeliveryQuote.ts.
       customer_discount_amount: quote.quote_breakdown?.customerDiscountAmount ?? 0,
       payment_status: "pending",
-      assignment_mode: MissionAssignmentModes.STANDARD,
+      assignment_mode: isInternalTest
+        ? MissionAssignmentModes.INTERNAL_TEST
+        : MissionAssignmentModes.STANDARD,
       internal_test_assigned_by: null,
       internal_test_assigned_at: null,
       active_quote_id: input.quoteId,
@@ -235,9 +246,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       event_type: "mission_created",
       actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: {},
+      metadata: { internal_test: isInternalTest },
     });
   });
 
-  return { missionId: missionRef.id };
+  return { missionId: missionRef.id, internalTest: isInternalTest };
 });

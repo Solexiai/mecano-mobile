@@ -62,48 +62,35 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   const driverId = ctx.uid;
   const { missionId } = request.data;
 
-  // 🔒 Phase 7, Bloc X (X-7) — kill switch. OFF => aucune NOUVELLE
-  // attribution de mission n'est possible. Les missions DÉJÀ assignées
-  // (statut != OPEN_FOR_ACCEPTANCE_STATUSES) continuent leur cycle de vie
-  // normalement (aucun autre point du code ne consulte ce flag). Vérifié
-  // AVANT toute lecture Firestore pour qu'un client modifié ne puisse
-  // jamais contourner ce contrôle serveur-autoritaire.
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
-    throw killSwitchRefusal();
-  }
-
-  // 🔒 Phase 7, Bloc X (X-8) — GAP P1 CORRIGÉ (voir docs/PHASE7_BUG_REPORT.md,
-  // BUG-X-01). acceptDelivery() déclenche TOUJOURS une autorisation de
-  // paiement immédiatement après avoir assigné la mission (voir
-  // createAndAuthorizeMissionPayment ci-dessous) — l'acceptation et le
-  // paiement forment ici une seule opération métier indissociable. Vérifier
-  // `payments_enabled` ICI, AVANT la transaction d'assignation, garantit
-  // qu'un OFF :
-  //   - ne touche à AUCUN fonds (aucun appel provider, aucun payments/{id})
-  //   - ne modifie AUCUN état de mission (aucune transaction n'a encore
-  //     commité — la mission reste `searching_driver`/`offered`, disponible
-  //     pour une reprise propre par CE chauffeur ou un autre dès que le
-  //     flag repasse à `true`)
-  //   - retourne l'erreur structurée standard (killSwitchRefusal())
-  // Ancien comportement (CORRIGÉ) : le contrôle était fait APRÈS la
-  // transaction d'assignation, à l'intérieur de createAndAuthorizeMissionPayment
-  // — la mission était donc déjà assignée puis basculée en
-  // MissionStatuses.PAYMENT_FAILED, un statut documenté comme TERMINAL/SANS
-  // REPRISE ("le client doit créer une nouvelle demande" — voir types.ts).
-  // Un kill switch représente une indisponibilité TEMPORAIRE du service, pas
-  // un échec définitif de paiement : ce statut terminal était donc une
-  // sémantique incorrecte pour ce cas précis (voir X-8, section "IMPORTANT —
-  // TESTER LA SÉMANTIQUE de failMissionPayment()").
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
-    throw killSwitchRefusal();
-  }
-
   if (!missionId || typeof missionId !== "string") {
     throw invalidArgument("missionId est requis.");
   }
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
   const driverRef = db.collection("driver_profiles").doc(driverId);
+
+  // Les missions créées par un superadministrateur en superlogin sont des
+  // essais internes. Elles ne doivent jamais appeler Stripe et restent
+  // utilisables lorsque les opérations financières réelles sont coupées.
+  const missionPreflightSnap = await missionRef.get();
+  if (!missionPreflightSnap.exists) {
+    throw notFound(`delivery_requests/${missionId} introuvable.`);
+  }
+  const isInternalTestPreflight =
+    missionPreflightSnap.data()?.assignment_mode === MissionAssignmentModes.INTERNAL_TEST;
+
+  if (
+    !isInternalTestPreflight &&
+    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))
+  ) {
+    throw killSwitchRefusal();
+  }
+  if (
+    !isInternalTestPreflight &&
+    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))
+  ) {
+    throw killSwitchRefusal();
+  }
 
   const result = await db.runTransaction(async (tx) => {
     // ---- RELECTURE DANS LA TRANSACTION (garantie d'atomicité) ----
@@ -140,6 +127,53 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
     if (mission.driver_id) {
       throw failedPrecondition("Mission déjà assignée à un autre chauffeur.");
+    }
+
+    const isInternalTest =
+      mission.assignment_mode === MissionAssignmentModes.INTERNAL_TEST;
+    if (isInternalTest) {
+      const now = admin.firestore.Timestamp.now();
+      tx.update(missionRef, {
+        driver_id: driverId,
+        driver_display_name: driver.full_name,
+        status: MissionStatuses.ASSIGNED,
+        accepted_at: now,
+        driver_offer_amount: 0,
+        assignment_mode: MissionAssignmentModes.INTERNAL_TEST,
+        internal_test_assigned_by: mission.customer_id,
+        internal_test_assigned_at: now,
+        active_financial_snapshot_id: null,
+      });
+      tx.update(driverRef, { online_status: "on_mission" });
+      tx.set(
+        db.collection("driver_locations").doc(driverId),
+        { active_delivery_id: missionId },
+        { merge: true }
+      );
+      const eventRef = missionRef.collection("tracking_events").doc();
+      tx.set(eventRef, {
+        event_type: "driver_assigned",
+        actor_uid: driverId,
+        occurred_at: now,
+        metadata: { driverId, internal_test: true },
+      });
+      writeAuditLogInTransaction(tx, {
+        actorUserId: driverId,
+        actorRole: "driver",
+        action: "acceptDeliveryInternalTest",
+        sourceFunction: "acceptDelivery",
+        targetId: missionId,
+        metadata: { internalTest: true },
+      });
+      return {
+        missionId,
+        driverOfferAmount: 0,
+        snapshotId: null,
+        customerId: mission.customer_id as string,
+        customerTotal: 0,
+        applicationFee: 0,
+        internalTest: true,
+      };
     }
 
     // ---- Recalcul financier serveur (jamais un montant client) ----
@@ -361,8 +395,20 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       customerId: mission.customer_id as string,
       customerTotal: pricingResult.customerTotal,
       applicationFee: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
+      internalTest: false,
     };
   });
+
+  if (result.internalTest) {
+    return {
+      success: true,
+      missionId: result.missionId,
+      driverOfferAmount: 0,
+      snapshotId: null,
+      paymentId: null,
+      internalTest: true,
+    };
+  }
 
   // ---- PHASE 6, point 1/5 : sécurisation RÉELLE du paiement -----------------
   // Exécuté APRÈS le commit de la transaction ci-dessus (jamais À L'INTÉRIEUR
