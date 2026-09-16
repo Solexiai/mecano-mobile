@@ -111,7 +111,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                   if (hasDriverProfile && !roles.contains('driver')) ...[
                     const SizedBox(height: 16),
                     FilledButton.icon(
-                      onPressed: _syncing ? null : () => _syncRoles(roles, fr),
+                      onPressed: _syncing
+                          ? null
+                          : () => _syncRoles(roles, fr, locale),
                       icon: _syncing
                           ? const SizedBox.square(
                               dimension: 18,
@@ -141,14 +143,21 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     );
   }
 
-  Future<void> _syncRoles(List<String> currentRoles, bool fr) async {
+  Future<void> _syncRoles(
+    List<String> currentRoles,
+    bool fr,
+    String locale,
+  ) async {
     setState(() => _syncing = true);
     final roles = <String>{'customer', ...currentRoles, 'driver'}.toList();
     try {
-      await FirebaseFunctions.instance.httpsCallable('setUserRole').call({
-        'targetUid': widget.userId,
-        'roles': roles,
-      });
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('setUserRole')
+          .call({'targetUid': widget.userId, 'roles': roles});
+      final payload = result.data;
+      final resolvedUid = payload is Map
+          ? payload['targetUid']?.toString()
+          : null;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -159,6 +168,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
           ),
         ),
       );
+      if (resolvedUid != null && resolvedUid != widget.userId && mounted) {
+        context.go('/$locale/admin/utilisateurs/$resolvedUid');
+      }
     } on FirebaseFunctionsException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

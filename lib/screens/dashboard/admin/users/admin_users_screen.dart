@@ -61,6 +61,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           final query = _searchController.text.trim().toLowerCase();
           final users = snapshot.data!.docs.where((doc) {
             final data = doc.data();
+            if ((data['migrated_to_uid'] ?? '').toString().isNotEmpty) {
+              return false;
+            }
             final roles = _roles(data);
             final matchesFilter = switch (_filter) {
               _UserFilter.all => true,

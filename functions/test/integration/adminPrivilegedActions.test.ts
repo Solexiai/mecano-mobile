@@ -98,6 +98,11 @@ const PROGRAM_ID = "blocd_founding_program_001";
 const PRICING_VERSION = "BLOCD-PRICING-001";
 const NEW_PRICING_VERSION = "BLOCD-PRICING-002";
 const TARGET_UID_FOR_ROLE_CHANGE = "blocd_target_user_001";
+const LEGACY_ROLE_UID = "blocd_legacy_role_user_001";
+const CANONICAL_ROLE_UID = "blocd_canonical_role_user_001";
+const LEGACY_ROLE_EMAIL = "blocd_legacy_role_user@example.com";
+const LEGACY_DRIVER_DOCUMENT_ID = "blocd_legacy_driver_document_001";
+const LEGACY_DRIVER_VEHICLE_ID = "blocd_legacy_driver_vehicle_001";
 
 async function seedDriverProfile(
   driverId: string,
@@ -211,7 +216,11 @@ async function cleanupAll(): Promise<void> {
     .get();
   const docsSnap = await db
     .collection("driver_documents")
-    .where("driver_id", "in", [DRIVER_ID, OTHER_DRIVER_ID])
+    .where("driver_id", "in", [DRIVER_ID, OTHER_DRIVER_ID, LEGACY_ROLE_UID, CANONICAL_ROLE_UID])
+    .get();
+  const vehiclesSnap = await db
+    .collection("driver_vehicles")
+    .where("driver_id", "in", [LEGACY_ROLE_UID, CANONICAL_ROLE_UID])
     .get();
   const qualSnap = await db
     .collection("founding_driver_programs")
@@ -223,9 +232,12 @@ async function cleanupAll(): Promise<void> {
   auditSnaps.forEach((snap) => snap.docs.forEach((d) => batch.delete(d.ref)));
   notesSnap.docs.forEach((d) => batch.delete(d.ref));
   docsSnap.docs.forEach((d) => batch.delete(d.ref));
+  vehiclesSnap.docs.forEach((d) => batch.delete(d.ref));
   qualSnap.docs.forEach((d) => batch.delete(d.ref));
   batch.delete(db.collection("driver_profiles").doc(DRIVER_ID));
   batch.delete(db.collection("driver_profiles").doc(OTHER_DRIVER_ID));
+  batch.delete(db.collection("driver_profiles").doc(LEGACY_ROLE_UID));
+  batch.delete(db.collection("driver_profiles").doc(CANONICAL_ROLE_UID));
   batch.delete(db.collection("delivery_requests").doc(MISSION_ID));
   batch.delete(db.collection("financial_snapshots").doc(SNAPSHOT_ID));
   batch.delete(db.collection("pricing_configs").doc("active"));
@@ -234,9 +246,15 @@ async function cleanupAll(): Promise<void> {
   batch.delete(db.collection("founding_driver_programs").doc(PROGRAM_ID));
   batch.delete(db.collection("driver_pricing_profiles").doc(DRIVER_ID));
   batch.delete(db.collection("users").doc(TARGET_UID_FOR_ROLE_CHANGE));
+  batch.delete(db.collection("users").doc(LEGACY_ROLE_UID));
+  batch.delete(db.collection("users").doc(CANONICAL_ROLE_UID));
   await batch.commit();
 
-  await authAdmin.deleteUser(TARGET_UID_FOR_ROLE_CHANGE).catch(() => undefined);
+  await Promise.all([
+    authAdmin.deleteUser(TARGET_UID_FOR_ROLE_CHANGE).catch(() => undefined),
+    authAdmin.deleteUser(LEGACY_ROLE_UID).catch(() => undefined),
+    authAdmin.deleteUser(CANONICAL_ROLE_UID).catch(() => undefined),
+  ]);
 }
 
 describe("Bloc D — setUserRole (super_admin UNIQUEMENT)", () => {
@@ -265,6 +283,122 @@ describe("Bloc D — setUserRole (super_admin UNIQUEMENT)", () => {
     const audit = await db.collection("audit_logs").where("action", "==", "setUserRole").get();
     expect(audit.size).toBe(1);
     expect(audit.docs[0].data().actor_user_id).toBe(SUPER_ADMIN_ID);
+  });
+
+  it("relie un ancien dossier Firestore au compte Auth retrouvé par courriel", async () => {
+    await authAdmin.createUser({
+      uid: CANONICAL_ROLE_UID,
+      email: LEGACY_ROLE_EMAIL,
+    });
+    await db.collection("users").doc(LEGACY_ROLE_UID).set({
+      uid: LEGACY_ROLE_UID,
+      email: LEGACY_ROLE_EMAIL,
+      full_name: "Chauffeur Démo Legacy",
+      roles: [PlatformRoles.CUSTOMER],
+    });
+    await db.collection("driver_profiles").doc(LEGACY_ROLE_UID).set({
+      uid: LEGACY_ROLE_UID,
+      full_name: "Chauffeur Démo Legacy",
+      city: "Granby",
+      status: DriverStatuses.APPROVED,
+      online_status: "offline",
+    });
+    await db.collection("driver_documents").doc(LEGACY_DRIVER_DOCUMENT_ID).set({
+      driver_id: LEGACY_ROLE_UID,
+      type: "drivers_licence",
+      status: "valid",
+    });
+    await db.collection("driver_vehicles").doc(LEGACY_DRIVER_VEHICLE_ID).set({
+      driver_id: LEGACY_ROLE_UID,
+      category: "pickup",
+      is_verified: true,
+    });
+
+    const result = await setUserRole.run(
+      buildRequest<SetUserRoleRequest>(
+        SUPER_ADMIN_ID,
+        {
+          targetUid: LEGACY_ROLE_UID,
+          roles: [PlatformRoles.CUSTOMER, PlatformRoles.DRIVER],
+        },
+        [PlatformRoles.SUPER_ADMIN]
+      )
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      targetUid: CANONICAL_ROLE_UID,
+      sourceUid: LEGACY_ROLE_UID,
+      relinked: true,
+      roles: [PlatformRoles.CUSTOMER, PlatformRoles.DRIVER],
+    });
+
+    const authUser = await authAdmin.getUser(CANONICAL_ROLE_UID);
+    expect(authUser.customClaims?.roles).toEqual([
+      PlatformRoles.CUSTOMER,
+      PlatformRoles.DRIVER,
+    ]);
+
+    const canonicalUser = await db.collection("users").doc(CANONICAL_ROLE_UID).get();
+    expect(canonicalUser.data()).toMatchObject({
+      uid: CANONICAL_ROLE_UID,
+      email: LEGACY_ROLE_EMAIL,
+      roles: [PlatformRoles.CUSTOMER, PlatformRoles.DRIVER],
+    });
+    const legacyUser = await db.collection("users").doc(LEGACY_ROLE_UID).get();
+    expect(legacyUser.data()?.migrated_to_uid).toBe(CANONICAL_ROLE_UID);
+
+    const canonicalDriver = await db.collection("driver_profiles").doc(CANONICAL_ROLE_UID).get();
+    expect(canonicalDriver.data()).toMatchObject({
+      uid: CANONICAL_ROLE_UID,
+      legacy_uid: LEGACY_ROLE_UID,
+      status: DriverStatuses.APPROVED,
+    });
+    const legacyDriver = await db.collection("driver_profiles").doc(LEGACY_ROLE_UID).get();
+    expect(legacyDriver.data()).toMatchObject({
+      migrated_to_uid: CANONICAL_ROLE_UID,
+      status: "inactive",
+      online_status: "offline",
+    });
+
+    const migratedDocument = await db
+      .collection("driver_documents")
+      .doc(LEGACY_DRIVER_DOCUMENT_ID)
+      .get();
+    expect(migratedDocument.data()?.driver_id).toBe(CANONICAL_ROLE_UID);
+    const migratedVehicle = await db
+      .collection("driver_vehicles")
+      .doc(LEGACY_DRIVER_VEHICLE_ID)
+      .get();
+    expect(migratedVehicle.data()?.driver_id).toBe(CANONICAL_ROLE_UID);
+  });
+
+  it("retourne not-found plutôt que INTERNAL si aucun compte Auth ne correspond", async () => {
+    await db.collection("users").doc(LEGACY_ROLE_UID).set({
+      uid: LEGACY_ROLE_UID,
+      email: "compte-inexistant@example.com",
+      roles: [PlatformRoles.CUSTOMER],
+    });
+    await db.collection("driver_profiles").doc(LEGACY_ROLE_UID).set({
+      uid: LEGACY_ROLE_UID,
+      status: DriverStatuses.PENDING_REVIEW,
+    });
+
+    await expect(
+      setUserRole.run(
+        buildRequest<SetUserRoleRequest>(
+          SUPER_ADMIN_ID,
+          {
+            targetUid: LEGACY_ROLE_UID,
+            roles: [PlatformRoles.CUSTOMER, PlatformRoles.DRIVER],
+          },
+          [PlatformRoles.SUPER_ADMIN]
+        )
+      )
+    ).rejects.toMatchObject({
+      code: "not-found",
+      message: "Aucun compte de connexion Firebase ne correspond au courriel de ce dossier.",
+    });
   });
 
   it.each([
