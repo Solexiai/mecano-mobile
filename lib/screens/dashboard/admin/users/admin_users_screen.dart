@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/app_colors.dart';
@@ -175,6 +176,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       ],
                     ),
                     isThreeLine: true,
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        context.push('/$locale/admin/utilisateurs/${doc.id}'),
                   ),
                 );
               }),

@@ -21,7 +21,7 @@ import {
   calculateDriverCompensation,
   resolveCommission,
 } from "../lib/pricingEngine";
-import { PricingVersionDoc } from "../lib/types";
+import { MissionAssignmentModes, PricingVersionDoc } from "../lib/types";
 import {
   DEFAULT_JURISDICTION,
   applyTaxSnapshotToQuote,
@@ -55,6 +55,12 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
     const missionSnap = await tx.get(missionRef);
     if (!missionSnap.exists) throw notFound(`delivery_requests/${missionId} introuvable.`);
     const mission = missionSnap.data()!;
+
+    if (mission.assignment_mode === MissionAssignmentModes.INTERNAL_TEST) {
+      throw failedPrecondition(
+        "Une mission de test interne ne peut pas recevoir de snapshot financier."
+      );
+    }
 
     if (mission.active_financial_snapshot_id) {
       const existingSnap = await tx.get(

@@ -41,6 +41,7 @@ class DeliveryMission {
   final String pricingVersion;
   final String? activeQuoteId;
   final String? activeFinancialSnapshotId;
+  final String assignmentMode;
   final DateTime createdAt;
   // Timestamps métier par statut (Phase 5, partie 3) — un champ dédié par
   // transition, distinct de tout `updated_at` générique. Tous nullable :
@@ -82,6 +83,7 @@ class DeliveryMission {
     required this.pricingVersion,
     this.activeQuoteId,
     this.activeFinancialSnapshotId,
+    this.assignmentMode = 'standard',
     required this.createdAt,
     this.driverToPickupAt,
     this.arrivedAtPickupAt,
@@ -102,6 +104,7 @@ class DeliveryMission {
 
   bool get isOpenForAcceptance => status.isOpenForAcceptance;
   bool get hasAssignedDriver => driverId != null && driverId!.isNotEmpty;
+  bool get isInternalTest => assignmentMode == 'internal_test';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -117,6 +120,7 @@ class DeliveryMission {
         'pricing_version': pricingVersion,
         'active_quote_id': activeQuoteId,
         'active_financial_snapshot_id': activeFinancialSnapshotId,
+        'assignment_mode': assignmentMode,
         'created_at': createdAt.toIso8601String(),
         'driver_to_pickup_at': driverToPickupAt?.toIso8601String(),
         'arrived_at_pickup_at': arrivedAtPickupAt?.toIso8601String(),
@@ -148,6 +152,7 @@ class DeliveryMission {
       pricingVersion: json['pricing_version'] as String? ?? 'UNCONFIGURED',
       activeQuoteId: json['active_quote_id'] as String?,
       activeFinancialSnapshotId: json['active_financial_snapshot_id'] as String?,
+      assignmentMode: json['assignment_mode'] as String? ?? 'standard',
       createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       driverToPickupAt: parseFirestoreDate(json['driver_to_pickup_at']),
       arrivedAtPickupAt: parseFirestoreDate(json['arrived_at_pickup_at']),

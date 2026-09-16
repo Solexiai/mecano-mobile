@@ -13,7 +13,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
-import { MissionStatuses } from "../lib/types";
+import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
 
@@ -197,6 +197,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       // resolvePromoDiscountAmount() dans calculateDeliveryQuote.ts.
       customer_discount_amount: quote.quote_breakdown?.customerDiscountAmount ?? 0,
       payment_status: "pending",
+      assignment_mode: MissionAssignmentModes.STANDARD,
+      internal_test_assigned_by: null,
+      internal_test_assigned_at: null,
       active_quote_id: input.quoteId,
       active_financial_snapshot_id: null,
       created_at: now,

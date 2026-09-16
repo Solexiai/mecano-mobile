@@ -89,8 +89,27 @@ void main() {
         expect(m.driverOfferAmount, 0);
         expect(m.customerTotal, 0);
         expect(m.hasAssignedDriver, isFalse);
+        expect(m.assignmentMode, 'standard');
+        expect(m.isInternalTest, isFalse);
       },
     );
+
+    test('mission marquée internal_test est reconnue explicitement', () {
+      final mission = DeliveryMission.fromJson('mission_test', {
+        'customer_id': 'cust_test',
+        'item_category_key': 'cat_furniture',
+        'description': 'Parcours interne',
+        'required_vehicle_category': 'cargo_van',
+        'status': 'assigned',
+        'pricing_version': 'v1',
+        'assignment_mode': 'internal_test',
+        'created_at': '2026-09-15T10:00:00.000Z',
+      });
+
+      expect(mission.assignmentMode, 'internal_test');
+      expect(mission.isInternalTest, isTrue);
+      expect(mission.toJson()['assignment_mode'], 'internal_test');
+    });
 
     test(
       'document avec status inconnu/corrompu -> repli sur draft (jamais une exception)',

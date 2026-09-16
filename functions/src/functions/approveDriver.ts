@@ -11,7 +11,7 @@ import { admin, db } from "../lib/admin";
 import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
 import { writeAuditLog } from "../lib/audit";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
-import { DriverDocumentStatuses, DriverStatuses } from "../lib/types";
+import { DriverDocumentStatuses, DriverStatuses, PlatformRoles } from "../lib/types";
 
 const REQUIRED_DOCUMENT_TYPES = [
   "drivers_licence",
@@ -97,8 +97,13 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
     // driverId, la vérification `requireAnalystOrAbove` a déjà exigé un rôle
     // analyst/admin/super_admin distinct du rôle driver pour le compte
     // appelant — mais on ajoute une garde explicite supplémentaire :
-    if (ctx.uid === driverId) {
-      throw failedPrecondition("Un compte ne peut pas s'auto-approuver.");
+    if (
+      ctx.uid === driverId &&
+      !ctx.roles.includes(PlatformRoles.SUPER_ADMIN)
+    ) {
+      throw failedPrecondition(
+        "Seul un super administrateur peut approuver son propre dossier de test."
+      );
     }
 
     for (const documentSnap of selectedDocuments) {

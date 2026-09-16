@@ -28,6 +28,7 @@ import '../screens/dashboard/customer/customer_dashboard_shell.dart';
 import '../screens/dashboard/provider/provider_dashboard_shell.dart';
 import '../screens/dashboard/admin/admin_dashboard_shell.dart';
 import '../screens/dashboard/admin/users/admin_users_screen.dart';
+import '../screens/dashboard/admin/users/admin_user_detail_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
@@ -419,6 +420,16 @@ class AppRouter {
                       initialFilter: s.uri.queryParameters['filter'] ?? 'all',
                     ),
                   ),
+                  routes: [
+                    GoRoute(
+                      path: ':userId',
+                      builder: (c, s) => AdminAuthGate(
+                        child: AdminUserDetailScreen(
+                          userId: s.pathParameters['userId']!,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 GoRoute(
                   path: 'missions',

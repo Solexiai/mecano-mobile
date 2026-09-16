@@ -22,7 +22,7 @@
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
-import { authAdmin } from "../lib/admin";
+import { admin, authAdmin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { writeAuditLog } from "../lib/audit";
 import { PlatformRole, PlatformRoles } from "../lib/types";
@@ -34,6 +34,13 @@ export const registerAsDriver = onCall(async (request) => {
     ctx.roles.length > 0 ? ctx.roles : [PlatformRoles.CUSTOMER];
 
   if (currentRoles.includes(PlatformRoles.DRIVER)) {
+    await db.collection("users").doc(ctx.uid).set(
+      {
+        roles: currentRoles,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
     return { success: true, roles: currentRoles, note: "Le rôle driver est déjà présent." };
   }
 
@@ -43,6 +50,14 @@ export const registerAsDriver = onCall(async (request) => {
     role: currentRoles[0] ?? PlatformRoles.CUSTOMER,
     roles: newRoles,
   });
+
+  await db.collection("users").doc(ctx.uid).set(
+    {
+      roles: newRoles,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
 
   await writeAuditLog({
     actorUserId: ctx.uid,

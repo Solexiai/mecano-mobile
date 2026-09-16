@@ -23,7 +23,14 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
-import { LedgerDirections, LedgerEntryStatuses, LedgerEntryTypes, LedgerParties, MissionStatuses } from "../lib/types";
+import {
+  LedgerDirections,
+  LedgerEntryStatuses,
+  LedgerEntryTypes,
+  LedgerParties,
+  MissionAssignmentModes,
+  MissionStatuses,
+} from "../lib/types";
 import { captureMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
@@ -44,7 +51,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
-  const paymentId: string | null = await db.runTransaction(async (tx) => {
+  const completion = await db.runTransaction(async (tx) => {
     const missionSnap = await tx.get(missionRef);
     if (!missionSnap.exists) throw notFound(`delivery_requests/${missionId} introuvable.`);
     const mission = missionSnap.data()!;
@@ -55,16 +62,22 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
     if (mission.status !== MissionStatuses.PICKED_UP && mission.status !== MissionStatuses.IN_TRANSIT && mission.status !== MissionStatuses.ARRIVED_AT_DROPOFF) {
       throw failedPrecondition(`Transition invalide depuis le statut '${mission.status}'.`);
     }
-    if (!mission.active_financial_snapshot_id) {
+    const isInternalTest =
+      mission.assignment_mode === MissionAssignmentModes.INTERNAL_TEST;
+    if (!isInternalTest && !mission.active_financial_snapshot_id) {
       throw failedPrecondition("Aucun financial_snapshot actif rattaché à cette mission.");
     }
 
-    const snapshotRef = db.collection("financial_snapshots").doc(mission.active_financial_snapshot_id);
-    const snapshotSnap = await tx.get(snapshotRef);
-    if (!snapshotSnap.exists) throw notFound("financial_snapshot introuvable.");
-    const snapshot = snapshotSnap.data()!;
+    const snapshotRef = mission.active_financial_snapshot_id
+      ? db.collection("financial_snapshots").doc(mission.active_financial_snapshot_id)
+      : null;
+    const snapshotSnap = snapshotRef ? await tx.get(snapshotRef) : null;
+    if (!isInternalTest && !snapshotSnap?.exists) {
+      throw notFound("financial_snapshot introuvable.");
+    }
+    const snapshot = snapshotSnap?.data();
 
-    if (snapshot.status === "confirmed") {
+    if (!isInternalTest && snapshot?.status === "confirmed") {
       throw failedPrecondition("Ce financial_snapshot est déjà confirmé (immuable).");
     }
 
@@ -77,94 +90,110 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
       proof_of_delivery_url: proofOfDeliveryUrl,
     });
 
-    // 2. Snapshot -> confirmed. 🔒 Dernière écriture possible sur ce document.
-    tx.update(snapshotRef, { status: "confirmed", confirmed_at: now });
+    if (!isInternalTest) {
+      if (!snapshotRef || !snapshot) {
+        throw notFound("financial_snapshot introuvable.");
+      }
 
-    // 3. driver_profiles.completed_missions += 1.
+      // 2. Snapshot -> confirmed. Dernière écriture possible sur ce document.
+      tx.update(snapshotRef, { status: "confirmed", confirmed_at: now });
+
+      // 3. Entrées comptables pour une mission réelle seulement.
+      const ledgerEntries: Array<Record<string, unknown>> = [
+        {
+          type: LedgerEntryTypes.CUSTOMER_CHARGE,
+          amount: snapshot.customer_total,
+          direction: LedgerDirections.DEBIT,
+          party: LedgerParties.CUSTOMER,
+        },
+        {
+          type: LedgerEntryTypes.PLATFORM_COMMISSION,
+          amount: snapshot.platform_commission_amount,
+          direction: LedgerDirections.CREDIT,
+          party: LedgerParties.PLATFORM,
+        },
+        {
+          type: LedgerEntryTypes.CUSTOMER_SERVICE_FEE,
+          amount: snapshot.customer_service_fee,
+          direction: LedgerDirections.CREDIT,
+          party: LedgerParties.PLATFORM,
+        },
+        {
+          type: LedgerEntryTypes.DRIVER_EARNING,
+          amount: snapshot.driver_offer_amount,
+          direction: LedgerDirections.CREDIT,
+          party: LedgerParties.DRIVER,
+        },
+        {
+          type: LedgerEntryTypes.TAX,
+          amount: snapshot.customer_tax,
+          direction: LedgerDirections.CREDIT,
+          party: LedgerParties.PLATFORM,
+        },
+      ];
+
+      for (const entry of ledgerEntries) {
+        const entryRef = db.collection("transaction_ledger").doc();
+        tx.set(entryRef, {
+          ledger_entry_id: entryRef.id,
+          mission_id: missionId,
+          transaction_id: null,
+          currency: "CAD",
+          created_at: now,
+          created_by: "completeDelivery",
+          source_event: "delivery_completed",
+          status: LedgerEntryStatuses.CONFIRMED,
+          reference_id: null,
+          ...entry,
+        });
+      }
+    }
+
     const driverRef = db.collection("driver_profiles").doc(mission.driver_id);
-    tx.update(driverRef, {
-      completed_missions: admin.firestore.FieldValue.increment(1),
-      online_status: "online",
-    });
+    tx.update(driverRef, isInternalTest
+      ? { online_status: "online" }
+      : {
+          completed_missions: admin.firestore.FieldValue.increment(1),
+          online_status: "online",
+        }
+    );
 
-    // Désactive le tracking GPS temps réel (Phase 5) : la mission est
-    // terminée, plus aucun client ne doit pouvoir suivre ce chauffeur via
-    // cette mission, et recordTrackingPoint() cesse d'écrire l'historique.
+    // Désactive le tracking GPS temps réel à la fin de toute mission.
     tx.set(
       db.collection("driver_locations").doc(mission.driver_id),
       { active_delivery_id: null },
       { merge: true }
     );
 
-    // 4. Entrées du ledger — append-only, créées ici DANS la même transaction
-    // que la confirmation du snapshot pour garantir la cohérence comptable.
-    const ledgerEntries: Array<Record<string, unknown>> = [
-      {
-        type: LedgerEntryTypes.CUSTOMER_CHARGE,
-        amount: snapshot.customer_total,
-        direction: LedgerDirections.DEBIT,
-        party: LedgerParties.CUSTOMER,
-      },
-      {
-        type: LedgerEntryTypes.PLATFORM_COMMISSION,
-        amount: snapshot.platform_commission_amount,
-        direction: LedgerDirections.CREDIT,
-        party: LedgerParties.PLATFORM,
-      },
-      {
-        type: LedgerEntryTypes.CUSTOMER_SERVICE_FEE,
-        amount: snapshot.customer_service_fee,
-        direction: LedgerDirections.CREDIT,
-        party: LedgerParties.PLATFORM,
-      },
-      {
-        type: LedgerEntryTypes.DRIVER_EARNING,
-        amount: snapshot.driver_offer_amount,
-        direction: LedgerDirections.CREDIT,
-        party: LedgerParties.DRIVER,
-      },
-      {
-        type: LedgerEntryTypes.TAX,
-        amount: snapshot.customer_tax,
-        direction: LedgerDirections.CREDIT,
-        party: LedgerParties.PLATFORM,
-      },
-    ];
-
-    for (const entry of ledgerEntries) {
-      const entryRef = db.collection("transaction_ledger").doc();
-      tx.set(entryRef, {
-        ledger_entry_id: entryRef.id,
-        mission_id: missionId,
-        transaction_id: null,
-        currency: "CAD",
-        created_at: now,
-        created_by: "completeDelivery",
-        source_event: "delivery_completed",
-        status: LedgerEntryStatuses.CONFIRMED,
-        reference_id: null,
-        ...entry,
-      });
-    }
-
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {
       event_type: "delivered",
       actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: { proof_of_delivery_url: proofOfDeliveryUrl },
+      metadata: {
+        proof_of_delivery_url: proofOfDeliveryUrl,
+        internal_test: isInternalTest,
+      },
     });
 
     writeAuditLogInTransaction(tx, {
       actorUserId: ctx.uid,
       actorRole: "driver",
-      action: "completeDelivery",
+      action: isInternalTest ? "completeDeliveryInternalTest" : "completeDelivery",
       sourceFunction: "completeDelivery",
       targetId: missionId,
-      metadata: { snapshotId: mission.active_financial_snapshot_id },
+      metadata: {
+        snapshotId: mission.active_financial_snapshot_id ?? null,
+        internalTest: isInternalTest,
+      },
     });
 
-    return (mission.active_payment_id as string | null | undefined) ?? null;
+    return {
+      paymentId: isInternalTest
+        ? null
+        : ((mission.active_payment_id as string | null | undefined) ?? null),
+      internalTest: isInternalTest,
+    };
   });
 
   // ---- PHASE 6, point 5 : capture RÉELLE du paiement -------------------
@@ -181,13 +210,20 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
   // financier distinct traité via le tableau de bord admin, jamais en
   // ré-annulant une livraison déjà effectuée).
   let captureFailureMessage: string | null = null;
-  if (paymentId) {
-    const captureResult = await captureMissionPayment(missionId, paymentId);
+  if (completion.paymentId) {
+    const captureResult = await captureMissionPayment(missionId, completion.paymentId);
     if (!captureResult.success) {
       captureFailureMessage = captureResult.failureMessage ?? "Capture refusée par le fournisseur.";
     }
   }
 
-  return { success: true, missionId, paymentCaptured: !captureFailureMessage, captureFailureMessage };
+  return {
+    success: true,
+    missionId,
+    paymentCaptured: completion.internalTest ? false : !captureFailureMessage,
+    paymentSkipped: completion.internalTest,
+    internalTest: completion.internalTest,
+    captureFailureMessage,
+  };
   }
 );
