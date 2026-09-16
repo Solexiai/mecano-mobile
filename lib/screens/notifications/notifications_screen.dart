@@ -36,7 +36,28 @@ class NotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('notifications_title')),
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          key: const Key('notifications-back-button'),
+          tooltip: t('common_back'),
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go(
+              isDriver
+                  ? '/$locale/fournisseur/tableau-de-bord'
+                  : '/$locale/tableau-de-bord',
+            );
+          },
+        ),
+        title: Text(
+          t('notifications_title'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         actions: [
           TextButton(
             onPressed: () =>
@@ -50,7 +71,9 @@ class NotificationsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: StreamBuilder<List<AppNotification>>(
-          stream: BackendLocator.notificationRepository.watchNotifications(userId),
+          stream: BackendLocator.notificationRepository.watchNotifications(
+            userId,
+          ),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return Center(
@@ -75,9 +98,16 @@ class NotificationsScreen extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.notifications_none, size: 44, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.notifications_none,
+                        size: 44,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(height: 16),
-                      Text(t('notifications_empty'), textAlign: TextAlign.center),
+                      Text(
+                        t('notifications_empty'),
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 ),
@@ -168,7 +198,9 @@ class _NotificationTile extends StatelessWidget {
               : Theme.of(context).cardTheme.color,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: unread ? AppColors.info.withValues(alpha: 0.35) : AppColors.border,
+            color: unread
+                ? AppColors.info.withValues(alpha: 0.35)
+                : AppColors.border,
           ),
         ),
         child: Row(
@@ -198,7 +230,10 @@ class _NotificationTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     t(notification.bodyKey),
-                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -213,7 +248,11 @@ class _NotificationTile extends StatelessWidget {
               ),
             ),
             if (notification.missionId != null)
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
+                size: 20,
+              ),
           ],
         ),
       ),

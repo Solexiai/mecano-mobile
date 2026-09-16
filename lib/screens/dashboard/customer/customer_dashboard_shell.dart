@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/app_colors.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
@@ -33,18 +34,27 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.lock_outline, size: 48, color: AppColors.textSecondary),
+              const Icon(
+                Icons.lock_outline,
+                size: 48,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(height: 16),
               Text(t('customer_dashboard_locked_message')),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: () => context.go('/$locale/connexion'), child: Text(t('delivery_sign_in_button'))),
+              ElevatedButton(
+                onPressed: () => context.go('/$locale/connexion'),
+                child: Text(t('delivery_sign_in_button')),
+              ),
             ],
           ),
         ),
       );
     }
 
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isDesktop = screenWidth >= 900;
+    final isNarrowPhone = screenWidth < 480;
     final tabs = [
       CustomerOverviewTab(onGoToTab: (i) => setState(() => _index = i)),
       const CustomerRequestsTab(),
@@ -61,17 +71,31 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(children: [
-          IconButton(onPressed: () => context.go('/$locale'), icon: const Icon(Icons.arrow_back)),
-          const SizedBox(width: 4),
-          Text(t('nav_dashboard'), style: const TextStyle(fontWeight: FontWeight.w700)),
-        ]),
+        // Une seule flèche de retour et un titre tronqué proprement : les
+        // actions essentielles restent visibles même sur un écran étroit.
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () => context.go('/$locale'),
+          tooltip: t('common_back'),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        titleSpacing: 0,
+        title: Text(
+          t('nav_dashboard'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         actions: [
-          NotificationBell(userId: auth.user!.uid),
-          const LanguageSelector(compact: true),
-          const SizedBox(width: 8),
-          IconButton(onPressed: () => auth.signOut(), icon: const Icon(Icons.logout)),
-          const SizedBox(width: 8),
+          NotificationBell(userId: auth.effectiveUid!),
+          if (!isNarrowPhone) const LanguageSelector(compact: true),
+          if (!isNarrowPhone) const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => auth.signOut(),
+            tooltip: t('nav_logout'),
+            icon: const Icon(Icons.logout),
+          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: isDesktop
@@ -81,7 +105,14 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
                   selectedIndex: _index,
                   onDestinationSelected: (i) => setState(() => _index = i),
                   labelType: NavigationRailLabelType.all,
-                  destinations: navItems.map((n) => NavigationRailDestination(icon: Icon(n.$1), label: Text(n.$2))).toList(),
+                  destinations: navItems
+                      .map(
+                        (n) => NavigationRailDestination(
+                          icon: Icon(n.$1),
+                          label: Text(n.$2),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const VerticalDivider(width: 1),
                 Expanded(child: tabs[_index]),
@@ -93,7 +124,12 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
           : BottomNavigationBar(
               currentIndex: _index,
               onTap: (i) => setState(() => _index = i),
-              items: navItems.map((n) => BottomNavigationBarItem(icon: Icon(n.$1), label: n.$2)).toList(),
+              items: navItems
+                  .map(
+                    (n) =>
+                        BottomNavigationBarItem(icon: Icon(n.$1), label: n.$2),
+                  )
+                  .toList(),
             ),
     );
   }

@@ -3,18 +3,18 @@
 // client/chauffeur (Phase 5, partie 3, point 12).
 //
 // Affiche un badge avec le nombre de notifications non lues
-// (NotificationRepository.watchUnreadCount) et ouvre NotificationsScreen au
-// tap. Ne fait AUCUNE hypothèse sur le rôle de l'utilisateur — fonctionne
-// identiquement pour un customer ou un driver, le repository filtre déjà
-// par `userId` (protégé par firestore.rules).
+// (NotificationRepository.watchUnreadCount) et ouvre la route
+// /{locale}/notifications au tap. Ne fait AUCUNE hypothèse sur le rôle de
+// l'utilisateur — fonctionne identiquement pour un customer ou un driver,
+// le repository filtre déjà par `userId` (protégé par firestore.rules).
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../backend/backend_locator.dart';
 import '../providers/locale_provider.dart';
-import '../screens/notifications/notifications_screen.dart';
 
 class NotificationBell extends StatelessWidget {
   final String userId;
@@ -22,7 +22,9 @@ class NotificationBell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
+    final localeProvider = context.watch<LocaleProvider>();
+    final t = localeProvider.t;
+    final locale = localeProvider.locale;
     return StreamBuilder<int>(
       stream: BackendLocator.notificationRepository.watchUnreadCount(userId),
       builder: (context, snap) {
@@ -31,25 +33,28 @@ class NotificationBell extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
+              key: const Key('notification-bell-button'),
               icon: const Icon(Icons.notifications_outlined),
               tooltip: t('notifications_open_tooltip'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => NotificationsScreen(userId: userId),
-                ),
-              ),
+              onPressed: () => context.push('/$locale/notifications'),
             ),
             if (count > 0)
               Positioned(
                 right: 6,
                 top: 6,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.redAccent,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
                   child: Text(
                     count > 99 ? '99+' : '$count',
                     textAlign: TextAlign.center,
