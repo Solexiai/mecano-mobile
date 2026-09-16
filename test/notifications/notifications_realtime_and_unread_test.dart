@@ -139,6 +139,35 @@ Widget _buildBellApp(FirebaseAuthProvider auth) {
   );
 }
 
+Widget _buildBellNavigationApp(FirebaseAuthProvider auth) {
+  final router = GoRouter(
+    initialLocation: '/fr/tableau-de-bord',
+    routes: [
+      GoRoute(
+        path: '/fr/tableau-de-bord',
+        builder: (context, state) => Scaffold(
+          appBar: AppBar(
+            actions: [NotificationBell(userId: auth.effectiveUid!)],
+          ),
+          body: const Text('DASHBOARD_CONNECTED'),
+        ),
+      ),
+      GoRoute(
+        path: '/fr/notifications',
+        builder: (context, state) =>
+            NotificationsScreen(userId: auth.effectiveUid!),
+      ),
+    ],
+  );
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+    ],
+    child: MaterialApp.router(routerConfig: router),
+  );
+}
+
 String _t(String key) => AppStrings.t(key, 'fr');
 
 void main() {
@@ -249,6 +278,41 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets(
+      'I-2.4 : la cloche ouvre la route Notifications et Retour ramène au '
+      'tableau de bord',
+      (tester) async {
+        BackendLocator.notificationRepositoryOverride =
+            const NotConfiguredNotificationRepository();
+        final auth = FirebaseAuthProvider(backendConfigured: false)
+          ..debugForceSignedIn = true
+          ..debugForceUid = _userId;
+
+        await tester.pumpWidget(_buildBellNavigationApp(auth));
+        await tester.pumpAndSettle();
+
+        expect(find.text('DASHBOARD_CONNECTED'), findsOneWidget);
+        await tester.tap(find.byKey(const Key('notification-bell-button')));
+        await tester.pumpAndSettle();
+
+        expect(find.text(_t('notifications_title')), findsOneWidget);
+        expect(
+          find.byKey(const Key('notifications-back-button')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const Key('notifications-back-button')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('DASHBOARD_CONNECTED'), findsOneWidget);
+        expect(
+          find.byKey(const Key('notification-bell-button')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('I-3 — realtime + listener error (NotificationsScreen)', () {
@@ -304,7 +368,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(_t('notif_driver_assigned_title')), findsOneWidget);
 
-        fakeRepo.emitError(Exception('Firestore listener error (simulation I-3)'));
+        fakeRepo.emitError(
+          Exception('Firestore listener error (simulation I-3)'),
+        );
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
@@ -333,7 +399,9 @@ void main() {
         await tester.pumpWidget(_buildNotificationsScreenApp(auth));
         await tester.pumpAndSettle();
 
-        fakeRepo.emitError(Exception('Firestore listener error (simulation I-3)'));
+        fakeRepo.emitError(
+          Exception('Firestore listener error (simulation I-3)'),
+        );
         await tester.pumpAndSettle();
         expect(find.text(_t('notifications_error')), findsOneWidget);
 

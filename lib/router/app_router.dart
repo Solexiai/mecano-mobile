@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../screens/home/home_screen.dart';
 import '../screens/delivery/delivery_landing_screen.dart';
@@ -33,6 +34,8 @@ import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
 import '../screens/dashboard/admin/missions/admin_missions_screen.dart';
+import '../screens/notifications/notifications_screen.dart';
+import '../providers/firebase_auth_provider.dart';
 
 /// Bloc 8B LIVE — lit un `initialTabIndex` optionnel passé via
 /// `GoRouterState.extra` (ex. depuis `DriverStripeOnboardingReturnScreen`,
@@ -259,6 +262,18 @@ class AppRouter {
               path: 'legal/:type',
               builder: (c, s) =>
                   LegalScreen(locale: loc, type: s.pathParameters['type']!),
+            ),
+
+            // Notifications partagées client/chauffeur. Une vraie route
+            // GoRouter garde l'URL, le bouton Retour et le bouton du
+            // navigateur synchronisés avec le tableau de bord.
+            GoRoute(
+              path: 'notifications',
+              builder: (c, s) {
+                final userId = c.read<FirebaseAuthProvider>().effectiveUid;
+                if (userId == null) return AuthScreen(locale: loc);
+                return NotificationsScreen(userId: userId);
+              },
             ),
 
             GoRoute(

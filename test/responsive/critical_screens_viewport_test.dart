@@ -76,7 +76,8 @@ class _FakeDriverRepository implements DriverRepository {
   _FakeDriverRepository(this.profile);
 
   @override
-  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => Stream.value(profile);
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) =>
+      Stream.value(profile);
 
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) async {}
@@ -203,6 +204,14 @@ void main() {
           final switchFinder = find.byType(Switch);
           expect(switchFinder, findsOneWidget);
           expect(tester.widget<Switch>(switchFinder).onChanged, isNotNull);
+
+          // En-tête mobile clair : exactement une flèche Retour et la
+          // cloche reste visible à toutes les largeurs testées.
+          expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+          expect(
+            find.byKey(const Key('notification-bell-button')),
+            findsOneWidget,
+          );
         },
       );
     }

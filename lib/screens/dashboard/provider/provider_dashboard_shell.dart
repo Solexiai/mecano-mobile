@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/app_colors.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
@@ -183,23 +184,22 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
 
     return Scaffold(
       appBar: AppBar(
+        // Un seul bouton Retour : AppBar ne doit pas ajouter automatiquement
+        // une deuxième flèche quand le dashboard est ouvert depuis une autre
+        // page. Le titre est contraint et ne peut donc jamais recouvrir la
+        // cloche ou les autres actions sur téléphone.
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: () => context.go('/$locale'),
+          tooltip: t('common_back'),
+          icon: const Icon(Icons.arrow_back),
+        ),
         titleSpacing: 0,
-        title: Row(
-          children: [
-            IconButton(
-              onPressed: () => context.go('/$locale'),
-              icon: const Icon(Icons.arrow_back),
-            ),
-            if (!isNarrowPhone) const SizedBox(width: 4),
-            if (!isNarrowPhone)
-              Expanded(
-                child: Text(
-                  t('nav_provider_space'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
+        title: Text(
+          t('nav_provider_space'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           StreamBuilder<DriverProfileV2?>(
@@ -258,6 +258,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
             onPressed: _signingOut
                 ? null
                 : () => _signOutDriver(driverId, auth),
+            tooltip: t('nav_logout'),
             icon: _signingOut
                 ? const SizedBox(
                     width: 18,
