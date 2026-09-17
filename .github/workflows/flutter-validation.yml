@@ -1,0 +1,62 @@
+name: Flutter validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/quote-mission-payment-integrity
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Analyze, test, and build Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "true"
+      FLUTTER_VERSION: "3.47.1"
+      FLUTTER_COMMIT: "6655482ec06e547f90abf8ae7590466f4415978d"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Install pinned Flutter SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone \
+            --depth 1 \
+            --branch "${FLUTTER_VERSION}" \
+            https://github.com/flutter/flutter.git \
+            .flutter
+          test "$(git -C .flutter rev-parse HEAD)" = "${FLUTTER_COMMIT}"
+          echo "${GITHUB_WORKSPACE}/.flutter/bin" >> "${GITHUB_PATH}"
+
+      - name: Report Flutter environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter --version
+          flutter doctor -v
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze Flutter code
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test --reporter expanded
+
+      - name: Build Flutter Web with repository script
+        env:
+          GOOGLE_MAPS_API_KEY: ""
+          FCM_WEB_VAPID_KEY: ""
+        run: bash scripts/vercel_build.sh
