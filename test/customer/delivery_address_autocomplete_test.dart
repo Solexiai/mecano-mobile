@@ -69,6 +69,8 @@ class _CapturingMissionRepository implements MissionRepository {
       missionId: '',
       pricingVersion: 'TEST-V1',
       customerTotal: 99,
+      distanceKm: 12,
+      estimatedDurationMinutes: 25,
       createdAt: now,
       expiresAt: now.add(const Duration(minutes: 15)),
     );
