@@ -56,6 +56,7 @@ jobs:
         run: flutter test --reporter expanded
 
       - name: Build Flutter Web with repository script
+        if: ${{ !cancelled() }}
         env:
           GOOGLE_MAPS_API_KEY: ""
           FCM_WEB_VAPID_KEY: ""
