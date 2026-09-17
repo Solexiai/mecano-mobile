@@ -19,6 +19,8 @@ import { admin, db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
 import { buildQuoteBreakdownFixture } from "../testUtils/quoteBreakdownFixture";
+import { buildPricingConfig } from "../unit/fixtures";
+import { seedLockedQuote } from "../testUtils/officialQuoteFixture";
 
 const CUSTOMER_ID = "create_customer_001";
 const OTHER_CUSTOMER_ID = "create_customer_002";
@@ -74,7 +76,32 @@ const baseInput: Omit<CreateDeliveryRequestRequest, "quoteId"> = {
   customerDisplayName: "Client Test",
 };
 
-async function seedQuote(overrides: Record<string, unknown> = {}): Promise<void> {
+async function seedQuote(options: {
+  isConsumed?: boolean;
+  missionId?: string | null;
+  expiresAtMillis?: number;
+  status?: "active" | "consumed" | "cancelled";
+  cancelledAt?: FirebaseFirestore.Timestamp | null;
+} = {}): Promise<void> {
+  const now = admin.firestore.Timestamp.now();
+  const pricingConfig = buildPricingConfig({ pricing_version: "TEST-PRICING-001" });
+  await db.collection("pricing_versions").doc("TEST-PRICING-001").set(pricingConfig);
+  await seedLockedQuote({
+    quoteId: QUOTE_ID,
+    customerId: CUSTOMER_ID,
+    pricingConfig,
+    stops: [pickupStop, dropoffStop],
+    distanceKm: 12,
+    estimatedDurationMinutes: 25,
+    expiresAtMillis: options.expiresAtMillis ?? now.toMillis() + 15 * 60_000,
+    isConsumed: options.isConsumed,
+    missionId: options.missionId,
+    status: options.status,
+    cancelledAt: options.cancelledAt,
+  });
+}
+
+async function seedHistoricalQuote(): Promise<void> {
   const now = admin.firestore.Timestamp.now();
   await db.collection("pricing_versions").doc("TEST-PRICING-001").set({
     pricing_version: "TEST-PRICING-001",
@@ -89,7 +116,6 @@ async function seedQuote(overrides: Record<string, unknown> = {}): Promise<void>
     created_at: now,
     expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
     is_consumed: false,
-    ...overrides,
   });
 }
 
@@ -135,17 +161,18 @@ describe("createDeliveryRequest — cas nominal", () => {
     createdMissionIds.push(result.missionId);
 
     const missionSnap = await db.collection("delivery_requests").doc(result.missionId).get();
+    const quoteSnap = await db.collection("delivery_quotes").doc(QUOTE_ID).get();
     expect(missionSnap.exists).toBe(true);
     const mission = missionSnap.data()!;
     expect(mission.customer_id).toBe(CUSTOMER_ID);
     expect(mission.status).toBe("searching_driver");
     expect(mission.driver_id).toBeNull();
-    expect(mission.customer_total).toBe(100);
+    expect(mission.customer_total).toBe(quoteSnap.data()!.customer_total);
+    expect(mission.customer_total_minor).toBe(quoteSnap.data()!.customer_total_minor);
     expect(mission.active_quote_id).toBe(QUOTE_ID);
     expect(mission.pickup_address.city).toBe("Montréal");
     expect(mission.dropoff_address.city).toBe("Laval");
 
-    const quoteSnap = await db.collection("delivery_quotes").doc(QUOTE_ID).get();
     expect(quoteSnap.data()!.is_consumed).toBe(true);
     expect(quoteSnap.data()!.mission_id).toBe(result.missionId);
 
@@ -189,7 +216,7 @@ describe("createDeliveryRequest — cas négatifs", () => {
   });
 
   it("devis DÉJÀ consommé (ré-utilisation) échoue avec failed-precondition", async () => {
-    await seedQuote({ is_consumed: true, mission_id: "some_other_mission" });
+    await seedQuote({ isConsumed: true, missionId: "some_other_mission" });
     await expect(
       createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
@@ -197,7 +224,24 @@ describe("createDeliveryRequest — cas négatifs", () => {
 
   it("devis EXPIRÉ échoue avec failed-precondition", async () => {
     const now = admin.firestore.Timestamp.now();
-    await seedQuote({ expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() - 60_000) });
+    await seedQuote({ expiresAtMillis: now.toMillis() - 60_000 });
+    await expect(
+      createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("devis ANNULÉ échoue avec failed-precondition", async () => {
+    await seedQuote({
+      status: "cancelled",
+      cancelledAt: admin.firestore.Timestamp.now(),
+    });
+    await expect(
+      createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("un devis historique non verrouillé ne peut pas créer une nouvelle mission", async () => {
+    await seedHistoricalQuote();
     await expect(
       createDeliveryRequest.run(buildRequest(CUSTOMER_ID, { quoteId: QUOTE_ID, ...baseInput }))
     ).rejects.toMatchObject({ code: "failed-precondition" });

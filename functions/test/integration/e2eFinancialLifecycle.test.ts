@@ -310,6 +310,7 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       expect(quote.quoteId).toBeTruthy();
       expect(quote.pricingVersion).toBe(PRICING_VERSION);
       expect(quote.customerTotal).toBeGreaterThan(0);
+      const displayedTotalMinor = toMinorUnits(quote.customerTotal, DEFAULT_CURRENCY);
 
       // ===== Création de la mission =====
       const created = await createDeliveryRequest.run(
@@ -358,6 +359,9 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       );
       expect(payment.amount_authorized_minor).toBe(officialQuote.customer_total_minor);
       expect(payment.amount_authorized_minor).toBe(missionSnap.data()!.customer_total_minor);
+      expect(payment.amount_authorized_minor).toBe(displayedTotalMinor);
+      expect(fakeProvider.createdPaymentParams).toHaveLength(1);
+      expect(fakeProvider.createdPaymentParams[0].amountMinor).toBe(displayedTotalMinor);
       expect(authorizeSpy).toHaveBeenCalledTimes(1);
 
       // ===== POINT 4 — TAX SNAPSHOT : valeurs réelles du moteur =====

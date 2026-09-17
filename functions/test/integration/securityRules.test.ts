@@ -819,6 +819,74 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
     );
   });
 
+  it("un client ne peut modifier aucun champ financier ou tarifaire de sa mission", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/mission_010_financial_lock"), {
+        customer_id: "customer_001",
+        driver_id: null,
+        status: "searching_driver",
+        description: "Description initiale",
+        driver_offer_amount: 0,
+        customer_total: 100,
+        customer_total_minor: 10000,
+        customer_discount_amount: 0,
+        payment_status: "pending",
+        pricing_version: "MOVIK-PRICING-001",
+        pricing_snapshot: { customer_total_minor: 10000 },
+        quote_breakdown: { customerTotal: 100 },
+        quote_integrity_hash: "hash-officiel",
+        quote_schema_version: 1,
+        tax_snapshot: { total_tax_minor: 500 },
+        active_quote_id: "quote_officiel",
+        active_financial_snapshot_id: null,
+        active_payment_id: null,
+        distance_km: 10,
+        estimated_duration_minutes: 20,
+        required_vehicle_category: "cargoVan",
+        pickup_address: { lat: 45.5, lng: -73.6 },
+        dropoff_address: { lat: 45.6, lng: -73.7 },
+        assignment_mode: "standard",
+        internal_test_authorized: false,
+        internal_test_assigned_by: null,
+        internal_test_assigned_at: null,
+      });
+    });
+
+    const customer = testEnv.authenticatedContext("customer_001", { role: "customer" });
+    const missionRef = doc(
+      customer.firestore(),
+      "delivery_requests/mission_010_financial_lock"
+    );
+    const forbiddenPatches: Array<Record<string, unknown>> = [
+      { customer_total: 1 },
+      { customer_total_minor: 100 },
+      { customer_discount_amount: 99 },
+      { pricing_version: "PRIX-ATTAQUANT" },
+      { pricing_snapshot: { customer_total_minor: 100 } },
+      { quote_breakdown: { customerTotal: 1 } },
+      { quote_integrity_hash: "hash-falsifie" },
+      { quote_schema_version: 999 },
+      { tax_snapshot: { total_tax_minor: 0 } },
+      { active_quote_id: "autre_quote" },
+      { active_financial_snapshot_id: "snapshot_falsifie" },
+      { active_payment_id: "payment_falsifie" },
+      { distance_km: 1 },
+      { estimated_duration_minutes: 1 },
+      { required_vehicle_category: "car" },
+      { pickup_address: { lat: 0, lng: 0 } },
+      { dropoff_address: { lat: 0, lng: 0 } },
+      { driver_offer_amount: 999 },
+      { payment_status: "authorized" },
+      { internal_test_authorized: true },
+    ];
+
+    for (const forbiddenPatch of forbiddenPatches) {
+      await assertFails(updateDoc(missionRef, forbiddenPatch));
+    }
+
+    await assertSucceeds(updateDoc(missionRef, { description: "Modification non financière" }));
+  });
+
   it("le client PEUT annuler sa propre mission NON assignée, mais ne peut PAS modifier driver_id/status une fois assignée", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "delivery_requests/mission_011"), {

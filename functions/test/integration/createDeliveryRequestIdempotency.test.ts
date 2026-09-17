@@ -29,10 +29,11 @@ import {
   CreateDeliveryRequestRequest,
   StopInput,
 } from "../../src/functions/createDeliveryRequest";
-import { admin, db } from "../../src/lib/admin";
+import { db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
-import { buildQuoteBreakdownFixture } from "../testUtils/quoteBreakdownFixture";
+import { buildPricingConfig } from "../unit/fixtures";
+import { seedLockedQuote } from "../testUtils/officialQuoteFixture";
 
 const CUSTOMER_ID = "misc09_customer_001";
 
@@ -68,20 +69,15 @@ const baseInput: Omit<CreateDeliveryRequestRequest, "quoteId"> = {
 };
 
 async function seedQuote(quoteId: string): Promise<void> {
-  const now = admin.firestore.Timestamp.now();
-  await db.collection("pricing_versions").doc("TEST-PRICING-MISC09").set({
-    pricing_version: "TEST-PRICING-MISC09",
-  });
-  await db.collection("delivery_quotes").doc(quoteId).set({
-    id: quoteId,
-    mission_id: null,
-    customer_id: CUSTOMER_ID,
-    pricing_version: "TEST-PRICING-MISC09",
-    customer_total: 100,
-    quote_breakdown: buildQuoteBreakdownFixture("TEST-PRICING-MISC09"),
-    created_at: now,
-    expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
-    is_consumed: false,
+  const pricingConfig = buildPricingConfig({ pricing_version: "TEST-PRICING-MISC09" });
+  await db.collection("pricing_versions").doc("TEST-PRICING-MISC09").set(pricingConfig);
+  await seedLockedQuote({
+    quoteId,
+    customerId: CUSTOMER_ID,
+    pricingConfig,
+    stops: [pickupStop, dropoffStop],
+    distanceKm: 12,
+    estimatedDurationMinutes: 25,
   });
 }
 

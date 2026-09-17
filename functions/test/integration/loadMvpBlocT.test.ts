@@ -29,11 +29,10 @@ import {
 import { recordTrackingPoint, RecordTrackingPointRequest } from "../../src/functions/recordTrackingPoint";
 import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
-import { buildQuoteBreakdownFixture } from "../testUtils/quoteBreakdownFixture";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
-import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
+import { seedLockedQuote, seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 const PRICING_VERSION = "TEST-PRICING-LOAD-001";
 
@@ -236,28 +235,20 @@ describe("BLOC T-2 — createDeliveryRequest en burst (5 créations indépendant
   let createdMissionIds: string[] = [];
 
   beforeEach(async () => {
-    const now = admin.firestore.Timestamp.now();
-    await db.collection("pricing_versions").doc(PRICING_VERSION).set({
-      pricing_version: PRICING_VERSION,
-    });
+    const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION });
+    await db.collection("pricing_versions").doc(PRICING_VERSION).set(pricingConfig);
     await Promise.all(
       customerIds.map((customerId, i) =>
         Promise.all([
           db.collection("payment_profiles").doc(customerId).set(buildFakePaymentProfile(customerId)),
-          db
-            .collection("delivery_quotes")
-            .doc(quoteIds[i])
-            .set({
-              id: quoteIds[i],
-              mission_id: null,
-              customer_id: customerId,
-              pricing_version: PRICING_VERSION,
-              customer_total: 100,
-              quote_breakdown: buildQuoteBreakdownFixture(PRICING_VERSION),
-              created_at: now,
-              expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
-              is_consumed: false,
-            }),
+          seedLockedQuote({
+            quoteId: quoteIds[i],
+            customerId,
+            pricingConfig,
+            stops: [pickupStop, dropoffStop],
+            distanceKm: 8,
+            estimatedDurationMinutes: 15,
+          }),
         ])
       )
     );

@@ -192,6 +192,11 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     }
 
     const lockedQuote = resolveLockedQuote(input.quoteId, quote);
+    if (!lockedQuote.isLockedSchema) {
+      throw failedPrecondition(
+        "Ce devis historique ne peut pas créer une nouvelle mission. Recalculez un devis sécurisé."
+      );
+    }
     const pricingVersionRef = db.collection("pricing_versions").doc(lockedQuote.pricingVersion);
     const pricingVersionSnap = await tx.get(pricingVersionRef);
     if (!pricingVersionSnap.exists) {

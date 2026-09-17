@@ -303,8 +303,28 @@ service cloud.firestore {
         resource.data.customer_id == uid() &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'assignment_mode',
+          'internal_test_authorized',
           'internal_test_assigned_by',
-          'internal_test_assigned_at'
+          'internal_test_assigned_at',
+          'active_quote_id',
+          'active_financial_snapshot_id',
+          'active_payment_id',
+          'pricing_version',
+          'pricing_snapshot',
+          'quote_breakdown',
+          'quote_integrity_hash',
+          'quote_schema_version',
+          'customer_total',
+          'customer_total_minor',
+          'customer_discount_amount',
+          'tax_snapshot',
+          'distance_km',
+          'estimated_duration_minutes',
+          'required_vehicle_category',
+          'pickup_address',
+          'dropoff_address',
+          'driver_offer_amount',
+          'payment_status'
         ]) && (
         (resource.data.driver_id == null &&
          request.resource.data.driver_id == resource.data.driver_id &&
