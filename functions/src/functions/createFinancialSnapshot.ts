@@ -17,16 +17,12 @@ import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import {
-  calculateCustomerQuote,
   calculateDriverCompensation,
   resolveCommission,
 } from "../lib/pricingEngine";
 import { MissionAssignmentModes, PricingVersionDoc } from "../lib/types";
-import {
-  DEFAULT_JURISDICTION,
-  applyTaxSnapshotToQuote,
-  resolveAndFreezeTaxSnapshot,
-} from "../lib/taxEngine";
+import { resolveLockedQuote } from "../lib/quoteIntegrity";
+import { toMinorUnits } from "../lib/money";
 
 export interface CreateFinancialSnapshotRequest {
   missionId: string;
@@ -73,28 +69,32 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       }
     }
 
-    const versionSnap = await tx.get(db.collection("pricing_versions").doc(mission.pricing_version));
+    if (typeof mission.active_quote_id !== "string" || !mission.active_quote_id) {
+      throw failedPrecondition("Cette mission n'est liée à aucun devis officiel.");
+    }
+    const quoteSnap = await tx.get(db.collection("delivery_quotes").doc(mission.active_quote_id));
+    if (!quoteSnap.exists) throw failedPrecondition("Devis officiel introuvable.");
+    const quote = quoteSnap.data()!;
+    if (
+      quote.customer_id !== mission.customer_id ||
+      quote.mission_id !== missionId ||
+      quote.is_consumed !== true
+    ) {
+      throw failedPrecondition("Le devis officiel ne correspond pas à cette mission.");
+    }
+    const lockedQuote = resolveLockedQuote(mission.active_quote_id, quote);
+    if (
+      mission.pricing_version !== lockedQuote.pricingVersion ||
+      toMinorUnits(mission.customer_total) !== lockedQuote.customerTotalMinor
+    ) {
+      throw failedPrecondition("Les données tarifaires de la mission divergent du devis officiel.");
+    }
+
+    const versionSnap = await tx.get(db.collection("pricing_versions").doc(lockedQuote.pricingVersion));
     if (!versionSnap.exists) throw failedPrecondition("pricing_version introuvable.");
     const pricingConfig = versionSnap.data() as PricingVersionDoc;
-
-    const flatPricingResult = calculateCustomerQuote(pricingConfig, {
-      vehicleCategory: mission.required_vehicle_category,
-      distanceKm: mission.distance_km,
-      estimatedDurationMinutes: mission.estimated_duration_minutes,
-      customerDiscountAmount: mission.customer_discount_amount ?? 0,
-    });
-
-    // ---- BLOC E : même moteur de taxes configurable que acceptDelivery.ts ----
-    const jurisdiction = mission.tax_jurisdiction ?? DEFAULT_JURISDICTION;
-    const taxSnapshot = await resolveAndFreezeTaxSnapshot({
-      jurisdiction,
-      taxableAmountMajor: flatPricingResult.subtotal + flatPricingResult.customerServiceFee,
-      applyToTransport: true,
-      applyToPlatformFees: true,
-      atMillis: admin.firestore.Timestamp.now().toMillis(),
-      tx,
-    });
-    const pricingResult = applyTaxSnapshotToQuote(flatPricingResult, taxSnapshot);
+    const pricingResult = lockedQuote.pricingResult;
+    const taxSnapshot = lockedQuote.pricingSnapshot?.tax_snapshot ?? quote.tax_snapshot ?? null;
 
     const resolved = resolveCommission({
       nowMillis: Date.now(),
@@ -115,6 +115,11 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       customer_id: mission.customer_id,
       driver_id: mission.driver_id,
       pricing_version: mission.pricing_version,
+      quote_id: mission.active_quote_id,
+      quote_integrity_hash: lockedQuote.integrityHash,
+      quote_schema_version: lockedQuote.pricingSnapshot?.schema_version ?? 0,
+      pricing_snapshot: lockedQuote.pricingSnapshot,
+      quote_breakdown: pricingResult,
       mission_base_value: pricingResult.missionBaseValue,
       driver_gross_earnings: compensation.driverGrossEarnings,
       driver_offer_amount: compensation.driverOfferAmount,
@@ -135,6 +140,7 @@ export const createFinancialSnapshot = onCall<CreateFinancialSnapshotRequest>(as
       payment_processing_cost: 0,
       insurance_cost: 0,
       customer_total: pricingResult.customerTotal,
+      customer_total_minor: lockedQuote.customerTotalMinor,
       platform_gross_revenue: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
       contribution_margin: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
       created_at: now,

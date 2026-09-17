@@ -82,6 +82,7 @@ function nextId(prefix: string): string {
 }
 
 export class FakePaymentProvider extends PaymentProvider {
+  readonly createdPaymentParams: CreatePaymentParams[] = [];
   // 🔒 Phase 8B (item f, isolation d'environnement) — le FakePaymentProvider
   // ne manipule JAMAIS de fonds réels : toujours "test" par convention (voir
   // src/payment/paymentProvider.ts, doc du champ `environment`). Jamais
@@ -105,7 +106,8 @@ export class FakePaymentProvider extends PaymentProvider {
     return { success: true, providerPaymentMethodId: params.providerPaymentMethodId };
   }
 
-  async createPayment(_params: CreatePaymentParams): Promise<CreatePaymentResult> {
+  async createPayment(params: CreatePaymentParams): Promise<CreatePaymentResult> {
+    this.createdPaymentParams.push(params);
     return { providerPaymentIntentId: nextId("pi"), status: "requires_capture" };
   }
 

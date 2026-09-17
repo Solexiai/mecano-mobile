@@ -528,11 +528,15 @@ export interface DeliveryMissionDoc {
 export interface PaymentDoc {
   payment_id: string;
   mission_id: string;
+  quote_id?: string;
+  financial_snapshot_id?: string;
+  quote_integrity_hash?: string | null;
   customer_id: string;
   driver_id: string;
   status: PaymentStatus;
   currency: string; // 'CAD'
   amount_authorized_minor: number;
+  amount_requested_minor?: number;
   amount_captured_minor: number;
   amount_refunded_minor: number;
   application_fee_minor: number; // commission Movi-K + frais de service, en cents

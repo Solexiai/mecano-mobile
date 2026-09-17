@@ -133,6 +133,7 @@ describe("Phase 7 — Bloc B (MIS-C-02) : aucun chauffeur disponible à la créa
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 12,
         estimatedDurationMinutes: 25,
       })
@@ -205,6 +206,7 @@ describe("Phase 7 — Bloc B (MIS-C-02) : aucun chauffeur disponible à la créa
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 12,
         estimatedDurationMinutes: 25,
       })

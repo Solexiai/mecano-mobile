@@ -68,6 +68,7 @@ import { rejectDriver, RejectDriverRequest } from "../../src/functions/rejectDri
 import { admin, authAdmin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
 import { DriverStatuses, FoundingDriverStatuses, PlatformRoles } from "../../src/lib/types";
+import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 function buildRequest<T>(
   uid: string,
@@ -138,6 +139,16 @@ async function seedMissionForSnapshot(opts: {
   activeSnapshotId?: string | null;
   internalTest?: boolean;
 }): Promise<void> {
+  const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION });
+  const officialQuote = opts.internalTest
+    ? null
+    : await seedOfficialLegacyQuote({
+        missionId: MISSION_ID,
+        customerId: CUSTOMER_ID,
+        pricingConfig,
+        distanceKm: 10,
+        estimatedDurationMinutes: 20,
+      });
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: CUSTOMER_ID,
     driver_id: DRIVER_ID,
@@ -147,6 +158,12 @@ async function seedMissionForSnapshot(opts: {
     required_vehicle_category: "cargoVan",
     distance_km: 10,
     estimated_duration_minutes: 20,
+    active_quote_id: officialQuote?.quoteId ?? null,
+    customer_total: officialQuote?.pricingResult.customerTotal ?? 0,
+    customer_total_minor: officialQuote
+      ? Math.round(officialQuote.pricingResult.customerTotal * 100)
+      : 0,
+    quote_breakdown: officialQuote?.pricingResult ?? null,
     customer_discount_amount: 0,
     pricing_version: PRICING_VERSION,
     active_financial_snapshot_id: opts.activeSnapshotId === undefined ? null : opts.activeSnapshotId,
@@ -239,6 +256,7 @@ async function cleanupAll(): Promise<void> {
   batch.delete(db.collection("driver_profiles").doc(LEGACY_ROLE_UID));
   batch.delete(db.collection("driver_profiles").doc(CANONICAL_ROLE_UID));
   batch.delete(db.collection("delivery_requests").doc(MISSION_ID));
+  batch.delete(db.collection("delivery_quotes").doc(`quote_${MISSION_ID}`));
   batch.delete(db.collection("financial_snapshots").doc(SNAPSHOT_ID));
   batch.delete(db.collection("pricing_configs").doc("active"));
   batch.delete(db.collection("pricing_versions").doc(PRICING_VERSION));

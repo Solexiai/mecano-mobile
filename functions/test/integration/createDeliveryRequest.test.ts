@@ -18,6 +18,7 @@ import {
 import { admin, db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
+import { buildQuoteBreakdownFixture } from "../testUtils/quoteBreakdownFixture";
 
 const CUSTOMER_ID = "create_customer_001";
 const OTHER_CUSTOMER_ID = "create_customer_002";
@@ -75,13 +76,16 @@ const baseInput: Omit<CreateDeliveryRequestRequest, "quoteId"> = {
 
 async function seedQuote(overrides: Record<string, unknown> = {}): Promise<void> {
   const now = admin.firestore.Timestamp.now();
+  await db.collection("pricing_versions").doc("TEST-PRICING-001").set({
+    pricing_version: "TEST-PRICING-001",
+  });
   await db.collection("delivery_quotes").doc(QUOTE_ID).set({
     id: QUOTE_ID,
     mission_id: null,
     customer_id: CUSTOMER_ID,
     pricing_version: "TEST-PRICING-001",
     customer_total: 100,
-    quote_breakdown: { customerDiscountAmount: 0 },
+    quote_breakdown: buildQuoteBreakdownFixture("TEST-PRICING-001"),
     created_at: now,
     expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
     is_consumed: false,
@@ -93,6 +97,7 @@ let createdMissionIds: string[] = [];
 
 async function cleanup(): Promise<void> {
   await db.collection("delivery_quotes").doc(QUOTE_ID).delete();
+  await db.collection("pricing_versions").doc("TEST-PRICING-001").delete();
   await Promise.all(
     createdMissionIds.map(async (id) => {
       const stops = await db.collection("delivery_requests").doc(id).collection("stops").get();

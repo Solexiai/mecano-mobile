@@ -26,7 +26,6 @@ import { requireAdminOrAbove, requireSignedIn, requireSuperAdmin } from "../lib/
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import {
-  calculateCustomerQuote,
   calculateDriverCompensation,
   resolveCommission,
 } from "../lib/pricingEngine";
@@ -45,11 +44,8 @@ import {
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
-import {
-  DEFAULT_JURISDICTION,
-  applyTaxSnapshotToQuote,
-  resolveAndFreezeTaxSnapshot,
-} from "../lib/taxEngine";
+import { resolveLockedQuote } from "../lib/quoteIntegrity";
+import { toMinorUnits } from "../lib/money";
 
 export interface AdminAssignDeliveryRequest {
   missionId: string;
@@ -222,40 +218,48 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       };
     }
 
-    // ---- Recalcul financier serveur (jamais un montant client) ----
+    // ---- Devis officiel : source unique de vérité financière ----
+    if (typeof mission.active_quote_id !== "string" || !mission.active_quote_id) {
+      throw failedPrecondition("Cette mission standard n'est liée à aucun devis officiel.");
+    }
+    const quoteRef = db.collection("delivery_quotes").doc(mission.active_quote_id);
+    const quoteSnap = await tx.get(quoteRef);
+    if (!quoteSnap.exists) {
+      throw failedPrecondition(`delivery_quotes/${mission.active_quote_id} introuvable.`);
+    }
+    const quote = quoteSnap.data()!;
+    if (
+      quote.customer_id !== mission.customer_id ||
+      quote.mission_id !== missionId ||
+      quote.is_consumed !== true
+    ) {
+      throw failedPrecondition("Le devis officiel n'est pas lié de façon valide à cette mission.");
+    }
+    if (quote.status === "cancelled" || quote.cancelled_at) {
+      throw failedPrecondition("Le devis lié à cette mission a été annulé.");
+    }
+    const lockedQuote = resolveLockedQuote(mission.active_quote_id, quote);
+    if (
+      mission.pricing_version !== lockedQuote.pricingVersion ||
+      toMinorUnits(mission.customer_total) !== lockedQuote.customerTotalMinor ||
+      (mission.customer_total_minor !== undefined &&
+        mission.customer_total_minor !== lockedQuote.customerTotalMinor)
+    ) {
+      throw failedPrecondition("Les données tarifaires de la mission divergent du devis officiel.");
+    }
+    if (lockedQuote.integrityHash && mission.quote_integrity_hash !== lockedQuote.integrityHash) {
+      throw failedPrecondition("L'empreinte du devis copiée dans la mission est invalide.");
+    }
+
     const versionSnap = await tx.get(
-      db.collection("pricing_versions").doc(mission.pricing_version)
+      db.collection("pricing_versions").doc(lockedQuote.pricingVersion)
     );
     if (!versionSnap.exists) {
       throw failedPrecondition(`pricing_versions/${mission.pricing_version} introuvable.`);
     }
     const pricingConfig = versionSnap.data() as PricingVersionDoc;
-
-    const flatPricingResult = calculateCustomerQuote(pricingConfig, {
-      vehicleCategory: mission.required_vehicle_category,
-      distanceKm: mission.distance_km,
-      estimatedDurationMinutes: mission.estimated_duration_minutes,
-      // Remise dénormalisée depuis le devis d'origine (résolue côté serveur
-      // par calculateDeliveryQuote(), jamais un montant client) — garantit
-      // que le snapshot final reflète EXACTEMENT le devis affiché au client.
-      customerDiscountAmount: mission.customer_discount_amount ?? 0,
-    });
-
-    // ---- BLOC E : moteur de taxes configurable (Phase 6, point 14/15) ----
-    // Tant qu'aucune TaxConfigDoc active n'existe pour la juridiction,
-    // `taxSnapshot` est null et `applyTaxSnapshotToQuote()` renvoie
-    // `flatPricingResult` INCHANGÉ (taux plat legacy `pricingConfig.tax_rate`)
-    // — AUCUNE régression sur les missions déjà tarifées en Phase 1-5.
-    const jurisdiction = mission.tax_jurisdiction ?? DEFAULT_JURISDICTION;
-    const taxSnapshot = await resolveAndFreezeTaxSnapshot({
-      jurisdiction,
-      taxableAmountMajor: flatPricingResult.subtotal + flatPricingResult.customerServiceFee,
-      applyToTransport: true,
-      applyToPlatformFees: true,
-      atMillis: admin.firestore.Timestamp.now().toMillis(),
-      tx,
-    });
-    const pricingResult = applyTaxSnapshotToQuote(flatPricingResult, taxSnapshot);
+    const pricingResult = lockedQuote.pricingResult;
+    const taxSnapshot = lockedQuote.pricingSnapshot?.tax_snapshot ?? quote.tax_snapshot ?? null;
 
     // ---- Résolution de commission : Founding Driver > promo > standard ----
     // 🔒 BLOC O — CORRECTIF : on ne suppose JAMAIS un `programId` fixe
@@ -381,6 +385,11 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       customer_id: mission.customer_id,
       driver_id: driverId,
       pricing_version: mission.pricing_version,
+      quote_id: mission.active_quote_id,
+      quote_integrity_hash: lockedQuote.integrityHash,
+      quote_schema_version: lockedQuote.pricingSnapshot?.schema_version ?? 0,
+      pricing_snapshot: lockedQuote.pricingSnapshot,
+      quote_breakdown: pricingResult,
       mission_base_value: pricingResult.missionBaseValue,
       driver_gross_earnings: compensation.driverGrossEarnings,
       driver_offer_amount: compensation.driverOfferAmount,
@@ -408,6 +417,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       payment_processing_cost: 0,
       insurance_cost: 0,
       customer_total: pricingResult.customerTotal,
+      customer_total_minor: lockedQuote.customerTotalMinor,
       platform_gross_revenue: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
       contribution_margin: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
       created_at: now,
@@ -435,7 +445,9 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       snapshotId: snapshotRef.id,
       customerId: mission.customer_id as string,
       customerTotal: pricingResult.customerTotal,
+      customerTotalMinor: lockedQuote.customerTotalMinor,
       applicationFee: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
+      quoteId: mission.active_quote_id as string,
       internalTest: false,
     };
   });
@@ -464,8 +476,8 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     missionId: result.missionId,
     customerId: result.customerId,
     driverId,
-    customerTotalMajor: result.customerTotal,
-    applicationFeeMajor: result.applicationFee,
+    quoteId: result.quoteId!,
+    financialSnapshotId: result.snapshotId!,
   });
 
   if (!paymentOutcome.success) {

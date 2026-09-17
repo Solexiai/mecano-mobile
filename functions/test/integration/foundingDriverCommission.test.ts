@@ -39,6 +39,7 @@ import {
 import { CommissionConfigDoc, FoundingDriverStatuses, MissionStatuses } from "../../src/lib/types";
 import { toMinorUnits } from "../../src/lib/money";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 // ---------------------------------------------------------------------------
 // Constantes partagées — mêmes distance/durée pour TOUS les scénarios afin
@@ -132,6 +133,13 @@ async function seedOpenMission(params: {
   customerId: string;
   pricingVersionId: string;
 }): Promise<void> {
+  const { quoteId, pricingResult } = await seedOfficialLegacyQuote({
+    missionId: params.missionId,
+    customerId: params.customerId,
+    pricingConfig: buildPricingConfig({ pricing_version: params.pricingVersionId }),
+    distanceKm: DISTANCE_KM,
+    estimatedDurationMinutes: DURATION_MIN,
+  });
   await db.collection("delivery_requests").doc(params.missionId).set({
     customer_id: params.customerId,
     customer_display_name: "Client Test Bloc O",
@@ -147,10 +155,12 @@ async function seedOpenMission(params: {
     estimated_duration_minutes: DURATION_MIN,
     pricing_version: params.pricingVersionId,
     driver_offer_amount: 0,
-    customer_total: 0,
+    customer_total: pricingResult.customerTotal,
+    customer_total_minor: Math.round(pricingResult.customerTotal * 100),
+    quote_breakdown: pricingResult,
     customer_discount_amount: 0,
     payment_status: "pending",
-    active_quote_id: null,
+    active_quote_id: quoteId,
     active_financial_snapshot_id: null,
     created_at: admin.firestore.Timestamp.now(),
     dispatch_zone_geohash: "f25dvk",
@@ -237,6 +247,7 @@ async function cleanupMissionArtifacts(missionId: string): Promise<void> {
     ...ledger.docs.map((d) => d.ref.delete()),
     db.collection("delivery_requests").doc(missionId).delete(),
     db.collection("mission_financial_balance").doc(missionId).delete(),
+    db.collection("delivery_quotes").doc(`quote_${missionId}`).delete(),
   ]);
 }
 

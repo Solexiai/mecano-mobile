@@ -165,6 +165,7 @@ async function createQuoteAndMission(
   const quote = await calculateDeliveryQuote.run(
     authedRequest<CalculateDeliveryQuoteRequest>(customerId, {
       vehicleCategory: "cargoVan",
+      stops: [pickupStop, dropoffStop],
       distanceKm: 10,
       estimatedDurationMinutes: 20,
     })
@@ -504,6 +505,7 @@ describe("Bloc X (X-11, section B) — accept_new_delivery_requests ON/OFF", () 
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 10,
           estimatedDurationMinutes: 20,
         })
@@ -1349,6 +1351,7 @@ describe("Bloc X (X-11, section J) — aucun cache : l'appel serveur suivant obs
       const quote2 = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 10,
           estimatedDurationMinutes: 20,
         })
@@ -1373,6 +1376,7 @@ describe("Bloc X (X-11, section J) — aucun cache : l'appel serveur suivant obs
       const quote3 = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 10,
           estimatedDurationMinutes: 20,
         })
@@ -1449,6 +1453,7 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 10,
           estimatedDurationMinutes: 20,
         })
@@ -1523,6 +1528,7 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 10,
           estimatedDurationMinutes: 20,
         })

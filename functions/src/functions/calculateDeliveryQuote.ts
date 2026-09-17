@@ -22,11 +22,40 @@ import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
 import { PricingVersionDoc } from "../lib/types";
 import { resolveConfiguredVehicleCategory } from "../lib/vehicleCategory";
+import { calculateAuthoritativeRoute } from "./calculateRoute";
+import {
+  LOCKED_QUOTE_SCHEMA_VERSION,
+  LockedQuotePricingSnapshot,
+  buildQuoteIntegrityEnvelope,
+  computeQuoteIntegrityHash,
+} from "../lib/quoteIntegrity";
+import { DEFAULT_CURRENCY, toMajorUnits, toMinorUnits } from "../lib/money";
+import {
+  DEFAULT_JURISDICTION,
+  applyTaxSnapshotToQuote,
+  resolveAndFreezeTaxSnapshot,
+} from "../lib/taxEngine";
+
+export interface QuoteStopInput {
+  type: "pickup" | "dropoff";
+  address: {
+    line1: string;
+    city: string;
+    postal_code: string;
+    lat: number;
+    lng: number;
+    formatted_address?: string;
+    place_id?: string;
+  };
+}
 
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
-  distanceKm: number;
-  estimatedDurationMinutes: number;
+  /** Coordonnées officielles utilisées par le serveur pour calculer l'itinéraire. */
+  stops?: QuoteStopInput[];
+  /** Champs legacy tolérés au transport, mais JAMAIS utilisés pour calculer le devis. */
+  distanceKm?: number;
+  estimatedDurationMinutes?: number;
   handling?: {
     isHeavyItem?: boolean;
     isBulkyItem?: boolean;
@@ -75,12 +104,44 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const input = request.data;
 
   if (!input.vehicleCategory) throw invalidArgument("vehicleCategory est requis.");
-  if (typeof input.distanceKm !== "number" || input.distanceKm < 0) {
-    throw invalidArgument("distanceKm doit être un nombre positif.");
+  if (!Array.isArray(input.stops) || input.stops.length < 2) {
+    throw invalidArgument("Au moins 2 arrêts géocodés sont requis pour calculer le devis.");
   }
-  if (typeof input.estimatedDurationMinutes !== "number" || input.estimatedDurationMinutes < 0) {
-    throw invalidArgument("estimatedDurationMinutes doit être un nombre positif.");
+  if (input.stops[0].type !== "pickup" || input.stops[input.stops.length - 1].type !== "dropoff") {
+    throw invalidArgument("Le premier arrêt doit être le pickup et le dernier le dropoff.");
   }
+  for (const stop of input.stops) {
+    const { lat, lng } = stop.address ?? {};
+    if (
+      typeof lat !== "number" ||
+      typeof lng !== "number" ||
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180 ||
+      (lat === 1 && lng === 2)
+    ) {
+      throw invalidArgument("Chaque arrêt doit contenir des coordonnées géographiques valides.");
+    }
+  }
+
+  // La distance et la durée viennent exclusivement du fournisseur routier
+  // appelé côté serveur. Les anciennes valeurs envoyées par le client sont
+  // volontairement ignorées afin qu'elles ne puissent jamais fixer un prix.
+  const pickup = input.stops[0].address;
+  const dropoff = input.stops[input.stops.length - 1].address;
+  const route = await calculateAuthoritativeRoute({
+    pickupLat: pickup.lat,
+    pickupLng: pickup.lng,
+    dropoffLat: dropoff.lat,
+    dropoffLng: dropoff.lng,
+    intermediateStops: input.stops.slice(1, -1).map((stop) => ({
+      lat: stop.address.lat,
+      lng: stop.address.lng,
+    })),
+  });
 
   // 1. Lire le pointeur de config active, puis la version elle-même.
   const activeConfigSnap = await db.collection("pricing_configs").doc("active").get();
@@ -129,11 +190,13 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   // confiance à un montant envoyé par le client.
   const baseArgs = {
     vehicleCategory: configuredVehicleCategory,
-    distanceKm: input.distanceKm,
-    estimatedDurationMinutes: input.estimatedDurationMinutes,
+    distanceKm: route.distanceKm,
+    estimatedDurationMinutes: route.estimatedDurationMinutes,
     handling: input.handling,
     totalWaitingMinutes: input.totalWaitingMinutes,
-    additionalStopsCount: input.additionalStopsCount,
+    // Dérivé des arrêts réellement figés dans le devis, jamais d'un nombre
+    // libre fourni par le client.
+    additionalStopsCount: Math.max(0, input.stops.length - 2),
     applicableSurchargeIds: input.applicableSurchargeIds,
   };
   const unDiscountedResult = calculateCustomerQuote(config, baseArgs);
@@ -145,25 +208,102 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   );
 
   // 4. Calcul final du devis avec la remise résolue côté serveur.
-  const pricingResult = calculateCustomerQuote(config, {
+  const flatPricingResult = calculateCustomerQuote(config, {
     ...baseArgs,
     customerDiscountAmount,
   });
 
+  // Les taxes sont résolues et figées AU MOMENT DU DEVIS. Elles ne seront
+  // plus relues lors de l'acceptation du chauffeur.
+  const quoteCalculatedAt = admin.firestore.Timestamp.now();
+  const taxSnapshot = await resolveAndFreezeTaxSnapshot({
+    jurisdiction: DEFAULT_JURISDICTION,
+    taxableAmountMajor: flatPricingResult.subtotal + flatPricingResult.customerServiceFee,
+    applyToTransport: true,
+    applyToPlatformFees: true,
+    atMillis: quoteCalculatedAt.toMillis(),
+  });
+  const pricingResult = applyTaxSnapshotToQuote(flatPricingResult, taxSnapshot);
+  // Le contrat monétaire officiel est exprimé en cents. On normalise aussi
+  // la représentation majeure afin que devis, mission, snapshot et Stripe
+  // portent exactement le même total, sans demi-cent résiduel.
+  const customerTotalMinor = toMinorUnits(pricingResult.customerTotal);
+  const lockedPricingResult = {
+    ...pricingResult,
+    customerTotal: toMajorUnits(customerTotalMinor),
+  };
+
   // 5. Écriture du devis avec durée de validité configurée.
   const quoteRef = db.collection("delivery_quotes").doc();
-  const now = admin.firestore.Timestamp.now();
+  const now = quoteCalculatedAt;
   const expiresAt = admin.firestore.Timestamp.fromMillis(
     now.toMillis() + config.quote_config.quote_validity_minutes * 60_000
+  );
+
+  const normalizedHandling = {
+    isHeavyItem: input.handling?.isHeavyItem === true,
+    isBulkyItem: input.handling?.isBulkyItem === true,
+    needsStairs: input.handling?.needsStairs === true,
+    noElevator: input.handling?.noElevator === true,
+    needsSecondHandler: input.handling?.needsSecondHandler === true,
+    needsSpecialEquipment: input.handling?.needsSpecialEquipment === true,
+  };
+  const pricingSnapshot: LockedQuotePricingSnapshot = {
+    schema_version: LOCKED_QUOTE_SCHEMA_VERSION,
+    currency: DEFAULT_CURRENCY,
+    pricing_version: lockedPricingResult.pricingVersion,
+    vehicle_category: configuredVehicleCategory,
+    distance_km: route.distanceKm,
+    estimated_duration_minutes: route.estimatedDurationMinutes,
+    route_provider: "google_routes",
+    route_result: {
+      distance_km: route.distanceKm,
+      estimated_duration_minutes: route.estimatedDurationMinutes,
+    },
+    handling: normalizedHandling,
+    total_waiting_minutes: input.totalWaitingMinutes ?? 0,
+    additional_stops_count: Math.max(0, input.stops.length - 2),
+    applicable_surcharge_ids: [...(input.applicableSurchargeIds ?? [])].sort(),
+    promotion: {
+      code: input.promoCode?.trim() || null,
+      discount_amount: lockedPricingResult.customerDiscountAmount,
+    },
+    tax_snapshot: taxSnapshot,
+    breakdown: lockedPricingResult,
+    customer_total_minor: customerTotalMinor,
+  };
+  const integrityHash = computeQuoteIntegrityHash(
+    buildQuoteIntegrityEnvelope({
+      quoteId: quoteRef.id,
+      customerId: ctx.uid,
+      createdAtMillis: now.toMillis(),
+      expiresAtMillis: expiresAt.toMillis(),
+      stops: input.stops,
+      pricingSnapshot,
+    })
   );
 
   await quoteRef.set({
     id: quoteRef.id,
     mission_id: null, // rattaché lors de createDeliveryRequest()
     customer_id: ctx.uid,
-    pricing_version: pricingResult.pricingVersion,
-    customer_total: pricingResult.customerTotal,
-    quote_breakdown: pricingResult,
+    pricing_version: lockedPricingResult.pricingVersion,
+    customer_total: lockedPricingResult.customerTotal,
+    customer_total_minor: pricingSnapshot.customer_total_minor,
+    quote_breakdown: lockedPricingResult,
+    pricing_snapshot: pricingSnapshot,
+    stops: input.stops,
+    route_snapshot: {
+      provider: "google_routes",
+      distance_km: route.distanceKm,
+      estimated_duration_minutes: route.estimatedDurationMinutes,
+      calculated_at: now,
+    },
+    tax_snapshot: taxSnapshot,
+    status: "active",
+    cancelled_at: null,
+    integrity_hash: integrityHash,
+    integrity_algorithm: "sha256",
     created_at: now,
     expires_at: expiresAt,
     is_consumed: false,
@@ -171,9 +311,11 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
 
   return {
     quoteId: quoteRef.id,
-    pricingVersion: pricingResult.pricingVersion,
-    customerTotal: pricingResult.customerTotal,
-    breakdown: pricingResult,
+    pricingVersion: lockedPricingResult.pricingVersion,
+    customerTotal: lockedPricingResult.customerTotal,
+    breakdown: lockedPricingResult,
+    distanceKm: route.distanceKm,
+    estimatedDurationMinutes: route.estimatedDurationMinutes,
     expiresAtMillis: expiresAt.toMillis(),
   };
 });

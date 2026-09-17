@@ -33,6 +33,7 @@ import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 const ADMIN_ID = "tax_admin_001";
 const SUPER_ADMIN_ID = "tax_super_admin_001";
@@ -491,6 +492,14 @@ describe("acceptDelivery — snapshot fiscal figé (Phase 6, point 15)", () => {
   }
 
   async function seedMission(missionId: string): Promise<void> {
+    const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION, tax_rate: 0.14975 });
+    const { quoteId, pricingResult } = await seedOfficialLegacyQuote({
+      missionId,
+      customerId: CUSTOMER_ID,
+      pricingConfig,
+      distanceKm: 10,
+      estimatedDurationMinutes: 20,
+    });
     await db.collection("delivery_requests").doc(missionId).set({
       customer_id: CUSTOMER_ID,
       customer_display_name: "Client Fiscal Test",
@@ -506,10 +515,12 @@ describe("acceptDelivery — snapshot fiscal figé (Phase 6, point 15)", () => {
       estimated_duration_minutes: 20,
       pricing_version: PRICING_VERSION,
       driver_offer_amount: 0,
-      customer_total: 0,
+      customer_total: pricingResult.customerTotal,
+      customer_total_minor: Math.round(pricingResult.customerTotal * 100),
+      quote_breakdown: pricingResult,
       customer_discount_amount: 0,
       payment_status: "pending",
-      active_quote_id: null,
+      active_quote_id: quoteId,
       active_financial_snapshot_id: null,
       created_at: admin.firestore.Timestamp.now(),
       dispatch_zone_geohash: "f25dvk",
@@ -532,6 +543,7 @@ describe("acceptDelivery — snapshot fiscal figé (Phase 6, point 15)", () => {
 
   async function cleanupMission(missionId: string): Promise<void> {
     await db.collection("delivery_requests").doc(missionId).delete();
+    await db.collection("delivery_quotes").doc(`quote_${missionId}`).delete();
     const [snapshots, events, payments] = await Promise.all([
       db.collection("financial_snapshots").where("mission_id", "==", missionId).get(),
       db.collection("delivery_requests").doc(missionId).collection("tracking_events").get(),

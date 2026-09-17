@@ -334,6 +334,7 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       const quote = await calculateDeliveryQuote.run(
         buildRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 12,
           estimatedDurationMinutes: 25,
         })

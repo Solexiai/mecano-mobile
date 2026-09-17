@@ -158,6 +158,7 @@ async function runToPaidPayout(fakeProvider: FakePaymentProvider): Promise<{
   const quote = await calculateDeliveryQuote.run(
     authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, undefined, {
       vehicleCategory: "cargoVan",
+      stops: [pickupStop, dropoffStop],
       distanceKm: 18,
       estimatedDurationMinutes: 35,
     })

@@ -166,6 +166,7 @@ describe("Phase 7 — Bloc B : annulation client après assignation LIBÈRE l'au
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 12,
         estimatedDurationMinutes: 25,
       })
@@ -244,6 +245,7 @@ describe("Phase 7 — Bloc B : annulation client après assignation LIBÈRE l'au
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 10,
         estimatedDurationMinutes: 20,
       })
@@ -306,6 +308,7 @@ describe("Phase 7 — Bloc B : annulation client après assignation LIBÈRE l'au
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 8,
         estimatedDurationMinutes: 15,
       })

@@ -9,8 +9,8 @@
 //   -> saisie pickup (adresse structurée + lat/lng)
 //   -> saisie destination (adresse structurée + lat/lng)
 //   -> choix du véhicule requis + informations sur l'objet
-//   -> DistanceEstimationService.estimate() (itinéraire routier Google)
 //   -> MissionRepository.requestQuote() -> Cloud Function calculateDeliveryQuote
+//      (itinéraire routier Google calculé et figé côté serveur)
 //   -> affichage du devis réel (DeliveryQuote.customerTotal, jamais recalculé)
 //   -> confirmation du client
 //   -> MissionRepository.createMissionFromQuote() -> Cloud Function
@@ -84,8 +84,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   DeliveryMission? _mission;
   DistanceEstimate? _distanceEstimate;
   String? _errorMessage;
-
-  static const _distanceService = DistanceEstimationService();
 
   @override
   void dispose() {
@@ -260,20 +258,37 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     });
 
     try {
-      final estimate = await _distanceService.estimate(
-        pickupLat: pickup.lat,
-        pickupLng: pickup.lng,
-        dropoffLat: dropoff.lat,
-        dropoffLng: dropoff.lng,
-      );
-
       final quote = await BackendLocator.missionRepository.requestQuote(
         customerId: auth.effectiveUid ?? '',
         itemCategoryKey: _selectedCategory,
         vehicleCategoryName: _selectedVehicle!.firestoreValue,
         missionDetails: {
-          'distanceKm': estimate.distanceKm,
-          'estimatedDurationMinutes': estimate.estimatedDurationMinutes,
+          'stops': [
+            {
+              'type': 'pickup',
+              'address': {
+                'line1': pickup.line1,
+                'city': pickup.city,
+                'postal_code': pickup.postalCode,
+                'lat': pickup.lat,
+                'lng': pickup.lng,
+                'formatted_address': pickup.formattedAddress,
+                'place_id': pickup.placeId,
+              },
+            },
+            {
+              'type': 'dropoff',
+              'address': {
+                'line1': dropoff.line1,
+                'city': dropoff.city,
+                'postal_code': dropoff.postalCode,
+                'lat': dropoff.lat,
+                'lng': dropoff.lng,
+                'formatted_address': dropoff.formattedAddress,
+                'place_id': dropoff.placeId,
+              },
+            },
+          ],
           'handling': {
             'isHeavyItem': _isHeavyItem,
             'isBulkyItem': _isBulkyItem,
@@ -284,8 +299,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       );
 
       if (!mounted) return;
+      if (quote.distanceKm == null || quote.estimatedDurationMinutes == null) {
+        throw StateError('Le devis officiel ne contient pas d\'itinéraire valide.');
+      }
       setState(() {
-        _distanceEstimate = estimate;
+        _distanceEstimate = DistanceEstimate(
+          distanceKm: quote.distanceKm!,
+          estimatedDurationMinutes: quote.estimatedDurationMinutes!,
+          isApproximate: false,
+        );
         _quote = quote;
         _phase = _FlowPhase.quoted;
       });
@@ -366,9 +388,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
               itemCategoryKey: _selectedCategory,
               description: _descController.text.trim(),
               requiredVehicleCategory: _selectedVehicle!,
-              distanceKm: _distanceEstimate!.distanceKm,
-              estimatedDurationMinutes:
-                  _distanceEstimate!.estimatedDurationMinutes,
               stops: [
                 MissionStopInput(
                   type: 'pickup',

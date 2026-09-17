@@ -32,6 +32,7 @@ import {
 import { admin, db } from "../../src/lib/admin";
 import { buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { buildQuoteBreakdownFixture } from "../testUtils/quoteBreakdownFixture";
 
 const CUSTOMER_ID = "misc09_customer_001";
 
@@ -68,13 +69,16 @@ const baseInput: Omit<CreateDeliveryRequestRequest, "quoteId"> = {
 
 async function seedQuote(quoteId: string): Promise<void> {
   const now = admin.firestore.Timestamp.now();
+  await db.collection("pricing_versions").doc("TEST-PRICING-MISC09").set({
+    pricing_version: "TEST-PRICING-MISC09",
+  });
   await db.collection("delivery_quotes").doc(quoteId).set({
     id: quoteId,
     mission_id: null,
     customer_id: CUSTOMER_ID,
     pricing_version: "TEST-PRICING-MISC09",
     customer_total: 100,
-    quote_breakdown: { customerDiscountAmount: 0 },
+    quote_breakdown: buildQuoteBreakdownFixture("TEST-PRICING-MISC09"),
     created_at: now,
     expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
     is_consumed: false,
@@ -144,6 +148,7 @@ describe("MIS-C-09 — createDeliveryRequest : idempotence sur retry / concurren
     } finally {
       await cleanupMission(first.missionId);
       await db.collection("delivery_quotes").doc(quoteId).delete();
+      await db.collection("pricing_versions").doc("TEST-PRICING-MISC09").delete();
     }
   });
 
@@ -204,6 +209,7 @@ describe("MIS-C-09 — createDeliveryRequest : idempotence sur retry / concurren
         await cleanupMission(fulfilled[0].value.missionId);
       }
       await db.collection("delivery_quotes").doc(quoteId).delete();
+      await db.collection("pricing_versions").doc("TEST-PRICING-MISC09").delete();
     }
   });
 });
