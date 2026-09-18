@@ -133,6 +133,7 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 12,
         estimatedDurationMinutes: 25,
       })
@@ -197,6 +198,7 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
     const quote1 = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 10,
         estimatedDurationMinutes: 20,
       })
@@ -221,11 +223,13 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
 
     // Le client "corrige" son moyen de paiement (provider bascule sur succès)
     // et soumet une NOUVELLE demande, indépendante de la première.
-    setPaymentProviderForTesting(new FakePaymentProvider());
+    const successProvider = new FakePaymentProvider();
+    setPaymentProviderForTesting(successProvider);
 
     const quote2 = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 10,
         estimatedDurationMinutes: 20,
       })
@@ -256,6 +260,21 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
     expect(secondMissionSnap.data()!.status).toBe(MissionStatuses.ASSIGNED);
     expect(secondMissionSnap.data()!.payment_status).toBe(PaymentStatuses.AUTHORIZED);
 
+    // P0 — une seule valeur monétaire traverse toute la chaîne jusqu'au
+    // montant réellement remis au provider (frontière Stripe, en cents).
+    const [quoteSnap, snapshotSnap, paymentSnap] = await Promise.all([
+      db.collection("delivery_quotes").doc(quote2.quoteId).get(),
+      db.collection("financial_snapshots").doc(acceptResult2.snapshotId!).get(),
+      db.collection("payments").doc(acceptResult2.paymentId!).get(),
+    ]);
+    const expectedMinor = quoteSnap.data()!.customer_total_minor;
+    expect(secondMissionSnap.data()!.customer_total_minor).toBe(expectedMinor);
+    expect(snapshotSnap.data()!.customer_total_minor).toBe(expectedMinor);
+    expect(paymentSnap.data()!.amount_requested_minor).toBe(expectedMinor);
+    expect(paymentSnap.data()!.amount_authorized_minor).toBe(expectedMinor);
+    expect(successProvider.createdPaymentParams).toHaveLength(1);
+    expect(successProvider.createdPaymentParams[0].amountMinor).toBe(expectedMinor);
+
     // Cleanup de la première mission (échouée), non couverte par le
     // `missionId` unique du afterEach (qui ne nettoie que la seconde).
     const firstRef = db.collection("delivery_requests").doc(firstMissionId);
@@ -268,5 +287,56 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
       ...firstPayments.docs.map((d) => d.ref.delete()),
       firstRef.delete(),
     ]);
+  });
+
+  it("refuse avant Stripe si le total de la mission diverge du devis officiel", async () => {
+    const provider = new FakePaymentProvider();
+    setPaymentProviderForTesting(provider);
+    await Promise.all([
+      seedPricing(),
+      seedApprovedDriver(),
+      db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID)),
+    ]);
+
+    const quote = await calculateDeliveryQuote.run(
+      authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
+        vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
+      })
+    );
+    const created = await createDeliveryRequest.run(
+      authedRequest<CreateDeliveryRequestRequest>(CUSTOMER_ID, {
+        quoteId: quote.quoteId,
+        itemCategoryKey: "furniture",
+        description: "Test divergence mission/devis.",
+        requiredVehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
+        customerDisplayName: "Client Intégrité",
+      })
+    );
+    missionId = created.missionId;
+
+    // Simule une ancienne donnée corrompue ou une écriture privilégiée
+    // incorrecte. La frontière serveur doit arrêter le flux avant Stripe.
+    await db.collection("delivery_requests").doc(created.missionId).update({
+      customer_total: quote.customerTotal + 1,
+      customer_total_minor: Math.round((quote.customerTotal + 1) * 100),
+    });
+
+    await expect(
+      acceptDelivery.run(
+        authedRequest<AcceptDeliveryRequest>(DRIVER_ID, { missionId: created.missionId })
+      )
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    expect(provider.createdPaymentParams).toHaveLength(0);
+    const payments = await db
+      .collection("payments")
+      .where("mission_id", "==", created.missionId)
+      .get();
+    expect(payments.empty).toBe(true);
+    const mission = (await db.collection("delivery_requests").doc(created.missionId).get()).data()!;
+    expect(mission.driver_id).toBeNull();
+    expect(mission.status).toBe(MissionStatuses.SEARCHING_DRIVER);
   });
 });

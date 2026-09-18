@@ -32,7 +32,7 @@ import { buildIdempotencyKey } from "../lib/idempotency";
 import { assertValidPaymentTransition } from "../lib/paymentStateMachine";
 import { assertValidPayoutTransition } from "../lib/payoutStateMachine";
 import { assertValidRefundTransition } from "../lib/refundStateMachine";
-import { aborted, notFound } from "../lib/errors";
+import { aborted, failedPrecondition, notFound } from "../lib/errors";
 import {
   DriverPayoutDoc,
   DriverProfileDoc,
@@ -64,6 +64,7 @@ import {
   STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
   StripeEnvironment,
 } from "../lib/stripeEnvironment";
+import { resolveLockedQuote } from "../lib/quoteIntegrity";
 
 // 🔒 Phase 8B (item f, isolation d'environnement Stripe) — CHAQUE fonction
 // ci-dessous qui RÉUTILISE une référence Stripe déjà stockée (au lieu d'en
@@ -97,8 +98,8 @@ export interface CreateAndAuthorizePaymentInput {
   missionId: string;
   customerId: string;
   driverId: string;
-  customerTotalMajor: number; // dollars (frontière avec le pricingEngine legacy)
-  applicationFeeMajor: number; // commission + frais de service, en dollars
+  quoteId: string;
+  financialSnapshotId: string;
 }
 
 export interface CreateAndAuthorizePaymentOutcome {
@@ -119,7 +120,7 @@ export interface CreateAndAuthorizePaymentOutcome {
 export async function createAndAuthorizeMissionPayment(
   input: CreateAndAuthorizePaymentInput
 ): Promise<CreateAndAuthorizePaymentOutcome> {
-  const { missionId, customerId, driverId, customerTotalMajor, applicationFeeMajor } = input;
+  const { missionId, customerId, driverId, quoteId, financialSnapshotId } = input;
   // 🔒 BLOC I (observabilité) — un SEUL correlation_id pour toute l'opération
   // "création + autorisation" (create payment ET authorize payment), généré
   // ici car aucun correlationId entrant n'existe à ce point de la chaîne
@@ -164,8 +165,12 @@ export async function createAndAuthorizeMissionPayment(
   const driver = driverSnap.data() as DriverProfileDoc | undefined;
   const connectedAccountId = driver?.stripe_connected_account_id ?? null;
 
-  const amountMinor = toMinorUnits(customerTotalMajor, DEFAULT_CURRENCY);
-  const applicationFeeMinor = toMinorUnits(applicationFeeMajor, DEFAULT_CURRENCY);
+  // Ces montants sont dérivés dans la transaction ci-dessous à partir du
+  // devis officiel et du snapshot financier. L'appelant ne peut plus fournir
+  // un montant Stripe indépendant.
+  let amountMinor = 0;
+  let applicationFeeMinor = 0;
+  let quoteIntegrityHash: string | null = null;
 
   // 🔒 Phase 8B (item f) — `provider` est obtenu ICI, AVANT l'étape 1,
   // plutôt qu'à l'étape 2 comme dans une version antérieure de ce fichier :
@@ -186,8 +191,82 @@ export async function createAndAuthorizeMissionPayment(
 
   await db.runTransaction(async (tx) => {
     const missionRef = db.collection("delivery_requests").doc(missionId);
-    const missionSnap = await tx.get(missionRef);
+    const quoteRef = db.collection("delivery_quotes").doc(quoteId);
+    const financialSnapshotRef = db.collection("financial_snapshots").doc(financialSnapshotId);
+    const [missionSnap, quoteSnap, financialSnapshotSnap] = await Promise.all([
+      tx.get(missionRef),
+      tx.get(quoteRef),
+      tx.get(financialSnapshotRef),
+    ]);
     if (!missionSnap.exists) throw new Error(`Mission ${missionId} introuvable.`);
+    if (!quoteSnap.exists) throw failedPrecondition(`Devis ${quoteId} introuvable.`);
+    if (!financialSnapshotSnap.exists) {
+      throw failedPrecondition(`Snapshot financier ${financialSnapshotId} introuvable.`);
+    }
+
+    const mission = missionSnap.data()!;
+    const quote = quoteSnap.data()!;
+    const financialSnapshot = financialSnapshotSnap.data()!;
+    const lockedQuote = resolveLockedQuote(quoteId, quote);
+
+    if (
+      mission.customer_id !== customerId ||
+      mission.driver_id !== driverId ||
+      mission.active_quote_id !== quoteId ||
+      mission.active_financial_snapshot_id !== financialSnapshotId
+    ) {
+      throw failedPrecondition("Mission, devis et snapshot financier ne sont pas liés correctement.");
+    }
+    if (
+      quote.customer_id !== customerId ||
+      quote.mission_id !== missionId ||
+      quote.is_consumed !== true
+    ) {
+      throw failedPrecondition("Le devis officiel ne correspond pas à la mission.");
+    }
+    if (
+      financialSnapshot.mission_id !== missionId ||
+      financialSnapshot.customer_id !== customerId ||
+      financialSnapshot.driver_id !== driverId ||
+      financialSnapshot.quote_id !== quoteId
+    ) {
+      throw failedPrecondition("Le snapshot financier ne correspond pas au devis officiel.");
+    }
+
+    const missionTotalMinor =
+      Number.isInteger(mission.customer_total_minor)
+        ? mission.customer_total_minor
+        : toMinorUnits(mission.customer_total, DEFAULT_CURRENCY);
+    const snapshotTotalMinor =
+      Number.isInteger(financialSnapshot.customer_total_minor)
+        ? financialSnapshot.customer_total_minor
+        : toMinorUnits(financialSnapshot.customer_total, DEFAULT_CURRENCY);
+    if (
+      lockedQuote.customerTotalMinor !== missionTotalMinor ||
+      lockedQuote.customerTotalMinor !== snapshotTotalMinor
+    ) {
+      throw failedPrecondition(
+        "Autorisation refusée : le total du devis, de la mission et du snapshot financier diverge."
+      );
+    }
+    if (
+      lockedQuote.integrityHash &&
+      (mission.quote_integrity_hash !== lockedQuote.integrityHash ||
+        financialSnapshot.quote_integrity_hash !== lockedQuote.integrityHash)
+    ) {
+      throw failedPrecondition("Autorisation refusée : empreinte du devis divergente.");
+    }
+
+    amountMinor = lockedQuote.customerTotalMinor;
+    applicationFeeMinor = toMinorUnits(
+      (financialSnapshot.platform_commission_amount as number) +
+        (financialSnapshot.customer_service_fee as number),
+      DEFAULT_CURRENCY
+    );
+    if (!Number.isInteger(applicationFeeMinor) || applicationFeeMinor < 0 || applicationFeeMinor > amountMinor) {
+      throw failedPrecondition("Autorisation refusée : frais de plateforme invalides.");
+    }
+    quoteIntegrityHash = lockedQuote.integrityHash;
 
     const now = admin.firestore.Timestamp.now();
     // 🔒 Le document est créé DIRECTEMENT en AUTHORIZATION_PENDING (et non
@@ -201,6 +280,10 @@ export async function createAndAuthorizeMissionPayment(
     const payment: PaymentDoc = {
       payment_id: paymentId,
       mission_id: missionId,
+      quote_id: quoteId,
+      financial_snapshot_id: financialSnapshotId,
+      quote_integrity_hash: quoteIntegrityHash,
+      amount_requested_minor: amountMinor,
       customer_id: customerId,
       driver_id: driverId,
       status: PaymentStatuses.AUTHORIZATION_PENDING,

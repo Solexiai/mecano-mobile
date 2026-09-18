@@ -4,6 +4,7 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src", "<rootDir>/test"],
   testMatch: ["**/*.test.ts"],
+  setupFilesAfterEnv: ["<rootDir>/test/setupRouteMock.ts"],
   // Les tests unitaires purs (pricingEngine) n'ont PAS besoin de credentials
   // ni d'émulateur — voir test/unit/*. Les tests d'intégration (test/integration/*)
   // nécessitent l'Émulateur Firestore/Auth démarré au préalable (voir package.json

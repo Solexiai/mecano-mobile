@@ -60,6 +60,8 @@ class DeliveryQuote {
   final String missionId;
   final String pricingVersion;
   final double customerTotal;
+  final double? distanceKm;
+  final double? estimatedDurationMinutes;
   final DateTime createdAt;
   final DateTime expiresAt;
   final bool isConsumed; // true une fois qu'une mission a été créée à partir de ce devis
@@ -70,6 +72,8 @@ class DeliveryQuote {
     required this.missionId,
     required this.pricingVersion,
     required this.customerTotal,
+    this.distanceKm,
+    this.estimatedDurationMinutes,
     required this.createdAt,
     required this.expiresAt,
     this.isConsumed = false,
@@ -83,18 +87,36 @@ class DeliveryQuote {
         'mission_id': missionId,
         'pricing_version': pricingVersion,
         'customer_total': customerTotal,
+        if (distanceKm != null) 'distance_km': distanceKm,
+        if (estimatedDurationMinutes != null)
+          'estimated_duration_minutes': estimatedDurationMinutes,
         'created_at': createdAt.toIso8601String(),
         'expires_at': expiresAt.toIso8601String(),
         'is_consumed': isConsumed,
       };
 
   factory DeliveryQuote.fromJson(String id, Map<String, dynamic> json) {
-    final rawBreakdown = json['quote_breakdown'];
+    final rawPricingSnapshot = json['pricing_snapshot'];
+    final rawBreakdown = rawPricingSnapshot is Map && rawPricingSnapshot['breakdown'] is Map
+        ? rawPricingSnapshot['breakdown']
+        : json['quote_breakdown'];
+    final lockedCustomerTotal = rawBreakdown is Map
+        ? (rawBreakdown['customerTotal'] as num?)?.toDouble()
+        : null;
     return DeliveryQuote(
       id: id,
       missionId: json['mission_id'] as String? ?? '',
       pricingVersion: json['pricing_version'] as String? ?? 'UNCONFIGURED',
-      customerTotal: (json['customer_total'] as num? ?? 0).toDouble(),
+      customerTotal:
+          lockedCustomerTotal ?? (json['customer_total'] as num? ?? 0).toDouble(),
+      distanceKm: (json['pricing_snapshot'] is Map
+              ? (json['pricing_snapshot']['distance_km'] as num?)
+              : null)
+          ?.toDouble(),
+      estimatedDurationMinutes: (json['pricing_snapshot'] is Map
+              ? (json['pricing_snapshot']['estimated_duration_minutes'] as num?)
+              : null)
+          ?.toDouble(),
       createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       expiresAt: parseFirestoreDate(json['expires_at']) ?? DateTime.now(),
       isConsumed: json['is_consumed'] as bool? ?? false,

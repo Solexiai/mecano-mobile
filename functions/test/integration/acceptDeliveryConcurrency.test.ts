@@ -33,6 +33,7 @@ import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
+import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 const CUSTOMER_ID = "concurrency_customer_001";
 
@@ -80,6 +81,13 @@ async function seedApprovedDriver(driverId: string): Promise<void> {
 }
 
 async function seedOpenMission(): Promise<void> {
+  const { quoteId, pricingResult } = await seedOfficialLegacyQuote({
+    missionId: MISSION_ID,
+    customerId: CUSTOMER_ID,
+    pricingConfig: buildPricingConfig({ pricing_version: PRICING_VERSION }),
+    distanceKm: 10,
+    estimatedDurationMinutes: 20,
+  });
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: "concurrency_customer_001",
     customer_display_name: "Client Test",
@@ -95,10 +103,12 @@ async function seedOpenMission(): Promise<void> {
     estimated_duration_minutes: 20,
     pricing_version: PRICING_VERSION,
     driver_offer_amount: 0,
-    customer_total: 0,
+    customer_total: pricingResult.customerTotal,
+    customer_total_minor: Math.round(pricingResult.customerTotal * 100),
+    quote_breakdown: pricingResult,
     customer_discount_amount: 0,
     payment_status: "pending",
-    active_quote_id: null,
+    active_quote_id: quoteId,
     active_financial_snapshot_id: null,
     created_at: admin.firestore.Timestamp.now(),
     dispatch_zone_geohash: "f25dvk",
@@ -123,6 +133,7 @@ async function cleanupSeed(): Promise<void> {
     db.collection("driver_profiles").doc(DRIVER_B_ID).delete(),
     db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
     db.collection("payment_profiles").doc(CUSTOMER_ID).delete(),
+    db.collection("delivery_quotes").doc(`quote_${MISSION_ID}`).delete(),
   ]);
   // Nettoyage des sous-collections/documents annexes créés par la fonction
   // (financial_snapshots, audit_logs, tracking_events, payments) pour ne
@@ -397,6 +408,7 @@ describe("acceptDelivery — mission d'essai interne", () => {
     await Promise.all([seedApprovedDriver(DRIVER_A_ID), seedOpenMission()]);
     await db.collection("delivery_requests").doc(MISSION_ID).update({
       assignment_mode: "internal_test",
+      internal_test_authorized: true,
     });
     await seedRuntimeFlags({
       allow_driver_acceptance: false,
@@ -438,5 +450,45 @@ describe("acceptDelivery — mission d'essai interne", () => {
     ]);
     expect(snapshots.empty).toBe(true);
     expect(payments.empty).toBe(true);
+  });
+
+  it("préserve une mission internal_test historique sans marqueur d'autorisation", async () => {
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      internal_test_authorized: admin.firestore.FieldValue.delete(),
+    });
+
+    const result = await acceptDelivery.run(buildDriverRequest(DRIVER_A_ID));
+    expect(result).toMatchObject({
+      success: true,
+      missionId: MISSION_ID,
+      snapshotId: null,
+      paymentId: null,
+      internalTest: true,
+    });
+
+    const [missionSnap, snapshots, payments] = await Promise.all([
+      db.collection("delivery_requests").doc(MISSION_ID).get(),
+      db.collection("financial_snapshots").where("mission_id", "==", MISSION_ID).get(),
+      db.collection("payments").where("mission_id", "==", MISSION_ID).get(),
+    ]);
+    expect(missionSnap.data()!.status).toBe("assigned");
+    expect(snapshots.empty).toBe(true);
+    expect(payments.empty).toBe(true);
+  });
+
+  it("ne traite jamais comme interne une mission dont le marqueur vaut explicitement false", async () => {
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      internal_test_authorized: false,
+    });
+
+    await expect(
+      acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(MISSION_ID).get()
+    ).data()!;
+    expect(mission.status).toBe("searching_driver");
+    expect(mission.driver_id).toBeNull();
   });
 });

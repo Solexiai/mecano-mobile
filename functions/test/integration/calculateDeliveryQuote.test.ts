@@ -18,6 +18,7 @@ import {
 } from "../../src/functions/calculateDeliveryQuote";
 import { admin, db } from "../../src/lib/admin";
 import { buildPricingConfig } from "../unit/fixtures";
+import { setRouteFetcherForTesting } from "../../src/functions/calculateRoute";
 
 const CUSTOMER_ID = "quote_customer_001";
 const PRICING_VERSION = "QUOTE-TEST-PRICING-001";
@@ -74,9 +75,31 @@ async function cleanup(): Promise<void> {
 
 const baseInput: CalculateDeliveryQuoteRequest = {
   vehicleCategory: "cargoVan",
+  stops: [
+    {
+      type: "pickup",
+      address: { line1: "123 Test", city: "Montréal", postal_code: "H2X1Y1", lat: 45.5, lng: -73.6 },
+    },
+    {
+      type: "dropoff",
+      address: { line1: "456 Cible", city: "Laval", postal_code: "H7X1Y1", lat: 45.6, lng: -73.7 },
+    },
+  ],
+  // Valeurs hostiles/obsolètes : le serveur doit les ignorer au profit de
+  // l'itinéraire retourné par son propre fournisseur.
   distanceKm: 10,
   estimatedDurationMinutes: 20,
 };
+
+beforeEach(() => {
+  setRouteFetcherForTesting(async () => ({
+    distanceKm: 12.34,
+    estimatedDurationMinutes: 26.5,
+    isApproximate: false,
+  }));
+});
+
+afterAll(() => setRouteFetcherForTesting(null));
 
 describe("calculateDeliveryQuote — cas nominal", () => {
   afterEach(cleanup);
@@ -96,6 +119,10 @@ describe("calculateDeliveryQuote — cas nominal", () => {
     expect(quote.is_consumed).toBe(false);
     expect(quote.mission_id).toBeNull();
     expect(quote.customer_total).toBe(result.customerTotal);
+    expect(quote.pricing_snapshot.distance_km).toBe(12.34);
+    expect(quote.pricing_snapshot.estimated_duration_minutes).toBe(26.5);
+    expect(quote.customer_total_minor).toBe(Math.round(result.customerTotal * 100));
+    expect(quote.integrity_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(quote.expires_at.toMillis()).toBeGreaterThan(admin.firestore.Timestamp.now().toMillis());
   });
 
@@ -106,11 +133,18 @@ describe("calculateDeliveryQuote — cas nominal", () => {
     });
   });
 
-  it("distanceKm négatif échoue avec invalid-argument", async () => {
+  it("ignore distance/durée injectées par le client et conserve le trajet serveur", async () => {
     await seedActivePricing();
-    await expect(
-      calculateDeliveryQuote.run(buildRequest(CUSTOMER_ID, { ...baseInput, distanceKm: -5 }))
-    ).rejects.toMatchObject({ code: "invalid-argument" });
+    const result = await calculateDeliveryQuote.run(
+      buildRequest(CUSTOMER_ID, {
+        ...baseInput,
+        distanceKm: 0.01,
+        estimatedDurationMinutes: 0.01,
+      })
+    );
+    const quote = (await db.collection("delivery_quotes").doc(result.quoteId).get()).data()!;
+    expect(quote.pricing_snapshot.distance_km).toBe(12.34);
+    expect(quote.pricing_snapshot.estimated_duration_minutes).toBe(26.5);
   });
 
   it("aucune pricing_configs/active configurée échoue avec failed-precondition (aucun devis fantôme calculé)", async () => {

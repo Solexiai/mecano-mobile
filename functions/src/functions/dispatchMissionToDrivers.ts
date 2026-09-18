@@ -28,6 +28,7 @@ import {
   startFinancialOperationTimer,
 } from "../lib/observability";
 import { sendDeliveryOfferPush } from "../lib/pushNotifications";
+import { supportsVehicleCategory } from "../lib/vehicleCategory";
 
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
@@ -66,7 +67,7 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
       const categories = Array.isArray(driver.accepted_vehicle_categories)
         ? (driver.accepted_vehicle_categories as string[])
         : [];
-      if (!categories.includes(mission.required_vehicle_category)) return false;
+      if (!supportsVehicleCategory(categories, mission.required_vehicle_category)) return false;
 
       // La dernière position GPS est prioritaire. Avant le premier partage
       // GPS, l'adresse de base validée pendant l'onboarding sert de repli :

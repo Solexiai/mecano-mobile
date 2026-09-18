@@ -38,3 +38,19 @@ export function resolveConfiguredVehicleCategory(
     ) ?? null
   );
 }
+
+/**
+ * Check whether a driver category list supports the category required by a
+ * mission, including historical camelCase values already stored in profiles.
+ */
+export function supportsVehicleCategory(
+  acceptedCategories: string[],
+  requiredCategory: string
+): boolean {
+  const required = normalizeVehicleCategory(requiredCategory);
+  if (!required) return false;
+
+  return acceptedCategories.some(
+    (accepted) => normalizeVehicleCategory(accepted) === required
+  );
+}

@@ -55,7 +55,6 @@ import {
 } from "../../src/lib/types";
 import { buildPricingConfig } from "../unit/fixtures";
 import {
-  calculateCustomerQuote,
   calculateDriverCompensation,
   resolveCommission,
 } from "../../src/lib/pricingEngine";
@@ -303,6 +302,7 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, undefined, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 15,
           estimatedDurationMinutes: 30,
         })
@@ -310,6 +310,7 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       expect(quote.quoteId).toBeTruthy();
       expect(quote.pricingVersion).toBe(PRICING_VERSION);
       expect(quote.customerTotal).toBeGreaterThan(0);
+      const displayedTotalMinor = toMinorUnits(quote.customerTotal, DEFAULT_CURRENCY);
 
       // ===== Création de la mission =====
       const created = await createDeliveryRequest.run(
@@ -348,14 +349,19 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       expect(payment.status).toBe("authorized");
       expect(payment.provider_payment_intent_id).toBeTruthy();
       expect(Number.isInteger(payment.amount_authorized_minor)).toBe(true);
-      // 🔒 Le montant autorisé DOIT correspondre exactement au customer_total
-      // RECALCULÉ par acceptDelivery() (figé sur le snapshot), jamais au
-      // customer_total du devis d'origine (qui peut légitimement différer
-      // une fois la taxe Phase 6 appliquée server-side).
+      // 🔒 Le montant autorisé DOIT correspondre exactement au devis officiel,
+      // à la mission et au snapshot financier.
       const snapshotForAmountCheck = await db.collection("financial_snapshots").doc(snapshotId).get();
+      const quoteSnap = await db.collection("delivery_quotes").doc(quote.quoteId).get();
+      const officialQuote = quoteSnap.data()!;
       expect(payment.amount_authorized_minor).toBe(
         toMinorUnits(snapshotForAmountCheck.data()!.customer_total as number, DEFAULT_CURRENCY)
       );
+      expect(payment.amount_authorized_minor).toBe(officialQuote.customer_total_minor);
+      expect(payment.amount_authorized_minor).toBe(missionSnap.data()!.customer_total_minor);
+      expect(payment.amount_authorized_minor).toBe(displayedTotalMinor);
+      expect(fakeProvider.createdPaymentParams).toHaveLength(1);
+      expect(fakeProvider.createdPaymentParams[0].amountMinor).toBe(displayedTotalMinor);
       expect(authorizeSpy).toHaveBeenCalledTimes(1);
 
       // ===== POINT 4 — TAX SNAPSHOT : valeurs réelles du moteur =====
@@ -367,13 +373,10 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
       expect(frozenTaxTotalMinor).toBeGreaterThan(0);
 
       // ===== POINT 3 (fin) — vérifie devis vs snapshot cohérents =====
-      // Recalcule les valeurs ATTENDUES via le VRAI moteur (jamais dupliquées à la main).
+      // Les valeurs attendues viennent du devis officiel figé; acceptDelivery
+      // ne doit jamais les recalculer avec des paramètres plus récents.
       const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION });
-      const expectedFlatQuote = calculateCustomerQuote(pricingConfig, {
-        vehicleCategory: "cargoVan",
-        distanceKm: 15,
-        estimatedDurationMinutes: 30,
-      });
+      const expectedFlatQuote = officialQuote.quote_breakdown;
       const expectedCommission = resolveCommission({
         nowMillis: Date.now(),
         foundingQualification: null,

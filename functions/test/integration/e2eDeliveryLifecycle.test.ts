@@ -177,6 +177,7 @@ async function runHappyPathUntilAssigned(): Promise<string> {
   const quote = await calculateDeliveryQuote.run(
     authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
       vehicleCategory: "cargoVan",
+      stops: [pickupStop, dropoffStop],
       distanceKm: 15,
       estimatedDurationMinutes: 30,
     })
@@ -286,6 +287,7 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       const quote = await calculateDeliveryQuote.run(
         authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
           vehicleCategory: "cargoVan",
+          stops: [pickupStop, dropoffStop],
           distanceKm: 15,
           estimatedDurationMinutes: 30,
         })
@@ -621,6 +623,7 @@ describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois as
     const quote = await calculateDeliveryQuote.run(
       authedRequest<CalculateDeliveryQuoteRequest>(CUSTOMER_ID, {
         vehicleCategory: "cargoVan",
+        stops: [pickupStop, dropoffStop],
         distanceKm: 15,
         estimatedDurationMinutes: 30,
       })

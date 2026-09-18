@@ -32,6 +32,7 @@ import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { seedLockedQuote, seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
 
 const PRICING_VERSION = "TEST-PRICING-LOAD-001";
 
@@ -109,9 +110,20 @@ describe("BLOC T-1 — acceptDelivery avec N=5 chauffeurs concurrents (volume pi
   }
 
   beforeEach(async () => {
+    const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION });
     await Promise.all([
       ...DRIVER_IDS.map(seedDriver),
-      db.collection("delivery_requests").doc(MISSION_ID).set({
+      db.collection("pricing_versions").doc(PRICING_VERSION).set(pricingConfig),
+      db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID)),
+    ]);
+    const { quoteId, pricingResult } = await seedOfficialLegacyQuote({
+      missionId: MISSION_ID,
+      customerId: CUSTOMER_ID,
+      pricingConfig,
+      distanceKm: 8,
+      estimatedDurationMinutes: 15,
+    });
+    await db.collection("delivery_requests").doc(MISSION_ID).set({
         customer_id: CUSTOMER_ID,
         customer_display_name: "Client Load Test",
         driver_id: null,
@@ -126,17 +138,16 @@ describe("BLOC T-1 — acceptDelivery avec N=5 chauffeurs concurrents (volume pi
         estimated_duration_minutes: 15,
         pricing_version: PRICING_VERSION,
         driver_offer_amount: 0,
-        customer_total: 0,
+        customer_total: pricingResult.customerTotal,
+        customer_total_minor: Math.round(pricingResult.customerTotal * 100),
+        quote_breakdown: pricingResult,
         customer_discount_amount: 0,
         payment_status: "pending",
-        active_quote_id: null,
+        active_quote_id: quoteId,
         active_financial_snapshot_id: null,
         created_at: admin.firestore.Timestamp.now(),
         dispatch_zone_geohash: "f25dvk",
-      }),
-      db.collection("pricing_versions").doc(PRICING_VERSION).set(buildPricingConfig({ pricing_version: PRICING_VERSION })),
-      db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID)),
-    ]);
+      });
   });
 
   afterEach(async () => {
@@ -145,6 +156,7 @@ describe("BLOC T-1 — acceptDelivery avec N=5 chauffeurs concurrents (volume pi
       db.collection("delivery_requests").doc(MISSION_ID).delete(),
       db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
       db.collection("payment_profiles").doc(CUSTOMER_ID).delete(),
+      db.collection("delivery_quotes").doc(`quote_${MISSION_ID}`).delete(),
     ]);
     const [snapshots, events, payments] = await Promise.all([
       db.collection("financial_snapshots").where("mission_id", "==", MISSION_ID).get(),
@@ -223,25 +235,20 @@ describe("BLOC T-2 — createDeliveryRequest en burst (5 créations indépendant
   let createdMissionIds: string[] = [];
 
   beforeEach(async () => {
-    const now = admin.firestore.Timestamp.now();
+    const pricingConfig = buildPricingConfig({ pricing_version: PRICING_VERSION });
+    await db.collection("pricing_versions").doc(PRICING_VERSION).set(pricingConfig);
     await Promise.all(
       customerIds.map((customerId, i) =>
         Promise.all([
           db.collection("payment_profiles").doc(customerId).set(buildFakePaymentProfile(customerId)),
-          db
-            .collection("delivery_quotes")
-            .doc(quoteIds[i])
-            .set({
-              id: quoteIds[i],
-              mission_id: null,
-              customer_id: customerId,
-              pricing_version: PRICING_VERSION,
-              customer_total: 100,
-              quote_breakdown: { customerDiscountAmount: 0 },
-              created_at: now,
-              expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + 15 * 60_000),
-              is_consumed: false,
-            }),
+          seedLockedQuote({
+            quoteId: quoteIds[i],
+            customerId,
+            pricingConfig,
+            stops: [pickupStop, dropoffStop],
+            distanceKm: 8,
+            estimatedDurationMinutes: 15,
+          }),
         ])
       )
     );
@@ -251,6 +258,7 @@ describe("BLOC T-2 — createDeliveryRequest en burst (5 créations indépendant
     await Promise.all([
       ...customerIds.map((id) => db.collection("payment_profiles").doc(id).delete()),
       ...quoteIds.map((id) => db.collection("delivery_quotes").doc(id).delete()),
+      db.collection("pricing_versions").doc(PRICING_VERSION).delete(),
       ...createdMissionIds.map(async (id) => {
         const stops = await db.collection("delivery_requests").doc(id).collection("stops").get();
         const events = await db.collection("delivery_requests").doc(id).collection("tracking_events").get();

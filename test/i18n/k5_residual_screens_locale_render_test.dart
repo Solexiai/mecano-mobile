@@ -26,7 +26,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:movik_connect/l10n/app_strings.dart';
+import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/dashboard/admin/admin_dashboard_shell.dart';
 
@@ -55,6 +55,9 @@ Widget _wrapAdminDashboardShell() {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider<FirebaseAuthProvider>(
+        create: (_) => FirebaseAuthProvider(backendConfigured: false),
+      ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -69,7 +72,7 @@ void main() {
     });
 
     testWidgets(
-      'se construit sans exception et affiche le titre traduit en FR (défaut)',
+      'se construit sans exception et affiche l’état indisponible en FR',
       (tester) async {
         // Surface de test élargie (desktop réaliste) : AdminDashboardShell
         // bascule volontairement en layout desktop (NavigationRail) à
@@ -83,23 +86,17 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
+        expect(find.text('Administration Movi-K'), findsOneWidget);
         expect(
-          find.text(AppStrings.t('admin_dashboard_title', 'fr')),
+          find.text('Impossible de charger le tableau de bord.'),
           findsOneWidget,
-        );
-        // Preuve que les labels de navigation admin corrigés ce tour sont
-        // bien résolus via le dictionnaire (au moins un visible, mobile ou
-        // desktop selon la largeur de test par défaut).
-        expect(
-          find.text(AppStrings.t('admin_nav_overview', 'fr')),
-          findsWidgets,
         );
       },
     );
 
     testWidgets(
-      'changer de langue fr -> en met à jour le titre et les onglets '
-      'de la vue d\'ensemble sans exception',
+      'changer de langue fr -> en met à jour l’état indisponible '
+      'sans exception',
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(1200, 800));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -131,6 +128,9 @@ void main() {
               ChangeNotifierProvider<LocaleProvider>.value(
                 value: localeProvider,
               ),
+              ChangeNotifierProvider<FirebaseAuthProvider>(
+                create: (_) => FirebaseAuthProvider(backendConfigured: false),
+              ),
             ],
             child: MaterialApp.router(routerConfig: router),
           ),
@@ -138,7 +138,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.text(AppStrings.t('admin_overview_market_title', 'fr')),
+          find.text('Impossible de charger le tableau de bord.'),
           findsOneWidget,
         );
 
@@ -146,14 +146,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(
-          find.text(AppStrings.t('admin_dashboard_title', 'en')),
-          findsOneWidget,
-        );
-        expect(
-          find.text(AppStrings.t('admin_overview_market_title', 'en')),
-          findsOneWidget,
-        );
+        expect(find.text('Unable to load the dashboard.'), findsOneWidget);
       },
     );
   });

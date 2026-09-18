@@ -60,8 +60,6 @@ class CreateMissionRequest {
   final String itemCategoryKey;
   final String description;
   final VehicleCategory requiredVehicleCategory;
-  final double distanceKm;
-  final double estimatedDurationMinutes;
 
   /// stops[0] DOIT être le pickup ; le dernier élément est le dropoff final.
   final List<MissionStopInput> stops;
@@ -72,8 +70,6 @@ class CreateMissionRequest {
     required this.itemCategoryKey,
     required this.description,
     required this.requiredVehicleCategory,
-    required this.distanceKm,
-    required this.estimatedDurationMinutes,
     required this.stops,
     required this.customerDisplayName,
   });

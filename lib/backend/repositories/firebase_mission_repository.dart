@@ -60,8 +60,7 @@ class FirebaseMissionRepository implements MissionRepository {
     try {
       final result = await _functions.httpsCallable('calculateDeliveryQuote').call({
         'vehicleCategory': vehicleCategoryName,
-        'distanceKm': missionDetails['distanceKm'],
-        'estimatedDurationMinutes': missionDetails['estimatedDurationMinutes'],
+        'stops': missionDetails['stops'],
         if (missionDetails['handling'] != null) 'handling': missionDetails['handling'],
         if (missionDetails['totalWaitingMinutes'] != null)
           'totalWaitingMinutes': missionDetails['totalWaitingMinutes'],
@@ -102,8 +101,6 @@ class FirebaseMissionRepository implements MissionRepository {
         'itemCategoryKey': request.itemCategoryKey,
         'description': request.description,
         'requiredVehicleCategory': request.requiredVehicleCategory.firestoreValue,
-        'distanceKm': request.distanceKm,
-        'estimatedDurationMinutes': request.estimatedDurationMinutes,
         'stops': request.stops.map((s) => s.toJson()).toList(),
         'customerDisplayName': request.customerDisplayName,
       });

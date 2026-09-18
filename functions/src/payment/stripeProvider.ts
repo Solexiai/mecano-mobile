@@ -101,6 +101,10 @@ export class StripeProvider extends PaymentProvider {
       payment_method: params.providerPaymentMethodId,
       capture_method: "manual",
       confirm: false,
+      automatic_payment_methods: {
+        enabled: true,
+        allow_redirects: "never",
+      },
       metadata: params.metadata,
     };
     if (params.connectedAccountId) {

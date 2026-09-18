@@ -16,6 +16,9 @@ import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
+import { resolveLockedQuote } from "../lib/quoteIntegrity";
+import { toMajorUnits } from "../lib/money";
+import { normalizeVehicleCategory } from "../lib/vehicleCategory";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -44,8 +47,9 @@ export interface CreateDeliveryRequestRequest {
   itemCategoryKey: string;
   description: string;
   requiredVehicleCategory: string;
-  distanceKm: number;
-  estimatedDurationMinutes: number;
+  /** Champs legacy : ignorés financièrement pour un devis verrouillé. */
+  distanceKm?: number;
+  estimatedDurationMinutes?: number;
   stops: StopInput[]; // stops[0] doit être le pickup
   customerDisplayName: string;
 }
@@ -89,13 +93,17 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // rule.minimum_charge dans calculateCustomerQuote — voir pricingEngine.ts),
   // mais il s'agit d'une donnée métier incohérente à rejeter explicitement
   // plutôt que de la tolérer silencieusement.
-  if (typeof input.distanceKm !== "number" || !Number.isFinite(input.distanceKm) || input.distanceKm < 0) {
+  if (
+    input.distanceKm !== undefined &&
+    (typeof input.distanceKm !== "number" || !Number.isFinite(input.distanceKm) || input.distanceKm < 0)
+  ) {
     throw invalidArgument("distanceKm doit être un nombre positif.");
   }
   if (
-    typeof input.estimatedDurationMinutes !== "number" ||
-    !Number.isFinite(input.estimatedDurationMinutes) ||
-    input.estimatedDurationMinutes < 0
+    input.estimatedDurationMinutes !== undefined &&
+    (typeof input.estimatedDurationMinutes !== "number" ||
+      !Number.isFinite(input.estimatedDurationMinutes) ||
+      input.estimatedDurationMinutes < 0)
   ) {
     throw invalidArgument("estimatedDurationMinutes doit être un nombre positif.");
   }
@@ -176,13 +184,83 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     if (quote.is_consumed) {
       throw failedPrecondition("Ce devis a déjà été consommé par une autre mission.");
     }
+    if (quote.status === "cancelled" || quote.cancelled_at) {
+      throw failedPrecondition("Ce devis a été annulé.");
+    }
     const now = admin.firestore.Timestamp.now();
     if (quote.expires_at.toMillis() < now.toMillis()) {
       throw failedPrecondition("Ce devis a expiré. Merci de recalculer un nouveau devis.");
     }
 
-    const pickup = input.stops[0];
-    const lastStop = input.stops[input.stops.length - 1];
+    const lockedQuote = resolveLockedQuote(input.quoteId, quote);
+    if (!lockedQuote.isLockedSchema) {
+      throw failedPrecondition(
+        "Ce devis historique ne peut pas créer une nouvelle mission. Recalculez un devis sécurisé."
+      );
+    }
+    const pricingVersionRef = db.collection("pricing_versions").doc(lockedQuote.pricingVersion);
+    const pricingVersionSnap = await tx.get(pricingVersionRef);
+    if (!pricingVersionSnap.exists) {
+      throw failedPrecondition(
+        `pricing_versions/${lockedQuote.pricingVersion} introuvable pour ce devis.`
+      );
+    }
+
+    const quoteStops = lockedQuote.pricingSnapshot
+      ? (quote.stops as StopInput[] | undefined)
+      : undefined;
+    if (lockedQuote.pricingSnapshot) {
+      if (!Array.isArray(quoteStops) || quoteStops.length < 2) {
+        throw failedPrecondition("Devis verrouillé invalide : arrêts officiels absents.");
+      }
+      if (
+        normalizeVehicleCategory(input.requiredVehicleCategory) !==
+        normalizeVehicleCategory(lockedQuote.pricingSnapshot.vehicle_category)
+      ) {
+        throw failedPrecondition(
+          "La catégorie de véhicule ne correspond plus au devis. Recalculez le devis."
+        );
+      }
+      if (input.stops.length !== quoteStops.length) {
+        throw failedPrecondition("Les arrêts ne correspondent plus au devis. Recalculez le devis.");
+      }
+      for (let i = 0; i < quoteStops.length; i += 1) {
+        const expected = quoteStops[i];
+        const received = input.stops[i];
+        if (
+          expected.type !== received.type ||
+          expected.address.lat !== received.address.lat ||
+          expected.address.lng !== received.address.lng ||
+          expected.address.line1 !== received.address.line1 ||
+          expected.address.city !== received.address.city ||
+          expected.address.postal_code !== received.address.postal_code
+        ) {
+          throw failedPrecondition("Les adresses ne correspondent plus au devis. Recalculez le devis.");
+        }
+      }
+    }
+
+    const officialStops = quoteStops ?? input.stops;
+    const officialVehicleCategory =
+      normalizeVehicleCategory(
+        lockedQuote.pricingSnapshot?.vehicle_category ?? input.requiredVehicleCategory
+      );
+    const officialDistanceKm =
+      lockedQuote.pricingSnapshot?.distance_km ?? input.distanceKm;
+    const officialDurationMinutes =
+      lockedQuote.pricingSnapshot?.estimated_duration_minutes ??
+      input.estimatedDurationMinutes;
+    if (
+      typeof officialDistanceKm !== "number" ||
+      !Number.isFinite(officialDistanceKm) ||
+      typeof officialDurationMinutes !== "number" ||
+      !Number.isFinite(officialDurationMinutes)
+    ) {
+      throw failedPrecondition("Le devis historique ne contient pas de distance/durée exploitable.");
+    }
+
+    const pickup = officialStops[0];
+    const lastStop = officialStops[officialStops.length - 1];
     const dispatchGeohash = encodeGeohash(pickup.address.lat, pickup.address.lng, 5);
 
     tx.set(missionRef, {
@@ -193,22 +271,31 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       status: MissionStatuses.SEARCHING_DRIVER,
       item_category_key: input.itemCategoryKey,
       description: input.description,
-      required_vehicle_category: input.requiredVehicleCategory,
+      required_vehicle_category: officialVehicleCategory,
       pickup_address: pickup.address,
       dropoff_address: lastStop.address,
-      distance_km: input.distanceKm,
-      estimated_duration_minutes: input.estimatedDurationMinutes,
-      pricing_version: quote.pricing_version,
+      distance_km: officialDistanceKm,
+      estimated_duration_minutes: officialDurationMinutes,
+      pricing_version: lockedQuote.pricingVersion,
       driver_offer_amount: 0, // fixé par acceptDelivery()/createFinancialSnapshot()
-      customer_total: quote.customer_total,
-      // Dénormalisé depuis le devis pour que acceptDelivery() recalcule avec
-      // EXACTEMENT la même remise (jamais un montant client) — voir
-      // resolvePromoDiscountAmount() dans calculateDeliveryQuote.ts.
-      customer_discount_amount: quote.quote_breakdown?.customerDiscountAmount ?? 0,
+      customer_total: toMajorUnits(lockedQuote.customerTotalMinor),
+      customer_total_minor: lockedQuote.customerTotalMinor,
+      // Copié depuis la ventilation verrouillée pour compatibilité avec les
+      // lectures historiques. Il n'est jamais recalculé à l'acceptation.
+      customer_discount_amount: lockedQuote.pricingResult.customerDiscountAmount,
+      quote_breakdown: lockedQuote.pricingResult,
+      pricing_snapshot: lockedQuote.pricingSnapshot,
+      quote_integrity_hash: lockedQuote.integrityHash,
+      quote_schema_version: lockedQuote.pricingSnapshot?.schema_version ?? 0,
+      tax_snapshot: lockedQuote.pricingSnapshot?.tax_snapshot ?? quote.tax_snapshot ?? null,
       payment_status: "pending",
       assignment_mode: isInternalTest
         ? MissionAssignmentModes.INTERNAL_TEST
         : MissionAssignmentModes.STANDARD,
+      // Marqueur serveur distinct du mode affiché. acceptDelivery() exige
+      // les deux valeurs afin qu'une modification isolée de
+      // `assignment_mode` ne puisse jamais contourner Stripe.
+      internal_test_authorized: isInternalTest,
       internal_test_assigned_by: null,
       internal_test_assigned_at: null,
       active_quote_id: input.quoteId,
@@ -227,19 +314,27 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       proof_of_delivery_url: null,
     });
 
-    input.stops.forEach((stop, index) => {
+    officialStops.forEach((officialStop, index) => {
+      const submittedStop = input.stops[index];
       const stopRef = missionRef.collection("stops").doc();
       tx.set(stopRef, {
         sequence: index,
-        type: stop.type,
-        address: stop.address,
-        contact_instructions: stop.contactInstructions ?? null,
-        access_details: stop.accessDetails ?? null,
+        type: officialStop.type,
+        address: officialStop.address,
+        // Instructions non financières conservées depuis la soumission de
+        // mission; elles ne peuvent pas modifier le prix verrouillé.
+        contact_instructions: submittedStop?.contactInstructions ?? null,
+        access_details: submittedStop?.accessDetails ?? null,
         completed_at: null,
       });
     });
 
-    tx.update(quoteRef, { is_consumed: true, mission_id: missionRef.id });
+    tx.update(quoteRef, {
+      is_consumed: true,
+      mission_id: missionRef.id,
+      status: "consumed",
+      consumed_at: now,
+    });
 
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {

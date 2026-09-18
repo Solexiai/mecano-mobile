@@ -14,6 +14,7 @@ export interface CalculateRouteRequest {
   pickupLng: number;
   dropoffLat: number;
   dropoffLng: number;
+  intermediateStops?: Array<{ lat: number; lng: number }>;
 }
 
 export interface RouteEstimate {
@@ -52,6 +53,14 @@ function validateInput(input: CalculateRouteRequest): void {
   ) {
     throw invalidArgument("Coordonnées de départ ou d'arrivée invalides.");
   }
+  for (const stop of input.intermediateStops ?? []) {
+    if (
+      !isCoordinateValid(stop.lat, -90, 90) ||
+      !isCoordinateValid(stop.lng, -180, 180)
+    ) {
+      throw invalidArgument("Coordonnées d'un arrêt intermédiaire invalides.");
+    }
+  }
 }
 async function fetchGoogleRoute(
   input: CalculateRouteRequest
@@ -85,6 +94,9 @@ async function fetchGoogleRoute(
           },
         },
       },
+      intermediates: (input.intermediateStops ?? []).map((stop) => ({
+        location: { latLng: { latitude: stop.lat, longitude: stop.lng } },
+      })),
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_UNAWARE",
       languageCode: "fr-CA",
@@ -118,12 +130,13 @@ export function setRouteFetcherForTesting(fetcher: RouteFetcher | null): void {
   routeFetcher = fetcher ?? fetchGoogleRoute;
 }
 
-export const calculateRoute = onCall<CalculateRouteRequest>(async (request) => {
-  requireSignedIn(request);
-  validateInput(request.data);
-
+/** Route autoritaire réutilisable par le devis, toujours calculée serveur. */
+export async function calculateAuthoritativeRoute(
+  input: CalculateRouteRequest
+): Promise<RouteEstimate> {
+  validateInput(input);
   try {
-    return await routeFetcher(request.data);
+    return await routeFetcher(input);
   } catch (error) {
     console.error(
       "[calculateRoute] Google Routes request failed",
@@ -131,4 +144,9 @@ export const calculateRoute = onCall<CalculateRouteRequest>(async (request) => {
     );
     throw internal("Impossible de calculer l'itinéraire routier pour le moment.");
   }
+}
+
+export const calculateRoute = onCall<CalculateRouteRequest>(async (request) => {
+  requireSignedIn(request);
+  return calculateAuthoritativeRoute(request.data);
 });
