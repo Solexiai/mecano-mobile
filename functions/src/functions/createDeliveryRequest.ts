@@ -18,6 +18,7 @@ import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib
 import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMajorUnits } from "../lib/money";
+import { normalizeVehicleCategory } from "../lib/vehicleCategory";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -212,7 +213,10 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       if (!Array.isArray(quoteStops) || quoteStops.length < 2) {
         throw failedPrecondition("Devis verrouillé invalide : arrêts officiels absents.");
       }
-      if (input.requiredVehicleCategory !== lockedQuote.pricingSnapshot.vehicle_category) {
+      if (
+        normalizeVehicleCategory(input.requiredVehicleCategory) !==
+        normalizeVehicleCategory(lockedQuote.pricingSnapshot.vehicle_category)
+      ) {
         throw failedPrecondition(
           "La catégorie de véhicule ne correspond plus au devis. Recalculez le devis."
         );
@@ -238,7 +242,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
 
     const officialStops = quoteStops ?? input.stops;
     const officialVehicleCategory =
-      lockedQuote.pricingSnapshot?.vehicle_category ?? input.requiredVehicleCategory;
+      normalizeVehicleCategory(
+        lockedQuote.pricingSnapshot?.vehicle_category ?? input.requiredVehicleCategory
+      );
     const officialDistanceKm =
       lockedQuote.pricingSnapshot?.distance_km ?? input.distanceKm;
     const officialDurationMinutes =

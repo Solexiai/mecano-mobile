@@ -451,4 +451,44 @@ describe("acceptDelivery — mission d'essai interne", () => {
     expect(snapshots.empty).toBe(true);
     expect(payments.empty).toBe(true);
   });
+
+  it("préserve une mission internal_test historique sans marqueur d'autorisation", async () => {
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      internal_test_authorized: admin.firestore.FieldValue.delete(),
+    });
+
+    const result = await acceptDelivery.run(buildDriverRequest(DRIVER_A_ID));
+    expect(result).toMatchObject({
+      success: true,
+      missionId: MISSION_ID,
+      snapshotId: null,
+      paymentId: null,
+      internalTest: true,
+    });
+
+    const [missionSnap, snapshots, payments] = await Promise.all([
+      db.collection("delivery_requests").doc(MISSION_ID).get(),
+      db.collection("financial_snapshots").where("mission_id", "==", MISSION_ID).get(),
+      db.collection("payments").where("mission_id", "==", MISSION_ID).get(),
+    ]);
+    expect(missionSnap.data()!.status).toBe("assigned");
+    expect(snapshots.empty).toBe(true);
+    expect(payments.empty).toBe(true);
+  });
+
+  it("ne traite jamais comme interne une mission dont le marqueur vaut explicitement false", async () => {
+    await db.collection("delivery_requests").doc(MISSION_ID).update({
+      internal_test_authorized: false,
+    });
+
+    await expect(
+      acceptDelivery.run(buildDriverRequest(DRIVER_A_ID))
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    const mission = (
+      await db.collection("delivery_requests").doc(MISSION_ID).get()
+    ).data()!;
+    expect(mission.status).toBe("searching_driver");
+    expect(mission.driver_id).toBeNull();
+  });
 });

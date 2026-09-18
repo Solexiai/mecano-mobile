@@ -1,6 +1,7 @@
 import {
   normalizeVehicleCategory,
   resolveConfiguredVehicleCategory,
+  supportsVehicleCategory,
 } from "../../src/lib/vehicleCategory";
 
 describe("vehicle category compatibility", () => {
@@ -25,5 +26,10 @@ describe("vehicle category compatibility", () => {
 
   it("reste fail-closed lorsqu'aucune catégorie configurée ne correspond", () => {
     expect(resolveConfiguredVehicleCategory(["car", "suv"], "cube_truck")).toBeNull();
+  });
+
+  it("préserve l'éligibilité des anciens profils chauffeur camelCase", () => {
+    expect(supportsVehicleCategory(["cargoVan"], "cargo_van")).toBe(true);
+    expect(supportsVehicleCategory(["sedan"], "cargo_van")).toBe(false);
   });
 });

@@ -187,6 +187,27 @@ describe("createDeliveryRequest — cas nominal", () => {
       .get();
     expect(events.size).toBe(1);
   });
+
+  it("accepte la catégorie Flutter snake_case quand la grille verrouillée utilise le legacy camelCase", async () => {
+    await seedQuote();
+
+    const result = await createDeliveryRequest.run(
+      buildRequest(CUSTOMER_ID, {
+        quoteId: QUOTE_ID,
+        ...baseInput,
+        requiredVehicleCategory: "cargo_van",
+      })
+    );
+    createdMissionIds.push(result.missionId);
+
+    const [missionSnap, quoteSnap] = await Promise.all([
+      db.collection("delivery_requests").doc(result.missionId).get(),
+      db.collection("delivery_quotes").doc(QUOTE_ID).get(),
+    ]);
+
+    expect(quoteSnap.data()!.pricing_snapshot.vehicle_category).toBe("cargoVan");
+    expect(missionSnap.data()!.required_vehicle_category).toBe("cargo_van");
+  });
 });
 
 describe("createDeliveryRequest — cas négatifs", () => {

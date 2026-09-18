@@ -43,6 +43,7 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
+import { supportsVehicleCategory } from "../lib/vehicleCategory";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
@@ -138,7 +139,12 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     if (!driver.documents_all_valid) {
       throw failedPrecondition("Documents chauffeur invalides ou expirés.");
     }
-    if (!driver.accepted_vehicle_categories.includes(mission.required_vehicle_category)) {
+    if (
+      !supportsVehicleCategory(
+        driver.accepted_vehicle_categories,
+        mission.required_vehicle_category
+      )
+    ) {
       throw permissionDenied("Catégorie de véhicule non acceptée par ce chauffeur.");
     }
     if (driver.online_status === "on_mission") {

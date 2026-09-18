@@ -46,9 +46,25 @@ import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
+import { supportsVehicleCategory } from "../lib/vehicleCategory";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
+}
+
+function isAuthorizedInternalTestMission(mission: Record<string, unknown>): boolean {
+  if (mission.assignment_mode !== MissionAssignmentModes.INTERNAL_TEST) return false;
+
+  // Les missions internes créées avant l'ajout du marqueur serveur n'ont pas
+  // ce champ. Elles restent reconnues comme essais internes parce que leur
+  // création et leur assignment_mode étaient déjà réservés aux Cloud
+  // Functions par les règles Firestore. Toute valeur explicite autre que
+  // true — notamment false ou null — reste refusée et suit le parcours
+  // financier standard.
+  return (
+    mission.internal_test_authorized === true ||
+    mission.internal_test_authorized === undefined
+  );
 }
 
 export const acceptDelivery = onCall<AcceptDeliveryRequest>(
@@ -72,9 +88,9 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   if (!missionPreflightSnap.exists) {
     throw notFound(`delivery_requests/${missionId} introuvable.`);
   }
-  const isInternalTestPreflight =
-    missionPreflightSnap.data()?.assignment_mode === MissionAssignmentModes.INTERNAL_TEST &&
-    missionPreflightSnap.data()?.internal_test_authorized === true;
+  const isInternalTestPreflight = isAuthorizedInternalTestMission(
+    missionPreflightSnap.data()!
+  );
 
   if (
     !isInternalTestPreflight &&
@@ -110,7 +126,12 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     if (!driver.documents_all_valid) {
       throw failedPrecondition("Documents chauffeur invalides ou expirés.");
     }
-    if (!driver.accepted_vehicle_categories.includes(mission.required_vehicle_category)) {
+    if (
+      !supportsVehicleCategory(
+        driver.accepted_vehicle_categories,
+        mission.required_vehicle_category
+      )
+    ) {
       throw permissionDenied("Catégorie de véhicule non acceptée par ce chauffeur.");
     }
 
@@ -126,9 +147,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       throw failedPrecondition("Mission déjà assignée à un autre chauffeur.");
     }
 
-    const isInternalTest =
-      mission.assignment_mode === MissionAssignmentModes.INTERNAL_TEST &&
-      mission.internal_test_authorized === true;
+    const isInternalTest = isAuthorizedInternalTestMission(mission);
     if (isInternalTest) {
       const now = admin.firestore.Timestamp.now();
       tx.update(missionRef, {
