@@ -1,0 +1,77 @@
+name: Stripe sandbox validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/quote-mission-payment-integrity
+    paths:
+      - .github/workflows/stripe-sandbox-validation.yml
+      - functions/jest.stripe-sandbox.config.js
+      - functions/package.json
+      - functions/test/sandbox/quoteStripeIntegrity.sandbox.test.ts
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-sandbox-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Quote to Stripe amount integrity
+    if: ${{ github.ref == 'refs/heads/fix/quote-mission-payment-integrity' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Refuse missing or live Stripe credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${STRIPE_TEST_SECRET_KEY:-}" ]]; then
+            echo "STRIPE_TEST_SECRET_KEY is not configured."
+            exit 1
+          fi
+          if [[ "${STRIPE_TEST_SECRET_KEY}" != sk_test_* ]]; then
+            echo "Only a Stripe sk_test_ key is accepted."
+            exit 1
+          fi
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Compile Functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Lint Functions
+        working-directory: functions
+        run: npm run lint
+
+      - name: Run quote-to-Stripe sandbox validation
+        working-directory: functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm exec --yes firebase-tools@14.9.0 -- \
+            emulators:exec \
+            --config ../firebase.json \
+            --only firestore,auth,storage \
+            --project demo-movik-stripe-sandbox \
+            "npm run test:stripe-sandbox"
