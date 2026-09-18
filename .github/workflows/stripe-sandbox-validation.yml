@@ -9,7 +9,9 @@ on:
       - .github/workflows/stripe-sandbox-validation.yml
       - functions/jest.stripe-sandbox.config.js
       - functions/package.json
+      - functions/src/payment/stripeProvider.ts
       - functions/test/sandbox/quoteStripeIntegrity.sandbox.test.ts
+      - functions/test/unit/stripeProvider.test.ts
 
 permissions:
   contents: read
