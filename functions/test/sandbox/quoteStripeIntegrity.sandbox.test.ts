@@ -326,6 +326,9 @@ describe("Stripe Sandbox — intégrité devis, mission, snapshot et autorisatio
       })
     );
     missionId = created.missionId;
+    if (!missionId) {
+      throw new Error("Mission creation did not return a missionId.");
+    }
 
     const accepted = await acceptDelivery.run(
       authedRequest<AcceptDeliveryRequest>(DRIVER_ID, undefined, { missionId })
