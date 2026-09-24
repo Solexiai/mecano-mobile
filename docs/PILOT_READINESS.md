@@ -53,6 +53,28 @@ Références techniques consultées le 24 septembre 2026 : [App Check](https://f
 
 ---
 
+### Sous-lot offres, attente et programmation — accord du 24 septembre 2026
+
+Daniel confirme que son parcours de mission va jusqu'au bout (retour utilisateur, pas une nouvelle preuve financière LIVE). Il autorise le parcours suivant : choix initial « Aujourd'hui — dès que possible » ou « Programmer l'enlèvement »; en l'absence de chauffeur, attente avec heure limite ou choix d'un créneau, sans nouvelle mission et sans changement de prix silencieux. Un créneau demandé n'est confirmé qu'après engagement chauffeur et vérification des conflits.
+
+**Ordre retenu :** offres immédiates fiables → attente explicite → programmation. Le dispatch, les offres, le devis et le mécanisme d'acceptation existants restent les points d'intégration. Ne pas ouvrir un second parcours de missions ni réimplémenter les paiements.
+
+**Préparation sur `feat/driver-offer-alerts` :**
+- `dispatchEligibility.ts` : distance géographique au pickup et rayon personnel; GPS récent, repli à l'adresse de base uniquement avant le premier point GPS; refus des coordonnées invalides, documents non valides et chauffeur occupé. Le seuil de fraîcheur proposé est 5 minutes; ce n'est pas une mesure de distance routière.
+- `declineDeliveryOffer.ts` : opération de refus authentifiée, réservée au destinataire, idempotente; ne change ni mission, ni paiement. Elle n'est PAS exportée dans `index.ts`, donc pas encore exposée à l'application.
+- Tests unitaires du rayon et tests d'intégration du refus ajoutés; résultats à consulter sur la PR en brouillon.
+
+**Blocage d'intégration de ce lot :** l'outil a refusé l'écriture du fichier `dispatchMissionToDrivers.ts`, puis un script d'intégration des modèles/repository/index. Ces opérations n'ont pas été appliquées. L'ancien dispatcher et les points d'entrée existants sont donc inchangés. La cause précise du blocage n'est pas déterminée.
+
+Les prototypes Flutter ont été conservés hors du code de l'application, dans le dossier d'audit local `offer-ui-prototype`, car ils dépendent d'une intégration serveur et de modèles non terminés. Ils ne sont ni compilés, ni testés, ni présentés comme un pop-up opérationnel. Les offres portant un futur protocole `dispatch_version=2` étaient prévues pour empêcher d'afficher prématurément les offres anciennes non filtrées par rayon.
+
+**Reste du lot 1 :** intégrer le filtre au dispatcher, créer les offres sans doublons, vérifier leur validité à l'acceptation, fermer les offres concurrentes et expirées, intégrer un propriétaire unique du pop-up au-dessus des onglets chauffeur, traductions et tests Flutter. Le seuil GPS et les reprises après interruption réseau doivent être validés dans cette intégration.
+
+**Lots 2 et 3 non implantés :** heure limite d'attente, relance serveur contrôlée, modification de la même demande vers un créneau, vérification des conflits, rappels et accord du client en cas de nouveau devis.
+
+**Ne pas fusionner ni déployer ce sous-lot préparatoire.** Aucun tarif, runtime flag, règle de sécurité ou paiement réel n'a été modifié. La programmation n'est pas disponible à ce stade.
+
+
 ## Historique Phase 7 — Bloc AC (conservé, non réouvert)
 
 Les mentions historiques « absent », « non configuré » ou « READY » ci-dessous décrivent l'état de clôture Phase 7. Le registre actif ci-dessus les qualifie pour Phase 8; ne pas reconstruire un composant existant sur la seule base d'une ancienne mention.
