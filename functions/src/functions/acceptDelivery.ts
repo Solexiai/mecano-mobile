@@ -47,6 +47,7 @@ import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
 import { supportsVehicleCategory } from "../lib/vehicleCategory";
+import { deliveryOfferId, eligibleForPickup, liveOffer } from "../lib/dispatchEligibility";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
@@ -147,8 +148,31 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       throw failedPrecondition("Mission déjà assignée à un autre chauffeur.");
     }
 
+    // Re-read the offer and driver in the SAME assignment transaction.
+    // Legacy direct-assignment missions remain compatible; dispatched v2 offers
+    // cannot bypass recipient, expiry, availability or radius checks.
+    const dispatchedOffers = mission.dispatch_version === 2
+      ? await tx.get(db.collection("delivery_offers").where("mission_id", "==", missionId)) : null;
+    if (dispatchedOffers) {
+      const own = dispatchedOffers.docs.find((d) => d.id === deliveryOfferId(missionId, driverId));
+      const location = await tx.get(db.collection("driver_locations").doc(driverId));
+      if (!own || own.data().driver_id !== driverId || !liveOffer(own.data(), Date.now())) {
+        throw failedPrecondition("Cette offre n'est plus disponible.");
+      }
+      if (!eligibleForPickup(driver, location.data(), mission, Date.now())) {
+        throw failedPrecondition("Vous n'êtes plus disponible pour cette offre.");
+      }
+    }
+    const closeOffers = () => {
+      for (const offer of dispatchedOffers?.docs ?? []) {
+        if (offer.data().status === "pending") tx.update(offer.ref, {
+          status: offer.data().driver_id === driverId ? "accepted" : "superseded",
+        });
+      }
+    };
     const isInternalTest = isAuthorizedInternalTestMission(mission);
     if (isInternalTest) {
+      closeOffers();
       const now = admin.firestore.Timestamp.now();
       tx.update(missionRef, {
         driver_id: driverId,
@@ -340,6 +364,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       commissionConfig: pricingConfig.commission,
     });
 
+    closeOffers();
     // ---- Écriture atomique : mission + driver_profile + snapshot pending ----
     tx.update(missionRef, {
       driver_id: driverId,

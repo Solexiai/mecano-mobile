@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { supportsVehicleCategory } from "./vehicleCategory";
 
 type Data = Record<string, any>;
@@ -45,4 +46,8 @@ export function eligibleForPickup(driver: Data, location: Data | undefined, miss
 export function liveOffer(offer: Data, now: number): boolean {
   const expiry = timestampMs(offer.expires_at);
   return offer.status === "pending" && expiry !== null && expiry > now;
+}
+
+export function deliveryOfferId(missionId: string, driverId: string): string {
+  return createHash("sha256").update(JSON.stringify([missionId, driverId])).digest("hex");
 }
