@@ -18,6 +18,7 @@
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
+import { consumeRoutingBudget } from "../lib/routingRateLimit";
 import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
 import { PricingVersionDoc } from "../lib/types";
@@ -130,6 +131,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   // La distance et la durée viennent exclusivement du fournisseur routier
   // appelé côté serveur. Les anciennes valeurs envoyées par le client sont
   // volontairement ignorées afin qu'elles ne puissent jamais fixer un prix.
+  await consumeRoutingBudget(ctx.uid);
   const pickup = input.stops[0].address;
   const dropoff = input.stops[input.stops.length - 1].address;
   const route = await calculateAuthoritativeRoute({

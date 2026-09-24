@@ -1,4 +1,62 @@
-# MOVI-K — PILOT READINESS (Phase 7, Bloc AC)
+# MOVI-K — Pilot Readiness et suivi canonique Phase 8
+
+## Registre actif — 24 septembre 2026
+
+Cette section est l'unique suivi d'exécution 8A à 8L. Les sections AC ci-dessous sont des preuves historiques de Phase 7, pas des affirmations sur le déploiement actuel. La Phase 7 n'est pas réouverte. Les procédures spécialisées restent dans leurs documents existants; aucun second parcours client/chauffeur/admin n'est créé.
+
+**Base vérifiée :** `main` = `6090fed066d5d7ce5444cc71190fe5aef0c77c10`. Travail courant : branche `feat/phase8-readiness`, dans le worktree de release existant. Les deux anciens worktrees et leurs modifications locales sont conservés, sans copie ni fusion automatique. La PR historique #25 est hors de ce lot.
+
+**Dernier état de production vérifié, 24 septembre à 11 h 55 (Québec) :** dix fonctions du correctif #35 actives; quatre `system_config/runtime_flags` à `false`; règles Firestore encore sur la publication du 16 septembre. Cela ne prouve pas un devis connecté ni un pilote complet. Aucun paiement réel ni activation publique n'est autorisé par ce suivi.
+
+**Limite du contrôle de ce lot :** le script d'inventaire cloud a été bloqué avant exécution. Les états externes ci-dessous ne sont ni supposés absents ni déclarés validés. Aucun contournement et aucune mutation cloud n'ont été effectués dans ce lot.
+
+| Bloc | État et travail de ce lot | Condition restante de clôture / composant canonique |
+|---|---|---|
+| 8A — Configuration | En cours. Mapping `production` vers `movik-connect-prod` confirmé dans `.firebaserc`; un seul codebase `functions`; tests sur `demo-movik-test`. Garde-fou Jest et CI Firebase ajoutés. | Vérifier en lecture les index, les déploiements et règles réellement actifs; appliquer les règles testées après autorisation; préparer la migration du runtime. Activation pilote séparée, sans nouveau projet payant implicite. |
+| 8B — Stripe / Connect | Architecture existante conservée (`PAYMENT_ARCHITECTURE.md`, `paymentProviderFactory`, deux webhooks). Aucun nouveau provider, endpoint de paiement ni secret créé. | Vérifier configuration et événements réels puis exécuter le cycle Stripe TEST complet. Toute exposition LIVE reste une décision explicite. Le test sandbox de la PR #35 n'est pas un pilote financier complet. |
+| 8C — Anti-abus | Quota commun ajouté aux deux callables existantes `calculateDeliveryQuote` et `calculateRoute`. Aucun second calcul tarifaire. | Valider et déployer le quota après tests; configurer App Check côté plateformes, observer puis imposer progressivement. App Check n'est pas activé dans ce lot. |
+| 8D — Push | `PushNotificationService`, `registerPushToken`, `unregisterPushToken`, dispatch et notifications client existent déjà. Pas de second service. | Confirmer VAPID/configuration déployée, permissions, réception, renouvellement, déconnexion et ouverture de la bonne mission sur appareils réels. iOS seulement si retenu. |
+| 8E — GPS / appareils | Logique existante réutilisée; aucun essai terrain attesté dans ce lot. | Exécuter AC-3 : arrière-plan, écran verrouillé, perte/reprise réseau, batterie, suivi client et preuve photo. |
+| 8F — Récupération | Archives sources des dix fonctions déjà sauvegardées, distinctes des données. État des sauvegardes Firestore/Storage non revalidé. | Vérifier la stratégie, les coûts/rétention approuvés et une restauration non destructive; réutiliser `DISASTER_RECOVERY.md`. |
+| 8G — Alertes | Logs structurés et `MONITORING_RUNBOOK.md` conservés. Quota : événements `routing_budget_exhausted` et `routing_budget_check_failed`. | Relier/valider un canal approuvé et prouver la réception d'une alerte; absence de preuve ne signifie pas absence de configuration. |
+| 8H — Données | `DATA_RETENTION.md` et purge GPS existante conservés; aucun nettoyage destructif ajouté. | Décider conservation/suppression; préparer le traitement des fichiers réellement orphelins sans supprimer sur erreur temporaire; protéger finance et audit. |
+| 8I — Suspension | Comportement existant non modifié. | Décision explicite GAP-S-04 : suspension ordinaire vs interruption urgente, puis tests et audit. |
+| 8J — Opérations / juridique | Checklist AC-6 et processus AC-8 réutilisés, aucune validation juridique inventée. | Approbation des politiques, canal de support, responsabilités et traitement des demandes. |
+| 8K — Pilote | Non exécuté dans ce lot. Tests logiciels et émulateurs ne sont pas des trajets physiques. | Zone et participants approuvés, parcours client → chauffeur → livraison → finance → admin, avec preuves. |
+| 8L — GO / NO-GO | **NO-GO pour l'ouverture publique à ce stade.** | Toutes les conditions essentielles AC-5 doivent avoir des preuves; le nombre de tests verts ne ferme pas les dépendances externes. |
+
+### 8A — Gardes de test et chemin de validation
+
+`test/setupSafety.ts` est chargé en premier par les deux configurations Jest. Les suites d'intégration/sandbox exigent les trois émulateurs sur loopback, un projet `demo-*`, des identifiants de projet cohérents et aucune clé Stripe LIVE. Le contrôle précède l'import du module de test. Les suites unitaires sont confinées à un projet fictif et à des endpoints loopback, même si une future régression oublie de simuler une dépendance.
+
+La preuve négative a lancé une suite avec un identifiant non-demo et uniquement des endpoints loopback : refus `TEST_SAFETY`, zéro test exécuté avec succès. Aucun appel à un projet réel n'est nécessaire à cette preuve.
+
+Le workflow `.github/workflows/firebase-validation.yml` complète les workflows Flutter et Stripe existants; il ne déploie rien et ne charge aucun secret. Il utilise les scripts npm existants : lint, build, unitaires et intégration sur émulateurs. Les actions sont épinglées par SHA. La prévisualisation Vercel de cette branche est désactivée pour ne pas créer un deuxième site d'essai.
+
+### 8C — Un seul budget pour les appels routiers
+
+`consumeRoutingBudget()` est appelé une fois par requête authentifiée/valide aux callables existantes. `calculateAuthoritativeRoute()` reste une primitive interne sans quota supplémentaire : le devis ne paie pas deux consommations. Aucun changement de prix, commission, pourboire ou affectation des chauffeurs.
+
+Paramètres techniques dans `appConfig.ts` : `ROUTING_REQUESTS_PER_WINDOW=60`, `ROUTING_WINDOW_SECONDS=60` par défaut. C'est une fenêtre fixe par UID, pas une protection globale contre des créations massives de comptes; App Check reste à traiter. Le compteur est une transaction atomique Firestore et refuse en cas d'indisponibilité ou d'état corrompu. Le refus retourne `resource-exhausted` et `retryAfterSeconds`, avant l'appel Google Routes.
+
+Une seule collection `routing_request_limits`, un seul document réutilisé par UID haché (pseudonyme, pas anonyme). Le refus par défaut des règles existantes interdit toute lecture/modification client, y compris via un compte admin utilisant le SDK client. Aucun nouvel endpoint, aucun index ni tâche de purge dupliqués.
+
+### Preuves et prochaine étape
+
+**Validation locale de ce lot :** lint et compilation réussis sous Node.js 20.20.2; 205 tests unitaires et 606 tests d'intégration réussis, soit **811 tests dans 54 suites**, sans échec ni test ignoré. Paiements et routes simulés; Firestore/Auth/Storage sur émulateurs. Aucune validation physique ni financière LIVE n'est déduite de ces résultats.
+
+Les résultats de ce lot sont conservés dans le dossier d'audit local existant : `phase8-unit-results.json`, `phase8-integration-results.json`, `phase8-refusal-results.json` et journaux associés. La CI doit également être consultée sur la PR : une configuration de workflow présente n'est pas une exécution réussie.
+
+Avant toute fusion/diffusion : revue du diff, tests complets et confirmation de l'absence de changement de prix/flags. Avant toute ouverture : contrôle connecté du devis, alignement des règles et index, fermeture des dépendances 8B à 8K. Le runtime Node.js 20 reste celui de production; sa migration est requise avant son retrait du 30 octobre 2026 et n'est pas implicitement effectuée par ce lot.
+
+Références techniques consultées le 24 septembre 2026 : [App Check](https://firebase.google.com/docs/app-check/cloud-functions), [paramètres Firebase](https://firebase.google.com/docs/reference/functions/firebase-functions.params), [runtimes Google Cloud](https://docs.cloud.google.com/functions/docs/runtime-support).
+
+---
+
+## Historique Phase 7 — Bloc AC (conservé, non réouvert)
+
+Les mentions historiques « absent », « non configuré » ou « READY » ci-dessous décrivent l'état de clôture Phase 7. Le registre actif ci-dessus les qualifie pour Phase 8; ne pas reconstruire un composant existant sur la seule base d'une ancienne mention.
+
 
 **Statut du document** : dernier bloc de la Phase 7 QA. Objectif unique : répondre honnêtement
 à *« Qu'est-ce qui est prêt pour un pilote réel, et qu'est-ce qui doit être configuré/décidé en

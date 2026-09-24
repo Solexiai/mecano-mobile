@@ -7,6 +7,7 @@
 import { GoogleAuth } from "google-auth-library";
 import { onCall } from "firebase-functions/v2/https";
 import { requireSignedIn } from "../lib/auth";
+import { consumeRoutingBudget } from "../lib/routingRateLimit";
 import { internal, invalidArgument } from "../lib/errors";
 
 export interface CalculateRouteRequest {
@@ -147,6 +148,8 @@ export async function calculateAuthoritativeRoute(
 }
 
 export const calculateRoute = onCall<CalculateRouteRequest>(async (request) => {
-  requireSignedIn(request);
+  const ctx = requireSignedIn(request);
+  validateInput(request.data);
+  await consumeRoutingBudget(ctx.uid);
   return calculateAuthoritativeRoute(request.data);
 });
