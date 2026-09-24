@@ -25,7 +25,7 @@
 // être déclarée via `defineSecret`/Secret Manager.
 // -----------------------------------------------------------------------------
 
-import { defineString } from "firebase-functions/params";
+import { defineInt, defineString } from "firebase-functions/params";
 
 /**
  * Domaine public de base de l'app Movi-K (web), SANS slash final.
@@ -55,3 +55,8 @@ export function getDriverStripeReturnUrl(): string {
 export function getDriverStripeRefreshUrl(): string {
   return `${APP_PUBLIC_BASE_URL.value()}/fr/chauffeur/onboarding/refresh`;
 }
+
+// Shared technical quota for the existing route and quote endpoints.
+export const ROUTING_QUOTA_DEFAULTS = { requests: 60, windowSeconds: 60 } as const;
+export const ROUTING_REQUESTS_PER_WINDOW = defineInt("ROUTING_REQUESTS_PER_WINDOW", { default: ROUTING_QUOTA_DEFAULTS.requests });
+export const ROUTING_WINDOW_SECONDS = defineInt("ROUTING_WINDOW_SECONDS", { default: ROUTING_QUOTA_DEFAULTS.windowSeconds });

@@ -2,12 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "fix/quote-mission-payment-integrity": false
+      "fix/quote-mission-payment-integrity": false,
+      "feat/phase8-readiness": false
     }
   },
   "buildCommand": "bash scripts/vercel_build.sh",
   "outputDirectory": "build/web",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

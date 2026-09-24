@@ -2855,3 +2855,13 @@ describe("Security Rules — notation des missions de test interne", () => {
     );
   });
 });
+
+// Phase 8C: quota counters are server-only under the existing default-deny rule.
+describe("Security Rules — routing_request_limits", () => {
+  test.each(["customer", "driver", "analyst", "admin", "super_admin"])("%s cannot read or reset routing quotas", async (role) => {
+    const client = testEnv.authenticatedContext("quota-test-user", { role, roles: [role] });
+    const counter = doc(client.firestore(), "routing_request_limits/opaque-counter");
+    await assertFails(getDoc(counter));
+    await assertFails(setDoc(counter, { startedAtMs: 0, count: 0 }));
+  });
+});

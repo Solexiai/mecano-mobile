@@ -1,3 +1,4 @@
+import * as routingBudget from "../../src/lib/routingRateLimit";
 import type { CallableRequest, Request } from "firebase-functions/v2/https";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import {
@@ -28,7 +29,9 @@ function signedRequest(
   };
 }
 describe("calculateRoute", () => {
-  afterEach(() => setRouteFetcherForTesting(null));
+  // Unit boundary: real atomic quota behavior is covered in integration.
+  beforeEach(() => jest.spyOn(routingBudget, "consumeRoutingBudget").mockResolvedValue(undefined));
+  afterEach(() => { setRouteFetcherForTesting(null); jest.restoreAllMocks(); });
 
   it("retourne la distance et la durée routières du fournisseur", async () => {
     setRouteFetcherForTesting(async () => ({
@@ -73,4 +76,12 @@ describe("calculateRoute", () => {
       calculateRoute.run(signedRequest(validInput))
     ).rejects.toMatchObject({ code: "internal" });
   });
+  it("does not contact the route provider when the quota rejects", async () => {
+    const provider = jest.fn();
+    setRouteFetcherForTesting(provider);
+    jest.spyOn(routingBudget, "consumeRoutingBudget").mockRejectedValueOnce({ code: "resource-exhausted" });
+    await expect(calculateRoute.run(signedRequest(validInput))).rejects.toMatchObject({ code: "resource-exhausted" });
+    expect(provider).not.toHaveBeenCalled();
+  });
+
 });
