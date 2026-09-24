@@ -108,13 +108,27 @@ test("one reconciliation path retries waiting requests after GPS becomes fresh",
   await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
   expect((await offerRef("mission","one").get()).data()?.status).toBe("pending");
 });
-test("reconciliation cursor progresses past the first hundred waiting requests", async () => {
-  await Promise.all(Array.from({length:101},(_,i)=>mission(`m-${String(i).padStart(3,'0')}`)));
+test("reconciliation cursor progresses past the first bounded batch of waiting requests", async () => {
+  await Promise.all(Array.from({length:6},(_,i)=>mission(`m-${String(i).padStart(3,'0')}`)));
   await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
   const cursor=db.collection("system_config").doc("delivery_offer_reconciliation");
-  expect((await cursor.get()).data()?.waiting_cursor).toBe("m-099");
+  expect((await cursor.get()).data()?.waiting_cursor).toBe("m-004");
   await driver("one");
   await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
-  expect((await offerRef("m-100","one").get()).exists).toBe(true);
+  expect((await offerRef("m-005","one").get()).exists).toBe(true);
   expect((await cursor.get()).data()?.waiting_cursor).toBeNull();
 }, 60000);
+
+test("reconciliation checkpoints an item before a failure and reaches the next request", async () => {
+  await driver("one"); await mission("a-first"); await mission("b-next");
+  jest.mocked(push.sendDeliveryOfferPush).mockRejectedValueOnce(new Error("injected delivery failure"));
+  await expect(processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]))
+    .rejects.toThrow("injected delivery failure");
+  const cursor = db.collection("system_config").doc("delivery_offer_reconciliation");
+  expect((await cursor.get()).data()?.waiting_cursor).toBe("a-first");
+  expect((await offerRef("b-next", "one").get()).exists).toBe(false);
+  await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
+  expect((await offerRef("b-next", "one").get()).data()?.status).toBe("pending");
+  expect((await offerRef("a-first", "one").get()).data()?.status).toBe("pending");
+  expect((await db.collection("delivery_requests").get()).size).toBe(2);
+});

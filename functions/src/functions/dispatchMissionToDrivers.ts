@@ -143,21 +143,30 @@ async function reconcileOpenBatch(status: string): Promise<void> {
   const field = status === MissionStatuses.OFFERED ? "offered_cursor" : "waiting_cursor";
   const stored = (await cursorRef.get()).data()?.[field];
   let query = db.collection("delivery_requests").where("status", "==", status)
-    .orderBy(admin.firestore.FieldPath.documentId()).limit(100);
+    .orderBy(admin.firestore.FieldPath.documentId()).limit(5);
   if (typeof stored === "string" && stored) query = query.startAfter(stored);
   let batch = await query.get();
   if (batch.empty && stored) batch = await db.collection("delivery_requests")
-    .where("status", "==", status).orderBy(admin.firestore.FieldPath.documentId()).limit(100).get();
+    .where("status", "==", status).orderBy(admin.firestore.FieldPath.documentId()).limit(5).get();
+  const workDeadline = Date.now() + 20000;
   for (const mission of batch.docs) {
+    if (Date.now() >= workDeadline) return;
+    // Persist progress BEFORE independently retryable work. Errors still propagate.
+    // A failed item is retried after wraparound, without starving later items.
+    await cursorRef.set({ [field]: mission.id }, { merge: true });
     const deadline = timestampMs(mission.data().dispatch_offer_expires_at);
     if (status === MissionStatuses.SEARCHING_DRIVER || deadline === null || deadline <= Date.now()) {
       await dispatchMission(mission.id);
     }
   }
-  // Resume bounded work fairly; do not repeatedly starve requests after the first 100.
-  await cursorRef.set({ [field]: batch.size === 100 ? batch.docs[batch.size - 1].id : null }, { merge: true });
+  // Resume bounded work fairly; do not repeatedly starve requests after the first bounded batch.
+  await cursorRef.set({ [field]: batch.size === 5 ? batch.docs[batch.size - 1].id : null }, { merge: true });
 }
 export const processDeliveryOfferExpirations = onSchedule("every 1 minutes", async () => {
-  await reconcileOpenBatch(MissionStatuses.OFFERED);
-  await reconcileOpenBatch(MissionStatuses.SEARCHING_DRIVER);
+  const results = await Promise.allSettled([
+    reconcileOpenBatch(MissionStatuses.OFFERED),
+    reconcileOpenBatch(MissionStatuses.SEARCHING_DRIVER),
+  ]);
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure?.status === "rejected") throw failure.reason;
 });
