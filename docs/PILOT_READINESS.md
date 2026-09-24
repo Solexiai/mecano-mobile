@@ -55,24 +55,26 @@ Références techniques consultées le 24 septembre 2026 : [App Check](https://f
 
 ### Sous-lot offres, attente et programmation — accord du 24 septembre 2026
 
-Daniel confirme que son parcours de mission va jusqu'au bout (retour utilisateur, pas une nouvelle preuve financière LIVE). Il autorise le parcours suivant : choix initial « Aujourd'hui — dès que possible » ou « Programmer l'enlèvement »; en l'absence de chauffeur, attente avec heure limite ou choix d'un créneau, sans nouvelle mission et sans changement de prix silencieux. Un créneau demandé n'est confirmé qu'après engagement chauffeur et vérification des conflits.
+Daniel confirme que son parcours de mission va jusqu'au bout (retour utilisateur, pas une preuve financière LIVE). Il a approuvé : « Aujourd'hui — dès que possible » ou « Programmer l'enlèvement », attente avec heure limite et passage vers un créneau sur la même mission, sans nouveau prix silencieux.
 
-**Ordre retenu :** offres immédiates fiables → attente explicite → programmation. Le dispatch, les offres, le devis et le mécanisme d'acceptation existants restent les points d'intégration. Ne pas ouvrir un second parcours de missions ni réimplémenter les paiements.
+**Ordre :** offres immédiates fiables → attente explicite → programmation. Une seule PR de travail, no 37, et un seul registre ici. La version publique reste inchangée tant que la fusion et les déploiements ne sont pas validés.
 
-**Préparation sur `feat/driver-offer-alerts` :**
-- `dispatchEligibility.ts` : distance géographique au pickup et rayon personnel; GPS récent, repli à l'adresse de base uniquement avant le premier point GPS; refus des coordonnées invalides, documents non valides et chauffeur occupé. Le seuil de fraîcheur proposé est 5 minutes; ce n'est pas une mesure de distance routière.
-- `declineDeliveryOffer.ts` : opération de refus authentifiée, réservée au destinataire, idempotente; ne change ni mission, ni paiement. Elle n'est PAS exportée dans `index.ts`, donc pas encore exposée à l'application.
-- Tests unitaires du rayon et tests d'intégration du refus ajoutés; résultats à consulter sur la PR en brouillon.
+**Lot 1 intégré dans la branche `feat/driver-offer-alerts` :**
+- Le dispatcher existant utilise le rayon individuel mesuré géographiquement jusqu'au pickup, un GPS de moins de 5 minutes ou l'adresse de base avant le premier GPS, avec contrôle des documents, du véhicule et de la disponibilité. L'application au premier plan rafraîchit le GPS autorisé au maximum une fois par minute, sans nouveau prompt.
+- Identifiant d'offre déterministe par mission/chauffeur; relecture transactionnelle; un événement répété n'émet pas une seconde offre. Une offre expirée/refusée n'est pas reproposée automatiquement au même chauffeur dans cette version.
+- `acceptDelivery` vérifie les offres v2 dans sa transaction : destinataire, expiration, rayon et disponibilité. Les offres concurrentes sont clôturées; un chauffeur ne peut pas accepter simultanément deux missions v2. La voie historique non dispatchée demeure compatible et ne doit pas être assimilée à un test v2.
+- `declineDeliveryOffer` est raccordée au repository existant. Aucune écriture directe client sur l'offre; aucun second système de paiement.
+- Un seul `DriverOfferHost` dans `MaterialApp.builder` écoute les offres sur toutes les pages. L'alerte comporte détails, distance géographique, compte à rebours, accepter/refuser/fermer, avec déduplication locale par compte, arrêt en arrière-plan, à l'expiration ou quand la mission n'est plus disponible.
+- Un seul job de réconciliation traite les offres expirées et les demandes déjà en recherche; curseurs dans `system_config/delivery_offer_reconciliation` pour avancer par lots de 100. Aucun nouveau ticket/mission n'est créé par la relance. Ce n'est PAS encore le choix client d'attente avec heure limite.
+- Les règles protègent les trois champs serveur `dispatch_version`, `dispatch_scan_complete`, `dispatch_offer_expires_at`; les traductions FR/EN/ES sont regroupées dans le catalogue existant, sans copie de clés.
 
-**Blocage d'intégration de ce lot :** l'outil a refusé l'écriture du fichier `dispatchMissionToDrivers.ts`, puis un script d'intégration des modèles/repository/index. Ces opérations n'ont pas été appliquées. L'ancien dispatcher et les points d'entrée existants sont donc inchangés. La cause précise du blocage n'est pas déterminée.
+**Vérifications :** tests d'intégration sur émulateurs et tests Flutter/compilation Web dans les workflows existants. Les essais ont révélé et corrigé une alerte restant affichée après invalidation du flux, ainsi qu'un catalogue de tests ignorant les traductions de notifications. Consulter les résultats du dernier commit, pas ceux du premier brouillon.
 
-Les prototypes Flutter ont été conservés hors du code de l'application, dans le dossier d'audit local `offer-ui-prototype`, car ils dépendent d'une intégration serveur et de modèles non terminés. Ils ne sont ni compilés, ni testés, ni présentés comme un pop-up opérationnel. Les offres portant un futur protocole `dispatch_version=2` étaient prévues pour empêcher d'afficher prématurément les offres anciennes non filtrées par rayon.
+**Limites explicites :** sélection serveur bornée à 1 000 profils par recherche et 15 nouveaux candidats; `dispatch_scan_complete=false` quand la lecture n'est pas exhaustive. Les essais sur appareils réels, la configuration push en arrière-plan et le déploiement cohérent client/serveur restent distincts des tests logiciels. Une seule instance par application, mais pas une garantie de déduplication entre deux téléphones simultanés du même chauffeur.
 
-**Reste du lot 1 :** intégrer le filtre au dispatcher, créer les offres sans doublons, vérifier leur validité à l'acceptation, fermer les offres concurrentes et expirées, intégrer un propriétaire unique du pop-up au-dessus des onglets chauffeur, traductions et tests Flutter. Le seuil GPS et les reprises après interruption réseau doivent être validés dans cette intégration.
+**Lots 2 et 3 non implantés :** choix de l'heure limite d'attente, programmation de créneau, gestion des conflits de réservation, rappels et acceptation d'un nouveau devis éventuel. Aucun tarif, paiement réel ni activation publique n'est modifié par ce lot.
 
-**Lots 2 et 3 non implantés :** heure limite d'attente, relance serveur contrôlée, modification de la même demande vers un créneau, vérification des conflits, rappels et accord du client en cas de nouveau devis.
-
-**Ne pas fusionner ni déployer ce sous-lot préparatoire.** Aucun tarif, runtime flag, règle de sécurité ou paiement réel n'a été modifié. La programmation n'est pas disponible à ce stade.
+**Déploiement à préparer après tests réussis :** client Web et fonctions existantes `onMissionCreatedDispatch`, `onMissionReopenedDispatch`, `onDriverBecameAvailableDispatch`, `acceptDelivery`; nouvelles actions `declineDeliveryOffer`, `processDeliveryOfferExpirations`; règles Firestore. Le nouveau job planifié et son coût doivent être explicitement inclus au périmètre autorisé. La base et les paiements demeurent uniques.
 
 
 ## Historique Phase 7 — Bloc AC (conservé, non réouvert)

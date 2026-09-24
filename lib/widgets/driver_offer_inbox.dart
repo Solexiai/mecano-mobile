@@ -85,10 +85,13 @@ class _DriverOfferInboxState extends State<DriverOfferInbox> with WidgetsBinding
     try { await _prefs?.setStringList(_seenKey, _seen.toList()); } catch (_) { /* Best effort. */ }
   }
   void _clear() {
+    final hadSelection = _current != null || _mission != null;
     _generation++;
     unawaited(_missionSubscription?.cancel());
     _missionSubscription = null;
     _current = null; _mission = null;
+    // Stream invalidations must remove the rendered overlay immediately.
+    if (mounted && hadSelection) setState(() {});
   }
   void _reconcile() {
     if (!mounted) return;

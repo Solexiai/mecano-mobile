@@ -64,7 +64,7 @@ test("only the offered available driver can accept, and losing offers close atom
 test.each(["expired","declined","busy","out-of-radius"])("rejects %s before assignment", async (reason) => {
   await driver("one"); await mission("mission"); await dispatch();
   if(reason==="expired") await offerRef("mission","one").update({expires_at:admin.firestore.Timestamp.fromMillis(1)});
-  if(reason==="declined") await declineDeliveryOffer.run({auth:{uid:"one"},data:{offerId:deliveryOfferId("mission","one")}} as Parameters<typeof declineDeliveryOffer.run>[0]);
+  if(reason==="declined") await declineDeliveryOffer.run({auth:{uid:"one",token:{},rawToken:"test"},data:{offerId:deliveryOfferId("mission","one")}} as Parameters<typeof declineDeliveryOffer.run>[0]);
   if(reason==="busy") await db.collection("driver_profiles").doc("one").update({online_status:"on_mission"});
   if(reason==="out-of-radius") await db.collection("driver_profiles").doc("one").update({base_lat:46.5});
   await expect(acceptDelivery.run(req("one",{missionId:"mission"}))).rejects.toMatchObject({code:"failed-precondition"});
@@ -99,3 +99,22 @@ test("search continues past fifty ineligible drivers", async () => {
   await driver("z-near"); await mission("mission"); await dispatch();
   expect((await offerRef("mission","z-near").get()).exists).toBe(true);
 });
+test("one reconciliation path retries waiting requests after GPS becomes fresh", async () => {
+  await driver("one");
+  await db.collection("driver_locations").doc("one").set({latitude:point.lat,longitude:point.lng,updated_at:admin.firestore.Timestamp.fromMillis(1)});
+  await mission("mission"); await dispatch();
+  expect((await db.collection("delivery_offers").get()).empty).toBe(true);
+  await db.collection("driver_locations").doc("one").update({updated_at:admin.firestore.Timestamp.now()});
+  await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
+  expect((await offerRef("mission","one").get()).data()?.status).toBe("pending");
+});
+test("reconciliation cursor progresses past the first hundred waiting requests", async () => {
+  await Promise.all(Array.from({length:101},(_,i)=>mission(`m-${String(i).padStart(3,'0')}`)));
+  await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
+  const cursor=db.collection("system_config").doc("delivery_offer_reconciliation");
+  expect((await cursor.get()).data()?.waiting_cursor).toBe("m-099");
+  await driver("one");
+  await processDeliveryOfferExpirations.run({} as Parameters<typeof processDeliveryOfferExpirations.run>[0]);
+  expect((await offerRef("m-100","one").get()).exists).toBe(true);
+  expect((await cursor.get()).data()?.waiting_cursor).toBeNull();
+}, 60000);

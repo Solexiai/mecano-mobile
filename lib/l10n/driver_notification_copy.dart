@@ -26,6 +26,8 @@ class DriverNotificationCopy {
     'driver_offer_accept': {'fr': "Accepter", 'en': "Accept", 'es': "Aceptar"},
   };
 
+  static Map<String, Map<String, String>> get allEntries => Map.unmodifiable(_t);
+
   static String? maybeTranslate(String key, String locale) {
     final values = _t[key];
     if (values == null) return null;

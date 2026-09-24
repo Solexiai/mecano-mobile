@@ -2865,3 +2865,20 @@ describe("Security Rules — routing_request_limits", () => {
     await assertFails(setDoc(counter, { startedAtMs: 0, count: 0 }));
   });
 });
+
+describe("Dispatch v2 server-owned fields", () => {
+  test.each(["dispatch_version", "dispatch_scan_complete", "dispatch_offer_expires_at"])("customer cannot change %s to bypass offer validation", async (field) => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/offer-guard"), {
+        customer_id: "offer-customer", driver_id: null, status: "offered",
+        driver_offer_amount: 0, customer_total: 10, payment_status: null,
+        pricing_version: "TEST", dispatch_version: 2, dispatch_scan_complete: true,
+        dispatch_offer_expires_at: 1,
+      });
+    });
+    const customer = testEnv.authenticatedContext("offer-customer", { role: "customer" });
+    const mission = doc(customer.firestore(), "delivery_requests/offer-guard");
+    await assertSucceeds(updateDoc(mission, { description: "Allowed note" }));
+    await assertFails(updateDoc(mission, { [field]: null }));
+  });
+});

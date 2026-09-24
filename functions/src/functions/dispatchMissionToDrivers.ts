@@ -48,10 +48,10 @@ async function dispatchMission(missionId: string): Promise<void> {
   const selected = candidates.slice(0, MAX_CANDIDATE_DRIVERS);
   const created = await db.runTransaction(async (tx) => {
     const current = (await tx.get(missionRef)).data();
-    if (!current || current.driver_id || !OPEN.includes(current.status)) return [];
+    if (!current || current.driver_id || !OPEN.includes(current.status)) return null;
     const nowMs = Date.now();
     const offers = await tx.get(db.collection("delivery_offers").where("mission_id", "==", missionId));
-    if (offers.docs.some((d) => liveOffer(d.data(), nowMs))) return [];
+    if (offers.docs.some((d) => liveOffer(d.data(), nowMs))) return null;
     // A declined/expired offer is not offered again to the same driver.
     const previouslyOffered = new Set(offers.docs.map((d) => d.data().driver_id));
     const remaining = selected.filter((c) => !previouslyOffered.has(c.id));
@@ -86,6 +86,7 @@ async function dispatchMission(missionId: string): Promise<void> {
       dispatch_offer_expires_at: fresh.length ? expiresAt : null });
     return fresh.map((d) => ({ ...d, expiresAtMs: expiresAt.toMillis() }));
   });
+  if (created === null) return;
   if (!created.length) {
     logFinancialFailure("dispatch_no_driver_available", timer, "no_new_eligible_offer",
       { missionId }, { metadata: { candidatesScanned: scanned, scanComplete } });
@@ -137,10 +138,26 @@ export const onDriverBecameAvailableDispatch = onDocumentUpdated("driver_profile
 
 // A single reconciliation job closes expired offers and restarts waiting searches.
 // Existing scheduler jobs were inspected: none handled delivery-offer expiration.
-export const processDeliveryOfferExpirations = onSchedule("every 1 minutes", async () => {
-  const pending = await db.collection("delivery_requests").where("status", "==", MissionStatuses.OFFERED).limit(100).get();
-  for (const mission of pending.docs) {
+async function reconcileOpenBatch(status: string): Promise<void> {
+  const cursorRef = db.collection("system_config").doc("delivery_offer_reconciliation");
+  const field = status === MissionStatuses.OFFERED ? "offered_cursor" : "waiting_cursor";
+  const stored = (await cursorRef.get()).data()?.[field];
+  let query = db.collection("delivery_requests").where("status", "==", status)
+    .orderBy(admin.firestore.FieldPath.documentId()).limit(100);
+  if (typeof stored === "string" && stored) query = query.startAfter(stored);
+  let batch = await query.get();
+  if (batch.empty && stored) batch = await db.collection("delivery_requests")
+    .where("status", "==", status).orderBy(admin.firestore.FieldPath.documentId()).limit(100).get();
+  for (const mission of batch.docs) {
     const deadline = timestampMs(mission.data().dispatch_offer_expires_at);
-    if (deadline !== null && deadline <= Date.now()) await dispatchMission(mission.id);
+    if (status === MissionStatuses.SEARCHING_DRIVER || deadline === null || deadline <= Date.now()) {
+      await dispatchMission(mission.id);
+    }
   }
+  // Resume bounded work fairly; do not repeatedly starve requests after the first 100.
+  await cursorRef.set({ [field]: batch.size === 100 ? batch.docs[batch.size - 1].id : null }, { merge: true });
+}
+export const processDeliveryOfferExpirations = onSchedule("every 1 minutes", async () => {
+  await reconcileOpenBatch(MissionStatuses.OFFERED);
+  await reconcileOpenBatch(MissionStatuses.SEARCHING_DRIVER);
 });
