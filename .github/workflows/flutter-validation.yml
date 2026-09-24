@@ -55,7 +55,14 @@ jobs:
         run: flutter analyze
 
       - name: Run Flutter tests
-        run: flutter test --reporter expanded
+        shell: bash
+        run: |
+          set +e
+          flutter test --reporter expanded > flutter-tests.log 2>&1
+          result=$?
+          grep -B 4 -A 15 -E '\[E\]|EXCEPTION|Expected:|Actual:|Error:|Some tests failed|All tests passed' flutter-tests.log || true
+          tail -n 8 flutter-tests.log
+          exit "$result"
 
       - name: Build Flutter Web with repository script
         if: ${{ !cancelled() }}
