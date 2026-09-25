@@ -359,3 +359,21 @@ l'ordre logique de dépendance :
 | Aucun P0/P1 logiciel connu laissé ouvert | ✅ Confirmé (P0=0, P1=0, Bloc AB fermé) |
 
 # BLOC AC : ✅ FERMÉ
+
+
+## Accueil public — exécution du plan approuvé le 25 septembre 2026
+
+Périmètre indépendant de la PR no 37 : accueil existant, navigation publique, conservation de la catégorie pendant la connexion et métadonnées HTML. Une seule PR d'accueil (no 38), une seule route de demande, aucun second formulaire ni copie de site. Aucun changement des fonctions, des règles, du moteur tarifaire, de Stripe ou des interrupteurs opérationnels.
+
+- Premier écran raccourci; compteur de chauffeurs fictifs supprimé; mention de version pilote et disponibilité à confirmer conservée.
+- Bouton « Obtenir mon devis » directement vers `/{locale}/livraison/demande`. Six catégories préremplies via un paramètre validé dans le catalogue existant.
+- Retour après connexion limité à cette route et au paramètre de catégorie reconnu. Aucun retour vers une URL arbitraire, un autre domaine ou une route administrative.
+- Menu de compte visible sur téléphone; entrées chauffeur et administration conditionnées aux rôles, sans modification de la sécurité serveur.
+- Étapes réordonnées, promesses de messagerie/avis retirées, FAQ et informations de disponibilité, recrutement chauffeur distinct et pied de page regroupé. Textes FR/EN/ES; cartes de hauteur naturelle.
+- Le formulaire Contact simulait un envoi et indiquait `support@movi-k.demo`. Il est remplacé par un état explicitement non opérationnel. **Adresse officielle ou canal de contact à fournir et raccorder avant ouverture publique.** Aucun délai de réponse inventé.
+- Titre, description et balises sociales du HTML initial corrigés. **HTML initial encore en français** : les variantes statiques de métadonnées par langue sont hors de ce lot. Le titre de l'accueil change aussi dans l'application selon la langue.
+- Pas de photo d'un chauffeur ou de témoignage fabriqué, ni couverture géographique précise annoncée sans preuve. Pas de bouton de programmation tant que les lots d'horaire ne sont pas livrés.
+
+Validation : le workflow Flutter existant est réutilisé; aucun nouveau workflow parallèle. Tests ciblés de rendu 320/390/768/1280, FR/EN/ES, texte 200 % en clair/sombre, navigation client/chauffeur, catégorie après connexion, retour sûr et absence de faux envoi Contact. Le résultat final est à consulter sur le dernier commit de la PR no 38. Aucune mesure de rapidité, qualification WCAG globale ni essai utilisateur en production n'est déduit de ces tests.
+
+Publication : le connecteur Vercel a encore renvoyé 403 le 25 septembre; ce refus ne prouve pas une panne du site. La fusion et la publication doivent être contrôlées séparément. Aucun déploiement Firebase n'est requis pour ce lot d'accueil.

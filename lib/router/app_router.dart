@@ -83,15 +83,15 @@ class AppRouter {
             ),
             GoRoute(
               path: 'livraison/demande',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc),
+              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
             ),
             GoRoute(
               path: 'delivery/request',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc),
+              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
             ),
             GoRoute(
               path: 'entrega/solicitud',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc),
+              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
             ),
 
             GoRoute(
@@ -175,15 +175,15 @@ class AppRouter {
 
             GoRoute(
               path: 'connexion',
-              builder: (c, s) => AuthScreen(locale: loc),
+              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
             ),
             GoRoute(
               path: 'sign-in',
-              builder: (c, s) => AuthScreen(locale: loc),
+              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
             ),
             GoRoute(
               path: 'iniciar-sesion',
-              builder: (c, s) => AuthScreen(locale: loc),
+              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
             ),
 
             GoRoute(
