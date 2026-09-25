@@ -198,17 +198,15 @@ class StepFormCard extends StatelessWidget {
             : 24.0;
     final radius = AppBreakpoints.isPhone(width) ? 18.0 : 24.0;
 
-    // List tiles must paint on this card, not behind a decorated ancestor.
-    return SizedBox(
+    return Container(
       width: double.infinity,
-      child: Material(
+      padding: EdgeInsets.all(padding),
+      decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
-          side: const BorderSide(color: AppColors.border),
-        ),
-        child: Padding(padding: EdgeInsets.all(padding), child: child),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: AppColors.border),
       ),
+      child: child,
     );
   }
 }
