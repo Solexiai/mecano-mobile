@@ -35,6 +35,8 @@ import type { Response } from "express";
 import Stripe from "stripe";
 import { processStripeWebhook, processStripeConnectWebhook } from "../../src/functions/processStripeWebhook";
 import { admin, db } from "../../src/lib/admin";
+import { acquireProviderEventLease, finishProviderEventLease, PROVIDER_EVENT_LEASE_MS } from "../../src/lib/idempotency";
+import * as auditModule from "../../src/lib/audit";
 import {
   DisputeStatuses,
   PaymentStatuses,
@@ -485,18 +487,16 @@ describe("processStripeWebhook", () => {
     // processStripeWebhook.ts, avant dispatchStripeEvent()).
     const [first, second] = await Promise.all([invokeWebhook(payload, sig), invokeWebhook(payload, sig)]);
 
-    // 🔒 Assertion CRITIQUE : les deux requêtes HTTP renvoient 200 (aucune
-    // ne doit jamais échouer côté client à cause de la concurrence), mais
-    // au plus une seule doit avoir réellement exécuté le dispatch.
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    const bodies = [first.body, second.body] as { received: boolean; alreadyProcessed?: boolean }[];
-    const freshCount = bodies.filter((b) => !b.alreadyProcessed).length;
-    const alreadyProcessedCount = bodies.filter((b) => b.alreadyProcessed === true).length;
-    // Exactement un seul traitement "frais", l'autre observe alreadyProcessed
-    // (l'ordre exact d'arrivée n'est pas déterministe, seul le COMPTE l'est).
-    expect(freshCount).toBe(1);
-    expect(alreadyProcessedCount).toBe(1);
+    // An in-flight duplicate must remain retryable, never falsely acknowledged.
+    const results = [first, second];
+    expect(results.every((r) => r.status === 200 || r.status === 503)).toBe(true);
+    const fresh = results.filter((r) => r.status === 200 && !(r.body as { alreadyProcessed?: boolean }).alreadyProcessed);
+    expect(fresh).toHaveLength(1);
+    for (const r of results.filter((r) => r.status === 503)) {
+      expect(r.body).toEqual({ received: false, retryable: true, reason: "processing_in_progress" });
+    }
+    const retry = await invokeWebhook(payload, sig);
+    expect(retry).toEqual({ status: 200, body: { received: true, alreadyProcessed: true } });
 
     const doc = await getEventDoc(eventId);
     expect(doc!.processing_status).toBe("processed");
@@ -1271,5 +1271,85 @@ describe("processStripeWebhook", () => {
 
       await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId] });
     });
+  });
+});
+
+// Regression for the intermittent concurrent-delivery failure recorded in PR #37.
+// All signatures are generated locally; only demo Firestore emulators are used.
+describe("provider event processing ownership", () => {
+  const ids: string[] = [];
+  const fixture = (label: string) => {
+    const id = `evt_lease_${label}`; ids.push(id);
+    return { id, type: "customer.created", ref: db.collection("provider_webhook_events").doc(id) };
+  };
+  beforeEach(() => setPaymentProviderForTesting(new StripeProvider(TEST_SECRET_KEY, TEST_WEBHOOK_SECRET)));
+  afterEach(async () => {
+    jest.restoreAllMocks(); setPaymentProviderForTesting(null);
+    await cleanupAll({ eventIds: ids.splice(0) });
+  });
+  test("unfinished work returns 503 on BOTH endpoints, then a failed owner is retryable", async () => {
+    const e = fixture("in_flight");
+    const owner = await acquireProviderEventLease(e.ref, e);
+    expect(owner.state).toBe("acquired");
+    const payload = buildStripeEventPayload(e.id, e.type, { id: "cus_lease_test" });
+    for (const response of [await invokeWebhook(payload, signPayload(payload)), await invokeConnectWebhook(payload, signConnectPayload(payload))]) {
+      expect(response).toEqual({ status: 503, body: { received: false, retryable: true, reason: "processing_in_progress" } });
+    }
+    expect((await getEventDoc(e.id))!.attempt_count).toBe(1);
+    if (owner.state !== "acquired") throw new Error("Missing lease owner");
+    expect(await finishProviderEventLease(e.ref, owner.token, { processing_status: "failed" })).toBe(true);
+    expect((await invokeWebhook(payload, signPayload(payload))).status).toBe(200);
+    expect((await getEventDoc(e.id))!.attempt_count).toBe(2);
+    expect((await getEventDoc(e.id))!.processing_status).toBe("processed");
+  });
+  test("twelve simultaneous acquisitions elect exactly one owner", async () => {
+    const e = fixture("twelve");
+    const results = await Promise.all(Array.from({ length: 12 }, () => acquireProviderEventLease(e.ref, e)));
+    expect(results.filter((r) => r.state === "acquired")).toHaveLength(1);
+    expect(results.filter((r) => r.state === "busy")).toHaveLength(11);
+    expect((await getEventDoc(e.id))!.attempt_count).toBe(1);
+  });
+  test("expired ownership is recoverable and the previous worker is fenced out", async () => {
+    const e = fixture("expired");
+    const oldOwner = await acquireProviderEventLease(e.ref, e);
+    if (oldOwner.state !== "acquired") throw new Error("Missing first owner");
+    await e.ref.update({ processing_lease_expires_at: admin.firestore.Timestamp.fromMillis(Date.now() - 1) });
+    const newOwner = await acquireProviderEventLease(e.ref, e);
+    if (newOwner.state !== "acquired") throw new Error("Missing replacement owner");
+    expect(newOwner.token).not.toBe(oldOwner.token);
+    expect(await finishProviderEventLease(e.ref, oldOwner.token, { processing_status: "processed" })).toBe(false);
+    expect((await getEventDoc(e.id))!.processing_lease_token).toBe(newOwner.token);
+    expect(await finishProviderEventLease(e.ref, newOwner.token, { processing_status: "processed" })).toBe(true);
+    expect(await finishProviderEventLease(e.ref, oldOwner.token, { processing_status: "failed" })).toBe(false);
+    expect((await getEventDoc(e.id))!.processing_status).toBe("processed");
+    expect((await getEventDoc(e.id))!.attempt_count).toBe(2);
+  });
+  test("a recently received legacy event is not stolen during rollout", async () => {
+    const e = fixture("legacy");
+    await e.ref.set({ processing_status: "received", received_at: admin.firestore.Timestamp.now(), attempt_count: 1 });
+    expect((await acquireProviderEventLease(e.ref, e)).state).toBe("busy");
+    await e.ref.update({ received_at: admin.firestore.Timestamp.fromMillis(Date.now() - PROVIDER_EVENT_LEASE_MS - 1) });
+    expect((await acquireProviderEventLease(e.ref, e)).state).toBe("acquired");
+  });
+  test("an audit failure after completion never reopens the event or repeats its business effect", async () => {
+    const e = fixture("late_audit");
+    const paymentId = "webhook_lease_audit_payment";
+    await seedPayment(paymentId, "webhook_lease_audit_mission", { providerPaymentIntentId: "pi_lease_audit" });
+    const original = auditModule.writeAuditLog;
+    let injected = false;
+    jest.spyOn(auditModule, "writeAuditLog").mockImplementation(async (input) => {
+      if (input.action === "webhook_event_processed" && !injected) {
+        injected = true; throw new Error("Simulated audit failure after durable completion");
+      }
+      return original(input);
+    });
+    const payload = buildStripeEventPayload(e.id, "payment_intent.succeeded", { id: "pi_lease_audit" });
+    expect((await invokeWebhook(payload, signPayload(payload))).status).toBe(500);
+    expect((await getEventDoc(e.id))!.processing_status).toBe("processed");
+    expect(await invokeWebhook(payload, signPayload(payload))).toEqual({ status: 200, body: { received: true, alreadyProcessed: true } });
+    const effects = await db.collection("audit_logs").where("target_id", "==", paymentId).where("action", "==", "payment_captured").get();
+    expect(effects.size).toBe(1);
+    expect((await getEventDoc(e.id))!.attempt_count).toBe(1);
+    await cleanupAll({ paymentIds: [paymentId] });
   });
 });
