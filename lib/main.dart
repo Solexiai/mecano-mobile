@@ -16,6 +16,7 @@ import 'providers/review_provider.dart';
 import 'router/app_router.dart';
 import 'services/storage_service.dart';
 import 'services/push_notification_service.dart';
+import 'widgets/driver_offer_host.dart';
 import 'backend/backend_bootstrap.dart';
 import 'backend/backend_status.dart';
 
@@ -81,6 +82,7 @@ class MovikApp extends StatelessWidget {
             darkTheme: AppTheme.dark(),
             themeMode: themeProvider.themeMode,
             routerConfig: AppRouter.router,
+            builder: (context, child) => DriverOfferHost(child: child ?? const SizedBox.shrink()),
           );
         },
       ),

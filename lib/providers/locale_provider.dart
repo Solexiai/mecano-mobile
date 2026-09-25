@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
-import '../l10n/driver_notification_copy.dart';
 
 /// Manages the active app locale (fr default, en, es).
 class LocaleProvider extends ChangeNotifier {
@@ -29,6 +28,5 @@ class LocaleProvider extends ChangeNotifier {
     await prefs.setString(_prefKey, code);
   }
 
-  String t(String key) =>
-      DriverNotificationCopy.maybeTranslate(key, _locale) ?? AppStrings.t(key, _locale);
+  String t(String key) => AppStrings.t(key, _locale);
 }

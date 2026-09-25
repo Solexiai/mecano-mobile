@@ -17,6 +17,7 @@
 // `aborted` — le client retente plus tard plutôt que de dupliquer l'effet.
 // -----------------------------------------------------------------------------
 
+import { randomUUID } from "crypto";
 import { admin, db } from "./admin";
 import { aborted } from "./errors";
 
@@ -118,4 +119,63 @@ export async function isProviderEventAlreadyProcessed(providerEventId: string): 
   const ref = db.collection("provider_webhook_events").doc(providerEventId);
   const snap = await ref.get();
   return snap.exists && snap.data()?.processing_status === "processed";
+}
+
+// The Stripe event ID remains the sole deduplication key. A random lease token
+// identifies its CURRENT worker, not a second event or a financial operation.
+export const PROVIDER_EVENT_LEASE_MS = 5 * 60 * 1000;
+export type ProviderEventAcquisition =
+  | { state: "processed" }
+  | { state: "busy" }
+  | { state: "acquired"; token: string };
+
+export async function acquireProviderEventLease(
+  ref: FirebaseFirestore.DocumentReference,
+  event: { id: string; type: string }
+): Promise<ProviderEventAcquisition> {
+  const token = randomUUID();
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const now = admin.firestore.Timestamp.now();
+    const data = snap.data();
+    if (data?.processing_status === "processed") return { state: "processed" };
+    if (data?.processing_status === "received") {
+      // During rollout, respect a recently received event from the old handler.
+      const expires = data.processing_lease_expires_at?.toMillis?.() ??
+        ((data.received_at?.toMillis?.() ?? 0) + PROVIDER_EVENT_LEASE_MS);
+      if (!Number.isFinite(expires) || expires > now.toMillis()) return { state: "busy" };
+    }
+    const lease = {
+      processing_status: "received", processing_lease_token: token,
+      processing_lease_expires_at: admin.firestore.Timestamp.fromMillis(now.toMillis() + PROVIDER_EVENT_LEASE_MS),
+      received_at: now, last_error: null, error_code: null,
+    };
+    if (snap.exists) {
+      tx.update(ref, { ...lease,
+        attempt_count: admin.firestore.FieldValue.increment(1),
+        processing_attempts: admin.firestore.FieldValue.increment(1),
+      });
+    } else {
+      tx.set(ref, { ...lease, provider: "stripe", provider_event_id: event.id,
+        event_type: event.type, processed_at: null, attempt_count: 1,
+        processing_attempts: 1, related_payment_id: null, related_payout_id: null,
+        related_refund_id: null, related_dispute_id: null, related_mission_id: null,
+        related_driver_id: null,
+      });
+    }
+    return { state: "acquired", token };
+  });
+}
+
+/** A stale worker or a late logging failure must never overwrite a successor. */
+export async function finishProviderEventLease(
+  ref: FirebaseFirestore.DocumentReference, token: string,
+  result: Record<string, unknown> & { processing_status: "processed" | "failed" }
+): Promise<boolean> {
+  return db.runTransaction(async (tx) => {
+    const data = (await tx.get(ref)).data();
+    if (data?.processing_status !== "received" || data.processing_lease_token !== token) return false;
+    tx.update(ref, { ...result, processing_lease_token: null, processing_lease_expires_at: null });
+    return true;
+  });
 }

@@ -304,6 +304,9 @@ service cloud.firestore {
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'assignment_mode',
           'internal_test_authorized',
+          'dispatch_version',
+          'dispatch_scan_complete',
+          'dispatch_offer_expires_at',
           'internal_test_assigned_by',
           'internal_test_assigned_at',
           'active_quote_id',

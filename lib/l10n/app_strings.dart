@@ -1,3 +1,5 @@
+import 'driver_notification_copy.dart';
+
 /// Movi-k translation dictionary — French (default), English, Spanish.
 /// Structured as a flat key -> {locale: value} map to keep all UI text
 /// centralized and avoid hardcoded mixed-language strings in widgets.
@@ -4674,6 +4676,8 @@ class AppStrings {
   };
 
   static String t(String key, String locale) {
+    final notification = DriverNotificationCopy.maybeTranslate(key, locale);
+    if (notification != null) return notification;
     final entry = _t[key];
     if (entry == null) return key;
     return entry[locale] ?? entry['fr'] ?? entry['en'] ?? key;
@@ -4689,5 +4693,5 @@ class AppStrings {
   /// une liste statique dupliquée, approche volontairement NON reproduite
   /// ici pour l'ensemble du dictionnaire).
   static Map<String, Map<String, String>> get allEntries =>
-      Map.unmodifiable(_t);
+      Map.unmodifiable({..._t, ...DriverNotificationCopy.allEntries});
 }

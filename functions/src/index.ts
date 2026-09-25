@@ -31,6 +31,7 @@ export {
   onMissionCreatedDispatch,
   onMissionReopenedDispatch,
   onDriverBecameAvailableDispatch,
+  processDeliveryOfferExpirations,
 } from "./functions/dispatchMissionToDrivers";
 export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
 export { onMissionStatusChangeNotifyCustomer } from "./functions/onMissionStatusChangeNotifyCustomer";
@@ -85,3 +86,5 @@ export { cleanupExpiredTrackingHistory } from "./functions/cleanupExpiredTrackin
 
 // ---- Feature flags / kill switches (Phase 7, Bloc X) ----
 export { updateRuntimeFlags } from "./functions/updateRuntimeFlags";
+
+export { declineDeliveryOffer } from "./functions/declineDeliveryOffer";

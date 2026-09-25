@@ -4,17 +4,17 @@
 
 Cette section est l'unique suivi d'exécution 8A à 8L. Les sections AC ci-dessous sont des preuves historiques de Phase 7, pas des affirmations sur le déploiement actuel. La Phase 7 n'est pas réouverte. Les procédures spécialisées restent dans leurs documents existants; aucun second parcours client/chauffeur/admin n'est créé.
 
-**Base vérifiée :** `main` = `6090fed066d5d7ce5444cc71190fe5aef0c77c10`. Travail courant : branche `feat/phase8-readiness`, dans le worktree de release existant. Les deux anciens worktrees et leurs modifications locales sont conservés, sans copie ni fusion automatique. La PR historique #25 est hors de ce lot.
+**Base de travail vérifiée :** `main` = `91778506ef2a77de1c167ca9b049de7556e04d1c` (PR #36 fusionnée). Le lot offres évolue uniquement sur `feat/driver-offer-alerts`, PR #37; il n’est pas déployé. Les worktrees antérieurs et leurs modifications sont conservés. La PR historique #25 reste hors périmètre.
 
-**Dernier état de production vérifié, 24 septembre à 11 h 55 (Québec) :** dix fonctions du correctif #35 actives; quatre `system_config/runtime_flags` à `false`; règles Firestore encore sur la publication du 16 septembre. Cela ne prouve pas un devis connecté ni un pilote complet. Aucun paiement réel ni activation publique n'est autorisé par ce suivi.
+**Dernier déploiement documenté :** PR #36 publiée sur Firebase le 24 septembre à 14 h 04 (Québec) : devis, itinéraire, quota commun et règles Firestore. Les quatre flags étaient `false` à leur dernière lecture directe de 11 h 55; aucune lecture plus récente n’est revendiquée ici. Daniel a ensuite confirmé le devis puis son parcours de mission terminé; ces retours ne valident pas les paiements LIVE ni le nouveau pop-up. Preuves dans les commentaires de la PR #36.
 
-**Limite du contrôle de ce lot :** le script d'inventaire cloud a été bloqué avant exécution. Les états externes ci-dessous ne sont ni supposés absents ni déclarés validés. Aucun contournement et aucune mutation cloud n'ont été effectués dans ce lot.
+**Limites :** aucun déploiement du lot offres n’est revendiqué. Les anciens contrôles cloud bloqués ne sont pas transformés en preuves de configuration. Le connecteur Vercel renvoie encore 403 pour l’espace du projet lors de la reprise; cela ne prouve pas une panne du site.
 
 | Bloc | État et travail de ce lot | Condition restante de clôture / composant canonique |
 |---|---|---|
 | 8A — Configuration | En cours. Mapping `production` vers `movik-connect-prod` confirmé dans `.firebaserc`; un seul codebase `functions`; tests sur `demo-movik-test`. Garde-fou Jest et CI Firebase ajoutés. | Vérifier en lecture les index, les déploiements et règles réellement actifs; appliquer les règles testées après autorisation; préparer la migration du runtime. Activation pilote séparée, sans nouveau projet payant implicite. |
 | 8B — Stripe / Connect | Architecture existante conservée (`PAYMENT_ARCHITECTURE.md`, `paymentProviderFactory`, deux webhooks). Aucun nouveau provider, endpoint de paiement ni secret créé. | Vérifier configuration et événements réels puis exécuter le cycle Stripe TEST complet. Toute exposition LIVE reste une décision explicite. Le test sandbox de la PR #35 n'est pas un pilote financier complet. |
-| 8C — Anti-abus | Quota commun ajouté aux deux callables existantes `calculateDeliveryQuote` et `calculateRoute`. Aucun second calcul tarifaire. | Valider et déployer le quota après tests; configurer App Check côté plateformes, observer puis imposer progressivement. App Check n'est pas activé dans ce lot. |
+| 8C — Anti-abus | Quota commun devis/itinéraire de la PR #36 déployé et paramètres vérifiés le 24 septembre à 14 h 04. Aucun deuxième moteur tarifaire. | App Check reste à configurer, observer et imposer progressivement sur les plateformes retenues. |
 | 8D — Push | `PushNotificationService`, `registerPushToken`, `unregisterPushToken`, dispatch et notifications client existent déjà. Pas de second service. | Confirmer VAPID/configuration déployée, permissions, réception, renouvellement, déconnexion et ouverture de la bonne mission sur appareils réels. iOS seulement si retenu. |
 | 8E — GPS / appareils | Logique existante réutilisée; aucun essai terrain attesté dans ce lot. | Exécuter AC-3 : arrière-plan, écran verrouillé, perte/reprise réseau, batterie, suivi client et preuve photo. |
 | 8F — Récupération | Archives sources des dix fonctions déjà sauvegardées, distinctes des données. État des sauvegardes Firestore/Storage non revalidé. | Vérifier la stratégie, les coûts/rétention approuvés et une restauration non destructive; réutiliser `DISASTER_RECOVERY.md`. |
@@ -52,6 +52,34 @@ Avant toute fusion/diffusion : revue du diff, tests complets et confirmation de 
 Références techniques consultées le 24 septembre 2026 : [App Check](https://firebase.google.com/docs/app-check/cloud-functions), [paramètres Firebase](https://firebase.google.com/docs/reference/functions/firebase-functions.params), [runtimes Google Cloud](https://docs.cloud.google.com/functions/docs/runtime-support).
 
 ---
+
+### Sous-lot offres, attente et programmation — accord du 24 septembre 2026
+
+Daniel confirme que son parcours de mission va jusqu'au bout (retour utilisateur, pas une preuve financière LIVE). Il a approuvé : « Aujourd'hui — dès que possible » ou « Programmer l'enlèvement », attente avec heure limite et passage vers un créneau sur la même mission, sans nouveau prix silencieux.
+
+**Ordre :** offres immédiates fiables → attente explicite → programmation. Une seule PR de travail, no 37, et un seul registre ici. La version publique reste inchangée tant que la fusion et les déploiements ne sont pas validés.
+
+**Lot 1 intégré dans la branche `feat/driver-offer-alerts` :**
+- Le dispatcher existant utilise le rayon individuel mesuré géographiquement jusqu'au pickup, un GPS de moins de 5 minutes ou l'adresse de base avant le premier GPS, avec contrôle des documents, du véhicule et de la disponibilité. L'application au premier plan rafraîchit le GPS autorisé au maximum une fois par minute, sans nouveau prompt.
+- Identifiant d'offre déterministe par mission/chauffeur; relecture transactionnelle; un événement répété n'émet pas une seconde offre. Une offre expirée/refusée n'est pas reproposée automatiquement au même chauffeur dans cette version.
+- `acceptDelivery` vérifie les offres v2 dans sa transaction : destinataire, expiration, rayon et disponibilité. Les offres concurrentes sont clôturées; un chauffeur ne peut pas accepter simultanément deux missions v2. La voie historique non dispatchée demeure compatible et ne doit pas être assimilée à un test v2.
+- `declineDeliveryOffer` est raccordée au repository existant. Aucune écriture directe client sur l'offre; aucun second système de paiement.
+- Un seul `DriverOfferHost` dans `MaterialApp.builder` écoute les offres sur toutes les pages. L'alerte comporte détails, distance géographique, compte à rebours, accepter/refuser/fermer, avec déduplication locale par compte, arrêt en arrière-plan, à l'expiration ou quand la mission n'est plus disponible.
+- Un seul job de réconciliation traite les offres expirées et les demandes déjà en recherche; curseurs dans `system_config/delivery_offer_reconciliation` pour avancer par petits lots. Aucun nouveau ticket/mission n'est créé par la relance. Ce n'est PAS encore le choix client d'attente avec heure limite.
+- Les règles protègent les trois champs serveur `dispatch_version`, `dispatch_scan_complete`, `dispatch_offer_expires_at`; les traductions FR/EN/ES sont regroupées dans le catalogue existant, sans copie de clés.
+
+**Vérifications :** tests d'intégration sur émulateurs et tests Flutter/compilation Web dans les workflows existants. Les essais ont révélé et corrigé une alerte restant affichée après invalidation du flux, ainsi qu'un catalogue de tests ignorant les traductions de notifications. Consulter les résultats du dernier commit, pas ceux du premier brouillon.
+
+**Limites explicites :** sélection serveur bornée à 1 000 profils par recherche et 15 nouveaux candidats; `dispatch_scan_complete=false` quand la lecture n'est pas exhaustive. Les essais sur appareils réels, la configuration push en arrière-plan et le déploiement cohérent client/serveur restent distincts des tests logiciels. Une seule instance par application, mais pas une garantie de déduplication entre deux téléphones simultanés du même chauffeur.
+
+**Correction de la concurrence Stripe révélée pendant le lot 1 :** le gestionnaire partagé conserve le même registre `provider_webhook_events` et le même identifiant d'événement. Une transaction réserve le traitement pour un seul propriétaire; un doublon encore en cours reçoit HTTP 503 (réessayable), un événement déjà terminé reçoit HTTP 200 sans rejouer le métier. Le bail est de cinq minutes; les deux fonctions HTTP déclarent un timeout de 60 secondes. Un propriétaire remplacé ou une erreur d'audit tardive ne peut plus remettre un événement traité en échec. Cette protection ne remplace pas l'idempotence des opérations financières et ne promet pas une garantie universelle « exactement une fois » après un crash.
+
+Le défaut intermittent antérieur reste une observation historique. Le correctif et ses tests sont dans cette même PR, sans deuxième système de paiement. La publication doit inclure les deux fonctions webhook existantes si ce correctif est livré, sans changer leurs secrets ni activer les paiements réels.
+
+**Lots 2 et 3 non implantés :** choix de l'heure limite d'attente, programmation de créneau, gestion des conflits de réservation, rappels et acceptation d'un nouveau devis éventuel. Aucun tarif, paiement réel ni activation publique n'est modifié par ce lot.
+
+**Déploiement à préparer après tests réussis :** client Web et fonctions existantes `onMissionCreatedDispatch`, `onMissionReopenedDispatch`, `onDriverBecameAvailableDispatch`, `acceptDelivery`; nouvelles actions `declineDeliveryOffer`, `processDeliveryOfferExpirations`; règles Firestore. Le nouveau job planifié et son coût doivent être explicitement inclus au périmètre autorisé. La base et les paiements demeurent uniques.
+
 
 ## Historique Phase 7 — Bloc AC (conservé, non réouvert)
 

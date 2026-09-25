@@ -62,6 +62,7 @@ import type { Request } from "firebase-functions/v2/https";
 import type { Response } from "express";
 import Stripe from "stripe";
 import { admin, db } from "../lib/admin";
+import { acquireProviderEventLease, finishProviderEventLease } from "../lib/idempotency";
 import { writeAuditLog } from "../lib/audit";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { StripeProvider } from "../payment/stripeProvider";
@@ -617,51 +618,14 @@ function buildStripeWebhookHandler(
     // tous endpoints confondus, aucun risque de collision entre plateforme
     // et Connect.
     const eventRef = db.collection("provider_webhook_events").doc(event.id);
-    const now = admin.firestore.Timestamp.now();
-
-    // get-or-create atomique : si déjà `processed`, on accuse réception
-    // SANS ré-exécuter le moindre effet (retry-safe, exactement-une-fois
-    // du point de vue des effets financiers).
-    const acquireResult = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(eventRef);
-      if (snap.exists) {
-        const data = snap.data()!;
-        if (data.processing_status === WebhookProcessingStatuses.PROCESSED) {
-          return { alreadyProcessed: true as const };
-        }
-        // received/failed : on retente (compteur d'essais incrémenté),
-        // jamais une nouvelle écriture financière DUPLIQUÉE puisque le
-        // dispatch lui-même délègue à des opérations idempotentes.
-        tx.update(eventRef, {
-          attempt_count: admin.firestore.FieldValue.increment(1),
-          processing_attempts: admin.firestore.FieldValue.increment(1),
-          received_at: now,
-        });
-        return { alreadyProcessed: false as const };
-      }
-      tx.set(eventRef, {
-        provider: "stripe",
-        provider_event_id: event.id,
-        event_type: event.type,
-        received_at: now,
-        processed_at: null,
-        processing_status: WebhookProcessingStatuses.RECEIVED,
-        attempt_count: 1,
-        processing_attempts: 1,
-        last_error: null,
-        error_code: null,
-        related_payment_id: null,
-        related_payout_id: null,
-        related_refund_id: null,
-        related_dispute_id: null,
-        related_mission_id: null,
-        related_driver_id: null,
-      });
-      return { alreadyProcessed: false as const };
-    });
-
-    if (acquireResult.alreadyProcessed) {
+    const acquisition = await acquireProviderEventLease(eventRef, event);
+    if (acquisition.state === "processed") {
       response.status(200).send({ received: true, alreadyProcessed: true });
+      return;
+    }
+    if (acquisition.state === "busy") {
+      // Do not acknowledge unfinished work: Stripe must retry if its owner fails.
+      response.status(503).send({ received: false, retryable: true, reason: "processing_in_progress" });
       return;
     }
 
@@ -671,7 +635,7 @@ function buildStripeWebhookHandler(
       const related = await dispatchStripeEvent(event, sourceFunctionName);
       const durationMs = Date.now() - startedAt;
 
-      await eventRef.update({
+      const finalized = await finishProviderEventLease(eventRef, acquisition.token, {
         processing_status: WebhookProcessingStatuses.PROCESSED,
         processed_at: admin.firestore.Timestamp.now(),
         related_payment_id: related.relatedPaymentId,
@@ -683,6 +647,10 @@ function buildStripeWebhookHandler(
         last_error: null,
         error_code: null,
       });
+      if (!finalized) {
+        response.status(503).send({ received: false, retryable: true, reason: "processing_lease_lost" });
+        return;
+      }
 
       await writeAuditLog({
         actorUserId: "system",
@@ -726,7 +694,7 @@ function buildStripeWebhookHandler(
       const message = err instanceof Error ? err.message : String(err);
       const durationMs = Date.now() - startedAt;
 
-      await eventRef.update({
+      await finishProviderEventLease(eventRef, acquisition.token, {
         processing_status: WebhookProcessingStatuses.FAILED,
         last_error: message,
         error_code: "webhook_dispatch_failed",
@@ -780,7 +748,7 @@ function buildStripeWebhookHandler(
 // `STRIPE_PLATFORM_WEBHOOK_SECRET`.
 // -----------------------------------------------------------------------------
 export const processStripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_PLATFORM_WEBHOOK_SECRET] },
+  { timeoutSeconds: 60, secrets: [STRIPE_SECRET_KEY, STRIPE_PLATFORM_WEBHOOK_SECRET] },
   buildStripeWebhookHandler("processStripeWebhook", () => STRIPE_PLATFORM_WEBHOOK_SECRET.value())
 );
 
@@ -791,6 +759,6 @@ export const processStripeWebhook = onRequest(
 // avec l'endpoint plateforme). Secret dédié : `STRIPE_CONNECT_WEBHOOK_SECRET`.
 // -----------------------------------------------------------------------------
 export const processStripeConnectWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_CONNECT_WEBHOOK_SECRET] },
+  { timeoutSeconds: 60, secrets: [STRIPE_SECRET_KEY, STRIPE_CONNECT_WEBHOOK_SECRET] },
   buildStripeWebhookHandler("processStripeConnectWebhook", () => STRIPE_CONNECT_WEBHOOK_SECRET.value())
 );

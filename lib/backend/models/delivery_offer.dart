@@ -17,6 +17,8 @@ class DeliveryOffer {
   /// pending | accepted | expired | declined | superseded (un autre chauffeur
   /// a accepté en premier)
   final String status;
+  final int dispatchVersion;
+  final double? pickupDistanceKm;
 
   const DeliveryOffer({
     required this.id,
@@ -25,6 +27,8 @@ class DeliveryOffer {
     required this.offeredAt,
     required this.expiresAt,
     required this.status,
+    this.dispatchVersion = 0,
+    this.pickupDistanceKm,
   });
 
   Map<String, dynamic> toJson() => {
@@ -34,6 +38,8 @@ class DeliveryOffer {
         'offered_at': offeredAt.toIso8601String(),
         'expires_at': expiresAt.toIso8601String(),
         'status': status,
+        'dispatch_version': dispatchVersion,
+        'pickup_distance_km': pickupDistanceKm,
       };
 
   factory DeliveryOffer.fromJson(String id, Map<String, dynamic> json) {
@@ -44,6 +50,8 @@ class DeliveryOffer {
       offeredAt: parseFirestoreDate(json['offered_at']) ?? DateTime.now(),
       expiresAt: parseFirestoreDate(json['expires_at']) ?? DateTime.now(),
       status: json['status'] as String? ?? 'pending',
+      dispatchVersion: (json['dispatch_version'] as num?)?.toInt() ?? 0,
+      pickupDistanceKm: (json['pickup_distance_km'] as num?)?.toDouble(),
     );
   }
 }

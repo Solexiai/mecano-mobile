@@ -744,6 +744,9 @@ export interface ProviderWebhookEventDoc {
   received_at: admin_Timestamp;
   processed_at?: admin_Timestamp | null;
   processing_status: WebhookProcessingStatus;
+  /** Ownership only; the Stripe event ID remains the deduplication key. */
+  processing_lease_token?: string | null;
+  processing_lease_expires_at?: admin_Timestamp | null;
   attempt_count: number;
   // 🔒 conservé pour rétro-compatibilité (alias historique d'attempt_count).
   processing_attempts?: number;

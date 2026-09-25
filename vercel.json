@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "fix/quote-mission-payment-integrity": false,
-      "feat/phase8-readiness": false
+      "feat/phase8-readiness": false,
+      "feat/driver-offer-alerts": false
     }
   },
   "buildCommand": "bash scripts/vercel_build.sh",

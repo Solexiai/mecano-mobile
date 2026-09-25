@@ -34,8 +34,9 @@ import '../models/delivery_quote.dart';
 import '../models/delivery_offer.dart';
 import '../backend_exceptions.dart';
 import 'mission_repository.dart';
+import 'delivery_offer_actions.dart';
 
-class FirebaseMissionRepository implements MissionRepository {
+class FirebaseMissionRepository implements MissionRepository, DeliveryOfferActions {
   FirebaseMissionRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
       : _db = firestore ?? FirebaseFirestore.instance,
         _functions = functions ?? FirebaseFunctions.instance;
@@ -263,6 +264,12 @@ class FirebaseMissionRepository implements MissionRepository {
     } catch (e) {
       return const AcceptMissionResult(success: false, errorCode: 'unknown_error');
     }
+  }
+
+  @override
+  Future<void> declineOffer(String offerId) async {
+    try { await _functions.httpsCallable('declineDeliveryOffer').call({'offerId': offerId}); }
+    on FirebaseFunctionsException catch (e) { throw CloudFunctionException(e.code, e.message ?? 'Offer declined failed.'); }
   }
 
   @override
