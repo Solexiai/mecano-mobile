@@ -15,7 +15,9 @@ abstract final class DeliveryRequestIntent {
     if (uri == null || uri.hasScheme || uri.hasAuthority || uri.hasFragment ||
         uri.path != '/$locale/livraison/demande' ||
         uri.queryParametersAll.keys.any((key) => key != 'category') ||
-        (uri.queryParametersAll['category']?.length ?? 0) > 1) return null;
+        (uri.queryParametersAll['category']?.length ?? 0) > 1) {
+      return null;
+    }
     return path(locale, category: uri.queryParameters['category']);
   }
   static String loginPath(String locale, {String? category}) => Uri(

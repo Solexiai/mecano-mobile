@@ -14,7 +14,7 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.locale});
   String h(String key) => HomeCopy.text(key, locale);
   @override
-  Widget build(BuildContext context) => Title(title: 'Movi-K | '+h('eyebrow'), color: AppColors.primary, child: AppShell(locale: locale, child: Column(children: [
+  Widget build(BuildContext context) => Title(title: "Movi-K | ${h('eyebrow')}", color: AppColors.primary, child: AppShell(locale: locale, child: Column(children: [
     _Hero(locale: locale),
     _CategorySection(locale: locale),
     _Section(title: h('steps_title'), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

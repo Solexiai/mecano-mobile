@@ -353,7 +353,7 @@ class _MovikFooter extends StatelessWidget {
             return Wrap(spacing: 24, runSpacing: 28, children: [for (final g in groups) SizedBox(width: width, child: g)]);
           }),
           const SizedBox(height: 24), const Divider(color: AppColors.borderDark),
-          const SizedBox(height: 16), Text('© '+DateTime.now().year.toString()+' Movi-K. '+t('footer_rights'), style: const TextStyle(color: AppColors.textOnDark, fontSize: 13)),
+          const SizedBox(height: 16), Text("© ${DateTime.now().year} Movi-K. ${t('footer_rights')}", style: const TextStyle(color: AppColors.textOnDark, fontSize: 13)),
         ]),
       )),
     );
