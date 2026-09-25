@@ -12,6 +12,6 @@ void main() {
     await tester.pumpAndSettle();
 
     // The Movi-k brand name should appear in the app bar / footer.
-    expect(find.text('Movi-k'), findsWidgets);
+    expect(find.text('Movi-K'), findsWidgets);
   });
 }

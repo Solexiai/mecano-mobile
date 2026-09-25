@@ -519,7 +519,7 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        expect(find.text('Movi-k'), findsOneWidget);
+        expect(find.text('Movi-K'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );

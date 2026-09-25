@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../core/app_colors.dart';
+import '../l10n/home_copy.dart';
+import '../router/delivery_request_intent.dart';
 import '../core/responsive.dart';
 import '../models/enums.dart';
 import '../providers/firebase_auth_provider.dart';
@@ -62,12 +64,13 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final isDesktop = AppBreakpoints.isDesktop(width);
+    final isDesktop = width >= AppBreakpoints.wide && MediaQuery.textScalerOf(context).scale(16) <= 18;
 
     return Scaffold(
       drawer: isDesktop ? null : _MobileDrawer(locale: widget.locale),
       appBar: _MovikAppBar(locale: widget.locale, isDesktop: isDesktop),
       body: SingleChildScrollView(
+        key: const Key('public-scroll'),
         child: Column(
           children: [
             widget.child,
@@ -100,9 +103,9 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Row(
         children: [
           Flexible(
-            child: GestureDetector(
+            child: InkWell(
               onTap: () => context.go('/$locale'),
-              child: Row(
+              child: Semantics(button: true, label: HomeCopy.text('home_link', locale), excludeSemantics: true, child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
@@ -121,7 +124,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
                   SizedBox(width: isPhone ? 8 : 10),
                   Flexible(
                     child: Text(
-                      'Movi-k',
+                      'Movi-K',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
@@ -130,7 +133,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
           if (isDesktop) const SizedBox(width: 40),
@@ -138,25 +141,14 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        if (isDesktop) const LanguageSelector(),
-        if (isDesktop) const SizedBox(width: 8),
-        if (isDesktop)
-          if (auth.isSignedIn)
-            _AccountMenu(locale: locale)
-          else ...[
-            OutlinedButton(
-              onPressed: () => context.go('/$locale/connexion'),
-              child: Text(t('nav_sign_in')),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: () => context.go('/$locale/connexion'),
-              child: Text(t('nav_get_started')),
-            ),
-            const SizedBox(width: 8),
-          ],
-        if (!isDesktop) const LanguageSelector(compact: true),
-        if (!isDesktop) SizedBox(width: isPhone ? 4 : 8),
+        if (auth.isSignedIn) _AccountMenu(locale: locale)
+        else IconButton(key: const Key('public-sign-in'), tooltip: t('nav_sign_in'),
+          onPressed: () => context.go('/$locale/connexion'), icon: const Icon(Icons.person_outline)),
+        LanguageSelector(compact: !isDesktop),
+        if (isDesktop) Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: ElevatedButton(onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
+            child: Text(HomeCopy.text('quote', locale)))),
+        if (!isDesktop) const SizedBox(width: 4),
       ],
     );
   }
@@ -189,11 +181,11 @@ class _AccountMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
-    final displayName = auth.user?.displayName ?? auth.user?.email ?? '';
-    final isCustomerOnly =
-        auth.roles.length == 1 && auth.roles.first == PlatformRole.customer;
+    final canSeeDriverSpace = auth.hasRole(PlatformRole.driver);
 
     return PopupMenuButton<String>(
+      key: const Key('public-account-menu'),
+      tooltip: HomeCopy.text('account', locale),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       onSelected: (value) {
         if (value == 'dashboard') context.go('/$locale/tableau-de-bord');
@@ -205,7 +197,7 @@ class _AccountMenu extends StatelessWidget {
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'dashboard', child: Text(t('nav_dashboard'))),
-        if (!isCustomerOnly)
+        if (canSeeDriverSpace)
           PopupMenuItem(
             value: 'provider',
             child: Text(t('nav_provider_space')),
@@ -214,18 +206,7 @@ class _AccountMenu extends StatelessWidget {
           PopupMenuItem(value: 'admin', child: Text(t('nav_admin'))),
         PopupMenuItem(value: 'logout', child: Text(t('nav_logout'))),
       ],
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-        child: Text(
-          (displayName.isNotEmpty ? displayName.substring(0, 1) : '?')
-              .toUpperCase(),
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      icon: const Icon(Icons.account_circle_outlined),
     );
   }
 }
@@ -259,7 +240,7 @@ class _MobileDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               decoration: const BoxDecoration(gradient: AppColors.heroGradient),
               child: const Text(
-                'Movi-k',
+                'Movi-K',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -267,6 +248,8 @@ class _MobileDrawer extends StatelessWidget {
                 ),
               ),
             ),
+            item(Icons.request_quote_outlined, HomeCopy.text('quote', locale),
+              () => context.go(DeliveryRequestIntent.path(locale))),
             item(
               Icons.home_outlined,
               t('nav_home'),
@@ -307,11 +290,14 @@ class _MobileDrawer extends StatelessWidget {
               t('nav_contact'),
               () => context.go('/$locale/contact'),
             ),
-            item(
+            if (auth.isAnalystOrAbove) item(
               Icons.admin_panel_settings_outlined,
-              'Administration',
+              t('nav_admin'),
               () => context.go('/$locale/admin'),
             ),
+            if (auth.isSignedIn && auth.hasRole(PlatformRole.driver)) item(
+              Icons.local_shipping_outlined, t('nav_provider_space'),
+              () => context.go('/$locale/fournisseur/tableau-de-bord')),
             const Divider(),
             if (auth.isSignedIn) ...[
               item(
@@ -335,149 +321,41 @@ class _MobileDrawer extends StatelessWidget {
 
 class _MovikFooter extends StatelessWidget {
   final String locale;
-
   const _MovikFooter({required this.locale});
-
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final width = MediaQuery.sizeOf(context).width;
-    final useColumns = !AppBreakpoints.isPhone(width);
-    final horizontalPadding = AppBreakpoints.pageHorizontalPadding(width);
-
-    Widget link(String label, VoidCallback onTap) => InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Text(
-          label,
-          style: const TextStyle(color: AppColors.textOnDarkSecondary),
-        ),
-      ),
-    );
-
-    Widget column(String title, List<Widget> links) => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 15,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ...links,
-      ],
-    );
-
-    final columns = [
-      column(t('nav_delivery'), [
-        link(
-          t('home_card_delivery_cta'),
-          () => context.go('/$locale/livraison'),
-        ),
-        link(
-          t('nav_become_driver'),
-          () => context.go('/$locale/devenir-chauffeur'),
-        ),
-      ]),
-      column('Movi-k', [
-        link(t('nav_about'), () => context.go('/$locale/a-propos')),
-        link(t('nav_contact'), () => context.go('/$locale/contact')),
-        link('Administration', () => context.go('/$locale/admin')),
-        link(t('nav_faq'), () => context.go('/$locale/faq')),
-        link(t('nav_safety'), () => context.go('/$locale/securite')),
-      ]),
-      column(t('footer_legal_column_title'), [
-        link(t('footer_privacy'), () => context.go('/$locale/legal/privacy')),
-        link(t('footer_terms'), () => context.go('/$locale/legal/terms')),
-        link(
-          t('footer_cancellation_policy'),
-          () => context.go('/$locale/legal/cancellation'),
-        ),
-      ]),
+    String h(String key) => HomeCopy.text(key, locale);
+    Widget link(String label, String path) => InkWell(onTap: () => context.go(path),
+      child: ConstrainedBox(constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(label, style: const TextStyle(color: AppColors.textOnDark)))));
+    Widget group(String title, List<Widget> links) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Semantics(header: true, child: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16))),
+      const SizedBox(height: 8), ...links,
+    ]);
+    final groups = [
+      group(h('footer_service'), [link(h('quote'), DeliveryRequestIntent.path(locale)), link(t('nav_pricing'), '/$locale/tarifs'), link(t('nav_how_it_works'), '/$locale/comment-ca-marche')]),
+      group(h('footer_drivers'), [link(t('nav_become_driver'), '/$locale/devenir-chauffeur'), link(t('nav_sign_in'), '/$locale/connexion')]),
+      group(h('footer_help'), [link(t('nav_faq'), '/$locale/faq'), link(t('nav_contact'), '/$locale/contact'), link(t('nav_safety'), '/$locale/securite'), link(t('nav_about'), '/$locale/a-propos')]),
+      group(t('footer_legal_column_title'), [link(t('footer_privacy'), '/$locale/legal/privacy'), link(t('footer_terms'), '/$locale/legal/terms'), link(t('footer_cancellation_policy'), '/$locale/legal/cancellation')]),
     ];
-
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalPadding,
-        vertical: AppBreakpoints.isPhone(width) ? 32 : 40,
-      ),
-      color: AppColors.primaryDark,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AppBreakpoints.contentMaxWidth,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.deliveryGradient,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.bolt,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'Movi-k',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _deliveryTagline(locale),
-                style: const TextStyle(color: AppColors.textOnDarkSecondary),
-              ),
-              const SizedBox(height: 28),
-              if (useColumns)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: columns.map((c) => Expanded(child: c)).toList(),
-                )
-              else
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: columns
-                      .map(
-                        (c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: c,
-                        ),
-                      )
-                      .toList(),
-                ),
-              const SizedBox(height: 24),
-              const Divider(color: AppColors.borderDark),
-              const SizedBox(height: 16),
-              Text(
-                '© ${DateTime.now().year} Movi-k. ${t('footer_rights')}',
-                style: const TextStyle(
-                  color: AppColors.textOnDarkSecondary,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return Container(color: AppColors.primaryDark, width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: AppBreakpoints.pageHorizontalPadding(MediaQuery.sizeOf(context).width), vertical: 32),
+      child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: AppBreakpoints.contentMaxWidth),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Movi-K', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8), Text(_deliveryTagline(locale), style: const TextStyle(color: AppColors.textOnDark)),
+          const SizedBox(height: 28),
+          LayoutBuilder(builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+            final count = constraints.maxWidth >= 960 && scale <= 1.3 ? 4 : constraints.maxWidth >= 600 && scale <= 1.3 ? 2 : 1;
+            final width = (constraints.maxWidth - 24 * (count - 1)) / count;
+            return Wrap(spacing: 24, runSpacing: 28, children: [for (final g in groups) SizedBox(width: width, child: g)]);
+          }),
+          const SizedBox(height: 24), const Divider(color: AppColors.borderDark),
+          const SizedBox(height: 16), Text('© '+DateTime.now().year.toString()+' Movi-K. '+t('footer_rights'), style: const TextStyle(color: AppColors.textOnDark, fontSize: 13)),
+        ]),
+      )),
     );
   }
 }

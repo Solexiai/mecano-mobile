@@ -30,6 +30,7 @@ import '../../backend/models/delivery_mission.dart';
 import '../../backend/models/delivery_quote.dart';
 import '../../backend/repositories/mission_repository.dart';
 import '../../core/app_colors.dart';
+import '../../router/delivery_request_intent.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -43,7 +44,8 @@ import '../../widgets/step_progress_form.dart';
 
 class DeliveryRequestFlowScreen extends StatefulWidget {
   final String locale;
-  const DeliveryRequestFlowScreen({super.key, required this.locale});
+  final String? initialCategory;
+  const DeliveryRequestFlowScreen({super.key, required this.locale, this.initialCategory});
 
   @override
   State<DeliveryRequestFlowScreen> createState() =>
@@ -86,6 +88,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedCategory = DeliveryRequestIntent.category(widget.initialCategory) ?? '';
+  }
+
+  @override
   void dispose() {
     _descController.dispose();
     _pickupAddressController.dispose();
@@ -107,6 +115,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
         child: _LoginRequiredNotice(
           locale: widget.locale,
           message: t('delivery_login_required'),
+          category: _selectedCategory,
         ),
       );
     }
@@ -1076,7 +1085,8 @@ class _MissionCreatedConfirmation extends StatelessWidget {
 class _LoginRequiredNotice extends StatelessWidget {
   final String locale;
   final String message;
-  const _LoginRequiredNotice({required this.locale, required this.message});
+  final String? category;
+  const _LoginRequiredNotice({required this.locale, required this.message, this.category});
 
   @override
   Widget build(BuildContext context) {
@@ -1100,7 +1110,7 @@ class _LoginRequiredNotice extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => GoRouter.of(context).go('/$locale/connexion'),
+              onPressed: () => GoRouter.of(context).go(DeliveryRequestIntent.loginPath(locale, category: category)),
               child: Text(t('delivery_sign_in_button')),
             ),
           ],

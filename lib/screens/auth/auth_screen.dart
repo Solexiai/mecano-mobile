@@ -16,6 +16,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../router/delivery_request_intent.dart';
+import '../../l10n/home_copy.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -27,7 +29,8 @@ enum _AuthMode { signIn, signUp }
 
 class AuthScreen extends StatefulWidget {
   final String locale;
-  const AuthScreen({super.key, required this.locale});
+  final String? returnTo;
+  const AuthScreen({super.key, required this.locale, this.returnTo});
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -44,6 +47,11 @@ class _AuthScreenState extends State<AuthScreen> {
   String? _error;
 
   void _goToSignedInHome(FirebaseAuthProvider auth) {
+    final destination = DeliveryRequestIntent.safeReturnPath(widget.returnTo, widget.locale);
+    if (destination != null) {
+      context.go(destination);
+      return;
+    }
     if (auth.hasRole(PlatformRole.driver)) {
       context.go('/${widget.locale}/devenir-chauffeur/statut');
       return;
@@ -76,7 +84,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => _goToSignedInHome(auth),
-                  child: Text(t('nav_dashboard')),
+                  child: Text(DeliveryRequestIntent.safeReturnPath(widget.returnTo, widget.locale) != null
+                    ? HomeCopy.text('resume', widget.locale) : t('nav_dashboard')),
                 ),
               ],
             ),
