@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/locale_provider.dart';
 import '../core/app_colors.dart';
+import '../router/delivery_request_intent.dart';
 
 class LanguageSelector extends StatelessWidget {
   final bool compact;
@@ -14,13 +15,7 @@ class LanguageSelector extends StatelessWidget {
   void _switchLocale(BuildContext context, String newLocale) {
     context.read<LocaleProvider>().setLocale(newLocale);
     final currentUri = GoRouterState.of(context).uri;
-    final segments = currentUri.pathSegments;
-    if (segments.isNotEmpty && ['fr', 'en', 'es'].contains(segments.first)) {
-      final newPath = '/$newLocale${segments.length > 1 ? '/${segments.sublist(1).join('/')}' : ''}';
-      context.go(newPath);
-    } else {
-      context.go('/$newLocale');
-    }
+    context.go(DeliveryRequestIntent.switchLocale(currentUri, newLocale));
   }
 
   @override

@@ -26,12 +26,14 @@ Future<(GoRouter, HomeTestAuth)> mountHome(WidgetTester tester, {String locale =
   final auth = HomeTestAuth();
   if (roles != null) { auth.debugForceSignedIn = true; auth.debugForceUid = 'home-test'; auth.debugForceRoles = roles; }
   final router = GoRouter(initialLocation: '/$locale', routes: [
-    GoRoute(path: '/$locale', builder: (_, _) => HomeScreen(locale: locale)),
-    GoRoute(path: '/$locale/livraison/demande', builder: (_, s) => DeliveryRequestFlowScreen(locale: locale, initialCategory: s.uri.queryParameters['category'])),
-    GoRoute(path: '/$locale/connexion', builder: (_, s) => AuthScreen(locale: locale, returnTo: s.uri.queryParameters['returnTo'])),
-    GoRoute(path: '/$locale/contact', builder: (_, _) => ContactScreen(locale: locale)),
+    for (final loc in ['fr', 'en', 'es']) ...[
+    GoRoute(path: '/$loc', builder: (_, _) => HomeScreen(locale: loc)),
+    GoRoute(path: '/$loc/livraison/demande', builder: (_, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category'])),
+    GoRoute(path: '/$loc/connexion', builder: (_, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo'])),
+    GoRoute(path: '/$loc/contact', builder: (_, _) => ContactScreen(locale: loc)),
     for (final path in ['livraison', 'devenir-chauffeur', 'faq', 'tarifs', 'comment-ca-marche', 'admin', 'tableau-de-bord', 'fournisseur/tableau-de-bord', 'legal/cancellation', 'legal/privacy', 'legal/terms', 'securite', 'a-propos'])
-      GoRoute(path: '/$locale/$path', builder: (_, _) => Scaffold(body: Text(path))),
+      GoRoute(path: '/$loc/$path', builder: (_, _) => Scaffold(body: Text(path))),
+    ],
   ]);
   addTearDown(router.dispose); addTearDown(auth.dispose);
   await tester.pumpWidget(MultiProvider(providers: [
@@ -119,4 +121,22 @@ void main() {
       expect(DeliveryRequestIntent.safeReturnPath(bad, 'fr'), isNull, reason: bad);
     }
   });
+  testWidgets('language changes keep category and the allowlisted login return', (tester) async {
+    final (router, auth) = await mountHome(tester);
+    router.go('/fr/livraison/demande?category=cat_furniture'); await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.language)); await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('English')); await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.toString(), '/en/livraison/demande?category=cat_furniture');
+    final login = find.widgetWithText(ElevatedButton, AppStrings.t('delivery_sign_in_button', 'en'));
+    await tester.ensureVisible(login); await tester.tap(login); await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.language)); await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('Español')); await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/es/connexion');
+    expect(router.routeInformationProvider.value.uri.queryParameters['returnTo'], '/es/livraison/demande?category=cat_furniture');
+    auth.completeSignIn(); await tester.pumpAndSettle();
+    await tester.tap(find.text(HomeCopy.text('resume', 'es'))); await tester.pumpAndSettle();
+    final selected = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).where((chip) => chip.selected);
+    expect((selected.single.label as Text).data, 'Muebles'); expect(tester.takeException(), isNull);
+  });
+
 }
