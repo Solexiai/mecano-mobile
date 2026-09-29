@@ -44,6 +44,7 @@ class _Hero extends StatelessWidget {
 
     if (!desktop) {
       return Container(
+        key: const Key('home-hero'),
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -70,6 +71,7 @@ class _Hero extends StatelessWidget {
     }
 
     return Container(
+      key: const Key('home-hero'),
       width: double.infinity,
       height: 650,
       decoration: const BoxDecoration(
@@ -204,6 +206,7 @@ class _HeroCopy extends StatelessWidget {
           runSpacing: 12,
           children: [
             ElevatedButton(
+              key: const Key('home-primary-quote'),
               onPressed: quote,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0879E8),
@@ -569,6 +572,7 @@ class _Categories extends StatelessWidget {
                             assetPath: e.$2,
                             title: e.$3,
                             sub: e.$4,
+                            categoryKey: e.$1,
                             onTap: () => onQuote(e.$1),
                           ),
                         )
@@ -598,18 +602,22 @@ class _Category extends StatelessWidget {
   final String assetPath;
   final String title;
   final String sub;
+  final String categoryKey;
   final VoidCallback onTap;
   const _Category({
     required this.assetPath,
     required this.title,
     required this.sub,
+    required this.categoryKey,
     required this.onTap,
   });
+
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: 'Commencer un devis pour $title',
     child: InkWell(
+      key: Key('home-category-$categoryKey'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
