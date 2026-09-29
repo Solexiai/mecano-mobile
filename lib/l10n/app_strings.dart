@@ -762,6 +762,11 @@ class AppStrings {
       'en': 'Unable to calculate the quote. Please try again.',
       'es': 'No se pudo calcular la cotización. Inténtalo de nuevo.',
     },
+    'delivery_service_area_unavailable': {
+      'fr': 'Cette adresse est hors de la zone actuellement desservie par Movi-K. Aucune livraison n’est promise pour ce trajet.',
+      'en': 'This address is outside Movi-K’s current service area. No delivery is promised for this route.',
+      'es': 'Esta dirección está fuera de la zona de servicio actual de Movi-K. No se promete una entrega para esta ruta.',
+    },
     'delivery_quote_total': {
       'fr': 'Total estimé (devis officiel)',
       'en': 'Estimated total (official quote)',

@@ -7,7 +7,11 @@ import '../../widgets/section_title.dart';
 class HomeScreen extends StatelessWidget {
   final String locale;
   const HomeScreen({super.key, required this.locale});
-  void _quote(BuildContext c) => c.go('/$locale/livraison/demande');
+  void _quote(BuildContext c, [String? category]) {
+    final suffix = category == null ? '' : '?category=$category';
+    c.go('/$locale/livraison/demande$suffix');
+  }
+
   void _driver(BuildContext c) => c.go('/$locale/devenir-chauffeur');
   @override
   Widget build(BuildContext context) => AppShell(
@@ -15,7 +19,7 @@ class HomeScreen extends StatelessWidget {
     child: Column(
       children: [
         _Hero(quote: () => _quote(context), driver: () => _driver(context)),
-        _Categories(onQuote: () => _quote(context)),
+        _Categories(onQuote: (category) => _quote(context, category)),
         const _Steps(),
         const _Reassurance(),
         _LocalCta(
@@ -64,7 +68,7 @@ class _Hero extends StatelessWidget {
                 const SizedBox(height: 28),
                 _HeroRight(quote: quote),
               ],
-              SizedBox(height: desktop ? 70 : 58),
+              SizedBox(height: desktop ? 64 : 28),
               const _Trust(),
             ],
           ),
@@ -97,17 +101,30 @@ class _HeroCopy extends StatelessWidget {
           'Faites livrer ce qui ne rentre pas dans votre véhicule.',
           style: TextStyle(
             color: AppColors.primaryDark,
-            fontSize: desktop ? 50 : 36,
+            fontSize: desktop ? 56 : 38,
             fontWeight: FontWeight.w900,
             height: 1.03,
             letterSpacing: -1.5,
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          'D’un simple colis à un petit déménagement, en passant par les meubles, '
-          'les électroménagers et les matériaux, Movi-K simplifie vos livraisons.',
-          style: TextStyle(color: Color(0xFF243D69), fontSize: 17, height: 1.5),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .82),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFDCEBFA)),
+          ),
+          child: const Text(
+            'D’un simple colis aux meubles, électroménagers et matériaux, '
+            'Movi-K simplifie vos livraisons selon votre projet.',
+            style: TextStyle(
+              color: Color(0xFF21436F),
+              fontSize: 17,
+              height: 1.48,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
         const SizedBox(height: 26),
         Wrap(
@@ -148,53 +165,51 @@ class _HeroCopy extends StatelessWidget {
 class _HeroRight extends StatelessWidget {
   final VoidCallback quote;
   const _HeroRight({required this.quote});
+
   @override
-  Widget build(BuildContext context) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      Container(
-        height: 340,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: const LinearGradient(
-            colors: [Color(0xFFB9DFFF), Color(0xFFF5FAFF)],
-          ),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.local_shipping_rounded,
-                size: 112,
-                color: Color(0xFF075FC4),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'Movi-K • Livraison simplifiée',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Visuel camion/chauffeur à remplacer par l’actif officiel',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-              ),
-            ],
+  Widget build(BuildContext context) {
+    final desktop = MediaQuery.sizeOf(context).width >= 980;
+
+    final scene = Semantics(
+      image: true,
+      label: 'Camionnette Movi-K et chauffeur préparant une livraison',
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: AspectRatio(
+          aspectRatio: 524 / 350,
+          child: Image.asset(
+            'assets/home/hero_clean.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.centerRight,
+            filterQuality: FilterQuality.medium,
           ),
         ),
       ),
-      Positioned(
-        left: 18,
-        right: 18,
-        bottom: -48,
-        child: _QuoteCard(onTap: quote),
-      ),
-    ],
-  );
+    );
+
+    if (!desktop) {
+      return Column(
+        children: [
+          scene,
+          const SizedBox(height: 14),
+          _QuoteCard(onTap: quote),
+        ],
+      );
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        scene,
+        Positioned(
+          left: 70,
+          right: 14,
+          bottom: -42,
+          child: _QuoteCard(onTap: quote),
+        ),
+      ],
+    );
+  }
 }
 
 class _QuoteCard extends StatelessWidget {
@@ -254,7 +269,7 @@ class _QuoteCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         const Text(
-          'Les adresses sont validées dans le parcours de devis.',
+          'Adresses et zone de service validées avant le devis.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
         ),
@@ -319,7 +334,7 @@ class _Trust extends StatelessWidget {
       (
         Icons.location_on_outlined,
         'Un service près de chez vous',
-        'Selon les chauffeurs actifs dans votre secteur',
+        'Zone de lancement : Granby et environs • zone vérifiée avant le devis',
       ),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 760;
@@ -364,21 +379,32 @@ class _Trust extends StatelessWidget {
 }
 
 class _Categories extends StatelessWidget {
-  final VoidCallback onQuote;
+  final ValueChanged<String> onQuote;
   const _Categories({required this.onQuote});
   @override
   Widget build(BuildContext context) {
     const data = [
-      (Icons.chair_alt_outlined, 'Meubles', ''),
-      (Icons.local_laundry_service_outlined, 'Électroménagers', ''),
+      ('cat_furniture', 'assets/home/category_furniture.png', 'Meubles', ''),
       (
-        Icons.inventory_2_outlined,
+        'cat_appliances',
+        'assets/home/category_appliances.png',
+        'Électroménagers',
+        '',
+      ),
+      (
+        'cat_marketplace',
+        'assets/home/category_marketplace.png',
         'Achats Marketplace',
         'Facebook Marketplace, Kijiji et petites annonces',
       ),
-      (Icons.construction_outlined, 'Matériaux de construction', ''),
-      (Icons.tv_outlined, 'Téléviseurs', ''),
-      (Icons.shopping_cart_outlined, 'Achats en magasin', ''),
+      (
+        'cat_building_materials',
+        'assets/home/category_materials.png',
+        'Matériaux de construction',
+        '',
+      ),
+      ('cat_tv', 'assets/home/category_tv.png', 'Téléviseurs', ''),
+      ('cat_costco', 'assets/home/category_store.png', 'Achats en magasin', ''),
     ];
     return Container(
       color: Colors.white,
@@ -414,14 +440,16 @@ class _Categories extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: cols == 6 ? .78 : .88,
+                    childAspectRatio: cols == 6
+                        ? .62
+                        : (cols == 3 ? 1.05 : .62),
                     children: data
                         .map(
                           (e) => _Category(
-                            icon: e.$1,
-                            title: e.$2,
-                            sub: e.$3,
-                            onTap: onQuote,
+                            assetPath: e.$2,
+                            title: e.$3,
+                            sub: e.$4,
+                            onTap: () => onQuote(e.$1),
                           ),
                         )
                         .toList(),
@@ -437,12 +465,12 @@ class _Categories extends StatelessWidget {
 }
 
 class _Category extends StatelessWidget {
-  final IconData icon;
+  final String assetPath;
   final String title;
   final String sub;
   final VoidCallback onTap;
   const _Category({
-    required this.icon,
+    required this.assetPath,
     required this.title,
     required this.sub,
     required this.onTap,
@@ -464,14 +492,18 @@ class _Category extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F4FF),
-                shape: BoxShape.circle,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 92,
+                height: 82,
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.medium,
+                  semanticLabel: title,
+                ),
               ),
-              child: Icon(icon, color: const Color(0xFF075FC4), size: 38),
             ),
             const SizedBox(height: 10),
             Text(
@@ -597,19 +629,40 @@ class _Steps extends StatelessWidget {
                       ],
                     ),
                   );
+                  final phone = Semantics(
+                    image: true,
+                    label: 'Exemple du suivi d’une livraison Movi-K',
+                    child: Image.asset(
+                      'assets/home/tracking_phone.png',
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.medium,
+                    ),
+                  );
                   return wide
                       ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: List.generate(
-                            4,
-                            (i) => Expanded(child: tile(i)),
-                          ),
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: List.generate(
+                                  4,
+                                  (i) => Expanded(child: tile(i)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 18),
+                            SizedBox(width: 245, height: 315, child: phone),
+                          ],
                         )
                       : Column(
-                          children: List.generate(
-                            4,
-                            (i) => SizedBox(height: 180, child: tile(i)),
-                          ),
+                          children: [
+                            ...List.generate(
+                              4,
+                              (i) => SizedBox(height: 180, child: tile(i)),
+                            ),
+                            SizedBox(height: 300, child: phone),
+                          ],
                         );
                 },
               ),
@@ -644,7 +697,7 @@ class _Reassurance extends StatelessWidget {
       (
         Icons.location_on_outlined,
         'Un service près de chez vous',
-        'Disponibilité selon votre secteur',
+        'Granby et environs • validation avant le devis',
       ),
     ];
     return Container(
@@ -708,54 +761,77 @@ class _LocalCta extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: double.infinity,
     color: Colors.white,
-    child: ResponsivePadding(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 24,
-          runSpacing: 18,
-          children: [
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Des gens d’ici, pour vous simplifier la vie.',
-                  style: TextStyle(
-                    color: AppColors.primaryDark,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w900,
-                  ),
+    child: Stack(
+      alignment: Alignment.bottomLeft,
+      children: [
+        Positioned(
+          left: 0,
+          bottom: 0,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: .9,
+              child: SizedBox(
+                width: 700,
+                height: 116,
+                child: Image.asset(
+                  'assets/home/quebec_silhouette.png',
+                  fit: BoxFit.cover,
+                  alignment: Alignment.bottomLeft,
                 ),
-                SizedBox(height: 5),
-                Text(
-                  'Movi-K — Livraison simplifiée.',
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
+              ),
             ),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                OutlinedButton(
-                  onPressed: onDriver,
-                  child: const Text('Devenir chauffeur'),
-                ),
-                ElevatedButton(
-                  onPressed: onQuote,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0879E8),
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Obtenir mon devis  →'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
+        ResponsivePadding(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(0, 42, 0, 48),
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 24,
+              runSpacing: 18,
+              children: [
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Des gens d’ici, pour vous simplifier la vie.',
+                      style: TextStyle(
+                        color: AppColors.primaryDark,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      'Movi-K — Livraison simplifiée.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    OutlinedButton(
+                      onPressed: onDriver,
+                      child: const Text('Devenir chauffeur'),
+                    ),
+                    ElevatedButton(
+                      onPressed: onQuote,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0879E8),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Obtenir mon devis  →'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }

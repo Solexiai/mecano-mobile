@@ -90,7 +90,6 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
     final isPhone = AppBreakpoints.isPhone(MediaQuery.sizeOf(context).width);
 
@@ -102,51 +101,35 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
           Flexible(
             child: GestureDetector(
               onTap: () => context.go('/$locale'),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: isPhone ? 32 : 36,
-                    height: isPhone ? 32 : 36,
-                    decoration: BoxDecoration(
-                      gradient: AppColors.deliveryGradient,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.bolt,
-                      color: Colors.white,
-                      size: isPhone ? 18 : 20,
-                    ),
+              child: Semantics(
+                label: 'Movi-K — Livraison simplifiée',
+                button: true,
+                child: SizedBox(
+                  width: isPhone ? 138 : 158,
+                  height: 52,
+                  child: Image.asset(
+                    'assets/home/brand_logo.png',
+                    fit: BoxFit.contain,
+                    alignment: Alignment.centerLeft,
+                    filterQuality: FilterQuality.medium,
                   ),
-                  SizedBox(width: isPhone ? 8 : 10),
-                  Flexible(
-                    child: Text(
-                      'Movi-k',
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: isPhone ? 18 : 20,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-          if (isDesktop) const SizedBox(width: 40),
-          if (isDesktop) ..._desktopNavItems(context, t),
+          if (isDesktop) const SizedBox(width: 18),
+          if (isDesktop) ..._desktopNavItems(context),
         ],
       ),
       actions: [
-        if (isDesktop) const LanguageSelector(),
-        if (isDesktop) const SizedBox(width: 8),
         if (isDesktop)
           if (auth.isSignedIn)
             _AccountMenu(locale: locale)
           else ...[
-            OutlinedButton(
+            TextButton.icon(
               onPressed: () => context.go('/$locale/connexion'),
-              child: Text(t('nav_sign_in')),
+              icon: const Icon(Icons.person_outline_rounded, size: 20),
+              label: const Text('Se connecter'),
             ),
             const SizedBox(width: 10),
             ElevatedButton(
@@ -161,12 +144,12 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  List<Widget> _desktopNavItems(
-    BuildContext context,
-    String Function(String) t,
-  ) {
+  List<Widget> _desktopNavItems(BuildContext context) {
     Widget item(String label, String path) => TextButton(
       onPressed: () => context.go(path),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      ),
       child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
     );
 
@@ -274,43 +257,29 @@ class _MobileDrawer extends StatelessWidget {
             ),
             item(
               Icons.local_shipping_outlined,
-              t('nav_delivery'),
+              'Nos services',
               () => context.go('/$locale/livraison'),
             ),
             item(
+              Icons.payments_outlined,
+              'Tarifs',
+              () => context.go('/$locale/tarifs'),
+            ),
+            item(
               Icons.directions_car_outlined,
-              t('nav_become_driver'),
+              'Devenir chauffeur',
               () => context.go('/$locale/devenir-chauffeur'),
             ),
             item(
               Icons.info_outline,
-              t('nav_how_it_works'),
-              () => context.go('/$locale/comment-ca-marche'),
+              'À propos',
+              () => context.go('/$locale/a-propos'),
             ),
+            item(Icons.help_outline, 'Aide', () => context.go('/$locale/faq')),
             item(
-              Icons.payments_outlined,
-              t('nav_pricing'),
-              () => context.go('/$locale/tarifs'),
-            ),
-            item(
-              Icons.shield_outlined,
-              t('nav_safety'),
-              () => context.go('/$locale/securite'),
-            ),
-            item(
-              Icons.help_outline,
-              t('nav_faq'),
-              () => context.go('/$locale/faq'),
-            ),
-            item(
-              Icons.mail_outline,
-              t('nav_contact'),
-              () => context.go('/$locale/contact'),
-            ),
-            item(
-              Icons.admin_panel_settings_outlined,
-              'Administration',
-              () => context.go('/$locale/admin'),
+              Icons.request_quote_outlined,
+              'Obtenir mon devis',
+              () => context.go('/$locale/livraison/demande'),
             ),
             const Divider(),
             if (auth.isSignedIn) ...[

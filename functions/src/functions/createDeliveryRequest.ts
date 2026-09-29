@@ -15,7 +15,7 @@ import { failedPrecondition, invalidArgument, notFound, permissionDenied } from 
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
-import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
+import { getServiceZonesConfig, isWithinCurrentServiceArea } from "../lib/serviceZones";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -126,20 +126,25 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     }
   }
 
-  // Zone de service (configurable, désactivée par défaut — voir
-  // lib/serviceZones.ts). Vérifie pickup ET dropoff (dernier stop).
+  // Zone de service : une configuration globale Firestore a priorité.
+  // Tant qu'elle n'est pas activée, la validation se replie sur les zones
+  // déclarées par des chauffeurs réellement approuvés et documentés. On ne
+  // crée jamais une mission hors de la couverture géographique vérifiable.
   const serviceZonesConfig = await getServiceZonesConfig();
-  if (serviceZonesConfig.enabled) {
-    const pickupStop = input.stops[0];
-    const finalStop = input.stops[input.stops.length - 1];
-    const outOfZone = [pickupStop, finalStop].find(
-      (s) => !isWithinServiceZones(s.address.lat, s.address.lng, serviceZonesConfig)
-    );
-    if (outOfZone) {
-      throw failedPrecondition(
-        "Cette adresse se trouve hors de la zone de service Movi-K actuellement disponible."
-      );
-    }
+  const pickupStop = input.stops[0];
+  const finalStop = input.stops[input.stops.length - 1];
+  const pickupAllowed = await isWithinCurrentServiceArea(
+    pickupStop.address.lat,
+    pickupStop.address.lng,
+    serviceZonesConfig
+  );
+  const dropoffAllowed = await isWithinCurrentServiceArea(
+    finalStop.address.lat,
+    finalStop.address.lng,
+    serviceZonesConfig
+  );
+  if (!pickupAllowed || !dropoffAllowed) {
+    throw failedPrecondition("service_area_unavailable");
   }
 
   // PHASE 6, point 1/4 — « le moyen de paiement doit être sécurisé AVANT ou

@@ -36,9 +36,11 @@ import '../backend_exceptions.dart';
 import 'mission_repository.dart';
 
 class FirebaseMissionRepository implements MissionRepository {
-  FirebaseMissionRepository({FirebaseFirestore? firestore, FirebaseFunctions? functions})
-      : _db = firestore ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+  FirebaseMissionRepository({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  }) : _db = firestore ?? FirebaseFirestore.instance,
+       _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
@@ -58,19 +60,33 @@ class FirebaseMissionRepository implements MissionRepository {
     required Map<String, dynamic> missionDetails,
   }) async {
     try {
-      final result = await _functions.httpsCallable('calculateDeliveryQuote').call({
-        'vehicleCategory': vehicleCategoryName,
-        'distanceKm': missionDetails['distanceKm'],
-        'estimatedDurationMinutes': missionDetails['estimatedDurationMinutes'],
-        if (missionDetails['handling'] != null) 'handling': missionDetails['handling'],
-        if (missionDetails['totalWaitingMinutes'] != null)
-          'totalWaitingMinutes': missionDetails['totalWaitingMinutes'],
-        if (missionDetails['additionalStopsCount'] != null)
-          'additionalStopsCount': missionDetails['additionalStopsCount'],
-        if (missionDetails['applicableSurchargeIds'] != null)
-          'applicableSurchargeIds': missionDetails['applicableSurchargeIds'],
-        if (missionDetails['promoCode'] != null) 'promoCode': missionDetails['promoCode'],
-      });
+      final result = await _functions
+          .httpsCallable('calculateDeliveryQuote')
+          .call({
+            'vehicleCategory': vehicleCategoryName,
+            'distanceKm': missionDetails['distanceKm'],
+            'estimatedDurationMinutes':
+                missionDetails['estimatedDurationMinutes'],
+            if (missionDetails['pickupLat'] != null)
+              'pickupLat': missionDetails['pickupLat'],
+            if (missionDetails['pickupLng'] != null)
+              'pickupLng': missionDetails['pickupLng'],
+            if (missionDetails['dropoffLat'] != null)
+              'dropoffLat': missionDetails['dropoffLat'],
+            if (missionDetails['dropoffLng'] != null)
+              'dropoffLng': missionDetails['dropoffLng'],
+            if (missionDetails['handling'] != null)
+              'handling': missionDetails['handling'],
+            if (missionDetails['totalWaitingMinutes'] != null)
+              'totalWaitingMinutes': missionDetails['totalWaitingMinutes'],
+            if (missionDetails['additionalStopsCount'] != null)
+              'additionalStopsCount': missionDetails['additionalStopsCount'],
+            if (missionDetails['applicableSurchargeIds'] != null)
+              'applicableSurchargeIds':
+                  missionDetails['applicableSurchargeIds'],
+            if (missionDetails['promoCode'] != null)
+              'promoCode': missionDetails['promoCode'],
+          });
 
       final data = Map<String, dynamic>.from(result.data as Map);
       final quoteId = data['quoteId'] as String;
@@ -83,30 +99,41 @@ class FirebaseMissionRepository implements MissionRepository {
       final snap = await _quotes.doc(quoteId).get();
       if (!snap.exists || snap.data() == null) {
         throw BackendNotConfiguredException(
-            'requestQuote: delivery_quotes/$quoteId introuvable après calculateDeliveryQuote.');
+          'requestQuote: delivery_quotes/$quoteId introuvable après calculateDeliveryQuote.',
+        );
       }
       return DeliveryQuote.fromJson(quoteId, snap.data()!);
     } on FirebaseFunctionsException catch (e) {
-      throw CloudFunctionException(e.code, e.message ?? 'calculateDeliveryQuote a échoué.');
+      throw CloudFunctionException(
+        e.code,
+        e.message ?? 'calculateDeliveryQuote a échoué.',
+      );
     } catch (e) {
-      if (e is CloudFunctionException || e is BackendNotConfiguredException) rethrow;
+      if (e is CloudFunctionException || e is BackendNotConfiguredException) {
+        rethrow;
+      }
       throw BackendNotConfiguredException('requestQuote a échoué: $e');
     }
   }
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) async {
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) async {
     try {
-      final result = await _functions.httpsCallable('createDeliveryRequest').call({
-        'quoteId': request.quoteId,
-        'itemCategoryKey': request.itemCategoryKey,
-        'description': request.description,
-        'requiredVehicleCategory': request.requiredVehicleCategory.firestoreValue,
-        'distanceKm': request.distanceKm,
-        'estimatedDurationMinutes': request.estimatedDurationMinutes,
-        'stops': request.stops.map((s) => s.toJson()).toList(),
-        'customerDisplayName': request.customerDisplayName,
-      });
+      final result = await _functions
+          .httpsCallable('createDeliveryRequest')
+          .call({
+            'quoteId': request.quoteId,
+            'itemCategoryKey': request.itemCategoryKey,
+            'description': request.description,
+            'requiredVehicleCategory':
+                request.requiredVehicleCategory.firestoreValue,
+            'distanceKm': request.distanceKm,
+            'estimatedDurationMinutes': request.estimatedDurationMinutes,
+            'stops': request.stops.map((s) => s.toJson()).toList(),
+            'customerDisplayName': request.customerDisplayName,
+          });
 
       final data = Map<String, dynamic>.from(result.data as Map);
       final missionId = data['missionId'] as String;
@@ -114,14 +141,22 @@ class FirebaseMissionRepository implements MissionRepository {
       final snap = await _missions.doc(missionId).get();
       if (!snap.exists || snap.data() == null) {
         throw BackendNotConfiguredException(
-            'createMissionFromQuote: delivery_requests/$missionId introuvable après createDeliveryRequest.');
+          'createMissionFromQuote: delivery_requests/$missionId introuvable après createDeliveryRequest.',
+        );
       }
       return DeliveryMission.fromJson(missionId, snap.data()!);
     } on FirebaseFunctionsException catch (e) {
-      throw CloudFunctionException(e.code, e.message ?? 'createDeliveryRequest a échoué.');
+      throw CloudFunctionException(
+        e.code,
+        e.message ?? 'createDeliveryRequest a échoué.',
+      );
     } catch (e) {
-      if (e is CloudFunctionException || e is BackendNotConfiguredException) rethrow;
-      throw BackendNotConfiguredException('createMissionFromQuote a échoué: $e');
+      if (e is CloudFunctionException || e is BackendNotConfiguredException) {
+        rethrow;
+      }
+      throw BackendNotConfiguredException(
+        'createMissionFromQuote a échoué: $e',
+      );
     }
   }
 
@@ -148,7 +183,9 @@ class FirebaseMissionRepository implements MissionRepository {
       MissionStatus.inTransit,
       MissionStatus.arrivedAtDropoff,
     };
-    return _missions.where('driver_id', isEqualTo: driverId).snapshots().map((snap) {
+    return _missions.where('driver_id', isEqualTo: driverId).snapshots().map((
+      snap,
+    ) {
       final candidates = snap.docs
           .map((d) => DeliveryMission.fromJson(d.id, d.data()))
           .where((m) => activeStatuses.contains(m.status))
@@ -166,16 +203,22 @@ class FirebaseMissionRepository implements MissionRepository {
     // customer_id+created_at existe déjà dans firestore.indexes.json — on
     // reste cohérent avec la convention du reste du projet
     // (voir FirebaseDriverRepository.watchDriversByStatus()).
-    return _missions.where('customer_id', isEqualTo: customerId).snapshots().map((snap) {
-      final missions =
-          snap.docs.map((d) => DeliveryMission.fromJson(d.id, d.data())).toList();
-      missions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return missions;
-    });
+    return _missions
+        .where('customer_id', isEqualTo: customerId)
+        .snapshots()
+        .map((snap) {
+          final missions = snap.docs
+              .map((d) => DeliveryMission.fromJson(d.id, d.data()))
+              .toList();
+          missions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return missions;
+        });
   }
 
   @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) {
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) {
     // Les missions "disponibles" pour un chauffeur candidat transitent par
     // `delivery_offers/{id}` (créées par le trigger dispatchMissionToDrivers,
     // voir functions/src/functions/dispatchMissionToDrivers.ts) — ce flux
@@ -190,37 +233,45 @@ class FirebaseMissionRepository implements MissionRepository {
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .asyncMap((offerSnap) async {
-      if (offerSnap.docs.isEmpty) return <DeliveryMission>[];
-      final missionIds = offerSnap.docs
-          .map((d) => (d.data())['mission_id'] as String?)
-          .whereType<String>()
-          .toSet()
-          .toList();
-      if (missionIds.isEmpty) return <DeliveryMission>[];
+          if (offerSnap.docs.isEmpty) return <DeliveryMission>[];
+          final missionIds = offerSnap.docs
+              .map((d) => (d.data())['mission_id'] as String?)
+              .whereType<String>()
+              .toSet()
+              .toList();
+          if (missionIds.isEmpty) return <DeliveryMission>[];
 
-      // Firestore whereIn est limité à 30 valeurs — les lots de dispatch
-      // sont bornés à MAX_CANDIDATE_DRIVERS/mission côté serveur, mais un
-      // chauffeur peut avoir plusieurs offres actives simultanées ; on
-      // découpe en lots de 30 par prudence.
-      final missions = <DeliveryMission>[];
-      for (var i = 0; i < missionIds.length; i += 30) {
-        final batchIds = missionIds.sublist(i, i + 30 > missionIds.length ? missionIds.length : i + 30);
-        final batchSnap =
-            await _missions.where(FieldPath.documentId, whereIn: batchIds).get();
-        for (final d in batchSnap.docs) {
-          final mission = DeliveryMission.fromJson(d.id, d.data());
-          if (mission.isOpenForAcceptance) missions.add(mission);
-        }
-      }
-      missions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return missions;
-    });
+          // Firestore whereIn est limité à 30 valeurs — les lots de dispatch
+          // sont bornés à MAX_CANDIDATE_DRIVERS/mission côté serveur, mais un
+          // chauffeur peut avoir plusieurs offres actives simultanées ; on
+          // découpe en lots de 30 par prudence.
+          final missions = <DeliveryMission>[];
+          for (var i = 0; i < missionIds.length; i += 30) {
+            final batchIds = missionIds.sublist(
+              i,
+              i + 30 > missionIds.length ? missionIds.length : i + 30,
+            );
+            final batchSnap = await _missions
+                .where(FieldPath.documentId, whereIn: batchIds)
+                .get();
+            for (final d in batchSnap.docs) {
+              final mission = DeliveryMission.fromJson(d.id, d.data());
+              if (mission.isOpenForAcceptance) missions.add(mission);
+            }
+          }
+          missions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return missions;
+        });
   }
 
   @override
   Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) {
-    return _offers.where('driver_id', isEqualTo: driverId).snapshots().map((snap) {
-      final offers = snap.docs.map((d) => DeliveryOffer.fromJson(d.id, d.data())).toList();
+    return _offers.where('driver_id', isEqualTo: driverId).snapshots().map((
+      snap,
+    ) {
+      final offers = snap.docs
+          .map((d) => DeliveryOffer.fromJson(d.id, d.data()))
+          .toList();
       offers.sort((a, b) => b.offeredAt.compareTo(a.offeredAt));
       return offers;
     });
@@ -237,11 +288,15 @@ class FirebaseMissionRepository implements MissionRepository {
       });
       final data = Map<String, dynamic>.from(result.data as Map);
       if (data['success'] != true) {
-        return const AcceptMissionResult(success: false, errorCode: 'unknown_error');
+        return const AcceptMissionResult(
+          success: false,
+          errorCode: 'unknown_error',
+        );
       }
       final snap = await _missions.doc(missionId).get();
-      final mission =
-          (snap.exists && snap.data() != null) ? DeliveryMission.fromJson(missionId, snap.data()!) : null;
+      final mission = (snap.exists && snap.data() != null)
+          ? DeliveryMission.fromJson(missionId, snap.data()!)
+          : null;
       return AcceptMissionResult(success: true, mission: mission);
     } on FirebaseFunctionsException catch (e) {
       // Codes attendus : permission-denied, failed-precondition, not-found —
@@ -257,35 +312,48 @@ class FirebaseMissionRepository implements MissionRepository {
       // l'UI affiche le bon message ("service temporairement indisponible")
       // au lieu du message métier "mission déjà acceptée" — trompeur pour un
       // refus qui n'a rien à voir avec la concurrence entre chauffeurs.
-      final errorCode = isKillSwitchException(
-        CloudFunctionException(e.code, e.message ?? ''),
-      )
+      final errorCode =
+          isKillSwitchException(CloudFunctionException(e.code, e.message ?? ''))
           ? kKillSwitchErrorCode
           : e.code;
       return AcceptMissionResult(success: false, errorCode: errorCode);
     } catch (e) {
-      return const AcceptMissionResult(success: false, errorCode: 'unknown_error');
+      return const AcceptMissionResult(
+        success: false,
+        errorCode: 'unknown_error',
+      );
     }
   }
 
   @override
   Future<void> markPickupCompleted(String missionId) async {
     try {
-      await _functions.httpsCallable('completePickup').call({'missionId': missionId});
+      await _functions.httpsCallable('completePickup').call({
+        'missionId': missionId,
+      });
     } on FirebaseFunctionsException catch (e) {
-      throw CloudFunctionException(e.code, e.message ?? 'completePickup a échoué.');
+      throw CloudFunctionException(
+        e.code,
+        e.message ?? 'completePickup a échoué.',
+      );
     }
   }
 
   @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) async {
     try {
       await _functions.httpsCallable('completeDelivery').call({
         'missionId': missionId,
         'proofOfDeliveryUrl': proofOfDeliveryUrl,
       });
     } on FirebaseFunctionsException catch (e) {
-      throw CloudFunctionException(e.code, e.message ?? 'completeDelivery a échoué.');
+      throw CloudFunctionException(
+        e.code,
+        e.message ?? 'completeDelivery a échoué.',
+      );
     }
   }
 
@@ -300,7 +368,10 @@ class FirebaseMissionRepository implements MissionRepository {
         'targetStatus': targetStatus.firestoreValue,
       });
     } on FirebaseFunctionsException catch (e) {
-      throw CloudFunctionException(e.code, e.message ?? 'updateMissionTrackingStatus a échoué.');
+      throw CloudFunctionException(
+        e.code,
+        e.message ?? 'updateMissionTrackingStatus a échoué.',
+      );
     }
   }
 }

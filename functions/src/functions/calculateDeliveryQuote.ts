@@ -22,11 +22,16 @@ import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
 import { PricingVersionDoc } from "../lib/types";
 import { resolveConfiguredVehicleCategory } from "../lib/vehicleCategory";
+import { getServiceZonesConfig, isWithinCurrentServiceArea } from "../lib/serviceZones";
 
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
   distanceKm: number;
   estimatedDurationMinutes: number;
+  pickupLat?: number;
+  pickupLng?: number;
+  dropoffLat?: number;
+  dropoffLng?: number;
   handling?: {
     isHeavyItem?: boolean;
     isBulkyItem?: boolean;
@@ -80,6 +85,37 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   }
   if (typeof input.estimatedDurationMinutes !== "number" || input.estimatedDurationMinutes < 0) {
     throw invalidArgument("estimatedDurationMinutes doit être un nombre positif.");
+  }
+
+  // Validation de zone AVANT le calcul du devis. Le flux Flutter réel envoie
+  // toujours ces coordonnées résolues par l'autocomplete. Les anciens
+  // appelants/tests qui ne les envoient pas restent compatibles; la création
+  // finale de mission conserve également sa validation serveur.
+  const coordinates = [input.pickupLat, input.pickupLng, input.dropoffLat, input.dropoffLng];
+  const hasAnyCoordinate = coordinates.some((value) => value !== undefined);
+  const hasAllCoordinates = coordinates.every(
+    (value) => typeof value === "number" && Number.isFinite(value)
+  );
+
+  if (hasAnyCoordinate && !hasAllCoordinates) {
+    throw invalidArgument("Les coordonnées de départ et de livraison sont incomplètes.");
+  }
+
+  if (hasAllCoordinates) {
+    const zones = await getServiceZonesConfig();
+    const pickupAllowed = await isWithinCurrentServiceArea(
+      input.pickupLat!,
+      input.pickupLng!,
+      zones
+    );
+    const dropoffAllowed = await isWithinCurrentServiceArea(
+      input.dropoffLat!,
+      input.dropoffLng!,
+      zones
+    );
+    if (!pickupAllowed || !dropoffAllowed) {
+      throw failedPrecondition("service_area_unavailable");
+    }
   }
 
   // 1. Lire le pointeur de config active, puis la version elle-même.

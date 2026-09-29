@@ -71,3 +71,65 @@ export function isWithinServiceZones(
     (z) => lat >= z.min_lat && lat <= z.max_lat && lng >= z.min_lng && lng <= z.max_lng
   );
 }
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (value: number): number => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Validation géographique de repli quand aucune zone globale n'est encore
+ * configurée. Elle s'appuie uniquement sur des chauffeurs réellement
+ * approuvés, documentés et possédant une base géocodée + un rayon positif.
+ * Elle ne garantit jamais qu'un chauffeur est disponible maintenant.
+ */
+export async function isWithinApprovedDriverCoverage(lat: number, lng: number): Promise<boolean> {
+  const snap = await db
+    .collection("driver_profiles")
+    .where("status", "==", "approved")
+    .limit(100)
+    .get();
+
+  return snap.docs.some((doc) => {
+    const driver = doc.data();
+    if (driver.documents_all_valid !== true) return false;
+
+    const baseLat = driver.base_lat;
+    const baseLng = driver.base_lng;
+    const radiusKm = Number(driver.service_radius_km);
+
+    if (
+      typeof baseLat !== "number" ||
+      typeof baseLng !== "number" ||
+      !Number.isFinite(radiusKm) ||
+      radiusKm <= 0
+    ) {
+      return false;
+    }
+
+    return haversineKm(lat, lng, baseLat, baseLng) <= radiusKm;
+  });
+}
+
+/**
+ * Point d'entrée utilisé avant un devis. Une zone Firestore explicite a
+ * priorité. Tant qu'elle n'existe pas, on utilise les zones déclarées des
+ * chauffeurs approuvés plutôt que de prétendre couvrir une région entière.
+ */
+export async function isWithinCurrentServiceArea(
+  lat: number,
+  lng: number,
+  config?: ServiceZonesConfig
+): Promise<boolean> {
+  const resolvedConfig = config ?? (await getServiceZonesConfig());
+  if (resolvedConfig.enabled && resolvedConfig.zones.length > 0) {
+    return isWithinServiceZones(lat, lng, resolvedConfig);
+  }
+  return isWithinApprovedDriverCoverage(lat, lng);
+}

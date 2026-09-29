@@ -31,6 +31,15 @@ class CloudFunctionException implements Exception {
 /// du message brut du serveur.
 const String kKillSwitchServerMessage = 'service_temporarily_unavailable';
 
+/// Message serveur stable utilisé lorsque le pickup ou la destination est
+/// hors de la zone réellement desservie. Ce code est volontairement neutre
+/// et ne révèle aucun détail de configuration ou de profil chauffeur.
+const String kServiceAreaUnavailableServerMessage = 'service_area_unavailable';
+
+bool isServiceAreaUnavailableException(Object e) =>
+    e is CloudFunctionException &&
+    e.message == kServiceAreaUnavailableServerMessage;
+
 /// Valeur stable d'`errorCode` (voir [AcceptMissionResult.errorCode] et
 /// équivalents) utilisée par les repositories pour signaler à l'UI qu'un
 /// refus provient d'un kill switch plutôt que d'un code HttpsError générique

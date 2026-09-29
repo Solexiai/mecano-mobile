@@ -80,7 +80,10 @@ class AppRouter {
             ),
             GoRoute(
               path: 'livraison/demande',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc),
+              builder: (c, s) => DeliveryRequestFlowScreen(
+                locale: loc,
+                initialCategory: s.uri.queryParameters['category'],
+              ),
             ),
             GoRoute(
               path: 'delivery/request',

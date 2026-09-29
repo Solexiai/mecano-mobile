@@ -43,7 +43,12 @@ import '../../widgets/step_progress_form.dart';
 
 class DeliveryRequestFlowScreen extends StatefulWidget {
   final String locale;
-  const DeliveryRequestFlowScreen({super.key, required this.locale});
+  final String? initialCategory;
+  const DeliveryRequestFlowScreen({
+    super.key,
+    required this.locale,
+    this.initialCategory,
+  });
 
   @override
   State<DeliveryRequestFlowScreen> createState() =>
@@ -86,6 +91,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   String? _errorMessage;
 
   static const _distanceService = DistanceEstimationService();
+
+  @override
+  void initState() {
+    super.initState();
+    final requested = widget.initialCategory;
+    if (requested != null &&
+        DemoDataService.deliveryCategories.contains(requested)) {
+      _selectedCategory = requested;
+    }
+  }
 
   @override
   void dispose() {
@@ -274,6 +289,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
         missionDetails: {
           'distanceKm': estimate.distanceKm,
           'estimatedDurationMinutes': estimate.estimatedDurationMinutes,
+          'pickupLat': pickup.lat,
+          'pickupLng': pickup.lng,
+          'dropoffLat': dropoff.lat,
+          'dropoffLng': dropoff.lng,
           'handling': {
             'isHeavyItem': _isHeavyItem,
             'isBulkyItem': _isBulkyItem,
@@ -432,6 +451,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     if (isKillSwitchException(e)) {
       return context.read<LocaleProvider>().t(
         'service_temporarily_unavailable',
+      );
+    }
+    if (isServiceAreaUnavailableException(e)) {
+      return context.read<LocaleProvider>().t(
+        'delivery_service_area_unavailable',
       );
     }
     if (e is CloudFunctionException || e is BackendNotConfiguredException) {
