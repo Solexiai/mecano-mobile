@@ -58,11 +58,12 @@ void main() {
     for (final width in [320.0, 390.0, 768.0, 1280.0]) {
       testWidgets('full homepage $locale at $width has no overflow', (tester) async {
         await mountHome(tester, locale: locale, width: width);
-        expect(find.text(HomeCopy.text('title', locale)), findsOneWidget);
+        expect(find.byKey(const Key('home-hero')), findsOneWidget);
+        expect(find.text('Faites livrer ce qui ne rentre pas dans votre véhicule.'), findsOneWidget);
         expect(find.textContaining('3+'), findsNothing);
         expect(find.textContaining('demo drivers'), findsNothing);
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text(HomeCopy.text('final_title', locale)));
+        await tester.ensureVisible(find.text('Des gens d’ici, pour vous simplifier la vie.'));
         await tester.pumpAndSettle(); expect(tester.takeException(), isNull);
       });
     }
@@ -70,7 +71,7 @@ void main() {
       testWidgets('homepage $locale text at 200%, 320px, dark=$dark', (tester) async {
         await mountHome(tester, locale: locale, width: 320, scale: 2, dark: dark);
         expect(tester.takeException(), isNull);
-        await tester.ensureVisible(find.text(HomeCopy.text('final_title', locale)));
+        await tester.ensureVisible(find.text('Des gens d’ici, pour vous simplifier la vie.'));
         await tester.pumpAndSettle(); expect(tester.takeException(), isNull);
       });
     }

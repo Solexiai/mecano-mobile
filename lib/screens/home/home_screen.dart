@@ -565,7 +565,7 @@ class _Categories extends StatelessWidget {
                     mainAxisSpacing: 10,
                     childAspectRatio: cols == 6
                         ? .72
-                        : (cols == 3 ? 1.05 : .78),
+                        : (cols == 3 ? .82 : .58),
                     children: data
                         .map(
                           (e) => _Category(
