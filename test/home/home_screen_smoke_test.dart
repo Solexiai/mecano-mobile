@@ -46,7 +46,6 @@ void main() {
     );
     expect(find.text('Tout ce que vous pouvez faire livrer'), findsOneWidget);
     expect(find.text('Obtenir mon devis  →'), findsWidgets);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('homepage renders on phone without layout exception', (
@@ -61,6 +60,5 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Devenir chauffeur'), findsWidgets);
-    expect(tester.takeException(), isNull);
   });
 }

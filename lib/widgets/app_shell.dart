@@ -86,7 +86,7 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _MovikAppBar({required this.locale, required this.isDesktop});
 
   @override
-  Size get preferredSize => const Size.fromHeight(72);
+  Size get preferredSize => const Size.fromHeight(64);
 
   @override
   Widget build(BuildContext context) {
@@ -94,50 +94,91 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
     final isPhone = AppBreakpoints.isPhone(MediaQuery.sizeOf(context).width);
 
     return AppBar(
-      toolbarHeight: 72,
+      toolbarHeight: 64,
       titleSpacing: isDesktop ? 24 : (isPhone ? 4 : 12),
       title: Row(
         children: [
-          Flexible(
-            child: GestureDetector(
-              onTap: () => context.go('/$locale'),
-              child: Semantics(
-                label: 'Movi-K — Livraison simplifiée',
-                button: true,
-                child: SizedBox(
-                  width: isPhone ? 138 : 158,
-                  height: 52,
-                  child: Image.asset(
-                    'assets/home/brand_logo.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.centerLeft,
-                    filterQuality: FilterQuality.medium,
-                  ),
+          GestureDetector(
+            onTap: () => context.go('/$locale'),
+            child: Semantics(
+              label: 'Movi-K — Livraison simplifiée',
+              button: true,
+              child: SizedBox(
+                width: isPhone ? 138 : 180,
+                height: 54,
+                child: Image.asset(
+                  'assets/home/brand_logo.png',
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
+                  filterQuality: FilterQuality.medium,
                 ),
               ),
             ),
           ),
-          if (isDesktop) const SizedBox(width: 18),
-          if (isDesktop) ..._desktopNavItems(context),
+          if (isDesktop)
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(width: 12),
+                    ..._desktopNavItems(context),
+                    const SizedBox(width: 26),
+                    if (auth.isSignedIn)
+                      _AccountMenu(locale: locale)
+                    else ...[
+                      InkWell(
+                        onTap: () => context.go('/$locale/connexion'),
+                        borderRadius: BorderRadius.circular(10),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded, size: 18),
+                              SizedBox(width: 5),
+                              Text(
+                                'Se connecter',
+                                style: TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => context.go('/$locale/livraison/demande'),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF0879E8),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Text(
+                            'Obtenir mon devis',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       actions: [
-        if (isDesktop)
-          if (auth.isSignedIn)
-            _AccountMenu(locale: locale)
-          else ...[
-            TextButton.icon(
-              onPressed: () => context.go('/$locale/connexion'),
-              icon: const Icon(Icons.person_outline_rounded, size: 20),
-              label: const Text('Se connecter'),
-            ),
-            const SizedBox(width: 10),
-            ElevatedButton(
-              onPressed: () => context.go('/$locale/livraison/demande'),
-              child: const Text('Obtenir mon devis'),
-            ),
-            const SizedBox(width: 8),
-          ],
         if (!isDesktop) const LanguageSelector(compact: true),
         if (!isDesktop) SizedBox(width: isPhone ? 4 : 8),
       ],

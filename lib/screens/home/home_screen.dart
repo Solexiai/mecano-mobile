@@ -8,7 +8,9 @@ class HomeScreen extends StatelessWidget {
   final String locale;
   const HomeScreen({super.key, required this.locale});
   void _quote(BuildContext c, [String? category]) {
-    final suffix = category == null ? '' : '?category=$category';
+    final suffix = category == null || category.isEmpty
+        ? ''
+        : '?category=$category';
     c.go('/$locale/livraison/demande$suffix');
   }
 
@@ -16,6 +18,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppShell(
     locale: locale,
+    showFooter: false,
     child: Column(
       children: [
         _Hero(quote: () => _quote(context), driver: () => _driver(context)),
@@ -36,43 +39,111 @@ class _Hero extends StatelessWidget {
   const _Hero({required this.quote, required this.driver});
   @override
   Widget build(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= 980;
+    final width = MediaQuery.sizeOf(context).width;
+    final desktop = width >= 980;
+
+    if (!desktop) {
+      return Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFE8F5FF), Colors.white],
+          ),
+        ),
+        child: ResponsivePadding(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 34),
+            child: Column(
+              children: [
+                _HeroCopy(quote: quote, driver: driver),
+                const SizedBox(height: 28),
+                _HeroRight(quote: quote),
+                const SizedBox(height: 28),
+                const _Trust(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
+      height: 650,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE8F5FF), Colors.white],
+          colors: [Color(0xFFEAF6FF), Colors.white],
         ),
       ),
-      child: ResponsivePadding(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: desktop ? 54 : 34),
-          child: Column(
-            children: [
-              if (desktop)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      flex: 11,
-                      child: _HeroCopy(quote: quote, driver: driver),
-                    ),
-                    const SizedBox(width: 30),
-                    Expanded(flex: 9, child: _HeroRight(quote: quote)),
-                  ],
-                )
-              else ...[
-                _HeroCopy(quote: quote, driver: driver),
-                const SizedBox(height: 28),
-                _HeroRight(quote: quote),
-              ],
-              SizedBox(height: desktop ? 64 : 28),
-              const _Trust(),
-            ],
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 549,
+            child: Image.asset(
+              'assets/home/hero_reference_right.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.topRight,
+              filterQuality: FilterQuality.medium,
+              semanticLabel:
+                  'Camionnette Movi-K avec chauffeur préparant une livraison',
+            ),
           ),
-        ),
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  stops: [0.0, 0.35, 0.48, 0.60],
+                  colors: [
+                    Color(0xFFF7FCFF),
+                    Color(0xFFF7FCFF),
+                    Color(0x88F7FCFF),
+                    Color(0x00F7FCFF),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(42, 42, 42, 28),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 430,
+                  child: _HeroCopy(quote: quote, driver: driver),
+                ),
+              ),
+            ),
+          ),
+          const Positioned(
+            left: 355,
+            bottom: 92,
+            width: 225,
+            height: 128,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: Color(0xFFF7FCFF)),
+            ),
+          ),
+          const Positioned(left: 34, bottom: 130, width: 500, child: _Trust()),
+          Positioned(
+            right: 160,
+            bottom: 0,
+            width: 286,
+            child: _QuoteCard(onTap: quote),
+          ),
+        ],
       ),
     );
   }
@@ -101,7 +172,7 @@ class _HeroCopy extends StatelessWidget {
           'Faites livrer ce qui ne rentre pas dans votre véhicule.',
           style: TextStyle(
             color: AppColors.primaryDark,
-            fontSize: desktop ? 56 : 38,
+            fontSize: desktop ? 52 : 38,
             fontWeight: FontWeight.w900,
             height: 1.03,
             letterSpacing: -1.5,
@@ -109,7 +180,7 @@ class _HeroCopy extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: .82),
             borderRadius: BorderRadius.circular(16),
@@ -126,7 +197,7 @@ class _HeroCopy extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 26),
+        const SizedBox(height: 20),
         Wrap(
           spacing: 12,
           runSpacing: 12,
@@ -217,7 +288,7 @@ class _QuoteCard extends StatelessWidget {
   const _QuoteCard({required this.onTap});
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -240,38 +311,40 @@ class _QuoteCard extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _FlowField(
           icon: Icons.location_on_outlined,
           text: 'Adresse de départ',
           onTap: onTap,
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         _FlowField(
           icon: Icons.location_on_outlined,
           text: 'Adresse de livraison',
           onTap: onTap,
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 6),
         _FlowField(
           icon: Icons.inventory_2_outlined,
           text: 'Que souhaitez-vous faire livrer ?',
           onTap: onTap,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         ElevatedButton(
           onPressed: onTap,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF0879E8),
             foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(44),
+            padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           child: const Text('Obtenir mon devis  →'),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 4),
         const Text(
-          'Adresses et zone de service validées avant le devis.',
+          'Zone de service vérifiée avant confirmation.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 9, color: AppColors.textSecondary),
         ),
       ],
     ),
@@ -292,7 +365,7 @@ class _FlowField extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(10),
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(10),
@@ -334,7 +407,7 @@ class _Trust extends StatelessWidget {
       (
         Icons.location_on_outlined,
         'Un service près de chez vous',
-        'Zone de lancement : Granby et environs • zone vérifiée avant le devis',
+        'Disponible à Granby et dans les environs.',
       ),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 760;
@@ -406,43 +479,89 @@ class _Categories extends StatelessWidget {
       ('cat_tv', 'assets/home/category_tv.png', 'Téléviseurs', ''),
       ('cat_costco', 'assets/home/category_store.png', 'Achats en magasin', ''),
     ];
+    final desktop = MediaQuery.sizeOf(context).width >= 980;
     return Container(
-      color: Colors.white,
+      color: const Color(0xFFF9FCFF),
       width: double.infinity,
-      child: ResponsivePadding(
+      padding: EdgeInsets.fromLTRB(
+        desktop ? 18 : 0,
+        0,
+        desktop ? 18 : 0,
+        desktop ? 8 : 0,
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(desktop ? 22 : 0),
+          border: Border.all(color: const Color(0xFFE3EDF8)),
+          boxShadow: desktop
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF0B3B78).withValues(alpha: .06),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : const [],
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 62),
+          padding: EdgeInsets.fromLTRB(
+            desktop ? 24 : 16,
+            desktop ? 14 : 38,
+            desktop ? 24 : 16,
+            desktop ? 10 : 38,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Tout ce que vous pouvez faire livrer',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tout ce que vous pouvez faire livrer',
+                          style: TextStyle(
+                            color: AppColors.primaryDark,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Des objets du quotidien aux plus encombrants, Movi-K s’occupe de votre livraison.',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (desktop)
+                    TextButton(
+                      onPressed: () => onQuote(''),
+                      child: const Text('Voir toutes les catégories  →'),
+                    ),
+                ],
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'Des objets du quotidien aux plus encombrants, Movi-K s’occupe de votre livraison.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
-              ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, c) {
-                  final cols = c.maxWidth >= 1000
+                  final cols = c.maxWidth >= 900
                       ? 6
                       : (c.maxWidth >= 620 ? 3 : 2);
                   return GridView.count(
                     crossAxisCount: cols,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 10,
                     childAspectRatio: cols == 6
-                        ? .62
-                        : (cols == 3 ? 1.05 : .62),
+                        ? .72
+                        : (cols == 3 ? 1.05 : .78),
                     children: data
                         .map(
                           (e) => _Category(
@@ -456,6 +575,16 @@ class _Categories extends StatelessWidget {
                   );
                 },
               ),
+              if (!desktop) ...[
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => onQuote(''),
+                    child: const Text('Voir toutes les catégories  →'),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -483,7 +612,7 @@ class _Category extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: const Color(0xFFF9FBFF),
           borderRadius: BorderRadius.circular(18),
@@ -495,8 +624,8 @@ class _Category extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: SizedBox(
-                width: 92,
-                height: 82,
+                width: 86,
+                height: 66,
                 child: Image.asset(
                   assetPath,
                   fit: BoxFit.contain,
@@ -505,20 +634,25 @@ class _Category extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Text(
               title,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: AppColors.primaryDark,
                 fontWeight: FontWeight.w800,
+                fontSize: 13,
               ),
             ),
             if (sub.isNotEmpty) ...[
-              const SizedBox(height: 5),
+              const SizedBox(height: 3),
               Text(
                 sub,
                 textAlign: TextAlign.center,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 9,
@@ -526,7 +660,7 @@ class _Category extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 5),
             const Icon(
               Icons.arrow_forward_ios_rounded,
               size: 14,
@@ -541,6 +675,7 @@ class _Category extends StatelessWidget {
 
 class _Steps extends StatelessWidget {
   const _Steps();
+
   @override
   Widget build(BuildContext context) {
     const data = [
@@ -565,109 +700,151 @@ class _Steps extends StatelessWidget {
         'Votre objet arrive à destination.',
       ),
     ];
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFFEEF8FF),
-      child: ResponsivePadding(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 58),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Une livraison en 4 étapes simples',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 30,
-                  fontWeight: FontWeight.w900,
-                ),
+
+    Widget tile(int i) => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: const Color(0xFF0879E8),
+            child: Text(
+              '${i + 1}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
               ),
-              const SizedBox(height: 26),
-              LayoutBuilder(
-                builder: (context, c) {
-                  final wide = c.maxWidth >= 800;
-                  Widget tile(int i) => Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF0879E8),
-                          child: Text(
-                            '${i + 1}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Icon(
-                          data[i].$1,
-                          size: 38,
-                          color: const Color(0xFF075FC4),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          data[i].$2,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.primaryDark,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          data[i].$3,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 12,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                  final phone = Semantics(
-                    image: true,
-                    label: 'Exemple du suivi d’une livraison Movi-K',
-                    child: Image.asset(
-                      'assets/home/tracking_phone.png',
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
-                    ),
-                  );
-                  return wide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: List.generate(
-                                  4,
-                                  (i) => Expanded(child: tile(i)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 18),
-                            SizedBox(width: 245, height: 315, child: phone),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            ...List.generate(
-                              4,
-                              (i) => SizedBox(height: 180, child: tile(i)),
-                            ),
-                            SizedBox(height: 300, child: phone),
-                          ],
-                        );
-                },
-              ),
-            ],
+            ),
           ),
+          const SizedBox(height: 10),
+          Icon(data[i].$1, size: 42, color: const Color(0xFF0822A6)),
+          const SizedBox(height: 8),
+          Text(
+            data[i].$2,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.primaryDark,
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            data[i].$3,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 10.5,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final phone = Semantics(
+      image: true,
+      label: 'Exemple du suivi d’une livraison Movi-K',
+      child: Image.asset(
+        'assets/home/tracking_phone.png',
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+      ),
+    );
+
+    final desktop = MediaQuery.sizeOf(context).width >= 980;
+    if (!desktop) {
+      return Container(
+        width: double.infinity,
+        color: const Color(0xFFEEF8FF),
+        padding: const EdgeInsets.fromLTRB(16, 40, 16, 34),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Une livraison en 4 étapes simples',
+              style: TextStyle(
+                color: AppColors.primaryDark,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Décrivez, obtenez votre prix, suivez l’avancement et recevez votre objet.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            ...List.generate(4, (i) => SizedBox(height: 165, child: tile(i))),
+            SizedBox(height: 290, child: phone),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      color: const Color(0xFFF9FCFF),
+      padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
+      child: Container(
+        height: 285,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF6FF),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          border: Border.all(color: const Color(0xFFDCEBFA)),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Positioned(
+              left: 24,
+              top: 18,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Une livraison en 4 étapes simples',
+                    style: TextStyle(
+                      color: AppColors.primaryDark,
+                      fontSize: 29,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Décrivez, obtenez votre prix, suivez l’avancement : simple et clair.',
+                    style: TextStyle(color: Color(0xFF3572B8), fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 16,
+              right: 238,
+              top: 82,
+              bottom: 10,
+              child: Row(
+                children: [
+                  for (var i = 0; i < 4; i++) ...[
+                    Expanded(child: tile(i)),
+                    if (i < 3)
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: Color(0xFF0879E8),
+                        size: 23,
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            Positioned(
+              right: 24,
+              top: -10,
+              bottom: 0,
+              width: 215,
+              child: phone,
+            ),
+          ],
         ),
       ),
     );
@@ -700,23 +877,28 @@ class _Reassurance extends StatelessWidget {
         'Granby et environs • validation avant le devis',
       ),
     ];
+    final desktop = MediaQuery.sizeOf(context).width >= 980;
     return Container(
       width: double.infinity,
       color: const Color(0xFF075AAE),
       child: ResponsivePadding(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 26),
+          padding: EdgeInsets.symmetric(vertical: desktop ? 14 : 26),
           child: LayoutBuilder(
             builder: (context, c) {
               final wide = c.maxWidth >= 850;
               final items = data
                   .map(
                     (e) => Padding(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(desktop ? 6 : 10),
                       child: Row(
                         children: [
-                          Icon(e.$1, color: Colors.white, size: 30),
-                          const SizedBox(width: 10),
+                          Icon(
+                            e.$1,
+                            color: Colors.white,
+                            size: desktop ? 27 : 30,
+                          ),
+                          const SizedBox(width: 9),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,11 +953,11 @@ class _LocalCta extends StatelessWidget {
             child: Opacity(
               opacity: .9,
               child: SizedBox(
-                width: 700,
-                height: 116,
+                width: 420,
+                height: 105,
                 child: Image.asset(
                   'assets/home/quebec_silhouette.png',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   alignment: Alignment.bottomLeft,
                 ),
               ),
@@ -784,7 +966,12 @@ class _LocalCta extends StatelessWidget {
         ),
         ResponsivePadding(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 42, 0, 48),
+            padding: EdgeInsets.fromLTRB(
+              0,
+              MediaQuery.sizeOf(context).width >= 980 ? 20 : 42,
+              0,
+              MediaQuery.sizeOf(context).width >= 980 ? 24 : 48,
+            ),
             child: Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
