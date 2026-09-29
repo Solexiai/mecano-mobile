@@ -187,8 +187,9 @@ class _HeroCopy extends StatelessWidget {
             border: Border.all(color: const Color(0xFFDCEBFA)),
           ),
           child: const Text(
-            'D’un simple colis aux meubles, électroménagers et matériaux, '
-            'Movi-K simplifie vos livraisons selon votre projet.',
+            'D’un simple colis, une boîte ou un petit déménagement.\n'
+            'Jusqu’aux meubles, électroménagers et matériaux,\n'
+            'Movi-K simplifie votre livraison.',
             style: TextStyle(
               color: Color(0xFF21436F),
               fontSize: 17,
@@ -342,7 +343,7 @@ class _QuoteCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Zone de service vérifiée avant confirmation.',
+          '🔒 Gratuit · Sans engagement',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 9, color: AppColors.textSecondary),
         ),
@@ -397,17 +398,17 @@ class _Trust extends StatelessWidget {
       (
         Icons.verified_user_outlined,
         'Chauffeurs vérifiés',
-        'Identité et documents vérifiés',
+        'Des pros de confiance',
       ),
       (
         Icons.sell_outlined,
         'Tarifs clairs',
-        'Consultez votre prix avant de confirmer',
+        'Sans mauvaise surprise',
       ),
       (
         Icons.location_on_outlined,
         'Un service près de chez vous',
-        'Disponible à Granby et dans les environs.',
+        'Près de chez vous',
       ),
     ];
     final wide = MediaQuery.sizeOf(context).width >= 760;
@@ -468,7 +469,7 @@ class _Categories extends StatelessWidget {
         'cat_marketplace',
         'assets/home/category_marketplace.png',
         'Achats Marketplace',
-        'Facebook Marketplace, Kijiji et petites annonces',
+        'Leboncoin, Marketplace, Kijiji, etc.',
       ),
       (
         'cat_building_materials',
@@ -531,7 +532,7 @@ class _Categories extends StatelessWidget {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Des objets du quotidien aux plus encombrants, Movi-K s’occupe de votre livraison.',
+                          'Des objets du quotidien aux plus encombrants, Movi-K s’occupe de tout.',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 15,
@@ -681,23 +682,23 @@ class _Steps extends StatelessWidget {
     const data = [
       (
         Icons.edit_location_alt_outlined,
-        'Décrivez votre livraison',
-        'Indiquez l’objet et les adresses.',
+        'Demandez votre devis',
+        'Indiquez ce que vous souhaitez faire livrer et où.',
       ),
       (
         Icons.request_quote_outlined,
-        'Obtenez votre prix',
-        'Consultez votre devis et confirmez votre demande.',
+        'Choisissez un créneau',
+        'On vous propose les meilleurs chauffeurs disponibles.',
       ),
       (
         Icons.route_outlined,
         'Suivez l’avancement',
-        'Voyez les étapes de votre livraison.',
+        'Voyez chaque étape de votre livraison.',
       ),
       (
         Icons.check_circle_outline,
         'C’est livré!',
-        'Votre objet arrive à destination.',
+        'Votre objet arrive en toute sécurité.',
       ),
     ];
 
@@ -772,7 +773,7 @@ class _Steps extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Décrivez, obtenez votre prix, suivez l’avancement et recevez votre objet.',
+              'Indiquez, réservez, c’est livré. Aussi simple que ça.',
               style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
@@ -812,7 +813,7 @@ class _Steps extends StatelessWidget {
                   ),
                   SizedBox(height: 3),
                   Text(
-                    'Décrivez, obtenez votre prix, suivez l’avancement : simple et clair.',
+                    'Indiquez, réservez, c’est livré. Aussi simple que ça.',
                     style: TextStyle(color: Color(0xFF3572B8), fontSize: 14),
                   ),
                 ],
@@ -858,8 +859,8 @@ class _Reassurance extends StatelessWidget {
     const data = [
       (
         Icons.home_outlined,
-        'Ramassage et livraison',
-        'De l’adresse de départ à destination',
+        'Livraison à domicile',
+        'Du rez-de-chaussée au domicile',
       ),
       (
         Icons.credit_card_outlined,
@@ -869,12 +870,12 @@ class _Reassurance extends StatelessWidget {
       (
         Icons.groups_outlined,
         'Une équipe à vos côtés',
-        'Support lorsque vous en avez besoin',
+        'Support réactif',
       ),
       (
         Icons.location_on_outlined,
-        'Un service près de chez vous',
-        'Granby et environs • validation avant le devis',
+        'Service partout',
+        'Partout au Québec et ses environs',
       ),
     ];
     final desktop = MediaQuery.sizeOf(context).width >= 980;
