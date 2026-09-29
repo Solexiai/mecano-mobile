@@ -150,8 +150,8 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             const SizedBox(width: 10),
             ElevatedButton(
-              onPressed: () => context.go('/$locale/connexion'),
-              child: Text(t('nav_get_started')),
+              onPressed: () => context.go('/$locale/livraison/demande'),
+              child: const Text('Obtenir mon devis'),
             ),
             const SizedBox(width: 8),
           ],
@@ -171,11 +171,11 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
 
     return [
-      item(t('nav_delivery'), '/$locale/livraison'),
-      item(t('nav_how_it_works'), '/$locale/comment-ca-marche'),
-      item(t('nav_pricing'), '/$locale/tarifs'),
-      item(t('nav_safety'), '/$locale/securite'),
-      item(t('nav_faq'), '/$locale/faq'),
+      item('Nos services', '/$locale/livraison'),
+      item('Tarifs', '/$locale/tarifs'),
+      item('Devenir chauffeur', '/$locale/devenir-chauffeur'),
+      item('À propos', '/$locale/a-propos'),
+      item('Aide', '/$locale/faq'),
     ];
   }
 }
