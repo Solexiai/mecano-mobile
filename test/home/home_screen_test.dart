@@ -83,19 +83,15 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('category survives authentication without a second request route', (tester) async {
-    final (router, auth) = await mountHome(tester);
+  testWidgets('category survives into the guest request form', (tester) async {
+    final (router, _) = await mountHome(tester);
     final category = find.byKey(const Key('home-category-cat_furniture'));
     await tester.ensureVisible(category); await tester.tap(category); await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.queryParameters['category'], 'cat_furniture');
-    final button = find.widgetWithText(ElevatedButton, AppStrings.t('delivery_sign_in_button', 'fr'));
-    await tester.ensureVisible(button); await tester.tap(button); await tester.pumpAndSettle();
-    expect(router.routeInformationProvider.value.uri.path, '/fr/connexion');
-    expect(DeliveryRequestIntent.safeReturnPath(router.routeInformationProvider.value.uri.queryParameters['returnTo'], 'fr'), '/fr/livraison/demande?category=cat_furniture');
-    auth.completeSignIn(); await tester.pumpAndSettle();
-    await tester.tap(find.text(HomeCopy.text('resume', 'fr'))); await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/fr/livraison/demande');
     final selected = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).where((chip) => chip.selected);
     expect(selected, hasLength(1)); expect((selected.single.label as Text).data, 'Meubles');
+    expect(find.text(AppStrings.t('delivery_sign_in_button', 'fr')), findsNothing);
     expect(tester.takeException(), isNull);
   });
   testWidgets('anonymous navigation has no administration entry', (tester) async {
@@ -122,22 +118,15 @@ void main() {
       expect(DeliveryRequestIntent.safeReturnPath(bad, 'fr'), isNull, reason: bad);
     }
   });
-  testWidgets('language changes keep category and the allowlisted login return', (tester) async {
-    final (router, auth) = await mountHome(tester);
+  testWidgets('language changes keep category in the guest request form', (tester) async {
+    final (router, _) = await mountHome(tester);
     router.go('/fr/livraison/demande?category=cat_furniture'); await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.language)); await tester.pumpAndSettle();
     await tester.tap(find.textContaining('English')); await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.toString(), '/en/livraison/demande?category=cat_furniture');
-    final login = find.widgetWithText(ElevatedButton, AppStrings.t('delivery_sign_in_button', 'en'));
-    await tester.ensureVisible(login); await tester.tap(login); await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.language)); await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('Español')); await tester.pumpAndSettle();
-    expect(router.routeInformationProvider.value.uri.path, '/es/connexion');
-    expect(router.routeInformationProvider.value.uri.queryParameters['returnTo'], '/es/livraison/demande?category=cat_furniture');
-    auth.completeSignIn(); await tester.pumpAndSettle();
-    await tester.tap(find.text(HomeCopy.text('resume', 'es'))); await tester.pumpAndSettle();
     final selected = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).where((chip) => chip.selected);
-    expect((selected.single.label as Text).data, 'Muebles'); expect(tester.takeException(), isNull);
+    expect(selected, hasLength(1));
+    expect(tester.takeException(), isNull);
   });
 
 }

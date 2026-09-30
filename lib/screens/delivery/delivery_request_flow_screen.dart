@@ -108,18 +108,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
 
-    if (!auth.isSignedIn) {
-      return AppShell(
-        locale: widget.locale,
-        showFooter: false,
-        child: _LoginRequiredNotice(
-          locale: widget.locale,
-          message: t('delivery_login_required'),
-          category: _selectedCategory,
-        ),
-      );
-    }
-
     if (_phase == _FlowPhase.created && _mission != null) {
       return AppShell(
         locale: widget.locale,
@@ -244,6 +232,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
 
   Future<void> _requestQuote(FirebaseAuthProvider auth) async {
     if (_selectedVehicle == null) return;
+
+    // Le devis officiel est calculé par une Cloud Function authentifiée.
+    // Un visiteur peut donc remplir le formulaire librement, mais doit
+    // s'identifier au moment de demander le prix officiel. On conserve la
+    // catégorie dans le returnTo afin de reprendre le parcours de livraison.
+    if (!auth.isSignedIn) {
+      final category = _selectedCategory.isEmpty ? null : _selectedCategory;
+      context.go(DeliveryRequestIntent.loginPath(widget.locale, category: category));
+      return;
+    }
 
     // GAP g)/n) FAIL CLOSED : ne jamais calculer un devis (donc jamais
     // avancer) si l'une des deux adresses n'a pas été RÉELLEMENT résolue
@@ -1080,44 +1078,6 @@ class _MissionCreatedConfirmation extends StatelessWidget {
               const SizedBox(height: 40),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoginRequiredNotice extends StatelessWidget {
-  final String locale;
-  final String message;
-  final String? category;
-  const _LoginRequiredNotice({required this.locale, required this.message, this.category});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.lock_outline,
-              size: 48,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => GoRouter.of(context).go(DeliveryRequestIntent.loginPath(locale, category: category)),
-              child: Text(t('delivery_sign_in_button')),
-            ),
-          ],
         ),
       ),
     );
