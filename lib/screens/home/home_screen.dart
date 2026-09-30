@@ -790,7 +790,7 @@ class _Steps extends StatelessWidget {
             const SizedBox(height: 24),
             ...List.generate(
               4,
-              (i) => SizedBox(height: largeText ? 350 : 165, child: tile(i)),
+              (i) => SizedBox(height: largeText ? 350 : 190, child: tile(i)),
             ),
             SizedBox(height: largeText ? 360 : 290, child: phone),
           ],
