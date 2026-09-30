@@ -165,8 +165,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                     // pas déjà fait.
                     if (step == 3 &&
                         _quote == null &&
-                        _phase == _FlowPhase.form &&
-                        auth.isSignedIn) {
+                        _phase == _FlowPhase.form) {
                       _requestQuote(auth);
                     }
                   },
@@ -214,19 +213,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                       selected: _selectedVehicle,
                       onSelected: (v) => setState(() => _selectedVehicle = v),
                     ),
-                    (context) => auth.isSignedIn
-                        ? _Step4Quote(
-                            phase: _phase,
-                            quote: _quote,
-                            distanceEstimate: _distanceEstimate,
-                            errorMessage: _errorMessage,
-                            onRetry: () => _requestQuote(auth),
-                          )
-                        : _LoginRequiredNotice(
-                            locale: widget.locale,
-                            message: t('delivery_quote_login_required'),
-                            category: _selectedCategory,
-                          ),
+                    (context) => _Step4Quote(
+                      phase: _phase,
+                      quote: _quote,
+                      distanceEstimate: _distanceEstimate,
+                      errorMessage: _errorMessage,
+                      onRetry: () => _requestQuote(auth),
+                    ),
                   ],
                 ),
               ),
@@ -239,6 +232,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
 
   Future<void> _requestQuote(FirebaseAuthProvider auth) async {
     if (_selectedVehicle == null) return;
+
+    // Le devis officiel est calculé par une Cloud Function authentifiée.
+    // Un visiteur peut donc remplir le formulaire librement, mais doit
+    // s'identifier au moment de demander le prix officiel. On conserve la
+    // catégorie dans le returnTo afin de reprendre le parcours de livraison.
+    if (!auth.isSignedIn) {
+      final category = _selectedCategory.isEmpty ? null : _selectedCategory;
+      context.go(DeliveryRequestIntent.loginPath(widget.locale, category: category));
+      return;
+    }
 
     // GAP g)/n) FAIL CLOSED : ne jamais calculer un devis (donc jamais
     // avancer) si l'une des deux adresses n'a pas été RÉELLEMENT résolue

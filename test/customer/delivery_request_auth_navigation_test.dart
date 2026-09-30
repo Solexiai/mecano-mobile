@@ -15,7 +15,7 @@ void main() {
   });
 
   testWidgets(
-    'guest sign-in button opens auth instead of popping to home',
+    'guest can start the delivery request form before authentication',
     (tester) async {
       final router = GoRouter(
         initialLocation: '/fr',
@@ -58,16 +58,15 @@ void main() {
       await tester.tap(find.text('OPEN_REQUEST'));
       await tester.pumpAndSettle();
 
-      final signIn = find.text(
-        AppStrings.t('delivery_sign_in_button', 'fr'),
+      expect(
+        find.text(AppStrings.t('delivery_hero_headline', 'fr')),
+        findsOneWidget,
       );
-      expect(signIn, findsOneWidget);
-
-      await tester.tap(signIn);
-      await tester.pumpAndSettle();
-
-      expect(find.text('AUTH_SCREEN'), findsOneWidget);
-      expect(find.text('OPEN_REQUEST'), findsNothing);
+      expect(
+        find.text(AppStrings.t('delivery_sign_in_button', 'fr')),
+        findsNothing,
+      );
+      expect(find.text('AUTH_SCREEN'), findsNothing);
     },
   );
 }
