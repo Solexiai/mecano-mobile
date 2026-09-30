@@ -695,7 +695,7 @@ class _Steps extends StatelessWidget {
         image: true,
         label: 'Une livraison en 3 étapes simples : Préparer, Réservez et c’est livré !',
         child: Image.asset(
-          'assets/home/steps_exact.webp',
+          'assets/home/steps_exact_original.jpg',
           width: double.infinity,
           fit: BoxFit.fitWidth,
           filterQuality: FilterQuality.high,
