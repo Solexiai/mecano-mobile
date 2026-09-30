@@ -554,9 +554,10 @@ class _Categories extends StatelessWidget {
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, c) {
-                  final cols = c.maxWidth >= 900
-                      ? 6
-                      : (c.maxWidth >= 620 ? 3 : 2);
+                  final scale = MediaQuery.textScalerOf(context).scale(1);
+                  final cols = scale > 1.4
+                      ? 1
+                      : (c.maxWidth >= 900 ? 6 : (c.maxWidth >= 620 ? 3 : 2));
                   return GridView.count(
                     crossAxisCount: cols,
                     shrinkWrap: true,
@@ -565,7 +566,7 @@ class _Categories extends StatelessWidget {
                     mainAxisSpacing: 10,
                     childAspectRatio: cols == 6
                         ? .72
-                        : (cols == 3 ? .82 : .58),
+                        : (cols == 3 ? .82 : (cols == 1 ? 1.15 : .58)),
                     children: data
                         .map(
                           (e) => _Category(
@@ -762,7 +763,9 @@ class _Steps extends StatelessWidget {
       ),
     );
 
-    final desktop = MediaQuery.sizeOf(context).width >= 980;
+    final media = MediaQuery.of(context);
+    final desktop = media.size.width >= 980;
+    final largeText = media.textScaler.scale(1) > 1.4;
     if (!desktop) {
       return Container(
         width: double.infinity,
@@ -785,8 +788,11 @@ class _Steps extends StatelessWidget {
               style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
-            ...List.generate(4, (i) => SizedBox(height: 165, child: tile(i))),
-            SizedBox(height: 290, child: phone),
+            ...List.generate(
+              4,
+              (i) => SizedBox(height: largeText ? 350 : 165, child: tile(i)),
+            ),
+            SizedBox(height: largeText ? 360 : 290, child: phone),
           ],
         ),
       );
