@@ -59,10 +59,8 @@ class _Hero extends StatelessWidget {
             child: Column(
               children: [
                 _HeroCopy(quote: quote, driver: driver),
-                const SizedBox(height: 28),
-                _HeroRight(quote: quote),
-                const SizedBox(height: 28),
-                const _Trust(),
+                const SizedBox(height: 18),
+                _HeroRight(quote: quote, driver: driver),
               ],
             ),
           ),
@@ -157,6 +155,49 @@ class _HeroCopy extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 980;
+    if (!desktop) {
+      return const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '●  Suivi en temps réel',
+            style: TextStyle(
+              color: Color(0xFF0879E8),
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          SizedBox(height: 14),
+          Text.rich(
+            TextSpan(children: [
+              TextSpan(text: 'Votre livraison\\nen '),
+              TextSpan(
+                text: 'temps réel.',
+                style: TextStyle(color: Color(0xFF0879E8)),
+              ),
+            ]),
+            style: TextStyle(
+              color: AppColors.primaryDark,
+              fontSize: 38,
+              height: 1.02,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -1.2,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Suivez chaque étape, depuis l’enlèvement jusqu’à la livraison.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 19,
+              height: 1.28,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -238,55 +279,181 @@ class _HeroCopy extends StatelessWidget {
 }
 
 class _HeroRight extends StatelessWidget {
-  final VoidCallback quote;
-  const _HeroRight({required this.quote});
+  final VoidCallback quote, driver;
+  const _HeroRight({required this.quote, required this.driver});
 
   @override
   Widget build(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= 980;
+    const benefits = [
+      (Icons.location_on_rounded, 'Localisation\nen direct', 'Voyez où se trouve\nvotre chauffeur'),
+      (Icons.notifications_rounded, 'Notifications\ninstantanées', 'Soyez informé\nà chaque étape'),
+      (Icons.verified_user_rounded, 'Livraison en\ntoute confiance', 'Simple, rapide\net sécuritaire'),
+    ];
+    const cats = [
+      (Icons.chair_outlined, 'Meubles'),
+      (Icons.local_laundry_service_outlined, 'Électroménagers'),
+      (Icons.inventory_2_outlined, 'Boîtes et colis'),
+      (Icons.home_outlined, 'Petits déménagements'),
+    ];
 
-    final scene = Semantics(
-      image: true,
-      label: 'Camionnette Movi-K et chauffeur préparant une livraison',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: AspectRatio(
-          aspectRatio: 524 / 350,
-          child: Image.asset(
-            'assets/home/hero_clean.png',
-            fit: BoxFit.cover,
-            alignment: Alignment.centerRight,
-            filterQuality: FilterQuality.medium,
+    return Column(
+      children: [
+        SizedBox(
+          height: 455,
+          width: double.infinity,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(26),
+                  child: Image.asset(
+                    'assets/home/hero_clean.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
+                    filterQuality: FilterQuality.high,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                top: 24,
+                child: Transform.rotate(
+                  angle: -0.08,
+                  child: const Text(
+                    'Suivez chaque\nétape en temps réel !',
+                    style: TextStyle(
+                      color: Color(0xFF075FC4),
+                      fontSize: 15,
+                      height: 1.05,
+                      fontWeight: FontWeight.w900,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 30,
+                top: 74,
+                bottom: 8,
+                width: 220,
+                child: Transform.rotate(
+                  angle: .07,
+                  child: Image.asset(
+                    'assets/home/tracking_phone.png',
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.high,
+                    semanticLabel: 'Suivi de livraison Movi-K en temps réel',
+                  ),
+                ),
+              ),
+              const Positioned(
+                right: 10,
+                bottom: 20,
+                child: Text(
+                  'Vos objets\navancent,\nvous aussi !',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    height: 1.0,
+                    fontWeight: FontWeight.w900,
+                    fontStyle: FontStyle.italic,
+                    shadows: [Shadow(color: Color(0xAA000000), blurRadius: 8)],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ),
-    );
-
-    if (!desktop) {
-      return Column(
-        children: [
-          scene,
-          const SizedBox(height: 14),
-          _QuoteCard(onTap: quote),
-        ],
-      );
-    }
-
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        scene,
-        Positioned(
-          left: 70,
-          right: 14,
-          bottom: -42,
-          child: _QuoteCard(onTap: quote),
+        const SizedBox(height: 14),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final item in benefits)
+              Expanded(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 23,
+                      backgroundColor: const Color(0xFFF1F8FF),
+                      child: Icon(item.$1, color: const Color(0xFF0879E8)),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(item.$2, textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w900, fontSize: 11, height: 1.05)),
+                    const SizedBox(height: 4),
+                    Text(item.$3, textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 9, height: 1.1)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        KeyedSubtree(key: const Key('home-primary-quote'), child: _QuoteCard(onTap: quote)),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: driver,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF075FC4),
+              side: const BorderSide(color: Color(0xFF0879E8)),
+              padding: const EdgeInsets.symmetric(vertical: 15),
+            ),
+            child: const Text('Devenir chauffeur', style: TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            for (final item in cats)
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 2),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F9FF), borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    children: [
+                      Icon(item.$1, color: const Color(0xFF075FC4), size: 22),
+                      const SizedBox(height: 4),
+                      Text(item.$2, textAlign: TextAlign.center, maxLines: 2,
+                        style: const TextStyle(color: Color(0xFF075FC4), fontSize: 8.5, height: 1.05)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Row(
+          children: [
+            Expanded(child: _MiniTrust(icon: Icons.local_shipping_outlined, text: 'Partout\nau Québec')),
+            Expanded(child: _MiniTrust(icon: Icons.handshake_outlined, text: 'Service local\net fiable')),
+            Expanded(child: _MiniTrust(icon: Icons.shield_outlined, text: 'Des gens de\nconfiance')),
+          ],
         ),
       ],
     );
   }
 }
 
+class _MiniTrust extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _MiniTrust({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      Icon(icon, color: const Color(0xFF082A80), size: 24),
+      const SizedBox(width: 5),
+      Flexible(child: Text(text, style: const TextStyle(color: Color(0xFF45658F), fontSize: 9, height: 1.05))),
+    ],
+  );
+}
 class _QuoteCard extends StatelessWidget {
   final VoidCallback onTap;
   const _QuoteCard({required this.onTap});
