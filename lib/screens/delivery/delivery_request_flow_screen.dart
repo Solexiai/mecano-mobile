@@ -108,18 +108,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
 
-    if (!auth.isSignedIn) {
-      return AppShell(
-        locale: widget.locale,
-        showFooter: false,
-        child: _LoginRequiredNotice(
-          locale: widget.locale,
-          message: t('delivery_login_required'),
-          category: _selectedCategory,
-        ),
-      );
-    }
-
     if (_phase == _FlowPhase.created && _mission != null) {
       return AppShell(
         locale: widget.locale,
@@ -177,7 +165,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                     // pas déjà fait.
                     if (step == 3 &&
                         _quote == null &&
-                        _phase == _FlowPhase.form) {
+                        _phase == _FlowPhase.form &&
+                        auth.isSignedIn) {
                       _requestQuote(auth);
                     }
                   },
@@ -225,13 +214,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
                       selected: _selectedVehicle,
                       onSelected: (v) => setState(() => _selectedVehicle = v),
                     ),
-                    (context) => _Step4Quote(
-                      phase: _phase,
-                      quote: _quote,
-                      distanceEstimate: _distanceEstimate,
-                      errorMessage: _errorMessage,
-                      onRetry: () => _requestQuote(auth),
-                    ),
+                    (context) => auth.isSignedIn
+                        ? _Step4Quote(
+                            phase: _phase,
+                            quote: _quote,
+                            distanceEstimate: _distanceEstimate,
+                            errorMessage: _errorMessage,
+                            onRetry: () => _requestQuote(auth),
+                          )
+                        : _LoginRequiredNotice(
+                            locale: widget.locale,
+                            message: t('delivery_quote_login_required'),
+                            category: _selectedCategory,
+                          ),
                   ],
                 ),
               ),

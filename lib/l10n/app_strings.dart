@@ -697,6 +697,11 @@ class AppStrings {
       'en': 'Sign in',
       'es': 'Iniciar sesión',
     },
+    'delivery_quote_login_required': {
+      'fr': 'Connectez-vous pour calculer votre prix et poursuivre la réservation.',
+      'en': 'Sign in to calculate your price and continue your booking.',
+      'es': 'Inicia sesión para calcular tu precio y continuar la reserva.',
+    },
     'delivery_step_addresses_title': {
       'fr': 'Adresses',
       'en': 'Addresses',
