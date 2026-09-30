@@ -690,109 +690,144 @@ class _Steps extends StatelessWidget {
   Widget build(BuildContext context) {
     const data = [
       (
-        Icons.edit_location_alt_outlined,
-        'Demandez votre devis',
+        Icons.inventory_2_outlined,
+        'Préparer',
         'Indiquez ce que vous souhaitez faire livrer et où.',
       ),
       (
-        Icons.request_quote_outlined,
-        'Choisissez un créneau',
-        'On vous propose les meilleurs chauffeurs disponibles.',
+        Icons.calendar_month_outlined,
+        'Réserver',
+        'Choisissez le moment qui vous convient.',
       ),
       (
-        Icons.route_outlined,
-        'Suivez l’avancement',
-        'Voyez chaque étape de votre livraison.',
-      ),
-      (
-        Icons.check_circle_outline,
-        'C’est livré!',
-        'Votre objet arrive en toute sécurité.',
+        Icons.local_shipping_outlined,
+        'C’est livré !',
+        'Suivez votre livraison jusqu’à destination.',
       ),
     ];
 
-    Widget tile(int i) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5),
+    Widget tile(int i, {bool mobile = false}) => Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: mobile ? 16 : 12,
+        vertical: mobile ? 18 : 14,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDCEBFA)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x100B4A8B),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircleAvatar(
-            radius: 20,
+            radius: mobile ? 22 : 20,
             backgroundColor: const Color(0xFF0879E8),
             child: Text(
               '${i + 1}',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
+                fontSize: 17,
               ),
             ),
           ),
-          const SizedBox(height: 10),
-          Icon(data[i].$1, size: 42, color: const Color(0xFF0822A6)),
-          const SizedBox(height: 8),
+          SizedBox(height: mobile ? 12 : 9),
+          Icon(
+            data[i].$1,
+            size: mobile ? 48 : 42,
+            color: const Color(0xFF0822A6),
+          ),
+          SizedBox(height: mobile ? 10 : 7),
           Text(
             data[i].$2,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.primaryDark,
               fontWeight: FontWeight.w900,
-              fontSize: 13,
+              fontSize: mobile ? 18 : 15,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             data[i].$3,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: 10.5,
-              height: 1.25,
+              fontSize: mobile ? 13 : 11.5,
+              height: 1.3,
             ),
           ),
         ],
       ),
     );
 
-    final phone = Semantics(
-      image: true,
-      label: 'Exemple du suivi d’une livraison Movi-K',
-      child: Image.asset(
-        'assets/home/tracking_phone.png',
-        fit: BoxFit.contain,
-        filterQuality: FilterQuality.medium,
-      ),
-    );
-
     final media = MediaQuery.of(context);
     final desktop = media.size.width >= 980;
     final largeText = media.textScaler.scale(1) > 1.4;
+
     if (!desktop) {
       return Container(
         width: double.infinity,
         color: const Color(0xFFEEF8FF),
-        padding: const EdgeInsets.fromLTRB(16, 40, 16, 34),
+        padding: const EdgeInsets.fromLTRB(18, 34, 18, 36),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Une livraison en 4 étapes simples',
+              'Une livraison en 3 étapes simples',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.primaryDark,
-                fontSize: 28,
+                fontSize: 30,
+                height: 1.08,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             const Text(
-              'Indiquez, réservez, c’est livré. Aussi simple que ça.',
-              style: TextStyle(color: AppColors.textSecondary),
+              'Préparer, réserver… c’est livré !',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+                height: 1.3,
+              ),
             ),
             const SizedBox(height: 24),
-            ...List.generate(
-              4,
-              (i) => SizedBox(height: largeText ? 350 : 190, child: tile(i)),
+            for (var i = 0; i < 3; i++) ...[
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: largeText ? 360 : 220,
+                  minWidth: double.infinity,
+                ),
+                child: tile(i, mobile: true),
+              ),
+              if (i < 2)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Color(0xFF0879E8),
+                    size: 30,
+                  ),
+                ),
+            ],
+            const SizedBox(height: 18),
+            const Text(
+              'Simple. Rapide. Fiable.',
+              style: TextStyle(
+                color: Color(0xFF0879E8),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                fontStyle: FontStyle.italic,
+              ),
             ),
-            SizedBox(height: largeText ? 360 : 290, child: phone),
           ],
         ),
       );
@@ -802,62 +837,57 @@ class _Steps extends StatelessWidget {
       color: const Color(0xFFF9FCFF),
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
       child: Container(
-        height: 285,
+        padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
         decoration: BoxDecoration(
           color: const Color(0xFFEAF6FF),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
           border: Border.all(color: const Color(0xFFDCEBFA)),
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
+        child: Column(
           children: [
-            const Positioned(
-              left: 24,
-              top: 18,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Une livraison en 4 étapes simples',
-                    style: TextStyle(
-                      color: AppColors.primaryDark,
-                      fontSize: 29,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Indiquez, réservez, c’est livré. Aussi simple que ça.',
-                    style: TextStyle(color: Color(0xFF3572B8), fontSize: 14),
-                  ),
-                ],
+            const Text(
+              'Une livraison en 3 étapes simples',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.primaryDark,
+                fontSize: 29,
+                fontWeight: FontWeight.w900,
               ),
             ),
-            Positioned(
-              left: 16,
-              right: 238,
-              top: 82,
-              bottom: 10,
+            const SizedBox(height: 4),
+            const Text(
+              'Préparer, réserver… c’est livré !',
+              style: TextStyle(color: Color(0xFF3572B8), fontSize: 14),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              height: 190,
               child: Row(
                 children: [
-                  for (var i = 0; i < 4; i++) ...[
+                  for (var i = 0; i < 3; i++) ...[
                     Expanded(child: tile(i)),
-                    if (i < 3)
-                      const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: Color(0xFF0879E8),
-                        size: 23,
+                    if (i < 2)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Color(0xFF0879E8),
+                          size: 26,
+                        ),
                       ),
                   ],
                 ],
               ),
             ),
-            Positioned(
-              right: 24,
-              top: -10,
-              bottom: 0,
-              width: 215,
-              child: phone,
+            const SizedBox(height: 12),
+            const Text(
+              'Simple. Rapide. Fiable.',
+              style: TextStyle(
+                color: Color(0xFF0879E8),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
         ),
