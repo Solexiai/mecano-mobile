@@ -773,52 +773,172 @@ class _Steps extends StatelessWidget {
     final largeText = media.textScaler.scale(1) > 1.4;
 
     if (!desktop) {
-      return Container(
-        width: double.infinity,
-        color: const Color(0xFFEEF8FF),
-        padding: const EdgeInsets.fromLTRB(18, 34, 18, 36),
+      Widget compactTile(int i) => Container(
+        padding: const EdgeInsets.fromLTRB(5, 10, 5, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFDCEBFA)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x120B4A8B),
+              blurRadius: 14,
+              offset: Offset(0, 5),
+            ),
+          ],
+        ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Une livraison en 3 étapes simples',
+            CircleAvatar(
+              radius: 17,
+              backgroundColor: const Color(0xFF0879E8),
+              child: Text(
+                '${i + 1}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 62,
+              child: i == 0
+                  ? Image.asset(
+                      'assets/home/category_marketplace.png',
+                      fit: BoxFit.contain,
+                    )
+                  : Icon(
+                      i == 1
+                          ? Icons.calendar_month_rounded
+                          : Icons.local_shipping_rounded,
+                      size: 55,
+                      color: const Color(0xFF0822A6),
+                    ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              data[i].$2,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.primaryDark,
-                fontSize: 30,
-                height: 1.08,
+                fontSize: 13,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 5),
+            Text(
+              data[i].$3,
+              textAlign: TextAlign.center,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 9.5,
+                height: 1.18,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      return Container(
+        width: double.infinity,
+        color: const Color(0xFFEEF8FF),
+        padding: const EdgeInsets.fromLTRB(10, 30, 10, 30),
+        child: Column(
+          children: [
             const Text(
-              'Préparer, réserver… c’est livré !',
+              'Une livraison en 3 étapes',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.primaryDark,
+                fontSize: 27,
+                height: 1.05,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const Text(
+              'simples',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF0879E8),
+                fontSize: 31,
+                height: 1.05,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Container(
+              width: 92,
+              height: 3,
+              margin: const EdgeInsets.only(top: 5, bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0879E8),
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const Text(
+              'Préparer, réserver et c’est livré !',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.textSecondary,
-                fontSize: 16,
-                height: 1.3,
+                fontSize: 15,
+                height: 1.25,
               ),
             ),
-            const SizedBox(height: 24),
-            for (var i = 0; i < 3; i++) ...[
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: largeText ? 360 : 220,
-                  minWidth: double.infinity,
+            const SizedBox(height: 22),
+            if (!largeText)
+              SizedBox(
+                height: 245,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: compactTile(0)),
+                    const SizedBox(
+                      width: 20,
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF0879E8),
+                        size: 25,
+                      ),
+                    ),
+                    Expanded(child: compactTile(1)),
+                    const SizedBox(
+                      width: 20,
+                      child: Icon(
+                        Icons.chevron_right_rounded,
+                        color: Color(0xFF0879E8),
+                        size: 25,
+                      ),
+                    ),
+                    Expanded(child: compactTile(2)),
+                  ],
                 ),
-                child: tile(i, mobile: true),
-              ),
-              if (i < 2)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Color(0xFF0879E8),
-                    size: 30,
+              )
+            else
+              for (var i = 0; i < 3; i++) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 360),
+                  child: tile(i, mobile: true),
+                ),
+                if (i < 2)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF0879E8),
+                    ),
                   ),
-                ),
-            ],
-            const SizedBox(height: 18),
+              ],
+            const SizedBox(height: 20),
+            Container(
+              width: 190,
+              height: 2,
+              color: const Color(0xFF0879E8),
+            ),
+            const SizedBox(height: 7),
             const Text(
               'Simple. Rapide. Fiable.',
               style: TextStyle(
