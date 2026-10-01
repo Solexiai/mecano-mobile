@@ -311,9 +311,9 @@ abstract final class HomeCopy {
       'es': 'Indica las direcciones de recogida y entrega',
     },
     'quote_card_3': {
-      'fr': 'Choisissez le véhicule adapté',
-      'en': 'Choose the required vehicle',
-      'es': 'Elige el vehículo adecuado',
+      'fr': 'Un chauffeur admissible peut accepter votre demande',
+      'en': 'An eligible driver may accept your request',
+      'es': 'Un conductor elegible puede aceptar tu solicitud',
     },
     'quote_start': {
       'fr': 'Commencer ma demande',
