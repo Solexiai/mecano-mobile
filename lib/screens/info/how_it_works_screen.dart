@@ -1,61 +1,126 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/app_colors.dart';
+import '../../l10n/home_copy.dart';
 import '../../providers/locale_provider.dart';
+import '../../router/delivery_request_intent.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
-import '../../widgets/coming_soon_badge.dart';
 
 class HowItWorksScreen extends StatelessWidget {
   final String locale;
   const HowItWorksScreen({super.key, required this.locale});
 
+  String tr(String fr, String en, String es) => locale == 'en'
+      ? en
+      : locale == 'es'
+      ? es
+      : fr;
+
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    context.watch<LocaleProvider>();
+    String h(String key) => HomeCopy.text(key, locale);
 
-    final deliverySteps = [
-      ('1', "Décrivez l'objet", Icons.inventory_2_outlined),
-      ('2', "Ajoutez les emplacements de collecte et livraison", Icons.place_outlined),
-      ('3', 'Comparez les chauffeurs disponibles', Icons.people_outline),
-      ('4', 'Réservez un créneau', Icons.event_available_outlined),
-      ('5', 'Confirmez la livraison et laissez un avis', Icons.star_border_rounded),
+    final steps = [
+      (Icons.inventory_2_outlined, h('step1'), h('step1_body')),
+      (Icons.receipt_long_outlined, h('step2'), h('step2_body')),
+      (Icons.local_shipping_outlined, h('step3'), h('step3_body')),
+      (Icons.route_outlined, h('step4'), h('step4_body')),
     ];
 
     return AppShell(
       locale: locale,
       child: ResponsivePadding(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: isDesktop ? 64 : 40),
+          padding: const EdgeInsets.symmetric(vertical: 44),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionTitle(title: t('nav_how_it_works')),
-              const SizedBox(height: 32),
-              Text(
-                t('nav_delivery'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
+              SectionTitle(
+                title: tr('Comment ça marche', 'How it works', 'Cómo funciona'),
+                subtitle: tr(
+                  'Un parcours simple, sans choix manuel de chauffeur ni créneau promis.',
+                  'A simple flow without manual driver selection or a promised time slot.',
+                  'Un proceso sencillo, sin elegir manualmente conductor ni prometer una franja horaria.',
                 ),
               ),
-              const SizedBox(height: 16),
-              _StepsList(steps: deliverySteps, color: AppColors.primary),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Icon(Icons.gps_fixed, color: AppColors.textSecondary),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Suivi GPS en temps réel',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                  const ComingSoonBadge(small: true),
-                ],
+              const SizedBox(height: 28),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final scale = MediaQuery.textScalerOf(context).scale(1);
+                  final columns = constraints.maxWidth >= 900 && scale <= 1.35
+                      ? 4
+                      : constraints.maxWidth >= 600 && scale <= 1.35
+                      ? 2
+                      : 1;
+                  final gap = 16.0;
+                  final width = columns == 1
+                      ? constraints.maxWidth
+                      : (constraints.maxWidth - gap * (columns - 1)) / columns;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (var i = 0; i < steps.length; i++)
+                        SizedBox(
+                          width: width,
+                          child: _HowStepCard(
+                            number: i + 1,
+                            icon: steps[i].$1,
+                            title: steps[i].$2,
+                            body: steps[i].$3,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 28),
+              _InfoCard(
+                icon: Icons.login_outlined,
+                title: tr(
+                  'Connexion au moment du devis officiel',
+                  'Sign in when requesting the official quote',
+                  'Inicio de sesión al solicitar el presupuesto oficial',
+                ),
+                body: h('quote_note'),
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                icon: Icons.schedule_outlined,
+                title: tr(
+                  'Pas de créneau promis dans ce parcours',
+                  'No promised time slot in this flow',
+                  'Sin franja horaria prometida en este proceso',
+                ),
+                body: tr(
+                  'Le parcours actuel ne permet pas de choisir une heure de livraison. Après confirmation, la demande cherche un chauffeur admissible et disponible.',
+                  'The current flow does not let customers choose a delivery time. After confirmation, the request searches for an eligible, available driver.',
+                  'El proceso actual no permite elegir una hora de entrega. Después de confirmar, la solicitud busca un conductor apto y disponible.',
+                ),
+              ),
+              const SizedBox(height: 14),
+              _InfoCard(
+                icon: Icons.gps_fixed,
+                title: tr(
+                  'Suivi des étapes et GPS',
+                  'Status tracking and GPS',
+                  'Seguimiento de etapas y GPS',
+                ),
+                body: tr(
+                  'La progression de la mission est visible dans l’espace client. Une carte GPS en direct est prévue pendant les phases actives, mais sa validation sur appareils réels fait encore partie des vérifications de lancement.',
+                  'Mission progress is visible in the customer account. A live GPS map is designed for active phases, but real-device validation is still part of launch checks.',
+                  'El progreso de la misión es visible en la cuenta del cliente. Se prevé un mapa GPS en directo durante las fases activas, pero su validación en dispositivos reales sigue formando parte de las pruebas de lanzamiento.',
+                ),
+              ),
+              const SizedBox(height: 28),
+              ElevatedButton.icon(
+                onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
+                icon: const Icon(Icons.request_quote_outlined),
+                label: Text(h('quote_start')),
               ),
             ],
           ),
@@ -65,51 +130,110 @@ class HowItWorksScreen extends StatelessWidget {
   }
 }
 
-class _StepsList extends StatelessWidget {
-  final List<(String, String, IconData)> steps;
-  final Color color;
-  const _StepsList({required this.steps, required this.color});
+class _HowStepCard extends StatelessWidget {
+  final int number;
+  final IconData icon;
+  final String title;
+  final String body;
+  const _HowStepCard({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: steps
-          .map(
-            (s) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: color.withValues(alpha: 0.12),
-                    child: Text(
-                      s.$1,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(s.$3, color: color),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      s.$2,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+  Widget build(BuildContext context) => Container(
+    constraints: const BoxConstraints(minHeight: 220),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardTheme.color,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              child: Text(
+                '$number',
+                style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ),
-          )
-          .toList(),
-    );
-  }
+            const SizedBox(width: 10),
+            Icon(icon, color: AppColors.primary, size: 30),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.primaryDark,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          body,
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+        ),
+      ],
+    ),
+  );
+}
+
+class _InfoCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF5FAFF),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: const Color(0xFFDCEBFA)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppColors.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.primaryDark,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                body,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

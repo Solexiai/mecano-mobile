@@ -85,3 +85,6 @@ export { cleanupExpiredTrackingHistory } from "./functions/cleanupExpiredTrackin
 
 // ---- Feature flags / kill switches (Phase 7, Bloc X) ----
 export { updateRuntimeFlags } from "./functions/updateRuntimeFlags";
+
+export { getBookingVehicleForAcceptance, requestBookingReview, getBookingQuote, getBookingConfiguration, reviewDeliveryLoad, saveBookingDraft, getBookingDraft, clearBookingDraft, cleanupBookingDrafts } from "./functions/bookingJourney";
+export { startBookingCardSetup, getBookingCardStatus } from './functions/bookingCardSetup';

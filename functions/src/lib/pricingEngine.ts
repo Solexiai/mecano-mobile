@@ -13,6 +13,8 @@ import {
 } from "./types";
 
 export interface HandlingFlagsInput {
+  needsLoading?: boolean;
+  needsUnloading?: boolean;
   isHeavyItem?: boolean;
   isBulkyItem?: boolean;
   needsStairs?: boolean;
@@ -69,6 +71,8 @@ export function calculateCustomerQuote(
   const h = config.handling_fees;
   const flags = input.handling ?? {};
   let handlingFeesTotal = 0;
+  if (flags.needsLoading) handlingFeesTotal += h.loading_fee;
+  if (flags.needsUnloading) handlingFeesTotal += h.unloading_fee;
   if (flags.isHeavyItem) handlingFeesTotal += h.heavy_item_fee;
   if (flags.isBulkyItem) handlingFeesTotal += h.bulky_item_fee;
   if (flags.needsStairs) handlingFeesTotal += h.stairs_fee;

@@ -1,3 +1,5 @@
+import { normalizeLoad } from "../lib/booking";
+import { getBookingPolicy, normalizeContacts } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // createDeliveryRequest — Cloud Function callable (customer).
 //
@@ -44,6 +46,9 @@ export interface StopInput {
 
 export interface CreateDeliveryRequestRequest {
   quoteId: string;
+  booking?: unknown;
+  contacts?: unknown;
+  consent?: { terms_version: string; accepted: boolean; marketing: boolean };
   itemCategoryKey: string;
   description: string;
   requiredVehicleCategory: string;
@@ -59,6 +64,14 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // Seuls les superadministrateurs en superlogin et le compte client de
   // démonstration explicitement autorisé créent une mission interne sans
   // opération Stripe. Les clients ordinaires restent protégés.
+  const retryId = request.data?.quoteId;
+  if (typeof retryId === 'string' && retryId && !retryId.includes('/')) {
+    const prior = (await db.doc(`delivery_quotes/${retryId}`).get()).data();
+    if (prior?.customer_id === ctx.uid && prior.is_consumed && prior.pricing_snapshot?.booking && prior.mission_id) {
+      const existing = (await db.doc(`delivery_requests/${prior.mission_id}`).get()).data();
+      if (existing?.customer_id === ctx.uid && existing.active_quote_id === retryId) return { missionId: prior.mission_id, internalTest: existing.internal_test_authorized === true };
+    }
+  }
   const isInternalTest = isSuperAdmin(ctx) || isInternalDemoCustomer(ctx);
 
   // 🔒 Phase 7, Bloc X (X-6) — kill switch. OFF => aucune NOUVELLE mission
@@ -170,6 +183,8 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
 
   const missionRef = db.collection("delivery_requests").doc();
+  const policy = await getBookingPolicy();
+  let resolvedMissionId = missionRef.id;
 
   await db.runTransaction(async (tx) => {
     const quoteSnap = await tx.get(quoteRef);
@@ -180,6 +195,12 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
 
     if (quote.customer_id !== ctx.uid) {
       throw permissionDenied("Ce devis n'appartient pas à l'utilisateur courant.");
+    }
+    if (quote.is_consumed && quote.pricing_snapshot?.booking && quote.mission_id) {
+      const existing = await tx.get(db.doc(`delivery_requests/${quote.mission_id}`));
+      if (existing.data()?.customer_id !== ctx.uid || existing.data()?.active_quote_id !== input.quoteId) throw failedPrecondition('Réservation incohérente.');
+      resolvedMissionId = quote.mission_id;
+      return;
     }
     if (quote.is_consumed) {
       throw failedPrecondition("Ce devis a déjà été consommé par une autre mission.");
@@ -197,6 +218,33 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       throw failedPrecondition(
         "Ce devis historique ne peut pas créer une nouvelle mission. Recalculez un devis sécurisé."
       );
+    }
+    const booking = lockedQuote.pricingSnapshot?.booking;
+    let contacts = null;
+    let attemptRef: FirebaseFirestore.DocumentReference | null = null;
+    if (booking) {
+      attemptRef = db.doc(`booking_attempts/${ctx.uid}_${booking.load.draft_id}`);
+      const attempt = (await tx.get(attemptRef)).data();
+      if (attempt?.mission_id) {
+        const existing = (await tx.get(db.doc(`delivery_requests/${attempt.mission_id}`))).data();
+        if (existing?.customer_id !== ctx.uid) throw failedPrecondition('Demande incohérente.');
+        resolvedMissionId = attempt.mission_id;
+        return;
+      }
+    }
+    if (booking) {
+      if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel avant de confirmer.');
+      if (!input.booking || JSON.stringify(normalizeLoad(input.booking)) !== JSON.stringify(booking.load)) throw failedPrecondition('La livraison a changé. Recalculez le devis.');
+      const currentPolicy = (await tx.get(db.doc('system_config/booking_policy'))).data();
+      if (!policy || currentPolicy?.approved !== true || currentPolicy.version !== policy.version || input.consent?.accepted !== true || input.consent.terms_version !== policy.version) throw failedPrecondition('Les conditions de réservation doivent être disponibles et acceptées dans leur version actuelle.');
+      contacts = normalizeContacts(input.contacts);
+      for (const draftId of new Set(booking.load.items.flatMap(i => i.photos).map(p => p.split('/')[2]))) {
+        const grant = (await tx.get(db.doc(`booking_photo_grants/${ctx.uid}_${draftId}`))).data();
+        if (grant?.expired || (grant?.mission_id && grant.mission_id !== missionRef.id)) throw failedPrecondition('Les photos appartiennent à une demande expirée ou déjà confirmée.');
+      }
+    } else {
+      const rollout = (await tx.get(db.doc('system_config/booking_capacity'))).data();
+      if (rollout?.require_booking_details === true) throw failedPrecondition('Un devis avec description complète des objets est requis.');
     }
     const pricingVersionRef = db.collection("pricing_versions").doc(lockedQuote.pricingVersion);
     const pricingVersionSnap = await tx.get(pricingVersionRef);
@@ -263,14 +311,16 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     const lastStop = officialStops[officialStops.length - 1];
     const dispatchGeohash = encodeGeohash(pickup.address.lat, pickup.address.lng, 5);
 
+    if (attemptRef) tx.create(attemptRef, { customer_id: ctx.uid, mission_id: missionRef.id, quote_id: input.quoteId, created_at: now });
     tx.set(missionRef, {
       customer_id: ctx.uid,
-      customer_display_name: input.customerDisplayName,
+      customer_display_name: booking ? contacts!.pickup_name : input.customerDisplayName,
       driver_id: null,
       driver_display_name: null,
       status: MissionStatuses.SEARCHING_DRIVER,
-      item_category_key: input.itemCategoryKey,
-      description: input.description,
+      item_category_key: booking ? booking.load.items[0].category : input.itemCategoryKey,
+      description: booking ? booking.load.items.map(i => `${i.quantity} × ${i.label}`).join('; ') : input.description,
+      ...(booking ? { booking_snapshot: booking, requested_time_status: 'requested_not_confirmed' } : {}),
       required_vehicle_category: officialVehicleCategory,
       pickup_address: pickup.address,
       dropoff_address: lastStop.address,
@@ -314,6 +364,21 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       proof_of_delivery_url: null,
     });
 
+    if (booking && contacts && policy) {
+      for (const photo of booking.load.items.flatMap(i => i.photos)) {
+        // Grant is created only by the official mission transaction; paths
+        // alone never confer read access to prospective drivers.
+        const draftId = photo.split('/')[2];
+        tx.set(db.doc(`booking_photo_grants/${ctx.uid}_${draftId}`), { mission_id: missionRef.id, customer_id: ctx.uid });
+      }
+      tx.set(missionRef.collection('private').doc('booking'), {
+        contacts, customer_email: ctx.email ?? null,
+        consent: { terms_version: policy.version, accepted_at: now, accepted_by: ctx.uid,
+          marketing: input.consent?.marketing === true, terms_url: policy.terms_url,
+          privacy_url: policy.privacy_url, cancellation_text: policy.cancellation_text, payment_text: policy.payment_text },
+      });
+      tx.set(db.doc(`users/${ctx.uid}`), { booking_contacts: contacts }, { merge: true });
+    }
     officialStops.forEach((officialStop, index) => {
       const submittedStop = input.stops[index];
       const stopRef = missionRef.collection("stops").doc();
@@ -345,5 +410,5 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     });
   });
 
-  return { missionId: missionRef.id, internalTest: isInternalTest };
+  return { missionId: resolvedMissionId, internalTest: isInternalTest };
 });
