@@ -14,7 +14,6 @@ import 'package:provider/provider.dart';
 
 import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
-import '../../../../backend/models/app_user_v2.dart';
 import '../../../../backend/models/driver_document.dart';
 import '../../../../backend/models/driver_internal_note.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
@@ -217,7 +216,6 @@ class _ProfileSectionState extends State<_ProfileSection> {
   Widget build(BuildContext context) {
     final t = widget.t;
     final profile = widget.profile;
-    final driverId = widget.driverId;
     final na = t('admin_driver_field_not_available');
     final nameParts = profile.fullName.trim().split(RegExp(r'\s+'));
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
@@ -228,13 +226,41 @@ class _ProfileSectionState extends State<_ProfileSection> {
       child: FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         future: _userFuture,
         builder: (context, snap) {
-          AppUserV2? user;
-          if (snap.hasData && snap.data!.exists) {
-            user = AppUserV2.fromJson(driverId, snap.data!.data()!);
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(),
+            );
           }
+
+          Map<String, dynamic>? userData;
+          if (snap.hasData && snap.data!.exists) {
+            userData = snap.data!.data();
+          }
+
+          String safeString(dynamic value) =>
+              value is String && value.trim().isNotEmpty ? value.trim() : '';
+
+          final userPhone = safeString(userData?['phone']);
+          final userEmail = safeString(userData?['email']);
+          final phone = userPhone.isNotEmpty
+              ? userPhone
+              : (profile.phone.isNotEmpty ? profile.phone : na);
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (snap.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    t('admin_drivers_error'),
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               _KeyValueRow(
                 label: t('admin_driver_field_first_name'),
                 value: firstName.isEmpty ? na : firstName,
@@ -245,11 +271,11 @@ class _ProfileSectionState extends State<_ProfileSection> {
               ),
               _KeyValueRow(
                 label: t('admin_driver_field_phone'),
-                value: user?.phone ?? na,
+                value: phone,
               ),
               _KeyValueRow(
                 label: t('admin_driver_field_email'),
-                value: user?.email ?? na,
+                value: userEmail.isEmpty ? na : userEmail,
               ),
               _KeyValueRow(
                 label: t('admin_driver_field_address'),
