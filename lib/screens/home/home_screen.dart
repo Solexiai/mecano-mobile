@@ -73,7 +73,6 @@ class _Hero extends StatelessWidget {
     return Container(
       key: const Key('home-hero'),
       width: double.infinity,
-      height: 650,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -81,71 +80,56 @@ class _Hero extends StatelessWidget {
           colors: [Color(0xFFEAF6FF), Colors.white],
         ),
       ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: 0,
-            right: 0,
-            bottom: 0,
-            width: 549,
-            child: Image.asset(
-              'assets/home/hero_reference_right.png',
-              fit: BoxFit.cover,
-              alignment: Alignment.topRight,
-              filterQuality: FilterQuality.medium,
-              semanticLabel:
-                  'Camionnette Movi-K avec chauffeur préparant une livraison',
-            ),
-          ),
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  stops: [0.0, 0.35, 0.48, 0.60],
-                  colors: [
-                    Color(0xFFF7FCFF),
-                    Color(0xFFF7FCFF),
-                    Color(0x88F7FCFF),
-                    Color(0x00F7FCFF),
-                  ],
-                ),
+      padding: const EdgeInsets.fromLTRB(34, 34, 34, 28),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1320),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: _HeroCopy(quote: quote, driver: driver),
+                  ),
+                  const SizedBox(width: 32),
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 10,
+                            child: Image.asset(
+                              'assets/home/hero_reference_right.png',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.centerRight,
+                              filterQuality: FilterQuality.high,
+                              semanticLabel:
+                                  'Camionnette Movi-K avec chauffeur préparant une livraison',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 430),
+                            child: _QuoteCard(onTap: quote),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 22),
+              const _Trust(),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(42, 42, 42, 28),
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: 430,
-                  child: _HeroCopy(quote: quote, driver: driver),
-                ),
-              ),
-            ),
-          ),
-          const Positioned(
-            left: 355,
-            bottom: 92,
-            width: 225,
-            height: 128,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: Color(0xFFF7FCFF)),
-            ),
-          ),
-          const Positioned(left: 34, bottom: 130, width: 500, child: _Trust()),
-          Positioned(
-            right: 160,
-            bottom: 0,
-            width: 286,
-            child: _QuoteCard(onTap: quote),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -688,17 +672,30 @@ class _Steps extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = MediaQuery.sizeOf(context).width >= 980;
     return Container(
       width: double.infinity,
       color: const Color(0xFFEEF8FF),
-      child: Semantics(
-        image: true,
-        label: 'Une livraison en 3 étapes simples : Préparer, Réservez et c’est livré !',
-        child: Image.asset(
-          'assets/home/steps_exact.webp',
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-          filterQuality: FilterQuality.high,
+      padding: EdgeInsets.symmetric(
+        horizontal: desktop ? 28 : 0,
+        vertical: desktop ? 28 : 0,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: desktop ? 760 : double.infinity),
+          child: Semantics(
+            image: true,
+            label: 'Une livraison en 3 étapes simples : Préparer, Réservez et c’est livré !',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(desktop ? 22 : 0),
+              child: Image.asset(
+                'assets/home/steps_exact.webp',
+                width: double.infinity,
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.high,
+              ),
+            ),
+          ),
         ),
       ),
     );
