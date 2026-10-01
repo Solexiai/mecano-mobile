@@ -1,115 +1,140 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
-import '../../widgets/coming_soon_badge.dart';
 
 class FaqScreen extends StatelessWidget {
   final String locale;
   const FaqScreen({super.key, required this.locale});
 
-  String _tr({required String fr, required String en, required String es}) {
-    switch (locale) {
-      case 'en':
-        return en;
-      case 'es':
-        return es;
-      default:
-        return fr;
-    }
-  }
+  String tr(String fr, String en, String es) => locale == 'en'
+      ? en
+      : locale == 'es'
+      ? es
+      : fr;
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    context.watch<LocaleProvider>();
 
-    final faqs = <(String, String)>[
+    final items = <(String, String)>[
       (
-        _tr(
-          fr: 'Comment fonctionne le jumelage avec un chauffeur?',
-          en: 'How does driver matching work?',
-          es: '¿Cómo funciona el emparejamiento con un conductor?',
+        tr(
+          'Comment obtenir un devis ?',
+          'How do I get a quote?',
+          '¿Cómo obtengo un presupuesto?',
         ),
-        _tr(
-          fr: "Vous décrivez l'objet à livrer, puis Movi-k affiche les chauffeurs disponibles dans votre secteur. Vous choisissez celui qui vous convient et envoyez une demande de réservation.",
-          en: 'You describe the item to deliver, then Movi-k shows available drivers in your area. You choose the one that suits you and send a booking request.',
-          es: 'Describe el artículo que desea entregar y Movi-k muestra los conductores disponibles en su área. Elige el que le convenga y envía una solicitud de reserva.',
+        tr(
+          'Décrivez l’objet, choisissez la catégorie et le véhicule requis, puis sélectionnez les adresses de départ et de livraison. Le devis officiel est calculé par Movi‑K côté serveur et présenté avant confirmation.',
+          'Describe the item, choose the category and required vehicle, then select pickup and delivery addresses. The official quote is calculated by Movi‑K on the server and shown before confirmation.',
+          'Describe el objeto, elige la categoría y el vehículo necesario y selecciona las direcciones de recogida y entrega. Movi‑K calcula el presupuesto oficial en el servidor y lo muestra antes de confirmar.',
         ),
       ),
       (
-        _tr(
-          fr: 'Comment fonctionne le paiement?',
-          en: 'How does payment work?',
-          es: '¿Cómo funciona el pago?',
+        tr(
+          'Puis-je commencer sans compte ?',
+          'Can I start without an account?',
+          '¿Puedo empezar sin una cuenta?',
         ),
-        _tr(
-          fr: "Au stade actuel (MVP), le paiement se fait directement entre vous et le fournisseur — comptant, virement Interac ou toute entente convenue. Le paiement intégré en ligne est en développement.",
-          en: 'At this stage (MVP), payment happens directly between you and the provider — cash, Interac e-Transfer, or any agreed arrangement. Integrated online payment is under development.',
-          es: 'En esta etapa (MVP), el pago se realiza directamente entre usted y el proveedor: efectivo, transferencia Interac o cualquier acuerdo pactado. El pago integrado en línea está en desarrollo.',
-        ),
-      ),
-      (
-        _tr(
-          fr: 'Les chauffeurs sont-ils vérifiés?',
-          en: 'Are drivers verified?',
-          es: '¿Los conductores están verificados?',
-        ),
-        _tr(
-          fr: "Oui. Chaque chauffeur doit soumettre une pièce d'identité et les documents requis (permis, assurance et informations du véhicule) avant d'être activé sur la plateforme.",
-          en: 'Yes. Every driver must submit an ID and the required documents (licence, insurance and vehicle information) before being activated on the platform.',
-          es: 'Sí. Cada conductor debe presentar una identificación y los documentos requeridos (licencia, seguro e información del vehículo) antes de ser activado en la plataforma.',
+        tr(
+          'Oui. Vous pouvez préparer la demande avant de vous connecter. Une connexion est requise lorsque vous demandez le devis officiel. Les informations déjà saisies sont conservées localement pour reprendre le parcours après la connexion.',
+          'Yes. You can prepare the request before signing in. Sign-in is required when you request the official quote. Information already entered is kept locally so you can resume after signing in.',
+          'Sí. Puedes preparar la solicitud antes de iniciar sesión. Debes iniciar sesión al solicitar el presupuesto oficial. Los datos ya ingresados se conservan localmente para continuar después.',
         ),
       ),
       (
-        _tr(
-          fr: "Que se passe-t-il si l'objet ne rentre pas dans le véhicule prévu?",
-          en: "What happens if the item doesn't fit the planned vehicle?",
-          es: '¿Qué pasa si el artículo no cabe en el vehículo previsto?',
+        tr(
+          'Est-ce que je choisis mon chauffeur ?',
+          'Do I choose my driver?',
+          '¿Elijo al conductor?',
         ),
-        _tr(
-          fr: "Décrivez les dimensions le plus précisément possible lors de la demande. Le chauffeur peut confirmer, ajuster ou refuser la demande selon la capacité réelle de son véhicule avant d'accepter la réservation.",
-          en: 'Describe the dimensions as accurately as possible when making the request. The driver can confirm, adjust or decline the request based on their vehicle\'s actual capacity before accepting the booking.',
-          es: 'Describa las dimensiones con la mayor precisión posible al hacer la solicitud. El conductor puede confirmar, ajustar o rechazar la solicitud según la capacidad real de su vehículo antes de aceptar la reserva.',
-        ),
-      ),
-      (
-        _tr(
-          fr: 'Le suivi GPS en temps réel est-il disponible?',
-          en: 'Is real-time GPS tracking available?',
-          es: '¿Está disponible el seguimiento GPS en tiempo real?',
-        ),
-        _tr(
-          fr: "Pas encore. Le suivi GPS en temps réel est une fonctionnalité à venir. Actuellement, vous communiquez directement avec le chauffeur pour connaître son statut.",
-          en: 'Not yet. Real-time GPS tracking is a coming feature. Currently, you communicate directly with the driver to know their status.',
-          es: 'Todavía no. El seguimiento GPS en tiempo real es una función próxima. Actualmente, se comunica directamente con el conductor para conocer su estado.',
+        tr(
+          'Non. Après confirmation d’une demande admissible, Movi‑K recherche un chauffeur disponible et admissible. L’attribution dépend de la disponibilité réelle et aucun chauffeur n’est garanti au moment du devis.',
+          'No. After an eligible request is confirmed, Movi‑K looks for an available, eligible driver. Assignment depends on actual availability and no driver is guaranteed at quote time.',
+          'No. Después de confirmar una solicitud admisible, Movi‑K busca un conductor disponible y apto. La asignación depende de la disponibilidad real y ningún conductor está garantizado al cotizar.',
         ),
       ),
       (
-        _tr(
-          fr: 'Comment devenir chauffeur?',
-          en: 'How do I become a driver?',
-          es: '¿Cómo me convierto en conductor?',
+        tr(
+          'Puis-je choisir une heure ou un créneau ?',
+          'Can I choose a time slot?',
+          '¿Puedo elegir una franja horaria?',
         ),
-        _tr(
-          fr: "Cliquez sur « Devenir chauffeur », remplissez le formulaire d'inscription (profil, véhicule, tarifs et documents) et attendez la vérification de votre profil.",
-          en: 'Click "Become a Driver", fill out the registration form (profile, vehicle, rates and documents) and wait for your profile to be verified.',
-          es: 'Haga clic en "Convertirse en conductor", complete el formulario de registro (perfil, vehículo, tarifas y documentos) y espere la verificación de su perfil.',
+        tr(
+          'Le parcours actuel ne propose pas encore de programmation ou de choix de créneau. N’interprétez pas le devis comme une promesse d’heure de prise en charge.',
+          'The current flow does not yet offer scheduling or time-slot selection. A quote should not be interpreted as a promised pickup time.',
+          'El proceso actual todavía no ofrece programación ni selección de franja horaria. Un presupuesto no debe interpretarse como una hora de recogida garantizada.',
         ),
       ),
       (
-        _tr(
-          fr: 'Puis-je annuler une réservation?',
-          en: 'Can I cancel a booking?',
-          es: '¿Puedo cancelar una reserva?',
+        tr(
+          'Comment fonctionne le suivi ?',
+          'How does tracking work?',
+          '¿Cómo funciona el seguimiento?',
         ),
-        _tr(
-          fr: "Oui, l'annulation est gratuite jusqu'à 2 heures avant le rendez-vous convenu. Consultez notre page Sécurité pour les détails complets sur les règles d'annulation.",
-          en: 'Yes, cancellation is free up to 2 hours before the agreed appointment. See our Safety page for full cancellation rule details.',
-          es: 'Sí, la cancelación es gratuita hasta 2 horas antes de la cita acordada. Consulte nuestra página de Seguridad para más detalles sobre las reglas de cancelación.',
+        tr(
+          'Le client peut suivre les étapes de la mission dans son espace. Le suivi GPS en direct est conçu pour les phases actives de la livraison; sa validation sur appareils réels fait encore partie des vérifications de lancement. Le site ne promet donc pas une carte GPS pour chaque situation.',
+          'Customers can follow mission status in their account. Live GPS is designed for active delivery phases; real-device validation is still part of launch checks. The site therefore does not promise a live map in every situation.',
+          'El cliente puede seguir las etapas de la misión en su cuenta. El GPS en directo está diseñado para las fases activas; la validación en dispositivos reales sigue siendo parte de las pruebas de lanzamiento. Por eso no se promete un mapa en vivo en todas las situaciones.',
+        ),
+      ),
+      (
+        tr(
+          'Quels objets peuvent être livrés ?',
+          'What items can be delivered?',
+          '¿Qué objetos se pueden transportar?',
+        ),
+        tr(
+          'Le formulaire propose notamment meubles, électroménagers, achats Marketplace, matériaux, boîtes, téléviseurs et petits déménagements, ainsi que d’autres catégories compatibles. Les matières dangereuses, biens illégaux, animaux vivants et objets nécessitant un permis spécial sont exclus.',
+          'The form includes furniture, appliances, Marketplace purchases, materials, boxes, large TVs and small moves, plus other compatible categories. Hazardous materials, illegal goods, live animals and items requiring special permits are excluded.',
+          'El formulario incluye muebles, electrodomésticos, compras Marketplace, materiales, cajas, televisores grandes y pequeñas mudanzas, además de otras categorías compatibles. Se excluyen materiales peligrosos, bienes ilegales, animales vivos y objetos que requieren permisos especiales.',
+        ),
+      ),
+      (
+        tr('Comment puis-je payer ?', 'How can I pay?', '¿Cómo puedo pagar?'),
+        tr(
+          'Les modalités de paiement en production sont encore en validation pour le lancement à Granby. Le parcours affichera le moyen de paiement réellement disponible lorsqu’il sera activé. Le site ne promet pas de paiement comptant ou Interac.',
+          'Production payment methods are still being validated for the Granby launch. The flow will show the payment method that is actually available once activated. The site does not promise cash or Interac.',
+          'Los métodos de pago en producción siguen en validación para el lanzamiento en Granby. El proceso mostrará el método realmente disponible cuando esté activado. El sitio no promete efectivo ni Interac.',
+        ),
+      ),
+      (
+        tr(
+          'Comment les chauffeurs sont-ils vérifiés?',
+          'How are drivers reviewed?',
+          '¿Cómo se revisan los conductores?',
+        ),
+        tr(
+          'Le parcours chauffeur demande un profil, un véhicule et les documents requis, notamment permis, assurance et éléments de vérification. Le dossier doit être approuvé avant l’activation.',
+          'The driver flow requires a profile, vehicle and required documents, including licence, insurance and verification items. The application must be approved before activation.',
+          'El proceso del conductor requiere perfil, vehículo y documentos, incluidos licencia, seguro y elementos de verificación. El expediente debe aprobarse antes de activarse.',
+        ),
+      ),
+      (
+        tr(
+          'Quelles sont les règles d’annulation?',
+          'What are the cancellation rules?',
+          '¿Cuáles son las reglas de cancelación?',
+        ),
+        tr(
+          'Les délais et frais commerciaux d’annulation ne sont pas encore approuvés pour publication. La page d’annulation indique donc actuellement que la politique est en révision plutôt que d’inventer un délai ou des frais.',
+          'Commercial cancellation windows and fees are not yet approved for publication. The cancellation page therefore states that the policy is under review rather than inventing a window or fee.',
+          'Los plazos y cargos comerciales de cancelación todavía no están aprobados para publicación. La página de cancelación indica que la política está en revisión en lugar de inventar un plazo o cargo.',
+        ),
+      ),
+      (
+        tr(
+          'Où le service sera-t-il lancé?',
+          'Where will service launch?',
+          '¿Dónde se lanzará el servicio?',
+        ),
+        tr(
+          'Le lancement est prévu à Granby et dans les environs. La disponibilité dépendra des chauffeurs actifs, de leur rayon d’action et du véhicule requis.',
+          'The launch is planned for Granby and surrounding areas. Availability will depend on active drivers, their service areas and the required vehicle.',
+          'El lanzamiento está previsto en Granby y alrededores. La disponibilidad dependerá de los conductores activos, sus zonas de servicio y el vehículo necesario.',
         ),
       ),
     ];
@@ -118,106 +143,95 @@ class FaqScreen extends StatelessWidget {
       locale: locale,
       child: ResponsivePadding(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: isDesktop ? 64 : 40),
+          padding: const EdgeInsets.symmetric(vertical: 44),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SectionTitle(title: t('nav_faq')),
-              const SizedBox(height: 32),
-              ...faqs.map((f) => _FaqTile(question: f.$1, answer: f.$2)),
-              const SizedBox(height: 32),
+              SectionTitle(
+                title: tr(
+                  'Questions fréquentes',
+                  'Frequently asked questions',
+                  'Preguntas frecuentes',
+                ),
+                subtitle: tr(
+                  'Réponses alignées sur le parcours actuellement construit et sur l’état de préparation du lancement.',
+                  'Answers aligned with the flow currently built and the launch-readiness state.',
+                  'Respuestas alineadas con el proceso construido y el estado de preparación del lanzamiento.',
+                ),
+              ),
+              const SizedBox(height: 28),
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
+                  color: AppColors.info.withValues(alpha: .08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.info.withValues(alpha: .2),
+                  ),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        _tr(
-                          fr: "D'autres questions? Notre équipe est là pour vous aider.",
-                          en: 'More questions? Our team is here to help.',
-                          es: '¿Más preguntas? Nuestro equipo está aquí para ayudar.',
-                        ),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.info,
                     ),
                     const SizedBox(width: 12),
-                    OutlinedButton(
-                      onPressed: () => context.go('/$locale/contact'),
-                      child: Text(t('nav_contact')),
+                    Expanded(
+                      child: Text(
+                        tr(
+                          'Pré-lancement à Granby et dans les environs : une demande ou un devis ne garantit pas encore qu’un chauffeur sera disponible.',
+                          'Pre-launch in Granby and surrounding areas: a request or quote does not yet guarantee driver availability.',
+                          'Prelanzamiento en Granby y alrededores: una solicitud o presupuesto aún no garantiza la disponibilidad de un conductor.',
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          height: 1.45,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.gps_fixed,
-                    color: AppColors.textSecondary,
-                    size: 18,
+              const SizedBox(height: 22),
+              ...items.map(
+                (item) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _tr(
-                        fr: 'Suivi GPS en temps réel',
-                        en: 'Real-time GPS tracking',
-                        es: 'Seguimiento GPS en tiempo real',
-                      ),
-                      style: const TextStyle(color: AppColors.textSecondary),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 4,
                     ),
+                    childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+                    title: Text(
+                      item.$1,
+                      style: const TextStyle(
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item.$2,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            height: 1.55,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const ComingSoonBadge(small: true),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FaqTile extends StatelessWidget {
-  final String question;
-  final String answer;
-  const _FaqTile({required this.question, required this.answer});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          title: Text(
-            question,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                answer,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );

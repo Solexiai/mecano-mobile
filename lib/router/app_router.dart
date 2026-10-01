@@ -23,6 +23,7 @@ import '../screens/info/safety_screen.dart';
 import '../screens/info/faq_screen.dart';
 import '../screens/info/about_screen.dart';
 import '../screens/info/contact_screen.dart';
+import '../screens/info/granby_launch_screen.dart';
 import '../screens/info/blog_screen.dart';
 import '../screens/legal/legal_screen.dart';
 import '../screens/dashboard/customer/customer_dashboard_shell.dart';
@@ -70,6 +71,10 @@ class AppRouter {
           builder: (context, state) => HomeScreen(locale: loc),
           routes: [
             GoRoute(
+              path: 'granby',
+              builder: (c, s) => GranbyLaunchScreen(locale: loc),
+            ),
+            GoRoute(
               path: 'livraison',
               builder: (c, s) => DeliveryLandingScreen(locale: loc),
             ),
@@ -83,15 +88,24 @@ class AppRouter {
             ),
             GoRoute(
               path: 'livraison/demande',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
+              builder: (c, s) => DeliveryRequestFlowScreen(
+                locale: loc,
+                initialCategory: s.uri.queryParameters['category'],
+              ),
             ),
             GoRoute(
               path: 'delivery/request',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
+              builder: (c, s) => DeliveryRequestFlowScreen(
+                locale: loc,
+                initialCategory: s.uri.queryParameters['category'],
+              ),
             ),
             GoRoute(
               path: 'entrega/solicitud',
-              builder: (c, s) => DeliveryRequestFlowScreen(locale: loc, initialCategory: s.uri.queryParameters['category']),
+              builder: (c, s) => DeliveryRequestFlowScreen(
+                locale: loc,
+                initialCategory: s.uri.queryParameters['category'],
+              ),
             ),
 
             GoRoute(
@@ -175,15 +189,24 @@ class AppRouter {
 
             GoRoute(
               path: 'connexion',
-              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
+              builder: (c, s) => AuthScreen(
+                locale: loc,
+                returnTo: s.uri.queryParameters['returnTo'],
+              ),
             ),
             GoRoute(
               path: 'sign-in',
-              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
+              builder: (c, s) => AuthScreen(
+                locale: loc,
+                returnTo: s.uri.queryParameters['returnTo'],
+              ),
             ),
             GoRoute(
               path: 'iniciar-sesion',
-              builder: (c, s) => AuthScreen(locale: loc, returnTo: s.uri.queryParameters['returnTo']),
+              builder: (c, s) => AuthScreen(
+                locale: loc,
+                returnTo: s.uri.queryParameters['returnTo'],
+              ),
             ),
 
             GoRoute(

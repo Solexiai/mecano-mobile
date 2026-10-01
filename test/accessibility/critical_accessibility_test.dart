@@ -74,7 +74,8 @@ class _FakeDriverRepository implements DriverRepository {
   _FakeDriverRepository(this.profile);
 
   @override
-  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => Stream.value(profile);
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) =>
+      Stream.value(profile);
 
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) async {}
@@ -87,7 +88,8 @@ class _FakeNotificationRepository implements NotificationRepository {
   @override
   Stream<int> watchUnreadCount(String userId) => Stream.value(2);
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) => Stream.value(const []);
+  Stream<List<AppNotification>> watchNotifications(String userId) =>
+      Stream.value(const []);
   @override
   Future<void> markAsRead(String userId, String notificationId) async {}
   @override
@@ -156,12 +158,7 @@ Widget _wrapNotificationBell() {
     providers: [
       ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
     ],
-    child: const MaterialApp(
-      home: Scaffold(
-        appBar: null,
-        body: SizedBox(),
-      ),
-    ),
+    child: const MaterialApp(home: Scaffold(appBar: null, body: SizedBox())),
   );
 }
 
@@ -175,81 +172,97 @@ void main() {
 
   group('L-1 — Semantics critiques (icon-only controls)', () {
     testWidgets(
-        'NotificationBell : IconButton "cloche" a un tooltip localisé accessible',
-        (tester) async {
-      await tester.pumpWidget(_wrapNotificationBell());
-      await tester.pumpAndSettle();
-      // Widget isolé sans userId réel utile ici : on vérifie directement le
-      // code source-level via un rendu minimal du bouton via son propre
-      // wrapper Scaffold+userId pour prouver la présence du Tooltip.
-      final bellWrapper = MultiProvider(
-        providers: [ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider())],
-        child: const MaterialApp(
-          home: Scaffold(body: NotificationBell(userId: 'user_a11y_001')),
-        ),
-      );
-      await tester.pumpWidget(bellWrapper);
-      await tester.pumpAndSettle();
+      'NotificationBell : IconButton "cloche" a un tooltip localisé accessible',
+      (tester) async {
+        await tester.pumpWidget(_wrapNotificationBell());
+        await tester.pumpAndSettle();
+        // Widget isolé sans userId réel utile ici : on vérifie directement le
+        // code source-level via un rendu minimal du bouton via son propre
+        // wrapper Scaffold+userId pour prouver la présence du Tooltip.
+        final bellWrapper = MultiProvider(
+          providers: [
+            ChangeNotifierProvider<LocaleProvider>(
+              create: (_) => LocaleProvider(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: NotificationBell(userId: 'user_a11y_001')),
+          ),
+        );
+        await tester.pumpWidget(bellWrapper);
+        await tester.pumpAndSettle();
 
-      final tooltipFinder = find.byType(Tooltip);
-      expect(tooltipFinder, findsOneWidget);
-      final tooltip = tester.widget<Tooltip>(tooltipFinder);
-      expect(tooltip.message, isNotEmpty);
-      expect(tooltip.message, isNot(equals('notifications_open_tooltip'))); // pas la clé brute
-    });
-
-    testWidgets(
-        'ProviderDashboardShell : Switch online/offline conserve son Tooltip '
-        'accessible même sous 480px (régression BUG-007)', (tester) async {
-      BackendLocator.driverRepositoryOverride = _FakeDriverRepository(_buildApprovedProfile());
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-        BackendLocator.driverRepositoryOverride = null;
-      });
-
-      await tester.pumpWidget(_wrapProviderDashboard(_signedInDriver()));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(Switch), findsOneWidget);
-      expect(find.byType(Tooltip), findsWidgets);
-      expect(tester.takeException(), isNull);
-    });
+        final tooltipFinder = find.byType(Tooltip);
+        expect(tooltipFinder, findsOneWidget);
+        final tooltip = tester.widget<Tooltip>(tooltipFinder);
+        expect(tooltip.message, isNotEmpty);
+        expect(
+          tooltip.message,
+          isNot(equals('notifications_open_tooltip')),
+        ); // pas la clé brute
+      },
+    );
 
     testWidgets(
-        'AuthScreen : boutons de rôle (customer/driver/mechanic) exposent un '
-        'libellé texte accessible (pas icon-only sans label)', (tester) async {
-      await tester.pumpWidget(_wrapAuthScreen());
-      await tester.pumpAndSettle();
-
-      // Chaque choix de rôle doit avoir un Text associé lisible par un
-      // lecteur d'écran (pas seulement une icône) : on vérifie qu'il existe
-      // au moins un widget Text non vide sous chaque ChoiceChip/carte visible.
-      final texts = tester.widgetList<Text>(find.byType(Text));
-      expect(texts.any((t) => (t.data ?? '').isNotEmpty), isTrue);
-      expect(tester.takeException(), isNull);
-    });
-  });
-
-  group('L-2 — Text scale (écrans critiques représentatifs)', () {
-    for (final scale in [1.0]) {
-      testWidgets('AuthScreen à 320px reste sans overflow à text scale $scale',
-          (tester) async {
-        tester.view.physicalSize = const Size(320, 700);
+      'ProviderDashboardShell : Switch online/offline conserve son Tooltip '
+      'accessible même sous 480px (régression BUG-007)',
+      (tester) async {
+        BackendLocator.driverRepositoryOverride = _FakeDriverRepository(
+          _buildApprovedProfile(),
+        );
+        tester.view.physicalSize = const Size(360, 800);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(() {
           tester.view.resetPhysicalSize();
           tester.view.resetDevicePixelRatio();
+          BackendLocator.driverRepositoryOverride = null;
         });
 
-        await tester.pumpWidget(_wrapAuthScreen(textScale: scale));
+        await tester.pumpWidget(_wrapProviderDashboard(_signedInDriver()));
         await tester.pumpAndSettle();
 
-        // RÈGLE OVERFLOW : aucune exception masquée, aucun viewport élargi.
+        expect(find.byType(Switch), findsOneWidget);
+        expect(find.byType(Tooltip), findsWidgets);
         expect(tester.takeException(), isNull);
-      });
+      },
+    );
+
+    testWidgets(
+      'AuthScreen : boutons de rôle (customer/driver/mechanic) exposent un '
+      'libellé texte accessible (pas icon-only sans label)',
+      (tester) async {
+        await tester.pumpWidget(_wrapAuthScreen());
+        await tester.pumpAndSettle();
+
+        // Chaque choix de rôle doit avoir un Text associé lisible par un
+        // lecteur d'écran (pas seulement une icône) : on vérifie qu'il existe
+        // au moins un widget Text non vide sous chaque ChoiceChip/carte visible.
+        final texts = tester.widgetList<Text>(find.byType(Text));
+        expect(texts.any((t) => (t.data ?? '').isNotEmpty), isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('L-2 — Text scale (écrans critiques représentatifs)', () {
+    for (final scale in [1.0]) {
+      testWidgets(
+        'AuthScreen à 320px reste sans overflow à text scale $scale',
+        (tester) async {
+          tester.view.physicalSize = const Size(320, 700);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          await tester.pumpWidget(_wrapAuthScreen(textScale: scale));
+          await tester.pumpAndSettle();
+
+          // RÈGLE OVERFLOW : aucune exception masquée, aucun viewport élargi.
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
 
     // GAP RÉEL TROUVÉ (P3, DEFERRED NON-BLOCKING) : à text scale 2.0 sur
@@ -268,7 +281,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Passer en mode inscription pour voir les 3 champs texte.
-      final signUpToggle = find.textContaining(AppStrings.t('auth_switch_to_signup', 'fr'));
+      final signUpToggle = find.textContaining(
+        AppStrings.t('auth_switch_to_signup', 'fr'),
+      );
       if (signUpToggle.evaluate().isNotEmpty) {
         await tester.tap(signUpToggle.first);
         await tester.pumpAndSettle();
@@ -283,53 +298,55 @@ void main() {
     });
 
     testWidgets(
-        "erreur de validation n'est jamais signalée par la couleur seule "
-        '(icône + texte combinés)', (tester) async {
-      await tester.pumpWidget(_wrapAuthScreen());
-      await tester.pumpAndSettle();
+      "erreur de validation n'est jamais signalée par la couleur seule "
+      '(icône + texte combinés)',
+      (tester) async {
+        await tester.pumpWidget(_wrapAuthScreen());
+        await tester.pumpAndSettle();
 
-      // Déclenche l'erreur "identifiants manquants" en soumettant vide.
-      // `warnIfMissed: false` : le bouton peut être hors du viewport par
-      // défaut (800x600) selon le layout, sans que cela invalide le test
-      // (le tap atteint bien le handler, confirmé par l'apparition du
-      // message d'erreur ci-dessous).
-      final submitButton = find.byType(ElevatedButton).first;
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton, warnIfMissed: false);
-      await tester.pumpAndSettle();
+        // Déclenche l'erreur "identifiants manquants" en soumettant vide.
+        // `warnIfMissed: false` : le bouton peut être hors du viewport par
+        // défaut (800x600) selon le layout, sans que cela invalide le test
+        // (le tap atteint bien le handler, confirmé par l'apparition du
+        // message d'erreur ci-dessous).
+        final submitButton = find.byType(ElevatedButton).first;
+        await tester.ensureVisible(submitButton);
+        await tester.tap(submitButton, warnIfMissed: false);
+        await tester.pumpAndSettle();
 
-      // Si un message d'erreur est affiché, il doit être accompagné d'une
-      // icône (pas juste une couleur de texte) — pattern déjà en place dans
-      // auth_screen.dart (Icon(Icons.error_outline) + Text).
-      final errorIcon = find.byIcon(Icons.error_outline);
-      expect(errorIcon, findsOneWidget);
-      expect(find.byType(Text), findsWidgets);
-      expect(tester.takeException(), isNull);
-    });
+        // Si un message d'erreur est affiché, il doit être accompagné d'une
+        // icône (pas juste une couleur de texte) — pattern déjà en place dans
+        // auth_screen.dart (Icon(Icons.error_outline) + Text).
+        final errorIcon = find.byIcon(Icons.error_outline);
+        expect(errorIcon, findsOneWidget);
+        expect(find.byType(Text), findsWidgets);
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('L-3/L-6 — Tap targets & contraste (contrôles critiques ciblés)', () {
     testWidgets(
-        'boutons de rôle AuthScreen (customer/driver/mechanic) sont présents '
-        'et exposent une taille tactile mesurable (référence GAP documenté)',
-        (tester) async {
-      await tester.pumpWidget(_wrapAuthScreen());
-      await tester.pumpAndSettle();
+      'boutons de rôle AuthScreen (customer/driver/mechanic) sont présents '
+      'et exposent une taille tactile mesurable (référence GAP documenté)',
+      (tester) async {
+        await tester.pumpWidget(_wrapAuthScreen());
+        await tester.pumpAndSettle();
 
-      final cards = find.byType(InkWell);
-      expect(cards, findsWidgets);
-      // GAP RÉEL TROUVÉ (P3, DEFERRED NON-BLOCKING) : au moins une carte de
-      // rôle mesure 38px de hauteur (< 48x48 recommandé Android). Documenté
-      // honnêtement dans docs/PHASE7_BUG_REPORT.md plutôt que masqué ici par
-      // un seuil affaibli artificiellement.
-      for (final element in cards.evaluate()) {
-        final size = (element.renderObject as RenderBox).size;
-        expect(size.height, greaterThan(0));
-      }
-    });
+        final cards = find.byType(InkWell);
+        expect(cards, findsWidgets);
+        // GAP RÉEL TROUVÉ (P3, DEFERRED NON-BLOCKING) : au moins une carte de
+        // rôle mesure 38px de hauteur (< 48x48 recommandé Android). Documenté
+        // honnêtement dans docs/PHASE7_BUG_REPORT.md plutôt que masqué ici par
+        // un seuil affaibli artificiellement.
+        for (final element in cards.evaluate()) {
+          final size = (element.renderObject as RenderBox).size;
+          expect(size.height, greaterThan(0));
+        }
+      },
+    );
 
-    test(
-        'GAP CORRIGÉ (BUG-L6-01) : AppColors.warningText offre un contraste '
+    test('GAP CORRIGÉ (BUG-L6-01) : AppColors.warningText offre un contraste '
         'WCAG AA (>= 4.5:1) sur fond blanc, contrairement à AppColors.warning '
         'brut (~2.15:1) — utilisé désormais pour le texte d\'avertissement '
         'GPS de DriverActiveMissionScreen (pas les badges/pastilles '
@@ -353,10 +370,18 @@ void main() {
       final ratioNew = contrast(AppColors.warningText, white);
       final ratioOld = contrast(AppColors.warning, white);
 
-      expect(ratioNew, greaterThanOrEqualTo(4.5),
-          reason: 'warningText doit respecter WCAG AA texte normal sur fond blanc');
-      expect(ratioOld, lessThan(4.5),
-          reason: 'documente le gap réel de la couleur warning brute (non utilisée pour du texte critique)');
+      expect(
+        ratioNew,
+        greaterThanOrEqualTo(4.5),
+        reason:
+            'warningText doit respecter WCAG AA texte normal sur fond blanc',
+      );
+      expect(
+        ratioOld,
+        lessThan(4.5),
+        reason:
+            'documente le gap réel de la couleur warning brute (non utilisée pour du texte critique)',
+      );
     });
   });
 
@@ -384,7 +409,8 @@ void main() {
         // Les 5 étoiles sont chacune identifiables individuellement par un
         // lecteur d'écran : Semantics(label: 'N étoile', selected: bool).
         for (var value = 1; value <= 5; value++) {
-          final label = '$value ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}';
+          final label =
+              '$value ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}';
           final semanticsFinder = find.bySemanticsLabel(label);
           expect(
             semanticsFinder,
@@ -394,9 +420,11 @@ void main() {
         }
 
         // Avant sélection : aucune étoile n'annonce `selected: true`.
-        final beforeNode = tester.getSemantics(find.bySemanticsLabel(
-          '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
-        ));
+        final beforeNode = tester.getSemantics(
+          find.bySemanticsLabel(
+            '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
+          ),
+        );
         // ignore: deprecated_member_use
         expect(beforeNode.hasFlag(SemanticsFlag.isSelected), isFalse);
 
@@ -413,9 +441,11 @@ void main() {
         await tester.tap(thirdStar);
         await tester.pumpAndSettle();
 
-        final afterNode = tester.getSemantics(find.bySemanticsLabel(
-          '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
-        ));
+        final afterNode = tester.getSemantics(
+          find.bySemanticsLabel(
+            '3 ${AppStrings.t('customer_tracking_rate_driver_star_semantic', 'fr')}',
+          ),
+        );
         // ignore: deprecated_member_use
         expect(afterNode.hasFlag(SemanticsFlag.isSelected), isTrue);
 
@@ -452,10 +482,8 @@ void main() {
           routes: [
             GoRoute(
               path: '/fr/devenir-chauffeur/inscription',
-              builder: (c, s) => const DriverOnboardingScreen(
-                locale: 'fr',
-                initialStep: 3,
-              ),
+              builder: (c, s) =>
+                  const DriverOnboardingScreen(locale: 'fr', initialStep: 3),
             ),
             GoRoute(
               path: '/fr/devenir-chauffeur/statut',
@@ -463,14 +491,18 @@ void main() {
             ),
           ],
         );
-        await tester.pumpWidget(MultiProvider(
-          providers: [
-            ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-            ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            Provider<BackendStatus>.value(value: const BackendStatus.ready()),
-          ],
-          child: MaterialApp.router(routerConfig: router),
-        ));
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<LocaleProvider>(
+                create: (_) => LocaleProvider(),
+              ),
+              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+              Provider<BackendStatus>.value(value: const BackendStatus.ready()),
+            ],
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
         await tester.pumpAndSettle();
 
         final selectButtons = find.widgetWithText(
@@ -483,7 +515,8 @@ void main() {
           expect(
             size.height,
             greaterThanOrEqualTo(40),
-            reason: 'BUG-AB-09-01 : le bouton devait mesurer >= 40px de haut après correctif',
+            reason:
+                'BUG-AB-09-01 : le bouton devait mesurer >= 40px de haut après correctif',
           );
         }
         expect(tester.takeException(), isNull);
@@ -503,23 +536,38 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
 
         final auth = FirebaseAuthProvider(backendConfigured: false);
-        await tester.pumpWidget(MultiProvider(
-          providers: [
-            ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-            ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            Provider<BackendStatus>.value(value: const BackendStatus.ready()),
-          ],
-          child: MaterialApp(
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.5)),
-              child: child!,
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<LocaleProvider>(
+                create: (_) => LocaleProvider(),
+              ),
+              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+              Provider<BackendStatus>.value(value: const BackendStatus.ready()),
+            ],
+            child: MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(1.5)),
+                child: child!,
+              ),
+              home: const DriverOnboardingScreen(locale: 'fr'),
             ),
-            home: const DriverOnboardingScreen(locale: 'fr'),
           ),
-        ));
+        );
         await tester.pumpAndSettle();
 
-        expect(find.text('Movi-K'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Image &&
+                widget.image is AssetImage &&
+                (widget.image as AssetImage).assetName ==
+                    'assets/home/brand_logo.png',
+          ),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
       },
     );
@@ -527,7 +575,9 @@ void main() {
 }
 
 double _srgbToLinear(double v) {
-  return v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  return v <= 0.03928
+      ? v / 12.92
+      : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
 }
 
 // ---------------------------------------------------------------------------
@@ -562,7 +612,8 @@ class _FakeCompletedMissionRepository implements MissionRepository {
   const _FakeCompletedMissionRepository(this.mission);
 
   @override
-  Stream<DeliveryMission?> watchMission(String missionId) => Stream.value(mission);
+  Stream<DeliveryMission?> watchMission(String missionId) =>
+      Stream.value(mission);
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();

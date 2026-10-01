@@ -698,7 +698,8 @@ class AppStrings {
       'es': 'Iniciar sesión',
     },
     'delivery_quote_login_required': {
-      'fr': 'Connectez-vous pour calculer votre prix et poursuivre la réservation.',
+      'fr':
+          'Connectez-vous pour calculer votre prix et poursuivre la réservation.',
       'en': 'Sign in to calculate your price and continue your booking.',
       'es': 'Inicia sesión para calcular tu precio y continuar la reserva.',
     },
@@ -1959,17 +1960,17 @@ class AppStrings {
 
     // ---------- Driver recruitment ----------
     'driver_hero_headline': {
-      'fr': 'Transformez votre véhicule en revenu.',
-      'en': 'Turn your vehicle into income.',
-      'es': 'Convierte tu vehículo en ingresos.',
+      'fr': 'Préparez votre dossier chauffeur Movi‑K.',
+      'en': 'Prepare your Movi‑K driver application.',
+      'es': 'Prepara tu expediente de conductor Movi‑K.',
     },
     'driver_hero_sub': {
       'fr':
-          "Choisissez votre horaire, définissez votre zone de service et n'acceptez que les livraisons qui vous conviennent.",
+          'Définissez votre zone et votre disponibilité. Le profil, le véhicule et les documents requis doivent être approuvés avant l’activation; le lancement est prévu à Granby et dans les environs.',
       'en':
-          'Choose your schedule, define your service area and accept only the delivery jobs that work for you.',
+          'Set your service area and availability. Your profile, vehicle and required documents must be approved before activation; launch is planned for Granby and surrounding areas.',
       'es':
-          'Elige tu horario, define tu área de servicio y acepta solo los trabajos que te convengan.',
+          'Define tu zona y disponibilidad. El perfil, el vehículo y los documentos requeridos deben aprobarse antes de la activación; el lanzamiento está previsto en Granby y alrededores.',
     },
     'driver_pending_verification': {
       'fr': 'En attente de vérification',

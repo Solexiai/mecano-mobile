@@ -20,6 +20,8 @@
 // manuellement par le client.
 // ---------------------------------------------------------------------------
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -37,6 +39,7 @@ import '../../providers/locale_provider.dart';
 import '../../services/address/address_suggestion.dart';
 import '../../services/demo_data_service.dart';
 import '../../services/distance_estimation_service.dart';
+import '../../services/delivery_request_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
@@ -45,7 +48,11 @@ import '../../widgets/step_progress_form.dart';
 class DeliveryRequestFlowScreen extends StatefulWidget {
   final String locale;
   final String? initialCategory;
-  const DeliveryRequestFlowScreen({super.key, required this.locale, this.initialCategory});
+  const DeliveryRequestFlowScreen({
+    super.key,
+    required this.locale,
+    this.initialCategory,
+  });
 
   @override
   State<DeliveryRequestFlowScreen> createState() =>
@@ -90,8 +97,62 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedCategory = DeliveryRequestIntent.category(widget.initialCategory) ?? '';
+    _selectedCategory =
+        DeliveryRequestIntent.category(widget.initialCategory) ?? '';
+    _restoreDraft();
   }
+
+  Future<void> _restoreDraft() async {
+    final draft = await DeliveryRequestDraft.load();
+    if (!mounted || draft == null) return;
+
+    VehicleCategory? restoredVehicle;
+    if (draft.vehicleCategory != null) {
+      for (final value in VehicleCategory.values) {
+        if (value.firestoreValue == draft.vehicleCategory) {
+          restoredVehicle = value;
+          break;
+        }
+      }
+    }
+
+    setState(() {
+      // A category explicitly supplied by the current link wins over a stale
+      // local draft. All other guest-entered fields can safely resume.
+      if (_selectedCategory.isEmpty &&
+          DeliveryRequestIntent.category(draft.category) != null) {
+        _selectedCategory = draft.category;
+      }
+      _descController.text = draft.description;
+      _quantity = draft.quantity;
+      _needsStairs = draft.needsStairs;
+      _needsSecondHandler = draft.needsSecondHandler;
+      _isHeavyItem = draft.isHeavyItem;
+      _isBulkyItem = draft.isBulkyItem;
+      _pickupResolved = draft.pickup;
+      _dropoffResolved = draft.dropoff;
+      _pickupAddressController.text = draft.pickup?.formattedAddress ?? '';
+      _dropoffAddressController.text = draft.dropoff?.formattedAddress ?? '';
+      _contactController.text = draft.contactInstructions;
+      _accessController.text = draft.accessDetails;
+      _selectedVehicle = restoredVehicle;
+    });
+  }
+
+  Future<void> _saveDraft() => DeliveryRequestDraft(
+    category: _selectedCategory,
+    description: _descController.text.trim(),
+    quantity: _quantity,
+    needsStairs: _needsStairs,
+    needsSecondHandler: _needsSecondHandler,
+    isHeavyItem: _isHeavyItem,
+    isBulkyItem: _isBulkyItem,
+    pickup: _pickupResolved,
+    dropoff: _dropoffResolved,
+    contactInstructions: _contactController.text.trim(),
+    accessDetails: _accessController.text.trim(),
+    vehicleCategory: _selectedVehicle?.firestoreValue,
+  ).save();
 
   @override
   void dispose() {
@@ -238,8 +299,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     // s'identifier au moment de demander le prix officiel. On conserve la
     // catégorie dans le returnTo afin de reprendre le parcours de livraison.
     if (!auth.isSignedIn) {
+      // Preserve the complete guest draft locally before authentication.
+      // The official quote is still calculated only after sign-in and only
+      // by the authenticated Cloud Function.
+      await _saveDraft();
+      if (!mounted) return;
       final category = _selectedCategory.isEmpty ? null : _selectedCategory;
-      context.go(DeliveryRequestIntent.loginPath(widget.locale, category: category));
+      context.go(
+        DeliveryRequestIntent.loginPath(widget.locale, category: category),
+      );
       return;
     }
 
@@ -307,7 +375,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
 
       if (!mounted) return;
       if (quote.distanceKm == null || quote.estimatedDurationMinutes == null) {
-        throw StateError('Le devis officiel ne contient pas d\'itinéraire valide.');
+        throw StateError(
+          'Le devis officiel ne contient pas d\'itinéraire valide.',
+        );
       }
       setState(() {
         _distanceEstimate = DistanceEstimate(
@@ -413,6 +483,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
             ),
           );
 
+      // Le brouillon local est une commodité UX. Une mission déjà créée
+      // côté serveur ne doit jamais attendre le nettoyage de SharedPreferences.
+      unawaited(DeliveryRequestDraft.clear());
       if (!mounted) return;
       setState(() {
         _mission = mission;
