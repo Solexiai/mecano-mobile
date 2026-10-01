@@ -1,1160 +1,1854 @@
-// ---------------------------------------------------------------------------
-// DeliveryRequestFlowScreen — flux RÉEL de création de mission (Phase 4).
-//
-// Remplace intégralement l'ancien flux démo (sélection manuelle d'un
-// chauffeur `ProviderProfile`/`DemoDataService.drivers`, prix calculé
-// localement). Le workflow réel est :
-//
-//   Client Firebase authentifié
-//   -> saisie pickup (adresse structurée + lat/lng)
-//   -> saisie destination (adresse structurée + lat/lng)
-//   -> choix du véhicule requis + informations sur l'objet
-//   -> MissionRepository.requestQuote() -> Cloud Function calculateDeliveryQuote
-//      (itinéraire routier Google calculé et figé côté serveur)
-//   -> affichage du devis réel (DeliveryQuote.customerTotal, jamais recalculé)
-//   -> confirmation du client
-//   -> MissionRepository.createMissionFromQuote() -> Cloud Function
-//      createDeliveryRequest -> DeliveryMission (status = searching_driver)
-//
-// Aucun prix fictif, aucune mission fictive, aucun chauffeur choisi
-// manuellement par le client.
-// ---------------------------------------------------------------------------
-
 import 'dart:async';
-
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../services/delivery_request_draft.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-
-import '../../backend/backend_locator.dart';
-import '../../backend/backend_exceptions.dart';
-import '../../backend/models/delivery_mission.dart';
-import '../../backend/models/delivery_quote.dart';
-import '../../backend/repositories/mission_repository.dart';
-import '../../core/app_colors.dart';
-import '../../router/delivery_request_intent.dart';
-import '../../models/enums.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
 import '../../providers/firebase_auth_provider.dart';
-import '../../providers/locale_provider.dart';
-import '../../services/address/address_suggestion.dart';
-import '../../services/demo_data_service.dart';
-import '../../services/distance_estimation_service.dart';
-import '../../services/delivery_request_draft.dart';
+import '../../router/delivery_request_intent.dart';
+import '../../services/booking/booking_api.dart';
+import '../../services/booking/booking_photos.dart';
+import '../../widgets/booking_load_summary.dart';
+import '../../services/booking/booking_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
-import '../../widgets/section_title.dart';
-import '../../widgets/step_progress_form.dart';
 
+/// Four-step booking. Amounts/recommendations are exclusively server responses.
+/// No mission is created until the user explicitly confirms the current quote.
 class DeliveryRequestFlowScreen extends StatefulWidget {
-  final String locale;
-  final String? initialCategory;
   const DeliveryRequestFlowScreen({
     super.key,
     required this.locale,
     this.initialCategory,
+    this.api,
+    this.storage,
   });
-
+  final String locale;
+  final String? initialCategory;
+  final BookingApi? api;
+  final BookingDraftStorage? storage;
   @override
   State<DeliveryRequestFlowScreen> createState() =>
       _DeliveryRequestFlowScreenState();
 }
 
-enum _FlowPhase { form, quoting, quoted, creating, created }
-
-class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
-  // ---- Step 1: item info ----
-  String _selectedCategory = '';
-  final _descController = TextEditingController();
-  int _quantity = 1;
-  bool _needsStairs = false;
-  bool _needsSecondHandler = false;
-  bool _isHeavyItem = false;
-  bool _isBulkyItem = false;
-
-  // ---- Step 2: addresses (MOVI-K — adresses réelles + autocomplete +
-  // géocodage) : un seul champ texte par adresse (pickup/dropoff), plus un
-  // état interne (jamais visible/éditable directement) contenant l'adresse
-  // COMPLÈTEMENT résolue par le fournisseur cartographique. `null` tant
-  // qu'aucune adresse valide n'a été sélectionnée OU si le texte a été
-  // modifié après une sélection (voir AddressAutocompleteField.onInvalidated).
-  final _pickupAddressController = TextEditingController();
-  final _dropoffAddressController = TextEditingController();
-  ResolvedAddress? _pickupResolved;
-  ResolvedAddress? _dropoffResolved;
-  final _contactController = TextEditingController();
-  final _accessController = TextEditingController();
-
-  // ---- Step 3: vehicle ----
-  VehicleCategory? _selectedVehicle;
-
-  // ---- Quote / mission state ----
-  _FlowPhase _phase = _FlowPhase.form;
-  DeliveryQuote? _quote;
-  DeliveryMission? _mission;
-  DistanceEstimate? _distanceEstimate;
-  String? _errorMessage;
-
+class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
+    with WidgetsBindingObserver {
+  late BookingDraft _draft;
+  late BookingDraftStorage _storage;
+  final _pickup = TextEditingController();
+  final _dropoff = TextEditingController();
+  final _contactsForm = GlobalKey<FormState>();
+  Timer? _debounce;
+  Timer? _clock;
+  Future<void> _saveQueue = Future.value();
+  String? _uid;
+  bool _identityKnown = false,
+      _loaded = false,
+      _busy = false,
+      _cardReady = false;
+  int _epoch = 0;
+  String? _message, _saveError;
+  Map<String, dynamic>? _policy, _review;
+  BookingApi get _api => widget.api ?? FirebaseBookingApi(_uid);
+  String tr(String fr, String en, String es) => widget.locale == 'en'
+      ? en
+      : widget.locale == 'es'
+      ? es
+      : fr;
+  List<String> get _titles => [
+    tr('Ma livraison', 'My delivery', 'Mi entrega'),
+    tr('Mon prix', 'My price', 'Mi precio'),
+    tr('Mes coordonnées', 'My details', 'Mis datos'),
+    tr(
+      'Confirmation et paiement',
+      'Confirmation and payment',
+      'Confirmación y pago',
+    ),
+  ];
   @override
   void initState() {
     super.initState();
-    _selectedCategory =
-        DeliveryRequestIntent.category(widget.initialCategory) ?? '';
-    _restoreDraft();
+    _draft = BookingDraft(category: widget.initialCategory);
+    _storage = widget.storage ?? BookingDraftStorage();
+    WidgetsBinding.instance.addObserver(this);
+    _pickup.addListener(() => _invalidateAddress('pickup', _pickup));
+    _dropoff.addListener(() => _invalidateAddress('dropoff', _dropoff));
+    _clock = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
-  Future<void> _restoreDraft() async {
-    final uid = context.read<FirebaseAuthProvider>().effectiveUid;
-    final draft = await DeliveryRequestDraft.load(uid: uid);
-    if (!mounted || draft == null) return;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final uid = context.watch<FirebaseAuthProvider>().effectiveUid;
+    if (!_identityKnown || uid != _uid) {
+      _identityKnown = true;
+      _uid = uid;
+      _epoch++;
+      _loaded = false;
+      _debounce?.cancel();
+      _restore(_epoch);
+    }
+  }
 
-    VehicleCategory? restoredVehicle;
-    if (draft.vehicleCategory != null) {
-      for (final value in VehicleCategory.values) {
-        if (value.firestoreValue == draft.vehicleCategory) {
-          restoredVehicle = value;
-          break;
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _loaded &&
+        _draft.quote != null &&
+        _uid != null) {
+      _refreshCard();
+    }
+  }
+
+  void _invalidateAddress(String key, TextEditingController controller) {
+    final address = _draft.data[key] as Map?;
+    if (_loaded &&
+        address != null &&
+        address['formatted_address'] != controller.text) {
+      _draft.data[key] = null;
+      _changed();
+    }
+  }
+
+  Future<void> _restore(int epoch) async {
+    final api = _api;
+    BookingDraft? restored;
+    try {
+      restored = await _storage.load(_uid);
+    } catch (_) {
+      /* Storage may be disabled by the browser. */
+    }
+    if (restored == null) {
+      try {
+        final legacy = await DeliveryRequestDraft.load(uid: _uid);
+        if (legacy != null) {
+          restored = BookingDraft(category: legacy.category);
+          restored.items.add({
+            'id': const Uuid().v4(),
+            'category': legacy.category,
+            'label': legacy.description.isEmpty ? 'Objet' : legacy.description,
+            'quantity': legacy.quantity,
+            'length': null,
+            'width': null,
+            'height': null,
+            'weight': null,
+            'dimension_unit': 'cm',
+            'weight_unit': 'kg',
+            'approximate': true,
+            'upright': true,
+            'photos': <String>[],
+          });
+          for (final entry in [
+            ('pickup', legacy.pickup),
+            ('dropoff', legacy.dropoff),
+          ]) {
+            final a = entry.$2;
+            if (a != null) {
+              restored.data[entry.$1] = {
+                'line1': a.line1,
+                'city': a.city,
+                'postal_code': a.postalCode,
+                'lat': a.lat,
+                'lng': a.lng,
+                'formatted_address': a.formattedAddress,
+                'place_id': a.placeId,
+              };
+            }
+          }
+          (restored.data['contacts'] as Map)['instructions'] = [
+            legacy.contactInstructions,
+            legacy.accessDetails,
+          ].where((v) => v.isNotEmpty).join(' / ');
+          restored.data['handlers'] = legacy.needsSecondHandler ? 2 : 1;
+          (restored.data['pickup_access'] as Map)['stairs'] =
+              legacy.needsStairs;
+          (restored.data['dropoff_access'] as Map)['stairs'] =
+              legacy.needsStairs;
+          await _storage.save(restored, _uid);
+          await DeliveryRequestDraft.clear();
+        }
+      } catch (_) {
+        /* An invalid legacy draft cannot restore a price. */
+      }
+    }
+    if (_uid != null) {
+      try {
+        final saved = await api.call('getBookingDraft');
+        if (saved['draft'] is Map) {
+          final remote = BookingDraft.fromJson(
+            Map<String, dynamic>.from(saved['draft'] as Map),
+          );
+          if (!remote.expired &&
+              (restored == null ||
+                  (remote.id == restored.id &&
+                      remote.revision > restored.revision))) {
+            restored = remote;
+          }
+        }
+      } catch (_) {
+        /* The tab copy remains usable offline. */
+      }
+    }
+    if (!mounted || epoch != _epoch) return;
+    _draft = restored ?? BookingDraft(category: widget.initialCategory);
+    if (restored == null && widget.initialCategory != null) {
+      _addItem(widget.initialCategory!, notify: false);
+    }
+    _pickup.text =
+        (_draft.data['pickup'] as Map?)?['formatted_address'] as String? ?? '';
+    _dropoff.text =
+        (_draft.data['dropoff'] as Map?)?['formatted_address'] as String? ?? '';
+    _cardReady = false;
+    _busy = false;
+    _message = null;
+    _review = null;
+    _policy = null;
+    setState(() {
+      _loaded = true;
+    });
+    try {
+      final config = await api.call('getBookingConfiguration');
+      if (!mounted || epoch != _epoch) return;
+      setState(() {
+        _policy = config['policy'] is Map
+            ? Map<String, dynamic>.from(config['policy'] as Map)
+            : null;
+      });
+    } catch (_) {
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _policy = null;
+        });
+      }
+    }
+    if (_uid != null && mounted && epoch == _epoch) {
+      try {
+        final profile = await api.profile();
+        if (!mounted || epoch != _epoch) return;
+        final values = _draft.contacts;
+        for (final entry in Map<String, dynamic>.from(
+          profile?['contacts'] as Map? ?? {},
+        ).entries) {
+          if ((values[entry.key] as String? ?? '').isEmpty) {
+            values[entry.key] = entry.value;
+          }
+        }
+        final auth = context.read<FirebaseAuthProvider>();
+        if ((values['pickup_name'] as String? ?? '').isEmpty) {
+          values['pickup_name'] = auth.effectiveDisplayName ?? '';
+        }
+        setState(() {
+          _draft.data['contacts'] = values;
+        });
+      } catch (_) {
+        /* Manual entry is always available. */
+      }
+      if (_draft.quote != null) {
+        try {
+          final official = await api.call('getBookingQuote', {
+            'quoteId': _draft.quote!['quoteId'],
+          });
+          if (!mounted || epoch != _epoch) return;
+          setState(() {
+            _draft.data['quote'] = official;
+            if (official['missionId'] != null) {
+              _draft.data['missionId'] = official['missionId'];
+            }
+          });
+          await _refreshCard();
+        } catch (_) {
+          if (mounted && epoch == _epoch) {
+            setState(() {
+              _draft.data['quote'] = null;
+              _draft.step = 1;
+            });
+          }
         }
       }
     }
-
-    setState(() {
-      // A category explicitly supplied by the current link wins over a stale
-      // local draft. All other guest-entered fields can safely resume.
-      if (_selectedCategory.isEmpty &&
-          DeliveryRequestIntent.category(draft.category) != null) {
-        _selectedCategory = draft.category;
-      }
-      _descController.text = draft.description;
-      _quantity = draft.quantity;
-      _needsStairs = draft.needsStairs;
-      _needsSecondHandler = draft.needsSecondHandler;
-      _isHeavyItem = draft.isHeavyItem;
-      _isBulkyItem = draft.isBulkyItem;
-      _pickupResolved = draft.pickup;
-      _dropoffResolved = draft.dropoff;
-      _pickupAddressController.text = draft.pickup?.formattedAddress ?? '';
-      _dropoffAddressController.text = draft.dropoff?.formattedAddress ?? '';
-      _contactController.text = draft.contactInstructions;
-      _accessController.text = draft.accessDetails;
-      _selectedVehicle = restoredVehicle;
-    });
   }
 
-  Future<void> _saveDraft({String? uid}) => DeliveryRequestDraft(
-    category: _selectedCategory,
-    description: _descController.text.trim(),
-    quantity: _quantity,
-    needsStairs: _needsStairs,
-    needsSecondHandler: _needsSecondHandler,
-    isHeavyItem: _isHeavyItem,
-    isBulkyItem: _isBulkyItem,
-    pickup: _pickupResolved,
-    dropoff: _dropoffResolved,
-    contactInstructions: _contactController.text.trim(),
-    accessDetails: _accessController.text.trim(),
-    vehicleCategory: _selectedVehicle?.firestoreValue,
-  ).save(uid: uid);
+  void _changed({bool quote = true}) {
+    setState(() {
+      final hadQuote = _draft.quote != null;
+      _draft.changed(affectsQuote: quote);
+      if (quote) {
+        _review = null;
+        if (hadQuote) {
+          _message = tr(
+            'La livraison a changé : un nouveau devis est requis.',
+            'Your delivery changed. Request a new quote.',
+            'La entrega cambió. Solicita un nuevo presupuesto.',
+          );
+        }
+      }
+    });
+    // Session storage is synchronous underneath; write every change so a
+    // refresh during the debounce cannot lose the latest field.
+    _persistLocal();
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 600), _save);
+  }
+
+  Future<void> _persistLocal() async {
+    try {
+      await _storage.save(_draft, _uid);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saveError = tr(
+            'La sauvegarde dans cet onglet est indisponible.',
+            'Saving in this tab is unavailable.',
+            'No se puede guardar en esta pestaña.',
+          );
+        });
+      }
+    }
+  }
+
+  Future<void> _save() {
+    final snapshot = BookingDraft.fromJson(_draft.data);
+    final uid = _uid;
+    final api = _api;
+    final epoch = _epoch;
+    _saveQueue = _saveQueue.catchError((_) {}).then((_) async {
+      if (epoch != _epoch) return;
+      await _persistLocal();
+      if (uid == null) return;
+      try {
+        await api.call('saveBookingDraft', {
+          'ownerUid': uid,
+          'draftId': snapshot.id,
+          'revision': snapshot.revision,
+          'draft': snapshot.data,
+        });
+        if (mounted && epoch == _epoch) {
+          setState(() {
+            _saveError = null;
+          });
+        }
+      } catch (_) {
+        if (mounted && epoch == _epoch) {
+          setState(() {
+            _saveError = tr(
+              'Synchronisation en attente. Gardez cet onglet ouvert et réessayez.',
+              'Sync pending. Keep this tab open and retry.',
+              'Sincronización pendiente. Mantén esta pestaña abierta e inténtalo de nuevo.',
+            );
+          });
+        }
+      }
+    });
+    return _saveQueue;
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    final epoch = _epoch;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await action();
+    } on BookingPhotoFormatException {
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _message = tr(
+            'Choisissez une photo JPEG de moins de 5 Mo.',
+            'Choose a JPEG photo under 5 MB.',
+            'Elige una foto JPEG de menos de 5 MB.',
+          );
+        });
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _message = e.code == 'invalid-argument'
+              ? tr(
+                  'Vérifiez les dimensions, les poids, les quantités et les adresses.',
+                  'Check dimensions, weights, quantities and addresses.',
+                  'Verifica las dimensiones, pesos, cantidades y direcciones.',
+                )
+              : tr(
+                  'Cette opération n’a pas abouti. Vos données sont conservées. Réessayez.',
+                  'This action did not complete. Your details are saved. Please retry.',
+                  'La operación no se completó. Tus datos se conservaron. Inténtalo de nuevo.',
+                );
+        });
+      }
+    } catch (_) {
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _message = tr(
+            'Connexion indisponible. Vos données restent dans cet onglet. Réessayez.',
+            'Connection unavailable. Your details remain in this tab. Retry.',
+            'Conexión no disponible. Tus datos permanecen en esta pestaña. Reintenta.',
+          );
+        });
+      }
+    } finally {
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _busy = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _login() async {
+    await _save();
+    await _storage.handoff();
+    if (mounted) {
+      context.go(
+        DeliveryRequestIntent.loginPath(
+          widget.locale,
+          category: _draft.data['category'] as String?,
+        ),
+      );
+    }
+  }
+
+  bool get _addressesValid => ['pickup', 'dropoff'].every((key) {
+    final a = _draft.data[key] as Map?;
+    return a != null &&
+        (a['city'] as String? ?? '').isNotEmpty &&
+        (a['postal_code'] as String? ?? '').isNotEmpty;
+  });
+  Future<void> _quote() async {
+    if (_uid == null) {
+      await _login();
+      return;
+    }
+    final revision = _draft.revision, epoch = _epoch;
+    final result = await _api.call('reviewDeliveryLoad', {
+      'load': _draft.load,
+      'stops': _draft.stops,
+    });
+    if (!mounted || epoch != _epoch || revision != _draft.revision) return;
+    setState(() {
+      _review = result;
+    });
+    if (result['status'] != 'ready') return;
+    final quote = await _api.call('calculateDeliveryQuote', {
+      'booking': _draft.load,
+      'stops': _draft.stops,
+      if (_draft.data['requested_vehicle'] != null)
+        'requestedVehicleCategory': _draft.data['requested_vehicle'],
+    });
+    if (!mounted || epoch != _epoch || revision != _draft.revision) return;
+    setState(() {
+      _draft.data['quote'] = quote;
+      _draft.data['accepted'] = false;
+    });
+    await _save();
+    await _refreshCard();
+  }
+
+  Future<void> _refreshCard() async {
+    if (_draft.quote == null ||
+        _uid == null ||
+        _draft.data['missionId'] != null) {
+      return;
+    }
+    final epoch = _epoch;
+    try {
+      final result = await _api.call('getBookingCardStatus', {
+        'quoteId': _draft.quote!['quoteId'],
+      });
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _cardReady = result['ready'] == true;
+        });
+      }
+    } catch (_) {
+      /* A retry button remains available; never claim success. */
+    }
+  }
+
+  Future<void> _setupCard() async {
+    final epoch = _epoch;
+    await _save();
+    if (_saveError != null) return;
+    final result = await _api.call('startBookingCardSetup', {
+      'quoteId': _draft.quote!['quoteId'],
+      'locale': widget.locale,
+      'accepted': _draft.data['accepted'],
+      'termsVersion': _policy!['version'],
+    });
+    if (!mounted || epoch != _epoch) return;
+    if (result['ready'] == true) {
+      setState(() {
+        _cardReady = true;
+      });
+      return;
+    }
+    final uri = Uri.parse(result['url'] as String);
+    if (uri.scheme != 'https' || uri.host != 'checkout.stripe.com') {
+      throw StateError('Invalid checkout origin');
+    }
+    if (!await launchUrl(
+      uri,
+      webOnlyWindowName: '_self',
+      mode: LaunchMode.externalApplication,
+    )) {
+      throw StateError('Checkout unavailable');
+    }
+  }
+
+  Future<void> _confirm() async {
+    final epoch = _epoch;
+    await _save();
+    final q = _draft.quote!;
+    final result = await _api.call('createDeliveryRequest', {
+      'quoteId': q['quoteId'],
+      'booking': _draft.load,
+      'contacts': _draft.contacts,
+      'consent': {
+        'terms_version': _policy!['version'],
+        'accepted': _draft.data['accepted'],
+        'marketing': _draft.data['marketing'],
+      },
+      'stops': _draft.stops,
+      'requiredVehicleCategory': q['vehicleCategory'],
+      'description': '',
+      'itemCategoryKey': '',
+      'customerDisplayName': '',
+    });
+    if (!mounted || epoch != _epoch) return;
+    setState(() {
+      _draft.data['missionId'] = result['missionId'];
+    });
+    // Keep a small receipt locally for refresh/retry, clear personal data.
+    final missionId = result['missionId'];
+    final oldId = _draft.id;
+    _draft = BookingDraft()..data['missionId'] = missionId;
+    await _persistLocal();
+    await _api.call('clearBookingDraft', {'draftId': oldId});
+  }
 
   @override
   void dispose() {
-    _descController.dispose();
-    _pickupAddressController.dispose();
-    _dropoffAddressController.dispose();
-    _contactController.dispose();
-    _accessController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _debounce?.cancel();
+    _clock?.cancel();
+    _pickup.dispose();
+    _dropoff.dispose();
     super.dispose();
   }
 
+  void _addItem(String category, {bool notify = true}) {
+    final entry =
+        _catalog.where((e) => e.$1 == category).firstOrNull ?? _catalog.last;
+    _draft.items.add({
+      'id': const Uuid().v4(),
+      'category': category,
+      'label': entry.$2,
+      'quantity': 1,
+      'length': null,
+      'width': null,
+      'height': null,
+      'weight': null,
+      'dimension_unit': 'cm',
+      'weight_unit': 'kg',
+      'approximate': false,
+      'upright': true,
+      'photos': <String>[],
+    });
+    if (notify) _changed();
+  }
+
+  List<(String, String, IconData)> get _catalog => [
+    ('sofa', tr('Canapé', 'Sofa', 'Sofá'), Icons.weekend_outlined),
+    ('armchair', tr('Fauteuil', 'Armchair', 'Sillón'), Icons.chair_outlined),
+    (
+      'fridge',
+      tr('Réfrigérateur', 'Refrigerator', 'Refrigerador'),
+      Icons.kitchen_outlined,
+    ),
+    (
+      'washer',
+      tr('Laveuse', 'Washer', 'Lavadora'),
+      Icons.local_laundry_service_outlined,
+    ),
+    ('table', tr('Table', 'Table', 'Mesa'), Icons.table_restaurant_outlined),
+    ('tv', tr('Téléviseur', 'TV', 'Televisor'), Icons.tv_outlined),
+    ('boxes', tr('Boîtes', 'Boxes', 'Cajas'), Icons.inventory_2_outlined),
+    (
+      'materials',
+      tr('Matériaux', 'Materials', 'Materiales'),
+      Icons.construction_outlined,
+    ),
+    (
+      'other',
+      tr('Autre objet', 'Other item', 'Otro objeto'),
+      Icons.category_outlined,
+    ),
+  ];
+  Widget _heading(String text) => Padding(
+    padding: const EdgeInsets.only(top: 20, bottom: 12),
+    child: Text(text, style: Theme.of(context).textTheme.titleLarge),
+  );
+  Widget _note(String text, {bool warning = false}) => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: warning ? const Color(0xfffff1dd) : const Color(0xffeef5f4),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(text),
+  );
+  Widget _button(String text, VoidCallback? tap, {IconData? icon}) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: FilledButton.icon(
+      onPressed: _busy ? null : tap,
+      icon: Icon(icon ?? Icons.arrow_forward),
+      label: Text(text),
+    ),
+  );
+  void _step(int step) {
+    setState(() {
+      _draft.step = step;
+      _message = null;
+    });
+    _changed(quote: false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
     final auth = context.watch<FirebaseAuthProvider>();
-
-    if (_phase == _FlowPhase.created && _mission != null) {
-      return AppShell(
-        locale: widget.locale,
-        showFooter: false,
-        child: _MissionCreatedConfirmation(
-          locale: widget.locale,
-          mission: _mission!,
-        ),
-      );
-    }
-
     return AppShell(
       locale: widget.locale,
-      showFooter: false,
-      child: ResponsivePadding(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SectionTitle(title: t('delivery_hero_headline')),
-              const SizedBox(height: 28),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: StepProgressForm(
-                  stepTitles: [
-                    t('delivery_step1_title'),
-                    t('delivery_step_addresses_title'),
-                    t('delivery_step_vehicle_title'),
-                    t('delivery_step_quote_title'),
-                  ],
-                  nextLabel: t('common_next'),
-                  backLabel: t('common_back'),
-                  submitLabel: t('delivery_confirm_and_create'),
-                  canProceed: (step) {
-                    if (step == 0) {
-                      return _selectedCategory.isNotEmpty &&
-                          _descController.text.trim().isNotEmpty;
-                    }
-                    if (step == 1) {
-                      // GAP e/g/n) FAIL CLOSED : ne peut avancer que si les
-                      // DEUX adresses ont été RÉELLEMENT résolues par le
-                      // fournisseur (jamais une simple présence de texte).
-                      return _pickupResolved != null &&
-                          _dropoffResolved != null;
-                    }
-                    if (step == 2) return _selectedVehicle != null;
-                    // Step 3 (quote) : la soumission finale n'est permise
-                    // qu'une fois un devis réel obtenu.
-                    return _quote != null && _phase == _FlowPhase.quoted;
-                  },
-                  onStepChanged: (step) {
-                    // Dès l'entrée dans l'étape "devis", on déclenche
-                    // automatiquement le calcul du devis réel si ce n'est
-                    // pas déjà fait.
-                    if (step == 3 &&
-                        _quote == null &&
-                        _phase == _FlowPhase.form) {
-                      _requestQuote(auth);
-                    }
-                  },
-                  onComplete: () => _createMission(auth),
-                  stepBuilders: [
-                    (context) => _Step1ItemInfo(
-                      categories: DemoDataService.deliveryCategories,
-                      selectedCategory: _selectedCategory,
-                      onCategorySelected: (c) =>
-                          setState(() => _selectedCategory = c),
-                      descController: _descController,
-                      quantity: _quantity,
-                      onQuantityChanged: (q) => setState(() => _quantity = q),
-                      needsStairs: _needsStairs,
-                      onStairsChanged: (v) => setState(() => _needsStairs = v),
-                      needsSecondHandler: _needsSecondHandler,
-                      onSecondHandlerChanged: (v) =>
-                          setState(() => _needsSecondHandler = v),
-                      isHeavyItem: _isHeavyItem,
-                      onHeavyChanged: (v) => setState(() => _isHeavyItem = v),
-                      isBulkyItem: _isBulkyItem,
-                      onBulkyChanged: (v) => setState(() => _isBulkyItem = v),
-                      // MIS-C-09 / BUG-003 : force le rebuild du parent
-                      // pour que `canProceed` (qui lit
-                      // `_descController.text`) soit réévalué à chaque
-                      // frappe, sans quoi le bouton "Suivant" peut
-                      // rester bloqué désactivé.
-                      onDescriptionChanged: () => setState(() {}),
-                    ),
-                    (context) => _Step2Addresses(
-                      pickupController: _pickupAddressController,
-                      dropoffController: _dropoffAddressController,
-                      contactController: _contactController,
-                      accessController: _accessController,
-                      onPickupResolved: (a) =>
-                          setState(() => _pickupResolved = a),
-                      onPickupInvalidated: () =>
-                          setState(() => _pickupResolved = null),
-                      onDropoffResolved: (a) =>
-                          setState(() => _dropoffResolved = a),
-                      onDropoffInvalidated: () =>
-                          setState(() => _dropoffResolved = null),
-                    ),
-                    (context) => _Step3Vehicle(
-                      selected: _selectedVehicle,
-                      onSelected: (v) => setState(() => _selectedVehicle = v),
-                    ),
-                    (context) => _Step4Quote(
-                      phase: _phase,
-                      quote: _quote,
-                      distanceEstimate: _distanceEstimate,
-                      errorMessage: _errorMessage,
-                      onRetry: () => _requestQuote(auth),
-                    ),
-                  ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 920),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr(
+                    'Organisez votre livraison',
+                    'Plan your delivery',
+                    'Organiza tu entrega',
+                  ),
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _requestQuote(FirebaseAuthProvider auth) async {
-    if (_selectedVehicle == null) return;
-
-    // Le devis officiel est calculé par une Cloud Function authentifiée.
-    // Un visiteur peut donc remplir le formulaire librement, mais doit
-    // s'identifier au moment de demander le prix officiel. On conserve la
-    // catégorie dans le returnTo afin de reprendre le parcours de livraison.
-    if (!auth.isSignedIn) {
-      // Preserve the complete guest draft locally before authentication.
-      // The official quote is still calculated only after sign-in and only
-      // by the authenticated Cloud Function.
-      await _saveDraft();
-      await DeliveryRequestDraft.beginAuthHandoff();
-      if (!mounted) return;
-      final category = _selectedCategory.isEmpty ? null : _selectedCategory;
-      context.go(
-        DeliveryRequestIntent.loginPath(widget.locale, category: category),
-      );
-      return;
-    }
-
-    // GAP g)/n) FAIL CLOSED : ne jamais calculer un devis (donc jamais
-    // avancer) si l'une des deux adresses n'a pas été RÉELLEMENT résolue
-    // par le fournisseur cartographique (jamais de coordonnées "1,2" ou
-    // d'adresse tapée mais non sélectionnée dans les suggestions).
-    final pickup = _pickupResolved;
-    final dropoff = _dropoffResolved;
-    if (pickup == null || dropoff == null) {
-      setState(() {
-        _phase = _FlowPhase.form;
-        _errorMessage = context.read<LocaleProvider>().t(
-          'delivery_address_invalid_selection',
-        );
-      });
-      return;
-    }
-
-    setState(() {
-      _phase = _FlowPhase.quoting;
-      _errorMessage = null;
-    });
-
-    try {
-      final quote = await BackendLocator.missionRepository.requestQuote(
-        customerId: auth.effectiveUid ?? '',
-        itemCategoryKey: _selectedCategory,
-        vehicleCategoryName: _selectedVehicle!.firestoreValue,
-        missionDetails: {
-          'stops': [
-            {
-              'type': 'pickup',
-              'address': {
-                'line1': pickup.line1,
-                'city': pickup.city,
-                'postal_code': pickup.postalCode,
-                'lat': pickup.lat,
-                'lng': pickup.lng,
-                'formatted_address': pickup.formattedAddress,
-                'place_id': pickup.placeId,
-              },
-            },
-            {
-              'type': 'dropoff',
-              'address': {
-                'line1': dropoff.line1,
-                'city': dropoff.city,
-                'postal_code': dropoff.postalCode,
-                'lat': dropoff.lat,
-                'lng': dropoff.lng,
-                'formatted_address': dropoff.formattedAddress,
-                'place_id': dropoff.placeId,
-              },
-            },
-          ],
-          'handling': {
-            'isHeavyItem': _isHeavyItem,
-            'isBulkyItem': _isBulkyItem,
-            'needsStairs': _needsStairs,
-            'needsSecondHandler': _needsSecondHandler,
-          },
-        },
-      );
-
-      if (!mounted) return;
-      if (quote.distanceKm == null || quote.estimatedDurationMinutes == null) {
-        throw StateError(
-          'Le devis officiel ne contient pas d\'itinéraire valide.',
-        );
-      }
-      setState(() {
-        _distanceEstimate = DistanceEstimate(
-          distanceKm: quote.distanceKm!,
-          estimatedDurationMinutes: quote.estimatedDurationMinutes!,
-          isApproximate: false,
-        );
-        _quote = quote;
-        _phase = _FlowPhase.quoted;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _phase = _FlowPhase.form;
-        _errorMessage = _describeError(e, genericKey: 'delivery_quote_error');
-      });
-    }
-  }
-
-  Future<void> _createMission(FirebaseAuthProvider auth) async {
-    // MIS-C-09 (Phase 7, Bloc B) : garde de réentrance EXPLICITE, en plus de
-    // la désactivation visuelle du bouton (`canProceed` -> `_phase ==
-    // _FlowPhase.quoted`). La désactivation visuelle ne suffit pas seule :
-    // entre le premier `onPressed` et le rebuild qui grise le bouton, un
-    // deuxième tap synchrone (même frame, ou double-tap très rapide) peut
-    // survenir AVANT que `setState` n'ait été appliqué. Cette garde en tête
-    // de fonction (vérifiée avant tout `setState`/appel réseau) empêche
-    // qu'un deuxième appel à `_createMission()` ne déclenche une deuxième
-    // requête `createMissionFromQuote` tant que le premier appel est en
-    // cours ou déjà terminé (`creating` ou `created`).
-    if (_phase == _FlowPhase.creating || _phase == _FlowPhase.created) return;
-    if (_quote == null ||
-        _selectedVehicle == null ||
-        _distanceEstimate == null) {
-      return;
-    }
-
-    // GAP g)/n) FAIL CLOSED : re-vérifié ICI (pas seulement à l'étape 1) —
-    // un utilisateur pourrait revenir en arrière et modifier le texte d'une
-    // adresse après avoir déjà obtenu un devis (`AddressAutocompleteField`
-    // invalide alors `_pickupResolved`/`_dropoffResolved` via
-    // `onInvalidated`). Une mission ne doit JAMAIS être créée avec une
-    // adresse non résolue, même si un devis avait été calculé plus tôt sur
-    // la base d'une adresse alors valide.
-    final pickup = _pickupResolved;
-    final dropoff = _dropoffResolved;
-    if (pickup == null || dropoff == null) {
-      setState(() {
-        _errorMessage = context.read<LocaleProvider>().t(
-          'delivery_address_invalid_selection',
-        );
-      });
-      return;
-    }
-
-    setState(() {
-      _phase = _FlowPhase.creating;
-      _errorMessage = null;
-    });
-
-    try {
-      final pickupAddress = MissionAddress(
-        line1: pickup.line1,
-        city: pickup.city,
-        postalCode: pickup.postalCode,
-        lat: pickup.lat,
-        lng: pickup.lng,
-        formattedAddress: pickup.formattedAddress,
-        placeId: pickup.placeId,
-      );
-      final dropoffAddress = MissionAddress(
-        line1: dropoff.line1,
-        city: dropoff.city,
-        postalCode: dropoff.postalCode,
-        lat: dropoff.lat,
-        lng: dropoff.lng,
-        formattedAddress: dropoff.formattedAddress,
-        placeId: dropoff.placeId,
-      );
-
-      final mission = await BackendLocator.missionRepository
-          .createMissionFromQuote(
-            CreateMissionRequest(
-              quoteId: _quote!.id,
-              itemCategoryKey: _selectedCategory,
-              description: _descController.text.trim(),
-              requiredVehicleCategory: _selectedVehicle!,
-              stops: [
-                MissionStopInput(
-                  type: 'pickup',
-                  address: pickupAddress,
-                  contactInstructions: _contactController.text.trim().isEmpty
-                      ? null
-                      : _contactController.text.trim(),
-                  accessDetails: _accessController.text.trim().isEmpty
-                      ? null
-                      : _accessController.text.trim(),
+                const SizedBox(height: 8),
+                Text(
+                  tr(
+                    'Objets volumineux · Demande de créneau · Devis calculé par Movi-K',
+                    'Large items · Requested time · Quote calculated by Movi-K',
+                    'Objetos voluminosos · Horario solicitado · Presupuesto de Movi-K',
+                  ),
                 ),
-                MissionStopInput(type: 'dropoff', address: dropoffAddress),
+                if (!_loaded)
+                  const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  )
+                else if (_draft.data['missionId'] != null) ...[
+                  _heading(
+                    tr(
+                      'Votre demande est enregistrée',
+                      'Your request is saved',
+                      'Tu solicitud está registrada',
+                    ),
+                  ),
+                  _note(
+                    tr(
+                      'Recherche d’un chauffeur compatible. Le créneau reste demandé, pas encore confirmé.',
+                      'Searching for a compatible driver. Your requested time is not confirmed yet.',
+                      'Buscando un conductor compatible. El horario solicitado aún no está confirmado.',
+                    ),
+                  ),
+                  Text(
+                    '${tr('Référence', 'Reference', 'Referencia')} : ${_draft.data['missionId']}',
+                  ),
+                  _note(
+                    tr(
+                      'L’enregistrement de la carte n’est pas un paiement. L’autorisation intervient à l’acceptation du chauffeur ; la capture à la fin de la livraison. Consultez le suivi pour le statut réel.',
+                      'Saving a card is not a payment. Authorization occurs when a driver accepts; capture occurs after delivery. See tracking for the actual status.',
+                      'Guardar una tarjeta no es un pago. Se autoriza al aceptar el conductor y se cobra al finalizar la entrega. Consulta el estado en el seguimiento.',
+                    ),
+                  ),
+                  _button(
+                    tr(
+                      'Suivre ma livraison',
+                      'Track my delivery',
+                      'Seguir mi entrega',
+                    ),
+                    () => context.go(
+                      '/${widget.locale}/livraison/suivi/${_draft.data['missionId']}',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go('/${widget.locale}/contact'),
+                    child: Text(
+                      tr('Obtenir de l’aide', 'Get support', 'Obtener ayuda'),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _draft = BookingDraft();
+                      });
+                      _persistLocal();
+                    },
+                    child: Text(
+                      tr('Nouvelle livraison', 'New delivery', 'Nueva entrega'),
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 24),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(
+                      4,
+                      (i) => ChoiceChip(
+                        label: Text('${i + 1}. ${_titles[i]}'),
+                        selected: _draft.step == i,
+                        onSelected: _busy || i > _draft.step
+                            ? null
+                            : (_) => _step(i),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    _uid == null
+                        ? tr(
+                            'Brouillon conservé 24 h dans cet onglet. Fermer l’onglet efface le brouillon invité.',
+                            'Draft kept in this tab for 24 hours. Closing the tab removes the guest draft.',
+                            'Borrador guardado en esta pestaña por 24 h. Al cerrar la pestaña se borra el borrador de invitado.',
+                          )
+                        : tr(
+                            'Brouillon privé sauvegardé automatiquement, valable 24 h.',
+                            'Private draft saved automatically, valid for 24 hours.',
+                            'Borrador privado guardado automáticamente, válido por 24 h.',
+                          ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (_saveError != null) ...[
+                    _note(_saveError!, warning: true),
+                    TextButton(
+                      onPressed: () => _save(),
+                      child: Text(
+                        tr(
+                          'Réessayer la sauvegarde',
+                          'Retry saving',
+                          'Reintentar guardado',
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_message != null)
+                    Semantics(
+                      liveRegion: true,
+                      child: _note(_message!, warning: true),
+                    ),
+                  if (_busy) const LinearProgressIndicator(),
+                  AbsorbPointer(
+                    absorbing: _busy,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_draft.step == 0) ..._delivery(),
+                        if (_draft.step == 1) ..._price(),
+                        if (_draft.step == 2) ..._details(auth),
+                        if (_draft.step == 3) ..._confirmation(auth),
+                      ],
+                    ),
+                  ),
+                  if (_draft.step > 0)
+                    TextButton.icon(
+                      onPressed: _busy ? null : () => _step(_draft.step - 1),
+                      icon: const Icon(Icons.arrow_back),
+                      label: Text(tr('Retour', 'Back', 'Volver')),
+                    ),
+                ],
               ],
-              customerDisplayName:
-                  auth.effectiveDisplayName ?? auth.effectiveEmail ?? 'Client',
-            ),
-          );
-
-      // Le brouillon local est une commodité UX. Une mission déjà créée
-      // côté serveur ne doit jamais attendre le nettoyage de SharedPreferences.
-      unawaited(DeliveryRequestDraft.clear());
-      if (!mounted) return;
-      setState(() {
-        _mission = mission;
-        _phase = _FlowPhase.created;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _phase = _FlowPhase.quoted;
-        _errorMessage = _describeError(e, genericKey: 'delivery_mission_error');
-      });
-    }
-  }
-
-  // Phase 7, Bloc AB (AB-3, gap AB-3-A) — GAP RÉEL corrigé : cette fonction
-  // renvoyait AUPARAVANT directement `e.message`/`e.toString()` au client
-  // final — c'est-à-dire le message BRUT interne du serveur
-  // (`CloudFunctionException.message` porte le texte français non traduit
-  // de la Cloud Function, ex. "requestQuote: delivery_quotes/xyz introuvable
-  // après calculateDeliveryQuote." ou "Aucune configuration tarifaire active
-  // (pricing_configs/active)."). Ce texte :
-  //   - révèle des noms de collections Firestore internes et de Cloud
-  //     Functions ;
-  //   - n'est jamais traduit (toujours en français, même en EN/ES ->
-  //     mélange de langues, AB-7) ;
-  //   - n'est pas "compréhensible" pour un client final (jargon technique).
-  // Corrigé : toute erreur métier/backend (hors kill switch, déjà mappé
-  // séparément vers `service_temporarily_unavailable`) est désormais
-  // toujours mappée vers la clé i18n générique déjà existante et traduite
-  // FR/EN/ES passée par l'appelant (`genericKey` : `delivery_quote_error`
-  // pour le devis, `delivery_mission_error` pour la création de mission —
-  // ces deux clés existaient déjà dans app_strings.dart mais
-  // `delivery_mission_error` n'était jamais effectivement utilisée avant ce
-  // correctif). Le message technique brut n'est plus jamais affiché au
-  // client — il reste disponible pour le débogage via les logs
-  // (`debugPrint`) uniquement, jamais dans l'UI.
-  String _describeError(Object e, {required String genericKey}) {
-    // 🔒 Phase 7, Bloc X (X-10) — un refus par kill switch
-    // (`accept_new_delivery_requests`/`payments_enabled` désactivé côté
-    // `system_config/runtime_flags`) doit afficher le message générique
-    // traduit, JAMAIS le message brut du serveur. Vérifié AVANT le cas
-    // générique ci-dessous.
-    if (isKillSwitchException(e)) {
-      return context.read<LocaleProvider>().t(
-        'service_temporarily_unavailable',
-      );
-    }
-    if (e is CloudFunctionException || e is BackendNotConfiguredException) {
-      debugPrint('DeliveryRequestFlowScreen error (not shown to user): $e');
-      return context.read<LocaleProvider>().t(genericKey);
-    }
-    // Erreur inattendue (ex: exception réseau brute non enveloppée par le
-    // repository) : message générique également, jamais `e.toString()`.
-    debugPrint(
-      'DeliveryRequestFlowScreen unexpected error (not shown to user): $e',
-    );
-    return context.read<LocaleProvider>().t(genericKey);
-  }
-}
-
-// ---------------- Step 1 : item info ----------------
-class _Step1ItemInfo extends StatelessWidget {
-  final List<String> categories;
-  final String selectedCategory;
-  final ValueChanged<String> onCategorySelected;
-  final TextEditingController descController;
-  final int quantity;
-  final ValueChanged<int> onQuantityChanged;
-  final bool needsStairs;
-  final ValueChanged<bool> onStairsChanged;
-  final bool needsSecondHandler;
-  final ValueChanged<bool> onSecondHandlerChanged;
-  final bool isHeavyItem;
-  final ValueChanged<bool> onHeavyChanged;
-  final bool isBulkyItem;
-  final ValueChanged<bool> onBulkyChanged;
-  // MIS-C-09 (Phase 7, Bloc B, BUG-003) : `canProceed` (StepProgressForm)
-  // dépend de `descController.text`, mais un `TextEditingController` seul
-  // ne déclenche AUCUN rebuild du parent quand son texte change (ce widget
-  // est `StatelessWidget` et le parent n'écoute pas le controller). Sans ce
-  // callback, taper la description après avoir choisi la catégorie ne
-  // réévalue jamais `canProceed` -> le bouton "Suivant" reste figé désactivé.
-  final VoidCallback onDescriptionChanged;
-
-  const _Step1ItemInfo({
-    required this.categories,
-    required this.selectedCategory,
-    required this.onCategorySelected,
-    required this.descController,
-    required this.quantity,
-    required this.onQuantityChanged,
-    required this.needsStairs,
-    required this.onStairsChanged,
-    required this.needsSecondHandler,
-    required this.onSecondHandlerChanged,
-    required this.isHeavyItem,
-    required this.onHeavyChanged,
-    required this.isBulkyItem,
-    required this.onBulkyChanged,
-    required this.onDescriptionChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return StepFormCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('delivery_item_category'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: categories
-                .map(
-                  (c) => ChoiceChip(
-                    label: Text(t(c)),
-                    selected: selectedCategory == c,
-                    onSelected: (_) => onCategorySelected(c),
-                  ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: descController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: t('delivery_item_description'),
-            ),
-            onChanged: (_) => onDescriptionChanged(),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                t('delivery_item_quantity'),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: quantity > 1
-                    ? () => onQuantityChanged(quantity - 1)
-                    : null,
-                icon: const Icon(Icons.remove_circle_outline),
-                tooltip: t('delivery_item_quantity_decrease'),
-              ),
-              Text(
-                '$quantity',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              IconButton(
-                onPressed: () => onQuantityChanged(quantity + 1),
-                icon: const Icon(Icons.add_circle_outline),
-                tooltip: t('delivery_item_quantity_increase'),
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-          _SwitchRow(
-            label: t('delivery_item_stairs'),
-            value: needsStairs,
-            onChanged: onStairsChanged,
-          ),
-          _SwitchRow(
-            label: t('delivery_item_loading_help'),
-            value: needsSecondHandler,
-            onChanged: onSecondHandlerChanged,
-          ),
-          _SwitchRow(
-            label: t('delivery_item_heavy'),
-            value: isHeavyItem,
-            onChanged: onHeavyChanged,
-          ),
-          _SwitchRow(
-            label: t('delivery_item_bulky'),
-            value: isBulkyItem,
-            onChanged: onBulkyChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  const _SwitchRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Give the tile its own painting surface without changing address cards.
-    return Material(
-      type: MaterialType.transparency,
-      child: SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(label, style: const TextStyle(fontSize: 14)),
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: AppColors.primary,
-      ),
-    );
-  }
-}
-
-// ---------------- Step 2 : addresses ----------------
-// MOVI-K — CORRECTION UX LIVRAISON (adresses réelles + autocomplete +
-// géocodage) : remplace intégralement les anciens champs séparés
-// adresse/ville/code postal/latitude/longitude par UN SEUL champ par
-// adresse (pickup/dropoff), avec suggestions réelles en direct
-// (`AddressAutocompleteField`). Le client ne voit et ne saisit plus JAMAIS
-// aucune coordonnée — tout est extrait automatiquement en arrière-plan à
-// la sélection d'une suggestion (voir `AddressAutocompleteField.onResolved`,
-// qui remonte un `ResolvedAddress` complet au parent).
-class _Step2Addresses extends StatelessWidget {
-  final TextEditingController pickupController;
-  final TextEditingController dropoffController;
-  final TextEditingController contactController;
-  final TextEditingController accessController;
-  final ValueChanged<ResolvedAddress> onPickupResolved;
-  final VoidCallback onPickupInvalidated;
-  final ValueChanged<ResolvedAddress> onDropoffResolved;
-  final VoidCallback onDropoffInvalidated;
-
-  const _Step2Addresses({
-    required this.pickupController,
-    required this.dropoffController,
-    required this.contactController,
-    required this.accessController,
-    required this.onPickupResolved,
-    required this.onPickupInvalidated,
-    required this.onDropoffResolved,
-    required this.onDropoffInvalidated,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return StepFormCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.trip_origin, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  t('delivery_pickup_address'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AddressAutocompleteField(
-            controller: pickupController,
-            label: t('delivery_pickup_address'),
-            onResolved: onPickupResolved,
-            onInvalidated: onPickupInvalidated,
-          ),
-          const Divider(height: 32),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on_outlined,
-                color: AppColors.primary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  t('delivery_dropoff_address'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          AddressAutocompleteField(
-            controller: dropoffController,
-            label: t('delivery_dropoff_address'),
-            onResolved: onDropoffResolved,
-            onInvalidated: onDropoffInvalidated,
-          ),
-          const Divider(height: 32),
-          TextField(
-            controller: contactController,
-            decoration: InputDecoration(
-              labelText:
-                  '${t('delivery_contact_instructions')} (${t('common_optional')})',
             ),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: accessController,
-            decoration: InputDecoration(
-              labelText:
-                  '${t('delivery_access_details')} (${t('common_optional')})',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------- Step 3 : vehicle ----------------
-class _Step3Vehicle extends StatelessWidget {
-  final VehicleCategory? selected;
-  final ValueChanged<VehicleCategory> onSelected;
-  const _Step3Vehicle({required this.selected, required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return StepFormCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('delivery_required_vehicle'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: VehicleCategory.values
-                .where((v) => v != VehicleCategory.other)
-                .map(
-                  (v) => ChoiceChip(
-                    label: Text(t(v.key)),
-                    selected: selected == v,
-                    onSelected: (_) => onSelected(v),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------- Step 4 : quote ----------------
-class _Step4Quote extends StatelessWidget {
-  final _FlowPhase phase;
-  final DeliveryQuote? quote;
-  final DistanceEstimate? distanceEstimate;
-  final String? errorMessage;
-  final VoidCallback onRetry;
-
-  const _Step4Quote({
-    required this.phase,
-    required this.quote,
-    required this.distanceEstimate,
-    required this.errorMessage,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-
-    if (phase == _FlowPhase.quoting || phase == _FlowPhase.creating) {
-      return StepFormCard(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(
-              phase == _FlowPhase.creating
-                  ? t('delivery_creating_mission')
-                  : t('delivery_getting_quote'),
-            ),
-          ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    if (errorMessage != null && quote == null) {
-      // Phase 7, Bloc AB (AB-3-A) — `errorMessage` est désormais TOUJOURS un
-      // texte déjà traduit et compréhensible (voir `_describeError()`),
-      // jamais le message brut du serveur. On l'affiche donc directement
-      // (une seule fois, pas de doublon avec un titre générique fixe).
-      return StepFormCard(
+  List<Widget> _delivery() => [
+    _heading(
+      tr(
+        'Que souhaitez-vous transporter ?',
+        'What are you moving?',
+        '¿Qué quieres transportar?',
+      ),
+    ),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: _catalog
+          .map(
+            (e) => OutlinedButton.icon(
+              onPressed: _draft.items.length >= 20
+                  ? null
+                  : () => _addItem(e.$1),
+              icon: Icon(e.$3),
+              label: Text(e.$2),
+            ),
+          )
+          .toList(),
+    ),
+    ..._draft.items.map(
+      (item) => _item(Map<String, dynamic>.from(item as Map)),
+    ),
+    _note(
+      tr(
+        'Mesurez l’objet emballé. Laissez une mesure vide si vous ne la connaissez pas : une vérification sera nécessaire. Aucune dimension n’est supposée.',
+        'Measure the packaged item. Leave an unknown measurement blank: review will be required. No dimensions are assumed.',
+        'Mide el objeto embalado. Deja en blanco las medidas desconocidas: será necesaria una revisión. No se suponen dimensiones.',
+      ),
+    ),
+    _heading(
+      tr('Ramassage et livraison', 'Pickup and delivery', 'Recogida y entrega'),
+    ),
+    ..._address(
+      'pickup',
+      _pickup,
+      tr('Adresse de ramassage', 'Pickup address', 'Dirección de recogida'),
+    ),
+    ..._address(
+      'dropoff',
+      _dropoff,
+      tr('Adresse de livraison', 'Delivery address', 'Dirección de entrega'),
+    ),
+    _heading(
+      tr(
+        'Services et créneau demandé',
+        'Services and requested time',
+        'Servicios y horario solicitado',
+      ),
+    ),
+    DropdownButtonFormField<int>(
+      initialValue: (_draft.data['handlers'] as num).toInt(),
+      decoration: InputDecoration(
+        labelText: tr(
+          'Nombre de manutentionnaires requis',
+          'Required handlers',
+          'Personas necesarias para cargar',
+        ),
+      ),
+      items: [
+        1,
+        2,
+      ].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+      onChanged: (n) {
+        _draft.data['handlers'] = n;
+        _changed();
+      },
+    ),
+    const SizedBox(height: 12),
+    Wrap(
+      spacing: 8,
+      children:
+          [
+                ('dolly', tr('Diable', 'Dolly', 'Carretilla')),
+                ('straps', tr('Sangles', 'Straps', 'Correas')),
+                (
+                  'liftgate',
+                  tr('Hayon élévateur', 'Liftgate', 'Plataforma elevadora'),
+                ),
+              ]
+              .map(
+                (e) => FilterChip(
+                  label: Text(e.$2),
+                  selected: (_draft.data['equipment'] as List).contains(e.$1),
+                  onSelected: (v) {
+                    final list = _draft.data['equipment'] as List;
+                    v ? list.add(e.$1) : list.remove(e.$1);
+                    _changed();
+                  },
+                ),
+              )
+              .toList(),
+    ),
+    OutlinedButton.icon(
+      icon: const Icon(Icons.schedule),
+      onPressed: () => _chooseTime(),
+      label: Text(
+        _draft.data['requested_at'] == null
+            ? tr(
+                'Choisir une date et une heure',
+                'Choose date and time',
+                'Elegir fecha y hora',
+              )
+            : _formatTime(_draft.data['requested_at'] as String),
+      ),
+    ),
+    _note(
+      tr(
+        'La date et l’heure expriment votre souhait. Elles dépendent de l’acceptation et de la disponibilité du chauffeur.',
+        'Date and time are your preference. They depend on driver acceptance and availability.',
+        'La fecha y hora expresan tu preferencia y dependen de la aceptación y disponibilidad del conductor.',
+      ),
+    ),
+    _button(
+      tr('Voir mon prix', 'See my price', 'Ver mi precio'),
+      _draft.items.isEmpty ||
+              !_addressesValid ||
+              _draft.data['requested_at'] == null
+          ? null
+          : () {
+              _step(1);
+              if (_uid != null) _run(_quote);
+            },
+    ),
+    if (!_addressesValid)
+      Text(
+        tr(
+          'Sélectionnez deux adresses dans les suggestions, avec ville et code postal.',
+          'Select both addresses from suggestions, including city and postal code.',
+          'Selecciona ambas direcciones en las sugerencias, con ciudad y código postal.',
+        ),
+      ),
+  ];
+  String _formatTime(String iso) {
+    final date = DateTime.tryParse(iso)?.toLocal();
+    return date == null
+        ? iso
+        : '${MaterialLocalizations.of(context).formatMediumDate(date)} · ${TimeOfDay.fromDateTime(date).format(context)}';
+  }
+
+  Future<void> _chooseTime() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (time == null || !mounted) return;
+    _draft.data['requested_at'] = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    ).toUtc().toIso8601String();
+    _changed();
+  }
+
+  Widget _item(Map<String, dynamic> copy) {
+    final item = _draft.items.firstWhere((i) => i['id'] == copy['id']) as Map;
+    Widget number(String key, String label) => SizedBox(
+      width: 145,
+      child: TextFormField(
+        key: ValueKey(
+          '${item['id']}-$key-${item['dimension_unit']}-${item['weight_unit']}',
+        ),
+        initialValue: item[key]?.toString() ?? '',
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: tr('Inconnu', 'Unknown', 'Desconocido'),
+        ),
+        onChanged: (s) {
+          item[key] = num.tryParse(s.replaceAll(',', '.'));
+          _changed();
+        },
+      ),
+    );
+    return Card(
+      key: ValueKey(item['id']),
+      margin: const EdgeInsets.only(top: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.error_outline, color: AppColors.error),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    errorMessage!,
-                    style: const TextStyle(color: AppColors.error),
+                  child: TextFormField(
+                    initialValue: item['label'] as String,
+                    decoration: InputDecoration(
+                      labelText: tr('Objet', 'Item', 'Objeto'),
+                    ),
+                    maxLength: 160,
+                    onChanged: (v) {
+                      item['label'] = v;
+                      _changed();
+                    },
                   ),
+                ),
+                IconButton(
+                  tooltip: tr(
+                    'Retirer cet objet',
+                    'Remove item',
+                    'Quitar objeto',
+                  ),
+                  onPressed: () {
+                    _draft.items.remove(item);
+                    _changed();
+                  },
+                  icon: const Icon(Icons.delete_outline),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: Text(t('common_retry'))),
-          ],
-        ),
-      );
-    }
-
-    if (quote == null) {
-      // Ne devrait pas arriver (onStepChanged déclenche le devis), mais on
-      // couvre le cas défensivement plutôt que d'afficher un état incohérent.
-      return StepFormCard(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(t('delivery_getting_quote')),
-          ],
-        ),
-      );
-    }
-
-    return StepFormCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (errorMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: AppColors.error,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      errorMessage!,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          Text(
-            t('delivery_quote_total'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                Text(
-                  '${quote!.customerTotal.toStringAsFixed(2)} \$',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                  ),
-                ),
-                if (quote!.breakdown != null) ...[
-                  const Divider(height: 28),
-                  _BreakdownRow(
-                    t('delivery_breakdown_base'),
-                    quote!.breakdown!.missionBaseValue,
-                  ),
-                  if (quote!.breakdown!.handlingFeesTotal > 0)
-                    _BreakdownRow(
-                      t('delivery_item_stairs'),
-                      quote!.breakdown!.handlingFeesTotal,
+                SizedBox(
+                  width: 120,
+                  child: DropdownButtonFormField<int>(
+                    initialValue: (item['quantity'] as num).toInt(),
+                    decoration: InputDecoration(
+                      labelText: tr('Quantité', 'Quantity', 'Cantidad'),
                     ),
-                  if (quote!.breakdown!.customerServiceFee > 0)
-                    _BreakdownRow(
-                      t('delivery_breakdown_service_fee'),
-                      quote!.breakdown!.customerServiceFee,
-                    ),
-                  if (quote!.breakdown!.taxAmount > 0)
-                    _BreakdownRow(
-                      t('delivery_breakdown_tax'),
-                      quote!.breakdown!.taxAmount,
-                    ),
-                  if (quote!.breakdown!.customerDiscountAmount > 0)
-                    _BreakdownRow(
-                      t('delivery_breakdown_discount'),
-                      -quote!.breakdown!.customerDiscountAmount,
-                    ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (distanceEstimate != null)
-            Text(
-              '${distanceEstimate!.distanceKm.toStringAsFixed(1)} km • '
-              '${distanceEstimate!.estimatedDurationMinutes.round()} min\n'
-              '${t('delivery_quote_distance_note')}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          const SizedBox(height: 8),
-          Text(
-            t('delivery_quote_expires_note'),
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BreakdownRow extends StatelessWidget {
-  final String label;
-  final double value;
-  const _BreakdownRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          Text(
-            '${value.toStringAsFixed(2)} \$',
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------- Confirmation ----------------
-class _MissionCreatedConfirmation extends StatelessWidget {
-  final String locale;
-  final DeliveryMission mission;
-  const _MissionCreatedConfirmation({
-    required this.locale,
-    required this.mission,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 40),
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_circle,
-                  color: AppColors.success,
-                  size: 44,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                t('delivery_mission_created_title'),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                t('delivery_searching_driver_desc'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.hourglass_top_rounded,
-                      color: AppColors.info,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        t(mission.status.key),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                    items: List.generate(
+                      20,
+                      (i) => DropdownMenuItem(
+                        value: i + 1,
+                        child: Text('${i + 1}'),
                       ),
                     ),
-                  ],
+                    onChanged: (v) {
+                      item['quantity'] = v;
+                      _changed();
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: item['dimension_unit'] as String,
+                    decoration: InputDecoration(
+                      labelText: tr('Dimensions', 'Dimensions', 'Dimensiones'),
+                    ),
+                    items: ['cm', 'in']
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != item['dimension_unit']) {
+                        for (final key in ['length', 'width', 'height']) {
+                          if (item[key] != null) {
+                            item[key] =
+                                (item[key] as num) *
+                                (v == 'in' ? 1 / 2.54 : 2.54);
+                          }
+                        }
+                        item['dimension_unit'] = v;
+                        _changed();
+                      }
+                    },
+                  ),
+                ),
+                number('length', tr('Longueur', 'Length', 'Largo')),
+                number('width', tr('Largeur', 'Width', 'Ancho')),
+                number('height', tr('Hauteur', 'Height', 'Alto')),
+                SizedBox(
+                  width: 120,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: item['weight_unit'] as String,
+                    decoration: InputDecoration(
+                      labelText: tr(
+                        'Unité de poids',
+                        'Weight unit',
+                        'Unidad de peso',
+                      ),
+                    ),
+                    items: ['kg', 'lb']
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != item['weight_unit']) {
+                        if (item['weight'] != null) {
+                          item['weight'] =
+                              (item['weight'] as num) *
+                              (v == 'lb' ? 1 / 0.45359237 : 0.45359237);
+                        }
+                        item['weight_unit'] = v;
+                        _changed();
+                      }
+                    },
+                  ),
+                ),
+                number(
+                  'weight',
+                  tr('Poids / pièce', 'Weight / piece', 'Peso / pieza'),
+                ),
+              ],
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                tr(
+                  'Mesures approximatives',
+                  'Approximate measurements',
+                  'Medidas aproximadas',
                 ),
               ),
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: () =>
-                    context.go('/$locale/livraison/suivi/${mission.id}'),
-                child: Text(t('tracking_title')),
+              value: item['approximate'] as bool,
+              onChanged: (v) {
+                item['approximate'] = v;
+                _changed();
+              },
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                tr(
+                  'Doit rester debout',
+                  'Must remain upright',
+                  'Debe permanecer vertical',
+                ),
               ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: () => context.go('/$locale'),
-                child: Text(t('nav_home')),
+              value: item['upright'] as bool,
+              onChanged: (v) {
+                item['upright'] = v;
+                _changed();
+              },
+            ),
+            if (item['approximate'] == true ||
+                item['length'] == null ||
+                item['weight'] == null)
+              Text(
+                tr(
+                  'Une photo aide à vérifier l’objet, sans en mesurer les dimensions ou le poids.',
+                  'A photo helps review the item; it does not measure dimensions or weight.',
+                  'Una foto ayuda a revisar el objeto; no mide dimensiones ni peso.',
+                ),
               ),
-              const SizedBox(height: 40),
+            Wrap(
+              spacing: 8,
+              children: (item['photos'] as List? ?? [])
+                  .map((p) => BookingPhoto(key: ValueKey(p), path: p as String))
+                  .toList(),
+            ),
+            TextButton.icon(
+              icon: const Icon(Icons.add_a_photo_outlined),
+              label: Text(
+                tr(
+                  'Ajouter une photo JPEG (facultatif)',
+                  'Add a JPEG photo (optional)',
+                  'Añadir foto JPEG (opcional)',
+                ),
+              ),
+              onPressed: (item['photos'] as List? ?? []).length >= 3
+                  ? null
+                  : () => _run(() async {
+                      if (_uid == null) {
+                        await _login();
+                        return;
+                      }
+                      await _save();
+                      if (_saveError != null) return;
+                      final photos = item['photos'] as List? ?? <String>[];
+                      final path = await uploadBookingPhoto(
+                        uid: _uid!,
+                        draftId: _draft.id,
+                        itemId: item['id'] as String,
+                        slot: photos.length,
+                      );
+                      if (path != null && mounted) {
+                        photos.add(path);
+                        item['photos'] = photos;
+                        _changed();
+                      }
+                    }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _address(
+    String key,
+    TextEditingController controller,
+    String label,
+  ) {
+    final access = _draft.data['${key}_access'] as Map;
+    return [
+      const SizedBox(height: 18),
+      AddressAutocompleteField(
+        key: ValueKey('$key-${_draft.id}'),
+        controller: controller,
+        label: label,
+        onResolved: (a) {
+          _draft.data[key] = {
+            'line1': a.line1,
+            'city': a.city,
+            'postal_code': a.postalCode,
+            'lat': a.lat,
+            'lng': a.lng,
+            'formatted_address': a.formattedAddress,
+            'place_id': a.placeId,
+          };
+          _changed();
+        },
+        onInvalidated: () {
+          _draft.data[key] = null;
+          _changed();
+        },
+      ),
+      // A restored address must also be invalidated if the user types. The
+      // autocomplete field did not previously know its initial resolved text.
+      const SizedBox(height: 12),
+      Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        children: [
+          SizedBox(
+            width: 150,
+            child: TextFormField(
+              key: ValueKey('$key-floor-${_draft.id}'),
+              initialValue: '${access['floor']}',
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              decoration: InputDecoration(
+                labelText: tr(
+                  'Étage (0 = sol)',
+                  'Floor (0 = ground)',
+                  'Piso (0 = calle)',
+                ),
+              ),
+              onChanged: (v) {
+                access['floor'] = int.tryParse(v) ?? -999;
+                _changed();
+              },
+            ),
+          ),
+          FilterChip(
+            label: Text(tr('Escaliers', 'Stairs', 'Escaleras')),
+            selected: access['stairs'] == true,
+            onSelected: (v) {
+              access['stairs'] = v;
+              _changed();
+            },
+          ),
+          FilterChip(
+            label: Text(tr('Ascenseur', 'Elevator', 'Ascensor')),
+            selected: access['elevator'] == true,
+            onSelected: (v) {
+              access['elevator'] = v;
+              _changed();
+            },
+          ),
+        ],
+      ),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(
+          key == 'pickup'
+              ? tr('Aide au chargement', 'Loading help', 'Ayuda para cargar')
+              : tr(
+                  'Aide au déchargement',
+                  'Unloading help',
+                  'Ayuda para descargar',
+                ),
+        ),
+        value: access['help'] as bool,
+        onChanged: (v) {
+          access['help'] = v;
+          _changed();
+        },
+      ),
+    ];
+  }
+
+  String _reason(String reason) => switch (reason) {
+    'dimensions_unknown' => tr(
+      'Complétez les trois dimensions de chaque objet.',
+      'Complete all three dimensions for each item.',
+      'Completa las tres dimensiones de cada objeto.',
+    ),
+    'weight_unknown' => tr(
+      'Précisez le poids de chaque pièce.',
+      'Enter the weight of each piece.',
+      'Indica el peso de cada pieza.',
+    ),
+    'approximate_measurements' => tr(
+      'Les mesures approximatives doivent être vérifiées avant réservation.',
+      'Approximate measurements need verification before booking.',
+      'Las medidas aproximadas deben verificarse antes de reservar.',
+    ),
+    'capacity_unconfigured' => tr(
+      'Les capacités vérifiées des véhicules ne sont pas encore configurées.',
+      'Verified vehicle capacities have not been configured yet.',
+      'Las capacidades verificadas de los vehículos aún no están configuradas.',
+    ),
+    'service_area_unconfigured' => tr(
+      'La zone de service doit être confirmée par Movi-K.',
+      'The service area needs confirmation by Movi-K.',
+      'Movi-K debe confirmar la zona de servicio.',
+    ),
+    'outside_service_area' => tr(
+      'Une adresse est hors de la zone desservie.',
+      'An address is outside the service area.',
+      'Una dirección está fuera de la zona de servicio.',
+    ),
+    'requested_time_past' => tr(
+      'Choisissez une date et une heure futures.',
+      'Choose a future date and time.',
+      'Elige una fecha y hora futuras.',
+    ),
+    _ => tr(
+      'Aucun chargement compatible n’est validé. Une vérification est nécessaire.',
+      'No compatible loading plan is verified. A review is needed.',
+      'No se ha verificado un plan de carga compatible. Se necesita una revisión.',
+    ),
+  };
+  List<Widget> _price() => [
+    _heading(_titles[1]),
+    if (_uid == null) ...[
+      _note(
+        tr(
+          'Connectez-vous pour obtenir le devis officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',
+          'Sign in for your official quote. Your delivery details will resume automatically. A provisional price is not a booking.',
+          'Inicia sesión para obtener el presupuesto oficial. Tu entrega se retomará automáticamente. Un precio provisional no es una reserva.',
+        ),
+      ),
+      _button(
+        tr(
+          'Se connecter et obtenir mon prix',
+          'Sign in and get my price',
+          'Iniciar sesión y ver mi precio',
+        ),
+        () => _run(_login),
+      ),
+    ] else ...[
+      if (_review?['reasons'] is List)
+        ...(_review!['reasons'] as List).map(
+          (r) => _note(_reason(r as String), warning: true),
+        ),
+      if (_review?['status'] == 'review_required')
+        TextButton.icon(
+          icon: const Icon(Icons.support_agent),
+          label: Text(
+            tr(
+              'Demander une vérification',
+              'Request a review',
+              'Solicitar revisión',
+            ),
+          ),
+          onPressed: () => _run(() async {
+            final result = await _api.call('requestBookingReview', {
+              'draftId': _draft.id,
+              'load': _draft.load,
+              'stops': _draft.stops,
+            });
+            if (mounted) {
+              setState(() {
+                _message =
+                    '${tr('Vérification demandée. Aucune mission ni aucun paiement créé. Référence', 'Review requested. No mission or payment created. Reference', 'Revisión solicitada. No se creó misión ni pago. Referencia')} : ${result['reviewId']}';
+              });
+            }
+          }),
+        ),
+      if (_draft.quote != null) ...[_quoteLoadSummary(), ..._quoteSummary()],
+      if (!_draft.quoteValid)
+        _button(
+          tr(
+            'Calculer mon devis officiel',
+            'Calculate my official quote',
+            'Calcular mi presupuesto oficial',
+          ),
+          () => _run(_quote),
+        ),
+      if ((_review?['compatible_categories'] as List? ?? []).length > 1) ...[
+        DropdownButtonFormField<String>(
+          initialValue: _draft.quote?['vehicleCategory'] as String?,
+          decoration: InputDecoration(
+            labelText: tr(
+              'Autre catégorie compatible',
+              'Another compatible category',
+              'Otra categoría compatible',
+            ),
+          ),
+          items: (_review!['compatible_categories'] as List)
+              .map(
+                (v) => DropdownMenuItem<String>(
+                  value: v as String,
+                  child: Text(_vehicleLabel(v)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) {
+            _draft.data['requested_vehicle'] = v;
+            _changed();
+            _run(_quote);
+          },
+        ),
+        Text(
+          tr(
+            'Chaque changement demande un nouveau prix. La disponibilité d’un chauffeur reste à confirmer.',
+            'Each change requires a new price. Driver availability is still to be confirmed.',
+            'Cada cambio requiere un nuevo precio. Falta confirmar la disponibilidad del conductor.',
+          ),
+        ),
+      ],
+      if (_draft.quoteValid) ...[
+        _note(
+          tr(
+            'Le véhicule recommandé est vérifié à nouveau avec le véhicule réel du chauffeur à l’acceptation.',
+            'The recommended vehicle is checked against the driver’s actual vehicle on acceptance.',
+            'Se verifica la recomendación con el vehículo real del conductor al aceptar.',
+          ),
+        ),
+        _button(
+          tr(
+            'Continuer vers mes coordonnées',
+            'Continue to my details',
+            'Continuar a mis datos',
+          ),
+          () => _step(2),
+        ),
+      ],
+      TextButton(
+        onPressed: () => _step(0),
+        child: Text(
+          tr(
+            'Modifier ma livraison',
+            'Edit my delivery',
+            'Modificar mi entrega',
+          ),
+        ),
+      ),
+    ],
+  ];
+  List<Widget> _quoteSummary() {
+    final quote = _draft.quote!;
+    final breakdown = Map<String, dynamic>.from(
+      quote['breakdown'] as Map? ?? {},
+    );
+    String money(dynamic n) => '${(n as num).toStringAsFixed(2)} CAD';
+    final lines = [
+      ('missionBaseValue', tr('Transport', 'Transport', 'Transporte')),
+      ('handlingFeesTotal', tr('Manutention', 'Handling', 'Manipulación')),
+      ('waitingFee', tr('Attente', 'Waiting', 'Espera')),
+      (
+        'additionalStopsFee',
+        tr('Arrêts supplémentaires', 'Additional stops', 'Paradas adicionales'),
+      ),
+      ('surchargesTotal', tr('Suppléments', 'Surcharges', 'Suplementos')),
+      (
+        'customerServiceFee',
+        tr('Frais de service', 'Service fee', 'Tarifa de servicio'),
+      ),
+      ('customerDiscountAmount', tr('Remise', 'Discount', 'Descuento')),
+      ('taxAmount', tr('Taxes', 'Taxes', 'Impuestos')),
+    ];
+    return [
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                money(quote['customerTotal']),
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              Text(
+                tr(
+                  'Total officiel, taxes comprises',
+                  'Official total, including taxes',
+                  'Total oficial, impuestos incluidos',
+                ),
+              ),
+              const Divider(height: 28),
+              for (final line in lines)
+                if (breakdown[line.$1] is num && breakdown[line.$1] != 0)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(line.$2)),
+                        Text(
+                          '${line.$1 == 'customerDiscountAmount' ? '-' : ''}${money(breakdown[line.$1])}',
+                        ),
+                      ],
+                    ),
+                  ),
+              const Divider(),
+              Text(
+                '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
+              ),
+              Text(
+                '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${(quote['distanceKm'] as num).toStringAsFixed(1)} km',
+              ),
+              Text(
+                '${tr('Valable jusqu’à', 'Valid until', 'Válido hasta')} ${_formatTime(DateTime.fromMillisecondsSinceEpoch((quote['expiresAtMillis'] as num).toInt()).toIso8601String())}',
+              ),
             ],
           ),
         ),
       ),
-    );
+      if (!_draft.quoteValid)
+        _note(
+          tr(
+            'Ce devis a expiré. Recalculez-le avant de confirmer.',
+            'This quote has expired. Recalculate before confirming.',
+            'Este presupuesto expiró. Recálculalo antes de confirmar.',
+          ),
+          warning: true,
+        ),
+    ];
+  }
+
+  String _vehicleLabel(String v) => switch (v) {
+    'cargo_van' ||
+    'cargoVan' => tr('Fourgonnette cargo', 'Cargo van', 'Furgoneta de carga'),
+    'pickup_truck' ||
+    'pickupTruck' => tr('Camionnette', 'Pickup truck', 'Camioneta'),
+    'box_truck' ||
+    'boxTruck' => tr('Camion fermé', 'Box truck', 'Camión cerrado'),
+    _ => v.replaceAll('_', ' '),
+  };
+  List<Widget> _details(FirebaseAuthProvider auth) => [
+    _heading(_titles[2]),
+    Text(auth.effectiveEmail ?? ''),
+    if (auth.user?.emailVerified != true) ...[
+      _note(
+        tr(
+          'Vérifiez votre adresse courriel pour réserver.',
+          'Verify your email address to book.',
+          'Verifica tu correo electrónico para reservar.',
+        ),
+        warning: true,
+      ),
+      Wrap(
+        spacing: 12,
+        children: [
+          TextButton(
+            onPressed: () => _run(() async {
+              await auth.user?.sendEmailVerification();
+              if (mounted) {
+                setState(() {
+                  _message = tr(
+                    'Courriel de vérification envoyé.',
+                    'Verification email sent.',
+                    'Correo de verificación enviado.',
+                  );
+                });
+              }
+            }),
+            child: Text(
+              tr('Envoyer le courriel', 'Send email', 'Enviar correo'),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _run(() async {
+              await auth.reloadCurrentUser();
+              if (mounted) setState(() {});
+            }),
+            child: Text(
+              tr(
+                'J’ai vérifié mon courriel',
+                'I verified my email',
+                'Ya verifiqué mi correo',
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+    Form(
+      key: _contactsForm,
+      child: Column(
+        children: [
+          for (final field in [
+            (
+              'pickup_name',
+              tr(
+                'Nom au ramassage',
+                'Pickup contact name',
+                'Nombre en recogida',
+              ),
+            ),
+            (
+              'pickup_phone',
+              tr(
+                'Téléphone au ramassage',
+                'Pickup phone',
+                'Teléfono en recogida',
+              ),
+            ),
+            (
+              'dropoff_name',
+              tr(
+                'Nom à la livraison',
+                'Delivery contact name',
+                'Nombre en entrega',
+              ),
+            ),
+            (
+              'dropoff_phone',
+              tr(
+                'Téléphone à la livraison',
+                'Delivery phone',
+                'Teléfono en entrega',
+              ),
+            ),
+            (
+              'instructions',
+              tr(
+                'Instructions pour les contacts (facultatif)',
+                'Contact instructions (optional)',
+                'Instrucciones de contacto (opcional)',
+              ),
+            ),
+          ])
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: TextFormField(
+                key: ValueKey('${_draft.id}-${field.$1}'),
+                initialValue: _draft.contacts[field.$1] as String? ?? '',
+                keyboardType: field.$1.contains('phone')
+                    ? TextInputType.phone
+                    : TextInputType.text,
+                autofillHints: field.$1.contains('phone')
+                    ? [AutofillHints.telephoneNumber]
+                    : null,
+                decoration: InputDecoration(labelText: field.$2),
+                maxLength: field.$1 == 'instructions' ? 1200 : 120,
+                validator: (v) {
+                  if (field.$1 == 'instructions') return null;
+                  if (v == null || v.trim().isEmpty) {
+                    return tr('Champ requis', 'Required', 'Obligatorio');
+                  }
+                  if (field.$1.contains('phone') &&
+                      !RegExp(r'^\+?[0-9 ()-]{8,25}$').hasMatch(v)) {
+                    return tr(
+                      'Téléphone invalide',
+                      'Invalid phone',
+                      'Teléfono inválido',
+                    );
+                  }
+                  return null;
+                },
+                onChanged: (v) {
+                  (_draft.data['contacts'] as Map)[field.$1] = v;
+                  _changed(quote: false);
+                },
+              ),
+            ),
+        ],
+      ),
+    ),
+    _button(
+      tr('Vérifier et confirmer', 'Review and confirm', 'Revisar y confirmar'),
+      () {
+        if (_contactsForm.currentState?.validate() == true) _step(3);
+      },
+    ),
+  ];
+  List<Widget> _confirmation(FirebaseAuthProvider auth) => [
+    _heading(_titles[3]),
+    Text('${_pickup.text}\n↓\n${_dropoff.text}'),
+    const SizedBox(height: 12),
+    for (final item in _draft.items)
+      Text(
+        '${item['quantity']} × ${item['label']} · ${item['length'] ?? '?'} × ${item['width'] ?? '?'} × ${item['height'] ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
+      ),
+    if (_draft.data['requested_at'] != null)
+      Text(
+        '${tr('Créneau demandé', 'Requested time', 'Horario solicitado')} : ${_formatTime(_draft.data['requested_at'] as String)}',
+      ),
+    Text(
+      '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')} : ${_draft.data['handlers']}',
+    ),
+    Text(
+      '${tr('Ramassage', 'Pickup', 'Recogida')} : ${_draft.contacts['pickup_name']} · ${_draft.contacts['pickup_phone']}',
+    ),
+    Text(
+      '${tr('Livraison', 'Delivery', 'Entrega')} : ${_draft.contacts['dropoff_name']} · ${_draft.contacts['dropoff_phone']}',
+    ),
+    Wrap(
+      spacing: 8,
+      children: [
+        TextButton(
+          onPressed: () => _step(0),
+          child: Text(
+            tr('Modifier la livraison', 'Edit delivery', 'Modificar entrega'),
+          ),
+        ),
+        TextButton(
+          onPressed: () => _step(2),
+          child: Text(
+            tr(
+              'Modifier mes coordonnées',
+              'Edit my details',
+              'Modificar mis datos',
+            ),
+          ),
+        ),
+      ],
+    ),
+    if (_draft.quote != null) ...[_quoteLoadSummary(), ..._quoteSummary()],
+    if (!_draft.quoteValid)
+      _button(
+        tr(
+          'Recalculer mon prix',
+          'Recalculate my price',
+          'Recalcular mi precio',
+        ),
+        () {
+          _step(1);
+          _run(_quote);
+        },
+      ),
+    if (_policy == null)
+      _note(
+        tr(
+          'Les conditions de réservation et d’annulation doivent être publiées et validées par Movi-K. Votre brouillon est conservé.',
+          'Booking and cancellation terms must be published and approved by Movi-K. Your draft is saved.',
+          'Movi-K debe publicar y aprobar las condiciones de reserva y cancelación. Tu borrador se conserva.',
+        ),
+        warning: true,
+      )
+    else ...[
+      _heading(
+        tr(
+          'Conditions de réservation',
+          'Booking terms',
+          'Condiciones de reserva',
+        ),
+      ),
+      _note(_policyText('cancellation_text')),
+      _note(_policyText('payment_text')),
+      Wrap(
+        spacing: 12,
+        children: [
+          TextButton(
+            onPressed: () =>
+                launchUrl(Uri.parse(_policy!['terms_url'] as String)),
+            child: Text(
+              tr(
+                'Conditions générales',
+                'Terms of service',
+                'Condiciones generales',
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () =>
+                launchUrl(Uri.parse(_policy!['privacy_url'] as String)),
+            child: Text(tr('Confidentialité', 'Privacy', 'Privacidad')),
+          ),
+        ],
+      ),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        value: _draft.data['accepted'] == true,
+        title: Text(
+          tr(
+            'J’accepte les conditions et la politique d’annulation affichées.',
+            'I accept the displayed terms and cancellation policy.',
+            'Acepto las condiciones y política de cancelación mostradas.',
+          ),
+        ),
+        onChanged: (v) {
+          _draft.data['accepted'] = v;
+          _changed(quote: false);
+        },
+      ),
+      CheckboxListTile(
+        contentPadding: EdgeInsets.zero,
+        value: _draft.data['marketing'] == true,
+        title: Text(
+          tr(
+            'Je souhaite recevoir des offres (facultatif).',
+            'I would like to receive offers (optional).',
+            'Quiero recibir ofertas (opcional).',
+          ),
+        ),
+        onChanged: (v) {
+          _draft.data['marketing'] = v;
+          _changed(quote: false);
+        },
+      ),
+    ],
+    _note(
+      tr(
+        'Votre carte est enregistrée chez Stripe. Aucun numéro de carte n’est transmis à Movi-K. L’autorisation a lieu quand un chauffeur accepte, puis le paiement est capturé après la livraison.',
+        'Your card is saved with Stripe. Movi-K does not receive your card number. Authorization occurs when a driver accepts; payment is captured after delivery.',
+        'Stripe guarda tu tarjeta. Movi-K no recibe el número. Se autoriza cuando acepta un conductor y se cobra después de la entrega.',
+      ),
+    ),
+    if (auth.user?.emailVerified != true)
+      _note(
+        tr(
+          'Votre courriel doit être vérifié à l’étape 3.',
+          'Verify your email in step 3.',
+          'Verifica tu correo en el paso 3.',
+        ),
+        warning: true,
+      ),
+    if (_cardReady)
+      _note(
+        tr(
+          'Carte enregistrée. Aucun paiement effectué à cette étape.',
+          'Card saved. No payment made at this step.',
+          'Tarjeta guardada. No se ha realizado ningún pago en este paso.',
+        ),
+      )
+    else ...[
+      _button(
+        tr(
+          'Enregistrer ma carte avec Stripe',
+          'Save my card with Stripe',
+          'Guardar mi tarjeta con Stripe',
+        ),
+        _readyToConfirm(auth) ? () => _run(_setupCard) : null,
+        icon: Icons.lock_outline,
+      ),
+      TextButton(
+        onPressed: () => _run(_refreshCard),
+        child: Text(
+          tr(
+            'J’ai terminé chez Stripe : vérifier',
+            'I finished on Stripe: check status',
+            'Terminé en Stripe: verificar',
+          ),
+        ),
+      ),
+    ],
+    _button(
+      tr(
+        'Confirmer ma demande de livraison',
+        'Confirm my delivery request',
+        'Confirmar mi solicitud de entrega',
+      ),
+      _cardReady && _readyToConfirm(auth) ? () => _run(_confirm) : null,
+      icon: Icons.check,
+    ),
+  ];
+  Widget _quoteLoadSummary() => BookingLoadSummary(
+    snapshot: Map<String, dynamic>.from(_draft.quote!['booking'] as Map? ?? {}),
+    locale: widget.locale,
+  );
+  bool _readyToConfirm(FirebaseAuthProvider auth) =>
+      _policy != null &&
+      _policy!['setup_enabled'] == true &&
+      _draft.data['accepted'] == true &&
+      _draft.quoteValid &&
+      auth.user?.emailVerified == true;
+  String _policyText(String key) {
+    final map = Map<String, dynamic>.from(_policy![key] as Map);
+    return map[widget.locale] as String? ?? map['fr'] as String;
   }
 }

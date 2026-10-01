@@ -58,11 +58,15 @@ export const createCustomerPaymentProfile = onCall(
       created_at: now,
       updated_at: now,
     };
-    await profileRef.set(profile);
+    const finalProfile = await db.runTransaction(async tx => {
+      const current = await tx.get(profileRef);
+      if (current.exists) return current.data() as PaymentProfileDoc;
+      tx.set(profileRef, profile); return profile;
+    });
 
     return {
       success: true,
-      providerCustomerId: created.providerCustomerId,
+      providerCustomerId: finalProfile.provider_customer_id,
       alreadyExisted: false,
       note:
         (ctx.role ?? PlatformRoles.CUSTOMER) === PlatformRoles.CUSTOMER

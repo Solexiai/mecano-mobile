@@ -1,3 +1,4 @@
+import { completeSavedSetup } from "./bookingCardSetup";
 // -----------------------------------------------------------------------------
 // processStripeWebhook / processStripeConnectWebhook — Endpoints HTTP RÉELS
 // (onRequest) recevant les webhooks Stripe signés (Phase 6, directive 38
@@ -141,6 +142,15 @@ async function dispatchStripeEvent(
   let relatedDriverId: string | null = null;
 
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const id = session.metadata?.movik_quote_id;
+      if (session.mode === 'setup' && id && /^[a-zA-Z0-9_-]{1,100}$/.test(id)) {
+        const saved = (await db.doc(`booking_payment_setups/${id}`).get()).data();
+        if (saved?.session_id === session.id) await completeSavedSetup(id);
+      }
+      break;
+    }
     // ---- Paiement : autorisation/capture réussie ou échouée ----
     case "payment_intent.succeeded":
     case "payment_intent.payment_failed": {

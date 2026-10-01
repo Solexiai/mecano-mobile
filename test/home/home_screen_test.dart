@@ -14,7 +14,8 @@ import 'package:movik_connect/screens/home/home_screen.dart';
 import 'package:movik_connect/screens/auth/auth_screen.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
 import 'package:movik_connect/screens/info/contact_screen.dart';
-import 'package:movik_connect/services/delivery_request_draft.dart';
+import 'package:movik_connect/services/booking/booking_draft.dart';
+import '../helpers/booking_test_harness.dart';
 
 class HomeTestAuth extends FirebaseAuthProvider {
   HomeTestAuth() : super(backendConfigured: false);
@@ -191,7 +192,7 @@ void main() {
         .widgetList<ChoiceChip>(find.byType(ChoiceChip))
         .where((chip) => chip.selected);
     expect(selected, hasLength(1));
-    expect((selected.single.label as Text).data, 'Meubles');
+    expect((selected.single.label as Text).data, '1. Ma livraison');
     expect(
       find.text(AppStrings.t('delivery_sign_in_button', 'fr')),
       findsNothing,
@@ -201,28 +202,15 @@ void main() {
   testWidgets(
     'guest request resumes after authentication with category and draft preserved',
     (tester) async {
-      const draft = DeliveryRequestDraft(
-        category: 'cat_furniture',
-        description: 'Canape trois places Granby',
-        quantity: 1,
-        needsStairs: false,
-        needsSecondHandler: false,
-        isHeavyItem: false,
-        isBulkyItem: true,
-        pickup: null,
-        dropoff: null,
-        contactInstructions: '',
-        accessDetails: '',
-        vehicleCategory: 'cargo_van',
-      );
-      await draft.save();
+      final draft = testDraft();
+      draft.items.first['label'] = 'Canape trois places Granby';
+      final storage = BookingDraftStorage();
+      await storage.save(draft, null);
+      await storage.handoff();
 
       final (router, auth) = await mountHome(tester);
       router.go(
-        DeliveryRequestIntent.loginPath(
-          'fr',
-          category: 'cat_furniture',
-        ),
+        DeliveryRequestIntent.loginPath('fr', category: 'cat_furniture'),
       );
       await tester.pumpAndSettle();
 
@@ -243,11 +231,13 @@ void main() {
           .widgetList<ChoiceChip>(find.byType(ChoiceChip))
           .where((chip) => chip.selected);
       expect(selected, hasLength(1));
-      expect((selected.single.label as Text).data, 'Meubles');
+      expect((selected.single.label as Text).data, '1. Ma livraison');
 
       final restoredDescriptions = tester
           .widgetList<TextField>(find.byType(TextField))
-          .where((field) => field.controller?.text == 'Canape trois places Granby');
+          .where(
+            (field) => field.controller?.text == 'Canape trois places Granby',
+          );
       expect(restoredDescriptions, hasLength(1));
       expect(tester.takeException(), isNull);
     },

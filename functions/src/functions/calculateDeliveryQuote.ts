@@ -1,3 +1,5 @@
+import { reviewBooking } from "../lib/bookingServer";
+import { bookingHandling } from "../lib/booking";
 // -----------------------------------------------------------------------------
 // calculateDeliveryQuote — Cloud Function callable (customer).
 //
@@ -52,12 +54,16 @@ export interface QuoteStopInput {
 
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
+  booking?: unknown;
+  requestedVehicleCategory?: string;
   /** Coordonnées officielles utilisées par le serveur pour calculer l'itinéraire. */
   stops?: QuoteStopInput[];
   /** Champs legacy tolérés au transport, mais JAMAIS utilisés pour calculer le devis. */
   distanceKm?: number;
   estimatedDurationMinutes?: number;
   handling?: {
+    needsLoading?: boolean;
+    needsUnloading?: boolean;
     isHeavyItem?: boolean;
     isBulkyItem?: boolean;
     needsStairs?: boolean;
@@ -104,6 +110,24 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const ctx = requireSignedIn(request);
   const input = request.data;
 
+  let booking;
+  if (input.booking) {
+    const checked = await reviewBooking(input.booking, input.stops, ctx.uid);
+    if (!checked.review.snapshot) throw failedPrecondition(`Demande à préciser : ${checked.review.reasons.join(', ')}`);
+    booking = checked.review.snapshot;
+    if (input.requestedVehicleCategory) {
+      const alternative = checked.rules.capacities.find(c => c.category === input.requestedVehicleCategory && checked.review.compatible_categories.includes(c.category));
+      if (!alternative) throw failedPrecondition('Cette catégorie ne convient pas au chargement.');
+      booking = { ...booking, category: alternative.category, capacity_version: alternative.version };
+    }
+    input.vehicleCategory = booking.category;
+    input.handling = bookingHandling(booking.load, checked.rules);
+    input.totalWaitingMinutes = 0;
+    input.applicableSurchargeIds = [];
+  } else {
+    const rollout = await db.doc('system_config/booking_capacity').get();
+    if (rollout.data()?.require_booking_details === true) throw failedPrecondition('Actualisez votre application pour décrire les objets à transporter.');
+  }
   if (!input.vehicleCategory) throw invalidArgument("vehicleCategory est requis.");
   if (!Array.isArray(input.stops) || input.stops.length < 2) {
     throw invalidArgument("Au moins 2 arrêts géocodés sont requis pour calculer le devis.");
@@ -243,6 +267,8 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   );
 
   const normalizedHandling = {
+    needsLoading: input.handling?.needsLoading === true,
+    needsUnloading: input.handling?.needsUnloading === true,
     isHeavyItem: input.handling?.isHeavyItem === true,
     isBulkyItem: input.handling?.isBulkyItem === true,
     needsStairs: input.handling?.needsStairs === true,
@@ -251,6 +277,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     needsSpecialEquipment: input.handling?.needsSpecialEquipment === true,
   };
   const pricingSnapshot: LockedQuotePricingSnapshot = {
+    ...(booking ? { booking } : {}),
     schema_version: LOCKED_QUOTE_SCHEMA_VERSION,
     currency: DEFAULT_CURRENCY,
     pricing_version: lockedPricingResult.pricingVersion,
@@ -312,6 +339,8 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   });
 
   return {
+    vehicleCategory: input.vehicleCategory,
+    booking: booking ?? null,
     quoteId: quoteRef.id,
     pricingVersion: lockedPricingResult.pricingVersion,
     customerTotal: lockedPricingResult.customerTotal,

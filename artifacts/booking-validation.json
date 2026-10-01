@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-01",
+  "branch": "audit/public-launch-granby",
+  "base_commit": "7e144f6",
+  "production_deployed": false,
+  "merged": false,
+  "configuration_data": "synthetic emulator fixtures only",
+  "firebase_project": "demo-movik-test",
+  "checks": {
+    "flutter_full": {
+      "passed": 646,
+      "duration_seconds": 225
+    },
+    "flutter_final_targeted": {
+      "passed": 23
+    },
+    "flutter_analyze": {
+      "issues": 0
+    },
+    "web_release": {
+      "passed": true,
+      "emulators": true,
+      "duration_seconds": 119.4
+    },
+    "backend_unit_node20": {
+      "suites": 15,
+      "passed": 228,
+      "node": "20.20.2",
+      "duration_seconds": 27.882
+    },
+    "backend_integration_full": {
+      "suites": 41,
+      "passed": 616,
+      "node": "24.15.0",
+      "duration_seconds": 352.221
+    },
+    "backend_integration_final_targeted": {
+      "suites": 2,
+      "passed": 28,
+      "duration_seconds": 35.056,
+      "targets": [
+        "bookingJourney",
+        "storageRules"
+      ]
+    },
+    "typescript_build": {
+      "passed": true,
+      "node20_verified": true
+    },
+    "eslint": {
+      "passed": true
+    },
+    "git_diff_check": {
+      "passed": true
+    },
+    "browser": {
+      "mobile": "390x844",
+      "desktop": "1440x1000",
+      "page_errors": 0,
+      "scope": "anonymous first step on local emulator release; public policy callable intercepted as unavailable"
+    }
+  },
+  "payment": {
+    "orchestration_provider": "FakePaymentProvider",
+    "real_stripe_sandbox": "not executed",
+    "reason": "test secret key unavailable; test connected account and end-to-end bank recipe remain required"
+  },
+  "notes": [
+    "Full suites preceded final targeted fixes; targeted counts overlap full suites.",
+    "Storage negative access tests intentionally generate deny errors.",
+    "No anonymous estimate; login required for official quote as authorized.",
+    "Verified real vehicle capacities and approved policies must be supplied.",
+    "No dedicated new staff review console."
+  ],
+  "verdict": "ready for code review; complete real client trial blocked by approved operating configuration and Stripe Sandbox recipe"
+}
