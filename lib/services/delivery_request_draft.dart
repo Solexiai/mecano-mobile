@@ -10,6 +10,8 @@ import 'address/address_suggestion.dart';
 /// quote remains server-authoritative and is requested only after sign-in.
 class DeliveryRequestDraft {
   static const storageKey = 'delivery_request_draft_v1';
+  static const maxAge = Duration(hours: 24);
+  static const authHandoffMaxAge = Duration(minutes: 15);
 
   final String category;
   final String description;
@@ -126,20 +128,79 @@ class DeliveryRequestDraft {
     );
   }
 
-  Future<void> save() async {
+  Future<void> save({String? uid, DateTime? now}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(storageKey, jsonEncode(toJson()));
+    final envelope = toJson()
+      ..['schema_version'] = 2
+      ..['created_at_ms'] = (now ?? DateTime.now()).millisecondsSinceEpoch
+      ..['owner_uid'] = uid;
+    await prefs.setString(storageKey, jsonEncode(envelope));
   }
 
-  static Future<DeliveryRequestDraft?> load() async {
+  /// Marks a short-lived, one-time guest-to-account handoff before auth.
+  /// The UID is never put in the return URL.
+  static Future<void> beginAuthHandoff({DateTime? now}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(storageKey);
+    if (raw == null || raw.isEmpty) return;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return;
+      final envelope = Map<String, dynamic>.from(decoded);
+      if (envelope['owner_uid'] != null) return;
+      envelope['handoff_at_ms'] =
+          (now ?? DateTime.now()).millisecondsSinceEpoch;
+      await prefs.setString(storageKey, jsonEncode(envelope));
+    } catch (_) {
+      await prefs.remove(storageKey);
+    }
+  }
+
+  static Future<DeliveryRequestDraft?> load({
+    String? uid,
+    DateTime? now,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(storageKey);
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) return null;
-      return DeliveryRequestDraft.fromJson(Map<String, dynamic>.from(decoded));
+      if (decoded is! Map) throw const FormatException('Invalid draft');
+      final envelope = Map<String, dynamic>.from(decoded);
+      final current = (now ?? DateTime.now()).millisecondsSinceEpoch;
+      final createdAt = envelope['created_at_ms'];
+      final ownerUid = envelope['owner_uid'];
+      if (envelope['schema_version'] != 2 ||
+          createdAt is! int ||
+          createdAt > current ||
+          current - createdAt > maxAge.inMilliseconds ||
+          (ownerUid != null && ownerUid is! String)) {
+        throw const FormatException('Expired or unsupported draft');
+      }
+
+      if (ownerUid != uid) {
+        // Keep another account's draft intact while auth state settles or
+        // when users switch accounts; never expose it to the current user.
+        if (ownerUid != null) {
+          return null;
+        }
+        final handoffAt = envelope['handoff_at_ms'];
+        final canClaimGuestDraft =
+            ownerUid == null &&
+            uid != null &&
+            handoffAt is int &&
+            handoffAt <= current &&
+            current - handoffAt <= authHandoffMaxAge.inMilliseconds;
+        if (!canClaimGuestDraft) {
+          throw const FormatException('Draft owner mismatch');
+        }
+        envelope['owner_uid'] = uid;
+        envelope.remove('handoff_at_ms');
+        await prefs.setString(storageKey, jsonEncode(envelope));
+      }
+      return DeliveryRequestDraft.fromJson(envelope);
     } catch (_) {
+      await prefs.remove(storageKey);
       return null;
     }
   }

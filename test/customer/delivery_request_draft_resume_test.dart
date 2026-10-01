@@ -50,6 +50,7 @@ void main() {
         vehicleCategory: 'cargo_van',
       );
       await draft.save();
+      await DeliveryRequestDraft.beginAuthHandoff();
 
       final auth = FirebaseAuthProvider(backendConfigured: false)
         ..debugForceSignedIn = true

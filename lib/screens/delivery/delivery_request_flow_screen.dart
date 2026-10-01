@@ -103,7 +103,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
   }
 
   Future<void> _restoreDraft() async {
-    final draft = await DeliveryRequestDraft.load();
+    final uid = context.read<FirebaseAuthProvider>().effectiveUid;
+    final draft = await DeliveryRequestDraft.load(uid: uid);
     if (!mounted || draft == null) return;
 
     VehicleCategory? restoredVehicle;
@@ -139,7 +140,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     });
   }
 
-  Future<void> _saveDraft() => DeliveryRequestDraft(
+  Future<void> _saveDraft({String? uid}) => DeliveryRequestDraft(
     category: _selectedCategory,
     description: _descController.text.trim(),
     quantity: _quantity,
@@ -152,7 +153,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
     contactInstructions: _contactController.text.trim(),
     accessDetails: _accessController.text.trim(),
     vehicleCategory: _selectedVehicle?.firestoreValue,
-  ).save();
+  ).save(uid: uid);
 
   @override
   void dispose() {
@@ -303,6 +304,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen> {
       // The official quote is still calculated only after sign-in and only
       // by the authenticated Cloud Function.
       await _saveDraft();
+      await DeliveryRequestDraft.beginAuthHandoff();
       if (!mounted) return;
       final category = _selectedCategory.isEmpty ? null : _selectedCategory;
       context.go(
