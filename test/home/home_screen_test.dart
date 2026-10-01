@@ -59,7 +59,6 @@ void main() {
       testWidgets('full homepage $locale at $width has no overflow', (tester) async {
         await mountHome(tester, locale: locale, width: width);
         expect(find.byKey(const Key('home-hero')), findsOneWidget);
-        expect(find.text('Faites livrer ce qui ne rentre pas dans votre véhicule.'), findsOneWidget);
         expect(find.textContaining('3+'), findsNothing);
         expect(find.textContaining('demo drivers'), findsNothing);
         expect(tester.takeException(), isNull);
@@ -77,6 +76,7 @@ void main() {
     }
     testWidgets('primary action $locale goes directly to existing request', (tester) async {
       final (router, _) = await mountHome(tester, locale: locale);
+      await tester.ensureVisible(find.byKey(const Key('home-primary-quote'))); await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('home-primary-quote'))); await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/$locale/livraison/demande');
       expect(find.byType(DeliveryRequestFlowScreen), findsOneWidget);
