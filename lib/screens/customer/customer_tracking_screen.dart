@@ -1,3 +1,4 @@
+import '../../widgets/booking_load_summary.dart';
 // ---------------------------------------------------------------------------
 // CustomerTrackingScreen — suivi GPS temps réel du chauffeur pour UNE
 // mission active (Phase 5), ET consultation post-livraison (Phase 5,
@@ -221,6 +222,11 @@ class CustomerTrackingScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   _DeliveryTimeline(mission: mission, t: t),
                   const SizedBox(height: 16),
+                  if (mission.bookingSnapshot != null)
+                    BookingLoadSummary(
+                      snapshot: mission.bookingSnapshot!,
+                      locale: context.read<LocaleProvider>().locale,
+                    ),
                   if (mission.pickupAddress != null)
                     _AddressRow(
                       icon: Icons.trip_origin,
@@ -341,6 +347,11 @@ class _CompletedMissionView extends StatelessWidget {
           const SizedBox(height: 20),
           _DeliveryTimeline(mission: mission, t: t),
           const SizedBox(height: 20),
+          if (mission.bookingSnapshot != null)
+            BookingLoadSummary(
+              snapshot: mission.bookingSnapshot!,
+              locale: context.read<LocaleProvider>().locale,
+            ),
           if (mission.pickupAddress != null)
             _AddressRow(
               icon: Icons.trip_origin,
@@ -610,9 +621,7 @@ class _RateDriverCardState extends State<_RateDriverCard> {
                       width: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Colors.white,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
                   : Text(t('customer_tracking_rate_driver_submit')),

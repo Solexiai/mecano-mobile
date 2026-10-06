@@ -28,6 +28,7 @@ MissionAddress? _parseAddress(dynamic raw) {
 }
 
 class DeliveryMission {
+  final Map<String, dynamic>? bookingSnapshot;
   final String id;
   final String customerId;
   final String? customerDisplayName;
@@ -70,6 +71,7 @@ class DeliveryMission {
   final double customerTotal;
 
   const DeliveryMission({
+    this.bookingSnapshot,
     required this.id,
     required this.customerId,
     this.customerDisplayName,
@@ -107,51 +109,57 @@ class DeliveryMission {
   bool get isInternalTest => assignmentMode == 'internal_test';
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'customer_id': customerId,
-        'customer_display_name': customerDisplayName,
-        'item_category_key': itemCategoryKey,
-        'description': description,
-        'required_vehicle_category': requiredVehicleCategory.firestoreValue,
-        'status': status.firestoreValue,
-        'driver_id': driverId,
-        'driver_display_name': driverDisplayName,
-        'accepted_at': acceptedAt?.toIso8601String(),
-        'pricing_version': pricingVersion,
-        'active_quote_id': activeQuoteId,
-        'active_financial_snapshot_id': activeFinancialSnapshotId,
-        'assignment_mode': assignmentMode,
-        'created_at': createdAt.toIso8601String(),
-        'driver_to_pickup_at': driverToPickupAt?.toIso8601String(),
-        'arrived_at_pickup_at': arrivedAtPickupAt?.toIso8601String(),
-        'picked_up_at': pickedUpAt?.toIso8601String(),
-        'in_transit_at': inTransitAt?.toIso8601String(),
-        'arrived_at_dropoff_at': arrivedAtDropoffAt?.toIso8601String(),
-        'completed_at': completedAt?.toIso8601String(),
-        'cancelled_at': cancelledAt?.toIso8601String(),
-        'cancellation_reason': cancellationReason,
-        'proof_of_delivery_url': proofOfDeliveryUrl,
-        'distance_km': distanceKm,
-        'estimated_duration_minutes': estimatedDurationMinutes,
-        'driver_offer_amount': driverOfferAmount,
-        'customer_total': customerTotal,
-      };
+    'id': id,
+    'customer_id': customerId,
+    'customer_display_name': customerDisplayName,
+    'item_category_key': itemCategoryKey,
+    'description': description,
+    'required_vehicle_category': requiredVehicleCategory.firestoreValue,
+    'status': status.firestoreValue,
+    'driver_id': driverId,
+    'driver_display_name': driverDisplayName,
+    'accepted_at': acceptedAt?.toIso8601String(),
+    'pricing_version': pricingVersion,
+    'active_quote_id': activeQuoteId,
+    'active_financial_snapshot_id': activeFinancialSnapshotId,
+    'assignment_mode': assignmentMode,
+    'created_at': createdAt.toIso8601String(),
+    'driver_to_pickup_at': driverToPickupAt?.toIso8601String(),
+    'arrived_at_pickup_at': arrivedAtPickupAt?.toIso8601String(),
+    'picked_up_at': pickedUpAt?.toIso8601String(),
+    'in_transit_at': inTransitAt?.toIso8601String(),
+    'arrived_at_dropoff_at': arrivedAtDropoffAt?.toIso8601String(),
+    'completed_at': completedAt?.toIso8601String(),
+    'cancelled_at': cancelledAt?.toIso8601String(),
+    'cancellation_reason': cancellationReason,
+    'proof_of_delivery_url': proofOfDeliveryUrl,
+    'distance_km': distanceKm,
+    'estimated_duration_minutes': estimatedDurationMinutes,
+    'driver_offer_amount': driverOfferAmount,
+    'customer_total': customerTotal,
+  };
 
   factory DeliveryMission.fromJson(String id, Map<String, dynamic> json) {
     return DeliveryMission(
+      bookingSnapshot: json['booking_snapshot'] is Map
+          ? Map<String, dynamic>.from(json['booking_snapshot'] as Map)
+          : null,
       id: id,
       customerId: json['customer_id'] as String? ?? '',
       customerDisplayName: json['customer_display_name'] as String?,
       itemCategoryKey: json['item_category_key'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      requiredVehicleCategory: VehicleCategoryX.fromFirestoreValue(json['required_vehicle_category'] as String?),
+      requiredVehicleCategory: VehicleCategoryX.fromFirestoreValue(
+        json['required_vehicle_category'] as String?,
+      ),
       status: MissionStatusX.fromFirestoreValue(json['status'] as String?),
       driverId: json['driver_id'] as String?,
       driverDisplayName: json['driver_display_name'] as String?,
       acceptedAt: parseFirestoreDate(json['accepted_at']),
       pricingVersion: json['pricing_version'] as String? ?? 'UNCONFIGURED',
       activeQuoteId: json['active_quote_id'] as String?,
-      activeFinancialSnapshotId: json['active_financial_snapshot_id'] as String?,
+      activeFinancialSnapshotId:
+          json['active_financial_snapshot_id'] as String?,
       assignmentMode: json['assignment_mode'] as String? ?? 'standard',
       createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       driverToPickupAt: parseFirestoreDate(json['driver_to_pickup_at']),
@@ -166,7 +174,8 @@ class DeliveryMission {
       pickupAddress: _parseAddress(json['pickup_address']),
       dropoffAddress: _parseAddress(json['dropoff_address']),
       distanceKm: (json['distance_km'] as num?)?.toDouble(),
-      estimatedDurationMinutes: (json['estimated_duration_minutes'] as num?)?.toDouble(),
+      estimatedDurationMinutes: (json['estimated_duration_minutes'] as num?)
+          ?.toDouble(),
       driverOfferAmount: (json['driver_offer_amount'] as num? ?? 0).toDouble(),
       customerTotal: (json['customer_total'] as num? ?? 0).toDouble(),
     );

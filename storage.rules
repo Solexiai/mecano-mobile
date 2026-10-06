@@ -84,6 +84,23 @@ service firebase.storage {
     // `driver_documents/{id}` (status=uploaded), jamais un overwrite.
     // 🔒 Aucun rôle, même analyst/admin/super_admin, ne peut écrire ici —
     // seul le chauffeur propriétaire peut uploader son propre document.
+    function canReadBookingPhotos(customerId, draftId) {
+      let grant = firestore.get(/databases/(default)/documents/booking_photo_grants/$(customerId + "_" + draftId)).data;
+      let mission = firestore.get(/databases/(default)/documents/delivery_requests/$(grant.mission_id)).data;
+      return grant.customer_id == customerId && mission.customer_id == customerId && (mission.driver_id == uid() || (isDriver() &&
+        firestore.get(/databases/(default)/documents/driver_profiles/$(uid())).data.status == 'approved' &&
+        mission.status in ['searching_driver', 'offered']));
+    }
+    match /booking_photos/{customerId}/{draftId}/{itemId}/{fileName} {
+      allow read: if isSignedIn() && (uid() == customerId || isAnalystOrAbove() || canReadBookingPhotos(customerId, draftId));
+      allow create: if isSignedIn() && uid() == customerId && resource == null &&
+        fileName.matches('[0-2]\\.jpg') && request.resource.size <= 5 * 1024 * 1024 &&
+        request.resource.contentType == 'image/jpeg' &&
+        itemId in firestore.get(/databases/(default)/documents/booking_drafts/$(customerId)).data.photo_item_ids &&
+        firestore.get(/databases/(default)/documents/booking_drafts/$(customerId)).data.draft_id == draftId &&
+        firestore.get(/databases/(default)/documents/booking_drafts/$(customerId)).data.expires_at > request.time;
+      allow update, delete: if false;
+    }
     match /driver_documents/{driverId}/{fileName} {
       allow read: if isSignedIn() && (uid() == driverId || isAnalystOrAbove());
       // 🔒 Immutabilité : dans Cloud Storage, un ré-upload de CONTENU sur un

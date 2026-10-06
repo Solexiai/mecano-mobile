@@ -2865,3 +2865,30 @@ describe("Security Rules — routing_request_limits", () => {
     await assertFails(setDoc(counter, { startedAtMs: 0, count: 0 }));
   });
 });
+
+describe('Booking privacy and verified vehicle capabilities', () => {
+  it('drafts are private, expiring and server-write-only', async () => {
+    await testEnv.withSecurityRulesDisabled(async c => {
+      await setDoc(doc(c.firestore(),'booking_drafts/owner'),{owner_uid:'owner',expires_at:new Date(Date.now()+3600000)});
+    });
+    const owner=testEnv.authenticatedContext('owner',{role:'customer'}).firestore();
+    const other=testEnv.authenticatedContext('other',{role:'customer'}).firestore();
+    await assertSucceeds(getDoc(doc(owner,'booking_drafts/owner')));
+    await assertFails(getDoc(doc(other,'booking_drafts/owner')));
+    await assertFails(setDoc(doc(owner,'booking_drafts/owner'),{owner_uid:'owner'}));
+  });
+  it('a driver cannot forge or modify verified capacity', async () => {
+    const driver=testEnv.authenticatedContext('driver',{role:'driver'}).firestore();
+    await assertFails(setDoc(doc(driver,'driver_vehicles/forged'),{driver_id:'driver',is_verified:false,verified_capacity:{payload_kg:10000}}));
+    await testEnv.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'driver_vehicles/verified'),{driver_id:'driver',is_verified:true,verified_capacity:{payload_kg:100}});});
+    await assertFails(updateDoc(doc(driver,'driver_vehicles/verified'),{verified_capacity:{payload_kg:10000}}));
+  });
+  it('pickup and recipient contacts are hidden from unassigned drivers',async()=>{
+    await testEnv.withSecurityRulesDisabled(async c=>{
+      await setDoc(doc(c.firestore(),'delivery_requests/booking_private'),{customer_id:'owner',driver_id:'assigned',status:'offered'});
+      await setDoc(doc(c.firestore(),'delivery_requests/booking_private/private/booking'),{contacts:{phone:'PRIVATE'}});
+    });
+    for(const user of ['owner','assigned'])await assertSucceeds(getDoc(doc(testEnv.authenticatedContext(user,{role:user==='owner'?'customer':'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
+    await assertFails(getDoc(doc(testEnv.authenticatedContext('unassigned',{role:'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
+  });
+});

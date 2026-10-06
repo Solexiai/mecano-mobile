@@ -1,0 +1,282 @@
+[
+  {
+    "role": "button",
+    "label": "Movi‑K — accueil",
+    "text": "LivraisonComment ça marcheTarifsSécuritéFAQ",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Livraison",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Comment ça marche",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Tarifs",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Sécurité",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "FAQ",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Connexion",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Show menu\nFR",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Obtenir mon devis",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "group",
+    "label": null,
+    "text": "Lancement à Granby et dans les environsFaites livrer ce qui ne rentre pas dans votre véhicule.Meubles, électroménagers, boîtes, achats Marketplace et petits déménagements : décrivez votre projet et votre trajet pour préparer un devis.Pré-lancement · disponibilité à confirmer avant toute livraisonObtenir mon devisVous avez un véhicule ? Devenir chauffeurPréparez votre demande de devisDécrivez ce que vous voulez faire livrerIndiquez les adresses de départ et d’arrivéeUn chauffeur admissible peut accepter votre demandeCommencer ma demandePréparez votre demande sans compte. Une connexion est requise seulement pour calculer le devis officiel.Dossiers chauffeurs vérifiésDevis transparentUn service près de chez vousProfil, véhicule et documents requisPrix et ventilation avant confirmationLancement à Granby et dans les environsQue souhaitez-vous faire livrer ?Choisissez une catégorie : elle sera déjà sélectionnée dans votre demande.Indiquez les dimensions, le poids estimé et les particularités dans la description. L’objet doit convenir au véhicule choisi.De votre demande à la livraisonPré-lancement · disponibilité à confirmer avant toute livraison1234Décrivez l’objet et le trajetConsultez votre devisUn chauffeur accepteSuivez votre livraisonPrécisez les adresses, le véhicule requis et les accès.Vérifiez le prix et les informations avant de confirmer la demande.L’attribution dépend d’un chauffeur admissible et disponible.Consultez son état dans votre espace, puis la preuve de livraison.Devis transparentSuivi dans votre espaceVérification chauffeurUn service près de chez vousPrix et ventilation avant confirmationConsultez la progression de la missionProfil et documents requis examinésLancement à Granby et dans les environsMovi‑K arrive à Granby.Préparez votre demande; la disponibilité d’un chauffeur sera confirmée au moment du lancement.Vous avez un véhicule ? Devenir chauffeurObtenir mon devisMovi-KLa livraison de gros objets, près de chez vous.LivraisonChauffeursAide et informationsLégalObtenir mon devisDevenir chauffeurFAQPolitique de confidentialitéTarifsConnexionContactConditions d'utilisationComment ça marcheSécuritéPolitique d'annulationÀ propos© 2026 Movi-K. Tous droits réservés.",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Obtenir mon devis",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Vous avez un véhicule ? Devenir chauffeur",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Camionnette Movi-K avec chauffeur préparant une livraison",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Commencer ma demande",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Meubles\nMeubles",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Meubles",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Appareils électroménagers\nAppareils électroménagers",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Appareils électroménagers",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Achats Marketplace\nAchats Marketplace\nFacebook Marketplace, Kijiji, etc.",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Achats Marketplace",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Matériaux de construction\nMatériaux de construction",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Matériaux de construction",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Grand téléviseur\nGrand téléviseur",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Grand téléviseur",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": "Commencer un devis pour Achats Costco\nAchats Costco",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "img",
+    "label": "Achats Costco",
+    "text": "",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Vous avez un véhicule ? Devenir chauffeur",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Obtenir mon devis",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Obtenir mon devis",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Devenir chauffeur",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "FAQ",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Politique de confidentialité",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Tarifs",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Connexion",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Contact",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Conditions d'utilisation",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Comment ça marche",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Sécurité",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "Politique d'annulation",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  },
+  {
+    "role": "button",
+    "label": null,
+    "text": "À propos",
+    "tag": "FLT-SEMANTICS",
+    "href": null
+  }
+]

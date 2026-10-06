@@ -209,12 +209,14 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && isDriver() &&
         request.resource.data.driver_id == uid() &&
-        request.resource.data.is_verified == false;
+        request.resource.data.is_verified == false &&
+        !request.resource.data.keys().hasAny(['verified_capacity', 'capacity_valid_until']);
 
       allow update: if isSignedIn() && (
         (resource.data.driver_id == uid() &&
          request.resource.data.driver_id == resource.data.driver_id &&
-         request.resource.data.is_verified == resource.data.is_verified) ||
+         request.resource.data.is_verified == resource.data.is_verified &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified_capacity', 'capacity_valid_until'])) ||
         isAnalystOrAbove()
       );
 
@@ -302,6 +304,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         resource.data.customer_id == uid() &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'booking_snapshot', 'assigned_vehicle_id', 'assigned_capacity_version', 'requested_time_status',
           'assignment_mode',
           'internal_test_authorized',
           'internal_test_assigned_by',
@@ -353,6 +356,12 @@ service cloud.firestore {
 
       allow delete: if false;
 
+      match /private/{documentId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.driver_id == uid() || isAnalystOrAbove());
+        allow write: if false;
+      }
       match /stops/{stopId} {
         allow read: if isSignedIn() && (
           get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
@@ -530,6 +539,17 @@ service cloud.firestore {
 
     // payment_profiles/{customerId} — référence Stripe client (aucune
     // donnée de carte sensible), lisible uniquement par son propriétaire.
+    match /booking_attempts/{attemptId} { allow read, write: if false; }
+    match /booking_photo_grants/{draftId} { allow read, write: if false; }
+    match /booking_reviews/{reviewId} {
+      allow read: if isSignedIn() && (resource.data.customer_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+    match /booking_drafts/{customerId} {
+      allow read: if isSignedIn() && customerId == uid() && resource.data.expires_at > request.time;
+      allow write: if false;
+    }
+    match /booking_payment_setups/{setupId} { allow read, write: if false; }
     match /payment_profiles/{customerId} {
       allow read: if isSignedIn() && (uid() == customerId || isAnalystOrAbove());
       allow write: if false;

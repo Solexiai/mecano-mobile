@@ -1,3 +1,4 @@
+import type { BookingSnapshot } from "./booking";
 // -----------------------------------------------------------------------------
 // Types & constantes partagées — valeurs canoniques SNAKE_CASE.
 //
@@ -459,6 +460,7 @@ export interface PaymentProfileDoc {
 }
 
 export interface DeliveryMissionDoc {
+  booking_snapshot?: BookingSnapshot;
   customer_id: string;
   customer_display_name: string;
   driver_id?: string | null;

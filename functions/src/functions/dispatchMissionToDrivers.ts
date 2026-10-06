@@ -1,3 +1,4 @@
+import { findCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // dispatchMissionToDrivers — déclenchée automatiquement (Firestore trigger)
 // à la création d'une mission `searching_driver`, recherche les chauffeurs
@@ -55,7 +56,7 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
     .limit(50)
     .get();
 
-  const eligible = candidatesSnap.docs
+  let eligible = candidatesSnap.docs
     .filter((driverDoc) => {
       const driver = driverDoc.data();
 
@@ -82,7 +83,12 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
 
       return currentGeohash?.slice(0, DISPATCH_ZONE_PREFIX_LENGTH) === zonePrefix;
     })
-    .slice(0, MAX_CANDIDATE_DRIVERS);
+    ;
+  if (mission.booking_snapshot) {
+    const compatible = await Promise.all(eligible.map(async d => ({ d, vehicle: await findCompatibleVehicle(d.id, mission.booking_snapshot!) })));
+    eligible = compatible.filter(x => x.vehicle !== null).map(x => x.d);
+  }
+  eligible = eligible.slice(0, MAX_CANDIDATE_DRIVERS);
 
   if (eligible.length === 0) {
     // Aucun chauffeur dispo dans la zone immédiate — laissé en

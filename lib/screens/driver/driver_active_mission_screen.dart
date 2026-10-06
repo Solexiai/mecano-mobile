@@ -1,3 +1,4 @@
+import '../../widgets/booking_load_summary.dart';
 // ---------------------------------------------------------------------------
 // DriverActiveMissionScreen — Phase 4, écran Mission Active Chauffeur.
 //
@@ -583,6 +584,11 @@ class _MissionCard extends StatelessWidget {
                   value: '${dropoff.line1}, ${dropoff.city}',
                 ),
               ],
+              if (mission.bookingSnapshot != null)
+                BookingLoadSummary(
+                  snapshot: mission.bookingSnapshot!,
+                  locale: context.read<LocaleProvider>().locale,
+                ),
               if (mission.description.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 _DetailRow(

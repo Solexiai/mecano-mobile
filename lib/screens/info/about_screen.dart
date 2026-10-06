@@ -32,18 +32,18 @@ class AboutScreen extends StatelessWidget {
         Icons.shield_moon_outlined,
         _tr(fr: 'Fiable', en: 'Reliable', es: 'Confiable'),
         _tr(
-          fr: 'Des chauffeurs vérifiés, des engagements tenus.',
-          en: 'Verified drivers, commitments kept.',
-          es: 'Conductores verificados, compromisos cumplidos.',
+          fr: 'Des dossiers chauffeurs soumis à vérification avant activation.',
+          en: 'Driver applications are reviewed before activation.',
+          es: 'Los expedientes de conductores se revisan antes de la activación.',
         ),
       ),
       (
         Icons.location_on_outlined,
         _tr(fr: 'Local', en: 'Local', es: 'Local'),
         _tr(
-          fr: 'Ancrés dans les communautés du Québec et du Canada.',
-          en: 'Rooted in Quebec and Canadian communities.',
-          es: 'Arraigados en las comunidades de Quebec y Canadá.',
+          fr: 'Lancement prévu à Granby et dans les environs.',
+          en: 'Launch planned for Granby and surrounding areas.',
+          es: 'Lanzamiento previsto en Granby y alrededores.',
         ),
       ),
       (
@@ -59,18 +59,18 @@ class AboutScreen extends StatelessWidget {
         Icons.bolt_outlined,
         _tr(fr: 'Rapide', en: 'Fast', es: 'Rápido'),
         _tr(
-          fr: 'Trouvez un chauffeur disponible en quelques minutes.',
-          en: 'Find an available driver within minutes.',
-          es: 'Encuentre un conductor disponible en minutos.',
+          fr: 'La disponibilité dépend des chauffeurs actifs et du véhicule requis.',
+          en: 'Availability depends on active drivers and the required vehicle.',
+          es: 'La disponibilidad depende de los conductores activos y del vehículo necesario.',
         ),
       ),
       (
         Icons.visibility_outlined,
         _tr(fr: 'Transparent', en: 'Transparent', es: 'Transparente'),
         _tr(
-          fr: 'Profils, tarifs et avis clairement affichés.',
-          en: 'Profiles, rates and reviews clearly displayed.',
-          es: 'Perfiles, tarifas y reseñas claramente mostrados.',
+          fr: 'Devis et progression de la mission présentés clairement.',
+          en: 'Quotes and mission progress are presented clearly.',
+          es: 'El presupuesto y el progreso de la misión se presentan claramente.',
         ),
       ),
       (
@@ -167,8 +167,15 @@ class AboutScreen extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               Text(
-                _tr(fr: 'Nos valeurs', en: 'Our values', es: 'Nuestros valores'),
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                _tr(
+                  fr: 'Nos valeurs',
+                  en: 'Our values',
+                  es: 'Nuestros valores',
+                ),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 20),
               GridView.count(
@@ -244,11 +251,13 @@ class AboutScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             _tr(
-                              fr: "Devenez chauffeur dès aujourd'hui.",
-                              en: 'Become a driver today.',
-                              es: 'Conviértase en conductor hoy.',
+                              fr: 'Découvrez le parcours chauffeur et les conditions du lancement.',
+                              en: 'Explore the driver flow and launch conditions.',
+                              es: 'Descubre el proceso para conductores y las condiciones del lanzamiento.',
                             ),
-                            style: const TextStyle(color: AppColors.textSecondary),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),

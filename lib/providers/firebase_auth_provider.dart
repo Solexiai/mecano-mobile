@@ -186,6 +186,16 @@ class FirebaseAuthProvider extends ChangeNotifier {
 
   /// À appeler après un `setUserRole` réussi côté serveur, pour que le
   /// client voie immédiatement le nouveau rôle sans se déconnecter.
+  /// Refresh verification after the user follows the email link. Keep the
+  /// auth-state subscription unchanged to avoid a token-refresh event loop.
+  Future<void> reloadCurrentUser() async {
+    if (!_backendConfigured) return;
+    await _user?.reload();
+    _user = fb.FirebaseAuth.instance.currentUser;
+    await _refreshClaims(force: true);
+    notifyListeners();
+  }
+
   Future<void> refreshClaims() async {
     await _refreshClaims(force: true);
     notifyListeners();

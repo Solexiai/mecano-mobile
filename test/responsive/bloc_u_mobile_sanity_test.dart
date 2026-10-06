@@ -1,3 +1,4 @@
+import '../helpers/booking_test_harness.dart';
 // ---------------------------------------------------------------------------
 // bloc_u_mobile_sanity_test.dart — Phase 7, Bloc U (U-6 — MOBILE SANITY).
 //
@@ -89,13 +90,17 @@ class FakeGeolocatorPlatform extends GeolocatorPlatform {
   Future<bool> isLocationServiceEnabled() async => true;
 
   @override
-  Future<LocationPermission> checkPermission() async => LocationPermission.always;
+  Future<LocationPermission> checkPermission() async =>
+      LocationPermission.always;
 
   @override
-  Future<LocationPermission> requestPermission() async => LocationPermission.always;
+  Future<LocationPermission> requestPermission() async =>
+      LocationPermission.always;
 
   @override
-  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async {
+  Future<Position> getCurrentPosition({
+    LocationSettings? locationSettings,
+  }) async {
     return Position(
       longitude: -73.7,
       latitude: 45.6,
@@ -116,11 +121,13 @@ class _FakeLocationRepository implements LocationRepository {
   Future<void> reportDriverLocation(DriverLocation location) async {}
 
   @override
-  Stream<DriverLocation?> watchDriverLocation(String driverId) => Stream.value(null);
+  Stream<DriverLocation?> watchDriverLocation(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(String driverId) =>
-      Stream.value(const []);
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId,
+  ) => Stream.value(const []);
 }
 
 /// Simule la capture caméra sans dépendre du vrai plugin natif — `extends`
@@ -131,11 +138,74 @@ class FakeImagePickerPlatform extends ImagePickerPlatform {
   // `Image.memory()` : des octets non-image feraient planter le décodeur
   // Skia pour une raison sans rapport avec le scénario testé.
   static final Uint8List _validPng = Uint8List.fromList(const [
-    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
-    0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0, 181, 28, 12, 2, 0,
-    0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 100, 248, 15, 0, 1, 5,
-    1, 1, 39, 24, 227, 102, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66,
-    96, 130,
+    137,
+    80,
+    78,
+    71,
+    13,
+    10,
+    26,
+    10,
+    0,
+    0,
+    0,
+    13,
+    73,
+    72,
+    68,
+    82,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    8,
+    4,
+    0,
+    0,
+    0,
+    181,
+    28,
+    12,
+    2,
+    0,
+    0,
+    0,
+    11,
+    73,
+    68,
+    65,
+    84,
+    120,
+    218,
+    99,
+    100,
+    248,
+    15,
+    0,
+    1,
+    5,
+    1,
+    1,
+    39,
+    24,
+    227,
+    102,
+    0,
+    0,
+    0,
+    0,
+    73,
+    69,
+    78,
+    68,
+    174,
+    66,
+    96,
+    130,
   ]);
 
   @override
@@ -161,7 +231,10 @@ class _FakeMissionRepository implements MissionRepository {
   Stream<DeliveryMission?> watchMission(String missionId) => _controller.stream;
 
   @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {}
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) async {}
 
   @override
   Future<void> markPickupCompleted(String missionId) async {}
@@ -182,29 +255,43 @@ class _FakeMissionRepository implements MissionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
-      throw UnimplementedError();
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => Stream.value(const []);
-
-  @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
+  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       Stream.value(const []);
 
   @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => Stream.value(const []);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => Stream.value(const []);
 
   @override
-  Future<AcceptMissionResult> acceptMission({required String missionId, required String driverId}) async {
-    return const AcceptMissionResult(success: false, errorCode: 'not_used_in_test');
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Future<AcceptMissionResult> acceptMission({
+    required String missionId,
+    required String driverId,
+  }) async {
+    return const AcceptMissionResult(
+      success: false,
+      errorCode: 'not_used_in_test',
+    );
   }
 }
 
-DeliveryMission _buildMission({required MissionStatus status, required String customerId}) {
+DeliveryMission _buildMission({
+  required MissionStatus status,
+  required String customerId,
+}) {
   return DeliveryMission(
     id: _missionId,
     customerId: customerId,
@@ -251,7 +338,8 @@ class _StreamNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) => _notifController.stream;
+  Stream<List<AppNotification>> watchNotifications(String userId) =>
+      _notifController.stream;
 
   @override
   Stream<int> watchUnreadCount(String userId) => _unreadController.stream;
@@ -264,27 +352,27 @@ class _StreamNotificationRepository implements NotificationRepository {
 }
 
 List<AppNotification> _notifications() => [
-      AppNotification(
-        id: 'n1',
-        userId: _customerId,
-        type: 'driver_assigned',
-        titleKey: 'notif_driver_assigned_title',
-        bodyKey: 'notif_driver_assigned_body',
-        missionId: 'mission_n1',
-        createdAt: DateTime(2024, 1, 1, 10, 0),
-        isRead: false,
-      ),
-      AppNotification(
-        id: 'n2',
-        userId: _customerId,
-        type: 'delivery_completed',
-        titleKey: 'notif_delivery_completed_title',
-        bodyKey: 'notif_delivery_completed_body',
-        missionId: 'mission_n2',
-        createdAt: DateTime(2024, 1, 1, 9, 0),
-        isRead: true,
-      ),
-    ];
+  AppNotification(
+    id: 'n1',
+    userId: _customerId,
+    type: 'driver_assigned',
+    titleKey: 'notif_driver_assigned_title',
+    bodyKey: 'notif_driver_assigned_body',
+    missionId: 'mission_n1',
+    createdAt: DateTime(2024, 1, 1, 10, 0),
+    isRead: false,
+  ),
+  AppNotification(
+    id: 'n2',
+    userId: _customerId,
+    type: 'delivery_completed',
+    titleKey: 'notif_delivery_completed_title',
+    bodyKey: 'notif_delivery_completed_body',
+    missionId: 'mission_n2',
+    createdAt: DateTime(2024, 1, 1, 9, 0),
+    isRead: true,
+  ),
+];
 
 FirebaseAuthProvider _signedInAuth({required String uid, String? displayName}) {
   return FirebaseAuthProvider(backendConfigured: false)
@@ -326,59 +414,52 @@ void main() {
         (tester) async {
           _setViewport(tester, width, 800);
 
-          final auth = _signedInAuth(uid: _customerId, displayName: 'Client Test');
+          final auth = _signedInAuth(
+            uid: _customerId,
+            displayName: 'Client Test',
+          );
           final router = GoRouter(
             initialLocation: '/fr/livraison/demande',
             routes: [
               GoRoute(
                 path: '/fr/livraison/demande',
-                builder: (context, state) => const DeliveryRequestFlowScreen(locale: 'fr'),
+                builder: (context, state) => DeliveryRequestFlowScreen(
+                  locale: 'fr',
+                  api: TestBookingApi(),
+                  storage: MemoryBookingStorage(null),
+                ),
               ),
             ],
           );
-          await tester.pumpWidget(_wrap(MultiProvider(
-            providers: [
-              ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            ],
-            child: MaterialApp.router(routerConfig: router),
-          )));
+          await tester.pumpWidget(
+            _wrap(
+              MultiProvider(
+                providers: [
+                  ChangeNotifierProvider<LocaleProvider>(
+                    create: (_) => LocaleProvider(),
+                  ),
+                  ChangeNotifierProvider<FirebaseAuthProvider>.value(
+                    value: auth,
+                  ),
+                ],
+                child: MaterialApp.router(routerConfig: router),
+              ),
+            ),
+          );
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
 
-          // Étape 1 : catégorie + description, puis "Suivant".
-          await tester.ensureVisible(find.text(AppStrings.t('cat_furniture', 'fr')).first);
-          await tester.tap(find.text(AppStrings.t('cat_furniture', 'fr')).first);
-          await tester.pump();
-          await tester.ensureVisible(find.byType(TextField).first);
-          await tester.enterText(find.byType(TextField).first, 'Canapé 3 places');
-          await tester.pump();
-          expect(tester.takeException(), isNull);
-          final next1 = find.text(AppStrings.t('common_next', 'fr'));
-          await tester.ensureVisible(next1);
-          await tester.tap(next1);
+          await tester.ensureVisible(find.text('Canapé').first);
+          await tester.tap(find.text('Canapé').first);
           await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
-
-          // Étape 2 : adresses — MOVI-K adresses réelles + autocomplete +
-          // géocodage : 4 TextField seulement désormais (pickup + dropoff,
-          // chacun encapsulé dans un `AddressAutocompleteField`, plus
-          // contact/accès), contre 10 avant cette évolution (plus de champs
-          // lat/lng/ville/code postal séparés). Vérifie que chacun reste
-          // atteignable par scroll sans provoquer d'exception de layout,
-          // même à largeur étroite.
-          final textFields = find.byType(TextField);
-          expect(textFields, findsNWidgets(4));
-          for (var i = 0; i < 4; i++) {
-            await tester.ensureVisible(textFields.at(i));
+          final fields = find.byType(TextField);
+          expect(fields.evaluate().length, greaterThanOrEqualTo(8));
+          for (var i = 0; i < fields.evaluate().length; i++) {
+            await tester.ensureVisible(fields.at(i));
             await tester.pump();
             expect(tester.takeException(), isNull);
           }
-
-          // Le bouton "Suivant" de l'étape reste accessible.
-          final next2 = find.text(AppStrings.t('common_next', 'fr'));
-          await tester.ensureVisible(next2);
-          expect(next2, findsOneWidget);
+          await tester.ensureVisible(find.text('Voir mon prix'));
           expect(tester.takeException(), isNull);
         },
       );
@@ -399,29 +480,44 @@ void main() {
           GeolocatorPlatform.instance = FakeGeolocatorPlatform();
           BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
           final fakeRepo = _FakeMissionRepository(
-            _buildMission(status: MissionStatus.inTransit, customerId: _customerId),
+            _buildMission(
+              status: MissionStatus.inTransit,
+              customerId: _customerId,
+            ),
           );
           BackendLocator.missionRepositoryOverride = fakeRepo;
           addTearDown(fakeRepo.dispose);
 
-          final auth = _signedInAuth(uid: _driverId, displayName: 'Chauffeur Test');
+          final auth = _signedInAuth(
+            uid: _driverId,
+            displayName: 'Chauffeur Test',
+          );
           final router = GoRouter(
             initialLocation: '/fr/provider/mission/$_missionId',
             routes: [
               GoRoute(
                 path: '/fr/provider/mission/:missionId',
-                builder: (context, state) =>
-                    DriverActiveMissionScreen(missionId: state.pathParameters['missionId']!),
+                builder: (context, state) => DriverActiveMissionScreen(
+                  missionId: state.pathParameters['missionId']!,
+                ),
               ),
             ],
           );
-          await tester.pumpWidget(_wrap(MultiProvider(
-            providers: [
-              ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            ],
-            child: MaterialApp.router(routerConfig: router),
-          )));
+          await tester.pumpWidget(
+            _wrap(
+              MultiProvider(
+                providers: [
+                  ChangeNotifierProvider<LocaleProvider>(
+                    create: (_) => LocaleProvider(),
+                  ),
+                  ChangeNotifierProvider<FirebaseAuthProvider>.value(
+                    value: auth,
+                  ),
+                ],
+                child: MaterialApp.router(routerConfig: router),
+              ),
+            ),
+          );
           await tester.pumpAndSettle();
 
           expect(tester.takeException(), isNull);
@@ -455,29 +551,42 @@ void main() {
         ImagePickerPlatform.instance = FakeImagePickerPlatform();
         BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
         final fakeRepo = _FakeMissionRepository(
-          _buildMission(status: MissionStatus.arrivedAtDropoff, customerId: _customerId),
+          _buildMission(
+            status: MissionStatus.arrivedAtDropoff,
+            customerId: _customerId,
+          ),
         );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
-        final auth = _signedInAuth(uid: _driverId, displayName: 'Chauffeur Test');
+        final auth = _signedInAuth(
+          uid: _driverId,
+          displayName: 'Chauffeur Test',
+        );
         final router = GoRouter(
           initialLocation: '/fr/provider/mission/$_missionId',
           routes: [
             GoRoute(
               path: '/fr/provider/mission/:missionId',
-              builder: (context, state) =>
-                  DriverActiveMissionScreen(missionId: state.pathParameters['missionId']!),
+              builder: (context, state) => DriverActiveMissionScreen(
+                missionId: state.pathParameters['missionId']!,
+              ),
             ),
           ],
         );
-        await tester.pumpWidget(_wrap(MultiProvider(
-          providers: [
-            ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-            ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-          ],
-          child: MaterialApp.router(routerConfig: router),
-        )));
+        await tester.pumpWidget(
+          _wrap(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LocaleProvider>(
+                  create: (_) => LocaleProvider(),
+                ),
+                ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+              ],
+              child: MaterialApp.router(routerConfig: router),
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
 
@@ -494,8 +603,12 @@ void main() {
         // Le dialog + ses 2 actions doivent être présents et accessibles,
         // même à 320px de large.
         expect(find.byType(AlertDialog), findsOneWidget);
-        final retakeButton = find.text(AppStrings.t('driver_active_mission_retake_photo', 'fr'));
-        final confirmButton = find.text(AppStrings.t('driver_active_mission_confirm_proof', 'fr'));
+        final retakeButton = find.text(
+          AppStrings.t('driver_active_mission_retake_photo', 'fr'),
+        );
+        final confirmButton = find.text(
+          AppStrings.t('driver_active_mission_confirm_proof', 'fr'),
+        );
         expect(retakeButton, findsOneWidget);
         expect(confirmButton, findsOneWidget);
         expect(tester.takeException(), isNull);
@@ -527,33 +640,46 @@ void main() {
             routes: [
               GoRoute(
                 path: '/fr/devenir-chauffeur/inscription',
-                builder: (context, state) => const DriverOnboardingScreen(
-                  locale: 'fr',
-                  initialStep: 3,
-                ),
+                builder: (context, state) =>
+                    const DriverOnboardingScreen(locale: 'fr', initialStep: 3),
               ),
               GoRoute(
                 path: '/fr/devenir-chauffeur/statut',
-                builder: (context, state) => const Scaffold(body: Text('STATUS_STUB')),
+                builder: (context, state) =>
+                    const Scaffold(body: Text('STATUS_STUB')),
               ),
             ],
           );
-          await tester.pumpWidget(_wrap(MultiProvider(
-            providers: [
-              ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-              Provider<BackendStatus>.value(value: const BackendStatus.ready()),
-            ],
-            child: MaterialApp.router(routerConfig: router),
-          )));
+          await tester.pumpWidget(
+            _wrap(
+              MultiProvider(
+                providers: [
+                  ChangeNotifierProvider<LocaleProvider>(
+                    create: (_) => LocaleProvider(),
+                  ),
+                  ChangeNotifierProvider<FirebaseAuthProvider>.value(
+                    value: auth,
+                  ),
+                  Provider<BackendStatus>.value(
+                    value: const BackendStatus.ready(),
+                  ),
+                ],
+                child: MaterialApp.router(routerConfig: router),
+              ),
+            ),
+          );
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
 
           // Étape Documents : les 4 lignes de sélection requises
           // doivent être visibles et leur bouton "Sélectionner" accessible,
           // sans overflow horizontal du Row texte+bouton.
-          final licenseLabel = find.text(AppStrings.t('driver_onboarding_upload_license', 'fr'));
-          final insuranceLabel = find.text(AppStrings.t('driver_onboarding_upload_insurance', 'fr'));
+          final licenseLabel = find.text(
+            AppStrings.t('driver_onboarding_upload_license', 'fr'),
+          );
+          final insuranceLabel = find.text(
+            AppStrings.t('driver_onboarding_upload_insurance', 'fr'),
+          );
           await tester.ensureVisible(licenseLabel);
           expect(licenseLabel, findsOneWidget);
           expect(insuranceLabel, findsOneWidget);
@@ -576,58 +702,67 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.5 — NotificationsScreen', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets(
-        'liste + AppBar action "tout marquer lu" — aucun overflow à '
-        '${width.toInt()}px, action accessible',
-        (tester) async {
-          _setViewport(tester, width, 700);
+      testWidgets('liste + AppBar action "tout marquer lu" — aucun overflow à '
+          '${width.toInt()}px, action accessible', (tester) async {
+        _setViewport(tester, width, 700);
 
-          final fakeRepo = _StreamNotificationRepository(_notifications());
-          BackendLocator.notificationRepositoryOverride = fakeRepo;
-          addTearDown(fakeRepo.dispose);
+        final fakeRepo = _StreamNotificationRepository(_notifications());
+        BackendLocator.notificationRepositoryOverride = fakeRepo;
+        addTearDown(fakeRepo.dispose);
 
-          final auth = _signedInAuth(uid: _customerId, displayName: 'Client Test');
-          final router = GoRouter(
-            initialLocation: '/fr/notifications/$_customerId',
-            routes: [
-              GoRoute(
-                path: '/fr/notifications/:userId',
-                builder: (context, state) =>
-                    NotificationsScreen(userId: state.pathParameters['userId']!),
-              ),
-              GoRoute(
-                path: '/fr/livraison/suivi/:missionId',
-                builder: (context, state) => const Scaffold(body: Text('TRACKING_STUB')),
-              ),
-            ],
-          );
-          await tester.pumpWidget(_wrap(MultiProvider(
-            providers: [
-              ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            ],
-            child: MaterialApp.router(routerConfig: router),
-          )));
-          await tester.pumpAndSettle();
+        final auth = _signedInAuth(
+          uid: _customerId,
+          displayName: 'Client Test',
+        );
+        final router = GoRouter(
+          initialLocation: '/fr/notifications/$_customerId',
+          routes: [
+            GoRoute(
+              path: '/fr/notifications/:userId',
+              builder: (context, state) =>
+                  NotificationsScreen(userId: state.pathParameters['userId']!),
+            ),
+            GoRoute(
+              path: '/fr/livraison/suivi/:missionId',
+              builder: (context, state) =>
+                  const Scaffold(body: Text('TRACKING_STUB')),
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          _wrap(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LocaleProvider>(
+                  create: (_) => LocaleProvider(),
+                ),
+                ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+              ],
+              child: MaterialApp.router(routerConfig: router),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          expect(tester.takeException(), isNull);
+        expect(tester.takeException(), isNull);
 
-          // L'action "tout marquer lu" de l'AppBar (texte potentiellement
-          // long) ne doit jamais provoquer d'overflow de l'AppBar, même à
-          // 320px, et rester tapable.
-          final markAllButton = find.text(AppStrings.t('notifications_mark_all_read', 'fr'));
-          expect(markAllButton, findsOneWidget);
-          await tester.tap(markAllButton);
-          await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
+        // L'action "tout marquer lu" de l'AppBar (texte potentiellement
+        // long) ne doit jamais provoquer d'overflow de l'AppBar, même à
+        // 320px, et rester tapable.
+        final markAllButton = find.text(
+          AppStrings.t('notifications_mark_all_read', 'fr'),
+        );
+        expect(markAllButton, findsOneWidget);
+        await tester.tap(markAllButton);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
 
-          // Les 2 notifications restent listées et tapables sans overflow.
-          expect(
-            find.text(AppStrings.t('notif_driver_assigned_title', 'fr')),
-            findsOneWidget,
-          );
-        },
-      );
+        // Les 2 notifications restent listées et tapables sans overflow.
+        expect(
+          find.text(AppStrings.t('notif_driver_assigned_title', 'fr')),
+          findsOneWidget,
+        );
+      });
     }
   });
 
@@ -636,49 +771,59 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.6 — CustomerTrackingScreen (suivi mission en cours)', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets(
-        'bandeau chauffeur + carte + timeline + adresses longues — '
-        'aucun overflow à ${width.toInt()}px',
-        (tester) async {
-          _setViewport(tester, width, 900);
+      testWidgets('bandeau chauffeur + carte + timeline + adresses longues — '
+          'aucun overflow à ${width.toInt()}px', (tester) async {
+        _setViewport(tester, width, 900);
 
-          BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
-          final fakeRepo = _FakeMissionRepository(
-            _buildMission(status: MissionStatus.inTransit, customerId: _customerId),
-          );
-          BackendLocator.missionRepositoryOverride = fakeRepo;
-          addTearDown(fakeRepo.dispose);
+        BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(
+            status: MissionStatus.inTransit,
+            customerId: _customerId,
+          ),
+        );
+        BackendLocator.missionRepositoryOverride = fakeRepo;
+        addTearDown(fakeRepo.dispose);
 
-          final auth = _signedInAuth(uid: _customerId, displayName: 'Client Test');
-          final router = GoRouter(
-            initialLocation: '/fr/livraison/suivi/$_missionId',
-            routes: [
-              GoRoute(
-                path: '/fr/livraison/suivi/:missionId',
-                builder: (context, state) =>
-                    CustomerTrackingScreen(missionId: state.pathParameters['missionId']!),
+        final auth = _signedInAuth(
+          uid: _customerId,
+          displayName: 'Client Test',
+        );
+        final router = GoRouter(
+          initialLocation: '/fr/livraison/suivi/$_missionId',
+          routes: [
+            GoRoute(
+              path: '/fr/livraison/suivi/:missionId',
+              builder: (context, state) => CustomerTrackingScreen(
+                missionId: state.pathParameters['missionId']!,
               ),
-            ],
-          );
-          await tester.pumpWidget(_wrap(MultiProvider(
-            providers: [
-              ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
-              ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-            ],
-            child: MaterialApp.router(routerConfig: router),
-          )));
-          await tester.pumpAndSettle();
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          _wrap(
+            MultiProvider(
+              providers: [
+                ChangeNotifierProvider<LocaleProvider>(
+                  create: (_) => LocaleProvider(),
+                ),
+                ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+              ],
+              child: MaterialApp.router(routerConfig: router),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-          expect(tester.takeException(), isNull);
+        expect(tester.takeException(), isNull);
 
-          // Le nom du chauffeur (bandeau supérieur, Row icône+texte) et les
-          // adresses longues (pickup/dropoff, _AddressRow) doivent rester
-          // visibles sans provoquer d'exception de layout.
-          expect(find.text('Chauffeur Test U6'), findsOneWidget);
-          await tester.ensureVisible(find.textContaining('10 rue Départ'));
-          expect(tester.takeException(), isNull);
-        },
-      );
+        // Le nom du chauffeur (bandeau supérieur, Row icône+texte) et les
+        // adresses longues (pickup/dropoff, _AddressRow) doivent rester
+        // visibles sans provoquer d'exception de layout.
+        expect(find.text('Chauffeur Test U6'), findsOneWidget);
+        await tester.ensureVisible(find.textContaining('10 rue Départ'));
+        expect(tester.takeException(), isNull);
+      });
     }
   });
 }
