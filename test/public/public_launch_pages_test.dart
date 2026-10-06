@@ -15,7 +15,14 @@ Widget _wrap(FirebaseAuthProvider auth, {double textScale = 1}) =>
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
         ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
       ],
-      child: MaterialApp.router(routerConfig: AppRouter.router),
+      child: MaterialApp.router(
+        routerConfig: AppRouter.router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+      ),
     );
 
 void main() {
@@ -207,6 +214,8 @@ void main() {
     await tester.pumpWidget(_wrap(auth, textScale: 2));
     await tester.pumpAndSettle();
     expect(find.textContaining('Granby'), findsWidgets);
+    final launchText = tester.element(find.textContaining('Granby').first);
+    expect(MediaQuery.textScalerOf(launchText).scale(16), 32);
     expect(tester.takeException(), isNull);
   });
 }
