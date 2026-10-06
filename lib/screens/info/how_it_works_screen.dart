@@ -97,9 +97,9 @@ class HowItWorksScreen extends StatelessWidget {
                   'Sin franja horaria prometida en este proceso',
                 ),
                 body: tr(
-                  'Le parcours actuel ne permet pas de choisir une heure de livraison. Après confirmation, la demande cherche un chauffeur admissible et disponible.',
-                  'The current flow does not let customers choose a delivery time. After confirmation, the request searches for an eligible, available driver.',
-                  'El proceso actual no permite elegir una hora de entrega. Después de confirmar, la solicitud busca un conductor apto y disponible.',
+                  'Indiquez la date et l’heure souhaitées dans votre demande. Elles restent à confirmer selon l’acceptation et la disponibilité du chauffeur. Après confirmation de la demande, Movi‑K recherche un chauffeur admissible.',
+                  'Enter your preferred date and time in the request. They remain subject to driver acceptance and availability. After request confirmation, Movi‑K looks for an eligible driver.',
+                  'Indica la fecha y hora deseadas en tu solicitud. Siguen sujetas a la aceptación y disponibilidad del conductor. Tras confirmar la solicitud, Movi‑K busca un conductor apto.',
                 ),
               ),
               const SizedBox(height: 14),

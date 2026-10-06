@@ -61,11 +61,11 @@ abstract final class HomeCopy {
     },
     'item_note': {
       'fr':
-          'Indiquez les dimensions, le poids estimé et les particularités dans la description. L’objet doit convenir au véhicule choisi.',
+          'Renseignez les mesures de chaque objet emballé, le poids et les accès. Une mesure inconnue ou approximative nécessite une vérification avant le devis.',
       'en':
-          'Include dimensions, estimated weight and special requirements in the description. The item must fit the selected vehicle.',
+          'Enter measurements for each packaged item, weight and access details. Unknown or approximate measurements require a review before the quote.',
       'es':
-          'Indica las dimensiones, el peso estimado y las necesidades especiales en la descripción. El objeto debe caber en el vehículo elegido.',
+          'Indica las medidas de cada objeto embalado, el peso y los accesos. Las medidas desconocidas o aproximadas requieren revisión antes del presupuesto.',
     },
     'steps_title': {
       'fr': 'De votre demande à la livraison',
@@ -78,9 +78,12 @@ abstract final class HomeCopy {
       'es': 'Describe el objeto y el trayecto',
     },
     'step1_body': {
-      'fr': 'Précisez les adresses, le véhicule requis et les accès.',
-      'en': 'Provide the addresses, required vehicle and access details.',
-      'es': 'Indica las direcciones, el vehículo necesario y los accesos.',
+      'fr':
+          'Précisez les objets, leurs mesures, les adresses, les accès et la date souhaitée.',
+      'en':
+          'Provide items, measurements, addresses, access details and your preferred date.',
+      'es':
+          'Indica los objetos, las medidas, las direcciones, los accesos y la fecha deseada.',
     },
     'step2': {
       'fr': 'Consultez votre devis',
@@ -189,11 +192,11 @@ abstract final class HomeCopy {
     },
     'faq_price_body': {
       'fr':
-          'Commencez votre demande sans compte : décrivez l’objet, sélectionnez les adresses et le véhicule. La connexion est demandée seulement pour calculer le devis officiel, présenté avant la confirmation.',
+          'Commencez sans compte : décrivez vos objets et leurs mesures, les adresses et l’aide nécessaire. Movi‑K vérifie les véhicules compatibles. La connexion est demandée pour le devis officiel, présenté avant confirmation.',
       'en':
-          'Start your request without an account: describe the item and select the addresses and vehicle. Sign-in is required only to calculate the official quote, which is shown before confirmation.',
+          'Start without an account: describe your items and measurements, addresses and required help. Movi‑K checks compatible vehicles. Sign-in is required for the official quote, shown before confirmation.',
       'es':
-          'Empieza la solicitud sin cuenta: describe el objeto y selecciona las direcciones y el vehículo. Solo debes iniciar sesión para calcular el presupuesto oficial, que se muestra antes de confirmar.',
+          'Empieza sin cuenta: describe los objetos y sus medidas, las direcciones y la ayuda necesaria. Movi‑K verifica vehículos compatibles. Debes iniciar sesión para el presupuesto oficial, presentado antes de confirmar.',
     },
     'faq_help': {
       'fr': 'Qui aide à charger et à décharger ?',
@@ -215,11 +218,11 @@ abstract final class HomeCopy {
     },
     'faq_available_body': {
       'fr':
-          'La demande peut rester en recherche. Consultez son état dans votre espace : aucun délai ni créneau n’est garanti avant confirmation. La programmation n’est pas encore proposée dans ce parcours.',
+          'La demande peut rester en recherche. Consultez son état dans votre espace. La date et l’heure souhaitées dépendent de l’acceptation et de la disponibilité d’un chauffeur; elles ne constituent pas un créneau confirmé.',
       'en':
-          'Your request may remain in search. Check its status in your account: no arrival time or slot is guaranteed before confirmation. Scheduling is not yet offered in this flow.',
+          'Your request may remain in search. Check its status in your account. Your preferred date and time depend on driver acceptance and availability; they are not a confirmed slot.',
       'es':
-          'La solicitud puede seguir buscando conductor. Consulta su estado en tu cuenta: no se garantiza ninguna hora o franja antes de la confirmación. Este proceso todavía no ofrece programación.',
+          'La solicitud puede seguir buscando conductor. Consulta su estado en tu cuenta. La fecha y hora deseadas dependen de la aceptación y disponibilidad del conductor; no son un horario confirmado.',
     },
     'faq_cancel': {
       'fr': 'Comment annuler ou obtenir de l’aide ?',

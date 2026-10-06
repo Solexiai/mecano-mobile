@@ -129,31 +129,39 @@ class SafetyScreen extends StatelessWidget {
                     color: AppColors.warning.withValues(alpha: .25),
                   ),
                 ),
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.support_agent_outlined,
-                      color: AppColors.warning,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.support_agent_outlined,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            tr(
+                              'Le canal officiel de soutien et de signalement est encore en préparation. Cette page ne simule aucun envoi. Consultez la page Contact pour l’état actuel.',
+                              'The official support and reporting channel is still being prepared. This page does not simulate a submission. See the Contact page for the current status.',
+                              'El canal oficial de soporte y reportes sigue en preparación. Esta página no simula ningún envío. Consulta la página de Contacto para conocer el estado actual.',
+                            ),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        tr(
-                          'Le canal officiel de soutien et de signalement est encore en préparation. Cette page ne simule aucun envoi. Consultez la page Contact pour l’état actuel.',
-                          'The official support and reporting channel is still being prepared. This page does not simulate a submission. See the Contact page for the current status.',
-                          'El canal oficial de soporte y reportes sigue en preparación. Esta página no simula ningún envío. Consulta la página de Contacto para conocer el estado actual.',
-                        ),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => context.go('/$locale/contact'),
+                        child: Text(tr('Contact', 'Contact', 'Contacto')),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    TextButton(
-                      onPressed: () => context.go('/$locale/contact'),
-                      child: Text(tr('Contact', 'Contact', 'Contacto')),
                     ),
                   ],
                 ),

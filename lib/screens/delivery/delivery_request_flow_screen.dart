@@ -1,11 +1,15 @@
 import 'dart:async';
+
 import 'package:cloud_functions/cloud_functions.dart';
+
 import '../../services/delivery_request_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../providers/firebase_auth_provider.dart';
 import '../../l10n/app_strings.dart';
 import '../../services/demo_data_service.dart';
@@ -50,7 +54,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   bool _identityKnown = false,
       _loaded = false,
       _busy = false,
-      _cardReady = false;
+      _cardReady = false,
+      _configurationChecked = false;
   int _epoch = 0;
   String? _message, _saveError;
   Map<String, dynamic>? _policy, _review;
@@ -211,24 +216,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _message = null;
     _review = null;
     _policy = null;
+    _configurationChecked = false;
     setState(() {
       _loaded = true;
     });
-    try {
-      final config = await api.call('getBookingConfiguration');
-      if (!mounted || epoch != _epoch) return;
-      setState(() {
-        _policy = config['policy'] is Map
-            ? Map<String, dynamic>.from(config['policy'] as Map)
-            : null;
-      });
-    } catch (_) {
-      if (mounted && epoch == _epoch) {
-        setState(() {
-          _policy = null;
-        });
-      }
-    }
+    await _loadConfiguration(epoch);
     if (_uid != null && mounted && epoch == _epoch) {
       try {
         final profile = await api.profile();
@@ -275,6 +267,30 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       }
     }
   }
+
+  Future<void> _loadConfiguration(int epoch) async {
+    Map<String, dynamic>? policy;
+    try {
+      final config = await _api.call('getBookingConfiguration');
+      if (config['policy'] is Map) {
+        final value = Map<String, dynamic>.from(config['policy'] as Map);
+        if (value['approved'] == true) policy = value;
+      }
+    } catch (_) {
+      // Keep the draft usable when the reservation service is unavailable.
+    }
+    if (!mounted || epoch != _epoch) return;
+    setState(() {
+      _policy = policy;
+      _configurationChecked = true;
+    });
+  }
+
+  String get _reservationUnavailable => tr(
+    'La réservation est indisponible pour le moment. Vous pouvez préparer votre demande dans cet onglet, sans paiement ni réservation confirmée.',
+    'Booking is currently unavailable. You can prepare your request in this tab, without payment or a confirmed booking.',
+    'La reserva no está disponible por el momento. Puedes preparar tu solicitud en esta pestaña, sin pago ni reserva confirmada.',
+  );
 
   void _changed({bool quote = true}) {
     setState(() {
@@ -424,6 +440,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         (a['postal_code'] as String? ?? '').isNotEmpty;
   });
   Future<void> _quote() async {
+    if (_policy == null) {
+      setState(() => _message = _reservationUnavailable);
+      return;
+    }
     if (_uid == null) {
       await _login();
       return;
@@ -710,6 +730,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     ),
                   ),
                 ] else ...[
+                  if (_configurationChecked && _policy == null)
+                    _note(_reservationUnavailable, warning: true),
                   const SizedBox(height: 24),
                   Wrap(
                     spacing: 8,
@@ -1321,7 +1343,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   };
   List<Widget> _price() => [
     _heading(_titles[1]),
-    if (_uid == null) ...[
+    if (!_configurationChecked)
+      const LinearProgressIndicator()
+    else if (_policy == null)
+      _button(
+        tr(
+          'Vérifier à nouveau la disponibilité',
+          'Check availability again',
+          'Comprobar disponibilidad de nuevo',
+        ),
+        () => _run(() => _loadConfiguration(_epoch)),
+      )
+    else if (_uid == null) ...[
       _note(
         tr(
           'Connectez-vous pour obtenir le devis officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',

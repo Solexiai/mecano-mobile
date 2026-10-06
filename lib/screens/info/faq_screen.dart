@@ -28,9 +28,9 @@ class FaqScreen extends StatelessWidget {
           '¿Cómo obtengo un presupuesto?',
         ),
         tr(
-          'Décrivez l’objet, choisissez la catégorie et le véhicule requis, puis sélectionnez les adresses de départ et de livraison. Le devis officiel est calculé par Movi‑K côté serveur et présenté avant confirmation.',
-          'Describe the item, choose the category and required vehicle, then select pickup and delivery addresses. The official quote is calculated by Movi‑K on the server and shown before confirmation.',
-          'Describe el objeto, elige la categoría y el vehículo necesario y selecciona las direcciones de recogida y entrega. Movi‑K calcula el presupuesto oficial en el servidor y lo muestra antes de confirmar.',
+          'Décrivez vos objets, leurs dimensions et leur poids, puis sélectionnez les adresses et l’aide nécessaire. Movi‑K vérifie les catégories de véhicule compatibles et calcule le devis officiel après connexion. Vous consultez le prix et sa ventilation avant confirmation. Les renseignements incomplets peuvent nécessiter une vérification.',
+          'Describe your items, dimensions and weight, then select addresses and required assistance. Movi‑K checks compatible vehicle categories and calculates the official quote after sign-in. You review the price and breakdown before confirming. Incomplete details may require a review.',
+          'Describe los objetos, sus dimensiones y peso, y selecciona las direcciones y la ayuda necesaria. Movi‑K verifica las categorías de vehículo compatibles y calcula el presupuesto oficial tras iniciar sesión. Revisas el precio y el desglose antes de confirmar. Los datos incompletos pueden requerir revisión.',
         ),
       ),
       (
@@ -64,9 +64,9 @@ class FaqScreen extends StatelessWidget {
           '¿Puedo elegir una franja horaria?',
         ),
         tr(
-          'Le parcours actuel ne propose pas encore de programmation ou de choix de créneau. N’interprétez pas le devis comme une promesse d’heure de prise en charge.',
-          'The current flow does not yet offer scheduling or time-slot selection. A quote should not be interpreted as a promised pickup time.',
-          'El proceso actual todavía no ofrece programación ni selección de franja horaria. Un presupuesto no debe interpretarse como una hora de recogida garantizada.',
+          'Vous pouvez indiquer une date et une heure souhaitées dans votre demande. Ce souhait dépend de la disponibilité et de l’acceptation du chauffeur : il ne constitue pas un créneau confirmé.',
+          'You can enter a preferred date and time in your request. This preference depends on driver availability and acceptance; it is not a confirmed time slot.',
+          'Puedes indicar una fecha y una hora deseadas en tu solicitud. Dependen de la disponibilidad y aceptación del conductor; no constituyen un horario confirmado.',
         ),
       ),
       (

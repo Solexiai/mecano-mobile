@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
+import '../../router/delivery_request_intent.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 
@@ -25,18 +27,18 @@ class PricingScreen extends StatelessWidget {
         Icons.route_outlined,
         tr('Trajet', 'Route', 'Trayecto'),
         tr(
-          'La distance et la durée de l’itinéraire sont calculées côté serveur.',
-          'Route distance and duration are calculated on the server.',
-          'La distancia y la duración de la ruta se calculan en el servidor.',
+          'La distance et la durée du trajet entrent dans le calcul du prix.',
+          'Route distance and duration are included in the price calculation.',
+          'La distancia y la duración del trayecto forman parte del cálculo del precio.',
         ),
       ),
       (
         Icons.local_shipping_outlined,
         tr('Véhicule requis', 'Required vehicle', 'Vehículo necesario'),
         tr(
-          'Le type de véhicule sélectionné fait partie du calcul du devis.',
-          'The selected vehicle type is part of the quote calculation.',
-          'El tipo de vehículo seleccionado forma parte del cálculo.',
+          'Movi‑K vérifie les dimensions, le poids et les services demandés pour recommander une catégorie de véhicule compatible. Cette catégorie entre dans le calcul du devis.',
+          'Movi‑K checks dimensions, weight and requested services to recommend a compatible vehicle category. This category is included in the quote calculation.',
+          'Movi‑K verifica las dimensiones, el peso y los servicios solicitados para recomendar una categoría de vehículo compatible. Esta categoría forma parte del cálculo.',
         ),
       ),
       (
@@ -92,9 +94,9 @@ class PricingScreen extends StatelessWidget {
                   'Un presupuesto calculado por Movi‑K',
                 ),
                 body: tr(
-                  'Le montant n’est pas fixé manuellement par le chauffeur. Le calcul officiel est effectué côté serveur et le client peut vérifier le prix avant de confirmer.',
-                  'The amount is not manually set by the driver. The official calculation runs on the server and the customer can review the price before confirming.',
-                  'El importe no lo fija manualmente el conductor. El cálculo oficial se realiza en el servidor y el cliente puede revisar el precio antes de confirmar.',
+                  'Décrivez vos objets et leurs mesures, les adresses et l’aide nécessaire. Movi‑K calcule le devis; vous vérifiez le prix et sa ventilation avant de confirmer. Si des renseignements manquent ou qu’aucun chargement compatible n’est validé, une vérification est nécessaire.',
+                  'Describe your items and measurements, addresses and required assistance. Movi‑K calculates the quote; you review the price and breakdown before confirming. Missing details or an unverified loading plan require a review.',
+                  'Describe los objetos y sus medidas, las direcciones y la ayuda necesaria. Movi‑K calcula el presupuesto; revisas el precio y el desglose antes de confirmar. Los datos incompletos o un plan de carga no validado requieren revisión.',
                 ),
                 tone: AppColors.primary,
               ),
@@ -150,13 +152,26 @@ class PricingScreen extends StatelessWidget {
                   'Remuneración y comisión',
                 ),
                 body: tr(
-                  'Les règles financières applicables sont déterminées par la configuration serveur et les conditions approuvées. Aucun taux de commission non approuvé n’est publié ici.',
-                  'Applicable financial rules are determined by server configuration and approved terms. No unapproved commission rate is published here.',
-                  'Las reglas financieras aplicables se determinan mediante la configuración del servidor y las condiciones aprobadas. Aquí no se publica ninguna comisión no aprobada.',
+                  'Le chauffeur consulte la rémunération applicable dans son espace, selon les conditions approuvées. Le client vérifie les frais inclus dans la ventilation de son devis.',
+                  'Drivers review applicable compensation in their account under approved terms. Customers review included fees in the quote breakdown.',
+                  'El conductor consulta la remuneración aplicable en su cuenta, según las condiciones aprobadas. El cliente revisa los cargos incluidos en el desglose del presupuesto.',
                 ),
                 tone: AppColors.primary,
               ),
               const SizedBox(height: 22),
+              ElevatedButton.icon(
+                key: const Key('pricing-start-request'),
+                onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
+                icon: const Icon(Icons.request_quote_outlined),
+                label: Text(
+                  tr(
+                    'Commencer ma demande',
+                    'Start my request',
+                    'Empezar mi solicitud',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
               Text(
                 tr(
                   'Lancement prévu à Granby et dans les environs. La disponibilité d’un chauffeur et l’ouverture des transactions doivent être confirmées dans le parcours.',

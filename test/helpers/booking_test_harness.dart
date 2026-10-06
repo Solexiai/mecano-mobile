@@ -137,6 +137,7 @@ class TestBookingApi implements BookingApi {
   Object? quoteError, createError;
   Duration delay = Duration.zero;
   bool cardReady = true;
+  bool configurationAvailable = true;
   List<String> reasons = [];
   Map<String, dynamic> quote = testQuote();
   @override
@@ -150,6 +151,7 @@ class TestBookingApi implements BookingApi {
     payloads.add(data);
     switch (name) {
       case 'getBookingConfiguration':
+        if (!configurationAvailable) return {'policy': null};
         return {
           'policy': {
             'approved': true,

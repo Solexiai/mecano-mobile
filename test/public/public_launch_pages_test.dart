@@ -18,8 +18,9 @@ Widget _wrap(FirebaseAuthProvider auth, {double textScale = 1}) =>
       child: MaterialApp.router(
         routerConfig: AppRouter.router,
         builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScale)),
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
           child: child!,
         ),
       ),
@@ -103,6 +104,30 @@ void main() {
       find.textContaining('modalités de paiement en production'),
       findsOneWidget,
     );
+    final pricingAction = find.byKey(const Key('pricing-start-request'));
+    await tester.ensureVisible(pricingAction);
+    await tester.tap(pricingAction);
+    await tester.pumpAndSettle();
+    expect(
+      AppRouter.router.routeInformationProvider.value.uri.path,
+      '/fr/livraison/demande',
+    );
+    expect(find.text('Organisez votre livraison'), findsOneWidget);
+
+    AppRouter.router.go('/fr/faq');
+    await tester.pumpAndSettle();
+    final timeQuestion = find.text('Puis-je choisir une heure ou un créneau ?');
+    await tester.ensureVisible(timeQuestion);
+    await tester.tap(timeQuestion);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('ne propose pas encore de programmation'),
+      findsNothing,
+    );
+    expect(
+      find.textContaining('une date et une heure souhaitées'),
+      findsOneWidget,
+    );
 
     AppRouter.router.go('/fr/comment-ca-marche');
     await tester.pumpAndSettle();
@@ -177,20 +202,22 @@ void main() {
   };
 
   for (final entry in localizedPublicPaths.entries) {
-    testWidgets('public navigation pages render in ${entry.key}', (
-      tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final auth = FirebaseAuthProvider(backendConfigured: false);
-      await tester.pumpWidget(_wrap(auth));
+    for (final width in [320.0, 390.0, 768.0, 1280.0]) {
+      testWidgets('public navigation pages render in ${entry.key} at $width', (
+        tester,
+      ) async {
+        await tester.binding.setSurfaceSize(Size(width, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final auth = FirebaseAuthProvider(backendConfigured: false);
+        await tester.pumpWidget(_wrap(auth, textScale: width == 320 ? 2 : 1));
 
-      for (final path in entry.value) {
-        AppRouter.router.go('/${entry.key}/$path');
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull, reason: '/${entry.key}/$path');
-      }
-    });
+        for (final path in entry.value) {
+          AppRouter.router.go('/${entry.key}/$path');
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: '/${entry.key}/$path');
+        }
+      });
+    }
   }
 
   for (final width in [320.0, 390.0, 768.0, 1280.0]) {
