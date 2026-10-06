@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import '../../providers/firebase_auth_provider.dart';
+import '../../l10n/app_strings.dart';
+import '../../services/demo_data_service.dart';
 import '../../router/delivery_request_intent.dart';
 import '../../services/booking/booking_api.dart';
 import '../../services/booking/booking_photos.dart';
@@ -196,7 +198,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     }
     if (!mounted || epoch != _epoch) return;
     _draft = restored ?? BookingDraft(category: widget.initialCategory);
-    if (restored == null && widget.initialCategory != null) {
+    if (restored == null &&
+        _catalog.any((entry) => entry.$1 == widget.initialCategory)) {
       _addItem(widget.initialCategory!, notify: false);
     }
     _pickup.text =
@@ -784,6 +787,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   List<Widget> _delivery() => [
+    if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
+      _note(
+        '${tr('Catégorie sélectionnée', 'Selected category', 'Categoría seleccionada')} : '
+        '${AppStrings.t(_draft.data['category'] as String, widget.locale)}',
+      ),
     _heading(
       tr(
         'Que souhaitez-vous transporter ?',

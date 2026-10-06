@@ -193,6 +193,13 @@ void main() {
         .where((chip) => chip.selected);
     expect(selected, hasLength(1));
     expect((selected.single.label as Text).data, '1. Ma livraison');
+    expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
+    expect(
+      tester
+          .widgetList<TextField>(find.byType(TextField))
+          .where((field) => field.controller?.text == 'Autre objet'),
+      isEmpty,
+    );
     expect(
       find.text(AppStrings.t('delivery_sign_in_button', 'fr')),
       findsNothing,
@@ -232,6 +239,7 @@ void main() {
           .where((chip) => chip.selected);
       expect(selected, hasLength(1));
       expect((selected.single.label as Text).data, '1. Ma livraison');
+      expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
 
       final restoredDescriptions = tester
           .widgetList<TextField>(find.byType(TextField))
