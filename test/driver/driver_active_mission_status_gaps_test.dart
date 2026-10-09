@@ -116,8 +116,9 @@ class _FakeLocationRepository implements LocationRepository {
 
   @override
   Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
-    String driverId,
-  ) => Stream.value(const []);
+    String driverId, {
+    required String missionId,
+  }) => Stream.value(const []);
 }
 
 /// `MissionRepository` fake — permet de rejouer la mission avec un nouveau

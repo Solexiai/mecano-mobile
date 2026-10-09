@@ -118,7 +118,7 @@ class _FakeLocationRepository implements LocationRepository {
   Stream<DriverLocation?> watchDriverLocation(String driverId) => Stream.value(null);
 
   @override
-  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(String driverId) =>
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(String driverId, {required String missionId}) =>
       Stream.value(const []);
 }
 

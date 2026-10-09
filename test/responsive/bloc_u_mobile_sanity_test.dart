@@ -126,8 +126,9 @@ class _FakeLocationRepository implements LocationRepository {
 
   @override
   Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
-    String driverId,
-  ) => Stream.value(const []);
+    String driverId, {
+    required String missionId,
+  }) => Stream.value(const []);
 }
 
 /// Simule la capture caméra sans dépendre du vrai plugin natif — `extends`

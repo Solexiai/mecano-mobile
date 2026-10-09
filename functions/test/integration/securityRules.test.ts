@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 import { assertFails, assertSucceeds, RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { createTestEnv } from "./setup";
 
 let testEnv: RulesTestEnvironment;
@@ -1864,6 +1864,50 @@ describe("Security Rules — driver_locations/{driverId}/history/{eventId} : tra
         longitude: -73.5,
       })
     );
+  });
+
+  it("P1-M-01 : requête historique client filtrée par mission, autres missions refusées", async () => {
+    const path = "driver_locations/hist_driver_scope/history";
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_scope_A"), {
+        customer_id: "hist_customer_A", driver_id: "hist_driver_scope", status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_scope_B"), {
+        customer_id: "hist_customer_B", driver_id: "hist_driver_scope", status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_A1"), {
+        delivery_id: "hist_scope_A", latitude: 45.5, longitude: -73.5,
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_A2"), {
+        delivery_id: "hist_scope_A", latitude: 45.6, longitude: -73.6,
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_B1"), {
+        delivery_id: "hist_scope_B", latitude: 45.7, longitude: -73.7,
+      });
+    });
+
+    const customerA = testEnv.authenticatedContext("hist_customer_A", { role: "customer" });
+    const customerB = testEnv.authenticatedContext("hist_customer_B", { role: "customer" });
+    const driver = testEnv.authenticatedContext("hist_driver_scope", { role: "driver" });
+    const allA = collection(customerA.firestore(), path);
+    // Firestore Security Rules ne filtrent pas la collection après lecture.
+    await assertFails(getDocs(allA));
+    await assertSucceeds(getDoc(doc(customerA.firestore(), path + "/point_A1")));
+    await assertFails(getDoc(doc(customerA.firestore(), path + "/point_B1")));
+
+    const scopedA = await assertSucceeds(getDocs(query(allA, where("delivery_id", "==", "hist_scope_A"))));
+    expect(scopedA.size).toBe(2);
+    expect(scopedA.docs.every((point) => point.data().delivery_id === "hist_scope_A")).toBe(true);
+    await assertFails(getDocs(query(allA, where("delivery_id", "==", "hist_scope_B"))));
+
+    const scopedB = await assertSucceeds(getDocs(query(
+      collection(customerB.firestore(), path), where("delivery_id", "==", "hist_scope_B")
+    )));
+    expect(scopedB.size).toBe(1);
+
+    // Le chauffeur garde ses droits sur son propre historique complet.
+    const allDriver = await assertSucceeds(getDocs(collection(driver.firestore(), path)));
+    expect(allDriver.size).toBe(3);
   });
 
   it("[négatif] même le chauffeur propriétaire NE PEUT PAS supprimer un point d'historique (immuable, Cloud Functions only)", async () => {

@@ -1,0 +1,193 @@
+﻿{
+    "date":  "2026-10-09T12:46:04.7095913-04:00",
+    "branch":  "fix/gps-client-history-scope-20261009",
+    "baseHead":  "77c3c61534d1300ddc0eab5585f78b9662a69537",
+    "plannedOnly":  true,
+    "staged":  false,
+    "committed":  false,
+    "count":  36,
+    "hashedCount":  35,
+    "entries":  [
+                    {
+                        "path":  "functions/test/integration/securityRules.test.ts",
+                        "sha256":  "169734418D8E048B88B8C934DC89C570AEAD8F58BD905D9E85D6782FC9796ED3",
+                        "bytes":  127860
+                    },
+                    {
+                        "path":  "lib/backend/repositories/firebase_location_repository.dart",
+                        "sha256":  "7D01209DA32DA835F7F46BF6A4302AD0C9EC59C72029578B5C8B2331C8202D57",
+                        "bytes":  3991
+                    },
+                    {
+                        "path":  "lib/backend/repositories/location_repository.dart",
+                        "sha256":  "4FE5C44570CADAE72433B3F39F636D6272F26B854454DC6173FB56C4B178C922",
+                        "bytes":  1873
+                    },
+                    {
+                        "path":  "lib/widgets/live_tracking_map.dart",
+                        "sha256":  "96CBC2F84E38DC6E36015C7B872CEE795F725951411642AA564D122BBDDDE09C",
+                        "bytes":  10752
+                    },
+                    {
+                        "path":  "test/driver/driver_active_mission_gps_lifecycle_test.dart",
+                        "sha256":  "5E6C499210F03C152522256A54D1787FABF4856D98D9735F239245B551AF6A8A",
+                        "bytes":  19052
+                    },
+                    {
+                        "path":  "test/driver/driver_active_mission_status_gaps_test.dart",
+                        "sha256":  "C527DC85DA12C76A35C7F063072833C768A7E90515A08A3F7A065EA31E8A95FB",
+                        "bytes":  26633
+                    },
+                    {
+                        "path":  "test/driver/driver_location_reporter_test.dart",
+                        "sha256":  "B8B131AE2852FCCD6D4882523EF682214D1A4F381A448CE958F883F8D01F3C91",
+                        "bytes":  9555
+                    },
+                    {
+                        "path":  "test/responsive/bloc_u_mobile_sanity_test.dart",
+                        "sha256":  "B87417DB01188E5C2ABE2471C664E802CC141F22859BE26D8415CCF28FF5CF67",
+                        "bytes":  29624
+                    },
+                    {
+                        "path":  "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+                        "sha256":  "4220B13D2C8A673E4C9CCE36C842CEAFE566E689EF0B199D1B53790205995050",
+                        "bytes":  366523
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-B-20261009-1110/CHECKPOINT_CORRECTIONS_MOVIK_P1_M_01_REGISTRE.md",
+                        "sha256":  "2A2D853234B995876F0FC7DD436E05F40B9397444BBF8D9CE1747E91BAF4EF79",
+                        "bytes":  18213
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-B-20261009-1110/supplemental-v3.ts",
+                        "sha256":  "4CBBB2E7585F0484294B61C5D73B22453FDA960C1BB85B8012E01DFBFC13A1FA",
+                        "bytes":  2218
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-B-20261009-1110/flutter-analyze.log",
+                        "sha256":  "71A52775264075A931DBF1997200A6A8CB0ACF1E80355B4CEC52BB2C8AE1043E",
+                        "bytes":  200
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-B-20261009-1110/flutter-reporter.log",
+                        "sha256":  "BE4E4253E868F9A18D4AA634E8D8A194F3FBDF01F2FA07F6027B885960FDE374",
+                        "bytes":  2844
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/CHECKPOINT_CORRECTIONS_MOVIK_1_3M_C.md",
+                        "sha256":  "8F4A766E6540F0835085393FFCC680580F753195A77208F3405C0C8758905E45",
+                        "bytes":  14478
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/ISOLATION.md",
+                        "sha256":  "DC15A3F47A23725AFB14E431020A3DD011AFDCD6BC7E5E5DE5B2B97AED6FD75A",
+                        "bytes":  5536
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/COMMANDES_TESTS.ps1.txt",
+                        "sha256":  "EB4B370271B31BD1EC7C6B1B5CFF4D9769F07BD13595C84457BAE1F58F71AAEB",
+                        "bytes":  4728
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test-results-summary.json",
+                        "sha256":  "335A84E29ACE971031B20165BB096EC5F56308B44D9CCFC3D8E53555F4B5A909",
+                        "bytes":  9457
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/source-hashes.json",
+                        "sha256":  "CB0CAAE8A2545F8577393A07AE90AA08AA7EA9D47399212DC1C08082BC2FEF31",
+                        "bytes":  2520
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/existing-tests-copy-verification.json",
+                        "sha256":  "5D29359C9C9CF80539F65C732EB34DB3B665CD4858EEF6A6A7E3BDD5892A8099",
+                        "bytes":  3046
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/analyze-consumers.log",
+                        "sha256":  "EB1A918CB26CB98511A320FDA0D069ECFC9DA07F85CFF6109A6A391F66A31DAD",
+                        "bytes":  200
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/analyze-new-tests.log",
+                        "sha256":  "48773C36FDE1606822B23F19D9020B9E052FEE4E3216F1BA721A0BB6CA76C6F4",
+                        "bytes":  9012
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/contract-tests.jsonl",
+                        "sha256":  "C0954A9587018F065AD01F73784D9251DC8310C7702CF8E61546DF9076853B69",
+                        "bytes":  11364
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/consumer-tests.jsonl",
+                        "sha256":  "1C8257641C8B9756287DEF6F028E2B9CF89A76D9EB128DF5015BC161E39C5CE0",
+                        "bytes":  41624
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/isolation-test.jsonl",
+                        "sha256":  "64A603997A7A15491D7EAEA883FC0C239761C19623F5086A5CD5098C01A928BD",
+                        "bytes":  5284
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/isolation-test-v2.jsonl",
+                        "sha256":  "09E108503DED881EB36EEFA18F08C7A4108FD99C1DAB92350CC237922B0441B3",
+                        "bytes":  4592
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/isolation-test-v3.jsonl",
+                        "sha256":  "DDDFE7FA52079D80CCA2C1BCEC0C71E9E46A0EFCD05F22377A7B5C72497FFDEE",
+                        "bytes":  4608
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/gps_history_contract_test.dart",
+                        "sha256":  "800B4EC7838469031BCDE624BAB2C683CFAAF69895660D6F0D793C399037F333",
+                        "bytes":  11276
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/offline_transport.dart",
+                        "sha256":  "55547A01719821A3BCE91194218ECE68D04A253BB5B54C95D19C5332C361A27F",
+                        "bytes":  2589
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/isolated_driver_lifecycle_test.dart",
+                        "sha256":  "EE8D9E4E3982B4E227951EF2E1E4980F4881DF0613363F05BCFEA33F4D0EE87B",
+                        "bytes":  19412
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/isolated_driver_status_test.dart",
+                        "sha256":  "4B4F08B081BC956C797A9142336ABC98D7B4A2B4373338B8EC78F1BA913912E9",
+                        "bytes":  26993
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/isolated_customer_ownership_test.dart",
+                        "sha256":  "D1F9CD0AA54FF33AA637A6CE2FE056FD60C10C63A7D10039CDAAECE01599BCF5",
+                        "bytes":  9072
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-C-20261009-1158/test/isolated_customer_auth_test.dart",
+                        "sha256":  "EE5916AD80AD01CB5A619FA718B439B585620B3D1FB84B2742A3A3F4B42CE078",
+                        "bytes":  5523
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-D-20261009-1236/POINT_APPROBATION_GIT_MOVIK_1_3M_D.md",
+                        "sha256":  "DD780F1A67993D75ED73D7927D102F98F491D98F42D865BCF7250D55685FEED7",
+                        "bytes":  15367
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-D-20261009-1236/COMMIT_FILES.txt",
+                        "sha256":  "AC12D6B63CBA45B7AF5338739A6E377EB4434E0D15B7BD0BB7A9CDF3B109A025",
+                        "bytes":  2345
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-D-20261009-1236/VALIDATION_ACQUISE.json",
+                        "sha256":  "0BF73472512DA963CE53A06D82C04922B00A288A231A1BCF016D04317D6D6C9E",
+                        "bytes":  21223
+                    },
+                    {
+                        "path":  "artifacts/corrections-1-3M-D-20261009-1236/MANIFEST_COMMIT.json",
+                        "sha256":  null,
+                        "bytes":  null,
+                        "note":  "Self hash excluded to avoid circularity"
+                    }
+                ]
+}

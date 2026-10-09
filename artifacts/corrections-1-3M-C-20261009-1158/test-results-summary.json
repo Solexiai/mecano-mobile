@@ -1,0 +1,187 @@
+﻿[
+    {
+        "log":  "consumer-tests.jsonl",
+        "passed":  20,
+        "failed":  0,
+        "skipped":  0,
+        "loadingErrors":  0,
+        "success":  true,
+        "tests":  [
+                      {
+                          "name":  "H-2 ÔÇö Lifecycle GPS : CAS 1 (mission active -\u003e start) mission assigned (statut de partage) : 1 rapport de position imm├®diat, permission v├®rifi├®e une seule fois",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "H-2 ÔÇö Lifecycle GPS : CAS 2 (mission completed -\u003e stop) inTransit -\u003e completed : le partage s\u0027arr├¬te, aucun nouveau rapport, aucune nouvelle v├®rification de permission",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "H-2 ÔÇö Lifecycle GPS : CAS 3 (mission cancelled -\u003e stop) driverToPickup -\u003e cancelled : le partage s\u0027arr├¬te, aucun nouveau rapport, aucune nouvelle v├®rification de permission",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "H-2 ÔÇö Idempotence du lifecycle au niveau ├®cran succession de statuts tous \"partage actif\" (assigned -\u003e driverToPickup -\u003e arrivedAtPickup) : la boucle GPS ne red├®marre JAMAIS une seconde fois",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "H-2 ÔÇö Nettoyage ├á la fermeture de l\u0027├®cran (dispose) d├®montage de l\u0027├®cran alors que le partage est actif : stop() ex├®cut├® sans exception, aucun rapport r├®siduel",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "H-2 ÔÇö Idempotence stop()/stop() (isol├®, hors ├®cran) stop() appel├® deux fois de suite ne l├¿ve aucune exception et laisse un ├®tat propre",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "assigned : seul le bouton \"partir vers le pickup\" est visible ; tap -\u003e updateTrackingStatus(driverToPickup)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "driverToPickup : bouton \"arriv├® au pickup\" ; tap -\u003e updateTrackingStatus(arrivedAtPickup)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "arrivedAtPickup : bouton \"confirmer prise en charge\" ; tap -\u003e markPickupCompleted (jamais updateTrackingStatus)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "pickedUp : bouton \"d├®marrer le trajet\" ; tap -\u003e updateTrackingStatus(inTransit)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "inTransit : bouton \"arriv├® ├á destination\" ; tap -\u003e updateTrackingStatus(arrivedAtDropoff)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "arrivedAtDropoff : aucune action de trajet r├®siduelle visible (seule la capture photo, couverte en d├®tail ailleurs)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "completed : ├®cran \"d├®j├á compl├®t├®e\" affich├®, aucune action de trajet, aucun bouton de capture",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "erreur GPS pendant le trajet (service d├®sactiv├®) : bandeau affich├® SANS bloquer les actions de trajet",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "double-tap rapide sur une action de trajet ne d├®clenche updateTrackingStatus qu une seule fois (busy bloque le second tap)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "F-1 : client A connect├® ouvrant la mission du client B ÔÇö AUCUNE donn├®e de B affich├®e, refus propre, pas de crash (mission en cours)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "F-1 : client A connect├® ouvrant la mission COMPLETED du client B ÔÇö AUCUNE donn├®e de B affich├®e (vue _CompletedMissionView aussi prot├®g├®e)",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "F-1 (r├®gression) : client A ouvrant SA PROPRE mission continue de fonctionner normalement apr├¿s le fix",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "MIS-C-07 : utilisateur NON authentifi├® voit le message de connexion, jamais le StreamBuilder Firestore ni de crash",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "MIS-C-07 : ne plante jamais, quelle que soit la locale (fr/en/es)",
+                          "result":  "success"
+                      }
+                  ],
+        "transport":  [
+                          "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+                          "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+                          "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+                          "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+                      ]
+    },
+    {
+        "log":  "contract-tests.jsonl",
+        "passed":  7,
+        "failed":  0,
+        "skipped":  0,
+        "loadingErrors":  0,
+        "success":  true,
+        "tests":  [
+                      {
+                          "name":  "real FirebaseLocationRepository: filtered query before subscription sim-mission-A",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real FirebaseLocationRepository: filtered query before subscription sim-mission-B",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real LiveTrackingMap: no history for missionId=null",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real LiveTrackingMap: no history for missionId=",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real LiveTrackingMap: mission argument, defensive filter and chronological sort",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real consumer: customer passes mission and driver to map",
+                          "result":  "success"
+                      },
+                      {
+                          "name":  "real consumer: driver passes mission and driver to map",
+                          "result":  "success"
+                      }
+                  ],
+        "transport":  [
+                          "OFFLINE_TRANSPORT: in_memory=120; unexpected=0; external_transport=none"
+                      ]
+    },
+    {
+        "log":  "isolation-test-v2.jsonl",
+        "passed":  0,
+        "failed":  0,
+        "skipped":  0,
+        "loadingErrors":  1,
+        "success":  false,
+        "tests":  [
+
+                  ],
+        "transport":  [
+
+                      ]
+    },
+    {
+        "log":  "isolation-test-v3.jsonl",
+        "passed":  1,
+        "failed":  0,
+        "skipped":  0,
+        "loadingErrors":  0,
+        "success":  true,
+        "tests":  [
+                      {
+                          "name":  "isolation: injected transport and forbidden network fallback",
+                          "result":  "success"
+                      }
+                  ],
+        "transport":  [
+                          "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+                      ]
+    },
+    {
+        "log":  "isolation-test.jsonl",
+        "passed":  0,
+        "failed":  1,
+        "skipped":  0,
+        "loadingErrors":  0,
+        "success":  false,
+        "tests":  [
+                      {
+                          "name":  "isolation: injected transport and forbidden network fallback",
+                          "result":  "error"
+                      }
+                  ],
+        "transport":  [
+                          "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+                      ]
+    }
+]

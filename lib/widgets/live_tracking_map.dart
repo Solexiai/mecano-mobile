@@ -96,9 +96,16 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           });
         }
 
+        // Sans mission connue, ne lire aucun historique du chauffeur.
+        // Sinon, limiter la requête Firestore à la mission AVANT snapshots().
+        final historyStream = widget.missionId == null || widget.missionId!.isEmpty
+            ? Stream<List<DriverLocationHistoryPoint>>.value(const [])
+            : BackendLocator.locationRepository.watchDriverLocationHistory(
+                widget.driverId,
+                missionId: widget.missionId!,
+              );
         return StreamBuilder<List<DriverLocationHistoryPoint>>(
-          stream: BackendLocator.locationRepository
-              .watchDriverLocationHistory(widget.driverId),
+          stream: historyStream,
           builder: (context, historySnap) {
             final routePoints = _routePoints(historySnap.data ?? const []);
 
