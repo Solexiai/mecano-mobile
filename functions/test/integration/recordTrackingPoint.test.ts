@@ -33,7 +33,7 @@ function buildRequest(
   return {
     data,
     auth: driverId
-      ? { uid: driverId, token: {} as DecodedIdToken, rawToken: "fake-raw-token-for-emulator-test" }
+      ? { uid: driverId, token: { role: "driver" } as unknown as DecodedIdToken, rawToken: "fake-raw-token-for-emulator-test" }
       : undefined,
     rawRequest: {} as Request,
     acceptsStreaming: false,
@@ -76,6 +76,9 @@ describe("recordTrackingPoint — écriture de la position courante", () => {
       .doc(DRIVER_ID)
       .set({ active_delivery_id: MISSION_ID }, { merge: true });
 
+    await db.collection("delivery_requests").doc(MISSION_ID).set({
+      driver_id: DRIVER_ID, customer_id: "some_customer", status: "in_transit",
+    });
     const result = await recordTrackingPoint.run(
       buildRequest(DRIVER_ID, {
         latitude: 45.5017,
@@ -142,9 +145,9 @@ describe("recordTrackingPoint — historique conditionnel (protection contre pol
       .doc(DRIVER_ID)
       .set({ active_delivery_id: "mission_qui_nexiste_pas" }, { merge: true });
 
-    await recordTrackingPoint.run(
+    await expect(recordTrackingPoint.run(
       buildRequest(DRIVER_ID, { latitude: 45.5, longitude: -73.5 })
-    );
+    )).rejects.toMatchObject({ code: "failed-precondition" });
     const historySnap = await db
       .collection("driver_locations")
       .doc(DRIVER_ID)
@@ -165,9 +168,9 @@ describe("recordTrackingPoint — historique conditionnel (protection contre pol
       .doc(DRIVER_ID)
       .set({ active_delivery_id: OTHER_DRIVER_MISSION_ID }, { merge: true });
 
-    await recordTrackingPoint.run(
+    await expect(recordTrackingPoint.run(
       buildRequest(DRIVER_ID, { latitude: 45.5, longitude: -73.5 })
-    );
+    )).rejects.toMatchObject({ code: "permission-denied" });
     const historySnap = await db
       .collection("driver_locations")
       .doc(DRIVER_ID)

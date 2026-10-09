@@ -1,16 +1,16 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-D, 9 octobre 2026.
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire R-K-03-B, 9 octobre 2026.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
 
 IDENTIFIÉ → QUALIFIÉ → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ.
-Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est un état complémentaire, jamais une fermeture. Chaque transition exige date, version, commande, résultat et preuve. Toute fermeture exige correction présente, analyse réussie, non-régression pertinente, permissions/intégration si nécessaire, preuve et parcours existants préservés. Fermeture ciblée P1-M-01 approuvée le 9 octobre 2026 à l'étape 1.3M-D ; aucune autre fermeture.
+Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est un état complémentaire, jamais une fermeture. Chaque transition exige date, version, commande, résultat et preuve. Toute fermeture exige correction présente, analyse réussie, non-régression pertinente, permissions/intégration si nécessaire, preuve et parcours existants préservés. Fermeture ciblée P1-M-01 approuvée le 9 octobre 2026 à l'étape 1.3M-D ; fermeture ciblée R-K-03-A approuvée explicitement par Daniel le 9 octobre 2026 à l'étape 1.3M-H. Fermeture ciblée R-K-03-B approuvée explicitement le 9 octobre 2026, limitée aux défauts d’atomicité et de nettoyage GPS validés en émulateur, non déployée ; R-K-03-C reste ouvert.
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 5, P2 21** (recalcul 1.3M-D). P1-M-01 est conservé dans le tableau avec son statut fermé dans un périmètre limité ; 27 entrées au total, dont 26 non fermées. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les 3 risques R-K-03 sont comptés comme P1 proposés, pas comme incidents de confidentialité prouvés. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 3, P2 21** (recalcul après fermeture documentaire ciblée de R-K-03-B, 9 octobre 2026). P1-M-01, R-K-03-A et R-K-03-B sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 24 non fermées. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. R-K-03-C reste ouvert en P1 ; A et B sont fermés exclusivement dans leurs périmètres locaux/émulateur validés, non déployés. La fermeture limitée de B a été approuvée après la validation H des compensations tardives ; C demeure un risque provisoire à qualifier. Les trois P1 ouverts sont R-K-03-C, P1-HOME-001 et P1-COPY-001. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -20,8 +20,8 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | ID | Priorité | Nature | Statut | Problème |
 |---|---|---|---|---|
 | P1-M-01 | P1 | Bug de requête, correctif testé | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Historique GPS sans filtre serveur de mission ; refus attendu pour client ordinaire. |
-| R-K-03-A | P1 | Lacunes statiques ; impact provisoire | QUALIFIÉ | Chauffeur peut écrire active_delivery_id ; règle position et recordTrackingPoint sans garde statut terminal, rôle/approbation callable incomplets. |
-| R-K-03-B | P1 | Risque provisoire | QUALIFIÉ | Fenêtres non atomiques : ancien rapport ou nettoyage peut restaurer/effacer une nouvelle assignation. |
+| R-K-03-A | P1 | Défauts corrigés et testés en émulateur | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Autorité GPS et refus missions terminales/profils non approuvés uniquement ; fermeture approuvée en H. |
+| R-K-03-B | P1 | Défauts d’atomicité et de nettoyage GPS corrigés et testés localement | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Rapport GPS, fin/compensation/nettoyage tardif de A ne libèrent plus l’assignation B dans les scénarios locaux validés. |
 | R-K-03-C | P1 | Risque provisoire ; contrôles absents | QUALIFIÉ | Marqueur sans contrôle driverId/activeDeliveryId/date ; date invalide remplacée par maintenant ; coordonnées anciennes après assignation. |
 | P2-H-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Téléphone -------- accepté par Flutter ; serveur normalizeContacts exige au moins huit chiffres. |
 | P2-H-02 | P2 | Bug UX confirmé | QUALIFIÉ | Compteur /120 incohérent avec regex 8–25 caractères ; obligations peu explicites. |
@@ -63,27 +63,38 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 
 ### R-K-03-A
 
-- Priorité / nature / statut : P1 ; Lacunes statiques ; impact provisoire ; QUALIFIÉ.
-- Description et impact : Chauffeur peut écrire active_delivery_id ; règle position et recordTrackingPoint sans garde statut terminal, rôle/approbation callable incomplets.
-- Preuve d'origine : 1.3M §5A (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
-- Fichiers : firestore.rules:243–267 ; recordTrackingPoint.ts:33–88 ; racine du worktree de correction, préfixes exacts dans sources d'origine.
-- Correction prévue/présente : Protéger lien actif côté serveur, statuts autorisés et rôle/statut émetteur ; politique historique à décider.
-- Tests nécessaires : Règles écriture forgée, mission terminale liée, rôle invalide et point mauvais chauffeur.
-- Résultats : 0 exécution ; aucune fuite réelle démontrée.
-- Blocage : aucune correction/fermeture supplémentaire autorisée dans 1.3M-B ; exécutions non citées = NON TESTÉES. Les résultats nouveaux sont exclusivement dans l'addendum daté de cette intervention.
-- Critère de fermeture : Toutes les lectures/écritures adverses refusées ; scénarios normaux chauffeur conservés. + règle permanente ci-dessus.
+- État ACTUEL — 1.3M-H, 9 octobre 2026 : **FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**, sur autorisation explicite de Daniel. Périmètre : autorité des écritures GPS, refus démontrés pour missions terminales ou profils non approuvés. Limites conservées : transport Firebase réel, runtime Node 20, GPS physique et production non validés ; B/C restent ouverts. Historique des statuts G/F conservé ci-dessous.
+
+- Actualisation 1.3M-G (9 octobre 2026) : fermeture recommandée uniquement dans le périmètre local validé, NON APPROUVÉE. Statut ouvert conservé ; preuves et limites supplémentaires dans l’addendum G. État F détaillé conservé ci-dessous.
+
+- Priorité / nature / statut : P1 ; défauts démontrés ; CORRECTION TESTÉE EN ÉMULATEUR — NON FERMÉ — NON DÉPLOYÉ, 9 octobre 2026 (1.3M-F). Fermeture documentaire distincte non demandée dans cette intervention ; le problème reste compté ouvert.
+- Cause : le callable vérifiait le rôle (correctif E) mais pas le statut approuvé du profil ni les six statuts actifs de mission avant les écritures ; les lectures/écritures séparées permettaient un état partiel ou une vérification périmée.
+- Correction : transaction unique lisant profil, position et mission avant toute écriture ; rôle chauffeur E conservé, profil approved requis ; driver_id de mission égal au chauffeur ; liste positive assigned, driver_to_pickup, arrived_at_pickup, picked_up, in_transit, arrived_at_dropoff ; refus avant écriture si mission manquante/étrangère/non active. Profil/position/historique validés atomiquement. Hors mission : position courante autorisée pour chauffeur approuvé, sans historique, contrat conservé.
+- Fichiers : functions/src/functions/recordTrackingPoint.ts ; functions/test/integration/recordTrackingGuards.test.ts ; functions/test/integration/recordTrackingPoint.test.ts ; tests de rôle/règles de E inchangés.
+- Tests F : les dix cas E (completed, cancelled, disputed, refunded, delivered, payment_failed ; suspended, rejected, pending_review, registration_incomplete) sont reproduits en échec avant et passent après. Assertions renforcées : refus explicite + aucune mutation position/geohash/historique. 26 gardes : avant 8 réussis/18 échoués, après 26/0. Six statuts actifs permis ; documents_required/inactive refusés aussi ; profil sans assignation conservé. Rôles 7/0, règles d’autorité 26/0.
+- Permissions : aucune règle modifiée par F. 18 tests GPS existants réussis, dont requête de collection P1-M-01 filtrée A autorisée, B et sans filtre refusées, client B et chauffeur propriétaire conservés. Lectures courantes client tiers/mission terminale refusées dans les fixtures E exécutées.
+- Limites : Auth fictive et appels directs .run, pas transport callable/Auth déployé ; aucune production, Chrome ou mesure GPS réelle. GAP-S-04 sur progression de mission suspendue reste distinct et inchangé. Aucune fermeture globale du GPS.
+- Preuves : artifacts/corrections-1-3M-F-20261009-1438/results-before.json ; results-after.json ; RESULTATS.json ; source-hashes-before.json ; source-hashes-after.json ; typecheck-after.json ; lint.json.
+- Critère de fermeture : garde serveur et permissions testées, non-régression prouvée dans le périmètre local, preuves conservées et fermeture explicitement approuvée. Historique E conservé ci-dessous et dans REGISTRE_AVANT.md.
 
 ### R-K-03-B
 
-- Priorité / nature / statut : P1 ; Risque provisoire ; QUALIFIÉ.
-- Description et impact : Fenêtres non atomiques : ancien rapport ou nettoyage peut restaurer/effacer une nouvelle assignation.
-- Preuve d'origine : 1.3M §5B (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
-- Fichiers : recordTrackingPoint.ts:53–70 ; onMissionEndedClearTracking.ts:103–108 ; acceptDelivery.ts ; adminAssignDelivery.ts ; racine du worktree de correction, préfixes exacts dans sources d'origine.
-- Correction prévue/présente : Lire/comparer/écrire atomiquement ; ne pas recopier lien serveur obsolète.
-- Tests nécessaires : Intercalages rapport A/assignation B, nettoyage A/assignation B, ancien client refusé.
-- Résultats : 0 exécution ; occurrence réelle non démontrée.
-- Blocage : aucune correction/fermeture supplémentaire autorisée dans 1.3M-B ; exécutions non citées = NON TESTÉES. Les résultats nouveaux sont exclusivement dans l'addendum daté de cette intervention.
-- Critère de fermeture : Lien final B et aucun point terminal A dans tous intercalages. + règle permanente ci-dessus.
+- État ACTUEL — clôture documentaire approuvée le 9 octobre 2026 : **FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**. Défauts qualifiés de concurrence et de nettoyage GPS corrigés dans le périmètre testé : ancien rapport, changement de mission, nettoyage/fin tardive et échec de paiement de A n’effacent plus le lien GPS de B ni ne libèrent son chauffeur. 75 contrôles ciblés réussis et aucun échec après correction H, dont neuf tests de compensation. Aucune nouvelle exécution lors de cette clôture. Node 20, Firebase/transport/triggers déployés, Stripe réel, GPS terrain et tuiles 1.3L non validés. R-K-03-C et les P2 restent ouverts.
+- État historique — 1.3M-H avant approbation : **VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ**. Lecture/condition transactionnelles du lien dans failMissionPayment ; neuf cas de compensation et 66 non-régressions réussis après correction. Fermeture limitée alors proposée, sans approbation. Preuves et limites dans l’addendum H. Historique G/F conservé ci-dessous.
+
+- Actualisation 1.3M-G (9 octobre 2026) : PARTIELLEMENT VALIDÉ — ÉCHEC RÉSIDUEL CONFIRMÉ — NON FERMÉ — NON DÉPLOYÉ. Fermeture refusée après deux reproductions du nettoyage tardif dans failMissionPayment (paymentOrchestration.ts:485–489). État F conservé ci-dessous ; diagnostic et preuves nouveaux dans l’addendum G.
+
+- Priorité / nature / statut : P1 ; défauts désormais reproduits localement ; PARTIELLEMENT VALIDÉ — NON FERMÉ — NON DÉPLOYÉ, 9 octobre 2026 (1.3M-F).
+- Cause démontrée : read/set séparés du rapport et du trigger ; ancien rapport restaurait A après B ; nettoyage A effaçait B ; completeDelivery effaçait inconditionnellement le lien et libérait le chauffeur malgré une assignation plus récente.
+- Correction : recordTrackingPoint transactionnel, ne recopie plus active_delivery_id existant et refuse un changement de lien entre ses tentatives. Trigger : comparaison/effacement conditionnel dans une transaction. completeDelivery : lecture du lien avant les écritures ; ne libère GPS/disponibilité que si lien absent ou égal à la mission terminée. Compteur completed_missions standard conservé. acceptDelivery et adminAssignDelivery déjà transactionnels, laissés inchangés.
+- Fichiers : functions/src/functions/recordTrackingPoint.ts ; onMissionEndedClearTracking.ts ; completeDelivery.ts ; functions/test/integration/gpsTrackingAtomicity.test.ts.
+- Reproduction F : 14 contrôles transactionnels/effets de bord, avant 7 réussis/7 échoués, après 14/0. L’ensemble des 40 nouveaux cas passe de 15/25 à 40/0 ; validation finale élargie 126/0, 180 règles hors GPS exclues par filtre, aucun test sauté ajouté.
+- Scénarios : rapport A/assignation B réelle par acceptDelivery et adminAssignDelivery en mode interne ; nettoyage A pendant/après B ; terminaison et suspension pendant rapport ; deux rapports Promise.all ; rapport/assignation Promise.all ; fin tardive A et retry de fin standard A. Vérification du lien B, statut on_mission, historique, compteur et ledger locaux.
+- Méthode : commits et lectures réels de Firestore Emulator. Intercalages déterministes : erreur ABORTED injectée après callback pour rollback puis reprise SDK contre une mutation concurrente committée. Ce déclenchement contrôlé ne prouve pas une contention spontanée en production. Deux essais Promise.all sans conflit injecté complètent la couverture.
+- Préservation financière : blocs snapshot/ledger, capture et libération d’annulation identiques avant/après (SHA256 dans RESULTATS.json). Modules providers exclus du harnais ; doublures explicites pour libération/capture. Ledger local de fixture : exactement cinq entrées aux montants existants, compteur +1 ; appel fictif de capture unique après commit, libération fictive avant nettoyage et non répétée lors du retry ; erreur fictive propagée sans nettoyage anticipé.
+- Limites : assignations exécutées en internal_test avec fixtures sans booking_snapshot ; capacité réelle, assignation financière standard, livraison automatique des triggers et provider réels non validés. Aucun test de paiement effectué. Le payload GPS ne contient pas missionId : si B est déjà actif à la PREMIÈRE lecture, le serveur ne peut attribuer une provenance A à cette mesure ; fraîcheur/association R-K-03-C reste ouverte. Les anciennes mesures ne restaurent néanmoins jamais le lien A.
+- Preuves : artifacts/corrections-1-3M-F-20261009-1438/RESULTATS.json ; results-before.json ; results-after.json ; diff-final.patch ; source-hashes-after.json ; ISOLATION.md.
+- Critère de fermeture : validation et approbation explicites du périmètre atomique testé ; intégration plus large documentée séparément. Ne ferme ni R-K-03-C, ni GAP-S-04, ni les P2, ni 1.3L.
 
 ### R-K-03-C
 
@@ -4039,3 +4050,142 @@ Rapport et sélection Git : artifacts/corrections-1-3M-D-20261009-1236/POINT_APP
 **1.3L reste BLOQUÉ ET REPORTÉ.** Windows Sandbox, GPS terrain, carte réelle et production ne sont pas validés par cette fermeture. Les risques d'autorité GPS, concurrence, positions anciennes et erreurs de flux restent ouverts.
 
 Prochain point d'approbation unique : autoriser ou refuser le commit local de la sélection explicite, sans push ni déploiement. La prochaine correction produit prévue demeure R-K-03-A, puis R-K-03-B/C, P2-K-01 et les anomalies client. Aucune de ces corrections commencée.
+
+
+## Historique daté — 1.3M-E — 9 octobre 2026
+
+Reprise vérifiée sur fix/gps-client-history-scope-20261009, HEAD 75ce4393d94c6fb12ecffcc95a4976b93b826b3e, parent 77c3c61534d1300ddc0eab5585f78b9662a69537. Le commit local de 1.3M-D est donc présent ; le point d'approbation conservé ci-dessus décrit son état historique avant commit.
+
+R-K-03-A passe de QUALIFIÉ (lacunes statiques, impact provisoire) à **PARTIELLEMENT CORRIGÉ ET TESTÉ — NON FERMÉ**. Les échecs de reproduction locaux établissent des défauts concrets ; aucune exploitation réelle en production n'est démontrée.
+
+| Exécution de cette étape | Réussis | Échoués | Exclus par filtre |
+|---|---:|---:|---:|
+| Avant modification produit | 14 | 29 | 211 |
+| Après corrections indépendantes + non-régression GPS | 64 | 10 | 180 |
+
+Sur les 43 mêmes nouveaux scénarios, passage de 14/29 à 33/10. Les 31 autres réussites après correction sont des cas existants : 13 recordTrackingPoint et 18 Security Rules GPS, incluant P1-M-01. Aucun comptage cumulé des deux exécutions. Les 10 échecs après sont réels et concernent les parties différées, pas des résultats verts.
+
+Correction réalisée : refus des écritures clientes directes de driver_locations, contrôle du statut actif dans la lecture courante du client, exigence du rôle chauffeur dans le callable. Aucun filtrage d'historique, calcul financier, Stripe, snapshot, ledger ou Flutter modifié.
+
+Partie arrêtée conformément à la mission : les gardes serveur de statut terminal et d'approbation nécessitent une lecture/écriture atomique avec le lien actif. Les chemins concurrents assignation/rapport/nettoyage relèvent de R-K-03-B. Ils sont documentés dans DEPENDANCE_R_K_03_B.md avant toute modification de ce bloc ; aucune correction de B engagée.
+
+Analyse TypeScript finale : réussie, zéro diagnostic. Historique technique conservé : premier passage 10 diagnostics de résolution locale ; deuxième passage une assertion de type insuffisante du jeton fictif ; dernière passe corrigée. La correction d'annotation ne change aucun octet du JavaScript du test exécuté (fixture-type-only.json). Un premier script d'édition a arrêté sur une ancre CRLF après le seul ajout de garde lecture ; suite appliquée avec conservation des fins de ligne. Aucun de ces incidents de préparation n'est présenté comme un bogue du produit.
+
+Isolation : projet demo-movik-test, Firestore local seulement, pas de Functions Emulator ni appels financiers/cartographiques. Des tentatives de métadonnées du SDK Admin ont été bloquées avant délégation : 4 avant et 6 après, avec un execFile également bloqué par exécution. Connexions autorisées seulement loopback:8080. Pas de confinement OS revendiqué ; 1.3L reste BLOQUÉ ET REPORTÉ. Émulateur de cette étape arrêté.
+
+Décompte recalculé : **P0 0 / P1 5 / P2 21**, 27 entrées actives dont P1-M-01 seul fermé. Aucun identifiant supprimé, aucun P3 historique retiré, aucun nouveau registre parallèle. R-K-03-B/C, P2-K-01, H-01/H-02, I-01/I-02, J-01 et tous les autres problèmes sont maintenus.
+
+Prochaine action unique proposée : autoriser le correctif atomique conjoint de la partie restante R-K-03-A et de R-K-03-B, puis ses tests d'intercalages. Aucun commit, push, merge ni déploiement de cette étape.
+
+Sources datées : dossier artifacts/corrections-1-3M-E-20261009-1402, scripts, deux résultats Jest complets, RESULTATS.json, journaux réseau, sources compilées, hashes et checkpoint ; inspections Desktop Commander du 9 octobre 2026.
+
+### Fiche R-K-03-A précédente conservée intégralement
+
+
+### R-K-03-A
+
+- Priorité / nature / statut : P1 ; Lacunes statiques ; impact provisoire ; QUALIFIÉ.
+- Description et impact : Chauffeur peut écrire active_delivery_id ; règle position et recordTrackingPoint sans garde statut terminal, rôle/approbation callable incomplets.
+- Preuve d'origine : 1.3M §5A (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
+- Fichiers : firestore.rules:243–267 ; recordTrackingPoint.ts:33–88 ; racine du worktree de correction, préfixes exacts dans sources d'origine.
+- Correction prévue/présente : Protéger lien actif côté serveur, statuts autorisés et rôle/statut émetteur ; politique historique à décider.
+- Tests nécessaires : Règles écriture forgée, mission terminale liée, rôle invalide et point mauvais chauffeur.
+- Résultats : 0 exécution ; aucune fuite réelle démontrée.
+- Blocage : aucune correction/fermeture supplémentaire autorisée dans 1.3M-B ; exécutions non citées = NON TESTÉES. Les résultats nouveaux sont exclusivement dans l'addendum daté de cette intervention.
+- Critère de fermeture : Toutes les lectures/écritures adverses refusées ; scénarios normaux chauffeur conservés. + règle permanente ci-dessus.
+
+
+## Historique préservé — fiches A/B avant 1.3M-F (9 octobre 2026)
+
+Les deux fiches suivantes sont archivées, pas des états actifs ni des entrées supplémentaires du compteur.
+
+### R-K-03-A
+
+- Priorité / nature / statut : P1 ; défauts démontrés localement ; PARTIELLEMENT CORRIGÉ ET TESTÉ — NON FERMÉ, 9 octobre 2026 (1.3M-E).
+- Défauts confirmés : écriture directe du document GPS et active_delivery_id par un chauffeur ; lecture courante après mission terminale tant que le lien reste présent ; callable accepté sans rôle chauffeur ; ajout d'historique sur mission terminale ; profil non approuvé accepté.
+- Correction appliquée : driver_locations en écriture serveur exclusivement ; lecture client courante limitée aux six statuts actifs ; requireAnyRole(driver) au début de recordTrackingPoint. Historique et règles financières inchangés.
+- Fichiers : firestore.rules ; functions/src/functions/recordTrackingPoint.ts ; functions/test/integration/gpsAuthorityRules.test.ts ; recordTrackingAuthority.test.ts ; securityRules.test.ts ; recordTrackingPoint.test.ts.
+- Tests avant : 14 réussis / 29 échoués / 211 exclus. Sur les mêmes 43 nouveaux scénarios après : 33 réussis / 10 échoués. Non-régression ajoutée : 31 réussis. Total après : 64 réussis / 10 échoués / 180 exclus. Analyse TypeScript finale ciblée : 0 diagnostic.
+- Résultats corrigés : les 19 scénarios adverses de la partie indépendante passent après correction. Chauffeur actif approuvé, multirôles, client propriétaire et lectures administratives conservés dans les cas testés. Test P1-M-01 de collection exécuté parmi les 18 règles GPS existantes, réussi.
+- Défauts restant ouverts : six statuts terminaux continuent d'accepter un nouveau point ; quatre profils non approuvés continuent d'être acceptés par le callable. Refus de ces écritures NON corrigé. Les 10 tests correspondants restent en échec dans le harnais temporaire, sans être transformés en succès.
+- Dépendance / arrêt : garanties mission/profil/lien doivent être atomiques avec l'écriture du point. Conformément à 1.3M-E, cette partie s'arrête avant modification et nécessite autorisation de traiter R-K-03-B conjointement. Aucun changement des chemins d'assignation, terminaison ou paiement.
+- Preuves : artifacts/corrections-1-3M-E-20261009-1402/CHECKPOINT_MOVIK_1_3M_E_R_K_03_A.md ; RESULTATS.json ; results-before.json ; results-after.json ; DEPENDANCE_R_K_03_B.md ; typecheck-final.json.
+- Limites : Firestore Emulator demo-movik-test et Auth fictive, pas production/Chrome/GPS terrain. Les opérations métier complètes d'administration/assignation ne sont pas exécutées (dépendances financières) ; leurs droits serveur sont conservés dans les fixtures de règles. Tentatives de métadonnées SDK bloquées avant socket, détails dans ISOLATION.md. Aucun déploiement.
+- Critère de fermeture : terminer les gardes atomiques et leurs scénarios concurrents, puis vérifier les refus et cas légitimes ; conserver les preuves et obtenir la fermeture autorisée. P1-M-01 reste fermé dans son périmètre antérieur.
+
+
+### R-K-03-B
+
+- Priorité / nature / statut : P1 ; Risque provisoire ; QUALIFIÉ.
+- Description et impact : Fenêtres non atomiques : ancien rapport ou nettoyage peut restaurer/effacer une nouvelle assignation.
+- Preuve d'origine : 1.3M §5B (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
+- Fichiers : recordTrackingPoint.ts:53–70 ; onMissionEndedClearTracking.ts:103–108 ; acceptDelivery.ts ; adminAssignDelivery.ts ; racine du worktree de correction, préfixes exacts dans sources d'origine.
+- Correction prévue/présente : Lire/comparer/écrire atomiquement ; ne pas recopier lien serveur obsolète.
+- Tests nécessaires : Intercalages rapport A/assignation B, nettoyage A/assignation B, ancien client refusé.
+- Résultats : 0 exécution ; occurrence réelle non démontrée.
+- Blocage : aucune correction/fermeture supplémentaire autorisée dans 1.3M-B ; exécutions non citées = NON TESTÉES. Les résultats nouveaux sont exclusivement dans l'addendum daté de cette intervention.
+- Critère de fermeture : Lien final B et aucun point terminal A dans tous intercalages. + règle permanente ci-dessus.
+
+
+## Addendum 1.3M-F — 9 octobre 2026
+
+HEAD 75ce4393d94c6fb12ecffcc95a4976b93b826b3e, branche fix/gps-client-history-scope-20261009. Autorisation utilisateur : correction locale conjointe A/B et transactions minimales ; aucun commit/push/merge/déploiement. Résultats E inchangés (64/10/180 après E), distincts de F (avant 15/25/266 ; après 126/0/180). Sept diagnostics initiaux de typage du nouveau harnais corrigés sans affaiblissement ; TypeScript final 0, lint produit 0 erreur/0 avertissement. Le test financier utilise exclusivement des réponses fictives ; aucune validation Stripe. Émulateur propre à cette intervention arrêté après tests.
+
+P1-M-01 conserve FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ. A/B restent ouverts. P0 0, P1 5, P2 21 ; aucune entrée retirée. P3 et décisions/prérequis historiques inchangés. R-K-03-C, P2-K-01, P2-H-01/H-02, P2-I-01/I-02, P2-J-01, R-K-04 et GAP-S-04 conservés. 1.3L reste BLOQUÉ ET REPORTÉ ; Windows Sandbox et carte réelle non testés.
+
+Prochaine action unique : revue du diff A/B et approbation éventuelle de sa sauvegarde par commit local, sans déploiement ni nouvelle correction.
+
+
+## Addendum 1.3M-G — 9 octobre 2026 — décision de fermeture A/B
+
+- Référence : branche fix/gps-client-history-scope-20261009, HEAD 75ce4393d94c6fb12ecffcc95a4976b93b826b3e ; correctifs E/F non committés préservés. Preuves : artifacts/validation-1-3M-G-20261009-1502/CHECKPOINT_MOVIK_1_3M_G_DECISION_GPS_AB.md et RESULTATS_VALIDATION.json.
+- Historique conservé : 1.3M-F reste à 126 réussis / 0 échec, 180 exclus. Ce résultat n'est ni additionné aux nouveaux essais ni réécrit. Les empreintes des 32 sources de F sont comparées dans git-final.json (compte exact fait foi).
+- Nouvelles exécutions : sélection existante initiale 13 réussis / 6 échoués / 196 exclus ; les 6 échecs surviennent avant le parcours, faute de paramètres runtime Routing dans le harnais direct. Reprise de ces seuls 6 avec les valeurs par défaut du code (60/60) en variables du processus : 6 réussis / 0 échec / 209 exclus. Neuf contrôles complémentaires : 7 réussis / 2 échoués / 0 exclu. Bilan des 28 cas distincts au dernier résultat : 26 réussis, 2 échoués. Quatre sondes de confinement applicatif réussies, comptées séparément.
+- Défaut résiduel R-K-03-B démontré, confiance élevée : failMissionPayment(), functions/src/payment/paymentOrchestration.ts:434–497, spécialement 485–489, libère le chauffeur et efface active_delivery_id sans lire/comparer le lien actuel. Une autorisation fictive A est suspendue, B est assignée avec succès par le chemin chauffeur existant, puis A échoue. Pour A assignée par chauffeur ET par administrateur : A=payment_failed, B=assigned/authorized, mais lien GPS=null et disponibilité=online. Attendu : lien B et disponibilité on_mission. Assertions : gpsClosureValidation.v2.test.ts:189 ; états exacts conservés dans states-supplemental.jsonl. Il s'agit d'un sous-cas restant de R-K-03-B, pas d'une nouvelle entrée ni d'un incident production.
+- Correctif minimal RECOMMANDÉ, NON EXÉCUTÉ : lire le lien actif dans la transaction failMissionPayment avant toute écriture, et conditionner uniquement la libération GPS/disponibilité à l'appartenance à la mission échouée (traiter le lien absent selon le contrat existant). Préserver les mutations de paiement, mission et événements, les montants/snapshots/ledger et le comportement d'erreur. Autorisation distincte nécessaire avant modification de ce module.
+- Non-régressions complémentaires : acceptation concurrente et éligibilité 11/11 ; annulation/libération/idempotence 3/3 ; échec de paiement existant 3/3 ; règles ciblées 2/2 dont P1-M-01 (requête de collection) ; standard chauffeur/admin jusqu'à terminaison avec FakePaymentProvider ; annulation A puis B avec événement A rejoué ; concurrence réelle sans ABORTED injecté pour terminaison/suspension et nettoyage/assignation B. Aucun changement produit effectué en G.
+- R-K-03-A : fermeture RECOMMANDÉE exclusivement pour l'autorité des écritures GPS/mission terminale dans le périmètre émulateur et simulations validé. Statut conservé CORRECTION TESTÉE EN ÉMULATEUR — NON FERMÉ — NON DÉPLOYÉ ; attend l'approbation de Daniel.
+- R-K-03-B : fermeture REFUSÉE ; statut PARTIELLEMENT VALIDÉ — ÉCHEC RÉSIDUEL CONFIRMÉ — NON FERMÉ — NON DÉPLOYÉ. Les protections F restent présentes et utiles, mais la règle « une ancienne opération ne libère pas B » n'est pas satisfaite sur le chemin d'échec de paiement.
+- Compilation complète TypeScript 5.9.3 : 87 sources, 174 fichiers émis uniquement dans les preuves, zéro diagnostic ; lint des 3 fonctions modifiées : zéro erreur/avertissement. Typecheck des 9 suites permanentes + test temporaire final : zéro diagnostic. Historique du harnais conservé : première transpilation temporaire TS1434 ; annotation implicite TS7006 dans v2, corrigée uniquement dans v3 par (value: unknown), typecheck réussi, pas de nouvelle exécution Jest pour v3. Les résultats Jest sont ceux de v2 et restent en échec pour B.
+- Isolation : Firestore local demo-movik-test, .run() et identités fictives, FakePaymentProvider existant, Routes simulé, implémentation Stripe remplacée par un refus uniquement dans la copie compilée. Garde Node : sockets limités au loopback:8080, DNS/child_process refusés ; tentatives de détection metadata Google bloquées. Ce n'est pas un confinement OS général ni une validation du test de tuiles. Émulateur propre à G arrêté.
+- Limites : Node 24.15.0 disponible, Node 20 non trouvé dans les emplacements inventoriés ; transport callable/Auth réel, livraison automatique/reprise des triggers, Stripe Sandbox/LIVE, GPS terrain, Chrome, production et 1.3L NON TESTÉS. Parmi les 180 règles exclues en F, 1 règle d'auto-assignation a maintenant été exécutée ; 179 restent hors couverture G, non présentées comme réussies. R-K-03-C, P2-K-01, GAP-S-04 et tous les autres problèmes restent ouverts.
+- Décompte inchangé, aucune fermeture administrative : P0 0 / P1 5 / P2 21 ; 27 entrées actives dont P1-M-01 fermé antérieurement, 26 ouvertes. P3 et annexes historiques préservés.
+- Prochaine action unique recommandée : autoriser le correctif ciblé du nettoyage GPS/disponibilité de failMissionPayment pour R-K-03-B, avec ces deux reproductions et les tests financiers de non-régression. Aucun commit, push, merge ou déploiement dans G.
+
+## Fermeture documentaire 1.3M-H — R-K-03-A — 9 octobre 2026
+
+Autorisation explicite reçue dans la mission 1.3M-H. Passage de CORRECTION TESTÉE EN ÉMULATEUR — NON FERMÉ à FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ, uniquement pour l’autorité GPS et les refus profils/états terminaux qualifiés. Preuves F/G inchangées ; aucune extension à B/C, au terrain ou à la production. P0 0 / P1 4 / P2 21. Le présent travail ne comporte aucun commit ni déploiement. Preuves H : artifacts/corrections-1-3M-H-20261009-c871eb62/.
+
+
+## Addendum 1.3M-H — GPS / compensation tardive — 9 octobre 2026
+
+- Autorisations : fermeture documentaire ciblée R-K-03-A approuvée ; correctif limité au GPS/disponibilité de failMissionPayment approuvé ; aucun commit/push/merge/déploiement autorisé.
+- Version : fix/gps-client-history-scope-20261009, HEAD 75ce4393d94c6fb12ecffcc95a4976b93b826b3e inchangé. Correctifs E/F et preuves G préservés.
+- R-K-03-A : FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ. Autorité GPS et refus missions terminales/profils non approuvés uniquement. Les 26 gardes serveur passent à nouveau en H ; aucune validation physique/cloud ajoutée.
+- R-K-03-B : cause résiduelle confirmée dans failMissionPayment : ancienne compensation libérait la disponibilité et effaçait le lien actif sans le lire. Le correctif ajoute la lecture de driver_locations dans la transaction avant toute écriture et ne libère GPS/disponibilité que si le lien est absent/null ou égal à la mission échouée. Si B est actif, B et la disponibilité du chauffeur sont préservés. Une modification concurrente de ce document invalide la tentative et entraîne une relecture SDK.
+- Fichier produit modifié uniquement en H : functions/src/payment/paymentOrchestration.ts (+9/-2). Toutes les autres instructions de ce module sont identiques au fichier sauvegardé avant correction après retrait de ces seuls changements GPS ; preuve patch-scope.json. Aucun tarif, montant, commission, taxe, snapshot, capture, remboursement, ledger, effet de compensation financière, événement ou règle d'idempotence modifié.
+- Test permanent ajouté : functions/test/integration/gpsPaymentCompensation.test.ts. Les deux corps de tests rouges G sont repris sans affaiblissement ; sept cas supplémentaires couvrent lien A/null/document absent, reprise transactionnelle après B (A via chauffeur/admin), reprise sans B, autre chauffeur et absence de doubles effets. Assertions sur états finaux Firestore, snapshot A inchangé, paiement unique, événement payment_failed unique, ledger vide dans ces cas d'échec, paramètres de montant fictifs concordants, compte des appels provider et refus d'une deuxième acceptation.
+- Avant correctif : 4 réussites / 5 échecs / 0 exclu. Deux échecs d'état attendu B vs null ; trois échecs du contrôle de lecture transactionnelle, dont la reprise sans B (pas cinq nouveaux bogues métier distincts). Historique G reste 26/2 au dernier résultat, non réécrit.
+- Après correctif : 73 réussites / 0 échec / 200 exclus dans la sélection initiale ; complément de deux tests de chevauchement omis par le filtre : 2 réussites / 0 échec / 271 exclus. Bilan de la sélection H au dernier résultat : 75 cas exécutés après correction, tous réussis, aucune assertion affaiblie ni skip ajouté. 198 entrées distinctes non exécutées dans les fichiers chargés : 196 règles hors sélection et 2 copies temporaires G des reproductions déjà exécutées dans le nouveau test permanent.
+- Détail : nouvelle compensation 9/9 ; gardes A/B 26/26 ; atomicité GPS F 14/14 ; acceptDeliveryConcurrency 11/11 ; acceptDeliveryPaymentFailure 3/3 ; missionCancellationPaymentRelease 3/3 ; règles ciblées 2/2 dont P1-M-01 collection filtrée ; interactions G restantes 7/7.
+- Finances : vraie orchestration locale avec FakePaymentProvider existant, aucun Stripe Sandbox/LIVE. Parcours standard chauffeur/admin jusqu'à capture fictive, échec normal, annulation et idempotence testés. Les 14 tests GPS F conservent leurs doublures explicites d'orchestration ; ils ne remplacent pas les tests du module financier réel modifié.
+- Analyse : TypeScript 5.9.3, 87 sources produit compilées (174 fichiers émis seulement dans les preuves), 11 suites typecheckées, aucun diagnostic. ESLint sur paymentOrchestration et les trois fonctions GPS F : 0 erreur/avertissement. Diff check et intégrité Git enregistrés dans verification-final.json.
+- Isolation : Firestore Emulator local demo-movik-test, PID vérifié à chaque exécution ; garde Node loopback:8080/DNS/child_process, provider Stripe refusé dans la copie compilée, fetcher Routes fictif. Quatre sondes de garde réussies. Émulateur lancé par H arrêté. Deux lancements Java initiaux n'ont pas tenu ; aucun test exécuté avant leur refus de prévalidation. Cause exacte inconnue. Lancement direct contrôlé ensuite opérationnel ; aucun changement Windows.
+- Décision B : VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ. Fermeture documentaire limitée RECOMMANDÉE, mais NON APPLIQUÉE sans approbation distincte. Aucun défaut résiduel démontré dans les scénarios testés ; aucune garantie universelle de concurrence/cloud.
+- Limites conservées : Node 24.15.0 utilisé, Node 20 non validé ; transport callable/Auth réel, livraison automatique et rejeu cloud des triggers, production, Stripe Sandbox/LIVE, GPS physique, fraîcheur/association R-K-03-C et tuiles 1.3L non validés. GAP-S-04, tous P2/P3 et prérequis pilote conservés.
+- Décompte : P0 0 / P1 4 / P2 21 ; 27 entrées dont 25 ouvertes et deux fermetures limitées (P1-M-01, R-K-03-A).
+- Preuves : artifacts/corrections-1-3M-H-20261009-c871eb62/CHECKPOINT_MOVIK_1_3M_H_GPS_COMPENSATION_TARDIVE.md ; RESULTATS_1_3M_H_FINAL.json ; results-before.json ; results-after.json ; results-complement.json ; states-*.jsonl ; patch-scope.json ; source-hashes-before/after.json.
+- Prochaine action unique : soumettre la fermeture documentaire limitée R-K-03-B à Daniel. Aucun commit ou autre correctif engagé ; R-K-03-C reste hors périmètre.
+
+
+## Clôture documentaire R-K-03-B — 9 octobre 2026
+
+**Décision : FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**, sur autorisation explicite de l'utilisateur après le checkpoint 1.3M-H. Cette clôture est documentaire et n'autorise aucune action Git ni déploiement.
+
+**Périmètre fermé :** concurrence et nettoyage des données GPS entre missions A et B : ancien rapport, réassignation, fin et nettoyage tardifs, ainsi que compensation de paiement tardive de A. La mission B conserve son lien GPS et la disponibilité `on_mission` dans les scénarios locaux validés. Le correctif `failMissionPayment()` conditionne atomiquement la libération GPS/disponibilité au lien pertinent, sans changer les opérations financières de A.
+
+**Preuves acquises, sans nouvelle exécution dans cette clôture :** checkpoint 1.3M-F (`artifacts/corrections-1-3M-F-20261009-1438/`) : 126 tests ciblés réussis, 0 échec ; checkpoint 1.3M-G (`artifacts/validation-1-3M-G-20261009-1502/`) : 26 réussis, 2 échoués, défaut résiduel reproduit ; checkpoint 1.3M-H (`artifacts/corrections-1-3M-H-20261009-c871eb62/CHECKPOINT_MOVIK_1_3M_H_GPS_COMPENSATION_TARDIVE.md` et `RESULTATS_1_3M_H_FINAL.json`) : 75 contrôles ciblés réussis, 0 échec après correction, dont 9 cas de compensation. Ces exécutions distinctes ne sont pas additionnées.
+
+**Limites :** non déployé, pas de test Firebase Auth/callable réel, de livraison automatique des triggers, de Stripe réel/Sandbox, de Node 20, de GPS physique ou de tuiles cartographiques 1.3L. Aucune garantie de concurrence universelle ni de disponibilité en production. Le test 1.3L demeure BLOQUÉ ET REPORTÉ. Le HEAD `75ce4393d94c6fb12ecffcc95a4976b93b826b3e` reste celui de la dernière sauvegarde locale ; les corrections A/B restent non committées.
+
+**Décompte après fermeture : P0 0 / P1 3 / P2 21.** Tableau de 27 entrées : 3 fermées dans un périmètre limité (P1-M-01, R-K-03-A, R-K-03-B) et 24 non fermées. R-K-03-C, P2-K-01, les autres P2, les P3 historiques, GAP-S-04 et les prérequis du pilote restent ouverts. Aucun commit, push, merge, déploiement ni modification de code appliqués lors de cette clôture.

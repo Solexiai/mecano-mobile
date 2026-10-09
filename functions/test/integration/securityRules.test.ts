@@ -1613,9 +1613,15 @@ describe("Security Rules — driver_internal_notes/{noteId} : write Cloud Functi
 // (Phase 5, partie 2 — trajet réellement parcouru).
 // -----------------------------------------------------------------------
 describe("Security Rules — driver_locations/{driverId} : position courante", () => {
-  it("le chauffeur PEUT lire ET écrire sa propre position", async () => {
+  it("le chauffeur PEUT lire sa position serveur mais NE PEUT PAS écrire directement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_001"), {
+        driver_id: "track_driver_001", latitude: 45.5, longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
     const driver = testEnv.authenticatedContext("track_driver_001", { role: "driver" });
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(driver.firestore(), "driver_locations/track_driver_001"), {
         driver_id: "track_driver_001",
         latitude: 45.5,

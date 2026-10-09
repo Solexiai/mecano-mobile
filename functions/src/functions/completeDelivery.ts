@@ -81,6 +81,13 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
       throw failedPrecondition("Ce financial_snapshot est déjà confirmé (immuable).");
     }
 
+    // Lire le lien avant toute écriture, pour protéger une assignation plus
+    // récente lors d'une fin tardive ou d'une reprise de transaction.
+    const locationRef = db.collection("driver_locations").doc(mission.driver_id);
+    const locationSnap = await tx.get(locationRef);
+    const activeDeliveryId = locationSnap.data()?.active_delivery_id ?? null;
+    const releasesDriver = activeDeliveryId === null || activeDeliveryId === missionId;
+
     const now = admin.firestore.Timestamp.now();
 
     // 1. Mission -> completed (avec dénormalisation de la preuve de livraison).
@@ -150,20 +157,19 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
     }
 
     const driverRef = db.collection("driver_profiles").doc(mission.driver_id);
-    tx.update(driverRef, isInternalTest
-      ? { online_status: "online" }
-      : {
-          completed_missions: admin.firestore.FieldValue.increment(1),
-          online_status: "online",
-        }
-    );
+    if (!isInternalTest) {
+      tx.update(driverRef, {
+        completed_missions: admin.firestore.FieldValue.increment(1),
+        ...(releasesDriver ? { online_status: "online" } : {}),
+      });
+    } else if (releasesDriver) {
+      tx.update(driverRef, { online_status: "online" });
+    }
 
-    // Désactive le tracking GPS temps réel à la fin de toute mission.
-    tx.set(
-      db.collection("driver_locations").doc(mission.driver_id),
-      { active_delivery_id: null },
-      { merge: true }
-    );
+    // La fin de A ne libère ni le GPS ni la disponibilité d'une mission B.
+    if (releasesDriver) {
+      tx.set(locationRef, { active_delivery_id: null }, { merge: true });
+    }
 
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {

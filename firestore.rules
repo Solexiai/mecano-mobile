@@ -249,11 +249,19 @@ service cloud.firestore {
          resource.data.active_delivery_id != null &&
          exists(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)) &&
          get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.customer_id == uid() &&
-         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.driver_id == driverId)
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.driver_id == driverId &&
+         // R-K-03-A : une mission terminale ne donne plus accès à la position
+         // courante, même avant le nettoyage asynchrone du lien actif.
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.status in [
+           'assigned', 'driver_to_pickup', 'arrived_at_pickup',
+           'picked_up', 'in_transit', 'arrived_at_dropoff'
+         ])
       );
 
-      // Le chauffeur écrit sa propre position uniquement.
-      allow write: if isSignedIn() && uid() == driverId && isDriver();
+      // R-K-03-A : position et lien actif sont écrits exclusivement côté serveur.
+      // Flutter appelle recordTrackingPoint ; assignation et nettoyage utilisent
+      // l’Admin SDK. Aucun client ne peut forger/supprimer active_delivery_id.
+      allow write: if false;
 
       match /history/{eventId} {
         allow read: if isSignedIn() && (

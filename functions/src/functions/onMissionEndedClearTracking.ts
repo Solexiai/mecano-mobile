@@ -101,10 +101,12 @@ export const onMissionEndedClearTracking = onDocumentUpdated(
     if (!after.driver_id) return; // aucune mission jamais assignée -> rien à nettoyer
 
     const locationRef = db.collection("driver_locations").doc(after.driver_id);
-    const locationSnap = await locationRef.get();
-    if (!locationSnap.exists) return;
-    if (locationSnap.data()!.active_delivery_id !== missionId) return; // déjà réassigné ailleurs, ne pas écraser
-
-    await locationRef.set({ active_delivery_id: null }, { merge: true });
+    // Comparaison et nettoyage atomiques : un événement A retardé ne doit
+    // jamais effacer le lien B, même si l'assignation intervient pendant l'essai.
+    await db.runTransaction(async (tx) => {
+      const locationSnap = await tx.get(locationRef);
+      if (!locationSnap.exists || locationSnap.data()!.active_delivery_id !== missionId) return;
+      tx.set(locationRef, { active_delivery_id: null }, { merge: true });
+    });
   }
 );

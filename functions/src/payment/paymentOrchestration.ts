@@ -458,6 +458,13 @@ async function failMissionPayment(
       paySnap = await tx.get(payRef);
     }
 
+    // Le lien peut déjà appartenir à une nouvelle mission. Sa lecture doit
+    // participer à la transaction, avant toute écriture de compensation.
+    const driverLocationRef = driverId ? db.collection("driver_locations").doc(driverId) : null;
+    const driverLocation = driverLocationRef ? await tx.get(driverLocationRef) : null;
+    const activeDeliveryId = driverLocation?.get("active_delivery_id") ?? null;
+    const releasesDriver = activeDeliveryId === null || activeDeliveryId === missionId;
+
     const now = admin.firestore.Timestamp.now();
 
     if (payRef && paySnap && paySnap.exists) {
@@ -482,10 +489,10 @@ async function failMissionPayment(
       driver_display_name: null,
     });
 
-    if (driverId) {
+    if (driverId && driverLocationRef && releasesDriver) {
       const driverRef = db.collection("driver_profiles").doc(driverId);
       tx.update(driverRef, { online_status: "online" });
-      tx.set(db.collection("driver_locations").doc(driverId), { active_delivery_id: null }, { merge: true });
+      tx.set(driverLocationRef, { active_delivery_id: null }, { merge: true });
     }
 
     const eventRef = missionRef.collection("tracking_events").doc();
