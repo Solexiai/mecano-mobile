@@ -1102,6 +1102,26 @@ class AppStrings {
       'es':
           'El seguimiento en vivo estará disponible en cuanto un conductor esté en camino.',
     },
+    'tracking_position_permission_denied': {
+      'fr': 'Accès à la position refusé.',
+      'en': 'Access to the position was denied.',
+      'es': 'Acceso a la posición denegado.',
+    },
+    'tracking_position_unavailable': {
+      'fr': 'Les données de suivi sont momentanément indisponibles.',
+      'en': 'Tracking data is temporarily unavailable.',
+      'es': 'Los datos de seguimiento no están disponibles temporalmente.',
+    },
+    'tracking_history_permission_denied': {
+      'fr': 'Accès au trajet refusé.',
+      'en': 'Access to the route was denied.',
+      'es': 'Acceso al trayecto denegado.',
+    },
+    'tracking_history_unavailable': {
+      'fr': 'Le trajet est momentanément indisponible.',
+      'en': 'The route is temporarily unavailable.',
+      'es': 'El trayecto no está disponible temporalmente.',
+    },
     'tracking_position_stale': {
       'fr': 'Position non actualisée',
       'en': 'Position not updated',

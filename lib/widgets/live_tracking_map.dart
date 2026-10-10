@@ -11,6 +11,7 @@
 
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
@@ -132,6 +133,23 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     });
   }
 
+  String _streamErrorKey(Object? error, {required bool history}) {
+    // Seul le code typé du service concerné prouve un refus d'accès.
+    // Ne jamais afficher/interpréter le texte brut d'une exception.
+    final permissionDenied =
+        error is FirebaseException &&
+        error.plugin == 'cloud_firestore' &&
+        error.code == 'permission-denied';
+    if (history) {
+      return permissionDenied
+          ? 'tracking_history_permission_denied'
+          : 'tracking_history_unavailable';
+    }
+    return permissionDenied
+        ? 'tracking_position_permission_denied'
+        : 'tracking_position_unavailable';
+  }
+
   String _lastKnownLabel(DateTime date) {
     final local = date.toLocal();
     String two(int n) => n.toString().padLeft(2, '0');
@@ -188,7 +206,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
       stream: _locationStream,
       builder: (context, snap) {
         final now = _now();
-        final location = _compatibleLocation(snap.data, now);
+        final location = snap.hasError
+            ? null
+            : _compatibleLocation(snap.data, now);
         final outdated =
             location != null &&
             now.difference(location.updatedAt!) > _freshness;
@@ -216,137 +236,166 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           stream: _historyStream,
           builder: (context, historySnap) {
             final routePoints = _routePoints(
-              historySnap.data ?? const [],
+              historySnap.hasError ? const [] : historySnap.data ?? const [],
               _now(),
             );
 
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    height: 260,
-                    child: FlutterMap(
-                      key: ValueKey(_scope),
-                      mapController: _mapController,
-                      options: MapOptions(
-                        initialCenter: center,
-                        initialZoom: driverPoint != null ? 14 : 12,
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.movik.movik_connect',
-                        ),
-                        if (routePoints.length >= 2)
-                          PolylineLayer(
-                            polylines: [
-                              Polyline(
-                                points: routePoints,
-                                strokeWidth: 4,
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.85,
-                                ),
-                              ),
-                            ],
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    children: [
+                      SizedBox(
+                        height: 260,
+                        child: FlutterMap(
+                          key: ValueKey(_scope),
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter: center,
+                            initialZoom: driverPoint != null ? 14 : 12,
                           ),
-                        MarkerLayer(
-                          markers: [
-                            if (widget.pickup != null)
-                              Marker(
-                                point: ll.LatLng(
-                                  widget.pickup!.lat,
-                                  widget.pickup!.lng,
-                                ),
-                                width: 34,
-                                height: 34,
-                                child: const Icon(
-                                  Icons.trip_origin,
-                                  color: AppColors.info,
-                                  size: 30,
-                                ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.movik.movik_connect',
+                            ),
+                            if (routePoints.length >= 2)
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: routePoints,
+                                    strokeWidth: 4,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.85,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            if (widget.dropoff != null)
-                              Marker(
-                                point: ll.LatLng(
-                                  widget.dropoff!.lat,
-                                  widget.dropoff!.lng,
-                                ),
-                                width: 34,
-                                height: 34,
-                                child: const Icon(
-                                  Icons.place,
-                                  color: AppColors.error,
-                                  size: 34,
-                                ),
-                              ),
-                            if (driverPoint != null)
-                              Marker(
-                                point: driverPoint,
-                                width: 40,
-                                height: 40,
-                                rotate: false,
-                                child: const _DriverPulseMarker(),
-                              ),
+                            MarkerLayer(
+                              markers: [
+                                if (widget.pickup != null)
+                                  Marker(
+                                    point: ll.LatLng(
+                                      widget.pickup!.lat,
+                                      widget.pickup!.lng,
+                                    ),
+                                    width: 34,
+                                    height: 34,
+                                    child: const Icon(
+                                      Icons.trip_origin,
+                                      color: AppColors.info,
+                                      size: 30,
+                                    ),
+                                  ),
+                                if (widget.dropoff != null)
+                                  Marker(
+                                    point: ll.LatLng(
+                                      widget.dropoff!.lat,
+                                      widget.dropoff!.lng,
+                                    ),
+                                    width: 34,
+                                    height: 34,
+                                    child: const Icon(
+                                      Icons.place,
+                                      color: AppColors.error,
+                                      size: 34,
+                                    ),
+                                  ),
+                                if (driverPoint != null)
+                                  Marker(
+                                    point: driverPoint,
+                                    width: 40,
+                                    height: 40,
+                                    rotate: false,
+                                    child: const _DriverPulseMarker(),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-                  if (routePoints.length >= 2)
-                    Positioned(
-                      left: 10,
-                      top: 10,
-                      child: _RouteLegend(
-                        label: widget.t('tracking_route_legend'),
                       ),
-                    ),
-                  if (location != null)
-                    Positioned(
-                      left: 10,
-                      right: 10,
-                      bottom: 10,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        color: Colors.black.withValues(alpha: 0.75),
-                        child: Text(
-                          outdated
-                              ? '${widget.t('tracking_position_stale')}\n'
-                                    '${_lastKnownLabel(location.updatedAt!)}'
-                              : _lastKnownLabel(location.updatedAt!),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                      if (routePoints.length >= 2)
+                        Positioned(
+                          left: 10,
+                          top: 10,
+                          child: _RouteLegend(
+                            label: widget.t('tracking_route_legend'),
                           ),
                         ),
-                      ),
-                    ),
-                  if (location == null &&
-                      snap.connectionState != ConnectionState.waiting)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.45),
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            widget.t('tracking_waiting_for_signal'),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                      if (location != null)
+                        Positioned(
+                          left: 10,
+                          right: 10,
+                          bottom: 10,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            color: Colors.black.withValues(alpha: 0.75),
+                            child: Text(
+                              outdated
+                                  ? '${widget.t('tracking_position_stale')}\n'
+                                        '${_lastKnownLabel(location.updatedAt!)}'
+                                  : _lastKnownLabel(location.updatedAt!),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
+                      if (location == null &&
+                          snap.connectionState != ConnectionState.waiting)
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            alignment: Alignment.center,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Text(
+                                widget.t(
+                                  snap.hasError
+                                      ? _streamErrorKey(
+                                          snap.error,
+                                          history: false,
+                                        )
+                                      : 'tracking_waiting_for_signal',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (snap.connectionState == ConnectionState.waiting)
+                        const Positioned.fill(
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                    ],
+                  ),
+                ),
+                if (historySnap.hasError)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        widget.t(
+                          _streamErrorKey(historySnap.error, history: true),
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                  if (snap.connectionState == ConnectionState.waiting)
-                    const Positioned.fill(
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                ],
-              ),
+                  ),
+              ],
             );
           },
         );

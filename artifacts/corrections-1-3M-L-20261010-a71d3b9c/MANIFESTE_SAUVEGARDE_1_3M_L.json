@@ -1,0 +1,73 @@
+{
+    "created_utc":  "2026-10-10T13:08:32.025Z",
+    "branch":  "fix/gps-client-history-scope-20261009",
+    "head":  "980a9dab54353a99315fa78fd4487c77396042f4",
+    "index_empty":  true,
+    "staged":  false,
+    "commit_created":  false,
+    "selection":  [
+                      {
+                          "path":  "lib/widgets/live_tracking_map.dart",
+                          "bytes":  17415,
+                          "sha256":  "94ea8ccad69d3da677b37fc81ec9898da1278c5d112316b1fea25604fba7f1ee"
+                      },
+                      {
+                          "path":  "lib/l10n/app_strings.dart",
+                          "bytes":  161463,
+                          "sha256":  "3de579b276d60ac0e652b0b942a945e84f17285674aac4755d94bc4fa09b70f4"
+                      },
+                      {
+                          "path":  "test/customer/live_tracking_errors_test.dart",
+                          "bytes":  16113,
+                          "sha256":  "2dcbb58a851f848a710c929dbe05b2bd9a353065f93b897caa67d2725ca23e0a"
+                      },
+                      {
+                          "path":  "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+                          "bytes":  425144,
+                          "sha256":  "89a3f961b95891eb53a7abb7f221cfa1595f9748f25803ec269afe1e03998c55"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/CHECKPOINT_MOVIK_1_3M_L_P2_K_01.md",
+                          "bytes":  15141,
+                          "sha256":  "f6c9ecd2ecaf407f5b2dc7eb79ffb8c2d036853b95701f12ac123af5a1f8b66f"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/RESULTATS.json",
+                          "bytes":  2280,
+                          "sha256":  "7fbcfcc3dcec10e24f0831c4c6dcdc8fd2e2185d1fc92d52a8cedc0a7a14e92f"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/RESULT-before-complete.jsonl",
+                          "bytes":  65235,
+                          "sha256":  "6bd5b746b767c2ab62c0388b299c2ea503e93426fa5c56ac1dfc3375fe31a2ab"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/RESULT-final-targeted.jsonl",
+                          "bytes":  41659,
+                          "sha256":  "09ff69c069912be2d3b0783859d9c8f52e0288948307288de33a3da07a5eee10"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/RESULT-regression.jsonl",
+                          "bytes":  33879,
+                          "sha256":  "1ffdac4423b660a33c4cd99e164e15aea52c8fa7bc668d67767acae8ddb8f625"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-L-20261010-a71d3b9c/MANIFESTE_SAUVEGARDE_1_3M_L.json",
+                          "sha256":  null,
+                          "note":  "Auto-empreinte exclue pour éviter une référence circulaire."
+                      }
+                  ],
+    "final_distinct_tests":  {
+                                 "passed":  110,
+                                 "failed":  0,
+                                 "skipped":  0
+                             },
+    "bug_status":  "P2-K-01 CLOSED in validated simulated scope, NOT DEPLOYED, closure approved 2026-10-10",
+    "open_counts":  {
+                        "P0":  0,
+                        "P1":  2,
+                        "P2":  20
+                    },
+    "secret_pattern_scan":  "Aucune correspondance aux motifs de clés privées, Stripe, GitHub et Google examinés ; contrôle non exhaustif.",
+    "note":  "Selection after approved local closure; analyze-final.txt omitted from Git because generated output has trailing padding spaces; original remains intact as local evidence, analysis success described in checkpoint. No push, merge or deployment."
+}
