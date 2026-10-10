@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../../services/delivery_request_draft.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -957,6 +958,36 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         : '${MaterialLocalizations.of(context).formatMediumDate(date)} · ${TimeOfDay.fromDateTime(date).format(context)}';
   }
 
+  // Display only: preserve the instant and the existing local timezone.
+  Widget _localizedTime(String? iso, {required String prefix}) {
+    final date = iso == null ? null : DateTime.tryParse(iso)?.toLocal();
+    final unknown = tr(
+      'Date et heure non précisées',
+      'Date and time not specified',
+      'Fecha y hora no especificadas',
+    );
+    if (date == null) return Text('$prefix : $unknown');
+    return FutureBuilder<MaterialLocalizations>(
+      future: GlobalMaterialLocalizations.delegate.load(Locale(widget.locale)),
+      builder: (context, snapshot) {
+        final labels = snapshot.data;
+        if (labels == null) return Text('$prefix…');
+        final offset = date.timeZoneOffset;
+        final minutes = offset.inMinutes.abs();
+        final sign = offset.isNegative ? '-' : '+';
+        final hours = (minutes ~/ 60).toString().padLeft(2, '0');
+        final remainder = (minutes % 60).toString().padLeft(2, '0');
+        final time = labels.formatTimeOfDay(
+          TimeOfDay.fromDateTime(date),
+          alwaysUse24HourFormat: true,
+        );
+        return Text(
+          '$prefix : ${labels.formatFullDate(date)} · $time (UTC$sign$hours:$remainder)',
+        );
+      },
+    );
+  }
+
   Future<void> _chooseTime() async {
     final now = DateTime.now();
     final date = await showDatePicker(
@@ -1532,8 +1563,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               Text(
                 '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${(quote['distanceKm'] as num).toStringAsFixed(1)} km',
               ),
-              Text(
-                '${tr('Valable jusqu’à', 'Valid until', 'Válido hasta')} ${_formatTime(DateTime.fromMillisecondsSinceEpoch((quote['expiresAtMillis'] as num).toInt()).toIso8601String())}',
+              _localizedTime(
+                DateTime.fromMillisecondsSinceEpoch(
+                  (quote['expiresAtMillis'] as num).toInt(),
+                ).toIso8601String(),
+                prefix: tr('Valable jusqu’à', 'Valid until', 'Válido hasta'),
               ),
             ],
           ),
@@ -1744,10 +1778,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       Text(
         '${item['quantity']} × ${item['label']} · ${item['length'] ?? '?'} × ${item['width'] ?? '?'} × ${item['height'] ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
       ),
-    if (_draft.data['requested_at'] != null)
-      Text(
-        '${tr('Créneau demandé', 'Requested time', 'Horario solicitado')} : ${_formatTime(_draft.data['requested_at'] as String)}',
-      ),
+    _localizedTime(
+      _draft.data['requested_at'] as String?,
+      prefix: tr('Créneau demandé', 'Requested time', 'Horario solicitado'),
+    ),
     Text(
       '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')} : ${_draft.data['handlers']}',
     ),
@@ -1864,9 +1898,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ],
     _note(
       tr(
-        'Votre carte est enregistrée chez Stripe. Aucun numéro de carte n’est transmis à Movi-K. L’autorisation a lieu quand un chauffeur accepte, puis le paiement est capturé après la livraison.',
-        'Your card is saved with Stripe. Movi-K does not receive your card number. Authorization occurs when a driver accepts; payment is captured after delivery.',
-        'Stripe guarda tu tarjeta. Movi-K no recibe el número. Se autoriza cuando acepta un conductor y se cobra después de la entrega.',
+        'La préparation du moyen de paiement est distincte de l’autorisation et du paiement final. Consultez les conditions de paiement affichées.',
+        'Preparing a payment method is separate from authorization and final payment. Review the displayed payment terms.',
+        'La preparación del método de pago es distinta de la autorización y del pago final. Consulta las condiciones de pago mostradas.',
       ),
     ),
     if (auth.user?.emailVerified != true)
@@ -1881,12 +1915,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     if (_cardReady)
       _note(
         tr(
-          'Carte enregistrée. Aucun paiement effectué à cette étape.',
-          'Card saved. No payment made at this step.',
-          'Tarjeta guardada. No se ha realizado ningún pago en este paso.',
+          'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
+          'Payment method ready for confirmation. This does not confirm an authorization or a payment.',
+          'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
         ),
       )
     else ...[
+      _note(
+        tr(
+          'Préparation du moyen de paiement non confirmée.',
+          'Payment method preparation is not confirmed.',
+          'La preparación del método de pago no está confirmada.',
+        ),
+      ),
       _button(
         tr(
           'Enregistrer ma carte avec Stripe',

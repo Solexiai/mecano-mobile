@@ -1,0 +1,6 @@
+$env:FLUTTER_SUPPRESS_ANALYTICS='true'
+$env:DART_SUPPRESS_ANALYTICS='true'
+$env:CI='true'
+Set-Location -LiteralPath 'C:\Users\Utilisateur\movik-gps-history-fix-20261009'
+& 'C:\Users\Utilisateur\mecano-mobile\.flutter\bin\flutter.bat' --no-version-check test --no-pub --dart-define=no_default_http_client=true --reporter=json --concurrency=1 test/customer/delivery_confirmation_presentation_test.dart *> 'artifacts\corrections-1-3M-N-20261010-d927c861\final.jsonl'
+$LASTEXITCODE | Set-Content 'artifacts\corrections-1-3M-N-20261010-d927c861\final.exit'

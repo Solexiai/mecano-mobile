@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire limitée P2-H-01/H-02, 10 octobre 2026 ; corrections toujours non déployées.
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-N, clôture ciblée P2-I-01/I-02, 10 octobre 2026 ; corrections non déployées.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 18** (recalcul après clôture documentaire limitée P2-H-01/H-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 20 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 16** (recalcul après clôture documentaire limitée P2-I-01/I-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 18 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -25,8 +25,8 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | R-K-03-C | P1 | Défauts reproduits, corrigés et validés dans les tests simulés | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Identité/mission, dates et snapshots protégés ; après 60 secondes sans nouvelle position valide, marqueur masqué, date/historique conservés et reprise validée. |
 | P2-H-01 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Au moins huit chiffres requis côté client ; formats serveur préservés, validation locale approuvée le 10 octobre 2026. |
 | P2-H-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Compteur téléphone cohérent avec + initial optionnel, consignes FR/EN/ES et affichage widget validés localement le 10 octobre 2026. |
-| P2-I-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Carte annoncée enregistrée alors que cardReady=false. |
-| P2-I-02 | P2 | Bug simulé confirmé | QUALIFIÉ | Date détaillée en format technique dans confirmation. |
+| P2-I-01 | P2 | Défaut corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Carte annoncée enregistrée alors que cardReady=false. |
+| P2-I-02 | P2 | Défaut corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Date détaillée en format technique dans confirmation. |
 | P2-J-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Suivi en recherche sans référence ni statut métier explicitement affichés. |
 | P2-K-01 | P2 | Défaut reproduit et corrigé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Refus et erreurs de position/historique distingués de l’absence GPS ; reprise, fraîcheur et FR/EN/ES testées, fermeture limitée approuvée le 10 octobre 2026. |
 | R-K-04 | P2 | Risque visuel provisoire | QUALIFIÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |
@@ -150,6 +150,10 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 
 ### P2-I-01
 
+- État ACTUEL — 10 octobre 2026, 1.3M-N : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**. Fermeture conditionnelle autorisée par Daniel et critères satisfaits : 54 tests ciblés + 66 non-régressions réussis, analyse et contrôles Git réussis. Causes, périmètre, preuves et limites dans l’addendum 1.3M-N. Statut antérieur QUALIFIÉ conservé ci-dessous comme historique.
+
+État historique :
+
 - Priorité / nature / statut : P2 ; Bug simulé confirmé ; QUALIFIÉ.
 - Description et impact : Carte annoncée enregistrée alors que cardReady=false.
 - Preuve d'origine : 1.3I/1.3I-B (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
@@ -161,6 +165,10 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Aucune affirmation de carte prête sans état explicite simulé puis intégration appropriée. + règle permanente ci-dessus.
 
 ### P2-I-02
+
+- État ACTUEL — 10 octobre 2026, 1.3M-N : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**. Fermeture conditionnelle autorisée par Daniel et critères satisfaits : 54 tests ciblés + 66 non-régressions réussis, analyse et contrôles Git réussis. Causes, périmètre, preuves et limites dans l’addendum 1.3M-N. Statut antérieur QUALIFIÉ conservé ci-dessous comme historique.
+
+État historique :
 
 - Priorité / nature / statut : P2 ; Bug simulé confirmé ; QUALIFIÉ.
 - Description et impact : Date détaillée en format technique dans confirmation.
@@ -4456,3 +4464,44 @@ Décompte : **P0 0, P1 2, P2 20 ouverts**. P3 historiques, prérequis pilote et 
 **Limites et autres dossiers :** pas de test Chrome réel, téléphone physique, lecteur d'écran, backend déployé, parcours financier réel ou lancement public. Les deux P1 historiques P1-HOME-001/P1-COPY-001 et les autres P2 restent ouverts en attendant leurs critères propres. Le test de tuiles 1.3L demeure BLOQUÉ ET REPORTÉ. Le pilote reste NO-GO tant que ses prérequis ne sont pas vérifiés.
 
 **Décompte du registre actif après ces deux fermetures : P0 0 / P1 2 / P2 18.** 27 fiches, dont 7 fermées dans des périmètres de validation limités et 20 encore ouvertes. Sauvegarde Git locale autorisée séparément par le même accord, mais **aucun push, merge ou déploiement** autorisé. HEAD attendu avant sauvegarde : `2df26054e0fb3491cdc75cfbef3f551fab07e1f5`.
+
+
+## Addendum 1.3M-N — 10 octobre 2026 — confirmation client
+
+Base : `7fd6a905fe8f99e0bf3be3b4bb95a115d62bd395`, branche `fix/gps-client-history-scope-20261009`. Modifications locales non commitées, non déployées.
+Autorisation de Daniel dans la mission 1.3M-N : fermeture documentaire distincte de chaque fiche si correction, tests et limites démontrés.
+
+### P2-I-01 — FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ
+
+Statut précédent : QUALIFIÉ (historique conservé ci-dessus).
+Cause reproduite : note inconditionnelle « Votre carte est enregistrée chez Stripe » ; seconde affirmation « Carte enregistrée » pour un booléen de préparation.
+Contrat lu : `bookingCardSetup.ts:81–88`, ready correspond à un default_payment_method_id et à l'environnement du provider ; verifyCardSetup contrôle session/client/utilisateur/devis/environnement. Ce booléen ne prouve ni autorisation ni capture et les tests ne contactent pas le provider.
+Correction : note de distinction préparation/autorisation/paiement, messages FR/EN/ES « préparation non confirmée » ou « moyen prêt pour la confirmation » ; aucune déclaration de paiement réussi. Boutons, garde cardReady et méthodes métier inchangés.
+Couverture : false/true, attente avec Completer, erreur de préparation, contrôle de statut échoué, reprise, retour/reconstruction, double soumission et payload fictif préservé. 24 combinaisons langue/format/état prêtes ou non prêtes.
+Fermeture autorisée et appliquée le 10 octobre 2026 ; aucun état Stripe réel validé.
+
+### P2-I-02 — FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ
+
+Statut précédent : QUALIFIÉ. Qualification actualisée : l'ISO brut n'est pas affiché pour toute date valide au HEAD ; le formateur Material par défaut rendait notamment « Thu, Jan 1 · 7:00 AM » sur /fr (sans année). Une date invalide revenait brute ; une date absente n'avait pas d'indication.
+Correction : `GlobalMaterialLocalizations` déjà disponible dans le projet, chargé selon la langue du formulaire ; date complète avec année, heure 24 h et décalage UTC de l'instant. Source requested_at et expiration du devis inchangées. Date absente/invalide : indication explicite, aucun remplacement par maintenant. L'expiration partage le résumé de prix et bénéficie du même affichage ; calcul/validité inchangés.
+Fuseau : conversion locale existante conservée, pas de nouvelle politique imposant Montréal à tous les appareils. Runner Windows Eastern Standard Time ; tests vérifient UTC-05 hiver et UTC-04 été, fin de mois et changement d'année. Tests timezone ciblés nécessitent un runner réglé sur l'heure de l'Est (ou TZ America/Toronto si supporté par l'OS). Ce prérequis n'est pas un réglage appliqué par l'intervention.
+Couverture : 15 cas date/FR/EN/ES, 9 absences/invalides, navigation/reconstruction, formatages des résumés et widget responsive.
+Fermeture autorisée et appliquée le 10 octobre 2026. Sélecteurs de date étape Ma livraison / P2-FORM-001 restent ouverts, aucune fermeture implicite.
+
+### Preuves et résultats communs
+
+Dossier : `artifacts/corrections-1-3M-N-20261010-d927c861/`.
+- Première tentative : erreur de compilation du nouveau test (paramètre message requis de FirebaseFunctionsException), 0 test exécuté ; journal before-compile-error.jsonl conservé.
+- Reproduction avant correction : 2 réussis, 52 échoués, 0 ignoré ; before.jsonl.
+- Première exécution après correction : 53 réussis, 1 échoué, 0 ignoré ; after.jsonl. Échec de fixture : devis générés séparément avec expiration différente d'une milliseconde. Alignement de la fixture, assertion stricte conservée, aucun changement métier pour ce test.
+- Finale : 54 réussis, 0 échoué, 0 ignoré ; final.jsonl.
+- Non-régressions : 66 réussis, 0 échoué, 0 ignoré ; regression.jsonl, dont 46 coordonnées H et 20 brouillon/auth/confirmation/reprise/disponibilité.
+- Total final distinct : 120 réussis. Exécutions antérieures non additionnées.
+- Analyse finale ciblée : 0 problème ; format 2 fichiers, 0 changement ; git diff --check réussi. Deux infos de style du nouveau test corrigées (accolades, assertions inchangées).
+- Synthèse : RESULTATS.json ; empreintes et intégrité : CONTROLES_FINAUX.json ; isolation : ISOLATION.md.
+- Vrais widgets Flutter : FR/EN/ES, 375×812, 430×932, 1440×900, mobile375 texte200%. Assertions de paragraphes non tronqués, bornes horizontales et absence d'exception Flutter ; ce ne sont pas des captures Chrome.
+- Aucun code GPS, serveur, paiement, snapshot, ledger, tarifs ou commissions modifié ; méthodes métier du formulaire conservées. Aucun commit, index vide, aucune production.
+
+Décompte recalculé du tableau actif après ces deux fermetures : **P0 0 / P1 2 / P2 16**, 27 fiches conservées, 18 non fermées. P1-HOME-001 et P1-COPY-001 restent ouverts. Tous les autres P2/P3 et prérequis conservés ; 1.3L reste BLOQUÉ ET REPORTÉ.
+
+Limites : simulations seulement ; aucun Stripe Sandbox/LIVE, Firebase réel, carte/route/GPS externe ; aucune preuve nouvelle de concordance financière serveur–mission–snapshot–Stripe. Pas de build Web, Chrome, appareil physique ou production. Erreur getBookingCardStatus toujours traitée par le comportement existant, mais ne produit plus une affirmation de carte enregistrée ; aucune refonte de gestion des erreurs.
