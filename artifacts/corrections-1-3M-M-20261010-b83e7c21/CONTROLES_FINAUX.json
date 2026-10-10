@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-10T14:06:27.394Z",
+  "head": "2df26054e0fb3491cdc75cfbef3f551fab07e1f5",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "index": "",
+  "changed": [
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "lib/screens/delivery/delivery_request_flow_screen.dart"
+  ],
+  "added": [
+    "test/customer/delivery_contact_validation_test.dart"
+  ],
+  "missing": [],
+  "preserved": 2550,
+  "unchangedOutsideContacts": true,
+  "initialUntrackedOutsideArtifacts": [],
+  "diffCheck": 0,
+  "safe": true
+}

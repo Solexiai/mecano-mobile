@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire ciblée P2-K-01, 10 octobre 2026.
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire limitée P2-H-01/H-02, 10 octobre 2026 ; corrections toujours non déployées.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 20** (recalcul après fermeture documentaire ciblée de P2-K-01, 10 octobre 2026). P1-M-01, R-K-03-A, R-K-03-B, R-K-03-C et P2-K-01 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 22 non fermées. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 18** (recalcul après clôture documentaire limitée P2-H-01/H-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 20 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -23,8 +23,8 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | R-K-03-A | P1 | Défauts corrigés et testés en émulateur | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Autorité GPS et refus missions terminales/profils non approuvés uniquement ; fermeture approuvée en H. |
 | R-K-03-B | P1 | Défauts d’atomicité et de nettoyage GPS corrigés et testés localement | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Rapport GPS, fin/compensation/nettoyage tardif de A ne libèrent plus l’assignation B dans les scénarios locaux validés. |
 | R-K-03-C | P1 | Défauts reproduits, corrigés et validés dans les tests simulés | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Identité/mission, dates et snapshots protégés ; après 60 secondes sans nouvelle position valide, marqueur masqué, date/historique conservés et reprise validée. |
-| P2-H-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Téléphone -------- accepté par Flutter ; serveur normalizeContacts exige au moins huit chiffres. |
-| P2-H-02 | P2 | Bug UX confirmé | QUALIFIÉ | Compteur /120 incohérent avec regex 8–25 caractères ; obligations peu explicites. |
+| P2-H-01 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Au moins huit chiffres requis côté client ; formats serveur préservés, validation locale approuvée le 10 octobre 2026. |
+| P2-H-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Compteur téléphone cohérent avec + initial optionnel, consignes FR/EN/ES et affichage widget validés localement le 10 octobre 2026. |
 | P2-I-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Carte annoncée enregistrée alors que cardReady=false. |
 | P2-I-02 | P2 | Bug simulé confirmé | QUALIFIÉ | Date détaillée en format technique dans confirmation. |
 | P2-J-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Suivi en recherche sans référence ni statut métier explicitement affichés. |
@@ -116,6 +116,11 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 
 ### P2-H-01
 
+- État ACTUEL — clôture documentaire approuvée le 10 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**. Validation finale déjà acquise : 46 tests ciblés + 20 non-régressions réussis, 0 échec, 0 ignoré ; analyse, format et diff check réussis. Les téléphones doivent comporter au moins huit chiffres et les formats permis restent acceptés ; serveur non modifié. Aucune nouvelle exécution lors de la clôture. Le chemin serveur déployé, Chrome et les téléphones physiques ne sont pas validés. Preuves dans l’addendum 1.3M-M.
+- État HISTORIQUE — 1.3M-M avant approbation : **CORRIGÉ ET VALIDÉ DANS LE PÉRIMÈTRE SIMULÉ — NON FERMÉ — NON DÉPLOYÉ**. Fermeture alors seulement recommandée.
+
+État historique de qualification conservé :
+
 - Priorité / nature / statut : P2 ; Bug simulé confirmé ; QUALIFIÉ.
 - Description et impact : Téléphone -------- accepté par Flutter ; serveur normalizeContacts exige au moins huit chiffres.
 - Preuve d'origine : 1.3H et 1.3H-B (rapports du 8–9 octobre, ou Phase7 importée ci-dessous).
@@ -127,6 +132,11 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Entrée invalide refusée clairement avant confirmation ; formats approuvés conservés. + règle permanente ci-dessus.
 
 ### P2-H-02
+
+- État ACTUEL — clôture documentaire approuvée le 10 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**. Validation finale déjà acquise : 46 tests ciblés + 20 non-régressions réussis, 0 échec, 0 ignoré ; analyse, format et diff check réussis. Compteur téléphone limité au contrat existant de 25 caractères, ou 26 avec + initial ; consignes, libellés et messages FR/EN/ES contrôlés sur vrais widgets aux formats testés, y compris texte mobile à 200 %. Aucune nouvelle exécution lors de la clôture. Chrome et appareils physiques restent non validés. Preuves dans l’addendum 1.3M-M.
+- État HISTORIQUE — 1.3M-M avant approbation : **CORRIGÉ ET VALIDÉ DANS LE PÉRIMÈTRE SIMULÉ — NON FERMÉ — NON DÉPLOYÉ**. Fermeture alors seulement recommandée.
+
+État historique de qualification conservé :
 
 - Priorité / nature / statut : P2 ; Bug UX confirmé ; QUALIFIÉ.
 - Description et impact : Compteur /120 incohérent avec regex 8–25 caractères ; obligations peu explicites.
@@ -4394,3 +4404,55 @@ Prochaine action proposée : approbation de la fermeture documentaire limitée d
 **Limites :** Chrome, téléphone physique, lecteur d'écran, flux Firestore réel, interruption réseau et production non testés. Le flux définitivement terminé demeure explicitement en erreur : aucun réabonnement automatique ni mécanisme de retry infini n'est validé. L'isolation cartographique testée ne remplace pas une isolation réseau au niveau OS : **1.3L BLOQUÉ ET REPORTÉ**. Les quatre fermetures GPS P1-M-01/R-K-03-A/B/C demeurent limitées et non déployées. Aucun tarif, commission, traitement Stripe, snapshot, ledger ou règle serveur modifié.
 
 **Décompte du tableau central après approbation : P0 0, P1 2, P2 20 ; 27 fiches, 5 fermées à portée limitée et 22 non fermées.** Les P1-HOME-001 et P1-COPY-001 ainsi que les autres P2/P3 et prérequis de lancement restent ouverts. La sauvegarde Git locale est autorisée séparément par le même accord, mais aucun push, merge ou déploiement n'est autorisé. Dernier HEAD connu avant la sauvegarde : `980a9dab54353a99315fa78fd4487c77396042f4`.
+
+## Addendum — 1.3M-M — Coordonnées P2-H-01 / P2-H-02 — 10 octobre 2026
+
+Référence locale : branche fix/gps-client-history-scope-20261009, HEAD 2df26054e0fb3491cdc75cfbef3f551fab07e1f5.
+Preuves : artifacts/corrections-1-3M-M-20261010-b83e7c21/.
+Aucun commit, indexage, push, merge ou déploiement pendant cette intervention.
+
+### Causes et contrat vérifiés
+- P2-H-01 reproduit sur les deux champs téléphone : --------, ()----() et 1------- permettaient de passer à la confirmation. La regex Flutter contrôlait les caractères et la longueur, mais pas le nombre de chiffres.
+- P2-H-02 reproduit : les téléphones héritaient de maxLength 120 destiné aux noms. Le backend normalizeContacts (functions/src/lib/bookingServer.ts:66–71, appelé dans createDeliveryRequest.ts:240) exige au moins 8 chiffres ASCII et 8 à 25 caractères parmi chiffres, espaces, parenthèses et tirets, avec un + initial optionnel HORS de ces 25 caractères. Donc 26 caractères totaux sont valides avec + initial. Aucun nouveau format national imposé.
+- Les noms restent limités à 120 et les instructions facultatives à 1200, comme auparavant. Aucun changement du serveur.
+- Les libellés flottants et les messages longs ne tenaient pas tous sur mobile à 200 % ; les essais intermédiaires sont conservés. Le test de largeur brute d’un libellé transformé a été corrigé pour mesurer les coordonnées affichées, sans retirer le contrôle de troncature.
+
+### Correction locale
+Fichier produit : lib/screens/delivery/delivery_request_flow_screen.dart, fonction _details et consigne _contactPhoneHint.
+- Ajout du contrôle >= 8 chiffres à la regex existante.
+- Compteur téléphone 25, ou 26 si le texte commence par +. Aucune troncature silencieuse du téléphone collé : valeur conservée, validation bloque la progression.
+- Consignes et erreur détaillée traduites par le mécanisme tr existant FR/EN/ES.
+- Obligation des quatre noms/téléphones explicitée ; instructions identifiées facultatives.
+- Libellés placés au-dessus des champs et associés sémantiquement, pour éviter les chevauchements à 200 %. Ajustement limité au formulaire de coordonnées ; aucun autre écran redessiné.
+- Données saisies, brouillon et devis simulé conservés, y compris navigation et recréation du widget ; transmission fictive des coordonnées inchangée.
+Nouveau test permanent : test/customer/delivery_contact_validation_test.dart. Aucun ancien test modifié.
+
+### Résultats et preuves
+- Reproduction complète avant correction : 23 réussis, 23 échoués, 0 ignoré.
+- Renforcement du message explicatif avant correction : 0 réussi, 1 échoué, 0 ignoré.
+- Dernière exécution ciblée : 46 réussis, 0 échoué, 0 ignoré.
+- Non-régression existante : 20 réussis, 0 échoué, 0 ignoré.
+- Total final distinct : 66 réussis, 0 échoué, 0 ignoré. Les répétitions/sondes intermédiaires ne sont pas additionnées.
+- Matrice widget : FR/EN/ES × 375×812, 430×932 et 1440×900 ; plus 200 % sur les deux formats mobiles. Consignes et erreurs rendues, absence de troncature/chevauchement vérifiée géométriquement.
+- Analyse Flutter ciblée, format et git diff --check : voir quality-exits.json et checkpoint.
+- Historique conservé : première compilation du nouveau test impossible (getters à lire sur le TextField interne, pas TextFormField) ; correction du harnais puis sonde isolation réussie. Essais de patch interrompus par garde d’ancre et erreur de remplacement littéral, corrigés avant tout test applicatif ; sources intermédiaires conservées. Exécutions intermédiaires de mise en page détaillées dans RESULTATS.json, non réécrites.
+
+### Isolation, limites, statut
+Services uniquement fictifs : BookingTestAuth, MemoryBookingStorage et TestBookingApi. Aucun backend initialisé, aucune API de production, carte externe, Stripe, mission ou paiement réel. La confirmation crée uniquement test_mission dans la simulation.
+Les règles, fonctions serveur, GPS, tarifs, commissions, snapshots et ledger ne sont pas modifiés. Le rendu Chrome, appareils réels, lecteurs d’écran, joignabilité réelle des numéros et validation serveur déployée ne sont pas testés.
+P2-H-01 et P2-H-02 : **CORRIGÉS ET VALIDÉS DANS LE PÉRIMÈTRE SIMULÉ — NON FERMÉS — NON DÉPLOYÉS**. Fermeture documentaire limitée recommandée, soumise à approbation explicite.
+P1-M-01, R-K-03-A/B/C et P2-K-01 restent fermés uniquement dans leurs périmètres autorisés. Aucun problème rouvert ou supprimé.
+Décompte : **P0 0, P1 2, P2 20 ouverts**. P3 historiques, prérequis pilote et 1.3L BLOQUÉ/REPORTÉ conservés.
+
+
+## Clôture documentaire limitée P2-H-01 / P2-H-02 — 10 octobre 2026
+
+**Autorisation explicite reçue : fermeture des défauts corrigés et justifiés par leurs validations existantes, avec sauvegarde dans un cinquième commit local.** P2-H-01 et P2-H-02 sont désormais **FERMÉS — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉS**. Les cinq fiches déjà fermées (P1-M-01, R-K-03-A/B/C, P2-K-01) conservent leur statut local limité. Aucune autre fiche qualifiée seulement ou validée historiquement sans validation de clôture appropriée n'est fermée artificiellement.
+
+**Preuves historiques, non réexécutées pour cette clôture :** `artifacts/corrections-1-3M-M-20261010-b83e7c21/CHECKPOINT_MOVIK_1_3M_M_P2_H_01_H_02.md`, `RESULTATS.json`, `RESULT-before.jsonl`, `RESULT-final-v2.jsonl` et `RESULT-regression.jsonl`. Reproduction initiale : 23 réussis, 23 échoués ; validation finale : **46 tests ciblés + 20 non-régressions distinctes réussis, 0 échec, 0 ignoré**. Les validations Flutter analyze, format Dart et `git diff --check` étaient réussies. Le serveur `normalizeContacts` a été examiné mais non exécuté ni modifié ; les essais concernent le vrai formulaire Flutter avec services fictifs.
+
+**Périmètre fermé :** P2-H-01 refuse désormais les séparateurs seuls et exige au moins huit chiffres, tout en conservant les formats de téléphone précédemment admis. P2-H-02 aligne le compteur sur le contrat (25 caractères, ou 26 avec + initial), clarifie les consignes et vérifie les libellés FR/EN/ES sur les formats widget simulés, y compris texte mobile à 200 %. Les tarifs, le devis, la commission, Stripe, snapshots, ledger, règles Firestore et corrections GPS ne sont pas changés par la clôture documentaire.
+
+**Limites et autres dossiers :** pas de test Chrome réel, téléphone physique, lecteur d'écran, backend déployé, parcours financier réel ou lancement public. Les deux P1 historiques P1-HOME-001/P1-COPY-001 et les autres P2 restent ouverts en attendant leurs critères propres. Le test de tuiles 1.3L demeure BLOQUÉ ET REPORTÉ. Le pilote reste NO-GO tant que ses prérequis ne sont pas vérifiés.
+
+**Décompte du registre actif après ces deux fermetures : P0 0 / P1 2 / P2 18.** 27 fiches, dont 7 fermées dans des périmètres de validation limités et 20 encore ouvertes. Sauvegarde Git locale autorisée séparément par le même accord, mais **aucun push, merge ou déploiement** autorisé. HEAD attendu avant sauvegarde : `2df26054e0fb3491cdc75cfbef3f551fab07e1f5`.

@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../../services/delivery_request_draft.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -1559,6 +1560,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     'boxTruck' => tr('Camion fermé', 'Box truck', 'Camión cerrado'),
     _ => v.replaceAll('_', ' '),
   };
+  String get _contactPhoneHint => tr(
+    'Au moins 8 chiffres. Espaces, parenthèses et tirets permis. Maximum 25 caractères, ou 26 avec + au début.',
+    'At least 8 digits. Spaces, parentheses and hyphens are allowed. Up to 25 characters, or 26 with a leading +.',
+    'Al menos 8 dígitos. Se permiten espacios, paréntesis y guiones. Máximo 25 caracteres, o 26 con + al inicio.',
+  );
+
   List<Widget> _details(FirebaseAuthProvider auth) => [
     _heading(_titles[2]),
     Text(auth.effectiveEmail ?? ''),
@@ -1607,6 +1614,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ],
       ),
     ],
+    Text(
+      tr(
+        'Les noms et téléphones des deux contacts sont obligatoires.',
+        'Both contact names and phone numbers are required.',
+        'Los nombres y teléfonos de ambos contactos son obligatorios.',
+      ),
+    ),
     Form(
       key: _contactsForm,
       child: Column(
@@ -1647,44 +1661,69 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             (
               'instructions',
               tr(
-                'Instructions pour les contacts (facultatif)',
-                'Contact instructions (optional)',
-                'Instrucciones de contacto (opcional)',
+                'Instructions (facultatif)',
+                'Instructions (optional)',
+                'Instrucciones (opcional)',
               ),
             ),
           ])
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: TextFormField(
-                key: ValueKey('${_draft.id}-${field.$1}'),
-                initialValue: _draft.contacts[field.$1] as String? ?? '',
-                keyboardType: field.$1.contains('phone')
-                    ? TextInputType.phone
-                    : TextInputType.text,
-                autofillHints: field.$1.contains('phone')
-                    ? [AutofillHints.telephoneNumber]
-                    : null,
-                decoration: InputDecoration(labelText: field.$2),
-                maxLength: field.$1 == 'instructions' ? 1200 : 120,
-                validator: (v) {
-                  if (field.$1 == 'instructions') return null;
-                  if (v == null || v.trim().isEmpty) {
-                    return tr('Champ requis', 'Required', 'Obligatorio');
-                  }
-                  if (field.$1.contains('phone') &&
-                      !RegExp(r'^\+?[0-9 ()-]{8,25}$').hasMatch(v)) {
-                    return tr(
-                      'Téléphone invalide',
-                      'Invalid phone',
-                      'Teléfono inválido',
-                    );
-                  }
-                  return null;
-                },
-                onChanged: (v) {
-                  (_draft.data['contacts'] as Map)[field.$1] = v;
-                  _changed(quote: false);
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(field.$2, key: ValueKey('contact-label-${field.$1}')),
+                  const SizedBox(height: 8),
+                  Semantics(
+                    label: field.$2,
+                    child: TextFormField(
+                      key: ValueKey('${_draft.id}-${field.$1}'),
+                      initialValue: _draft.contacts[field.$1] as String? ?? '',
+                      keyboardType: field.$1.contains('phone')
+                          ? TextInputType.phone
+                          : TextInputType.text,
+                      autofillHints: field.$1.contains('phone')
+                          ? [AutofillHints.telephoneNumber]
+                          : null,
+                      decoration: InputDecoration(
+                        helperText: field.$1.contains('phone')
+                            ? _contactPhoneHint
+                            : null,
+                        helperMaxLines: 16,
+                        errorMaxLines: 20,
+                      ),
+                      // Match normalizeContacts: 8–25 allowed characters after
+                      // an optional leading +. Keep invalid pasted text editable.
+                      maxLength: field.$1 == 'instructions'
+                          ? 1200
+                          : field.$1.contains('phone')
+                          ? ((_draft.contacts[field.$1] as String? ?? '')
+                                    .startsWith('+')
+                                ? 26
+                                : 25)
+                          : 120,
+                      maxLengthEnforcement: field.$1.contains('phone')
+                          ? MaxLengthEnforcement.none
+                          : null,
+                      validator: (v) {
+                        if (field.$1 == 'instructions') return null;
+                        if (v == null || v.trim().isEmpty) {
+                          return tr('Champ requis', 'Required', 'Obligatorio');
+                        }
+                        if (field.$1.contains('phone') &&
+                            (!RegExp(r'^\+?[0-9 ()-]{8,25}$').hasMatch(v) ||
+                                v.replaceAll(RegExp(r'\D'), '').length < 8)) {
+                          return '${tr('Téléphone invalide', 'Invalid phone', 'Teléfono inválido')}\n$_contactPhoneHint';
+                        }
+                        return null;
+                      },
+                      onChanged: (v) {
+                        (_draft.data['contacts'] as Map)[field.$1] = v;
+                        _changed(quote: false);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
         ],

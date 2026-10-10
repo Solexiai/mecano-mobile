@@ -1,0 +1,342 @@
+{
+  "RESULT-after-labels.jsonl": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-after-messages.jsonl": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-after-optional.jsonl": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": true,
+    "loadErrors": 0,
+    "failures": []
+  },
+  "RESULT-after-static-labels.jsonl": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": true,
+    "loadErrors": 0,
+    "failures": []
+  },
+  "RESULT-after.jsonl": {
+    "passed": 34,
+    "failed": 12,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M fr Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-before-guidance.jsonl": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M rejects pickup_phone [1234567] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects pickup_phone [1234567] before confirmation",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-before.jsonl": {
+    "passed": 23,
+    "failed": 23,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M rejects pickup_phone [--------] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects pickup_phone [--------] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M rejects pickup_phone [()----()] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects pickup_phone [()----()] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M rejects pickup_phone [1-------] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects pickup_phone [1-------] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M rejects dropoff_phone [--------] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects dropoff_phone [--------] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M rejects dropoff_phone [()----()] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects dropoff_phone [()----()] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M rejects dropoff_phone [1-------] before confirmation",
+        "error": "Test failed. See exception logs above.\nThe test description was: M rejects dropoff_phone [1-------] before confirmation",
+        "stackTrace": ""
+      },
+      {
+        "name": "M phone counter follows 25 plus optional leading sign",
+        "error": "Test failed. See exception logs above.\nThe test description was: M phone counter follows 25 plus optional leading sign",
+        "stackTrace": ""
+      },
+      {
+        "name": "M correction navigation and widget restoration preserve contacts and quote",
+        "error": "Test failed. See exception logs above.\nThe test description was: M correction navigation and widget restoration preserve contacts and quote",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(1440.0, 900.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(1440.0, 900.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(1440.0, 900.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(1440.0, 900.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(375.0, 812.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(375.0, 812.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(430.0, 932.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(430.0, 932.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(1440.0, 900.0) text 1.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(1440.0, 900.0) text 1.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-final-v2.jsonl": {
+    "passed": 46,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": true,
+    "loadErrors": 0,
+    "failures": []
+  },
+  "RESULT-final.jsonl": {
+    "passed": 40,
+    "failed": 6,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 0,
+    "failures": [
+      {
+        "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M fr Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M en Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M en Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(375.0, 812.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(375.0, 812.0) text 2.0 messages fit",
+        "stackTrace": ""
+      },
+      {
+        "name": "M es Size(430.0, 932.0) text 2.0 messages fit",
+        "error": "Test failed. See exception logs above.\nThe test description was: M es Size(430.0, 932.0) text 2.0 messages fit",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-isolation-v2.jsonl": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": true,
+    "loadErrors": 0,
+    "failures": []
+  },
+  "RESULT-isolation.jsonl": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": false,
+    "loadErrors": 1,
+    "failures": [
+      {
+        "name": "loading C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/delivery_contact_validation_test.dart",
+        "error": "Failed to load \"C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/delivery_contact_validation_test.dart\":\nCompilation failed for testPath=C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/delivery_contact_validation_test.dart: test/customer/delivery_contact_validation_test.dart:137:59: Error: The getter 'maxLength' isn't defined for the type 'TextFormField'.\n - 'TextFormField' is from 'package:flutter/src/material/text_form_field.dart' ('../mecano-mobile/.flutter/packages/flutter/lib/src/material/text_form_field.dart').\nTry correcting the name to the name of an existing getter, or defining a getter or field named 'maxLength'.\n    expect(t.widget<TextFormField>(field('pickup_phone')).maxLength,25);\n                                                          ^^^^^^^^^\ntest/customer/delivery_contact_validation_test.dart:140:59: Error: The getter 'maxLength' isn't defined for the type 'TextFormField'.\n - 'TextFormField' is from 'package:flutter/src/material/text_form_field.dart' ('../mecano-mobile/.flutter/packages/flutter/lib/src/material/text_form_field.dart').\nTry correcting the name to the name of an existing getter, or defining a getter or field named 'maxLength'.\n    expect(t.widget<TextFormField>(field('pickup_phone')).maxLength,26);\n                                                          ^^^^^^^^^\ntest/customer/delivery_contact_validation_test.dart:142:58: Error: The getter 'maxLength' isn't defined for the type 'TextFormField'.\n - 'TextFormField' is from 'package:flutter/src/material/text_form_field.dart' ('../mecano-mobile/.flutter/packages/flutter/lib/src/material/text_form_field.dart').\nTry correcting the name to the name of an existing getter, or defining a getter or field named 'maxLength'.\n    expect(t.widget<TextFormField>(field('pickup_name')).maxLength,120);\n                                                         ^^^^^^^^^\ntest/customer/delivery_contact_validation_test.dart:143:59: Error: The getter 'maxLength' isn't defined for the type 'TextFormField'.\n - 'TextFormField' is from 'package:flutter/src/material/text_form_field.dart' ('../mecano-mobile/.flutter/packages/flutter/lib/src/material/text_form_field.dart').\nTry correcting the name to the name of an existing getter, or defining a getter or field named 'maxLength'.\n    expect(t.widget<TextFormField>(field('instructions')).maxLength,1200);\n                                                          ^^^^^^^^^\ntest/customer/delivery_contact_validation_test.dart:223:55: Error: The getter 'decoration' isn't defined for the type 'TextFormField'.\n - 'TextFormField' is from 'package:flutter/src/material/text_form_field.dart' ('../mecano-mobile/.flutter/packages/flutter/lib/src/material/text_form_field.dart').\nTry correcting the name to the name of an existing getter, or defining a getter or field named 'decoration'.\n          expect(t.widget<TextFormField>(field(name)).decoration!.helperText,hints[locale]);\n                                                      ^^^^^^^^^^\n.",
+        "stackTrace": ""
+      }
+    ]
+  },
+  "RESULT-regression.jsonl": {
+    "passed": 20,
+    "failed": 0,
+    "skipped": 0,
+    "finished": true,
+    "success": true,
+    "loadErrors": 0,
+    "failures": []
+  }
+}
