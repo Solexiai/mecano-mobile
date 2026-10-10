@@ -217,6 +217,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                     pickup: mission.pickupAddress,
                     dropoff: mission.dropoffAddress,
                     missionId: mission.id,
+                    acceptedAt: mission.acceptedAt,
                     t: t,
                   ),
                   const SizedBox(height: 16),

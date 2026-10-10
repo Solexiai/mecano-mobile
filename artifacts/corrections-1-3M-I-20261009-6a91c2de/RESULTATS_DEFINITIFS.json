@@ -1,0 +1,428 @@
+{
+  "passed": 62,
+  "failed": 0,
+  "skipped": 0,
+  "namesUnique": 62,
+  "results": [
+    {
+      "file": "RESULT-definitive.jsonl",
+      "passed": 25,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "isolation: memory client and forbidden HTTP fallbacks",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: current date remains unknown for null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: history date remains unknown for null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: current date remains unknown for not-a-date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: history date remains unknown for not-a-date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: current date remains unknown for 12345",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: history date remains unknown for 12345",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "A: matching driver and mission render the real marker",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "B/C: reject incompatible sim-other/sim-A",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "B/C: reject incompatible sim-driver/sim-B",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "B/C: reject incompatible sim-driver/null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "C: no mission context null cannot claim an assigned position",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "C: no mission context  cannot claim an assigned position",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "D: replace A by B without retaining A position or route",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "E: unknown timestamp is not rendered as a current marker",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "F: future timestamp is not rendered as a current marker",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "G: old valid position explicitly displays last-known date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H: absent GPS remains an honest waiting state",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "I: route filters mission B and sorts A chronologically",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "J: driver switch drops previous marker and same-mission route",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "J: incompatible update removes a previously valid marker",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "D: real customer screen rejects a relinked position predating assignment",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "I: undated and future history points do not enter the route",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "G: date is numeric and readable in FR EN ES at 200 percent",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "I: a newer history event is compared with its reception time",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=732; unexpected=0; external_transport=none"
+      ],
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 9783
+      }
+    },
+    {
+      "file": "RESULT-regression.jsonl",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "isolation: injected transport and forbidden network fallback",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real FirebaseLocationRepository: filtered query before subscription sim-mission-A",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real FirebaseLocationRepository: filtered query before subscription sim-mission-B",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real LiveTrackingMap: no history for missionId=null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real LiveTrackingMap: no history for missionId=",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real LiveTrackingMap: mission argument, defensive filter and chronological sort",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real consumer: customer passes mission and driver to map",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "real consumer: driver passes mission and driver to map",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "MIS-C-07 : utilisateur NON authentifi├® voit le message de connexion, jamais le StreamBuilder Firestore ni de crash",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "MIS-C-07 : ne plante jamais, quelle que soit la locale (fr/en/es)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "F-1 : client A connect├® ouvrant la mission du client B ÔÇö AUCUNE donn├®e de B affich├®e, refus propre, pas de crash (mission en cours)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "F-1 : client A connect├® ouvrant la mission COMPLETED du client B ÔÇö AUCUNE donn├®e de B affich├®e (vue _CompletedMissionView aussi prot├®g├®e)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "F-1 (r├®gression) : client A ouvrant SA PROPRE mission continue de fonctionner normalement apr├¿s le fix",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Lifecycle GPS : CAS 1 (mission active -> start) mission assigned (statut de partage) : 1 rapport de position imm├®diat, permission v├®rifi├®e une seule fois",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Lifecycle GPS : CAS 2 (mission completed -> stop) inTransit -> completed : le partage s'arr├¬te, aucun nouveau rapport, aucune nouvelle v├®rification de permission",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Lifecycle GPS : CAS 3 (mission cancelled -> stop) driverToPickup -> cancelled : le partage s'arr├¬te, aucun nouveau rapport, aucune nouvelle v├®rification de permission",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Idempotence du lifecycle au niveau ├®cran succession de statuts tous \"partage actif\" (assigned -> driverToPickup -> arrivedAtPickup) : la boucle GPS ne red├®marre JAMAIS une seconde fois",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Nettoyage ├á la fermeture de l'├®cran (dispose) d├®montage de l'├®cran alors que le partage est actif : stop() ex├®cut├® sans exception, aucun rapport r├®siduel",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "H-2 ÔÇö Idempotence stop()/stop() (isol├®, hors ├®cran) stop() appel├® deux fois de suite ne l├¿ve aucune exception et laisse un ├®tat propre",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "assigned : seul le bouton \"partir vers le pickup\" est visible ; tap -> updateTrackingStatus(driverToPickup)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "driverToPickup : bouton \"arriv├® au pickup\" ; tap -> updateTrackingStatus(arrivedAtPickup)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "arrivedAtPickup : bouton \"confirmer prise en charge\" ; tap -> markPickupCompleted (jamais updateTrackingStatus)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "pickedUp : bouton \"d├®marrer le trajet\" ; tap -> updateTrackingStatus(inTransit)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "inTransit : bouton \"arriv├® ├á destination\" ; tap -> updateTrackingStatus(arrivedAtDropoff)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "arrivedAtDropoff : aucune action de trajet r├®siduelle visible (seule la capture photo, couverte en d├®tail ailleurs)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "completed : ├®cran \"d├®j├á compl├®t├®e\" affich├®, aucune action de trajet, aucun bouton de capture",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "erreur GPS pendant le trajet (service d├®sactiv├®) : bandeau affich├® SANS bloquer les actions de trajet",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "double-tap rapide sur une action de trajet ne d├®clenche updateTrackingStatus qu une seule fois (busy bloque le second tap)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö GPS d├®sactiv├® start() signale serviceDisabled et ne d├®marre pas la boucle si le service GPS est d├®sactiv├®",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö GPS refus├® start() signale permissionDenied si la permission est refus├®e apr├¿s demande",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö GPS refus├® start() signale permissionDeniedForever si la permission est refus├®e d├®finitivement",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö GPS refus├® checkPermission()==denied puis requestPermission()==granted : la boucle d├®marre normalement",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö ├®chec du rapport de position reportFailed est signal├® si reportDriverLocation() ├®choue, sans jamais interrompre silencieusement",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö ├®chec du rapport de position reportFailed est signal├® si getCurrentPosition() ├®choue (GPS indisponible en cours de trajet)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö cas nominal start() envoie un premier rapport imm├®diat puis d├®marre le Timer p├®riodique",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö cas nominal start() est idempotent : un second appel alors que la boucle tourne d├®j├á ne fait rien",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "DriverLocationReporter ÔÇö cas nominal stop() arr├¬te bien la boucle : aucun nouveau rapport apr├¿s stop()",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=120; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none"
+      ],
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 27789
+      }
+    }
+  ],
+  "git": {
+    "date": "2026-10-09T20:40:52.858Z",
+    "branch": "fix/gps-client-history-scope-20261009",
+    "head": "7a0d60f5d556001705460f005ed8c7d1f268460d",
+    "index": "",
+    "status": " M docs/audit/REGISTRE_BOGUES_MOVIK.md\n M lib/backend/models/driver_location.dart\n M lib/backend/models/driver_location_history_point.dart\n M lib/l10n/app_strings.dart\n M lib/screens/customer/customer_tracking_screen.dart\n M lib/screens/driver/driver_active_mission_screen.dart\n M lib/widgets/live_tracking_map.dart\n?? artifacts/cloture-documentaire-R-K-03-B-20261009/\n?? artifacts/corrections-1-3M-B-20261009-1110/PHASE7_BUG_REPORT.md\n?? artifacts/corrections-1-3M-B-20261009-1110/PHASE7_QA_MATRIX.md\n?? artifacts/corrections-1-3M-B-20261009-1110/PILOT_READINESS.md\n?? artifacts/corrections-1-3M-B-20261009-1110/PUBLIC_REVIEW_20261006.md\n?? artifacts/corrections-1-3M-B-20261009-1110/checkpoints-origines.json\n?? artifacts/corrections-1-3M-B-20261009-1110/commandes-validation.txt\n?? artifacts/corrections-1-3M-B-20261009-1110/deny-external-node.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/diff-initial.patch\n?? artifacts/corrections-1-3M-B-20261009-1110/emulator-final-stop.json\n?? artifacts/corrections-1-3M-B-20261009-1110/emulator-stopped.json\n?? artifacts/corrections-1-3M-B-20261009-1110/git-comparison-definitif.json\n?? artifacts/corrections-1-3M-B-20261009-1110/git-comparison.json\n?? artifacts/corrections-1-3M-B-20261009-1110/git-final-definitif.json\n?? artifacts/corrections-1-3M-B-20261009-1110/git-final.json\n?? artifacts/corrections-1-3M-B-20261009-1110/git-initial.json\n?? artifacts/corrections-1-3M-B-20261009-1110/jest-cache-v2/\n?? artifacts/corrections-1-3M-B-20261009-1110/jest-cache-v3/\n?? artifacts/corrections-1-3M-B-20261009-1110/jest-cache/\n?? artifacts/corrections-1-3M-B-20261009-1110/jest.rules-only-v2.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/jest.rules-only-v3.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/jest.rules-only.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/network-node.jsonl\n?? artifacts/corrections-1-3M-B-20261009-1110/prepare-rules-only-v2.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/prepare-rules-only-v3.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/prepare-rules-only.cjs\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-only-v2/\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-only-v3/\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-only/\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results-fifth.json\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results-first.json\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results-fourth.json\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results-second.json\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results-third.json\n?? artifacts/corrections-1-3M-B-20261009-1110/rules-results.json\n?? artifacts/corrections-1-3M-B-20261009-1110/supplemental.ts\n?? artifacts/corrections-1-3M-B-20261009-1110/test-summary.json\n?? artifacts/corrections-1-3M-C-20261009-1158/MANIFEST_SHA256.json\n?? artifacts/corrections-1-3M-C-20261009-1158/REGISTRE_BOGUES_AVANT.md\n?? artifacts/corrections-1-3M-C-20261009-1158/callsites.txt\n?? artifacts/corrections-1-3M-C-20261009-1158/continuity-1-3M-B.json\n?? artifacts/corrections-1-3M-C-20261009-1158/contract-all-callsites.txt\n?? artifacts/corrections-1-3M-C-20261009-1158/diff-initial.patch\n?? artifacts/corrections-1-3M-C-20261009-1158/git-comparison.json\n?? artifacts/corrections-1-3M-C-20261009-1158/git-final.json\n?? artifacts/corrections-1-3M-C-20261009-1158/git-initial.json\n?? artifacts/corrections-1-3M-C-20261009-1158/gps_history_contract-before.dart.txt\n?? artifacts/corrections-1-3M-C-20261009-1158/gps_history_contract-v2.dart.txt\n?? artifacts/corrections-1-3M-C-20261009-1158/offline_transport-before.dart.txt\n?? artifacts/corrections-1-3M-C-20261009-1158/registre-addendum.md\n?? artifacts/corrections-1-3M-C-20261009-1158/registre-replacements.json\n?? artifacts/corrections-1-3M-C-20261009-1158/registry-counts.json\n?? artifacts/corrections-1-3M-C-20261009-1158/source-comparison.json\n?? artifacts/corrections-1-3M-C-20261009-1158/test/existing_customer_auth_test.dart\n?? artifacts/corrections-1-3M-C-20261009-1158/test/existing_customer_ownership_test.dart\n?? artifacts/corrections-1-3M-C-20261009-1158/test/existing_driver_lifecycle_test.dart\n?? artifacts/corrections-1-3M-C-20261009-1158/test/existing_driver_status_test.dart\n?? artifacts/corrections-1-3M-C-20261009-1158/transport-sources.json\n?? artifacts/corrections-1-3M-D-20261009-1236/REGISTRE_AVANT_FERMETURE.md\n?? artifacts/corrections-1-3M-D-20261009-1236/closure-counts.json\n?? artifacts/corrections-1-3M-D-20261009-1236/cloture-documentaire.md\n?? artifacts/corrections-1-3M-D-20261009-1236/continuity-1-3M-C.json\n?? artifacts/corrections-1-3M-D-20261009-1236/diff-initial.patch\n?? artifacts/corrections-1-3M-D-20261009-1236/git-comparison.json\n?? artifacts/corrections-1-3M-D-20261009-1236/git-final.json\n?? artifacts/corrections-1-3M-D-20261009-1236/git-initial.json\n?? artifacts/corrections-1-3M-D-20261009-1236/prepare-manifest-v2.ps1\n?? artifacts/corrections-1-3M-D-20261009-1236/prepare-manifest.ps1\n?? artifacts/corrections-1-3M-D-20261009-1236/registry-updates.json\n?? artifacts/corrections-1-3M-D-20261009-1236/security-and-proof-review.json\n?? artifacts/corrections-1-3M-D-20261009-1236/security-final.json\n?? artifacts/corrections-1-3M-D-20261009-1236/verify-final-v2.ps1\n?? artifacts/corrections-1-3M-D-20261009-1236/verify-final.ps1\n?? artifacts/corrections-1-3M-E-20261009-1402/\n?? artifacts/corrections-1-3M-F-20261009-1438/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/MANIFESTE_COMMIT_1_3M_H.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/REGISTRE_ADDENDUM_H.md\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/REGISTRE_APRES_FERMETURE_A.md\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/REGISTRE_AVANT.md\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/RESULTATS_1_3M_H.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/RESULTATS_1_3M_H_FINAL.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/apply-targeted-fix.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/bootstrap-harness.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/cache-after/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/cache-before/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/close-A.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/collect-results-final.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/collect-results.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/compiled-after/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/compiled-before/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/compiler-lint-exits.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/deny-external-node.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/diff-final.patch\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/diff-initial.patch\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-start-v2.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-start-v3.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-start.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-stopped.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-unavailable.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/emulator-v3-exit.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/git-final.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/git-initial.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/gpsClosureValidation.v3.test.ts\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/guard-probe.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/java-version.txt\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/jest-after.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/jest-before.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/lint.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/lint.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/manifest-input.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/network-after.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/network-before.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/network-complement.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/network-probe.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/original-G-two-tests.txt\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/patch-scope.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/payment-fix.patch\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/paymentOrchestration-before.ts\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/preflight-initial.txt\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-complement.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-emulator-wrapper-v3.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-emulator-wrapper.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-manifest.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-regression-test.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-results-final.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/prepare-tests.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/registry-counts.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/results-after.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/results-before.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/results-complement.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/run-complement.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/run-tests-v2.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/run-tests-v3.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/run-tests.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/snapshot-initial.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/source-hashes-after.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/source-hashes-before.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/start-emulator-v2.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/start-emulator-v3.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/start-emulator.ps1\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/states-after.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/states-before.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/states-complement.jsonl\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/supplementary-tests.txt\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/typecheck-tests-after.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/typecheck-tests-before.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/typescript-build-result.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/typescript-build/\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/update-registry-final.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/verification-final.json\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/verify-final.cjs\n?? artifacts/corrections-1-3M-H-20261009-c871eb62/verify-typescript.cjs\n?? artifacts/corrections-1-3M-I-20261009-6a91c2de/\n?? artifacts/validation-1-3M-G-20261009-1502/\n?? test/customer/live_tracking_identity_test.dart\n?? test/helpers/gps_offline_transport.dart\n",
+    "initialCount": 2363,
+    "changed": [
+      "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+      "lib/backend/models/driver_location.dart",
+      "lib/backend/models/driver_location_history_point.dart",
+      "lib/l10n/app_strings.dart",
+      "lib/screens/customer/customer_tracking_screen.dart",
+      "lib/screens/driver/driver_active_mission_screen.dart",
+      "lib/widgets/live_tracking_map.dart"
+    ],
+    "missing": [],
+    "unexpectedChanges": [],
+    "added": [
+      "test/customer/live_tracking_identity_test.dart",
+      "test/helpers/gps_offline_transport.dart"
+    ],
+    "hashes": {
+      "docs/audit/REGISTRE_BOGUES_MOVIK.md": "7b3ed5c9927b02c19ef49298f5f84472e888c862a1802b73036b513e5746fd0c",
+      "lib/backend/models/driver_location.dart": "b6acdc77fc39c8b1c39cdc927da369d69283c53bb8cf3c58a376cdb882898155",
+      "lib/backend/models/driver_location_history_point.dart": "2ea8a5d6fc7266320cc327df91edcffacbe01587de2b1bfa1cb5001606a4077a",
+      "lib/l10n/app_strings.dart": "03fd7cc0d08c4e3e40b58f7aa518c9a7629273e4cb60e3f68c068ddb8307ff02",
+      "lib/widgets/live_tracking_map.dart": "652de5a9c56dc1d69a14788e6f4b922d080e7707e7bd00317d51a82742e68d1e",
+      "lib/screens/customer/customer_tracking_screen.dart": "2c37032da3478fa7e53bd5a5d1a3af1caacc8eaa85e294edc605d7525e49d453",
+      "lib/screens/driver/driver_active_mission_screen.dart": "e01f5f4058f09cea697dc54f8ad2adb486c0bf5c4722be107c651a94d755dcc8",
+      "test/customer/live_tracking_identity_test.dart": "61edd4ecce16a616f477782f61aadbb4df673c563328ed7071d31771afbc22b4",
+      "test/helpers/gps_offline_transport.dart": "1ef7ca51553a51c468e7a6af1b1edeae8644501686da159c093907bc3dfb45f0"
+    },
+    "protectedBackendChanged": [],
+    "diffCheck": "",
+    "registry": {
+      "scope": "Tableau de suivi canonique exclusivement ; annexes historiques exclues du compteur",
+      "total": 27,
+      "closed": 3,
+      "open": {
+        "P0": 0,
+        "P1": 3,
+        "P2": 21
+      },
+      "ids": [
+        "R-K-03-C",
+        "P2-H-01",
+        "P2-H-02",
+        "P2-I-01",
+        "P2-I-02",
+        "P2-J-01",
+        "P2-K-01",
+        "R-K-04",
+        "P2-FORM-001",
+        "P2-FORM-002",
+        "P2-FORM-003",
+        "P2-FORM-004",
+        "P2-G-02",
+        "P2-I18N-001",
+        "P2-I18N-002",
+        "P2-BUILD-001",
+        "P1-HOME-001",
+        "P1-COPY-001",
+        "P2-COPY-001",
+        "P2-L-01",
+        "GAP-M-05",
+        "GAP-M-06",
+        "GAP-S-02",
+        "GAP-S-04"
+      ]
+    }
+  }
+}

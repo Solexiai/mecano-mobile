@@ -654,6 +654,7 @@ class _MissionCard extends StatelessWidget {
           pickup: pickup,
           dropoff: dropoff,
           missionId: mission.id,
+          acceptedAt: mission.acceptedAt,
           t: t,
         ),
 

@@ -1,16 +1,16 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire R-K-03-B, 9 octobre 2026.
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : clôture documentaire R-K-03-C, 10 octobre 2026.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
 
 IDENTIFIÉ → QUALIFIÉ → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ.
-Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est un état complémentaire, jamais une fermeture. Chaque transition exige date, version, commande, résultat et preuve. Toute fermeture exige correction présente, analyse réussie, non-régression pertinente, permissions/intégration si nécessaire, preuve et parcours existants préservés. Fermeture ciblée P1-M-01 approuvée le 9 octobre 2026 à l'étape 1.3M-D ; fermeture ciblée R-K-03-A approuvée explicitement par Daniel le 9 octobre 2026 à l'étape 1.3M-H. Fermeture ciblée R-K-03-B approuvée explicitement le 9 octobre 2026, limitée aux défauts d’atomicité et de nettoyage GPS validés en émulateur, non déployée ; R-K-03-C reste ouvert.
+Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est un état complémentaire, jamais une fermeture. Chaque transition exige date, version, commande, résultat et preuve. Toute fermeture exige correction présente, analyse réussie, non-régression pertinente, permissions/intégration si nécessaire, preuve et parcours existants préservés. Fermeture ciblée P1-M-01 approuvée le 9 octobre 2026 à l'étape 1.3M-D ; fermeture ciblée R-K-03-A approuvée explicitement par Daniel le 9 octobre 2026 à l'étape 1.3M-H. Fermeture ciblée R-K-03-B approuvée explicitement le 9 octobre 2026, limitée aux défauts d’atomicité et de nettoyage GPS validés en émulateur, non déployée  ; fermeture documentaire ciblée R-K-03-C approuvée le 10 octobre 2026, pour les identités, associations et la fraîcheur GPS testées localement, sans déploiement.
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 3, P2 21** (recalcul après fermeture documentaire ciblée de R-K-03-B, 9 octobre 2026). P1-M-01, R-K-03-A et R-K-03-B sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 24 non fermées. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. R-K-03-C reste ouvert en P1 ; A et B sont fermés exclusivement dans leurs périmètres locaux/émulateur validés, non déployés. La fermeture limitée de B a été approuvée après la validation H des compensations tardives ; C demeure un risque provisoire à qualifier. Les trois P1 ouverts sont R-K-03-C, P1-HOME-001 et P1-COPY-001. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 21** (recalcul après fermeture documentaire ciblée de R-K-03-C, 10 octobre 2026). P1-M-01, R-K-03-A, R-K-03-B et R-K-03-C sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 23 non fermées. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -22,7 +22,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P1-M-01 | P1 | Bug de requête, correctif testé | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Historique GPS sans filtre serveur de mission ; refus attendu pour client ordinaire. |
 | R-K-03-A | P1 | Défauts corrigés et testés en émulateur | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Autorité GPS et refus missions terminales/profils non approuvés uniquement ; fermeture approuvée en H. |
 | R-K-03-B | P1 | Défauts d’atomicité et de nettoyage GPS corrigés et testés localement | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Rapport GPS, fin/compensation/nettoyage tardif de A ne libèrent plus l’assignation B dans les scénarios locaux validés. |
-| R-K-03-C | P1 | Risque provisoire ; contrôles absents | QUALIFIÉ | Marqueur sans contrôle driverId/activeDeliveryId/date ; date invalide remplacée par maintenant ; coordonnées anciennes après assignation. |
+| R-K-03-C | P1 | Défauts reproduits, corrigés et validés dans les tests simulés | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Identité/mission, dates et snapshots protégés ; après 60 secondes sans nouvelle position valide, marqueur masqué, date/historique conservés et reprise validée. |
 | P2-H-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Téléphone -------- accepté par Flutter ; serveur normalizeContacts exige au moins huit chiffres. |
 | P2-H-02 | P2 | Bug UX confirmé | QUALIFIÉ | Compteur /120 incohérent avec regex 8–25 caractères ; obligations peu explicites. |
 | P2-I-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Carte annoncée enregistrée alors que cardReady=false. |
@@ -97,6 +97,12 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : validation et approbation explicites du périmètre atomique testé ; intégration plus large documentée séparément. Ne ferme ni R-K-03-C, ni GAP-S-04, ni les P2, ni 1.3L.
 
 ### R-K-03-C
+
+- État ACTUEL — 1.3M-J, 9 octobre 2026 : **VALIDÉ DANS LE PÉRIMÈTRE SIMULÉ — FERMETURE PROPOSÉE — NON FERMÉ — NON DÉPLOYÉ**. Seuil pilote de 60 secondes approuvé explicitement ; 82 tests distincts réussis / 0 échoué / 0 ignoré en validation finale, analyse ciblée sans problème. Aucune fermeture appliquée. Preuves, échecs intermédiaires et limites dans l’addendum J.
+
+- État HISTORIQUE — 1.3M-I, 9 octobre 2026 : **CORRIGÉ ET TESTÉ LOCALEMENT — VALIDATION PARTIELLE — NON FERMÉ — NON DÉPLOYÉ**. Défauts reproduits avant correction ; 25 contrôles ciblés et 37 non-régressions réussis, soit 62 cas distincts. Sept contrôles de contrat répétés après le dernier ajustement ne sont pas additionnés. Seuil d’obsolescence non activé ; décision précise dans l’addendum I. Aucune fermeture documentaire autorisée.
+
+État historique de qualification initiale conservé :
 
 - Priorité / nature / statut : P1 ; Risque provisoire ; contrôles absents ; QUALIFIÉ.
 - Description et impact : Marqueur sans contrôle driverId/activeDeliveryId/date ; date invalide remplacée par maintenant ; coordonnées anciennes après assignation.
@@ -4189,3 +4195,126 @@ Autorisation explicite reçue dans la mission 1.3M-H. Passage de CORRECTION TEST
 **Limites :** non déployé, pas de test Firebase Auth/callable réel, de livraison automatique des triggers, de Stripe réel/Sandbox, de Node 20, de GPS physique ou de tuiles cartographiques 1.3L. Aucune garantie de concurrence universelle ni de disponibilité en production. Le test 1.3L demeure BLOQUÉ ET REPORTÉ. Le HEAD `75ce4393d94c6fb12ecffcc95a4976b93b826b3e` reste celui de la dernière sauvegarde locale ; les corrections A/B restent non committées.
 
 **Décompte après fermeture : P0 0 / P1 3 / P2 21.** Tableau de 27 entrées : 3 fermées dans un périmètre limité (P1-M-01, R-K-03-A, R-K-03-B) et 24 non fermées. R-K-03-C, P2-K-01, les autres P2, les P3 historiques, GAP-S-04 et les prérequis du pilote restent ouverts. Aucun commit, push, merge, déploiement ni modification de code appliqués lors de cette clôture.
+
+
+## Addendum — 1.3M-I — Identité, association et dates GPS — 9 octobre 2026
+
+- Branche : `fix/gps-client-history-scope-20261009`.
+- Base vérifiée : `7a0d60f5d556001705460f005ed8c7d1f268460d`. Correctif I non commité, non déployé.
+- Preuves : `artifacts/corrections-1-3M-I-20261009-6a91c2de/`.
+- Fiche unique concernée : R-K-03-C (P1). Les sous-scénarios A–J sont des cas de test, pas de nouveaux compteurs.
+- Statut précédent : QUALIFIÉ — RISQUE PROVISOIRE. Statut actuel : **CORRIGÉ ET TESTÉ LOCALEMENT — VALIDATION PARTIELLE — NON FERMÉ — NON DÉPLOYÉ**.
+- P1-M-01, R-K-03-A et R-K-03-B restent fermés dans leurs seuls périmètres approuvés. Aucun test ni changement serveur dans cette étape.
+
+### Défauts effectivement reproduits
+
+Le premier passage avant correction donne 4 réussites / 18 échecs / 0 ignoré (22 cas). Le cas supplémentaire d’historique sans date/date future échoue séparément (0/1/0). Cela correspond à 23 cas distincts avant correction : 4 passent, 19 échouent. Les traces exactes sont conservées, sans réécriture des résultats.
+- Position d’un autre chauffeur ou d’une autre mission, lien nul, mission affichée nulle/vide : marqueur affiché alors qu’il devrait être absent.
+- Changement mission A→B ou changement de chauffeur : ancien marqueur retenu par StreamBuilder ; les tests vérifient aussi la disparition du trajet lors du passage après correction.
+- Données incompatibles reçues après un point valide : ancien/nouveau marqueur trompeur affiché.
+- Dates courantes et historiques absentes/illisibles/type non pris en charge : DateTime.now() fabriquait une date. Six cas de désérialisation échouent avant correction.
+- Date future de position affichée ; date inconnue transformée en maintenant puis affichée.
+- Position ancienne affichée sans indication de sa date ni de son caractère « dernière connue ».
+- Vrai CustomerTrackingScreen : position antérieure à accepted_at mais déjà reliée à B affichée à tort. Les fonctions d’assignation mettent à jour active_delivery_id sans effacer les anciennes coordonnées ; accepted_at existe déjà côté serveur et dans DeliveryMission.
+- Historique : inclusion de points sans date/date future dans la polyline, reproduite dans le cas supplémentaire.
+- Déjà conformes avant correction : cas nominal, absence GPS, filtrage A/B et tri de l’historique. Aucun incident de production ni fuite réelle affirmé.
+
+### Corrections présentes
+
+- DriverLocation.updatedAt et DriverLocationHistoryPoint.recordedAt nullable ; date inconnue conservée, aucune substitution par maintenant ; sérialisation de la date courante nullable.
+- LiveTrackingMap vérifie driverId, missionId et activeDeliveryId ; refuse date inconnue ou postérieure à l’horloge locale, et date antérieure à acceptedAt lorsque connue.
+- Les deux consommateurs client/chauffeur transmettent le acceptedAt existant, sans changement serveur ni nouveau calcul métier.
+- Flux conservés pour une même identité ; renouvelés à tout changement chauffeur/mission/acceptedAt ; snapshots et carte indexés sur cette identité, recentrage initial réinitialisé et callback obsolète neutralisé.
+- Filtrage de l’historique par mission et dates utilisables, tri chronologique conservé ; requête Firestore P1-M-01 inchangée.
+- Position valide explicitement présentée comme « Dernière position connue », date/heure locales visibles, libellés FR/EN/ES. Convention numérique jour/mois/année du suivi existant. Aucun seuil d’obsolescence activé.
+- Incident de préparation conservé : script v1 ReferenceError widget (interpolation JavaScript), puis v2 cible multiline non trouvée (CRLF). Pas des échecs Flutter ni des bogues produit. v3 a appliqué la correction ; pas de modifications perdues.
+- Contrôle de présentation supplémentaire : format Material anglais observé sous libellé FR ; test numérique ajouté en échec (0/1/0), puis format explicite corrigé et validé. Cela reste dans la nouvelle présentation de R-K-03-C ; aucun P2 existant clos.
+
+### Résultats et preuves
+
+- Sonde initiale : 1/0/0, HTTP mémoire sélectionné et replis HttpClient/createClient refusés.
+- Après correctif initial : 23/0/0 (`RESULT-after.jsonl`).
+- Résultat intermédiaire après présentation : **24/0/0** (`RESULT-final.jsonl`).
+- Non-régression : **37/0/0** (`RESULT-regression.jsonl`) : contrat P1-M-01 8, auth client 2, propriété client 3, cycle GPS chauffeur 6, statuts chauffeur 9, reporter simulé 9.
+- Bilan intermédiaire avant revue de l’horloge historique : **61 tests distincts réussis, 0 échec, 0 ignoré**. Les répétitions antérieures, la sonde répétée et les chargements/tearDownAll ne sont pas additionnés.
+- Analyse Flutter ciblée de 11 fichiers : aucune anomalie. Analyse finale des deux fichiers retouchés après présentation consignée dans `analyze-final.log`.
+- Sécurité : vrai composant Flutter, vrais repositories/contrats aux frontières contrôlées, Auth et GPS physiques simulés, transport cartographique mémoire sans délégation ; no_default_http_client=true et HttpOverrides. Aucun bootstrap Firebase ni émulateur, aucune transaction, aucun accès Stripe/Maps/OSM réel.
+- Aucun confinement OS global revendiqué ; 1.3L reste BLOQUÉ ET REPORTÉ. P2-K-01 (erreurs de flux) n’est pas fermé.
+- Contrôle géométrique du nouveau libellé : FR/375×932, EN/430×932, ES/1440×932, texte 200 %, présence exacte date/heure et absence d’exception Flutter. Aucune capture PNG ni validation Chrome/terrain ; ce contrôle n’est pas un audit responsive exhaustif.
+
+### Décision produit et limites de fermeture
+
+**Seuil proposé, NON ACTIVÉ : 60 secondes** sans position plus récente, soit 7,5 périodes nominales de 8 secondes. Proposition d’affichage : retirer le marqueur actif et afficher « Position non actualisée » avec la dernière date connue ; conserver le trajet historique identifié. C’est une proposition fondée sur la cadence du code, pas une mesure réseau terrain ni une politique approuvée.
+- Tant que ce seuil n’est pas approuvé/implémenté/testé, aucun état automatique « périmée » ni temporisateur n’est revendiqué. Une ancienne position compatible reste visible comme dernière connue avec sa date.
+- updated_at/recorded_at désignent l’enregistrement serveur, pas une preuve de l’instant physique de capture GPS. L’heure du client peut diverger : toute date future est écartée sans tolérance arbitraire ; risque de rejet conservateur en cas d’horloge désynchronisée.
+- Si acceptedAt manque sur une ancienne mission, les identifiants restent vérifiés, mais la borne temporelle d’assignation ne peut pas être démontrée. Aucune date fabriquée.
+- Pas de validation du cache natif Firestore, du GPS terrain, de Chrome, des permissions déployées ou du fond cartographique réel. Les tests de changement d’identité portent sur les snapshots Flutter et les flux fictifs, pas une session Firestore réelle.
+- Critère restant : décision d’obsolescence, vérifications associées, limites d’intégration acceptées, puis autorisation documentaire distincte de fermeture. Aucune fermeture de C effectuée.
+
+Décompte conservé : **P0 0 / P1 3 / P2 21** ; P1 ouverts C, HOME-001, COPY-001. Tous les P2, P3 historiques et prérequis du pilote sont conservés.
+
+### Complément final I — horloge de réception de l’historique
+
+La revue de la correction a identifié une régression intermédiaire : le filtre historique capturait l’heure du précédent rendu de position ; un événement historique plus récent pouvait être refusé comme futur. Test dédié reproduit en échec (0/1/0, RESULT-before-history-clock.jsonl), puis comparaison à DateTime.now() lors du rendu de cet événement. Dernière suite ciblée : **25/0/0** (RESULT-definitive.jsonl). Avec les 37 non-régressions, **62 cas distincts réussis, 0 échec, 0 ignoré** ; les répétitions ne sont pas additionnées. Contrat réel repository/carte/client/chauffeur rejoué après ce dernier ajustement (7/0/0, RESULT-contract-definitive.jsonl). Analyse finale : analyze-definitive.log. Ce défaut intermédiaire appartient au même correctif C et reste dans les preuves ; aucun ancien échec effacé. Décompte canonique inchangé : P0 0, P1 3, P2 21.
+
+
+## Addendum 1.3M-J — R-K-03-C — 9 octobre 2026
+
+### Décision, périmètre et transition
+
+Daniel approuve le seuil pilote **60 secondes**. À 60 secondes exactement, le marqueur reste visible ; strictement après, le marqueur actif disparaît et le texte « Position non actualisée » apparaît. Date et heure connues et trajet historique valide restent affichés. Une nouvelle position compatible rétablit le marqueur. Aucune autre tolérance temporelle introduite.
+
+Statut précédent I : CORRIGÉ ET TESTÉ LOCALEMENT — VALIDATION PARTIELLE — NON FERMÉ — NON DÉPLOYÉ.
+Statut J : **VALIDÉ DANS LE PÉRIMÈTRE SIMULÉ — FERMETURE PROPOSÉE — NON FERMÉ — NON DÉPLOYÉ**.
+La fermeture reste soumise à une approbation documentaire distincte. P1-M-01, A/B ne sont pas rouverts.
+
+### Correction et preuves
+
+Branche fix/gps-client-history-scope-20261009, HEAD 7a0d60f5d556001705460f005ed8c7d1f268460d inchangé ; modifications non commitées. Dossier de preuves : artifacts/corrections-1-3M-J-20261009-85e72ad1/.
+
+- lib/widgets/live_tracking_map.dart : horloge injectable pour tests ; temporisateur calculé depuis la date de position, réarmé lors des émissions, annulé au changement de périmètre et au démontage. Expiration sans nouvel événement Firestore. Date/historique conservés. Protections I conservées.
+- lib/l10n/app_strings.dart : tracking_position_stale FR/EN/ES.
+- test/customer/live_tracking_freshness_test.dart : 20 tests nouveaux, vrais widgets et transport mémoire.
+- test/customer/live_tracking_identity_test.dart : seul le cas G de position vieille de deux jours change d’attente selon la nouvelle décision : marqueur absent, message périmé présent, assertions de date conservées.
+- Registre présent actualisé sans suppression des anciennes fiches/P3/prérequis.
+
+Résultats **distincts par exécution**, sans addition des reprises :
+| Exécution | Réussis | Échoués | Ignorés |
+|---|---:|---:|---:|
+| Précontrôle isolation | 1 | 0 | 0 |
+| Avant expiration, horloge injectable seulement | 10 | 10 | 0 |
+| Première exécution après correction | 19 | 1 | 0 |
+| Diagnostic ciblé du recentrage de la carte | 1 | 0 | 0 |
+| Finale : fraîcheur 20 + identité 25 | 45 | 0 | 0 |
+| Non-régressions contrat/clients/chauffeurs/reporter | 37 | 0 | 0 |
+
+Bilan final : **82 cas distincts réussis, 0 échoué, 0 ignoré**. Les échecs avant/intermédiaires restent dans RESULT-before.jsonl et RESULT-after.jsonl. L’échec après correction était une assertion trop précoce du harnais : couche MarkerLayer avec un marqueur, message périmé déjà absent, frame de recentrage en attente ; une frame supplémentaire rend le marqueur visible. Correction de synchronisation du test, aucune assertion retirée ni affaiblie. RESULT-recovery-diagnostic.jsonl conserve la preuve.
+
+La frontière exacte 60 secondes et le premier instant représentable suivant (une microseconde) sont testés ; cette unité est une borne stricte, pas une tolérance métier. Horloge simulée également à 59/61 secondes et cinq minutes, reprise, replay ancien, changement chauffeur/mission, dates inconnues/futures/préassignation, identités incompatibles et démontage. FR/EN/ES à 375×812 et texte 200 % : widget sans exception de débordement, textes présents. Pas de capture Chrome.
+
+Analyse Flutter ciblée sur neuf fichiers : aucune anomalie ; git diff --check réussi. Commandes : run-tests.ps1, run-final.ps1, run-quality.ps1 ; résultats exacts : RESULTATS.json et quality-exits.json ; états et empreintes Git : git-initial.json / git-final.json ; contrôle de continuité I : continuity-I.json.
+
+### Isolation et limites
+
+Repositories/flux/auth/GPS fictifs, backend non initialisé. Carte réelle avec PNG transparent en mémoire ; URLs utilisées uniquement comme clés de fixture, sans délégation réseau. no_default_http_client=true, refus explicite HttpClient/IOClient, clients mémoire et garde contre les requêtes inattendues ; journaux finaux unexpected=0. Aucun Firebase/émulateur, Stripe, Google, GPS physique ou OpenStreetMap réel sollicité. Le harnais reste un confinement des voies inspectées, pas un confinement réseau OS ; **1.3L BLOQUÉ ET REPORTÉ**.
+
+Horloge locale comparée à une date de réception serveur : pas de compensation de dérive arbitraire. Date future rejetée ; une horloge désynchronisée peut rendre un point indisponible ou périmé prématurément. Le timer dépend de l’exécution de l’application : précision et suspension d’onglet/OS non validées en Chrome ni sur appareil. Aucun engagement de délai terrain. Date physique de mesure et assignation de comptes anciens sans acceptedAt restent les limites I ; aucune valeur inventée.
+
+Permissions Firestore A/B/P1-M-01 non réexécutées ici ; leurs preuves historiques restent distinctes et leurs fichiers serveur/règles sont inchangés. Les 37 non-régressions vérifient leurs consommateurs Flutter simulés, pas le backend déployé.
+
+### Décompte et prochaine action
+
+Tableau central recalculé : **P0 0 / P1 3 / P2 21** ouverts ; 27 entrées, 3 fermetures antérieures, 24 ouvertes. P3 historiques et toutes les dettes/report/prérequis conservés. Aucun autre défaut produit démontré par J. P2-K-01 (erreurs de flux), R-K-04 (centre Montréal), P1-HOME-001, P1-COPY-001 et tous les autres P2 restent ouverts.
+
+Prochaine action unique : demander l’approbation de fermeture documentaire limitée de R-K-03-C dans le périmètre simulé I/J, sans fermeture globale du GPS, commit ou déploiement automatique.
+
+
+## Clôture documentaire de R-K-03-C — 10 octobre 2026
+
+**Décision expressément autorisée par l’utilisateur : R-K-03-C = FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ.** Cette fermeture est limitée aux identités chauffeur/mission, à la validité des dates, à la gestion des anciens flux/snapshots, à l'historique cohérent et au seuil pilote de 60 secondes dans l'interface cliente. Il ne s'agit pas d'une certification GPS globale ou d'une autorisation de lancement.
+
+**Preuves acquises (non réexécutées pour cette clôture) :** étape I, `artifacts/corrections-1-3M-I-20261009-6a91c2de/`, 62 tests distincts réussis ; étape J, `artifacts/corrections-1-3M-J-20261009-85e72ad1/`, 82 tests distincts réussis, 0 échec et 0 ignoré, analyse Flutter ciblée et contrôle Git réussis. Les exécutions et échecs avant/intermédiaires sont conservés dans les checkpoints ; les résultats I/J ne sont pas additionnés comme une nouvelle exécution. Le comportement approuvé conserve le marqueur jusqu'à 60 secondes incluses ; strictement après, masque le marqueur actif, affiche « Position non actualisée », conserve heure et historique compatibles, puis rétablit le marqueur à réception d'une position valide. Un temporisateur traite aussi l'absence d'événement Firestore.
+
+**Limites maintenues :** aucun test Chrome, téléphone physique, suspension/reprise OS, horloge utilisateur désynchronisée, Firebase déployé, tuile réseau réelle ni production. L'instant serveur n'est pas l'instant physique de mesure GPS. Le test autonome 1.3L reste BLOQUÉ ET REPORTÉ. P2-K-01, R-K-04, GAP-S-04 et les autres P2, P3 historiques et prérequis de pilote restent ouverts ; aucun état de production n'est déduit des tests simulés.
+
+**Décompte du tableau actif après approbation : P0 0, P1 2, P2 21.** 27 fiches au total, 4 fermées uniquement dans leurs périmètres validés (P1-M-01, R-K-03-A, R-K-03-B, R-K-03-C) et 23 ouvertes. Les deux P1 restants sont P1-HOME-001 et P1-COPY-001. Aucun fichier produit modifié dans cette clôture documentaire, aucun commit, push, merge ou déploiement. Dernier HEAD enregistré : `7a0d60f5d556001705460f005ed8c7d1f268460d`. Prochaine action soumise à approbation distincte : sauvegarde Git locale des corrections I/J ; ensuite traitement de P2-K-01.

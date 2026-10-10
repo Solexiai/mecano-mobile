@@ -1,0 +1,91 @@
+[
+  {
+    "phase": "isolation",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 5541
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "before",
+    "passed": 10,
+    "failed": 10,
+    "skipped": 0,
+    "done": {
+      "success": false,
+      "type": "done",
+      "time": 10394
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=756; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "after",
+    "passed": 19,
+    "failed": 1,
+    "skipped": 0,
+    "done": {
+      "success": false,
+      "type": "done",
+      "time": 9516
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=672; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "recovery-diagnostic",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 6768
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=48; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "final-targeted",
+    "passed": 45,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 15373
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=672; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=680; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "regression",
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 29439
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=120; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none"
+    ]
+  }
+]

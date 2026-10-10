@@ -1102,6 +1102,16 @@ class AppStrings {
       'es':
           'El seguimiento en vivo estará disponible en cuanto un conductor esté en camino.',
     },
+    'tracking_position_stale': {
+      'fr': 'Position non actualisée',
+      'en': 'Position not updated',
+      'es': 'Posición sin actualizar',
+    },
+    'tracking_last_known_position': {
+      'fr': 'Dernière position connue',
+      'en': 'Last known position',
+      'es': 'Última posición conocida',
+    },
     'tracking_waiting_for_signal': {
       'fr': 'En attente du signal GPS du chauffeur…',
       'en': 'Waiting for the driver\'s GPS signal…',
