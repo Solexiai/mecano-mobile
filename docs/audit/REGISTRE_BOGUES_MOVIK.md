@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-R / P1-HOME-001, 11 octobre 2026 ; correctifs locaux non déployés.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-R, 11 octobre 2026 ; fermetures locales P1-HOME-001 / P1-COPY-001, non déployées.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 1, P2 10** ; 27 fiches conservées, 11 ouvertes. P1-HOME-001 fermé localement ; P1-COPY-001 reste ouvert. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 10** ; 27 fiches conservées, 10 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -39,7 +39,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-I18N-002 | P2 | Bug visuel historique | QUALIFIÉ | Infobulle Open navigation menu anglais sur /fr. |
 | P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
 | P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
-| P1-COPY-001 | P1 | Bug ancien branche septembre/main | VALIDÉ — HISTORIQUE, NON FERMÉ | Anciennes promesses couverture/créneau retirées accueil release. |
+| P1-COPY-001 | P1 | Bug ancien branche septembre/main | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 | P2-COPY-001 | P2 | Bug ancien | VALIDÉ — HISTORIQUE, NON FERMÉ | Leboncoin absent accueil release observé ; anciennement présent. |
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
 | GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
@@ -353,6 +353,10 @@ Historique antérieur conservé :
 - Critère de fermeture : Preuves et non-régression revues, fermeture explicitement consignée par version. + règle permanente ci-dessus.
 
 ### P1-COPY-001
+
+- État ACTUEL — 1.3M-R, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ**, autorisation explicite de Daniel dans cette étape. Anciennes affirmations de couverture/créneau déjà retirées ; aucun changement produit nécessaire. Preuves : 3 tests existants publics et 12 contrats de textes FR/EN/ES réussis (0 échec, 0 ignoré), FAQ dépliée, trois formats et mobile200%. Analyse ciblée sans anomalie, format et diff check réussis. Code serveur lu uniquement pour rapprocher les formulations des conditions prévues. Configuration live des zones/flags, flotte disponible, paiements, GPS terrain et contact réel NON VÉRIFIÉS : fermeture de texte, pas autorisation de lancement. Voir artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/CHECKPOINT_COPY.md et COPY_CONTRACT_EVIDENCE.json.
+
+Historique antérieur conservé :
 
 - Priorité / nature / statut : P1 ; Bug ancien branche septembre/main ; VALIDÉ — HISTORIQUE, NON FERMÉ.
 - Description et impact : Anciennes promesses couverture/créneau retirées accueil release.
@@ -4698,3 +4702,18 @@ Anomalies actives non fermées : **P0 0, P1 2, P2 10** ; 27 fiches conservées, 
 Transition : VALIDÉ — HISTORIQUE, NON FERMÉ → FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ. Code produit et finances inchangés. Le défaut de chevauchement ne se reproduit pas ; aucune nouvelle correction produit nécessaire. Tests permanents : test/home/home_screen_test.dart (API fictive explicite, transport mémoire, assertions historiques conservées), test/home/home_launch_layout_test.dart (18 scénarios). Exécution finale combinée : 49/0/0. Les exécutions intermédiaires ne sont pas additionnées. Deux avis de dépréciation dans le diagnostic du nouveau test ont été corrigés ; analyse finale sans anomalie. Les preuves brutes et limites sont conservées dans artifacts/reconciliation-1-3M-R-20261011-7c41e2a9. Test autonome 1.3L BLOQUÉ ET REPORTÉ ; P2 et prérequis inchangés.
 
 Complément de preuve 1.3M-R/HOME : exécution finale sans dart-define imposé, compatible avec la commande Flutter CI existante : home-ci-final 49/0/0 ; home-ci-quality et home-ci-format codes 0. Transport simulé appliqué par test, aucun changement du helper GPS. Contrôle de staging ayant initialement refusé des espaces dans une copie de log : copie nettoyée, brut conservé, aucun commit prématuré.
+
+
+## Addendum 1.3M-R — fermeture P1-COPY-001 — 11 octobre 2026
+
+Preuve datée 2026-10-11T16:05:05.840Z. Branche fix/gps-client-history-scope-20261009, HEAD avant sauvegarde 7fc5a04cdf3ad421cccfa78b3cded73666903fb4.
+
+État précédent conservé :
+
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-R / P1-HOME-001, 11 octobre 2026 ; correctifs locaux non déployés.
+
+Anomalies actives non fermées : **P0 0, P1 1, P2 10** ; 27 fiches conservées, 11 ouvertes. P1-HOME-001 fermé localement ; P1-COPY-001 reste ouvert. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+
+| P1-COPY-001 | P1 | Bug ancien branche septembre/main | VALIDÉ — HISTORIQUE, NON FERMÉ | Anciennes promesses couverture/créneau retirées accueil release. |
+
+Transition : VALIDÉ — HISTORIQUE, NON FERMÉ → FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ. Textes produit déjà corrigés depuis 49e865c, non réécrits. Ancienne affirmation « Partout au Québec et ses environs » retrouvée dans d563be2. Accueil/FAQ/Granby distinguent date souhaitée, disponibilité à confirmer et zone prévue ; aucune réservation/transaction réelle garantie, aucun GPS terrain validé revendiqué. La lecture locale de serviceZones, bookingServer, dispatchMissionToDrivers et acceptDelivery ne prouve pas leur configuration en production. Registre : 27 fiches, 0 P0 / 0 P1 / 10 P2 ouverts ; tous les identifiants et historiques conservés. Les dix P2 dont P2-COPY-001 et P2-I18N-001 restent ouverts, même si leurs observations ont été rencontrées dans la revue. Test autonome 1.3L BLOQUÉ ET REPORTÉ. Preuves et résultats détaillés : artifacts/reconciliation-1-3M-R-20261011-7c41e2a9.

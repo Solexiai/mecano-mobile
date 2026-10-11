@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-11T16:05:05.810Z",
+  "head": "7fc5a04cdf3ad421cccfa78b3cded73666903fb4",
+  "repositoryMatches": true,
+  "oldClaims": {
+    "commit": "d563be2d78c8f1c01815c256b32a4972e9a3860a",
+    "matches": [
+      {
+        "line": 459,
+        "text": "        'Leboncoin, Marketplace, Kijiji, etc.',"
+      },
+      {
+        "line": 726,
+        "text": "        'Service partout',"
+      },
+      {
+        "line": 727,
+        "text": "        'Partout au Québec et ses environs',"
+      }
+    ]
+  },
+  "excerpts": {
+    "functions/src/lib/serviceZones.ts": {
+      "sha256": "fb85b9819fe89fbb300147acd44abffad296a3dfdeef31028c1037cbb738fa4f",
+      "matches": [
+        {
+          "line": 44,
+          "text": "const CONFIG_DOC_PATH = \"system_config/service_zones\";"
+        },
+        {
+          "line": 46,
+          "text": "export async function getServiceZonesConfig(): Promise<ServiceZonesConfig> {"
+        },
+        {
+          "line": 47,
+          "text": "const snap = await db.doc(CONFIG_DOC_PATH).get();"
+        }
+      ]
+    },
+    "functions/src/lib/bookingServer.ts": {
+      "sha256": "0ee9916e9b3593b00a14766f3d49d7dccd9893cc2f07dea149cb521cdc1a0ba3",
+      "matches": [
+        {
+          "line": 23,
+          "text": "const zoneReason = !zones.enabled || !zones.zones.length ? 'service_area_unconfigured' :"
+        },
+        {
+          "line": 25,
+          "text": "const timeReason = load.requested_at && Date.parse(load.requested_at) <= Date.now() ? 'requested_time_past' : null;"
+        },
+        {
+          "line": 35,
+          "text": "export async function getBookingPolicy(): Promise<BookingPolicy | null> {"
+        },
+        {
+          "line": 45,
+          "text": "export async function findCompatibleVehicle(driverId: string, snapshot: BookingSnapshot,"
+        },
+        {
+          "line": 61,
+          "text": "const match = await findCompatibleVehicle(driverId, snapshot, tx, selectedId);"
+        }
+      ]
+    },
+    "functions/src/functions/dispatchMissionToDrivers.ts": {
+      "sha256": "e55c96d67886eee19c650f6b44ae7b091dee1a2607ff1b36670bd50551ae279f",
+      "matches": [
+        {
+          "line": 54,
+          "text": ".where(\"status\", \"==\", \"approved\")"
+        },
+        {
+          "line": 55,
+          "text": ".where(\"online_status\", \"==\", \"online\")"
+        },
+        {
+          "line": 66,
+          "text": "if (driver.documents_all_valid !== true) return false;"
+        },
+        {
+          "line": 93,
+          "text": "if (eligible.length === 0) {"
+        }
+      ]
+    },
+    "functions/src/functions/acceptDelivery.ts": {
+      "sha256": "351a98629fe5e92db4c1e18f9d49404d201843fce1846d006f0851e8ac4a823e",
+      "matches": [
+        {
+          "line": 99,
+          "text": "!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))"
+        },
+        {
+          "line": 105,
+          "text": "!(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))"
+        },
+        {
+          "line": 127,
+          "text": "if (driver.status !== DriverStatuses.APPROVED) {"
+        },
+        {
+          "line": 130,
+          "text": "if (!driver.documents_all_valid) {"
+        }
+      ]
+    },
+    "lib/screens/delivery/delivery_request_flow_screen.dart": {
+      "sha256": "672ed069b41833a33eacf78913ad2931f5e9ff0512442713c1329c3aa936553e",
+      "matches": [
+        {
+          "line": 935,
+          "text": "'Date and time are your preference. They depend on driver acceptance and availability.',"
+        },
+        {
+          "line": 1503,
+          "text": "'Each change requires a new price. Driver availability is still to be confirmed.',"
+        }
+      ]
+    },
+    "lib/screens/info/faq_screen.dart": {
+      "sha256": "f474d3f79f4597796ea943932060f0a9539645b91e8ac35d0f8af00b1c149200",
+      "matches": [
+        {
+          "line": 55,
+          "text": "'Non. Après confirmation d’une demande admissible, Movi‑K recherche un chauffeur disponible et admissible. L’attribution dépend de la disponibilité réelle et aucun chauffeur n’est garanti au moment du devis.',"
+        },
+        {
+          "line": 67,
+          "text": "'Vous pouvez indiquer une date et une heure souhaitées dans votre demande. Ce souhait dépend de la disponibilité et de l’acceptation du chauffeur : il ne constitue pas un créneau confirmé.',"
+        },
+        {
+          "line": 79,
+          "text": "'Le client peut suivre les étapes de la mission dans son espace. Le suivi GPS en direct est conçu pour les phases actives de la livraison; sa validation sur appareils réels fait encore partie des vérifications de lancement. Le site ne promet donc pas une carte GPS pour chaque situation.',"
+        }
+      ]
+    },
+    "lib/screens/info/granby_launch_screen.dart": {
+      "sha256": "12b8f7c74d6a80e73611c42b3db673849727ee9bada98031ac3220f01ce9ea56",
+      "matches": [
+        {
+          "line": 80,
+          "text": "'Le lancement public est encore en préparation. Aucune réservation, disponibilité de chauffeur ou transaction réelle n’est promise par cette page.',"
+        },
+        {
+          "line": 94,
+          "text": "title: tr('Zone prévue', 'Planned area', 'Zona prevista'),"
+        },
+        {
+          "line": 120,
+          "text": "'Le canal officiel de contact n’est pas encore publié. La page Contact indique l’état actuel; aucun message n’y est simulé.',"
+        }
+      ]
+    },
+    "lib/l10n/home_copy.dart": {
+      "sha256": "e34b38cd7ff225c3bed18cbdf939bb281a4d01ba3efad1af97160f6b1e2a59bf",
+      "matches": [
+        {
+          "line": 104,
+          "text": "'step3_body': {"
+        },
+        {
+          "line": 290,
+          "text": "'granby_launch': {"
+        },
+        {
+          "line": 295,
+          "text": "'prelaunch_status': {"
+        },
+        {
+          "line": 366,
+          "text": "'local_cta_body': {"
+        }
+      ]
+    }
+  },
+  "liveConfig": "NON VÉRIFIÉE — aucun accès cloud autorisé ou effectué",
+  "productDiffFromInitial": "",
+  "initialPreexistingFiles": 2914,
+  "preexistingChanges": [
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "test/home/home_screen_test.dart",
+    "test/public/public_launch_pages_test.dart"
+  ]
+}

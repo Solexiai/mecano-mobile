@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-11T15:58:30.570Z",
+  "base": "5649bbbe14a6500a81cc53d1728a112663a0a92e",
+  "head": "7fc5a04cdf3ad421cccfa78b3cded73666903fb4",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "staged": [
+    "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/CHECKPOINT_HOME.md",
+    "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/HISTORICAL_AND_SOURCES.json",
+    "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/QUALITY_HOME.md",
+    "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/home-ci-final.summary.json",
+    "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/home-final.summary.json",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "test/home/home_launch_layout_test.dart",
+    "test/home/home_screen_test.dart"
+  ],
+  "output": "[fix/gps-client-history-scope-20261009 7fc5a04] test(home): reconcile validated desktop layout and close P1-HOME-001\n 8 files changed, 395 insertions(+), 45 deletions(-)\n create mode 100644 artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/CHECKPOINT_HOME.md\n create mode 100644 artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/HISTORICAL_AND_SOURCES.json\n create mode 100644 artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/QUALITY_HOME.md\n create mode 100644 artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/home-ci-final.summary.json\n create mode 100644 artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/home-final.summary.json\n create mode 100644 test/home/home_launch_layout_test.dart\n",
+  "index": "",
+  "trackedDiff": ""
+}
