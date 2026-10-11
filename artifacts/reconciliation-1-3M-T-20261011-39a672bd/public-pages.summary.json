@@ -1,0 +1,35 @@
+{
+  "name": "public-pages",
+  "log": "public-pages.jsonl",
+  "logSha256": "9dda4c7310bcec3d828696412941457a0e1ec96a2ac710bd8400ed25c6357a19",
+  "exit": 0,
+  "passed": 3,
+  "failed": 0,
+  "skipped": 0,
+  "done": {
+    "success": true,
+    "type": "done",
+    "time": 13806
+  },
+  "tests": [
+    {
+      "name": "public launch pages render in fr",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch pages render in en",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch pages render in es",
+      "result": "success",
+      "skipped": false
+    }
+  ],
+  "errors": [],
+  "transport": [
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+  ]
+}

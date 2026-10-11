@@ -1,0 +1,327 @@
+{
+  "name": "regressions",
+  "log": "regressions.jsonl",
+  "logSha256": "5839917982cc40603dea846783c33d8561117c2c0977928d1553c20b38f8a3a6",
+  "exit": 0,
+  "passed": 61,
+  "failed": 0,
+  "skipped": 0,
+  "done": {
+    "success": true,
+    "type": "done",
+    "time": 64157
+  },
+  "tests": [
+    {
+      "name": "homepage copy covers fr without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage fr text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage fr text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action fr goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage copy covers en without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage en text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage en text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action en goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage copy covers es without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage es text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage es text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action es goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "category survives into the guest request form",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "guest request resumes after authentication with category and draft preserved",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "anonymous navigation has no administration entry",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "driver account menu offers the existing driver space only when eligible",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "contact cannot claim a message was sent or show demo coordinates",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "return intent is local, allowlisted and sanitizes category",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "language changes keep category in the guest request form",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap fr 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap fr 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap fr 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap fr 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap fr 430.0x932.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "driver action preserves the existing fr route",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap en 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap en 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap en 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap en 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap en 430.0x932.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "driver action preserves the existing en route",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap es 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap es 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap es 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap es 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "home sections and actions do not overlap es 430.0x932.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "driver action preserves the existing es route",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional fr 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional fr 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional fr 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional fr 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional en 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional en 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional en 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional en 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional es 375.0x812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional es 430.0x932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional es 1440.0x900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "launch copy remains conditional es 375.0x812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    }
+  ],
+  "errors": [],
+  "transport": [
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+  ]
+}

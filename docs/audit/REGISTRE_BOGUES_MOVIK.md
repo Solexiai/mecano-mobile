@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-S, 11 octobre 2026 ; fermeture P2-G-02 dans son périmètre simulé validé, non déployé.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-T, 11 octobre 2026 ; fermeture P2-COPY-001 dans son périmètre local/simulé validé, non déployé.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 9** ; 27 fiches conservées, 9 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 8** ; 27 fiches conservées, 8 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -40,7 +40,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
 | P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Anciennes promesses couverture/créneau retirées accueil release. |
-| P2-COPY-001 | P2 | Bug ancien | VALIDÉ — HISTORIQUE, NON FERMÉ | Leboncoin absent accueil release observé ; anciennement présent. |
+| P2-COPY-001 | P2 | Correction historique vérifiée par tests locaux | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Ancienne mention Leboncoin retirée ; exemples Marketplace/Kijiji et routes préservés FR/EN/ES. |
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
 | GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
 | GAP-M-06 | P2 | Risque coût historique | QUALIFIÉ | watchNotifications/watchDriversByStatus sans limit. |
@@ -372,6 +372,13 @@ Historique antérieur conservé :
 - Critère de fermeture : Messages conformes sur référence ; test et revue fermeture. + règle permanente ci-dessus.
 
 ### P2-COPY-001
+
+- État ACTUEL — 1.3M-T, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ**, fermeture autorisée par Daniel. Retrait existant depuis 49e865c, absent de lib/web actuels ; sources publiques comparées identiques à la release 77c3c615. Aucun code produit modifié.
+- Preuves nouvelles : artifacts/reconciliation-1-3M-T-20261011-39a672bd/CHECKPOINT_MOVIK_1_3M_T.md et VALIDATION.json ; 76 tests distincts réussis dans la validation finale, aucun échec final/ignoré. FR/EN/ES, trois formats et mobile 200 %, carte Marketplace, catégorie vers vrai formulaire, CTA et textes prudents.
+- Échecs initiaux du harnais conservés : 9 réussis/3 échoués/0 ignoré sous Ahem ; chargement explicite du Roboto local, mêmes assertions, 12/0/0. Analyse initiale : import inutile retiré uniquement dans le nouveau test ; analyse finale sans anomalie.
+- Limites : widgets simulés, aucune nouvelle validation Chrome/appareil/production. 1.3L BLOQUÉ ET REPORTÉ. Registre recalculé P0 0 / P1 0 / P2 8, 27 fiches conservées.
+
+Historique de la fiche avant T conservé ci-dessous :
 
 - Priorité / nature / statut : P2 ; Bug ancien ; VALIDÉ — HISTORIQUE, NON FERMÉ.
 - Description et impact : Leboncoin absent accueil release observé ; anciennement présent.
@@ -4737,3 +4744,12 @@ Transition : VALIDÉ — HISTORIQUE, NON FERMÉ → FERMÉ — PÉRIMÈTRE LOCAL
 - Limites : tests widget et services fictifs, pas Chrome, téléphone physique, serveur de devis réel, Stripe Sandbox/LIVE ou production. Les autres écrans de finance/admin/chauffeur gardent leur présentation antérieure ; aucune validation globale de leur localisation. 1.3L reste BLOQUÉ ET REPORTÉ.
 - Preuves : artifacts/corrections-1-3M-S-20261011-8d61e930/ (CHECKPOINT_MOVIK_1_3M_S.md, RESULTATS_TESTS.json, INTEGRITE.json, ISOLATION.md, journaux bruts conservés).
 - Décompte recalculé sur les 27 fiches : P0 0 / P1 0 / P2 9 ouverts. Aucune autre fiche fermée, aucun historique/P3/prérequis supprimé.
+
+
+## Addendum 1.3M-T — 11 octobre 2026 — P2-COPY-001
+
+Fermeture ciblée autorisée : **FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ**. La correction produit existait déjà et n’a pas été recodée. Tests permanents ajoutés dans test/home/home_marketplace_copy_test.dart ; aucune mention historique supprimée. Ancien statut : VALIDÉ — HISTORIQUE, NON FERMÉ. Décompte précédent S : P0 0 / P1 0 / P2 9 ; nouveau décompte T : P0 0 / P1 0 / P2 8. Toutes les 27 fiches, les P3 et prérequis sont préservés.
+
+Preuves : artifacts/reconciliation-1-3M-T-20261011-39a672bd/SOURCE_HISTORY.json, FONT_EVIDENCE.json, INITIAL_FAILURES.json, synthèses JSON, VALIDATION.json et CHECKPOINT_MOVIK_1_3M_T.md. Validation finale 12 Marketplace + 61 non-régressions + 3 pages publiques = 76 tests distincts réussis. Les répétitions ne sont pas additionnées ; premier essai 9/3/0 archivé, pas réécrit. Flutter analyze final sans anomalie ; format stable ; contrôles Git et empreintes avant commit.
+
+Aucun fichier produit, GPS ou financier modifié. Aucun push, merge, déploiement ou service externe sollicité. 1.3L reste BLOQUÉ ET REPORTÉ. Prochaine séquence proposée seulement : P2-I18N-001, illustration française sur EN/ES.
