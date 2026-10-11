@@ -1,0 +1,16 @@
+{
+  "passed": 49,
+  "failed": 0,
+  "skipped": 0,
+  "done": {
+    "success": true,
+    "type": "done",
+    "time": 33781
+  },
+  "failedTests": [],
+  "errors": [],
+  "transport": [
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+  ]
+}

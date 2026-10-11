@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -16,6 +17,7 @@ import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart
 import 'package:movik_connect/screens/info/contact_screen.dart';
 import 'package:movik_connect/services/booking/booking_draft.dart';
 import '../helpers/booking_test_harness.dart';
+import '../helpers/gps_offline_transport.dart';
 
 class HomeTestAuth extends FirebaseAuthProvider {
   HomeTestAuth() : super(backendConfigured: false);
@@ -31,11 +33,12 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
   WidgetTester tester, {
   String locale = 'fr',
   double width = 390,
+  double height = 844,
   double scale = 1,
   bool dark = false,
   List<PlatformRole>? roles,
 }) async {
-  await tester.binding.setSurfaceSize(Size(width, 844));
+  await tester.binding.setSurfaceSize(Size(width, height));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final auth = HomeTestAuth();
   if (roles != null) {
@@ -55,6 +58,7 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
           path: '/$loc/livraison/demande',
           builder: (_, s) => DeliveryRequestFlowScreen(
             locale: loc,
+            api: TestBookingApi(),
             initialCategory: s.uri.queryParameters['category'],
           ),
         ),
@@ -116,7 +120,20 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  TestWidgetsFlutterBinding.ensureInitialized();
+  tearDownAll(() {
+    expect(rejectedRequests, isEmpty);
+    expect(offlineTileRequests, isEmpty);
+    // ignore: avoid_print
+    print(
+      "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+    );
+  });
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    expect(Firebase.apps, isEmpty);
+  });
+  tearDown(() => expect(Firebase.apps, isEmpty));
   for (final locale in ['fr', 'en', 'es']) {
     test('homepage copy covers $locale without fallback', () {
       for (final entry in HomeCopy.strings.entries) {
@@ -125,7 +142,7 @@ void main() {
       }
     });
     for (final width in [320.0, 390.0, 768.0, 1280.0]) {
-      testWidgets('full homepage $locale at $width has no overflow', (
+      offlineWidgetTest('full homepage $locale at $width has no overflow', (
         tester,
       ) async {
         await mountHome(tester, locale: locale, width: width);
@@ -142,7 +159,7 @@ void main() {
       });
     }
     for (final dark in [false, true]) {
-      testWidgets('homepage $locale text at 200%, 320px, dark=$dark', (
+      offlineWidgetTest('homepage $locale text at 200%, 320px, dark=$dark', (
         tester,
       ) async {
         await mountHome(
@@ -160,21 +177,24 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
-    testWidgets('primary action $locale goes directly to existing request', (
-      tester,
-    ) async {
-      final (router, _) = await mountHome(tester, locale: locale);
-      await tester.tap(find.byKey(const Key('home-primary-quote')));
-      await tester.pumpAndSettle();
-      expect(
-        router.routeInformationProvider.value.uri.path,
-        '/$locale/livraison/demande',
-      );
-      expect(find.byType(DeliveryRequestFlowScreen), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
+    offlineWidgetTest(
+      'primary action $locale goes directly to existing request',
+      (tester) async {
+        final (router, _) = await mountHome(tester, locale: locale);
+        await tester.tap(find.byKey(const Key('home-primary-quote')));
+        await tester.pumpAndSettle();
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/$locale/livraison/demande',
+        );
+        expect(find.byType(DeliveryRequestFlowScreen), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
-  testWidgets('category survives into the guest request form', (tester) async {
+  offlineWidgetTest('category survives into the guest request form', (
+    tester,
+  ) async {
     final (router, _) = await mountHome(tester);
     final category = find.byKey(const Key('home-category-cat_furniture'));
     await tester.ensureVisible(category);
@@ -206,7 +226,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-  testWidgets(
+  offlineWidgetTest(
     'guest request resumes after authentication with category and draft preserved',
     (tester) async {
       final draft = testDraft();
@@ -251,7 +271,7 @@ void main() {
     },
   );
 
-  testWidgets('anonymous navigation has no administration entry', (
+  offlineWidgetTest('anonymous navigation has no administration entry', (
     tester,
   ) async {
     await mountHome(tester);
@@ -259,7 +279,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Administration'), findsNothing);
   });
-  testWidgets(
+  offlineWidgetTest(
     'driver account menu offers the existing driver space only when eligible',
     (tester) async {
       await mountHome(tester, roles: [PlatformRole.driver]);
@@ -272,7 +292,7 @@ void main() {
       expect(find.text('Administration'), findsNothing);
     },
   );
-  testWidgets(
+  offlineWidgetTest(
     'contact cannot claim a message was sent or show demo coordinates',
     (tester) async {
       final (router, _) = await mountHome(tester);
@@ -311,24 +331,25 @@ void main() {
       );
     }
   });
-  testWidgets('language changes keep category in the guest request form', (
-    tester,
-  ) async {
-    final (router, _) = await mountHome(tester);
-    router.go('/fr/livraison/demande?category=cat_furniture');
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.language));
-    await tester.pumpAndSettle();
-    await tester.tap(find.textContaining('English'));
-    await tester.pumpAndSettle();
-    expect(
-      router.routeInformationProvider.value.uri.toString(),
-      '/en/livraison/demande?category=cat_furniture',
-    );
-    final selected = tester
-        .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-        .where((chip) => chip.selected);
-    expect(selected, hasLength(1));
-    expect(tester.takeException(), isNull);
-  });
+  offlineWidgetTest(
+    'language changes keep category in the guest request form',
+    (tester) async {
+      final (router, _) = await mountHome(tester);
+      router.go('/fr/livraison/demande?category=cat_furniture');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.language));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('English'));
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.toString(),
+        '/en/livraison/demande?category=cat_furniture',
+      );
+      final selected = tester
+          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+          .where((chip) => chip.selected);
+      expect(selected, hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

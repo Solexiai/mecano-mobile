@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_Q4, 11 octobre 2026 ; correctifs locaux non déployés.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-R / P1-HOME-001, 11 octobre 2026 ; correctifs locaux non déployés.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 2, P2 10** ; 27 fiches conservées, 12 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 1, P2 10** ; 27 fiches conservées, 11 ouvertes. P1-HOME-001 fermé localement ; P1-COPY-001 reste ouvert. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -38,7 +38,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-I18N-001 | P2 | Signal historique | IDENTIFIÉ | Illustration hero_clean en français sur EN/ES. |
 | P2-I18N-002 | P2 | Bug visuel historique | QUALIFIÉ | Infobulle Open navigation menu anglais sur /fr. |
 | P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
-| P1-HOME-001 | P1 | Bug ancien branche septembre | VALIDÉ — HISTORIQUE, NON FERMÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
+| P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | VALIDÉ — HISTORIQUE, NON FERMÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 | P2-COPY-001 | P2 | Bug ancien | VALIDÉ — HISTORIQUE, NON FERMÉ | Leboncoin absent accueil release observé ; anciennement présent. |
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
@@ -337,6 +337,10 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Build cohérent et icônes rendues ; ne pas masquer avertissement. + règle permanente ci-dessus.
 
 ### P1-HOME-001
+
+- État ACTUEL — 1.3M-R, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ**. Fermeture autorisée par Daniel dans cette étape. Correction produit déjà présente, aucune recodification : accueil inchangé depuis la release 77c3c615. Revue de cinq PNG Chrome historiques (1.3B), 49 tests actuels réussis, 0 échec, 0 ignoré ; analyse et format ciblés réussis. Tests réels de géométrie FR/EN/ES aux formats 375×812, 430×932, 1440×900 et mobiles à 200 %. Aucun Chrome actuel, appareil physique ni disponibilité commerciale validés. Preuves : artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/CHECKPOINT_HOME.md et HISTORICAL_AND_SOURCES.json.
+
+Historique antérieur conservé :
 
 - Priorité / nature / statut : P1 ; Bug ancien branche septembre ; VALIDÉ — HISTORIQUE, NON FERMÉ.
 - Description et impact : Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats.
@@ -4677,3 +4681,20 @@ Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour 
 Anomalies actives non fermées : **P0 0, P1 2, P2 11** ; 27 fiches conservées, 13 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 
 | P2-FORM-004 | P2 | Bug visuel historique | QUALIFIÉ | 190 cm convertis affichés 74.803149606… in. |
+
+
+## Addendum 1.3M-R — fermeture P1-HOME-001 — 11 octobre 2026
+
+Date de preuve : 2026-10-11T15:54:42.050Z. Branche fix/gps-client-history-scope-20261009, HEAD avant sauvegarde 5649bbbe14a6500a81cc53d1728a112663a0a92e.
+
+État précédent conservé :
+
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_Q4, 11 octobre 2026 ; correctifs locaux non déployés.
+
+Anomalies actives non fermées : **P0 0, P1 2, P2 10** ; 27 fiches conservées, 12 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+
+| P1-HOME-001 | P1 | Bug ancien branche septembre | VALIDÉ — HISTORIQUE, NON FERMÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
+
+Transition : VALIDÉ — HISTORIQUE, NON FERMÉ → FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ. Code produit et finances inchangés. Le défaut de chevauchement ne se reproduit pas ; aucune nouvelle correction produit nécessaire. Tests permanents : test/home/home_screen_test.dart (API fictive explicite, transport mémoire, assertions historiques conservées), test/home/home_launch_layout_test.dart (18 scénarios). Exécution finale combinée : 49/0/0. Les exécutions intermédiaires ne sont pas additionnées. Deux avis de dépréciation dans le diagnostic du nouveau test ont été corrigés ; analyse finale sans anomalie. Les preuves brutes et limites sont conservées dans artifacts/reconciliation-1-3M-R-20261011-7c41e2a9. Test autonome 1.3L BLOQUÉ ET REPORTÉ ; P2 et prérequis inchangés.
+
+Complément de preuve 1.3M-R/HOME : exécution finale sans dart-define imposé, compatible avec la commande Flutter CI existante : home-ci-final 49/0/0 ; home-ci-quality et home-ci-format codes 0. Transport simulé appliqué par test, aucun changement du helper GPS. Contrôle de staging ayant initialement refusé des espaces dans une copie de log : copie nettoyée, brut conservé, aucun commit prématuré.

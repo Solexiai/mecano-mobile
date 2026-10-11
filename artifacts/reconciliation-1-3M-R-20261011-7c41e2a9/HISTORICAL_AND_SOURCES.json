@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-11T15:52:57.458Z",
+  "head": "5649bbbe14a6500a81cc53d1728a112663a0a92e",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "release": "77c3c61534d1300ddc0eab5585f78b9662a69537",
+  "publicDiff": "",
+  "historicReport": {
+    "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/checkpoint-1-3B-20261008-Vm7G5Q/CHECKPOINT_PHASE1_1_3B.md",
+    "sha256": "fdcdfb90244e75ccba0e287e27158dd99dd1f2585b3493f4429fb23b494b7475"
+  },
+  "examinedPng": [
+    {
+      "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/audit-1-3B-1440-u3z5C3/fr-1440x900-00.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "84a51c0cf8cb5223e50f45d162cf1751a0c6f8e1badd4bedad0994bbfbdbd1f9"
+    },
+    {
+      "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/audit-1-3B-1440-u3z5C3/fr-1440x900-01.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "b3dc14e1460172efe19565d10be64e9a0e5034cf857dff9c45675858824ee7da"
+    },
+    {
+      "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/audit-1-3B-1440-u3z5C3/fr-1440x900-02.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "e62e4f1862a7e0f652f91b55315f5bb06874a87bf3d965017e937fb9cb741e2c"
+    },
+    {
+      "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/audit-1-3B-375-ebEMNu/fr-375x812-00.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "81ccc54fbdb0ab8ac1fb32f714bac4594836dd6ddd05ce4a5f62c3ba63809d6d"
+    },
+    {
+      "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/audit-1-3B-430-YFVHy0/fr-430x932-00.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "52b422f40da73444752ab3fdb95e14e3b9ec69e6eb202062ba2c790561b56191"
+    }
+  ],
+  "sourceHashes": {
+    "lib/screens/home/home_screen.dart": "6a78604d688b83a05aab8aa8846aa6aea0a81cc64d20b8be9d412cf1b2a9d78a",
+    "lib/l10n/home_copy.dart": "e34b38cd7ff225c3bed18cbdf939bb281a4d01ba3efad1af97160f6b1e2a59bf",
+    "lib/widgets/app_shell.dart": "325c5addeedcce9c7ae2e584705620c11fef3309284756776522ced6c795b556",
+    "lib/router/app_router.dart": "19521b66b18df9460e6d0cc7f9cdaebe44634ab56b20f934d87ec5debfa5c202",
+    "assets/home/hero_clean.png": "45b11258e45ea649dfa51c070052893427520f0f0212c8462a4b63b64e638365",
+    "assets/home/brand_logo.png": "e41abc2b602d0d28f3ec4747cc24342964f9421af9d6060f1083e0df3e7d0705",
+    "functions/src/lib/serviceZones.ts": "fb85b9819fe89fbb300147acd44abffad296a3dfdeef31028c1037cbb738fa4f",
+    "functions/src/lib/bookingServer.ts": "0ee9916e9b3593b00a14766f3d49d7dccd9893cc2f07dea149cb521cdc1a0ba3",
+    "functions/src/functions/acceptDelivery.ts": "351a98629fe5e92db4c1e18f9d49404d201843fce1846d006f0851e8ac4a823e",
+    "functions/src/functions/dispatchMissionToDrivers.ts": "e55c96d67886eee19c650f6b44ae7b091dee1a2607ff1b36670bd50551ae279f",
+    "functions/src/functions/createDeliveryRequest.ts": "3addcb5d3558e0d313d254badebdda5aa2e4460049866497300979f83b7bd4e9",
+    "lib/screens/info/faq_screen.dart": "f474d3f79f4597796ea943932060f0a9539645b91e8ac35d0f8af00b1c149200",
+    "lib/screens/info/how_it_works_screen.dart": "03c0700f7e2ca7cd49d1d64eb686a13a91e3cf78e9a38bdc9f81036deec0bc16",
+    "lib/screens/info/granby_launch_screen.dart": "12b8f7c74d6a80e73611c42b3db673849727ee9bada98031ac3220f01ce9ea56",
+    "lib/screens/info/pricing_screen.dart": "b6bbe67f2b7808bdef6c6851b021020fca2c702b3095c13e60d9529662354ab9",
+    "lib/screens/info/contact_screen.dart": "aa13b8cdf7975ad34e4183b51f4af949cff84d7ecee92b20d169245f4727d682",
+    "lib/screens/info/safety_screen.dart": "c795a55c76692356448daf8f4224590807bae0171170a85704bb63996ae7df5a",
+    "lib/screens/driver/driver_landing_screen.dart": "4e15ece16386279c557e12617ca8db804d0c0eb012c2e0bc69634d21eb3bc571",
+    "lib/screens/delivery/delivery_landing_screen.dart": "9839071fd6e4190a2c66d77825496a0d8ba309ab03125f5edd5b8e63f4ce1f3c"
+  },
+  "homeHistory": "49e865c7a91eb0fda8be6fbc5fcc88b1058c3b5f 2026-10-01T13:11:57-04:00 feat(public): prepare Granby launch review\nd563be2d78c8f1c01815c256b32a4972e9a3860a 2026-10-01T09:08:51-04:00 hotfix(home): repair desktop hero and steps sizing\na8361454d931cd588f425590d0724c08fd210a08 2026-09-30T09:25:44-04:00 fix(home): use approved three-step illustration exactly\n9d1985960c9f9c11bc0286a33f6c39d5ff48f704 2026-09-30T08:57:39-04:00 feat(home): redesign delivery steps as three-step flow\n5293fbc5358dfc4485cbba8b18a4907b6cfdf323 2026-09-30T05:30:20-04:00 fix(home): tighten mobile category cards\n",
+  "historicFix": "commit d563be2d78c8f1c01815c256b32a4972e9a3860a\nAuthor:     Solexiai <dantang3030@gmail.com>\nAuthorDate: Thu Oct 1 09:08:51 2026 -0400\nCommit:     GitHub <noreply@github.com>\nCommitDate: Thu Oct 1 09:08:51 2026 -0400\n\n    hotfix(home): repair desktop hero and steps sizing\n\n lib/screens/home/home_screen.dart | 141 +++++++++++++++++++-------------------\n 1 file changed, 69 insertions(+), 72 deletions(-)\n",
+  "hooksPath": "C:/Users/Utilisateur/mecano-mobile/.git/hooks",
+  "activeHooks": []
+}
