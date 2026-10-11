@@ -1021,6 +1021,22 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _changed();
   }
 
+  // Presentation only: never round stored dimensions or quote payloads.
+  String? _dimensionText(dynamic value) {
+    if (value is! num || !value.isFinite) return value?.toString();
+    var text = value.toStringAsFixed(2);
+    // A positive measurement must not become a displayed zero.
+    if (value != 0 && num.tryParse(text) == 0) {
+      text = value.toStringAsPrecision(3);
+    }
+    if (text.contains('.') && !text.contains('e')) {
+      text = text
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
+    }
+    return widget.locale == 'en' ? text : text.replaceFirst('.', ',');
+  }
+
   Widget _item(Map<String, dynamic> copy) {
     final item = _draft.items.firstWhere((i) => i['id'] == copy['id']) as Map;
     Widget number(String key, String label) => SizedBox(
@@ -1029,7 +1045,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         key: ValueKey(
           '${item['id']}-$key-${item['dimension_unit']}-${item['weight_unit']}',
         ),
-        initialValue: item[key]?.toString() ?? '',
+        initialValue: key == 'weight'
+            ? item[key]?.toString() ?? ''
+            : _dimensionText(item[key]) ?? '',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
@@ -1790,7 +1808,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     const SizedBox(height: 12),
     for (final item in _draft.items)
       Text(
-        '${item['quantity']} × ${item['label']} · ${item['length'] ?? '?'} × ${item['width'] ?? '?'} × ${item['height'] ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
+        '${item['quantity']} × ${item['label']} · ${_dimensionText(item['length']) ?? '?'} × ${_dimensionText(item['width']) ?? '?'} × ${_dimensionText(item['height']) ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
       ),
     _localizedTime(
       _draft.data['requested_at'] as String?,

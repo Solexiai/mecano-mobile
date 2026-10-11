@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-11T14:27:05.985Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "1aa7b8a8bad130e83a5ef819aa3cf5883980ff8c",
+  "id": "P2-FORM-004",
+  "stage": "1_3M_Q4",
+  "counts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 10
+  },
+  "entries": 27,
+  "tests": {
+    "Q4-before": {
+      "passed": 3,
+      "failed": 17,
+      "skipped": 0,
+      "done": {
+        "success": false,
+        "type": "done",
+        "time": 36594
+      },
+      "failedTests": [
+        "Q4 fr Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+        "Q4 fr Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+        "Q4 fr Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+        "Q4 fr Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+        "Q4 fr confirmation uses compact dimensions without changing quote",
+        "Q4 en Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+        "Q4 en Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+        "Q4 en Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+        "Q4 en Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+        "Q4 en confirmation uses compact dimensions without changing quote",
+        "Q4 es Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+        "Q4 es Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+        "Q4 es Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+        "Q4 es Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+        "Q4 es confirmation uses compact dimensions without changing quote",
+        "Q4 recreation never overwrites converted numeric precision",
+        "Q4 unknown dimensions remain unknown"
+      ],
+      "errors": [
+        {
+          "test": "Q4 fr Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 fr Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 fr Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 fr Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 fr Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 fr Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 fr Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 fr Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 fr confirmation uses compact dimensions without changing quote",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 fr confirmation uses compact dimensions without changing quote",
+          "stack": ""
+        },
+        {
+          "test": "Q4 en Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 en Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 en Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 en Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 en Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 en Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 en Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 en Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 en confirmation uses compact dimensions without changing quote",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 en confirmation uses compact dimensions without changing quote",
+          "stack": ""
+        },
+        {
+          "test": "Q4 es Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 es Size(375.0, 812.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 es Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 es Size(430.0, 932.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 es Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 es Size(1440.0, 900.0) scale 1.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 es Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 es Size(375.0, 812.0) scale 2.0 compact conversion retains exact values",
+          "stack": ""
+        },
+        {
+          "test": "Q4 es confirmation uses compact dimensions without changing quote",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 es confirmation uses compact dimensions without changing quote",
+          "stack": ""
+        },
+        {
+          "test": "Q4 recreation never overwrites converted numeric precision",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 recreation never overwrites converted numeric precision",
+          "stack": ""
+        },
+        {
+          "test": "Q4 unknown dimensions remain unknown",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q4 unknown dimensions remain unknown",
+          "stack": ""
+        }
+      ],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q4-before-fixture": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 9253
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q4-after": {
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 29618
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q4-regression": {
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 42215
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q4-confirmation": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 10478
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": []
+    }
+  },
+  "quality": [
+    "Q4-analyze.exit",
+    "Q4-format.exit"
+  ],
+  "sourceHashes": {
+    "lib/screens/delivery/delivery_request_flow_screen.dart": "672ed069b41833a33eacf78913ad2931f5e9ff0512442713c1329c3aa936553e",
+    "test/customer/delivery_dimension_display_test.dart": "3bdc423e09ee3eafc0daa95b3c3a2ca630e92b8931d34bd277917840b043f185",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "572524be43b4af9ab23e9636ad548cd3c511c1bf9f25b4c5a73804fdb0465f2c"
+  },
+  "selected": [
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "test/customer/delivery_dimension_display_test.dart",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_Q4.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/VALIDATION_1_3M_Q4.json"
+  ],
+  "message": "fix(booking): format converted dimensions without losing precision"
+}
