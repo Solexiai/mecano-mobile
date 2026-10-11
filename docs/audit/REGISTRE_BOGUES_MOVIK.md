@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-O, clôture ciblée P2-J-01, 11 octobre 2026 ; corrections non déployées.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_P, 11 octobre 2026 ; correctifs locaux non déployés.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 15** (recalcul après clôture documentaire limitée P2-J-01 du 11 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 17 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées : **P0 0, P1 2, P2 14** ; 27 fiches conservées, 16 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -29,7 +29,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-I-02 | P2 | Défaut corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Date détaillée en format technique dans confirmation. |
 | P2-J-01 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Référence réelle du reçu conservée dans le suivi ; recherche, absence de chauffeur et états de mission explicités sans GPS inventé. |
 | P2-K-01 | P2 | Défaut reproduit et corrigé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Refus et erreurs de position/historique distingués de l’absence GPS ; reprise, fraîcheur et FR/EN/ES testées, fermeture limitée approuvée le 10 octobre 2026. |
-| R-K-04 | P2 | Risque visuel provisoire | QUALIFIÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |
+| R-K-04 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |
 | P2-FORM-001 | P2 | Bug visuel historique | QUALIFIÉ | Sélecteurs date/heure et date résumée anglais sur /fr. |
 | P2-FORM-002 | P2 | Bug visuel historique | QUALIFIÉ | Libellé Unité de poids tronqué, largeur fixe 120. |
 | P2-FORM-003 | P2 | Bug historique / besoin produit | QUALIFIÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
@@ -214,6 +214,9 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Erreurs exactes et reprise compréhensibles, pas de données périmées trompeuses. + règle permanente ci-dessus.
 
 ### R-K-04
+
+- État ACTUEL — 1_3M_P, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**, sur autorisation du lot P/Q. Montréal de repli supprimé. Sans coordonnées géométriquement utilisables, le vrai widget présente son état d'attente/erreur sur une surface neutre sans FlutterMap/TileLayer. Adresse réelle, position compatible ancienne (sans marqueur actif) et historique valide restent des repères possibles ; aucun lieu inventé. Identité, mission, dates et seuil de 60 secondes conservés. 153 tests finaux réussis, 0 échec, 0 ignoré ; analyse/format/diff check conformes. Preuve : artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_P.md. Limites : widgets simulés, pas Chrome/production/terrain ; 1.3L toujours BLOQUÉ ET REPORTÉ. Historique antérieur conservé ci-dessous.
+
 
 - Priorité / nature / statut : P2 ; Risque visuel provisoire ; QUALIFIÉ.
 - Description et impact : Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré.
@@ -4554,3 +4557,25 @@ Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernièr
 Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 16** (recalcul après clôture documentaire limitée P2-I-01/I-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 18 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 
 | P2-J-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Suivi en recherche sans référence ni statut métier explicitement affichés. |
+
+
+## Addendum lot 1.3M-P/Q — 1_3M_P — 11 octobre 2026
+
+R-K-04 : QUALIFIÉ → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ, périmètre simulé non déployé.
+
+Montréal de repli supprimé. Sans coordonnées géométriquement utilisables, le vrai widget présente son état d'attente/erreur sur une surface neutre sans FlutterMap/TileLayer. Adresse réelle, position compatible ancienne (sans marqueur actif) et historique valide restent des repères possibles ; aucun lieu inventé. Identité, mission, dates et seuil de 60 secondes conservés.
+
+- P-before : 4 réussis / 11 échoués / 0 ignorés.
+- P-after : 15 réussis / 0 échoués / 0 ignorés.
+- P-regression : 132 réussis / 0 échoués / 0 ignorés.
+- P-driver : 6 réussis / 0 échoués / 0 ignorés.
+
+Preuves : artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_P.md et VALIDATION_1_3M_P.json. Aucun push/déploiement. Décompte : P0 0, P1 2, P2 14. Les autres lignes actives restent inchangées.
+
+Historique des métadonnées précédentes :
+
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-O, clôture ciblée P2-J-01, 11 octobre 2026 ; corrections non déployées.
+
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 15** (recalcul après clôture documentaire limitée P2-J-01 du 11 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 17 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+
+| R-K-04 | P2 | Risque visuel provisoire | QUALIFIÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |

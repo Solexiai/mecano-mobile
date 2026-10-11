@@ -1,0 +1,187 @@
+{
+  "date": "2026-10-11T14:00:21.647Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "2e8424420bfbc8479a41e80a96c4e51238e0db80",
+  "id": "R-K-04",
+  "stage": "1_3M_P",
+  "counts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 14
+  },
+  "entries": 27,
+  "tests": {
+    "P-before": {
+      "passed": 4,
+      "failed": 11,
+      "skipped": 0,
+      "done": {
+        "success": false,
+        "type": "done",
+        "time": 8499
+      },
+      "failedTests": [
+        "P no coordinates means no invented map fr",
+        "P no coordinates means no invented map en",
+        "P no coordinates means no invented map es",
+        "P invalid address does not invent center NaN/0.0",
+        "P invalid address does not invent center 95.0/0.0",
+        "P invalid address does not invent center 45.0/Infinity",
+        "P invalid address does not invent center 45.0/-190.0",
+        "P invalid pickup may fall back to valid dropoff",
+        "P valid history keeps route without fictitious active marker",
+        "P fresh recovery and unavailable transition do not retain arbitrary map",
+        "P expired compatible location remains last known only"
+      ],
+      "errors": [
+        {
+          "test": "P no coordinates means no invented map fr",
+          "error": "Test failed. See exception logs above.\nThe test description was: P no coordinates means no invented map fr",
+          "stack": ""
+        },
+        {
+          "test": "P no coordinates means no invented map en",
+          "error": "Test failed. See exception logs above.\nThe test description was: P no coordinates means no invented map en",
+          "stack": ""
+        },
+        {
+          "test": "P no coordinates means no invented map es",
+          "error": "Test failed. See exception logs above.\nThe test description was: P no coordinates means no invented map es",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center NaN/0.0",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center NaN/0.0",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center NaN/0.0",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center NaN/0.0",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center NaN/0.0",
+          "error": "Expected: null\n  Actual: UnsupportedError:<Unsupported operation: Infinity or NaN toInt>\n",
+          "stack": "package:matcher                                     expect\npackage:flutter_test/src/widget_tester.dart 473:18  expect\ntest\\customer\\live_tracking_center_test.dart 31:5   start.<fn>\n===== asynchronous gap ===========================\ndart:async                                          _CustomZone.registerUnaryCallback\ntest\\customer\\live_tracking_center_test.dart 28:5   start.<fn>\n"
+        },
+        {
+          "test": "P invalid address does not invent center 95.0/0.0",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center 95.0/0.0",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center 45.0/Infinity",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center 45.0/Infinity",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center 45.0/Infinity",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center 45.0/Infinity",
+          "stack": ""
+        },
+        {
+          "test": "P invalid address does not invent center 45.0/Infinity",
+          "error": "Expected: null\n  Actual: UnsupportedError:<Unsupported operation: Infinity or NaN toInt>\n",
+          "stack": "package:matcher                                     expect\npackage:flutter_test/src/widget_tester.dart 473:18  expect\ntest\\customer\\live_tracking_center_test.dart 31:5   start.<fn>\n===== asynchronous gap ===========================\ndart:async                                          _CustomZone.registerUnaryCallback\ntest\\customer\\live_tracking_center_test.dart 28:5   start.<fn>\n"
+        },
+        {
+          "test": "P invalid address does not invent center 45.0/-190.0",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid address does not invent center 45.0/-190.0",
+          "stack": ""
+        },
+        {
+          "test": "P invalid pickup may fall back to valid dropoff",
+          "error": "Test failed. See exception logs above.\nThe test description was: P invalid pickup may fall back to valid dropoff",
+          "stack": ""
+        },
+        {
+          "test": "P valid history keeps route without fictitious active marker",
+          "error": "Test failed. See exception logs above.\nThe test description was: P valid history keeps route without fictitious active marker",
+          "stack": ""
+        },
+        {
+          "test": "P fresh recovery and unavailable transition do not retain arbitrary map",
+          "error": "Test failed. See exception logs above.\nThe test description was: P fresh recovery and unavailable transition do not retain arbitrary map",
+          "stack": ""
+        },
+        {
+          "test": "P expired compatible location remains last known only",
+          "error": "Test failed. See exception logs above.\nThe test description was: P expired compatible location remains last known only",
+          "stack": ""
+        }
+      ],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=106; unexpected=0; external_transport=none"
+      ]
+    },
+    "P-after": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 7243
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=95; unexpected=0; external_transport=none"
+      ]
+    },
+    "P-regression": {
+      "passed": 132,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 35795
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=296; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=312; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=504; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=20; unexpected=0; external_transport=none"
+      ]
+    },
+    "P-driver": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 7303
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none"
+      ]
+    }
+  },
+  "quality": [
+    "P-analyze.exit",
+    "P-format.exit"
+  ],
+  "sourceHashes": {
+    "lib/widgets/live_tracking_map.dart": "49b3a6cee19448d3535b0c68e7673ac51cba6eecc2c4af62fe443a2c0b4f2ab0",
+    "test/customer/live_tracking_center_test.dart": "41e79b6f036c74fb73972d0f6d9cbf53dfc842c5a35b3ca960c668bf7aa85d80",
+    "test/customer/live_tracking_identity_test.dart": "a3104faeb1362e15951f1b1a5c46d6aeae8acf15c237691471736296d3f9b099",
+    "test/customer/customer_tracking_presentation_test.dart": "6ecffbde4b6d162eefda750181f894d3e4636506ca973ea829bdadc9277f8f3d",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "6eac542656f357455b907e2342807220b5ad1c35494cd2cd96d9c19a4a782669"
+  },
+  "selected": [
+    "lib/widgets/live_tracking_map.dart",
+    "test/customer/live_tracking_center_test.dart",
+    "test/customer/live_tracking_identity_test.dart",
+    "test/customer/customer_tracking_presentation_test.dart",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_P.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/VALIDATION_1_3M_P.json"
+  ],
+  "message": "fix(gps): avoid invented map center when location is unavailable"
+}

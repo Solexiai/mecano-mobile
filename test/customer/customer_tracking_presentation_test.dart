@@ -489,10 +489,7 @@ void main() => offlineTests(() {
       ]) {
         h.locations.position('driver_A').add(p);
         await frames(t);
-        expect(
-          t.widget<MarkerLayer>(find.byType(MarkerLayer)).markers,
-          isEmpty,
-        );
+        expect(find.byType(FlutterMap), findsNothing);
       }
       h.locations.position('driver_A').add(point('driver_A', 'mission_A'));
       await frames(t);

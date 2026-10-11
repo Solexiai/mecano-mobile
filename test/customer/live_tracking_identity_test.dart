@@ -391,7 +391,7 @@ void main() => offlineTests(() {
           time: now.subtract(const Duration(minutes: 5)),
         ),
       );
-      expect(markers(tester), isEmpty);
+      expect(find.byType(FlutterMap), findsNothing);
       await emit(
         tester,
         repo,

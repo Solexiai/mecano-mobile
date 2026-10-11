@@ -113,7 +113,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         widget.missionId!.isEmpty ||
         value.driverId != widget.driverId ||
         value.activeDeliveryId != widget.missionId ||
-        !_usableDate(value.updatedAt, now)) {
+        !_usableDate(value.updatedAt, now) ||
+        _coordinate(value.latitude, value.longitude) == null) {
       return null;
     }
     return value;
@@ -167,15 +168,17 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
     super.dispose();
   }
 
-  ll.LatLng? _fallbackCenter() {
-    if (widget.pickup != null) {
-      return ll.LatLng(widget.pickup!.lat, widget.pickup!.lng);
-    }
-    if (widget.dropoff != null) {
-      return ll.LatLng(widget.dropoff!.lat, widget.dropoff!.lng);
-    }
-    return null;
-  }
+  // Only usable coordinates are displayed; zero is valid.
+  // No city, service-area position or substitute address is invented.
+  ll.LatLng? _coordinate(double latitude, double longitude) =>
+      latitude.isFinite &&
+          longitude.isFinite &&
+          latitude >= -90 &&
+          latitude <= 90 &&
+          longitude >= -180 &&
+          longitude <= 180
+      ? ll.LatLng(latitude, longitude)
+      : null;
 
   /// Filtre + trie chronologiquement les points d'historique pour NE garder
   /// que ceux de la mission active courante (`widget.missionId`) — voir
@@ -191,7 +194,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             .where(
               (p) =>
                   p.deliveryId == widget.missionId &&
-                  _usableDate(p.recordedAt, now),
+                  _usableDate(p.recordedAt, now) &&
+                  _coordinate(p.latitude, p.longitude) != null,
             )
             .toList()
           ..sort((a, b) => a.recordedAt!.compareTo(b.recordedAt!));
@@ -216,10 +220,12 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
         final driverPoint = location != null && !outdated
             ? ll.LatLng(location.latitude, location.longitude)
             : null;
-        final center =
-            driverPoint ??
-            _fallbackCenter() ??
-            const ll.LatLng(45.5017, -73.5673); // Montréal par défaut
+        final pickupPoint = widget.pickup == null
+            ? null
+            : _coordinate(widget.pickup!.lat, widget.pickup!.lng);
+        final dropoffPoint = widget.dropoff == null
+            ? null
+            : _coordinate(widget.dropoff!.lat, widget.dropoff!.lng);
 
         if (driverPoint != null && !_initialCentered) {
           _initialCentered = true;
@@ -240,6 +246,15 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
               _now(),
             );
 
+            final center =
+                driverPoint ??
+                pickupPoint ??
+                dropoffPoint ??
+                (location == null
+                    ? null
+                    : _coordinate(location.latitude, location.longitude)) ??
+                (routePoints.isEmpty ? null : routePoints.last);
+
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -250,73 +265,73 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                     children: [
                       SizedBox(
                         height: 260,
-                        child: FlutterMap(
-                          key: ValueKey(_scope),
-                          mapController: _mapController,
-                          options: MapOptions(
-                            initialCenter: center,
-                            initialZoom: driverPoint != null ? 14 : 12,
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.movik.movik_connect',
-                            ),
-                            if (routePoints.length >= 2)
-                              PolylineLayer(
-                                polylines: [
-                                  Polyline(
-                                    points: routePoints,
-                                    strokeWidth: 4,
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.85,
+                        child: center == null
+                            ? const ColoredBox(
+                                key: ValueKey('tracking-no-map-anchor'),
+                                color: Color(0xFFE5E7EB),
+                              )
+                            : FlutterMap(
+                                key: ValueKey(_scope),
+                                mapController: _mapController,
+                                options: MapOptions(
+                                  initialCenter: center,
+                                  initialZoom: driverPoint != null ? 14 : 12,
+                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate:
+                                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName:
+                                        'com.movik.movik_connect',
+                                  ),
+                                  if (routePoints.length >= 2)
+                                    PolylineLayer(
+                                      polylines: [
+                                        Polyline(
+                                          points: routePoints,
+                                          strokeWidth: 4,
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.85,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  MarkerLayer(
+                                    markers: [
+                                      if (pickupPoint != null)
+                                        Marker(
+                                          point: pickupPoint,
+                                          width: 34,
+                                          height: 34,
+                                          child: const Icon(
+                                            Icons.trip_origin,
+                                            color: AppColors.info,
+                                            size: 30,
+                                          ),
+                                        ),
+                                      if (dropoffPoint != null)
+                                        Marker(
+                                          point: dropoffPoint,
+                                          width: 34,
+                                          height: 34,
+                                          child: const Icon(
+                                            Icons.place,
+                                            color: AppColors.error,
+                                            size: 34,
+                                          ),
+                                        ),
+                                      if (driverPoint != null)
+                                        Marker(
+                                          point: driverPoint,
+                                          width: 40,
+                                          height: 40,
+                                          rotate: false,
+                                          child: const _DriverPulseMarker(),
+                                        ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            MarkerLayer(
-                              markers: [
-                                if (widget.pickup != null)
-                                  Marker(
-                                    point: ll.LatLng(
-                                      widget.pickup!.lat,
-                                      widget.pickup!.lng,
-                                    ),
-                                    width: 34,
-                                    height: 34,
-                                    child: const Icon(
-                                      Icons.trip_origin,
-                                      color: AppColors.info,
-                                      size: 30,
-                                    ),
-                                  ),
-                                if (widget.dropoff != null)
-                                  Marker(
-                                    point: ll.LatLng(
-                                      widget.dropoff!.lat,
-                                      widget.dropoff!.lng,
-                                    ),
-                                    width: 34,
-                                    height: 34,
-                                    child: const Icon(
-                                      Icons.place,
-                                      color: AppColors.error,
-                                      size: 34,
-                                    ),
-                                  ),
-                                if (driverPoint != null)
-                                  Marker(
-                                    point: driverPoint,
-                                    width: 40,
-                                    height: 40,
-                                    rotate: false,
-                                    child: const _DriverPulseMarker(),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
                       ),
                       if (routePoints.length >= 2)
                         Positioned(
