@@ -114,14 +114,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     }
   }
 
+  String _addressText(String key) {
+    final resolved = (_draft.data[key] as Map?)?['formatted_address'];
+    final typed = _draft.data['${key}_text'];
+    return resolved is String ? resolved : (typed is String ? typed : '');
+  }
+
   void _invalidateAddress(String key, TextEditingController controller) {
+    if (!_loaded || _addressText(key) == controller.text) return;
+    // Keep unfinished input separately; it never supplies coordinates or stops.
+    _draft.data['${key}_text'] = controller.text;
     final address = _draft.data[key] as Map?;
-    if (_loaded &&
-        address != null &&
-        address['formatted_address'] != controller.text) {
+    if (address != null && address['formatted_address'] != controller.text) {
       _draft.data[key] = null;
-      _changed();
     }
+    _changed();
   }
 
   Future<void> _restore(int epoch) async {
@@ -209,10 +216,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _catalog.any((entry) => entry.$1 == widget.initialCategory)) {
       _addItem(widget.initialCategory!, notify: false);
     }
-    _pickup.text =
-        (_draft.data['pickup'] as Map?)?['formatted_address'] as String? ?? '';
-    _dropoff.text =
-        (_draft.data['dropoff'] as Map?)?['formatted_address'] as String? ?? '';
+    _pickup.text = _addressText('pickup');
+    _dropoff.text = _addressText('dropoff');
     _cardReady = false;
     _busy = false;
     _message = null;

@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-11T14:19:09.041Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "afb803c35ee20106441908f06a15f53bbb2c33a6",
+  "id": "P2-FORM-003",
+  "stage": "1_3M_Q3",
+  "counts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 11
+  },
+  "entries": 27,
+  "tests": {
+    "Q3-before": {
+      "passed": 2,
+      "failed": 10,
+      "skipped": 0,
+      "done": {
+        "success": false,
+        "type": "done",
+        "time": 26687
+      },
+      "failedTests": [
+        "Q3 fr unresolved address 0 survives immediate recreation",
+        "Q3 fr unresolved address 1 survives immediate recreation",
+        "Q3 en unresolved address 0 survives immediate recreation",
+        "Q3 en unresolved address 1 survives immediate recreation",
+        "Q3 es unresolved address 0 survives immediate recreation",
+        "Q3 es unresolved address 1 survives immediate recreation",
+        "Q3 edit resolved address invalidates quote and restores latest text",
+        "Q3 clearing raw text stays empty after recreation",
+        "Q3 selected suggestion remains resolved and subsequent edit stays unresolved",
+        "Q3 draft sync carries raw text but quote stops remain unresolved"
+      ],
+      "errors": [
+        {
+          "test": "Q3 fr unresolved address 0 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 fr unresolved address 0 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 fr unresolved address 1 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 fr unresolved address 1 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 en unresolved address 0 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 en unresolved address 0 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 en unresolved address 1 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 en unresolved address 1 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 es unresolved address 0 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 es unresolved address 0 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 es unresolved address 1 survives immediate recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 es unresolved address 1 survives immediate recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 edit resolved address invalidates quote and restores latest text",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 edit resolved address invalidates quote and restores latest text",
+          "stack": ""
+        },
+        {
+          "test": "Q3 clearing raw text stays empty after recreation",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 clearing raw text stays empty after recreation",
+          "stack": ""
+        },
+        {
+          "test": "Q3 selected suggestion remains resolved and subsequent edit stays unresolved",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 selected suggestion remains resolved and subsequent edit stays unresolved",
+          "stack": ""
+        },
+        {
+          "test": "Q3 draft sync carries raw text but quote stops remain unresolved",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q3 draft sync carries raw text but quote stops remain unresolved",
+          "stack": ""
+        }
+      ],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q3-after": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 19948
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q3-regression": {
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 26654
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    }
+  },
+  "quality": [
+    "Q3-analyze.exit",
+    "Q3-format.exit"
+  ],
+  "sourceHashes": {
+    "lib/screens/delivery/delivery_request_flow_screen.dart": "47d430fee786fb81322135a62bf2008f1a9232e86d075f4ebebaa26786e0a69c",
+    "test/customer/delivery_address_draft_text_test.dart": "e3a0835284e1842cef14da25cec0a23b71685f284f717b1c3cbc8549cbb87ade",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "95fb569ebab5d69893b9a49b4937ce0e8a1f629c6b038bcf46dc7f51819e21fc"
+  },
+  "selected": [
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "test/customer/delivery_address_draft_text_test.dart",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_Q3.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/VALIDATION_1_3M_Q3.json"
+  ],
+  "message": "fix(booking): preserve unresolved address text in resumable drafts"
+}

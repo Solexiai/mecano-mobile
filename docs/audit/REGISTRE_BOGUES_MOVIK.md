@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_Q2, 11 octobre 2026 ; correctifs locaux non déployés.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_Q3, 11 octobre 2026 ; correctifs locaux non déployés.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 2, P2 12** ; 27 fiches conservées, 14 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 2, P2 11** ; 27 fiches conservées, 13 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -32,7 +32,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | R-K-04 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |
 | P2-FORM-001 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Sélecteurs date/heure et date résumée anglais sur /fr. |
 | P2-FORM-002 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Libellé Unité de poids tronqué, largeur fixe 120. |
-| P2-FORM-003 | P2 | Bug historique / besoin produit | QUALIFIÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
+| P2-FORM-003 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
 | P2-FORM-004 | P2 | Bug visuel historique | QUALIFIÉ | 190 cm convertis affichés 74.803149606… in. |
 | P2-G-02 | P2 | Bug de présentation simulé | QUALIFIÉ | Format monétaire/distance non localisé FR : décimales point, suffixe CAD, 10.0 km. |
 | P2-I18N-001 | P2 | Signal historique | IDENTIFIÉ | Illustration hero_clean en français sur EN/ES. |
@@ -259,6 +259,9 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Libellé et valeur lisibles sans overflow. + règle permanente ci-dessus.
 
 ### P2-FORM-003
+
+- État ACTUEL — 1_3M_Q3, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**, sur autorisation du lot P/Q. Saisie brute ramassage/livraison sauvegardée immédiatement dans pickup_text/dropoff_text, séparée des adresses résolues et restaurée sans fabriquer de coordonnées. Devis interdit tant que les adresses restent non résolues. 29 tests finaux réussis, 0 échec, 0 ignoré ; analyse/format/diff check conformes. Preuve : artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_Q3.md. Limites : widgets simulés, pas Chrome/production/terrain ; 1.3L toujours BLOQUÉ ET REPORTÉ. Historique antérieur conservé ci-dessous.
+
 
 - Priorité / nature / statut : P2 ; Bug historique / besoin produit ; QUALIFIÉ.
 - Description et impact : Adresse saisie non résolue perdue après refresh ; objet conservé.
@@ -4627,3 +4630,24 @@ Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour 
 Anomalies actives non fermées : **P0 0, P1 2, P2 13** ; 27 fiches conservées, 15 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 
 | P2-FORM-002 | P2 | Bug visuel historique | QUALIFIÉ | Libellé Unité de poids tronqué, largeur fixe 120. |
+
+
+## Addendum lot 1.3M-P/Q — 1_3M_Q3 — 11 octobre 2026
+
+P2-FORM-003 : QUALIFIÉ → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ, périmètre simulé non déployé.
+
+Saisie brute ramassage/livraison sauvegardée immédiatement dans pickup_text/dropoff_text, séparée des adresses résolues et restaurée sans fabriquer de coordonnées. Devis interdit tant que les adresses restent non résolues.
+
+- Q3-before : 2 réussis / 10 échoués / 0 ignorés.
+- Q3-after : 12 réussis / 0 échoués / 0 ignorés.
+- Q3-regression : 17 réussis / 0 échoués / 0 ignorés.
+
+Preuves : artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_Q3.md et VALIDATION_1_3M_Q3.json. Aucun push/déploiement. Décompte : P0 0, P1 2, P2 11. Les autres lignes actives restent inchangées.
+
+Historique des métadonnées précédentes :
+
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : lot 1.3M-P/Q, 1_3M_Q2, 11 octobre 2026 ; correctifs locaux non déployés.
+
+Anomalies actives non fermées : **P0 0, P1 2, P2 12** ; 27 fiches conservées, 14 ouvertes. P1-HOME-001 et P1-COPY-001 restent ouverts. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+
+| P2-FORM-003 | P2 | Bug historique / besoin produit | QUALIFIÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
