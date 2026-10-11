@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-R, 11 octobre 2026 ; fermetures locales P1-HOME-001 / P1-COPY-001, non déployées.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-S, 11 octobre 2026 ; fermeture P2-G-02 dans son périmètre simulé validé, non déployé.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 10** ; 27 fiches conservées, 10 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 9** ; 27 fiches conservées, 9 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -34,7 +34,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-FORM-002 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Libellé Unité de poids tronqué, largeur fixe 120. |
 | P2-FORM-003 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
 | P2-FORM-004 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | 190 cm convertis affichés 74.803149606… in. |
-| P2-G-02 | P2 | Bug de présentation simulé | QUALIFIÉ | Format monétaire/distance non localisé FR : décimales point, suffixe CAD, 10.0 km. |
+| P2-G-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Montants CAD et distances km localisés FR/EN/ES dans le devis et la confirmation ; données métier inchangées. |
 | P2-I18N-001 | P2 | Signal historique | IDENTIFIÉ | Illustration hero_clean en français sur EN/ES. |
 | P2-I18N-002 | P2 | Bug visuel historique | QUALIFIÉ | Infobulle Open navigation menu anglais sur /fr. |
 | P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
@@ -289,6 +289,9 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Affichage lisible sans altérer dimensions/devis. + règle permanente ci-dessus.
 
 ### P2-G-02
+
+- État ACTUEL — 1.3M-S, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**. Formatage localisé des montants CAD et distances km du devis/confirmation, sans mutation des valeurs sources. 144 tests distincts réussis / 0 échec / 0 ignoré ; analyse, format et contrôle Git réussis. Fermeture conditionnelle autorisée pour cette étape. Voir addendum S et artifacts/corrections-1-3M-S-20261011-8d61e930/.
+- État historique avant S : QUALIFIÉ. Description, preuves d'origine et critères ci-dessous conservés.
 
 - Priorité / nature / statut : P2 ; Bug de présentation simulé ; QUALIFIÉ.
 - Description et impact : Format monétaire/distance non localisé FR : décimales point, suffixe CAD, 10.0 km.
@@ -4717,3 +4720,20 @@ Anomalies actives non fermées : **P0 0, P1 1, P2 10** ; 27 fiches conservées, 
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | VALIDÉ — HISTORIQUE, NON FERMÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 
 Transition : VALIDÉ — HISTORIQUE, NON FERMÉ → FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ. Textes produit déjà corrigés depuis 49e865c, non réécrits. Ancienne affirmation « Partout au Québec et ses environs » retrouvée dans d563be2. Accueil/FAQ/Granby distinguent date souhaitée, disponibilité à confirmer et zone prévue ; aucune réservation/transaction réelle garantie, aucun GPS terrain validé revendiqué. La lecture locale de serviceZones, bookingServer, dispatchMissionToDrivers et acceptDelivery ne prouve pas leur configuration en production. Registre : 27 fiches, 0 P0 / 0 P1 / 10 P2 ouverts ; tous les identifiants et historiques conservés. Les dix P2 dont P2-COPY-001 et P2-I18N-001 restent ouverts, même si leurs observations ont été rencontrées dans la revue. Test autonome 1.3L BLOQUÉ ET REPORTÉ. Preuves et résultats détaillés : artifacts/reconciliation-1-3M-R-20261011-7c41e2a9.
+
+
+## Addendum 1.3M-S — 11 octobre 2026 — P2-G-02
+
+- Autorisation : correction, validation, fermeture documentaire conditionnelle et commit local autorisés pour P2-G-02 uniquement. Aucun push, merge ou déploiement.
+- Transition : QUALIFIÉ → REPRODUIT → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ.
+- Base vérifiée : da3f1d459c3205e55aec3f1d972aab45b4fa7423, branche fix/gps-client-history-scope-20261009 ; index et fichiers suivis propres avant intervention.
+- Défaut reproduit sur DeliveryRequestFlowScreen réel, étapes Mon prix et Confirmation : 1234.50 CAD, 10.0 km ; valeur absente causant un cast Null → num. 35 tests initiaux échoués, 0 réussi, 0 ignoré.
+- Correction de présentation : formatMajorAmount étendu avec locale optionnelle, comportement des anciens appelants conservé ; formatDistanceKm conserve les km et au plus une décimale sans zéro inutile. FR : 1 234,50 $ CA ; EN : CA$1,234.50 ; ES : 1.234,50 CA$. Une valeur manquante/invalide est affichée —, jamais inventée à zéro.
+- Intl 0.20.3 déjà présent en cache devient dépendance directe ; résolution offline, version et empreinte inchangées.
+- Premier retest : 35 réussis / 6 échoués / 0 ignoré. Débordements à 200 % démontrés dans les lignes de ventilation ; Row remplacé uniquement à cet endroit par Wrap avec largeur contrainte. Historique d'échec conservé.
+- Validation finale : 47 tests ciblés (41 widgets + 6 formatteurs) et 97 non-régressions distinctes, tous réussis, aucun ignoré. FR/EN/ES ; 375×812, 430×932, 1440×900, mobile 200 % ; grands montants, négatifs, absences, changement de langue, reprise et confirmation fictive.
+- Conservation : égalité JSON du devis source/API/brouillon/sauvegardes, contacts et requête de confirmation ; aucun recalcul client. Les méthodes _quote/_refreshCard/_setupCard/_confirm sont strictement identiques (SHA256). 218 fichiers GPS/serveur/financiers protégés inchangés. Aucun montant Stripe, snapshot, ledger, règle ou fonction serveur modifié.
+- Qualité finale : analyse Flutter ciblée sans problème, format 7 fichiers sans changement, diff --check réussi. Les 15 infos de style du premier analyseur sur le nouveau test ont été corrigées ; preuve conservée.
+- Limites : tests widget et services fictifs, pas Chrome, téléphone physique, serveur de devis réel, Stripe Sandbox/LIVE ou production. Les autres écrans de finance/admin/chauffeur gardent leur présentation antérieure ; aucune validation globale de leur localisation. 1.3L reste BLOQUÉ ET REPORTÉ.
+- Preuves : artifacts/corrections-1-3M-S-20261011-8d61e930/ (CHECKPOINT_MOVIK_1_3M_S.md, RESULTATS_TESTS.json, INTEGRITE.json, ISOLATION.md, journaux bruts conservés).
+- Décompte recalculé sur les 27 fiches : P0 0 / P1 0 / P2 9 ouverts. Aucune autre fiche fermée, aucun historique/P3/prérequis supprimé.

@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 // ---------------------------------------------------------------------------
 // Money formatting helpers — affichage uniquement, AUCUN recalcul financier.
 //
@@ -17,9 +19,37 @@ String formatMinorAmount(int minor, {String currencySymbol = '\$'}) {
 
 /// Formatte un montant en unités majeures (`double`, ex: `FinancialSnapshot`)
 /// en chaîne lisible `"XX.XX $"`.
-String formatMajorAmount(double major, {String currencySymbol = '\$'}) {
-  return '${major.toStringAsFixed(2)} $currencySymbol';
+String formatMajorAmount(
+  num? major, {
+  String currencySymbol = '\$',
+  String? locale,
+}) {
+  if (major == null || !major.isFinite) return '—';
+  // Existing callers keep their exact display until they opt into a locale.
+  if (locale == null) return '${major.toStringAsFixed(2)} $currencySymbol';
+  return NumberFormat.currency(
+    locale: _numberLocale(locale),
+    name: 'CAD',
+    symbol: currencySymbol,
+    decimalDigits: 2,
+  ).format(major);
 }
+
+/// Display-only kilometres: at most one decimal, no artificial value if absent.
+String formatDistanceKm(num? kilometres, {required String locale}) {
+  if (kilometres == null || !kilometres.isFinite || kilometres < 0) return '—';
+  final format = NumberFormat.decimalPattern(_numberLocale(locale))
+    ..minimumFractionDigits = 0
+    ..maximumFractionDigits = 1;
+  return '${format.format(kilometres)} km';
+}
+
+String _numberLocale(String locale) =>
+    switch (locale.split(RegExp('[-_]')).first) {
+      'en' => 'en_CA',
+      'es' => 'es',
+      _ => 'fr_CA',
+    };
 
 /// [connector] : mot de liaison localisé entre la date et l'heure
 /// (Bloc K2, K2-3). Fonction pure sans accès à `LocaleProvider` : la

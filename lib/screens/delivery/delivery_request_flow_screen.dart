@@ -1,3 +1,4 @@
+import '../../finance/presentation/money_format.dart';
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
@@ -1539,7 +1540,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     final breakdown = Map<String, dynamic>.from(
       quote['breakdown'] as Map? ?? {},
     );
-    String money(dynamic n) => '${(n as num).toStringAsFixed(2)} CAD';
+    String money(dynamic n) => formatMajorAmount(
+      n is num ? n : null,
+      locale: widget.locale,
+      currencySymbol: tr(r'$ CA', r'CA$', r'CA$'),
+    );
     final lines = [
       ('missionBaseValue', tr('Transport', 'Transport', 'Transporte')),
       ('handlingFeesTotal', tr('Manutention', 'Handling', 'Manipulación')),
@@ -1579,13 +1584,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 if (breakdown[line.$1] is num && breakdown[line.$1] != 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text(line.$2)),
-                        Text(
-                          '${line.$1 == 'customerDiscountAmount' ? '-' : ''}${money(breakdown[line.$1])}',
-                        ),
-                      ],
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        spacing: 12,
+                        runSpacing: 4,
+                        children: [
+                          Text(line.$2),
+                          Text(
+                            '${line.$1 == 'customerDiscountAmount' ? '-' : ''}${money(breakdown[line.$1])}',
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               const Divider(),
@@ -1593,7 +1604,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
               ),
               Text(
-                '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${(quote['distanceKm'] as num).toStringAsFixed(1)} km',
+                '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${formatDistanceKm(quote['distanceKm'] is num ? quote['distanceKm'] as num : null, locale: widget.locale)}',
               ),
               _localizedTime(
                 DateTime.fromMillisecondsSinceEpoch(

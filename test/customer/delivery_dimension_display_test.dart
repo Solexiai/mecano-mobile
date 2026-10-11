@@ -124,7 +124,14 @@ void main() {
               '${localized('74.8', locale)} × ${localized('19.69', locale)} × ${localized('23.62', locale)} in';
           expect(find.textContaining(expected), findsOneWidget);
           expect(find.textContaining('74.803149'), findsNothing);
-          expect(find.text('123.45 CAD'), findsOneWidget);
+          expect(
+            find.text(switch (locale) {
+              'en' => r'CA$123.45',
+              'es' => '123,45\u00a0CA\$',
+              _ => '123,45\u00a0\$ CA',
+            }),
+            findsOneWidget,
+          );
           expect(store.saved!.quote, d.quote);
           expect(store.saved!.items, d.items);
         },
@@ -147,7 +154,7 @@ void main() {
           190 * (1 / 2.54),
         );
         expect(api.payloads[i]['booking']['items'][0]['length'], isNot(74.8));
-        expect(find.text('123.45 CAD'), findsOneWidget);
+        expect(find.text('123,45\u00a0\$ CA'), findsOneWidget);
         expect(api.calls, isNot(contains('createDeliveryRequest')));
       },
     );

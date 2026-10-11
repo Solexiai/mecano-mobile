@@ -43,7 +43,7 @@ void main() {
         expect(stop['address']['lat'], isNot(1));
         expect(stop['address']['line1'], isA<String>());
       }
-      expect(find.text('123.45 CAD'), findsOneWidget);
+      expect(find.text('123,45\u00a0\$ CA'), findsOneWidget);
       await disposeBooking(t);
     },
   );

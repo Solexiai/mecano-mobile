@@ -19,7 +19,7 @@ void main() {
         expect(store.saved!.items.first['label'], 'Canapé de test');
         api.quoteError = null;
         await tapBooking(t, 'Calculer mon devis officiel');
-        expect(find.text('123.45 CAD'), findsOneWidget);
+        expect(find.text('123,45\u00a0\$ CA'), findsOneWidget);
         await disposeBooking(t);
       },
     );
