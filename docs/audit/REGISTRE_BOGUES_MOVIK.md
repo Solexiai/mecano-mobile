@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-N, clôture ciblée P2-I-01/I-02, 10 octobre 2026 ; corrections non déployées.
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-O, clôture ciblée P2-J-01, 11 octobre 2026 ; corrections non déployées.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 16** (recalcul après clôture documentaire limitée P2-I-01/I-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 18 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 15** (recalcul après clôture documentaire limitée P2-J-01 du 11 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 17 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -27,7 +27,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-H-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Compteur téléphone cohérent avec + initial optionnel, consignes FR/EN/ES et affichage widget validés localement le 10 octobre 2026. |
 | P2-I-01 | P2 | Défaut corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Carte annoncée enregistrée alors que cardReady=false. |
 | P2-I-02 | P2 | Défaut corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Date détaillée en format technique dans confirmation. |
-| P2-J-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Suivi en recherche sans référence ni statut métier explicitement affichés. |
+| P2-J-01 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Référence réelle du reçu conservée dans le suivi ; recherche, absence de chauffeur et états de mission explicités sans GPS inventé. |
 | P2-K-01 | P2 | Défaut reproduit et corrigé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Refus et erreurs de position/historique distingués de l’absence GPS ; reprise, fraîcheur et FR/EN/ES testées, fermeture limitée approuvée le 10 octobre 2026. |
 | R-K-04 | P2 | Risque visuel provisoire | QUALIFIÉ | Centre de repli Montréal sans position/adresse ; pas de faux marqueur démontré. |
 | P2-FORM-001 | P2 | Bug visuel historique | QUALIFIÉ | Sélecteurs date/heure et date résumée anglais sur /fr. |
@@ -181,6 +181,10 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Date lisible localisée et instant conservé. + règle permanente ci-dessus.
 
 ### P2-J-01
+
+- État ACTUEL — 1.3M-O, 11 octobre 2026 : **FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ**, conformément à l’autorisation conditionnelle de Daniel. Référence issue de DeliveryMission.id après contrôle du client et de la mission demandée ; recherche uniquement pour searchingDriver/offered sans chauffeur. États absents/incohérents, erreurs et changement A→B testés. 93 cas distincts finaux réussis / 0 échec / 0 ignoré, analyse ciblée/format/diff conformes. Preuves : artifacts/corrections-1-3M-O-20261010-a64e9b12/CHECKPOINT_MOVIK_1_3M_O.md et RESULTATS.json. Aucun test Chrome, production ou GPS terrain ; 1.3L toujours BLOQUÉ ET REPORTÉ.
+- Historique antérieur conservé intégralement ci-dessous ; les 3 tests de 1.3J prouvaient seulement la navigation.
+
 
 - Priorité / nature / statut : P2 ; Bug simulé confirmé ; QUALIFIÉ.
 - Description et impact : Suivi en recherche sans référence ni statut métier explicitement affichés.
@@ -4505,3 +4509,48 @@ Dossier : `artifacts/corrections-1-3M-N-20261010-d927c861/`.
 Décompte recalculé du tableau actif après ces deux fermetures : **P0 0 / P1 2 / P2 16**, 27 fiches conservées, 18 non fermées. P1-HOME-001 et P1-COPY-001 restent ouverts. Tous les autres P2/P3 et prérequis conservés ; 1.3L reste BLOQUÉ ET REPORTÉ.
 
 Limites : simulations seulement ; aucun Stripe Sandbox/LIVE, Firebase réel, carte/route/GPS externe ; aucune preuve nouvelle de concordance financière serveur–mission–snapshot–Stripe. Pas de build Web, Chrome, appareil physique ou production. Erreur getBookingCardStatus toujours traitée par le comportement existant, mais ne produit plus une affirmation de carte enregistrée ; aucune refonte de gestion des erreurs.
+
+
+## Addendum 1.3M-O — 11 octobre 2026 — suivi client P2-J-01
+
+Branche fix/gps-client-history-scope-20261009 ; HEAD de base 540352c98fa2e6132a0828069583c25f0802592c. Aucun commit, index vide, non déployé. Dossier daté 20261010 conformément au préfixe demandé ; exécution réelle le 11 octobre 2026 America/Toronto.
+
+### Transition autorisée et cause
+
+QUALIFIÉ → CORRECTION CODÉE → TESTÉ → VALIDÉ → FERMÉ, exclusivement présentation du suivi client. Le code initial regroupait recherche/absence de chauffeur/états non suivables sous tracking_not_available et n’affichait pas la référence. Le suivi ne vérifiait pas la concordance défensive entre mission retournée et identifiant demandé. La clé client+mission réinitialise désormais le snapshot lors du changement d’abonnement. Aucun défaut serveur de confidentialité n’est allégué par les seuls mocks.
+
+### Correction et source de vérité
+
+CustomerTrackingScreen affiche DeliveryMission.id, identifiant du document renvoyé par le repository ; le reçu et la route utilisent le missionId reçu de createDeliveryRequest. Pas de nouveau numéro, pas de reconstruction si absent. Les contrôles de propriété précèdent toute référence. searchingDriver/offered sans chauffeur → recherche ; assignation sans chauffeur valide → absence explicitée ; statut inconnu converti en draft par le modèle → information indisponible sans fausse promesse. Les statuts terminaux connus restent visibles sans carte. Référence ajoutée aux vues assignée et terminée. Titre court FR/EN/ES et hauteur adaptée à l’agrandissement ; aucune refonte de la carte.
+
+### Exécutions réellement effectuées (ne pas additionner l’historique)
+
+| Exécution | Réussis | Échoués | Ignorés |
+|---|---:|---:|---:|
+| Reproduction initiale before | 9 | 50 | 0 |
+| Première correction after | 38 | 21 | 0 |
+| Suite ciblée final | 59 | 0 | 0 |
+| Première non-régression regression | 16 | 3 | 0 |
+| Non-régression finale regression-final | 19 | 0 | 0 |
+| GPS freshness sélectionné | 7 | 0 | 0 |
+| GPS errors sélectionné | 8 | 0 | 0 |
+
+Les 21 échecs intermédiaires comprennent 18 contrôles de troncature du titre dans le rendu widget et 3 assertions de reçu exécutées avant fin de transition de route. Titre corrigé ; attente de transition complétée dans le test sans affaiblir les assertions. Les 3 échecs de non-régression provenaient du transport mémoire non propagé au corps d’anciens tests : no_default_http_client a refusé le client réseau. Deux copies temporaires conservent exactement les assertions et appliquent offlineWidgetTest ; originaux inchangés. Journaux d’échecs conservés.
+
+Total final distinct : 59+19+7+8 = 93 réussis, 0 échec, 0 ignoré. 36 cas de rendu/langue (FR/EN/ES × 375×812, 430×932, 1440×900, mobile 200 % × recherche/assignation/erreur), parcours réel de widgets reçu→suivi dans les trois langues ; contrôles de référence longue, client étranger, mission incompatible, A→B, référence absente et statuts terminaux. Analyse Flutter : aucun problème. Format Dart : 0 fichier à reformater. git diff --check : 0. Une information de style initiale corrigée uniquement dans le nouveau test (interpolation).
+
+### Isolation, limites et conservation
+
+Vrais widgets avec Auth, BookingApi, stockage et repositories fictifs ; transport de tuiles exclusivement mémoire avec chemins inattendus refusés, HTTP par défaut désactivé. Aucun appel Firebase/Stripe/Google/OSM, aucune mission réelle. Ces contrôles ne constituent pas un confinement réseau global ni une validation Chrome/production/physique ; 1.3L reste BLOQUÉ ET REPORTÉ. Aucune nouvelle validation financière ; sources financières, GPS, serveur, règles et contrats inchangés. Statut brut inconnu/payment_failed reste la limitation du modèle existant : UI neutre, pas de nouvelle machine à états.
+
+Preuves : artifacts/corrections-1-3M-O-20261010-a64e9b12/CHECKPOINT_MOVIK_1_3M_O.md, RESULTATS.json, ISOLATION.md, regression-adaptation.json, git-initial.json, git-final.json et journaux before/after/final/regression/regression-final/gps-freshness/gps-errors. Suite permanente : test/customer/customer_tracking_presentation_test.dart.
+
+Décompte recalculé du tableau actif : P0 0, P1 2, P2 15 ; 27 fiches conservées, 17 non fermées. P1-HOME-001/P1-COPY-001 et tous les autres dossiers restent dans leur état. Aucun autre problème fermé. Prochaine action unique : approbation de la sauvegarde Git locale de ce correctif, aucun commit exécuté.
+
+### Métadonnées antérieures conservées
+
+Date de consolidation : 9 octobre 2026, America/Toronto. Étape 1.3M-B. Dernière mise à jour : 1.3M-N, clôture ciblée P2-I-01/I-02, 10 octobre 2026 ; corrections non déployées.
+
+Anomalies actives non fermées issues de Phase1 et dettes reportées : **P0 0, P1 2, P2 16** (recalcul après clôture documentaire limitée P2-I-01/I-02 du 10 octobre 2026). P1-M-01, R-K-03-A/B/C, P2-K-01, P2-H-01 et P2-H-02 sont conservés avec leurs fermetures limitées ; 27 entrées au total, dont 18 non fermées. Les deux P1 ouverts demeurent P1-HOME-001 et P1-COPY-001. Cela inclut 2 P1 et 1 P2 déjà validés visuellement historiquement mais non fermés selon la nouvelle règle. Les corrections A/B/C sont fermées exclusivement dans leurs périmètres locaux/simulés validés, non déployés. R-K-03-C a été fermé documentairement après validation I/J du seuil de 60 secondes et des contrôles d'identité, de mission, de dates et de remplacement de position. Les deux P1 ouverts sont P1-HOME-001 et P1-COPY-001 ; les tests terrain, Chrome et production restent à réaliser. Aucun incident réel de production démontré. Les gaps de couverture/décision sont inclus en P2 et explicitement distingués des bugs.
+
+| P2-J-01 | P2 | Bug simulé confirmé | QUALIFIÉ | Suivi en recherche sans référence ni statut métier explicitement affichés. |

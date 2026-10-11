@@ -70,7 +70,15 @@ class CustomerTrackingScreen extends StatelessWidget {
     final auth = context.watch<FirebaseAuthProvider>();
     if (!auth.isSignedIn) {
       return Scaffold(
-        appBar: AppBar(title: Text(t('tracking_title'))),
+        appBar: AppBar(
+          toolbarHeight:
+              kToolbarHeight * MediaQuery.textScalerOf(context).scale(1),
+          title: Text(
+            t('customer_tracking_title'),
+            maxLines: 2,
+            softWrap: true,
+          ),
+        ),
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -103,7 +111,9 @@ class CustomerTrackingScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('tracking_title')),
+        toolbarHeight:
+            kToolbarHeight * MediaQuery.textScalerOf(context).scale(1),
+        title: Text(t('customer_tracking_title'), maxLines: 2, softWrap: true),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           tooltip: t('common_back'),
@@ -114,6 +124,7 @@ class CustomerTrackingScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: StreamBuilder<DeliveryMission?>(
+          key: ValueKey('${auth.effectiveUid}|$missionId'),
           stream: BackendLocator.missionRepository.watchMission(missionId),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
@@ -150,17 +161,47 @@ class CustomerTrackingScreen extends StatelessWidget {
               );
             }
 
+            // Never substitute the route ID for missing or incompatible data.
+            if (mission.id.trim().isEmpty) {
+              return _MissionStatusView(
+                mission: mission,
+                t: t,
+                message: t('tracking_status_unavailable'),
+              );
+            }
+            if (mission.id != missionId) {
+              return _CenteredMessage(
+                icon: Icons.search_off_outlined,
+                message: t('driver_active_mission_not_found'),
+              );
+            }
+
             // Mission complétée : vue dédiée (statut, date, preuve,
             // timeline complète) — plus jamais de carte GPS en direct.
             if (mission.status == MissionStatus.completed) {
               return _CompletedMissionView(mission: mission, t: t);
             }
 
-            if (mission.driverId == null ||
-                !_trackableStatuses.contains(mission.status)) {
-              return _CenteredMessage(
-                icon: Icons.local_shipping_outlined,
-                message: t('tracking_not_available'),
+            final hasDriver = mission.driverId?.trim().isNotEmpty ?? false;
+            if (!hasDriver || !_trackableStatuses.contains(mission.status)) {
+              final String message;
+              if (mission.status.isOpenForAcceptance && !hasDriver) {
+                message = t('tracking_searching_driver');
+              } else if (_trackableStatuses.contains(mission.status) &&
+                  !hasDriver) {
+                message = t('tracking_no_driver_assigned');
+              } else if (mission.status == MissionStatus.draft ||
+                  mission.status.isOpenForAcceptance) {
+                // Unknown raw statuses currently map to draft in the model.
+                // Do not infer an active search or a confirmed assignment.
+                message = t('tracking_status_unavailable');
+              } else {
+                message = t(mission.status.key);
+              }
+              return _MissionStatusView(
+                mission: mission,
+                t: t,
+                message: message,
               );
             }
 
@@ -169,6 +210,8 @@ class CustomerTrackingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _MissionReference(mission: mission, t: t),
+                  const SizedBox(height: 16),
                   if (mission.isInternalTest) ...[
                     InternalTestMissionBanner(
                       title: t('internal_test_mission_title'),
@@ -256,6 +299,45 @@ class CustomerTrackingScreen extends StatelessWidget {
   }
 }
 
+class _MissionReference extends StatelessWidget {
+  final DeliveryMission mission;
+  final String Function(String) t;
+  const _MissionReference({required this.mission, required this.t});
+
+  @override
+  Widget build(BuildContext context) => Text(
+    mission.id.trim().isEmpty
+        ? t('tracking_reference_unavailable')
+        : '${t('tracking_reference')} : ${mission.id}',
+    key: const ValueKey('tracking-mission-reference'),
+    style: const TextStyle(fontWeight: FontWeight.w700),
+  );
+}
+
+class _MissionStatusView extends StatelessWidget {
+  final DeliveryMission mission;
+  final String Function(String) t;
+  final String message;
+  const _MissionStatusView({
+    required this.mission,
+    required this.t,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MissionReference(mission: mission, t: t),
+        const SizedBox(height: 24),
+        Text(message, key: const ValueKey('tracking-mission-state')),
+      ],
+    ),
+  );
+}
+
 /// Vue dédiée pour une mission `completed` (point 7/8/9, Phase 5 partie 3) :
 /// statut + date/heure, preuve de livraison, timeline complète, infos utiles.
 class _CompletedMissionView extends StatelessWidget {
@@ -280,6 +362,8 @@ class _CompletedMissionView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _MissionReference(mission: mission, t: t),
+          const SizedBox(height: 16),
           if (mission.isInternalTest) ...[
             InternalTestMissionBanner(
               title: t('internal_test_mission_title'),

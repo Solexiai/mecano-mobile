@@ -1,0 +1,89 @@
+{
+  "at": "2026-10-11T13:35:25.323Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "540352c98fa2e6132a0828069583c25f0802592c",
+  "indexEmpty": true,
+  "sourceHashes": {
+    "lib/screens/customer/customer_tracking_screen.dart": "6843c54a116cf53eefdf2836bd5714d26c3fbb0178eeb705869e6c25131b667a",
+    "lib/l10n/app_strings.dart": "467c653166f03fb2d27933fba712347daa5e9b5b65614fab8149f6cf36031e58",
+    "test/customer/customer_tracking_presentation_test.dart": "e13f9c58e557f05084ea42a62cb20b675e71a026bd4fa3d1d26a9c566a4b6b06",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "96399578bb48d3652a8156cd5be7052f083ea401190092a3a2c1ba14a4414378",
+    "test/helpers/gps_offline_transport.dart": "1ef7ca51553a51c468e7a6af1b1edeae8644501686da159c093907bc3dfb45f0",
+    "lib/widgets/live_tracking_map.dart": "94ea8ccad69d3da677b37fc81ec9898da1278c5d112316b1fea25604fba7f1ee",
+    "lib/screens/delivery/delivery_request_flow_screen.dart": "adf8111bb7d3131be5179c0a9393901278cde833a9bf4d18cae9aa48ee410672"
+  },
+  "logResults": {
+    "before": {
+      "passed": 9,
+      "failed": 50,
+      "skipped": 0,
+      "success": false,
+      "sha256": "3604bbedd2385cd74ce2fc9a3774d4e85c2797b83d43c21ebd2597bddac3457e"
+    },
+    "after": {
+      "passed": 38,
+      "failed": 21,
+      "skipped": 0,
+      "success": false,
+      "sha256": "aa11a52538acea2bf95df18e8787f991a45d30d2ce150320e6a248b0c886a7e9"
+    },
+    "final": {
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "sha256": "f7781a45adad77720469f5cc8de26e9c030cd000788409727b441ba4abba8ad3"
+    },
+    "regression": {
+      "passed": 16,
+      "failed": 3,
+      "skipped": 0,
+      "success": false,
+      "sha256": "2164f3f3aeabe89276e0a46f4cd88515cdc743ac0619ebe505f0e36940f38a1a"
+    },
+    "regression-final": {
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "sha256": "6147ce1a91bca34faf3eb4e80aba115372e4208eb7e58641f0eabb5d2244ded8"
+    },
+    "gps-freshness": {
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "sha256": "82b6aa96eb85c25e00fad1a042a4d8f8cf05bf348b2a11c171876b9af5ee51dd"
+    },
+    "gps-errors": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "sha256": "bd081fa9bbf2df088f280d5948d3df22a561648c39390c49ef1d685cbf1a53f4"
+    }
+  },
+  "finalDistinct": {
+    "passed": 93,
+    "failed": 0,
+    "skipped": 0
+  },
+  "open": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 15
+  },
+  "entries": 27,
+  "closed": "P2-J-01 — FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ",
+  "quality": {
+    "analyzeExit": 0,
+    "formatExit": 0,
+    "diffCheckExit": 0
+  },
+  "notes": [
+    "No product source changed after final tests.",
+    "New test interpolation style-only change followed by successful targeted analyze and format check.",
+    "Existing 26 other registry rows and old translations preserved.",
+    "No real service or production validation; 1.3L blocked and deferred."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "before": [
+    "OFFLINE_TRANSPORT: in_memory=52; unexpected=0; external_transport=none"
+  ],
+  "after": [
+    "OFFLINE_TRANSPORT: in_memory=52; unexpected=0; external_transport=none"
+  ],
+  "final": [
+    "OFFLINE_TRANSPORT: in_memory=52; unexpected=0; external_transport=none"
+  ],
+  "regression": [
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+  ],
+  "regression-final": [
+    "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none"
+  ],
+  "gps-freshness": [
+    "OFFLINE_TRANSPORT: in_memory=312; unexpected=0; external_transport=none"
+  ],
+  "gps-errors": [
+    "OFFLINE_TRANSPORT: in_memory=384; unexpected=0; external_transport=none"
+  ]
+}

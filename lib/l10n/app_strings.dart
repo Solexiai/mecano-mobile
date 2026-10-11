@@ -1090,6 +1090,36 @@ class AppStrings {
       'en': 'Unable to send your position right now.',
       'es': 'No se pudo enviar su posición en este momento.',
     },
+    'customer_tracking_title': {
+      'fr': 'Suivi',
+      'en': 'Tracking',
+      'es': 'Seguimiento',
+    },
+    'tracking_reference': {
+      'fr': 'Référence',
+      'en': 'Reference',
+      'es': 'Referencia',
+    },
+    'tracking_reference_unavailable': {
+      'fr': 'Référence indisponible',
+      'en': 'Reference unavailable',
+      'es': 'Referencia no disponible',
+    },
+    'tracking_searching_driver': {
+      'fr': 'Nous recherchons un chauffeur pour votre livraison.',
+      'en': 'We are looking for a driver for your delivery.',
+      'es': 'Estamos buscando un conductor para tu entrega.',
+    },
+    'tracking_no_driver_assigned': {
+      'fr': 'Aucun chauffeur n’est assigné à cette livraison pour le moment.',
+      'en': 'No driver is assigned to this delivery at the moment.',
+      'es': 'Por el momento, no hay ningún conductor asignado a esta entrega.',
+    },
+    'tracking_status_unavailable': {
+      'fr': 'État du suivi indisponible.',
+      'en': 'Tracking status unavailable.',
+      'es': 'Estado del seguimiento no disponible.',
+    },
     'tracking_title': {
       'fr': 'Suivi en direct',
       'en': 'Live tracking',
