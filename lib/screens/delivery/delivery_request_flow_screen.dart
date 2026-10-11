@@ -1127,29 +1127,34 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 number('height', tr('Hauteur', 'Height', 'Alto')),
                 SizedBox(
                   width: 120,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: item['weight_unit'] as String,
-                    decoration: InputDecoration(
-                      labelText: tr(
-                        'Unité de poids',
-                        'Weight unit',
-                        'Unidad de peso',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('Unité de poids', 'Weight unit', 'Unidad de peso'),
                       ),
-                    ),
-                    items: ['kg', 'lb']
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != item['weight_unit']) {
-                        if (item['weight'] != null) {
-                          item['weight'] =
-                              (item['weight'] as num) *
-                              (v == 'lb' ? 1 / 0.45359237 : 0.45359237);
-                        }
-                        item['weight_unit'] = v;
-                        _changed();
-                      }
-                    },
+                      const SizedBox(height: 4),
+                      DropdownButtonFormField<String>(
+                        initialValue: item['weight_unit'] as String,
+
+                        items: ['kg', 'lb']
+                            .map(
+                              (v) => DropdownMenuItem(value: v, child: Text(v)),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != item['weight_unit']) {
+                            if (item['weight'] != null) {
+                              item['weight'] =
+                                  (item['weight'] as num) *
+                                  (v == 'lb' ? 1 / 0.45359237 : 0.45359237);
+                            }
+                            item['weight_unit'] = v;
+                            _changed();
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
                 number(
