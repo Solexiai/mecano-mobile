@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-11T14:05:49.749Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "5e9c60c59a31ac72b5cb196715643922afd9bc8c",
+  "id": "P2-FORM-001",
+  "stage": "1_3M_Q1",
+  "counts": {
+    "P0": 0,
+    "P1": 2,
+    "P2": 13
+  },
+  "entries": 27,
+  "tests": {
+    "Q1-before": {
+      "passed": 3,
+      "failed": 6,
+      "skipped": 0,
+      "done": {
+        "success": false,
+        "type": "done",
+        "time": 23249
+      },
+      "failedTests": [
+        "Q1 date picker language fr",
+        "Q1 time picker language and cancel preserves instant fr",
+        "Q1 selected date summary is localized fr",
+        "Q1 date picker language es",
+        "Q1 time picker language and cancel preserves instant es",
+        "Q1 selected date summary is localized es"
+      ],
+      "errors": [
+        {
+          "test": "Q1 date picker language fr",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 date picker language fr",
+          "stack": ""
+        },
+        {
+          "test": "Q1 time picker language and cancel preserves instant fr",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 time picker language and cancel preserves instant fr",
+          "stack": ""
+        },
+        {
+          "test": "Q1 selected date summary is localized fr",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 selected date summary is localized fr",
+          "stack": ""
+        },
+        {
+          "test": "Q1 date picker language es",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 date picker language es",
+          "stack": ""
+        },
+        {
+          "test": "Q1 time picker language and cancel preserves instant es",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 time picker language and cancel preserves instant es",
+          "stack": ""
+        },
+        {
+          "test": "Q1 selected date summary is localized es",
+          "error": "Test failed. See exception logs above.\nThe test description was: Q1 selected date summary is localized es",
+          "stack": ""
+        }
+      ],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q1-after": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 16863
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    },
+    "Q1-regression": {
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "done": {
+        "success": true,
+        "type": "done",
+        "time": 14971
+      },
+      "failedTests": [],
+      "errors": [],
+      "transport": []
+    }
+  },
+  "quality": [
+    "Q1-analyze.exit",
+    "Q1-format.exit"
+  ],
+  "sourceHashes": {
+    "lib/screens/delivery/delivery_request_flow_screen.dart": "0ba2f3505cdbd7819a323b4e8c8427a45e5602625d4cbd2baea0e060bca6ca3f",
+    "test/customer/delivery_date_localization_test.dart": "fdf5c0534bd19cd8e4622a60dc507f8bc4ee2b80280d5af7066cc5d070c0a482",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "493542caa7880216f2650bdbf95f632df4b00e533e05339a6921d38f8a3bace1"
+  },
+  "selected": [
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "test/customer/delivery_date_localization_test.dart",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/CHECKPOINT_1_3M_Q1.md",
+    "artifacts/corrections-1-3M-PQ-20261011-f72a3c10/VALIDATION_1_3M_Q1.json"
+  ],
+  "message": "fix(booking): localize requested date and time controls"
+}

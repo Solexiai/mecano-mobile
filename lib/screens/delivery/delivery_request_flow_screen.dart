@@ -914,15 +914,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     OutlinedButton.icon(
       icon: const Icon(Icons.schedule),
       onPressed: () => _chooseTime(),
-      label: Text(
-        _draft.data['requested_at'] == null
-            ? tr(
+      label: _draft.data['requested_at'] == null
+          ? Text(
+              tr(
                 'Choisir une date et une heure',
                 'Choose date and time',
                 'Elegir fecha y hora',
-              )
-            : _formatTime(_draft.data['requested_at'] as String),
-      ),
+              ),
+            )
+          : _localizedTime(_draft.data['requested_at'] as String),
     ),
     _note(
       tr(
@@ -951,22 +951,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ),
   ];
-  String _formatTime(String iso) {
-    final date = DateTime.tryParse(iso)?.toLocal();
-    return date == null
-        ? iso
-        : '${MaterialLocalizations.of(context).formatMediumDate(date)} · ${TimeOfDay.fromDateTime(date).format(context)}';
-  }
-
   // Display only: preserve the instant and the existing local timezone.
-  Widget _localizedTime(String? iso, {required String prefix}) {
+  Widget _localizedTime(String? iso, {String prefix = ''}) {
+    final heading = prefix.isEmpty ? '' : '$prefix : ';
     final date = iso == null ? null : DateTime.tryParse(iso)?.toLocal();
     final unknown = tr(
       'Date et heure non précisées',
       'Date and time not specified',
       'Fecha y hora no especificadas',
     );
-    if (date == null) return Text('$prefix : $unknown');
+    if (date == null) return Text('$heading$unknown');
     return FutureBuilder<MaterialLocalizations>(
       future: GlobalMaterialLocalizations.delegate.load(Locale(widget.locale)),
       builder: (context, snapshot) {
@@ -982,11 +976,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           alwaysUse24HourFormat: true,
         );
         return Text(
-          '$prefix : ${labels.formatFullDate(date)} · $time (UTC$sign$hours:$remainder)',
+          '$heading${labels.formatFullDate(date)} · $time (UTC$sign$hours:$remainder)',
         );
       },
     );
   }
+
+  Widget _pickerLocale(BuildContext context, Widget? child) =>
+      Localizations.override(
+        context: context,
+        locale: Locale(widget.locale),
+        delegates: GlobalMaterialLocalizations.delegates,
+        child: child!,
+      );
 
   Future<void> _chooseTime() async {
     final now = DateTime.now();
@@ -995,11 +997,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       initialDate: now,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
+      builder: _pickerLocale,
     );
     if (date == null || !mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
+      builder: _pickerLocale,
     );
     if (time == null || !mounted) return;
     _draft.data['requested_at'] = DateTime(
