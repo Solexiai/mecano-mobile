@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-U, 12 octobre 2026 ; fermetures ciblées P2-I18N-001/002, non déployées.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-U-BUILD, 12 octobre 2026 ; clôture locale ciblée P2-BUILD-001, non déployée.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 6** ; 27 fiches conservées, 6 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 5** ; 27 fiches conservées, 5 ouvertes. P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -37,7 +37,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-G-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Montants CAD et distances km localisés FR/EN/ES dans le devis et la confirmation ; données métier inchangées. |
 | P2-I18N-001 | P2 | Défaut reproduit, corrigé et testé localement | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Illustration FR préservée ; variante neutre EN/ES et description accessible localisée. |
 | P2-I18N-002 | P2 | Défaut reproduit, corrigé et testé localement | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Infobulle du menu et libellé accessible FR/EN/ES, ouverture/fermeture et navigation conservées. |
-| P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ — BLOQUÉ (ressource locale absente) | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
+| P2-BUILD-001 | P2 | Avertissement build résolu localement | FERMÉ — PÉRIMÈTRE BUILD/TEST LOCAL VALIDÉ — NON DÉPLOYÉ | Police officielle CupertinoIcons 1.0.9 incluse et vérifiée dans le build Web ; ancien avertissement supprimé ; aucun défaut d'icône en production revendiqué. |
 | P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 | P2-COPY-001 | P2 | Correction historique vérifiée par tests locaux | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Ancienne mention Leboncoin retirée ; exemples Marketplace/Kijiji et routes préservés FR/EN/ES. |
@@ -336,6 +336,9 @@ Historique antérieur conservé :
 - Critère de fermeture : Infobulle correcte dans langue de route. + règle permanente ci-dessus.
 
 ### P2-BUILD-001
+
+- État ACTUEL — 12 octobre 2026 : **FERMÉ — PÉRIMÈTRE BUILD/TEST LOCAL VALIDÉ — NON DÉPLOYÉ**, suite à l'autorisation explicite d'obtenir uniquement le package officiel cupertino_icons compatible. Version 1.0.9 ajoutée à pubspec.yaml et pubspec.lock, résolue par Flutter Pub en mode hors ligne après téléchargement officiel. Build Web --no-pub réussi (code 0, dry-run Wasm réussi), ancien avertissement Expected to find fonts absent. FontManifest comprend packages/cupertino_icons/CupertinoIcons et le fichier de police compilé ; deux tests permanents du paquet et 13 tests de régression du menu public réussis, 0 échec. Flutter analyze ciblé : 0 issue. Pas de test Chrome/iOS réel, de rendu de chaque glyphe sur appareil ni de production. Références et SHA-256 dans artifacts/corrections-1-3M-U-BUILD-20261012/CHECKPOINT_P2_BUILD_001.md.
+- État HISTORIQUE — lot 1.3M-U antérieur, avant autorisation de téléchargement : blocage de la ressource locale et ancien avertissement documentés ci-dessous.
 
 - Mise à jour 2026-10-12 — lot 1.3M-U : QUALIFIÉ — BLOQUÉ, NON FERMÉ. Ancien statut QUALIFIÉ conservé ci-dessous.
 - Reproduction actuelle : build Web local Flutter 3.47.1 réussi (code 0), dry-run Wasm réussi ; avertissement CupertinoIcons toujours présent. FontManifest produit : MaterialIcons uniquement.
