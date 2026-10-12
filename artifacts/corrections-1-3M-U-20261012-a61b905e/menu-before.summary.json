@@ -1,0 +1,23 @@
+{
+  "name": "menu-before",
+  "log": "menu-before.jsonl",
+  "logSha256": "2505110e3b20ad0231da237028f247737cd472e4ee59c7bac78fc57980052685",
+  "exit": 1,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "done": {
+    "success": false,
+    "type": "done",
+    "time": 4083
+  },
+  "tests": [],
+  "errors": [
+    {
+      "test": "loading C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/public_menu_locale_test.dart",
+      "error": "Failed to load \"C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/public_menu_locale_test.dart\":\nCompilation failed for testPath=C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/public_menu_locale_test.dart: Error: Couldn't resolve the package 'mecano_mobile' in 'package:mecano_mobile/providers/locale_provider.dart'.\ntest/home/public_menu_locale_test.dart:7:8: Error: Not found: 'package:mecano_mobile/providers/locale_provider.dart'\nimport 'package:mecano_mobile/providers/locale_provider.dart';\n       ^\ntest/home/public_menu_locale_test.dart:49:51: Error: 'LocaleProvider' isn't a type.\n            final t=tester.element(scaffold).read<LocaleProvider>().t;\n                                                  ^^^^^^^^^^^^^^\ntest/home/public_menu_locale_test.dart:80:51: Error: 'LocaleProvider' isn't a type.\n            final t=tester.element(scaffold).read<LocaleProvider>().t;\n                                                  ^^^^^^^^^^^^^^\n.",
+      "stack": ""
+    }
+  ],
+  "transport": []
+}

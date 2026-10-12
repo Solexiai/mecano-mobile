@@ -1,0 +1,94 @@
+{
+  "name": "menu-after",
+  "log": "menu-after.jsonl",
+  "logSha256": "809ee0729efa2a2ffa31d547675aa21c74d628a06ef9d3e400d7f7b23a324a2a",
+  "exit": 1,
+  "passed": 11,
+  "failed": 2,
+  "skipped": 0,
+  "done": {
+    "success": false,
+    "type": "done",
+    "time": 32250
+  },
+  "tests": [
+    {
+      "name": "public menu fr 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 375.0 x 812.0 text=2.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 375.0 x 812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 375.0 x 812.0 text=2.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu follows language changes during use",
+      "result": "success",
+      "skipped": false
+    }
+  ],
+  "errors": [
+    {
+      "test": "public menu fr 375.0 x 812.0 text=2.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu fr 375.0 x 812.0 text=2.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu es 375.0 x 812.0 text=2.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu es 375.0 x 812.0 text=2.0",
+      "stack": ""
+    }
+  ],
+  "transport": []
+}

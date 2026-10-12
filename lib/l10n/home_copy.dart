@@ -2,6 +2,11 @@
 /// Keep all three locales together; category names remain in AppStrings.
 abstract final class HomeCopy {
   static const strings = <String, Map<String, String>>{
+    'open_navigation_menu': {
+      'fr': 'Ouvrir le menu de navigation',
+      'en': 'Open navigation menu',
+      'es': 'Abrir el menú de navegación',
+    },
     'hero_scene_label': {
       'fr': 'Camionnette Movi-K et chauffeur préparant une livraison',
       'en': 'Movi-K van and driver preparing a delivery',

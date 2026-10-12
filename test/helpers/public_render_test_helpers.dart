@@ -59,3 +59,22 @@ Future<void> capturePublicViewport(
     image.dispose();
   });
 }
+
+Future<void> capturePublicOverlayViewport(
+  WidgetTester tester,
+  String name,
+  Size size,
+) async {
+  final output = Platform.environment['MOVIK_U_CAPTURE_DIR'];
+  if (output == null) return;
+  final view = tester.binding.renderViews.single;
+  expect(view.size, size);
+  final layer = view.debugLayer! as OffsetLayer;
+  await tester.runAsync(() async {
+    final image = await layer.toImage(Offset.zero & size, pixelRatio: 1);
+    expect(Size(image.width.toDouble(), image.height.toDouble()), size);
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await File('$output/$name.png').writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
+  });
+}

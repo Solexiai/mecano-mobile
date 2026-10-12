@@ -1,0 +1,149 @@
+{
+  "name": "menu-reproduction",
+  "log": "menu-reproduction.jsonl",
+  "logSha256": "0937366c1b8ef02f83f80e664d9677e7a86d535c692d267fd269eae4acdfc68e",
+  "exit": 1,
+  "passed": 0,
+  "failed": 13,
+  "skipped": 0,
+  "done": {
+    "success": false,
+    "type": "done",
+    "time": 27085
+  },
+  "tests": [
+    {
+      "name": "public menu fr 375.0 x 812.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 430.0 x 932.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 1440.0 x 900.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu fr 375.0 x 812.0 text=2.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 375.0 x 812.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 430.0 x 932.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 1440.0 x 900.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu en 375.0 x 812.0 text=2.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 375.0 x 812.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 430.0 x 932.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 1440.0 x 900.0 text=1.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu es 375.0 x 812.0 text=2.0",
+      "result": "error",
+      "skipped": false
+    },
+    {
+      "name": "public menu follows language changes during use",
+      "result": "error",
+      "skipped": false
+    }
+  ],
+  "errors": [
+    {
+      "test": "public menu fr 375.0 x 812.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu fr 375.0 x 812.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu fr 430.0 x 932.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu fr 430.0 x 932.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu fr 1440.0 x 900.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu fr 1440.0 x 900.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu fr 375.0 x 812.0 text=2.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu fr 375.0 x 812.0 text=2.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu en 375.0 x 812.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu en 375.0 x 812.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu en 430.0 x 932.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu en 430.0 x 932.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu en 1440.0 x 900.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu en 1440.0 x 900.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu en 375.0 x 812.0 text=2.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu en 375.0 x 812.0 text=2.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu es 375.0 x 812.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu es 375.0 x 812.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu es 430.0 x 932.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu es 430.0 x 932.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu es 1440.0 x 900.0 text=1.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu es 1440.0 x 900.0 text=1.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu es 375.0 x 812.0 text=2.0",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu es 375.0 x 812.0 text=2.0",
+      "stack": ""
+    },
+    {
+      "test": "public menu follows language changes during use",
+      "error": "Test failed. See exception logs above.\nThe test description was: public menu follows language changes during use",
+      "stack": ""
+    }
+  ],
+  "transport": []
+}

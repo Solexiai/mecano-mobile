@@ -101,6 +101,14 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       toolbarHeight: 72,
+      leading: isDesktop
+          ? null
+          : IconButton(
+              key: const Key('public-navigation-menu'),
+              tooltip: HomeCopy.text('open_navigation_menu', locale),
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              icon: const Icon(Icons.menu),
+            ),
       titleSpacing: isDesktop ? 24 : (isPhone ? 4 : 12),
       title: Row(
         children: [

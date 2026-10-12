@@ -275,7 +275,7 @@ void main() {
     tester,
   ) async {
     await mountHome(tester);
-    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.tap(find.byTooltip('Ouvrir le menu de navigation'));
     await tester.pumpAndSettle();
     expect(find.text('Administration'), findsNothing);
   });
