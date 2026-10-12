@@ -39,6 +39,7 @@ import {
   FoundingDriverStatuses,
   MissionAssignmentModes,
   MissionStatuses,
+  PaymentStatuses,
   OPEN_FOR_ACCEPTANCE_STATUSES,
   PricingVersionDoc,
 } from "../lib/types";
@@ -476,6 +477,16 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   });
 
   if (!paymentOutcome.success) {
+    if (paymentOutcome.status === PaymentStatuses.CANCELLED) {
+      throw failedPrecondition(
+        "Mission annulée pendant l'autorisation ; autorisation de paiement libérée."
+      );
+    }
+    if (paymentOutcome.status === PaymentStatuses.AUTHORIZED) {
+      throw failedPrecondition(
+        "Mission annulée ; vérification de la libération du paiement nécessaire."
+      );
+    }
     throw failedPrecondition(
       `Autorisation de paiement refusée (${paymentOutcome.status}): ${
         paymentOutcome.failureMessage ?? "raison inconnue"

@@ -33,6 +33,7 @@ export {
   onDriverBecameAvailableDispatch,
 } from "./functions/dispatchMissionToDrivers";
 export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
+export { onPaymentAuthorizedAfterMissionCancel } from "./functions/onPaymentAuthorizedAfterMissionCancel";
 export { onMissionStatusChangeNotifyCustomer } from "./functions/onMissionStatusChangeNotifyCustomer";
 
 // ---- Notifications push (Phase 8D) ----

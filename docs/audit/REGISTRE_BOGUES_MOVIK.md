@@ -44,7 +44,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
 | GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
 | GAP-M-06 | P2 | Risque coût historique | QUALIFIÉ | watchNotifications/watchDriversByStatus sans limit. |
-| GAP-S-02 | P2 | Couverture manquante | QUALIFIÉ | Pas de test ciblé annulation/acceptation simultanées. |
+| GAP-S-02 | P2 | Course annulation/autorisation reproduite | CORRECTION PARTIELLE TESTÉE — NON FERMÉ — NON DÉPLOYÉ | Annulation durant l'autorisation corrigée et testée en émulateur ; récupération automatique après arrêt avant écriture du résultat Stripe reste non démontrée. |
 | GAP-S-04 | P2 | Décision produit / risque | QUALIFIÉ | Chauffeur suspendu en mission peut progresser completePickup/Delivery. |
 
 ## Fiches actives
@@ -447,6 +447,12 @@ Historique de la fiche avant T conservé ci-dessous :
 - Critère de fermeture : Lecture bornée si besoin et fonctionnel intact, ou risque accepté documenté. + règle permanente ci-dessus.
 
 ### GAP-S-02
+
+- Mise à jour 2026-10-12 — correctif financier local : **CORRECTION PARTIELLE TESTÉE — NON FERMÉE — NON DÉPLOYÉE**. Reproduction déterministe avant correction : une mission pouvait être cancelled pendant AUTHORIZATION_PENDING, puis le paiement se retrouvait authorized après le passage tardif du fournisseur fictif.
+- Le code local ajoute le refus de commencer un paiement déjà annulé, la compensation idempotente d'une autorisation arrivée après cancellation et un trigger Firestore de rattrapage sur le passage du paiement à authorized (avec retry). La compensation d'échec ne remplace plus cancelled par payment_failed. Montants, tarifs, commissions et snapshots de calcul inchangés.
+- Vérifications : 18 tests d'intégration réussis en émulateur Firestore/Auth demo-movik-test dont 4 tests ciblés, tests existants double acceptation et libération des paiements ; zéro échec final. Compilation TypeScript et ESLint ciblé des sources réussis. Aucune invocation Stripe réelle et aucune validation production.
+- **Risque résiduel bloquant** : si le fournisseur autorise le paiement mais que la Cloud Function s'interrompt AVANT l'écriture authorized dans payments/{id}, aucun événement authorized Firestore ne se produit. La réconciliation quotidienne existante signale seulement les anomalies et ne les compense pas automatiquement. Il faut une stratégie approuvée de récupération des authorization_pending orphelins, suivie de tests d'interruption contrôlés avant fermeture complète.
+- Preuves : artifacts/gapS02-fix-20261012/CHECKPOINT_GAP_S02_PARTIAL.md. Historique antérieur conservé ci-dessous.
 
 - Priorité / nature / statut : P2 ; Couverture manquante ; QUALIFIÉ.
 - Description et impact : Pas de test ciblé annulation/acceptation simultanées.
