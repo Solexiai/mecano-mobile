@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-T, 11 octobre 2026 ; fermeture P2-COPY-001 dans son périmètre local/simulé validé, non déployé.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-U, 12 octobre 2026 ; fermeture ciblée P2-I18N-001, non déployée.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 8** ; 27 fiches conservées, 8 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 7** ; 27 fiches conservées, 7 ouvertes. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -35,7 +35,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-FORM-003 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Adresse saisie non résolue perdue après refresh ; objet conservé. |
 | P2-FORM-004 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | 190 cm convertis affichés 74.803149606… in. |
 | P2-G-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Montants CAD et distances km localisés FR/EN/ES dans le devis et la confirmation ; données métier inchangées. |
-| P2-I18N-001 | P2 | Signal historique | IDENTIFIÉ | Illustration hero_clean en français sur EN/ES. |
+| P2-I18N-001 | P2 | Défaut reproduit, corrigé et testé localement | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Illustration FR préservée ; variante neutre EN/ES et description accessible localisée. |
 | P2-I18N-002 | P2 | Bug visuel historique | QUALIFIÉ | Infobulle Open navigation menu anglais sur /fr. |
 | P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
 | P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
@@ -304,6 +304,10 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 - Critère de fermeture : Lisibilité localisée, aucune altération cents/devis/snapshot. + règle permanente ci-dessus.
 
 ### P2-I18N-001
+
+- État ACTUEL — 12 octobre 2026 — 1.3M-U : FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ. Avant : IDENTIFIÉ (conservé ci-dessous). Défaut reproduit (4 réussis / 9 échoués), puis 13 tests ciblés et 73 non-régressions distincts réussis. 12 captures widget examinées ; MediaQuery et décodage contrôlés. Ahem résiduel sur certains boutons, pas de validation Chrome/terrain/production. Variante générative neutre 1535×1025 ; FR inchangé. Preuves : artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md et HERO_EVIDENCE.json.
+
+Historique antérieur conservé :
 
 - Priorité / nature / statut : P2 ; Signal historique ; IDENTIFIÉ.
 - Description et impact : Illustration hero_clean en français sur EN/ES.
@@ -4753,3 +4757,10 @@ Fermeture ciblée autorisée : **FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ �
 Preuves : artifacts/reconciliation-1-3M-T-20261011-39a672bd/SOURCE_HISTORY.json, FONT_EVIDENCE.json, INITIAL_FAILURES.json, synthèses JSON, VALIDATION.json et CHECKPOINT_MOVIK_1_3M_T.md. Validation finale 12 Marketplace + 61 non-régressions + 3 pages publiques = 76 tests distincts réussis. Les répétitions ne sont pas additionnées ; premier essai 9/3/0 archivé, pas réécrit. Flutter analyze final sans anomalie ; format stable ; contrôles Git et empreintes avant commit.
 
 Aucun fichier produit, GPS ou financier modifié. Aucun push, merge, déploiement ou service externe sollicité. 1.3L reste BLOQUÉ ET REPORTÉ. Prochaine séquence proposée seulement : P2-I18N-001, illustration française sur EN/ES.
+
+
+## Addendum 1.3M-U — P2-I18N-001 — 12 octobre 2026
+
+12 octobre 2026 — 1.3M-U : FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ. Avant : IDENTIFIÉ (conservé ci-dessous). Défaut reproduit (4 réussis / 9 échoués), puis 13 tests ciblés et 73 non-régressions distincts réussis. 12 captures widget examinées ; MediaQuery et décodage contrôlés. Ahem résiduel sur certains boutons, pas de validation Chrome/terrain/production. Variante générative neutre 1535×1025 ; FR inchangé. Preuves : artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md et HERO_EVIDENCE.json.
+
+En-tête précédent conservé : Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-T, 11 octobre 2026 ; fermeture P2-COPY-001 dans son périmètre local/simulé validé, non déployé.

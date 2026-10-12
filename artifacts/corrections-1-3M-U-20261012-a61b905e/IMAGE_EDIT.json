@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-12T14:15:31.354Z",
+  "method": "Built-in imagegen; no local image editing",
+  "prompt": "Use case: precise-object-edit. Edit ONLY the supplied Movi-K homepage hero image into a language-neutral version. Preserve the exact original 524:350 framing, composition, objects, van, furniture, driver pose and identity, building, colors, lighting and existing Movi-K logos. Remove only (1) the handwritten French words 'Vos objets avancent, vous aussi !' in the upper right and the curved blue arrow below them, seamlessly restoring the underlying house/window/background; (2) the tiny French tagline 'LIVRAISON SIMPLIFIÉE' under the large Movi-K logo on the van, seamlessly restoring its white bodywork. Keep the Movi-K name and truck symbols on van and shirt exactly intact. No new writing in any language, no new objects, no redesign, no extra branding, no watermarks, no cropping. Preserve photographic detail and proportions. This is a minimal local text removal for an existing production design, not a new illustration.",
+  "source": "assets/home/hero_clean.png",
+  "sourceDimensions": [
+    524,
+    350
+  ],
+  "sourceSha256": "45b11258e45ea649dfa51c070052893427520f0f0212c8462a4b63b64e638365",
+  "target": "assets/home/hero_neutral.png",
+  "dimensions": [
+    1535,
+    1025
+  ],
+  "bytes": 1791300,
+  "sha256": "c687035e45b047a6b9516bf40f672ec05cdd0f9b6a51d9be171bcb11b00726e5",
+  "review": "Inspected generated PNG: French handwritten text/arrow and small van tagline absent, Movi-K names retained; same scene/composition, no newly translated pixels. Original preserved for FR. New neutral EN/ES resource is larger (1.79 MB vs 0.42 MB); no performance claim."
+}

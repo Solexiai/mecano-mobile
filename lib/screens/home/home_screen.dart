@@ -38,11 +38,16 @@ class HomeScreen extends StatelessWidget {
   );
 }
 
+String _heroAsset(String locale) => locale == 'en' || locale == 'es'
+    ? 'assets/home/hero_neutral.png'
+    : 'assets/home/hero_clean.png';
+
 class _Hero extends StatelessWidget {
   final VoidCallback quote, driver;
   const _Hero({required this.quote, required this.driver});
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>().locale;
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 980;
 
@@ -107,12 +112,14 @@ class _Hero extends StatelessWidget {
                           child: AspectRatio(
                             aspectRatio: 524 / 350,
                             child: Image.asset(
-                              'assets/home/hero_clean.png',
+                              _heroAsset(locale),
                               fit: BoxFit.cover,
                               alignment: Alignment.centerRight,
                               filterQuality: FilterQuality.high,
-                              semanticLabel:
-                                  'Camionnette Movi-K avec chauffeur préparant une livraison',
+                              semanticLabel: HomeCopy.text(
+                                'hero_scene_label',
+                                locale,
+                              ),
                             ),
                           ),
                         ),
@@ -243,15 +250,16 @@ class _HeroRight extends StatelessWidget {
   Widget build(BuildContext context) {
     final desktop = MediaQuery.sizeOf(context).width >= 980;
 
+    final locale = context.watch<LocaleProvider>().locale;
     final scene = Semantics(
       image: true,
-      label: 'Camionnette Movi-K et chauffeur préparant une livraison',
+      label: HomeCopy.text('hero_scene_label', locale),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: AspectRatio(
           aspectRatio: 524 / 350,
           child: Image.asset(
-            'assets/home/hero_clean.png',
+            _heroAsset(locale),
             fit: BoxFit.cover,
             alignment: Alignment.centerRight,
             filterQuality: FilterQuality.medium,
