@@ -37,7 +37,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-G-02 | P2 | Défaut reproduit, corrigé et testé en simulation | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Montants CAD et distances km localisés FR/EN/ES dans le devis et la confirmation ; données métier inchangées. |
 | P2-I18N-001 | P2 | Défaut reproduit, corrigé et testé localement | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Illustration FR préservée ; variante neutre EN/ES et description accessible localisée. |
 | P2-I18N-002 | P2 | Défaut reproduit, corrigé et testé localement | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Infobulle du menu et libellé accessible FR/EN/ES, ouverture/fermeture et navigation conservées. |
-| P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
+| P2-BUILD-001 | P2 | Avertissement build | QUALIFIÉ — BLOQUÉ (ressource locale absente) | CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée. |
 | P1-HOME-001 | P1 | Bug ancien branche septembre | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Chevauchement hero desktop corrigé structurellement et non reproduit release trois formats. |
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 | P2-COPY-001 | P2 | Correction historique vérifiée par tests locaux | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Ancienne mention Leboncoin retirée ; exemples Marketplace/Kijiji et routes préservés FR/EN/ES. |
@@ -336,6 +336,15 @@ Historique antérieur conservé :
 - Critère de fermeture : Infobulle correcte dans langue de route. + règle permanente ci-dessus.
 
 ### P2-BUILD-001
+
+- Mise à jour 2026-10-12 — lot 1.3M-U : QUALIFIÉ — BLOQUÉ, NON FERMÉ. Ancien statut QUALIFIÉ conservé ci-dessous.
+- Reproduction actuelle : build Web local Flutter 3.47.1 réussi (code 0), dry-run Wasm réussi ; avertissement CupertinoIcons toujours présent. FontManifest produit : MaterialIcons uniquement.
+- pubspec.yaml, pubspec.lock et package_config ne déclarent pas cupertino_icons ; aucun package/font correspondant trouvé dans les caches Pub locaux examinés. Aucun usage direct CupertinoIcons trouvé dans lib/. Icône manquante sur un écran Movi-K précis NON DÉMONTRÉE.
+- Aucune modification de dépendance, aucun téléchargement, aucun avertissement masqué. Résolution bloquée tant que la ressource officielle compatible n’est pas fournie localement ou son obtention autorisée. Aucun nouveau défaut visuel inféré de la seule compilation.
+- Preuves : artifacts/corrections-1-3M-U-20261012-a61b905e/BUILD_QUALIFICATION.json, BUILD_INVENTORY.json, BUILD_PREFLIGHT.json, web-build.txt, CHECKPOINT_MOVIK_1_3M_U.md.
+- Fermeture exige encore une résolution validée de la ressource et le contrôle des icônes effectivement utilisées ; compilation réussie seule insuffisante.
+
+Historique antérieur conservé :
 
 - Priorité / nature / statut : P2 ; Avertissement build ; QUALIFIÉ.
 - Description et impact : CupertinoIcons attendu mais non inclus ; icône manquante pas démontrée.
@@ -4775,3 +4784,8 @@ En-tête précédent conservé : Date de consolidation : 9 octobre 2026, America
 12 octobre 2026 — 1.3M-U : FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ. Avant : QUALIFIÉ (historique conservé). Avant correction, 6 tests réussis / 7 échoués ; après, 13 ciblés et 68 non-régressions réussis. Neuf captures widget de l’infobulle examinées, langues/200 % et navigation desktop testées. Aucun Chrome, production ou lecteur d’écran physique testé. Preuves : artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_002.md et MENU_EVIDENCE.json.
 
 En-tête précédent conservé : Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-U, 12 octobre 2026 ; fermeture ciblée P2-I18N-001, non déployée.
+
+
+## Addendum 2026-10-12 — clôture du lot 1.3M-U
+
+Deux fermetures autorisées et prouvées : P2-I18N-001 et P2-I18N-002, périmètre local/simulé validé, non déployé. P2-BUILD-001 reste ouvert : avertissement reproduit et ressource locale manquante, aucune dépendance téléchargée. 27 fiches conservées ; P0 0 / P1 0 / P2 6 ouverts. 123 tests distincts réussis dans les exécutions finales ; build Web code 0 avec avertissement. 1.3L demeure BLOQUÉ ET REPORTÉ. Preuves et limites : artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_MOVIK_1_3M_U.md. Aucune autre anomalie traitée.

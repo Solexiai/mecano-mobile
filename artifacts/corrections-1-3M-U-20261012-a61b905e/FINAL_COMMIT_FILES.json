@@ -1,0 +1,58 @@
+{
+  "parent": "cbbaf266df2fccad1da71c7f58bafbae87aea091",
+  "message": "docs(audit): record lot U results and CupertinoIcons blocker",
+  "secretPatternScan": "No match in selected documents; reviewed scope, not an exhaustive history scan.",
+  "manifestFile": "artifacts/corrections-1-3M-U-20261012-a61b905e/FINAL_COMMIT_FILES.json",
+  "files": [
+    {
+      "path": "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+      "sha256": "778bada5b33db2d2a8e8298d9c092baae8235986efbdc95d3e8543a1acbae948",
+      "bytes": 475110
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_MOVIK_1_3M_U.md",
+      "sha256": "d2a228b24dd176f12015476edb308b3574258999a27916cfd3fd65e06090792f",
+      "bytes": 11975
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/BUILD_INVENTORY.json",
+      "sha256": "7223ed796bde816fcdd7909cf0dd9560ff49b4421d91fb2c64737d95273d65d8",
+      "bytes": 1439
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/BUILD_PREFLIGHT.json",
+      "sha256": "29b73a57d1b6031343a048f8eabb1c0df61910b0d45f263fd0c54571ec7c60ed",
+      "bytes": 1512
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/BUILD_QUALIFICATION.json",
+      "sha256": "66304148d622561bf26f68d26a7e478286f3a41ae8a33b179f5ce208e55ac263",
+      "bytes": 9092
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/INTEGRITY_QUALITY.json",
+      "sha256": "2ad4b9055acbfa91ea391d3bbca76c9e502e2cebe603f63bc52823e0a3d684ba",
+      "bytes": 17189
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/FINAL_VERIFICATION.json",
+      "sha256": "52afcff1a86103014512de9b9c84b0fb800b7efcfafe1871f84f1b901a0e51fa",
+      "bytes": 1811
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/MENU_COMMIT_RESULT.json",
+      "sha256": "6a3a8dcdae9997033ea82113afb441fd9e88659aa1ff776e009c45bbb1fb655f",
+      "bytes": 4874
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/web-build.txt",
+      "sha256": "4e55f95389db209a1c5f325d7b1607456865df64cf9e842211f7b229f0fd4b6b",
+      "bytes": 2898
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/web-build.exit",
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354",
+      "bytes": 3
+    }
+  ]
+}

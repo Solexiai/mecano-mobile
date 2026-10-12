@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-12T14:45:51.863Z",
+  "head": "cbbaf266df2fccad1da71c7f58bafbae87aea091",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "uses": "",
+  "cupertinoConfig": [],
+  "packageDirs": [],
+  "packages": [],
+  "artifacts": [
+    {
+      "path": "bin/cache/flutter_tools.snapshot",
+      "exists": true,
+      "bytes": 47954880
+    },
+    {
+      "path": "bin/cache/dart-sdk/bin/dart.exe",
+      "exists": true,
+      "bytes": 5366272
+    },
+    {
+      "path": "bin/cache/flutter_web_sdk/kernel/dart2js_platform.dill",
+      "exists": true,
+      "bytes": 18017696
+    },
+    {
+      "path": "bin/cache/artifacts/engine/windows-x64/font-subset.exe",
+      "exists": true,
+      "bytes": 1259520
+    },
+    {
+      "path": "bin/cache/artifacts/material_fonts/materialicons-regular.otf",
+      "exists": true,
+      "bytes": 1645184
+    },
+    {
+      "path": "bin/cache/flutter_web_sdk",
+      "exists": true,
+      "bytes": null
+    },
+    {
+      "path": "bin/cache/flutter_web_sdk/canvaskit",
+      "exists": true,
+      "bytes": null
+    },
+    {
+      "path": "bin/cache/web_sdk.stamp",
+      "exists": false,
+      "bytes": null
+    }
+  ],
+  "sourceHashes": [
+    {
+      "path": "pubspec.yaml",
+      "sha256": "9606b257787c92a45dfdc58c35fbed3cc7e9ac6ac4a77218af9e50aef2332fc9"
+    },
+    {
+      "path": "pubspec.lock",
+      "sha256": "0ecafbf79d98fb48753e648a948c0fe95b695e5320281f97e00a58f400512b10"
+    }
+  ]
+}
