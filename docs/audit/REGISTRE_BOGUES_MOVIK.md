@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : GAP-S-02-RECOVERY, 13 octobre 2026 ; récupération financière ciblée validée en émulateur, non déployée.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : GAP-S-04-SUSPENSIONS, 13 octobre 2026 ; politique de suspension à deux niveaux validée localement, non déployée.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 4** ; 27 fiches conservées, 4 ouvertes. GAP-S-02 fermé exclusivement dans le périmètre des tests émulateur, sans Stripe réel ni déploiement. Les paiements historiques sans référence fournisseur sont signalés pour vérification manuelle.  P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 3** ; 27 fiches conservées, 3 ouvertes. GAP-S-04 fermé dans le périmètre émulateur/Flutter local après accord de politique le 13 octobre 2026 ; aucun déploiement.  GAP-S-02 fermé exclusivement dans le périmètre des tests émulateur, sans Stripe réel ni déploiement. Les paiements historiques sans référence fournisseur sont signalés pour vérification manuelle.  P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -45,7 +45,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
 | GAP-M-06 | P2 | Risque coût historique | QUALIFIÉ | watchNotifications/watchDriversByStatus sans limit. |
 | GAP-S-02 | P2 | Concurrence et récupération financière testées | FERMÉ — PÉRIMÈTRE ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Race annulation/autorisation, récupération de pending avec référence provider et compensations idempotentes validées localement ; paiements réels, cas legacy sans ID et cron déployé NON VALIDÉS. |
-| GAP-S-04 | P2 | Décision produit / risque | QUALIFIÉ | Chauffeur suspendu en mission peut progresser completePickup/Delivery. |
+| GAP-S-04 | P2 | Suspension ordinaire / urgente | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Suspension ordinaire conserve les missions déjà assignées sous contrôle, urgente refuse transitions et GPS ; escalation admin, audit, réactivation et préservation hors ligne testés. |
 
 ## Fiches actives
 
@@ -469,6 +469,11 @@ Historique de la fiche avant T conservé ci-dessous :
 - Critère de fermeture : Un seul état cohérent et effets financiers idempotents. + règle permanente ci-dessus.
 
 ### GAP-S-04
+
+- Mise à jour 2026-10-13 — **FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**. Politique approuvée : suspension ordinaire empêche de nouvelles acceptations et l'accès en ligne mais autorise à terminer une mission déjà assignée ; suspension urgente interdit ramassage, livraison, transitions intermédiaires et GPS, exigeant intervention administrative. L'interface admin peut sélectionner les deux modes et escalader une suspension ordinaire en urgente ; un profil suspendu historique sans mode est refusé comme urgent par prudence. Aucune annulation automatique, aucun remboursement ni mouvement financier ajouté. Le statut offline reste offline après achèvement d'une mission sous suspension ordinaire.
+- Preuves : 10 tests ciblés sur émulateur Firestore/Auth, 150 tests serveur sur 9 suites et 33 tests Flutter sur 3 suites réussis ; TypeScript, ESLint et Dart analyze ciblés sans anomalies. Aucun essai navigateur/appareil réel, aucune preuve de déploiement. Voir artifacts/gapS04-suspensions-20261013/CHECKPOINT_GAP_S04.md.
+- Portée : le traitement sous suspension ordinaire concerne seulement les missions déjà assignées ; toute nouvelle acceptation reste refusée par acceptDelivery. Le GPS ordinaire ne fonctionne que sur la mission active liée. Les profils legacy sans suspension_mode sont urgents. Les changements de statut et de GPS sont contrôlés dans des transactions relisant driver_profiles. Les frais, contrats, ledger, snapshots et règles serveur Firestore restent inchangés.
+- Historique antérieur conservé ci-dessous.
 
 - Priorité / nature / statut : P2 ; Décision produit / risque ; QUALIFIÉ.
 - Description et impact : Chauffeur suspendu en mission peut progresser completePickup/Delivery.

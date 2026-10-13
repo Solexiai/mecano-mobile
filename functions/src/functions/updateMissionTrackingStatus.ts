@@ -23,6 +23,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLog } from "../lib/audit";
+import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy";
 import { MissionStatus, MissionStatuses } from "../lib/types";
 
 export interface UpdateMissionTrackingStatusRequest {
@@ -87,6 +88,7 @@ export const updateMissionTrackingStatus = onCall<UpdateMissionTrackingStatusReq
         );
       }
 
+      await requireMissionProgressPermission(tx, ctx.uid);
       const now = admin.firestore.Timestamp.now();
       const timestampField = TIMESTAMP_FIELD_BY_STATUS[targetStatus]!;
       tx.update(missionRef, { status: targetStatus, [timestampField]: now });

@@ -112,7 +112,7 @@ class _FakeDriverRepository implements DriverRepository {
   Future<void> requestDriverDocuments(String driverId, String reason) =>
       throw UnimplementedError();
   @override
-  Future<void> suspendDriver(String driverId, String reason) => throw UnimplementedError();
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) => throw UnimplementedError();
   @override
   Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
   @override

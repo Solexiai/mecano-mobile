@@ -28,6 +28,9 @@ function buildRequest(driverId: string, data: CompletePickupRequest): CallableRe
 }
 
 async function seedMission(status: string, driverId: string | null = DRIVER_ID): Promise<void> {
+  await db.collection("driver_profiles").doc(DRIVER_ID).set({
+    uid: DRIVER_ID, status: "approved", online_status: "on_mission",
+  });
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: "pickup_customer_001",
     driver_id: driverId,
@@ -53,6 +56,7 @@ async function cleanup(): Promise<void> {
   const events = await db.collection("delivery_requests").doc(MISSION_ID).collection("tracking_events").get();
   await Promise.all(events.docs.map((d) => d.ref.delete()));
   await db.collection("delivery_requests").doc(MISSION_ID).delete();
+  await db.collection("driver_profiles").doc(DRIVER_ID).delete();
 }
 
 describe("completePickup — transitions valides depuis les 3 prédécesseurs autorisés", () => {

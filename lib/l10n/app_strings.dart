@@ -2912,6 +2912,21 @@ class AppStrings {
       'en': 'Suspend',
       'es': 'Suspender',
     },
+    'admin_suspend_ordinary': {
+      'fr': 'Suspension ordinaire',
+      'en': 'Ordinary suspension',
+      'es': 'Suspensión ordinaria',
+    },
+    'admin_suspend_urgent': {
+      'fr': 'Suspension urgente',
+      'en': 'Urgent suspension',
+      'es': 'Suspensión urgente',
+    },
+    'admin_suspend_escalate': {
+      'fr': 'Passer en suspension urgente',
+      'en': 'Escalate to urgent suspension',
+      'es': 'Cambiar a suspensión urgente',
+    },
     'admin_action_reactivate': {
       'fr': 'Réactiver',
       'en': 'Reactivate',

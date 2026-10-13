@@ -23,6 +23,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
+import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy";
 import {
   LedgerDirections,
   LedgerEntryStatuses,
@@ -88,6 +89,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
     const activeDeliveryId = locationSnap.data()?.active_delivery_id ?? null;
     const releasesDriver = activeDeliveryId === null || activeDeliveryId === missionId;
 
+    const { suspendedOrdinary } = await requireMissionProgressPermission(tx, ctx.uid);
     const now = admin.firestore.Timestamp.now();
 
     // 1. Mission -> completed (avec dénormalisation de la preuve de livraison).
@@ -160,9 +162,9 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
     if (!isInternalTest) {
       tx.update(driverRef, {
         completed_missions: admin.firestore.FieldValue.increment(1),
-        ...(releasesDriver ? { online_status: "online" } : {}),
+        ...(releasesDriver && !suspendedOrdinary ? { online_status: "online" } : {}),
       });
-    } else if (releasesDriver) {
+    } else if (releasesDriver && !suspendedOrdinary) {
       tx.update(driverRef, { online_status: "online" });
     }
 

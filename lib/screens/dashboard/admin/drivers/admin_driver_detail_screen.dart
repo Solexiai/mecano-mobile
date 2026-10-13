@@ -929,6 +929,36 @@ class _ActionsBar extends StatelessWidget {
           label: Text(t('admin_action_request_documents')),
         ),
         if (profile.status == DriverStatus.approved && canSuspendReactivate)
+          for (final mode in const ['ordinary', 'urgent'])
+            OutlinedButton.icon(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      final reason = await _promptReason(
+                        context,
+                        'admin_reason_suspend_label',
+                        'admin_reason_suspend_label',
+                      );
+                      if (reason == null || !context.mounted) return;
+                      await _run(
+                        context,
+                        () => repo.suspendDriver(
+                          profile.uid,
+                          reason,
+                          suspensionMode: mode,
+                        ),
+                        'admin_action_success_suspend',
+                      );
+                    },
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+              icon: const Icon(Icons.block_outlined, size: 18),
+              label: Text(t(mode == 'ordinary'
+                  ? 'admin_suspend_ordinary'
+                  : 'admin_suspend_urgent')),
+            ),
+        if (profile.status == DriverStatus.suspended &&
+            profile.suspensionMode == 'ordinary' &&
+            canSuspendReactivate)
           OutlinedButton.icon(
             onPressed: busy
                 ? null
@@ -941,13 +971,17 @@ class _ActionsBar extends StatelessWidget {
                     if (reason == null || !context.mounted) return;
                     await _run(
                       context,
-                      () => repo.suspendDriver(profile.uid, reason),
+                      () => repo.suspendDriver(
+                        profile.uid,
+                        reason,
+                        suspensionMode: 'urgent',
+                      ),
                       'admin_action_success_suspend',
                     );
                   },
             style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
-            icon: const Icon(Icons.block_outlined, size: 18),
-            label: Text(t('admin_action_suspend')),
+            icon: const Icon(Icons.warning_amber_outlined, size: 18),
+            label: Text(t('admin_suspend_escalate')),
           ),
         if (profile.status == DriverStatus.suspended && canSuspendReactivate)
           ElevatedButton.icon(

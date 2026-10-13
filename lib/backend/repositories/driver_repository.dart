@@ -110,7 +110,7 @@ abstract class DriverRepository {
 
   /// Suspend un chauffeur (admin/super_admin uniquement côté serveur) via
   /// la Cloud Function `suspendDriver`.
-  Future<void> suspendDriver(String driverId, String reason);
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'});
 
   /// Réactive un chauffeur suspendu (admin/super_admin uniquement côté
   /// serveur) via la Cloud Function `reactivateDriver`.
@@ -227,7 +227,7 @@ class NotConfiguredDriverRepository implements DriverRepository {
   }
 
   @override
-  Future<void> suspendDriver(String driverId, String reason) {
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) {
     throw BackendNotConfiguredException('suspendDriver: Firebase Functions non configuré.');
   }
 

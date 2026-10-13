@@ -429,6 +429,7 @@ export interface DriverProfileDoc {
   suspended_at?: admin_Timestamp | null;
   suspended_by_user_id?: string | null;
   suspension_reason?: string | null;
+  suspension_mode?: "ordinary" | "urgent" | null;
   reactivated_at?: admin_Timestamp | null;
   reactivated_by_user_id?: string | null;
   // ---- PHASE 6 — Stripe Connect (compte de versement chauffeur) ----

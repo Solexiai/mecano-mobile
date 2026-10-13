@@ -251,11 +251,11 @@ class FirebaseDriverRepository implements DriverRepository {
   }
 
   @override
-  Future<void> suspendDriver(String driverId, String reason) async {
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) async {
     try {
       await _functions
           .httpsCallable('suspendDriver')
-          .call({'driverId': driverId, 'reason': reason});
+          .call({'driverId': driverId, 'reason': reason, 'suspensionMode': suspensionMode});
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'suspendDriver a échoué (${e.code}): ${e.message}',

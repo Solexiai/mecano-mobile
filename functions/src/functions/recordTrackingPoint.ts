@@ -19,6 +19,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireAnyRole, requireSignedIn } from "../lib/auth";
 import { DriverStatuses, MissionStatuses, PlatformRoles } from "../lib/types";
+import { SuspensionModes } from "../lib/driverSuspensionPolicy";
 import { failedPrecondition, invalidArgument, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 
@@ -64,8 +65,14 @@ export const recordTrackingPoint = onCall<RecordTrackingPointRequest>(async (req
       tx.get(driverProfileRef),
       tx.get(locationRef),
     ]);
-    if (!driverProfileSnap.exists || driverProfileSnap.data()!.status !== DriverStatuses.APPROVED) {
-      throw permissionDenied("Seul un chauffeur approuvé peut transmettre sa position.");
+    if (!driverProfileSnap.exists) {
+      throw permissionDenied("Profil chauffeur introuvable.");
+    }
+    const profile = driverProfileSnap.data()!;
+    const ordinarySuspension = profile.status === DriverStatuses.SUSPENDED &&
+      profile.suspension_mode === SuspensionModes.ORDINARY;
+    if (profile.status !== DriverStatuses.APPROVED && !ordinarySuspension) {
+      throw permissionDenied("Chauffeur non approuvé ou suspendu d'urgence : GPS refusé.");
     }
     const activeDeliveryId = (currentLocationSnap.data()?.active_delivery_id ?? null) as string | null;
     if (observedAssignment && activeDeliveryId !== firstDeliveryId) {
@@ -73,6 +80,11 @@ export const recordTrackingPoint = onCall<RecordTrackingPointRequest>(async (req
     }
     firstDeliveryId = activeDeliveryId;
     observedAssignment = true;
+    // Ordinary suspension allows existing assigned mission GPS only.
+    // It must not make the driver discoverable/online without a mission.
+    if (ordinarySuspension && !activeDeliveryId) {
+      throw permissionDenied("Suspension ordinaire : suivi GPS sans mission interdit.");
+    }
 
     // Toutes les lectures précèdent les écritures ; une fin de mission ou une
     // suspension concurrente invalide l'essai et impose une nouvelle vérification.
