@@ -299,7 +299,10 @@ class _DriverRow extends StatelessWidget {
               child: Text(
                 t(driver.status.key),
                 style: TextStyle(
-                  color: _statusColor(driver.status),
+                  color: AppColors.statusBadgeTextColor(
+                    _statusColor(driver.status),
+                    Theme.of(context).brightness,
+                  ),
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),

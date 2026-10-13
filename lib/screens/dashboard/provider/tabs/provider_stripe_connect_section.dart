@@ -65,10 +65,12 @@ class ProviderStripeConnectSection extends StatefulWidget {
   });
 
   @override
-  State<ProviderStripeConnectSection> createState() => _ProviderStripeConnectSectionState();
+  State<ProviderStripeConnectSection> createState() =>
+      _ProviderStripeConnectSectionState();
 }
 
-class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSection> {
+class _ProviderStripeConnectSectionState
+    extends State<ProviderStripeConnectSection> {
   bool _loading = false;
   String? _error;
   // Bloc 8B — `onboardingUrl` renvoyée par le dernier appel réussi, gardée
@@ -87,7 +89,8 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
       _error = null;
     });
     try {
-      final result = await BackendLocator.driverRepository.createOrRetrieveDriverStripeAccount();
+      final result = await BackendLocator.driverRepository
+          .createOrRetrieveDriverStripeAccount();
       if (!mounted) return;
       if (result.success != true || result.onboardingUrl == null) {
         setState(() {
@@ -118,17 +121,26 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
     final uri = Uri.tryParse(url);
     if (uri == null) {
       if (!mounted) return;
-      setState(() => _error = widget.t('provider_stripe_connect_error_generic'));
+      setState(
+        () => _error = widget.t('provider_stripe_connect_error_generic'),
+      );
       return;
     }
     try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!launched && mounted) {
-        setState(() => _error = widget.t('provider_stripe_connect_error_open_link'));
+        setState(
+          () => _error = widget.t('provider_stripe_connect_error_open_link'),
+        );
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = widget.t('provider_stripe_connect_error_open_link'));
+      setState(
+        () => _error = widget.t('provider_stripe_connect_error_open_link'),
+      );
     }
   }
 
@@ -156,7 +168,9 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
           Row(
             children: [
               Icon(
-                isActive ? Icons.verified_outlined : Icons.account_balance_outlined,
+                isActive
+                    ? Icons.verified_outlined
+                    : Icons.account_balance_outlined,
                 color: isActive ? AppColors.success : AppColors.primary,
               ),
               const SizedBox(width: 8),
@@ -167,17 +181,26 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
                 ),
               ),
               _StatusBadge(
-                label: _statusLabel(t, hasAccount: hasAccount, isActive: isActive),
+                label: _statusLabel(
+                  t,
+                  hasAccount: hasAccount,
+                  isActive: isActive,
+                ),
                 color: isActive
                     ? AppColors.success
-                    : (hasAccount ? AppColors.warning : AppColors.textSecondary),
+                    : (hasAccount
+                          ? AppColors.warning
+                          : AppColors.textSecondary),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             _statusDescription(t, hasAccount: hasAccount, isActive: isActive),
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+            ),
           ),
           if (hasAccount) ...[
             const SizedBox(height: 12),
@@ -195,12 +218,19 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.error_outline, color: AppColors.error, size: 18),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 18,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: AppColors.error, fontSize: 12),
+                    style: const TextStyle(
+                      color: AppColors.error,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
@@ -218,15 +248,18 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
                       ? const SizedBox(
                           width: 16,
                           height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.open_in_new, size: 18),
                   label: Text(
                     _loading
                         ? t('provider_stripe_connect_loading')
                         : (hasAccount
-                            ? t('provider_stripe_connect_resume')
-                            : t('provider_stripe_connect_start')),
+                              ? t('provider_stripe_connect_resume')
+                              : t('provider_stripe_connect_start')),
                   ),
                 ),
               if (!isActive && _lastOnboardingUrl != null && !_loading)
@@ -261,13 +294,21 @@ class _ProviderStripeConnectSectionState extends State<ProviderStripeConnectSect
     );
   }
 
-  String _statusLabel(String Function(String) t, {required bool hasAccount, required bool isActive}) {
+  String _statusLabel(
+    String Function(String) t, {
+    required bool hasAccount,
+    required bool isActive,
+  }) {
     if (isActive) return t('provider_stripe_connect_status_active');
     if (hasAccount) return t('provider_stripe_connect_status_pending');
     return t('provider_stripe_connect_status_none');
   }
 
-  String _statusDescription(String Function(String) t, {required bool hasAccount, required bool isActive}) {
+  String _statusDescription(
+    String Function(String) t, {
+    required bool hasAccount,
+    required bool isActive,
+  }) {
     if (isActive) return t('provider_stripe_connect_description_active');
     if (hasAccount) return t('provider_stripe_connect_description_pending');
     return t('provider_stripe_connect_description_none');
@@ -289,7 +330,14 @@ class _StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: AppColors.statusBadgeTextColor(
+            color,
+            Theme.of(context).brightness,
+          ),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -310,7 +358,10 @@ class _CapabilityRow extends StatelessWidget {
           color: enabled ? AppColors.success : AppColors.warning,
         ),
         const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
       ],
     );
   }

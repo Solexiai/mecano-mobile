@@ -269,10 +269,7 @@ class _ProfileSectionState extends State<_ProfileSection> {
                 label: t('admin_driver_field_last_name'),
                 value: lastName.isEmpty ? na : lastName,
               ),
-              _KeyValueRow(
-                label: t('admin_driver_field_phone'),
-                value: phone,
-              ),
+              _KeyValueRow(label: t('admin_driver_field_phone'), value: phone),
               _KeyValueRow(
                 label: t('admin_driver_field_email'),
                 value: userEmail.isEmpty ? na : userEmail,
@@ -576,7 +573,12 @@ class _DocumentTileState extends State<_DocumentTile> {
                 child: Text(
                   t(doc.status.key),
                   style: TextStyle(
-                    color: _statusColor,
+                    // This document tile has a fixed light background
+                    // even when the global application theme is dark.
+                    color: AppColors.statusBadgeTextColor(
+                      _statusColor,
+                      Brightness.light,
+                    ),
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -952,9 +954,13 @@ class _ActionsBar extends StatelessWidget {
                     },
               style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
               icon: const Icon(Icons.block_outlined, size: 18),
-              label: Text(t(mode == 'ordinary'
-                  ? 'admin_suspend_ordinary'
-                  : 'admin_suspend_urgent')),
+              label: Text(
+                t(
+                  mode == 'ordinary'
+                      ? 'admin_suspend_ordinary'
+                      : 'admin_suspend_urgent',
+                ),
+              ),
             ),
         if (profile.status == DriverStatus.suspended &&
             profile.suspensionMode == 'ordinary' &&

@@ -325,7 +325,10 @@ class _LedgerTile extends StatelessWidget {
                   t(_statusKey(entry.status)),
                   style: TextStyle(
                     fontSize: 10,
-                    color: color,
+                    color: AppColors.statusBadgeTextColor(
+                      color,
+                      Theme.of(context).brightness,
+                    ),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
