@@ -77,7 +77,7 @@ class _FlakyNotificationRepository implements NotificationRepository {
       );
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) =>
+  Stream<List<AppNotification>> watchNotifications(String userId, {int limit = 50}) =>
       Stream.value([_notification]);
 
   @override

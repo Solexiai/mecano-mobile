@@ -145,7 +145,7 @@ class _DriverRepo implements DriverRepository {
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers() =>
       throw UnimplementedError();
   @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) =>
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status, {int limit = 50}) =>
       throw UnimplementedError();
   @override
   Future<void> approveDriver(String driverId) => throw UnimplementedError();

@@ -88,7 +88,7 @@ class _FakeNotificationRepository implements NotificationRepository {
   @override
   Stream<int> watchUnreadCount(String userId) => Stream.value(2);
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) =>
+  Stream<List<AppNotification>> watchNotifications(String userId, {int limit = 50}) =>
       Stream.value(const []);
   @override
   Future<void> markAsRead(String userId, String notificationId) async {}

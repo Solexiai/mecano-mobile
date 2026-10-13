@@ -71,8 +71,10 @@ class _StreamNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) =>
-      _notifController.stream;
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  }) => _notifController.stream;
 
   @override
   Stream<int> watchUnreadCount(String userId) => _unreadController.stream;
@@ -178,6 +180,29 @@ void main() {
   tearDown(() {
     BackendLocator.notificationRepositoryOverride = null;
   });
+
+  testWidgets(
+    'GAP-M-06: initial 50 notifications, older items reachable on demand',
+    (tester) async {
+      final repo = _WindowedNotificationRepository(
+        List.generate(67, (i) => _notif(id: 'window_$i', isRead: true)),
+      );
+      BackendLocator.notificationRepositoryOverride = repo;
+      final auth = FirebaseAuthProvider(backendConfigured: false)
+        ..debugForceSignedIn = true
+        ..debugForceUid = _userId;
+      await tester.pumpWidget(_buildNotificationsScreenApp(auth));
+      await tester.pumpAndSettle();
+
+      expect(repo.windows, [50]);
+      expect(find.byKey(const Key('notifications-load-more')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('notifications-load-more')));
+      await tester.pumpAndSettle();
+      expect(repo.windows, [50, 100]);
+      expect(find.byKey(const Key('notifications-load-more')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   group('I-2 — read/unread', () {
     testWidgets(
@@ -414,4 +439,28 @@ void main() {
       },
     );
   });
+}
+
+class _WindowedNotificationRepository implements NotificationRepository {
+  _WindowedNotificationRepository(this.all);
+  final List<AppNotification> all;
+  final List<int> windows = [];
+
+  @override
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  }) {
+    windows.add(limit);
+    return Stream.value(all.take(limit).toList());
+  }
+
+  @override
+  Stream<int> watchUnreadCount(String userId) => Stream.value(0);
+
+  @override
+  Future<void> markAsRead(String userId, String notificationId) async {}
+
+  @override
+  Future<void> markAllAsRead(String userId) async {}
 }

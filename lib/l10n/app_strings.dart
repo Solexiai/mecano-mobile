@@ -271,6 +271,11 @@ class AppStrings {
     // (fr) / "01/12/2026 at 2:30 PM"-style (en, connecteur seul ici) / "a las" (es).
     'datetime_connector_at': {'fr': 'à', 'en': 'at', 'es': 'a las'},
     'common_see_all': {'fr': 'Tout voir', 'en': 'See all', 'es': 'Ver todo'},
+    'common_load_more': {
+      'fr': 'Afficher plus',
+      'en': 'Load more',
+      'es': 'Mostrar más',
+    },
     'common_upload_photo': {
       'fr': 'Ajouter des photos',
       'en': 'Upload photos',

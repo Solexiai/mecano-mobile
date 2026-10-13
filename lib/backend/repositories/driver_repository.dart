@@ -90,7 +90,10 @@ abstract class DriverRepository {
   /// approved/rejected/suspended, point 4 du cahier des charges Phase 2).
   /// `null` = tous les statuts confondus (à utiliser avec prudence, coûteux
   /// sur une base de données volumineuse : privilégier un statut explicite).
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status);
+  Stream<List<DriverProfileV2>> watchDriversByStatus(
+    DriverStatus? status, {
+    int limit = 50,
+  });
 
   // -------------------------------------------------------------------
   // Actions analyste — Cloud Functions ONLY (voir en-tête de fichier).
@@ -110,7 +113,11 @@ abstract class DriverRepository {
 
   /// Suspend un chauffeur (admin/super_admin uniquement côté serveur) via
   /// la Cloud Function `suspendDriver`.
-  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'});
+  Future<void> suspendDriver(
+    String driverId,
+    String reason, {
+    String suspensionMode = 'urgent',
+  });
 
   /// Réactive un chauffeur suspendu (admin/super_admin uniquement côté
   /// serveur) via la Cloud Function `reactivateDriver`.
@@ -169,77 +176,103 @@ class NotConfiguredDriverRepository implements DriverRepository {
   Future<DriverProfileV2?> getDriverProfile(String driverId) async => null;
 
   @override
-  Stream<DriverProfileV2?> watchDriverProfile(String driverId) => Stream.value(null);
+  Stream<DriverProfileV2?> watchDriverProfile(String driverId) =>
+      Stream.value(null);
 
   @override
-  Future<List<DriverDocument>> getDriverDocuments(String driverId) async => const [];
+  Future<List<DriverDocument>> getDriverDocuments(String driverId) async =>
+      const [];
 
   @override
-  Stream<List<DriverDocument>> watchDriverDocuments(String driverId) => Stream.value(const []);
+  Stream<List<DriverDocument>> watchDriverDocuments(String driverId) =>
+      Stream.value(const []);
 
   @override
-  Future<List<DriverVehicle>> getDriverVehicles(String driverId) async => const [];
+  Future<List<DriverVehicle>> getDriverVehicles(String driverId) async =>
+      const [];
 
   @override
   Future<void> submitDriverDocument(DriverDocument document) {
     throw BackendNotConfiguredException(
-        'submitDriverDocument: Firebase Storage/Firestore non configuré.');
+      'submitDriverDocument: Firebase Storage/Firestore non configuré.',
+    );
   }
 
   @override
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) {
     throw BackendNotConfiguredException(
-        'submitDriverOnboarding: Firebase Firestore non configuré.');
+      'submitDriverOnboarding: Firebase Firestore non configuré.',
+    );
   }
 
   @override
   Future<void> submitDriverVehicle(DriverVehicle vehicle) {
-    throw BackendNotConfiguredException('submitDriverVehicle: Firebase Firestore non configuré.');
+    throw BackendNotConfiguredException(
+      'submitDriverVehicle: Firebase Firestore non configuré.',
+    );
   }
 
   @override
   Future<void> submitForReview() {
     throw BackendNotConfiguredException(
-        'submitForReview: Firebase Functions non configuré.');
+      'submitForReview: Firebase Functions non configuré.',
+    );
   }
 
   @override
-  Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => Stream.value(const []);
-
-  @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) =>
+  Stream<List<DriverProfileV2>> watchPendingReviewDrivers() =>
       Stream.value(const []);
 
   @override
+  Stream<List<DriverProfileV2>> watchDriversByStatus(
+    DriverStatus? status, {
+    int limit = 50,
+  }) => Stream.value(const []);
+
+  @override
   Future<void> approveDriver(String driverId) {
-    throw BackendNotConfiguredException('approveDriver: Firebase Functions non configuré.');
+    throw BackendNotConfiguredException(
+      'approveDriver: Firebase Functions non configuré.',
+    );
   }
 
   @override
   Future<void> rejectDriver(String driverId, String reason) {
-    throw BackendNotConfiguredException('rejectDriver: Firebase Functions non configuré.');
+    throw BackendNotConfiguredException(
+      'rejectDriver: Firebase Functions non configuré.',
+    );
   }
 
   @override
   Future<void> requestDriverDocuments(String driverId, String reason) {
     throw BackendNotConfiguredException(
-        'requestDriverDocuments: Firebase Functions non configuré.');
+      'requestDriverDocuments: Firebase Functions non configuré.',
+    );
   }
 
   @override
-  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) {
-    throw BackendNotConfiguredException('suspendDriver: Firebase Functions non configuré.');
+  Future<void> suspendDriver(
+    String driverId,
+    String reason, {
+    String suspensionMode = 'urgent',
+  }) {
+    throw BackendNotConfiguredException(
+      'suspendDriver: Firebase Functions non configuré.',
+    );
   }
 
   @override
   Future<void> reactivateDriver(String driverId) {
-    throw BackendNotConfiguredException('reactivateDriver: Firebase Functions non configuré.');
+    throw BackendNotConfiguredException(
+      'reactivateDriver: Firebase Functions non configuré.',
+    );
   }
 
   @override
   Future<void> addDriverInternalNote(String driverId, String text) {
     throw BackendNotConfiguredException(
-        'addDriverInternalNote: Firebase Functions non configuré.');
+      'addDriverInternalNote: Firebase Functions non configuré.',
+    );
   }
 
   @override
@@ -249,18 +282,21 @@ class NotConfiguredDriverRepository implements DriverRepository {
   @override
   Future<void> logDriverReviewOpened(String driverId) {
     throw BackendNotConfiguredException(
-        'logDriverReviewOpened: Firebase Functions non configuré.');
+      'logDriverReviewOpened: Firebase Functions non configuré.',
+    );
   }
 
   @override
   Future<void> setDriverOnlineStatus(String driverId, bool online) {
     throw BackendNotConfiguredException(
-        'setDriverOnlineStatus: Firebase Firestore non configuré.');
+      'setDriverOnlineStatus: Firebase Firestore non configuré.',
+    );
   }
 
   @override
   Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() {
     throw BackendNotConfiguredException(
-        'createOrRetrieveDriverStripeAccount: Firebase Functions non configuré.');
+      'createOrRetrieveDriverStripeAccount: Firebase Functions non configuré.',
+    );
   }
 }

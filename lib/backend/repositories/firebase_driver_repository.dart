@@ -13,13 +13,14 @@ import '../models/driver_internal_note.dart';
 import '../models/driver_profile_v2.dart';
 import '../models/driver_vehicle.dart';
 import 'driver_repository.dart';
+import 'firestore_driver_window.dart';
 
 class FirebaseDriverRepository implements DriverRepository {
   FirebaseDriverRepository({
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
-  })  : _db = firestore ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+  }) : _db = firestore ?? FirebaseFirestore.instance,
+       _functions = functions ?? FirebaseFunctions.instance;
 
   final FirebaseFirestore _db;
   final FirebaseFunctions _functions;
@@ -50,8 +51,9 @@ class FirebaseDriverRepository implements DriverRepository {
 
   @override
   Future<List<DriverDocument>> getDriverDocuments(String driverId) async {
-    final snap =
-        await _driverDocuments.where('driver_id', isEqualTo: driverId).get();
+    final snap = await _driverDocuments
+        .where('driver_id', isEqualTo: driverId)
+        .get();
     return snap.docs
         .map((d) => DriverDocument.fromJson(d.id, d.data()))
         .toList();
@@ -71,8 +73,9 @@ class FirebaseDriverRepository implements DriverRepository {
 
   @override
   Future<List<DriverVehicle>> getDriverVehicles(String driverId) async {
-    final snap =
-        await _driverVehicles.where('driver_id', isEqualTo: driverId).get();
+    final snap = await _driverVehicles
+        .where('driver_id', isEqualTo: driverId)
+        .get();
     return snap.docs
         .map((d) => DriverVehicle.fromJson(d.id, d.data()))
         .toList();
@@ -91,7 +94,8 @@ class FirebaseDriverRepository implements DriverRepository {
 
   @override
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) async {
-    final safeStatus = (profile.status == DriverStatus.approved ||
+    final safeStatus =
+        (profile.status == DriverStatus.approved ||
             profile.status == DriverStatus.rejected ||
             profile.status == DriverStatus.suspended)
         ? DriverStatus.registrationIncomplete
@@ -164,9 +168,7 @@ class FirebaseDriverRepository implements DriverRepository {
           .doc(safeVehicle.id)
           .set(safeVehicle.toJson(), SetOptions(merge: true));
     } catch (e) {
-      throw BackendNotConfiguredException(
-        'submitDriverVehicle a échoué: $e',
-      );
+      throw BackendNotConfiguredException('submitDriverVehicle a échoué: $e');
     }
   }
 
@@ -197,26 +199,40 @@ class FirebaseDriverRepository implements DriverRepository {
   }
 
   @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) {
+  Stream<List<DriverProfileV2>> watchDriversByStatus(
+    DriverStatus? status, {
+    int limit = 50,
+  }) {
+    if (limit < 1) throw ArgumentError.value(limit, 'limit');
+    // Stable document-ID window. The optional status filter remains a
+    // single-field Firestore query; no new composite index is required.
+    // The admin UI can explicitly request further finite windows.
     final query = status == null
         ? _driverProfiles
         : _driverProfiles.where('status', isEqualTo: status.firestoreValue);
-    return query.snapshots().map(
-          (snap) => snap.docs
-              .where(
-                (d) => (d.data()['migrated_to_uid'] ?? '').toString().isEmpty,
-              )
-              .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
-              .toList(),
+    return query
+        .orderBy(FieldPath.documentId)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => FirestoreDriverWindow(
+            snap.docs
+                .where(
+                  (d) => (d.data()['migrated_to_uid'] ?? '').toString().isEmpty,
+                )
+                .map((d) => DriverProfileV2.fromJson(d.id, d.data()))
+                .toList(),
+            fetchedCount: snap.docs.length,
+          ),
         );
   }
 
   @override
   Future<void> approveDriver(String driverId) async {
     try {
-      await _functions
-          .httpsCallable('approveDriver')
-          .call({'driverId': driverId});
+      await _functions.httpsCallable('approveDriver').call({
+        'driverId': driverId,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'approveDriver a échoué (${e.code}): ${e.message}',
@@ -227,9 +243,10 @@ class FirebaseDriverRepository implements DriverRepository {
   @override
   Future<void> rejectDriver(String driverId, String reason) async {
     try {
-      await _functions
-          .httpsCallable('rejectDriver')
-          .call({'driverId': driverId, 'reason': reason});
+      await _functions.httpsCallable('rejectDriver').call({
+        'driverId': driverId,
+        'reason': reason,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'rejectDriver a échoué (${e.code}): ${e.message}',
@@ -240,9 +257,10 @@ class FirebaseDriverRepository implements DriverRepository {
   @override
   Future<void> requestDriverDocuments(String driverId, String reason) async {
     try {
-      await _functions
-          .httpsCallable('requestDriverDocuments')
-          .call({'driverId': driverId, 'reason': reason});
+      await _functions.httpsCallable('requestDriverDocuments').call({
+        'driverId': driverId,
+        'reason': reason,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'requestDriverDocuments a échoué (${e.code}): ${e.message}',
@@ -251,11 +269,17 @@ class FirebaseDriverRepository implements DriverRepository {
   }
 
   @override
-  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) async {
+  Future<void> suspendDriver(
+    String driverId,
+    String reason, {
+    String suspensionMode = 'urgent',
+  }) async {
     try {
-      await _functions
-          .httpsCallable('suspendDriver')
-          .call({'driverId': driverId, 'reason': reason, 'suspensionMode': suspensionMode});
+      await _functions.httpsCallable('suspendDriver').call({
+        'driverId': driverId,
+        'reason': reason,
+        'suspensionMode': suspensionMode,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'suspendDriver a échoué (${e.code}): ${e.message}',
@@ -266,9 +290,9 @@ class FirebaseDriverRepository implements DriverRepository {
   @override
   Future<void> reactivateDriver(String driverId) async {
     try {
-      await _functions
-          .httpsCallable('reactivateDriver')
-          .call({'driverId': driverId});
+      await _functions.httpsCallable('reactivateDriver').call({
+        'driverId': driverId,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'reactivateDriver a échoué (${e.code}): ${e.message}',
@@ -279,9 +303,10 @@ class FirebaseDriverRepository implements DriverRepository {
   @override
   Future<void> addDriverInternalNote(String driverId, String text) async {
     try {
-      await _functions
-          .httpsCallable('addDriverInternalNote')
-          .call({'driverId': driverId, 'text': text});
+      await _functions.httpsCallable('addDriverInternalNote').call({
+        'driverId': driverId,
+        'text': text,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'addDriverInternalNote a échoué (${e.code}): ${e.message}',
@@ -304,9 +329,9 @@ class FirebaseDriverRepository implements DriverRepository {
   @override
   Future<void> logDriverReviewOpened(String driverId) async {
     try {
-      await _functions
-          .httpsCallable('logDriverReviewOpened')
-          .call({'driverId': driverId});
+      await _functions.httpsCallable('logDriverReviewOpened').call({
+        'driverId': driverId,
+      });
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'logDriverReviewOpened a échoué (${e.code}): ${e.message}',
@@ -318,24 +343,22 @@ class FirebaseDriverRepository implements DriverRepository {
   Future<void> setDriverOnlineStatus(String driverId, bool online) async {
     try {
       await _driverProfiles.doc(driverId).update({
-        'online_status': (online
-                ? DriverOnlineStatus.online
-                : DriverOnlineStatus.offline)
-            .firestoreValue,
+        'online_status':
+            (online ? DriverOnlineStatus.online : DriverOnlineStatus.offline)
+                .firestoreValue,
       });
     } catch (e) {
-      throw BackendNotConfiguredException(
-        'setDriverOnlineStatus a échoué: $e',
-      );
+      throw BackendNotConfiguredException('setDriverOnlineStatus a échoué: $e');
     }
   }
 
   @override
   Future<DriverStripeAccountResult>
-      createOrRetrieveDriverStripeAccount() async {
+  createOrRetrieveDriverStripeAccount() async {
     try {
-      final result =
-          await _functions.httpsCallable('createDriverStripeAccount').call();
+      final result = await _functions
+          .httpsCallable('createDriverStripeAccount')
+          .call();
       final data = Map<String, dynamic>.from(result.data as Map);
       return DriverStripeAccountResult(
         success: data['success'] == true,

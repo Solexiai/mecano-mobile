@@ -19,7 +19,7 @@ import 'notification_repository.dart';
 
 class FirebaseNotificationRepository implements NotificationRepository {
   FirebaseNotificationRepository({FirebaseFirestore? firestore})
-      : _db = firestore ?? FirebaseFirestore.instance;
+    : _db = firestore ?? FirebaseFirestore.instance;
 
   final FirebaseFirestore _db;
 
@@ -27,17 +27,23 @@ class FirebaseNotificationRepository implements NotificationRepository {
       _db.collection('users').doc(userId).collection('notifications');
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) {
-    // Requête SIMPLE (pas de orderBy composite) : tri en mémoire, cohérent
-    // avec la convention du reste du projet (évite tout besoin d'index
-    // composite dédié sur cette sous-collection).
-    return _notifications(userId).snapshots().map((snap) {
-      final items = snap.docs
-          .map((d) => AppNotification.fromJson(d.id, userId, d.data()))
-          .toList();
-      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return items;
-    });
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  }) {
+    if (limit < 1) throw ArgumentError.value(limit, 'limit');
+    // Single-field created_at index, newest first; an explicit finite window
+    // prevents downloading every historical notification. Older items remain
+    // reachable through successive user-requested larger windows.
+    return _notifications(userId)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => AppNotification.fromJson(d.id, userId, d.data()))
+              .toList(),
+        );
   }
 
   @override
@@ -50,15 +56,14 @@ class FirebaseNotificationRepository implements NotificationRepository {
 
   @override
   Future<void> markAsRead(String userId, String notificationId) async {
-    await _notifications(userId).doc(notificationId).update({
-      'is_read': true,
-    });
+    await _notifications(userId).doc(notificationId).update({'is_read': true});
   }
 
   @override
   Future<void> markAllAsRead(String userId) async {
-    final unread =
-        await _notifications(userId).where('is_read', isEqualTo: false).get();
+    final unread = await _notifications(
+      userId,
+    ).where('is_read', isEqualTo: false).get();
     if (unread.docs.isEmpty) return;
     final batch = _db.batch();
     for (final doc in unread.docs) {

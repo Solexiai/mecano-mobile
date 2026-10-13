@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../backend/backend_locator.dart';
+import '../../../../backend/repositories/firestore_query_window.dart';
+import '../../../../backend/repositories/firestore_driver_window.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
@@ -73,18 +75,37 @@ class AdminDriversListScreen extends StatefulWidget {
 
 class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   late DriverStatus? _filter;
+  int _window = kFirestoreLiveWindowStep;
+  late Stream<List<DriverProfileV2>> _stream;
 
   @override
   void initState() {
     super.initState();
     _filter = widget.initialFilter == 'all' ? null : DriverStatus.pendingReview;
+    _refreshStream();
   }
+
+  void _refreshStream() {
+    _stream = BackendLocator.driverRepository.watchDriversByStatus(
+      _filter,
+      limit: _window,
+    );
+  }
+
+  void _changeFilter(DriverStatus? filter) => setState(() {
+    _filter = filter;
+    _window = kFirestoreLiveWindowStep;
+    _refreshStream();
+  });
+
+  void _loadMore() => setState(() {
+    _window += kFirestoreLiveWindowStep;
+    _refreshStream();
+  });
 
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    final repo = BackendLocator.driverRepository;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -103,15 +124,16 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
               return ChoiceChip(
                 label: Text(t(_filterLabelKey(f))),
                 selected: selected,
-                onSelected: (_) => setState(() => _filter = f),
+                onSelected: (_) => _changeFilter(f),
               );
             }).toList(),
           ),
           const SizedBox(height: 20),
           StreamBuilder<List<DriverProfileV2>>(
-            stream: repo.watchDriversByStatus(_filter),
+            stream: _stream,
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
                   child: Center(
@@ -134,12 +156,17 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
               if (snapshot.hasError) {
                 return _ErrorState(
                   message: t('admin_drivers_error'),
-                  onRetry: () => setState(() {}),
+                  onRetry: () => setState(_refreshStream),
                 );
               }
 
               final drivers = snapshot.data ?? const <DriverProfileV2>[];
-              if (drivers.isEmpty) {
+              // Migration aliases are filtered after the Firestore limit.
+              // Detect a full RAW window so they cannot hide later profiles.
+              final hasNext = drivers is FirestoreDriverWindow
+                  ? drivers.fetchedCount >= _window
+                  : drivers.length >= _window;
+              if (drivers.isEmpty && !hasNext) {
                 return _EmptyState(message: t('admin_drivers_empty'));
               }
 
@@ -148,7 +175,24 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
               final sorted = [...drivers]
                 ..sort((a, b) => b.lastUpdatedAt.compareTo(a.lastUpdatedAt));
 
-              return _DriversTable(drivers: sorted, t: t);
+              return Column(
+                children: [
+                  if (drivers.isEmpty)
+                    _EmptyState(message: t('admin_drivers_empty'))
+                  else
+                    _DriversTable(drivers: sorted, t: t),
+                  if (hasNext)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: OutlinedButton.icon(
+                        key: const Key('admin-drivers-load-more'),
+                        onPressed: _loadMore,
+                        icon: const Icon(Icons.expand_more),
+                        label: Text(t('common_load_more')),
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],
