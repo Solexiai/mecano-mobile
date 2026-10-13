@@ -205,6 +205,11 @@ describe("GAP-S-02 deterministic authorization cancellation race diagnostic", ()
       const before = (await missionRef.get()).data()!;
       expect(before.status).toBe("assigned");
       expect(before.active_payment_id).toBeTruthy();
+      const preparedPayment = (await db.collection("payments")
+        .doc(before.active_payment_id).get()).data()!;
+      expect(preparedPayment.status).toBe(PaymentStatuses.AUTHORIZATION_PENDING);
+      expect(preparedPayment.provider_payment_intent_id).toBeTruthy();
+      expect(preparedPayment.amount_requested_minor).toBeGreaterThan(0);
       const customer = testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" });
       await updateDoc(doc(customer.firestore(), "delivery_requests", MISSION_ID), {
         status: "cancelled",

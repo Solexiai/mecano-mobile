@@ -343,6 +343,29 @@ export async function createAndAuthorizeMissionPayment(
       metadata: { movik_mission_id: missionId, movik_payment_id: paymentId },
     });
 
+    // GAP-S-02: createPayment uses confirm:false. Persist the provider's
+    // PaymentIntent reference BEFORE authorizePayment can place a hold.
+    // An interruption after confirmation can then be reconciled safely.
+    await db.runTransaction(async (tx) => {
+      const ref = db.collection("payments").doc(paymentId);
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw notFound(`payments/${paymentId} introuvable.`);
+      const payment = snap.data() as PaymentDoc;
+      if (
+        payment.status !== PaymentStatuses.AUTHORIZATION_PENDING ||
+        payment.mission_id !== missionId ||
+        payment.stripe_environment !== provider.environment ||
+        (payment.provider_payment_intent_id &&
+          payment.provider_payment_intent_id !== created.providerPaymentIntentId)
+      ) {
+        throw failedPrecondition("Référence de paiement incohérente avant autorisation.");
+      }
+      tx.update(ref, {
+        provider_payment_intent_id: created.providerPaymentIntentId,
+        updated_at: admin.firestore.Timestamp.now(),
+      });
+    });
+
     // 🔒 BLOC H (catalogue d'évènements financiers) — journalise la création
     // RÉELLE du PaymentIntent côté provider (distinct de `payment_captured`/
     // `payment_failed` déjà audités via processStripeWebhook.ts). N'est

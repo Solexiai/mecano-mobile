@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : 1.3M-U-BUILD, 12 octobre 2026 ; clôture locale ciblée P2-BUILD-001, non déployée.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : GAP-S-02-RECOVERY, 13 octobre 2026 ; récupération financière ciblée validée en émulateur, non déployée.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 5** ; 27 fiches conservées, 5 ouvertes. P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 4** ; 27 fiches conservées, 4 ouvertes. GAP-S-02 fermé exclusivement dans le périmètre des tests émulateur, sans Stripe réel ni déploiement. Les paiements historiques sans référence fournisseur sont signalés pour vérification manuelle.  P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -44,7 +44,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
 | GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
 | GAP-M-06 | P2 | Risque coût historique | QUALIFIÉ | watchNotifications/watchDriversByStatus sans limit. |
-| GAP-S-02 | P2 | Course annulation/autorisation reproduite | CORRECTION PARTIELLE TESTÉE — NON FERMÉ — NON DÉPLOYÉ | Annulation durant l'autorisation corrigée et testée en émulateur ; récupération automatique après arrêt avant écriture du résultat Stripe reste non démontrée. |
+| GAP-S-02 | P2 | Concurrence et récupération financière testées | FERMÉ — PÉRIMÈTRE ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Race annulation/autorisation, récupération de pending avec référence provider et compensations idempotentes validées localement ; paiements réels, cas legacy sans ID et cron déployé NON VALIDÉS. |
 | GAP-S-04 | P2 | Décision produit / risque | QUALIFIÉ | Chauffeur suspendu en mission peut progresser completePickup/Delivery. |
 
 ## Fiches actives
@@ -447,6 +447,10 @@ Historique de la fiche avant T conservé ci-dessous :
 - Critère de fermeture : Lecture bornée si besoin et fonctionnel intact, ou risque accepté documenté. + règle permanente ci-dessus.
 
 ### GAP-S-02
+
+- Mise à jour **2026-10-13 — FERMÉ — PÉRIMÈTRE ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**. Avant la confirmation d'un paiement, sa référence provider est désormais enregistrée dans payments/{id} ; createPayment a confirm:false, donc aucune autorisation n'est déclenchée avant cette écriture. Un récupérateur conservateur interroge getPaymentStatus sur les paiements authorization_pending âgés attachés à une mission cancelled, exige concordance environnement Stripe, identités et montant entier en cents et absence de capture, puis utilise la compensation idempotente existante. Les états inconnus/capturés, les identifiants absents et les divergences restent en révision manuelle, sans correction spéculative. Tâche planifiée limitée à 100 paiements en attente par passage (10 min), non déployée ; couverture de tout backlog important non démontrée.
+- Validation : **25 tests sur 25**, quatre suites Firestore/Auth en émulateur, fournisseur FakePaymentProvider, incluant reprise après interruption simulée, annulation, rejeu, montant discordant, référence absente, fournisseur déjà annulé et isolation TEST/LIVE. Compilation TypeScript et lint des sources réussis. Aucun calcul de prix, commission, devis, cent Stripe, snapshot, ledger ni règle Firestore modifié. Preuves : artifacts/gapS02-recovery-20261013/CHECKPOINT_GAP_S02_RECOVERY.md.
+- Limites de cette fermeture : aucune exécution planifiée déployée, aucun flux Stripe Sandbox/LIVE, aucun crash physique du runtime Cloud Functions/Node20 ni validation opérationnelle de surveillance des alertes. Des paiements historiques sans provider_payment_intent_id nécessitent une investigation sans accès automatique au provider ; ces limites restent des prérequis avant tout lancement réel.
 
 - Mise à jour 2026-10-12 — correctif financier local : **CORRECTION PARTIELLE TESTÉE — NON FERMÉE — NON DÉPLOYÉE**. Reproduction déterministe avant correction : une mission pouvait être cancelled pendant AUTHORIZATION_PENDING, puis le paiement se retrouvait authorized après le passage tardif du fournisseur fictif.
 - Le code local ajoute le refus de commencer un paiement déjà annulé, la compensation idempotente d'une autorisation arrivée après cancellation et un trigger Firestore de rattrapage sur le passage du paiement à authorized (avec retry). La compensation d'échec ne remplace plus cancelled par payment_failed. Montants, tarifs, commissions et snapshots de calcul inchangés.
