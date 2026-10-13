@@ -40,12 +40,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
+import 'package:movik_connect/backend/models/delivery_mission.dart';
+import 'package:movik_connect/backend/repositories/mission_repository.dart';
 import 'package:movik_connect/backend/repositories/driver_repository.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/dashboard/provider/provider_dashboard_shell.dart';
+import 'package:movik_connect/screens/dashboard/provider/tabs/provider_jobs_tab.dart';
+import 'package:movik_connect/screens/dashboard/provider/tabs/provider_calendar_tab.dart';
+import 'package:movik_connect/screens/dashboard/provider/tabs/provider_earnings_tab.dart';
+import 'package:movik_connect/screens/dashboard/provider/tabs/provider_profile_tab.dart';
 
 const _driverId = 'driver_gate_test_001';
 
@@ -104,7 +110,11 @@ class _FakeDriverRepository implements DriverRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-Widget _wrap(FirebaseAuthProvider auth, {String locale = 'fr'}) {
+Widget _wrap(
+  FirebaseAuthProvider auth, {
+  String locale = 'fr',
+  int initialTabIndex = 0,
+}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<LocaleProvider>(
@@ -118,7 +128,8 @@ Widget _wrap(FirebaseAuthProvider auth, {String locale = 'fr'}) {
         routes: [
           GoRoute(
             path: '/$locale/provider/dashboard',
-            builder: (c, s) => const ProviderDashboardShell(),
+            builder: (c, s) =>
+                ProviderDashboardShell(initialTabIndex: initialTabIndex),
           ),
           GoRoute(
             path: '/$locale/connexion',
@@ -137,6 +148,29 @@ FirebaseAuthProvider _signedInDriver() {
     ..debugForceDisplayName = 'Chauffeur Test Gate';
 }
 
+/// GAP-M-05: only the first visited tab should subscribe to mission data.
+class _TabProbeMissionRepository implements MissionRepository {
+  int availableSubscriptions = 0;
+  int activeSubscriptions = 0;
+
+  @override
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) {
+    availableSubscriptions++;
+    return Stream.value(<DeliveryMission>[]);
+  }
+
+  @override
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) {
+    activeSubscriptions++;
+    return Stream.value(null);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -144,6 +178,7 @@ void main() {
 
   tearDown(() {
     BackendLocator.driverRepositoryOverride = null;
+    BackendLocator.missionRepositoryOverride = null;
   });
 
   testWidgets(
@@ -258,9 +293,11 @@ void main() {
       // que même un appel direct à setDriverOnlineStatus() échoue proprement
       // si jamais la garde UI était contournée — cohérent avec
       // firestore.rules (PERMISSION_DENIED) documenté en en-tête.
-      final fakeRepo = _FakeDriverRepository(
-        _buildProfile(status: DriverStatus.approved),
-      )..setDriverOnlineStatusError = Exception('PERMISSION_DENIED (simulated)');
+      final fakeRepo =
+          _FakeDriverRepository(_buildProfile(status: DriverStatus.approved))
+            ..setDriverOnlineStatusError = Exception(
+              'PERMISSION_DENIED (simulated)',
+            );
       BackendLocator.driverRepositoryOverride = fakeRepo;
 
       await tester.pumpWidget(_wrap(_signedInDriver()));
@@ -272,6 +309,134 @@ void main() {
 
       // Aucun crash non capturé : ProviderDashboardShell._toggleAvailability
       // capture l'exception dans un try/catch et affiche un SnackBar.
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final viewportWidth in <double>[430, 1200]) {
+    testWidgets(
+      'GAP-M-05 lazy tabs: preserved calendar state and one jobs subscription at ${viewportWidth.toInt()}px',
+      (tester) async {
+        tester.view.physicalSize = Size(viewportWidth, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final driverRepo = _FakeDriverRepository(
+          _buildProfile(status: DriverStatus.approved),
+        );
+        final missions = _TabProbeMissionRepository();
+        BackendLocator.driverRepositoryOverride = driverRepo;
+        BackendLocator.missionRepositoryOverride = missions;
+
+        await tester.pumpWidget(_wrap(_signedInDriver()));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProviderJobsTab), findsOneWidget);
+        expect(
+          find.byType(ProviderCalendarTab, skipOffstage: false),
+          findsNothing,
+        );
+        expect(
+          find.byType(ProviderEarningsTab, skipOffstage: false),
+          findsNothing,
+        );
+        expect(
+          find.byType(ProviderProfileTab, skipOffstage: false),
+          findsNothing,
+        );
+        expect(missions.availableSubscriptions, 1);
+        expect(missions.activeSubscriptions, 1);
+
+        await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+        await tester.pumpAndSettle();
+        expect(find.byType(ProviderCalendarTab), findsOneWidget);
+        expect(missions.availableSubscriptions, 1);
+
+        // Calendar's selected month is a real StatefulWidget field. Its value
+        // must not reset when leaving and returning to the tab.
+        final next = DateTime(DateTime.now().year, DateTime.now().month + 1);
+        const months = [
+          'Janvier',
+          'Février',
+          'Mars',
+          'Avril',
+          'Mai',
+          'Juin',
+          'Juillet',
+          'Août',
+          'Septembre',
+          'Octobre',
+          'Novembre',
+          'Décembre',
+        ];
+        final nextMonthLabel = '${months[next.month - 1]} ${next.year}';
+        await tester.tap(find.byIcon(Icons.chevron_right).first);
+        await tester.pumpAndSettle();
+        expect(find.text(nextMonthLabel), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.assignment_outlined));
+        await tester.pumpAndSettle();
+        expect(
+          find.byType(ProviderCalendarTab, skipOffstage: false),
+          findsOneWidget,
+        );
+        expect(
+          find.byType(ProviderEarningsTab, skipOffstage: false),
+          findsNothing,
+        );
+        expect(
+          find.byType(ProviderProfileTab, skipOffstage: false),
+          findsNothing,
+        );
+        expect(missions.availableSubscriptions, 1);
+        expect(missions.activeSubscriptions, 1);
+        await tester.tap(find.byIcon(Icons.calendar_month_outlined));
+        await tester.pumpAndSettle();
+        expect(find.text(nextMonthLabel), findsOneWidget);
+        // A mobile -> desktop resize must not dismount the remembered tab.
+        if (viewportWidth == 430) {
+          tester.view.physicalSize = const Size(1200, 900);
+          await tester.pumpAndSettle();
+          expect(find.byType(NavigationRail), findsOneWidget);
+          expect(find.text(nextMonthLabel), findsOneWidget);
+          tester.view.physicalSize = const Size(430, 900);
+          await tester.pumpAndSettle();
+          expect(find.byType(BottomNavigationBar), findsOneWidget);
+          expect(find.text(nextMonthLabel), findsOneWidget);
+        }
+        expect(missions.availableSubscriptions, 1);
+        expect(missions.activeSubscriptions, 1);
+        expect(driverRepo.watchDriverProfileCallCount, 1);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'GAP-M-05 initialTabIndex 3 visits profile only, not jobs or finances',
+    (tester) async {
+      final driverRepo = _FakeDriverRepository(
+        _buildProfile(status: DriverStatus.approved),
+      );
+      final missions = _TabProbeMissionRepository();
+      BackendLocator.driverRepositoryOverride = driverRepo;
+      BackendLocator.missionRepositoryOverride = missions;
+      await tester.pumpWidget(_wrap(_signedInDriver(), initialTabIndex: 3));
+      // Fake auth has no Firebase User; Profile shows a perpetual spinner.
+      // A bounded pump verifies lazy mounting without waiting for settlement.
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(ProviderProfileTab), findsOneWidget);
+      expect(find.byType(ProviderJobsTab, skipOffstage: false), findsNothing);
+      expect(
+        find.byType(ProviderCalendarTab, skipOffstage: false),
+        findsNothing,
+      );
+      expect(
+        find.byType(ProviderEarningsTab, skipOffstage: false),
+        findsNothing,
+      );
+      expect(missions.availableSubscriptions, 0);
+      expect(missions.activeSubscriptions, 0);
       expect(tester.takeException(), isNull);
     },
   );
@@ -301,7 +466,10 @@ void main() {
 
       // Le titre traduit et le libellé "hors ligne" (offline par défaut)
       // doivent être visibles à la place.
-      expect(find.text(AppStrings.t('nav_provider_space', 'en')), findsOneWidget);
+      expect(
+        find.text(AppStrings.t('nav_provider_space', 'en')),
+        findsOneWidget,
+      );
       expect(
         find.text(AppStrings.t('driver_status_offline_label_short', 'en')),
         findsOneWidget,

@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : GAP-M-06, 13 octobre 2026 ; lectures Firestore ciblées bornées, widgets validés localement, non déployés.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : GAP-M-05, 13 octobre 2026 ; conservation paresseuse des onglets fournisseur testée localement, non déployée.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies actives non fermées : **P0 0, P1 0, P2 2** ; 27 fiches conservées, 2 ouvertes. GAP-M-06 fermé exclusivement dans le périmètre des deux abonnements Flutter bornés et des tests widget locaux, sans mesures Firestore réelles ni déploiement.  GAP-S-04 fermé dans le périmètre émulateur/Flutter local après accord de politique le 13 octobre 2026 ; aucun déploiement.  GAP-S-02 fermé exclusivement dans le périmètre des tests émulateur, sans Stripe réel ni déploiement. Les paiements historiques sans référence fournisseur sont signalés pour vérification manuelle.  P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
+Anomalies actives non fermées : **P0 0, P1 0, P2 1** ; 27 fiches conservées, 1 ouverte. GAP-M-05 fermé exclusivement dans le périmètre Flutter widget local après correction de la destruction des State d'onglets ; aucun push, merge ni déploiement.  GAP-M-06 fermé exclusivement dans le périmètre des deux abonnements Flutter bornés et des tests widget locaux, sans mesures Firestore réelles ni déploiement.  GAP-S-04 fermé dans le périmètre émulateur/Flutter local après accord de politique le 13 octobre 2026 ; aucun déploiement.  GAP-S-02 fermé exclusivement dans le périmètre des tests émulateur, sans Stripe réel ni déploiement. Les paiements historiques sans référence fournisseur sont signalés pour vérification manuelle.  P2-BUILD-001 est fermé uniquement pour le problème d'inclusion de la police Cupertino au build local, après ajout de la dépendance officielle et validation du bundling ; aucun écran de production n'est certifié. P1-HOME-001 et P1-COPY-001 fermés dans leur périmètre local validé, non déployé. Les anciens décomptes et limites sont conservés dans les addenda ; les P3 historiques et prérequis ne sont pas supprimés.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -42,7 +42,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P1-COPY-001 | P1 | Bug ancien branche septembre/main | FERMÉ — PÉRIMÈTRE LOCAL VALIDÉ — NON DÉPLOYÉ | Anciennes promesses couverture/créneau retirées accueil release. |
 | P2-COPY-001 | P2 | Correction historique vérifiée par tests locaux | FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ | Ancienne mention Leboncoin retirée ; exemples Marketplace/Kijiji et routes préservés FR/EN/ES. |
 | P2-L-01 | P2 | Dette historique (nouvel ID permanent) | QUALIFIÉ | Contraste texte de badges warning faible ; distinct BUG-L6-01 GPS déjà corrigé. |
-| GAP-M-05 | P2 | Dette historique | QUALIFIÉ | State des onglets provider détruit/recréé par tabs[index]. |
+| GAP-M-05 | P2 | Perte de State d'onglets corrigée | FERMÉ — PÉRIMÈTRE FLUTTER LOCAL VALIDÉ — NON DÉPLOYÉ | Pile d'onglets à initialisation paresseuse ; état du calendrier et flux Missions conservés au retour, chargement des onglets non visités évité ; coûts réels non mesurés. |
 | GAP-M-06 | P2 | Lectures Firestore ciblées bornées | FERMÉ — PÉRIMÈTRE FLUTTER/WIDGET LOCAL VALIDÉ — NON DÉPLOYÉ | watchNotifications et watchDriversByStatus limités avec accès « Afficher plus » ; cas profils migrés et reprise listener validés ; autres flux non lus/markAll et coûts réels hors périmètre. |
 | GAP-S-02 | P2 | Concurrence et récupération financière testées | FERMÉ — PÉRIMÈTRE ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Race annulation/autorisation, récupération de pending avec référence provider et compensations idempotentes validées localement ; paiements réels, cas legacy sans ID et cron déployé NON VALIDÉS. |
 | GAP-S-04 | P2 | Suspension ordinaire / urgente | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Suspension ordinaire conserve les missions déjà assignées sous contrôle, urgente refuse transitions et GPS ; escalation admin, audit, réactivation et préservation hors ligne testés. |
@@ -423,6 +423,11 @@ Historique de la fiche avant T conservé ci-dessous :
 - Critère de fermeture : Critères contraste approuvés testés. + règle permanente ci-dessus.
 
 ### GAP-M-05
+
+- Mise à jour 2026-10-13 — **FERMÉ — PÉRIMÈTRE FLUTTER WIDGET LOCAL VALIDÉ — NON DÉPLOYÉ**. Le shell remplace l'indexation destructrice `tabs[_index]` par une pile `IndexedStack` avec emplacements paresseux : chaque onglet n'est construit qu'à sa première visite, puis son State est maintenu sans recréer les flux au retour. La structure stable Row/Expanded conserve le même onglet en passant du mode mobile à ordinateur. `initialTabIndex: 3` ouvre Profil sans abonnement Missions prématuré ; identité chauffeur différente remet les indicateurs de visite à zéro. Pas de refonte des onglets, données ni logique financière.
+- Validation : **49/49 tests Flutter** sur cinq suites, dont trois nouveaux tests de retour d'onglet, conservation du mois Calendrier à 430 et 1200px, bascule de largeur, compteurs de flux et entrée directe Profil ; vérifications des parcours missions, Stripe Connect simulé, versements et accessibilité. `dart analyze --fatal-infos` ciblé : zéro anomalie. Checkpoint : `artifacts/gapM05-tabs-20261013/CHECKPOINT_GAP_M05.md`.
+- Limites : seuls les onglets déjà visités restent abonnés lorsqu'ils sont invisibles ; pas de mesure de coûts Firestore en production. Aucun navigateur réel ni essai appareil ; la conservation ne survit pas à la destruction du shell, au changement complet de route ou à un redémarrage de l'application. Aucune donnée métier, devise, commission, capture, snapshot, ledger, Firestore rules ou service de production modifié.
+- Historique de la fiche conservé ci-dessous.
 
 - Priorité / nature / statut : P2 ; Dette historique ; QUALIFIÉ.
 - Description et impact : State des onglets provider détruit/recréé par tabs[index].
