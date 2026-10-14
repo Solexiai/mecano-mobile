@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
@@ -16,25 +15,13 @@ Future<void> loadRobotoTestFonts() async {
   await fonts.load();
 }
 
-// Local font fixtures and SDK icons only; no download or product theme change.
+// Local test fixtures only; no SDK-cache dependency or network access.
 Future<void> loadLocalMaterialFonts() async {
-  final configFile = File('.dart_tool/package_config.json');
-  final config = jsonDecode(await configFile.readAsString()) as Map;
-  final flutter = (config['packages'] as List).cast<Map>().singleWhere(
-    (package) => package['name'] == 'flutter',
-  );
-  final sdk = Directory.fromUri(
-    configFile.absolute.uri.resolve(flutter['rootUri'] as String),
-  ).parent.parent;
   await loadRobotoTestFonts();
-  // Load actual SDK icons too. TextStyles without an explicit font family
-  // can still use Ahem in flutter_tester; captures do not prove Chrome fonts.
   final icons = FontLoader('MaterialIcons');
   icons.addFont(
-    File.fromUri(
-      sdk.uri.resolve(
-        'bin/cache/artifacts/material_fonts/materialicons-regular.otf',
-      ),
+    File(
+      'test/fixtures/fonts/materialicons-regular.otf',
     ).readAsBytes().then(ByteData.sublistView),
   );
   await icons.load();
