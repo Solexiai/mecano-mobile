@@ -45,6 +45,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/gps_offline_transport.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:provider/provider.dart';
@@ -78,11 +79,74 @@ class FakeImagePickerPlatform extends ImagePickerPlatform {
   // (`Invalid image data`) et casseraient le test pour une raison sans
   // rapport avec le scénario testé (échec d'upload).
   Uint8List bytesToReturn = Uint8List.fromList(const [
-    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
-    0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0, 181, 28, 12, 2, 0,
-    0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 100, 248, 15, 0, 1, 5,
-    1, 1, 39, 24, 227, 102, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66,
-    96, 130,
+    137,
+    80,
+    78,
+    71,
+    13,
+    10,
+    26,
+    10,
+    0,
+    0,
+    0,
+    13,
+    73,
+    72,
+    68,
+    82,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    8,
+    4,
+    0,
+    0,
+    0,
+    181,
+    28,
+    12,
+    2,
+    0,
+    0,
+    0,
+    11,
+    73,
+    68,
+    65,
+    84,
+    120,
+    218,
+    99,
+    100,
+    248,
+    15,
+    0,
+    1,
+    5,
+    1,
+    1,
+    39,
+    24,
+    227,
+    102,
+    0,
+    0,
+    0,
+    0,
+    73,
+    69,
+    78,
+    68,
+    174,
+    66,
+    96,
+    130,
   ]);
 
   @override
@@ -91,7 +155,11 @@ class FakeImagePickerPlatform extends ImagePickerPlatform {
     ImagePickerOptions options = const ImagePickerOptions(),
   }) async {
     pickImageCallCount++;
-    return XFile.fromData(bytesToReturn, name: 'proof.jpg', mimeType: 'image/jpeg');
+    return XFile.fromData(
+      bytesToReturn,
+      name: 'proof.jpg',
+      mimeType: 'image/jpeg',
+    );
   }
 }
 
@@ -140,10 +208,14 @@ class _FakeMissionRepository implements MissionRepository {
   _FakeMissionRepository(this.mission);
 
   @override
-  Stream<DeliveryMission?> watchMission(String missionId) => Stream.value(mission);
+  Stream<DeliveryMission?> watchMission(String missionId) =>
+      Stream.value(mission);
 
   @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) async {
     markDeliveryCompletedCallCount++;
     lastProofUrl = proofOfDeliveryUrl;
   }
@@ -158,32 +230,46 @@ class _FakeMissionRepository implements MissionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
-      throw UnimplementedError();
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => Stream.value(const []);
-
-  @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
+  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       Stream.value(const []);
 
   @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => Stream.value(const []);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => Stream.value(const []);
 
   @override
-  Future<AcceptMissionResult> acceptMission({required String missionId, required String driverId}) async {
-    return const AcceptMissionResult(success: false, errorCode: 'not_used_in_test');
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Future<AcceptMissionResult> acceptMission({
+    required String missionId,
+    required String driverId,
+  }) async {
+    return const AcceptMissionResult(
+      success: false,
+      errorCode: 'not_used_in_test',
+    );
   }
 
   @override
   Future<void> markPickupCompleted(String missionId) async {}
 
   @override
-  Future<void> updateTrackingStatus({required String missionId, required MissionStatus targetStatus}) async {}
+  Future<void> updateTrackingStatus({
+    required String missionId,
+    required MissionStatus targetStatus,
+  }) async {}
 }
 
 DeliveryMission _buildMissionAtDropoff() {
@@ -222,12 +308,14 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
     routes: [
       GoRoute(
         path: '/fr/provider/mission/:missionId',
-        builder: (context, state) =>
-            DriverActiveMissionScreen(missionId: state.pathParameters['missionId']!),
+        builder: (context, state) => DriverActiveMissionScreen(
+          missionId: state.pathParameters['missionId']!,
+        ),
       ),
       GoRoute(
         path: '/fr/provider/dashboard',
-        builder: (context, state) => const Scaffold(body: Text('DASHBOARD_STUB')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('DASHBOARD_STUB')),
       ),
     ],
   );
@@ -240,7 +328,9 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
   );
 }
 
-void main() {
+void main() => offlineTests(_registerTests);
+
+void _registerTests() {
   late FakeImagePickerPlatform fakeImagePicker;
   late _FakeMissionRepository fakeMissionRepo;
   late FirebaseAuthProvider auth;
@@ -288,7 +378,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets(
+  offlineWidgetTest(
     'proof upload failure : échec upload -> erreur propre, mission NON completed, markDeliveryCompleted jamais appelé',
     (tester) async {
       final failingRepo = _FailingProofUploadRepository();
@@ -308,7 +398,9 @@ void main() {
       // 3. Message d'erreur utilisateur propre affiché (pas de crash, pas
       // de message générique trompeur).
       expect(
-        find.text(AppStrings.t('driver_active_mission_proof_upload_error', 'fr')),
+        find.text(
+          AppStrings.t('driver_active_mission_proof_upload_error', 'fr'),
+        ),
         findsOneWidget,
       );
 
@@ -322,7 +414,9 @@ void main() {
       // bouton de capture photo est toujours présent (pas remplacé par un
       // état "completed" ou bloqué indéfiniment par le spinner d'upload).
       expect(
-        find.text(AppStrings.t('driver_active_mission_already_completed', 'fr')),
+        find.text(
+          AppStrings.t('driver_active_mission_already_completed', 'fr'),
+        ),
         findsNothing,
       );
       expect(
@@ -345,7 +439,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'proof upload failure : retry après échec réussit (nouvelle tentative avec repository fonctionnel)',
     (tester) async {
       final failingRepo = _FailingProofUploadRepository();
@@ -358,7 +452,9 @@ void main() {
       await captureAndConfirmProof(tester);
       expect(fakeMissionRepo.markDeliveryCompletedCallCount, 0);
       expect(
-        find.text(AppStrings.t('driver_active_mission_proof_upload_error', 'fr')),
+        find.text(
+          AppStrings.t('driver_active_mission_proof_upload_error', 'fr'),
+        ),
         findsOneWidget,
       );
 
@@ -385,7 +481,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'proof upload failure : NotConfiguredProofUploadRepository (aucun seam positionné) échoue proprement sans faux succès',
     (tester) async {
       // Aucun override positionné : simule le cas où le backend Firebase

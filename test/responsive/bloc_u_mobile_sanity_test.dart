@@ -50,6 +50,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/gps_offline_transport.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
@@ -339,8 +340,10 @@ class _StreamNotificationRepository implements NotificationRepository {
   }
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId, {int limit = 50}) =>
-      _notifController.stream;
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  }) => _notifController.stream;
 
   @override
   Stream<int> watchUnreadCount(String userId) => _unreadController.stream;
@@ -393,7 +396,9 @@ Widget _wrap(Widget router) {
   return router;
 }
 
-void main() {
+void main() => offlineTests(_registerTests);
+
+void _registerTests() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -409,7 +414,7 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.1 — DeliveryRequestFlowScreen (création mission)', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets(
+      offlineWidgetTest(
         'étape 2 (adresses, Row 2 colonnes x4) — aucun overflow à ${width.toInt()}px, '
         'tous les champs restent atteignables et éditables',
         (tester) async {
@@ -472,7 +477,7 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.2 — DriverActiveMissionScreen (mission active)', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets(
+      offlineWidgetTest(
         'statut inTransit (carte + bandeau + bouton pleine largeur) — '
         'aucun overflow à ${width.toInt()}px, bouton d\'action accessible',
         (tester) async {
@@ -542,7 +547,7 @@ void main() {
   // U-6.3 — _ProofPreviewDialog (modal preuve de livraison).
   // -------------------------------------------------------------------
   group('U-6.3 — DriverActiveMissionScreen : modal preuve de livraison', () {
-    testWidgets(
+    offlineWidgetTest(
       'à 320px : dialog de prévisualisation photo + 2 boutons restent visibles '
       'et accessibles (ni hors écran, ni overflow)',
       (tester) async {
@@ -629,7 +634,7 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.4 — DriverOnboardingScreen (étape Documents, uploads)', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets(
+      offlineWidgetTest(
         '_DocumentPickerRow (icône + texte + bouton "Sélectionner") — '
         'aucun overflow à ${width.toInt()}px, bouton toujours accessible',
         (tester) async {
@@ -703,67 +708,73 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.5 — NotificationsScreen', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets('liste + AppBar action "tout marquer lu" — aucun overflow à '
-          '${width.toInt()}px, action accessible', (tester) async {
-        _setViewport(tester, width, 700);
+      offlineWidgetTest(
+        'liste + AppBar action "tout marquer lu" — aucun overflow à '
+        '${width.toInt()}px, action accessible',
+        (tester) async {
+          _setViewport(tester, width, 700);
 
-        final fakeRepo = _StreamNotificationRepository(_notifications());
-        BackendLocator.notificationRepositoryOverride = fakeRepo;
-        addTearDown(fakeRepo.dispose);
+          final fakeRepo = _StreamNotificationRepository(_notifications());
+          BackendLocator.notificationRepositoryOverride = fakeRepo;
+          addTearDown(fakeRepo.dispose);
 
-        final auth = _signedInAuth(
-          uid: _customerId,
-          displayName: 'Client Test',
-        );
-        final router = GoRouter(
-          initialLocation: '/fr/notifications/$_customerId',
-          routes: [
-            GoRoute(
-              path: '/fr/notifications/:userId',
-              builder: (context, state) =>
-                  NotificationsScreen(userId: state.pathParameters['userId']!),
-            ),
-            GoRoute(
-              path: '/fr/livraison/suivi/:missionId',
-              builder: (context, state) =>
-                  const Scaffold(body: Text('TRACKING_STUB')),
-            ),
-          ],
-        );
-        await tester.pumpWidget(
-          _wrap(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider<LocaleProvider>(
-                  create: (_) => LocaleProvider(),
+          final auth = _signedInAuth(
+            uid: _customerId,
+            displayName: 'Client Test',
+          );
+          final router = GoRouter(
+            initialLocation: '/fr/notifications/$_customerId',
+            routes: [
+              GoRoute(
+                path: '/fr/notifications/:userId',
+                builder: (context, state) => NotificationsScreen(
+                  userId: state.pathParameters['userId']!,
                 ),
-                ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-              ],
-              child: MaterialApp.router(routerConfig: router),
+              ),
+              GoRoute(
+                path: '/fr/livraison/suivi/:missionId',
+                builder: (context, state) =>
+                    const Scaffold(body: Text('TRACKING_STUB')),
+              ),
+            ],
+          );
+          await tester.pumpWidget(
+            _wrap(
+              MultiProvider(
+                providers: [
+                  ChangeNotifierProvider<LocaleProvider>(
+                    create: (_) => LocaleProvider(),
+                  ),
+                  ChangeNotifierProvider<FirebaseAuthProvider>.value(
+                    value: auth,
+                  ),
+                ],
+                child: MaterialApp.router(routerConfig: router),
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
+          expect(tester.takeException(), isNull);
 
-        // L'action "tout marquer lu" de l'AppBar (texte potentiellement
-        // long) ne doit jamais provoquer d'overflow de l'AppBar, même à
-        // 320px, et rester tapable.
-        final markAllButton = find.text(
-          AppStrings.t('notifications_mark_all_read', 'fr'),
-        );
-        expect(markAllButton, findsOneWidget);
-        await tester.tap(markAllButton);
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+          // L'action "tout marquer lu" de l'AppBar (texte potentiellement
+          // long) ne doit jamais provoquer d'overflow de l'AppBar, même à
+          // 320px, et rester tapable.
+          final markAllButton = find.text(
+            AppStrings.t('notifications_mark_all_read', 'fr'),
+          );
+          expect(markAllButton, findsOneWidget);
+          await tester.tap(markAllButton);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
 
-        // Les 2 notifications restent listées et tapables sans overflow.
-        expect(
-          find.text(AppStrings.t('notif_driver_assigned_title', 'fr')),
-          findsOneWidget,
-        );
-      });
+          // Les 2 notifications restent listées et tapables sans overflow.
+          expect(
+            find.text(AppStrings.t('notif_driver_assigned_title', 'fr')),
+            findsOneWidget,
+          );
+        },
+      );
     }
   });
 
@@ -772,59 +783,64 @@ void main() {
   // -------------------------------------------------------------------
   group('U-6.6 — CustomerTrackingScreen (suivi mission en cours)', () {
     for (final width in [320.0, 360.0]) {
-      testWidgets('bandeau chauffeur + carte + timeline + adresses longues — '
-          'aucun overflow à ${width.toInt()}px', (tester) async {
-        _setViewport(tester, width, 900);
+      offlineWidgetTest(
+        'bandeau chauffeur + carte + timeline + adresses longues — '
+        'aucun overflow à ${width.toInt()}px',
+        (tester) async {
+          _setViewport(tester, width, 900);
 
-        BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
-        final fakeRepo = _FakeMissionRepository(
-          _buildMission(
-            status: MissionStatus.inTransit,
-            customerId: _customerId,
-          ),
-        );
-        BackendLocator.missionRepositoryOverride = fakeRepo;
-        addTearDown(fakeRepo.dispose);
+          BackendLocator.locationRepositoryOverride = _FakeLocationRepository();
+          final fakeRepo = _FakeMissionRepository(
+            _buildMission(
+              status: MissionStatus.inTransit,
+              customerId: _customerId,
+            ),
+          );
+          BackendLocator.missionRepositoryOverride = fakeRepo;
+          addTearDown(fakeRepo.dispose);
 
-        final auth = _signedInAuth(
-          uid: _customerId,
-          displayName: 'Client Test',
-        );
-        final router = GoRouter(
-          initialLocation: '/fr/livraison/suivi/$_missionId',
-          routes: [
-            GoRoute(
-              path: '/fr/livraison/suivi/:missionId',
-              builder: (context, state) => CustomerTrackingScreen(
-                missionId: state.pathParameters['missionId']!,
+          final auth = _signedInAuth(
+            uid: _customerId,
+            displayName: 'Client Test',
+          );
+          final router = GoRouter(
+            initialLocation: '/fr/livraison/suivi/$_missionId',
+            routes: [
+              GoRoute(
+                path: '/fr/livraison/suivi/:missionId',
+                builder: (context, state) => CustomerTrackingScreen(
+                  missionId: state.pathParameters['missionId']!,
+                ),
+              ),
+            ],
+          );
+          await tester.pumpWidget(
+            _wrap(
+              MultiProvider(
+                providers: [
+                  ChangeNotifierProvider<LocaleProvider>(
+                    create: (_) => LocaleProvider(),
+                  ),
+                  ChangeNotifierProvider<FirebaseAuthProvider>.value(
+                    value: auth,
+                  ),
+                ],
+                child: MaterialApp.router(routerConfig: router),
               ),
             ),
-          ],
-        );
-        await tester.pumpWidget(
-          _wrap(
-            MultiProvider(
-              providers: [
-                ChangeNotifierProvider<LocaleProvider>(
-                  create: (_) => LocaleProvider(),
-                ),
-                ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
-              ],
-              child: MaterialApp.router(routerConfig: router),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
+          expect(tester.takeException(), isNull);
 
-        // Le nom du chauffeur (bandeau supérieur, Row icône+texte) et les
-        // adresses longues (pickup/dropoff, _AddressRow) doivent rester
-        // visibles sans provoquer d'exception de layout.
-        expect(find.text('Chauffeur Test U6'), findsOneWidget);
-        await tester.ensureVisible(find.textContaining('10 rue Départ'));
-        expect(tester.takeException(), isNull);
-      });
+          // Le nom du chauffeur (bandeau supérieur, Row icône+texte) et les
+          // adresses longues (pickup/dropoff, _AddressRow) doivent rester
+          // visibles sans provoquer d'exception de layout.
+          expect(find.text('Chauffeur Test U6'), findsOneWidget);
+          await tester.ensureVisible(find.textContaining('10 rue Départ'));
+          expect(tester.takeException(), isNull);
+        },
+      );
     }
   });
 }

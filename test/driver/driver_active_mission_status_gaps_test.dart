@@ -41,6 +41,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/gps_offline_transport.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -323,7 +324,9 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
   );
 }
 
-void main() {
+void main() => offlineTests(_registerTests);
+
+void _registerTests() {
   late FakeGeolocatorPlatform fakeGeolocator;
   late _FakeLocationRepository fakeLocationRepo;
   late FirebaseAuthProvider auth;
@@ -348,7 +351,7 @@ void main() {
 
   String btn(String key) => AppStrings.t(key, 'fr');
 
-  testWidgets(
+  offlineWidgetTest(
     'assigned : seul le bouton "partir vers le pickup" est visible ; tap -> updateTrackingStatus(driverToPickup)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -407,7 +410,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'driverToPickup : bouton "arrivé au pickup" ; tap -> updateTrackingStatus(arrivedAtPickup)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -441,7 +444,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'arrivedAtPickup : bouton "confirmer prise en charge" ; tap -> markPickupCompleted (jamais updateTrackingStatus)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -479,7 +482,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'pickedUp : bouton "démarrer le trajet" ; tap -> updateTrackingStatus(inTransit)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -513,7 +516,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'inTransit : bouton "arrivé à destination" ; tap -> updateTrackingStatus(arrivedAtDropoff)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -556,7 +559,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'arrivedAtDropoff : aucune action de trajet résiduelle visible (seule la capture photo, couverte en détail ailleurs)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -592,7 +595,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'completed : écran "déjà complétée" affiché, aucune action de trajet, aucun bouton de capture',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(
@@ -633,7 +636,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'erreur GPS pendant le trajet (service désactivé) : bandeau affiché SANS bloquer les actions de trajet',
     (tester) async {
       fakeGeolocator.serviceEnabled = false;
@@ -672,7 +675,7 @@ void main() {
     },
   );
 
-  testWidgets(
+  offlineWidgetTest(
     'double-tap rapide sur une action de trajet ne déclenche updateTrackingStatus qu une seule fois (busy bloque le second tap)',
     (tester) async {
       final fakeRepo = _FakeMissionRepository(

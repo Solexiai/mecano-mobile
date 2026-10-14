@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-14T15:01:08.637Z",
+  "file": "scripts/vercel_build.sh",
+  "beforeSha256": "ebf16c45dd6d7efd8f774e320da4626a0dab9aee9866922af790e9c29274cccf",
+  "afterSha256": "cf6b77a50aba15d2bc8119ae7d9c55285c3dda98cd28b1647fbde427d9682f09",
+  "crlfBefore": 113,
+  "crlfAfter": 0,
+  "onlyLineEndings": true,
+  "failure": "Vercel deployment dpl_BH1psGhM9hzq7Xx5GiW7oaYazqAn: CR command not found; set pipefail invalid option",
+  "gitHeadCR": 0,
+  "gitIndexCR": 0,
+  "cause": "Windows archive/worktree conversion under core.autocrlf=true; committed script already LF; .gitattributes now enforces LF"
+}
