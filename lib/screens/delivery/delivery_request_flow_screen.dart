@@ -675,9 +675,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 const SizedBox(height: 8),
                 Text(
                   tr(
-                    'Objets volumineux · Demande de créneau · Devis calculé par Movi-K',
-                    'Large items · Requested time · Quote calculated by Movi-K',
-                    'Objetos voluminosos · Horario solicitado · Presupuesto de Movi-K',
+                    'Objets volumineux · Dès maintenant ou sur demande programmée · Devis calculé par Movi-K',
+                    'Large items · As soon as possible or scheduled · Quote calculated by Movi-K',
+                    'Objetos voluminosos · Lo antes posible o programada · Presupuesto de Movi-K',
                   ),
                 ),
                 if (!_loaded)
@@ -917,31 +917,67 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               )
               .toList(),
     ),
-    OutlinedButton.icon(
-      icon: const Icon(Icons.schedule),
-      onPressed: () => _chooseTime(),
-      label: _draft.data['requested_at'] == null
-          ? Text(
-              tr(
-                'Choisir une date et une heure',
-                'Choose date and time',
-                'Elegir fecha y hora',
-              ),
-            )
-          : _localizedTime(_draft.data['requested_at'] as String),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        ChoiceChip(
+          key: const ValueKey('timing-immediate'),
+          label: Text(
+            tr('Dès maintenant', 'As soon as possible', 'Lo antes posible'),
+          ),
+          selected: _draft.isImmediate,
+          onSelected: (selected) {
+            if (!selected || _draft.isImmediate) return;
+            _draft.data['timing_mode'] = 'immediate';
+            _draft.data['requested_at'] = null;
+            _changed();
+          },
+        ),
+        ChoiceChip(
+          key: const ValueKey('timing-scheduled'),
+          label: Text(tr('Programmée', 'Scheduled', 'Programada')),
+          selected: !_draft.isImmediate,
+          onSelected: (selected) {
+            if (!selected || !_draft.isImmediate) return;
+            _draft.data['timing_mode'] = 'scheduled';
+            _changed();
+          },
+        ),
+      ],
     ),
-    _note(
-      tr(
-        'La date et l’heure expriment votre souhait. Elles dépendent de l’acceptation et de la disponibilité du chauffeur.',
-        'Date and time are your preference. They depend on driver acceptance and availability.',
-        'La fecha y hora expresan tu preferencia y dependen de la aceptación y disponibilidad del conductor.',
+    if (!_draft.isImmediate)
+      OutlinedButton.icon(
+        icon: const Icon(Icons.schedule),
+        onPressed: () => _chooseTime(),
+        label: _draft.data['requested_at'] == null
+            ? Text(
+                tr(
+                  'Choisir une date et une heure',
+                  'Choose date and time',
+                  'Elegir fecha y hora',
+                ),
+              )
+            : _localizedTime(_draft.data['requested_at'] as String),
       ),
+    _note(
+      _draft.isImmediate
+          ? tr(
+              'La recherche commence après votre confirmation. La prise en charge dépend de l’acceptation et de la disponibilité d’un chauffeur.',
+              'The search starts after you confirm. Pickup depends on driver acceptance and availability.',
+              'La búsqueda comienza después de tu confirmación. La recogida depende de la aceptación y disponibilidad de un conductor.',
+            )
+          : tr(
+              'La date et l’heure expriment votre souhait. Elles dépendent de l’acceptation et de la disponibilité du chauffeur.',
+              'Date and time are your preference. They depend on driver acceptance and availability.',
+              'La fecha y hora expresan tu preferencia y dependen de la aceptación y disponibilidad del conductor.',
+            ),
     ),
     _button(
       tr('Voir mon prix', 'See my price', 'Ver mi precio'),
       _draft.items.isEmpty ||
               !_addressesValid ||
-              _draft.data['requested_at'] == null
+              (!_draft.isImmediate && _draft.data['requested_at'] == null)
           ? null
           : () {
               _step(1);
@@ -1012,6 +1048,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       builder: _pickerLocale,
     );
     if (time == null || !mounted) return;
+    _draft.data['timing_mode'] = 'scheduled';
     _draft.data['requested_at'] = DateTime(
       date.year,
       date.month,
@@ -1821,10 +1858,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       Text(
         '${item['quantity']} × ${item['label']} · ${_dimensionText(item['length']) ?? '?'} × ${_dimensionText(item['width']) ?? '?'} × ${_dimensionText(item['height']) ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
       ),
-    _localizedTime(
-      _draft.data['requested_at'] as String?,
-      prefix: tr('Créneau demandé', 'Requested time', 'Horario solicitado'),
-    ),
+    if (_draft.isImmediate)
+      Text(
+        tr(
+          'Dès maintenant — selon la disponibilité du chauffeur',
+          'As soon as possible — subject to driver availability',
+          'Lo antes posible — según la disponibilidad del conductor',
+        ),
+      )
+    else
+      _localizedTime(
+        _draft.data['requested_at'] as String?,
+        prefix: tr('Créneau demandé', 'Requested time', 'Horario solicitado'),
+      ),
     Text(
       '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')} : ${_draft.data['handlers']}',
     ),

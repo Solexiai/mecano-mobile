@@ -1,0 +1,1903 @@
+{
+  "at": "2026-10-14T19:11:15.601Z",
+  "branch": "fix/booking-timing-20261014",
+  "base": "0780c0efa75023dc1f012eed319bedc31b2ccbe5",
+  "before": {
+    "flutter": {
+      "passed": 1,
+      "failed": 17,
+      "skipped": 0,
+      "success": false,
+      "tests": [
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(430.0, 932.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(1440.0, 900.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 2.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(430.0, 932.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(1440.0, 900.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 2.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(430.0, 932.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(1440.0, 900.0) text 1.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 2.0",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "switching mode invalidates quote and consent, preserves cargo and contacts",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "immediate choice survives widget recreation without becoming a date",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "unavailable reservation never sends immediate request or quote",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "confirmation honestly shows immediate preference and preserves quote",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "driver/client load summary communicates immediate request",
+          "result": "error",
+          "skipped": false
+        },
+        {
+          "name": "legacy draft does not silently change its quote payload",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": [
+        {
+          "test": "timing choices fr Size(375.0, 812.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices fr Size(375.0, 812.0) text 1.0"
+        },
+        {
+          "test": "timing choices fr Size(430.0, 932.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices fr Size(430.0, 932.0) text 1.0"
+        },
+        {
+          "test": "timing choices fr Size(1440.0, 900.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices fr Size(1440.0, 900.0) text 1.0"
+        },
+        {
+          "test": "timing choices fr Size(375.0, 812.0) text 2.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices fr Size(375.0, 812.0) text 2.0"
+        },
+        {
+          "test": "timing choices en Size(375.0, 812.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices en Size(375.0, 812.0) text 1.0"
+        },
+        {
+          "test": "timing choices en Size(430.0, 932.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices en Size(430.0, 932.0) text 1.0"
+        },
+        {
+          "test": "timing choices en Size(1440.0, 900.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices en Size(1440.0, 900.0) text 1.0"
+        },
+        {
+          "test": "timing choices en Size(375.0, 812.0) text 2.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices en Size(375.0, 812.0) text 2.0"
+        },
+        {
+          "test": "timing choices es Size(375.0, 812.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices es Size(375.0, 812.0) text 1.0"
+        },
+        {
+          "test": "timing choices es Size(430.0, 932.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices es Size(430.0, 932.0) text 1.0"
+        },
+        {
+          "test": "timing choices es Size(1440.0, 900.0) text 1.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices es Size(1440.0, 900.0) text 1.0"
+        },
+        {
+          "test": "timing choices es Size(375.0, 812.0) text 2.0",
+          "message": "Test failed. See exception logs above.\nThe test description was: timing choices es Size(375.0, 812.0) text 2.0"
+        },
+        {
+          "test": "switching mode invalidates quote and consent, preserves cargo and contacts",
+          "message": "Test failed. See exception logs above.\nThe test description was: switching mode invalidates quote and consent, preserves cargo and contacts"
+        },
+        {
+          "test": "immediate choice survives widget recreation without becoming a date",
+          "message": "Test failed. See exception logs above.\nThe test description was: immediate choice survives widget recreation without becoming a date"
+        },
+        {
+          "test": "unavailable reservation never sends immediate request or quote",
+          "message": "Test failed. See exception logs above.\nThe test description was: unavailable reservation never sends immediate request or quote"
+        },
+        {
+          "test": "confirmation honestly shows immediate preference and preserves quote",
+          "message": "Test failed. See exception logs above.\nThe test description was: confirmation honestly shows immediate preference and preserves quote"
+        },
+        {
+          "test": "driver/client load summary communicates immediate request",
+          "message": "Test failed. See exception logs above.\nThe test description was: driver/client load summary communicates immediate request"
+        }
+      ]
+    },
+    "unit": {
+      "passed": 4,
+      "failed": 7,
+      "skipped": 0,
+      "success": false,
+      "suites": [
+        {
+          "name": "test\\unit\\bookingTiming.test.ts",
+          "status": "failed",
+          "tests": [
+            {
+              "name": "explicit immediate request needs no fabricated future timestamp",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 0\n\n  Object {\n    \"requested_at\": null,\n-   \"timing_mode\": \"immediate\",\n  }\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:24:16)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-202"
+              ]
+            },
+            {
+              "name": "explicit scheduled request preserves the exact requested instant",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toMatchObject(expected)\n\n- Expected  - 1\n+ Received  + 0\n\n  Object {\n    \"requested_at\": \"2099-01-01T12:00:00Z\",\n-   \"timing_mode\": \"scheduled\",\n  }\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:30:30)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur\\movik-g"
+              ]
+            },
+            {
+              "name": "legacy scheduled loads retain their original normalized representation",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "missing time is not implicitly immediate: undefined",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "missing time is not implicitly immediate: scheduled",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects unknown explicit timing mode: now",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toThrow()\n\nReceived function did not throw\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:43:66\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-each\\build\\index.js:80:140)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur"
+              ]
+            },
+            {
+              "name": "rejects unknown explicit timing mode: ",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toThrow()\n\nReceived function did not throw\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:43:66\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-each\\build\\index.js:80:140)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur"
+              ]
+            },
+            {
+              "name": "rejects unknown explicit timing mode: 1",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toThrow()\n\nReceived function did not throw\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:43:66\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-each\\build\\index.js:80:140)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur"
+              ]
+            },
+            {
+              "name": "rejects unknown explicit timing mode: null",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toThrow()\n\nReceived function did not throw\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:43:66\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-each\\build\\index.js:80:140)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur"
+              ]
+            },
+            {
+              "name": "immediate mode cannot carry a contradictory scheduled date",
+              "status": "failed",
+              "failureMessages": [
+                "Error: expect(received).toThrow()\n\nReceived function did not throw\n    at Object.<anonymous> (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\test\\unit\\bookingTiming.test.ts:46:73)\n    at Promise.finally.completed (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1561:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1501:10)\n    at _callCircusTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1011:40)\n    at _runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:951:3)\n    at C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:853:7\n    at _runTestsForDescribeBlock (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:866:11)\n    at run (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:765:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\jestAdapterInit.js:1993:21)\n    at jestAdapter (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-circus\\build\\runner.js:111:19)\n    at runTestInternal (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:276:16)\n    at runTest (C:\\Users\\Utilisateur\\movik-gps-history-fix-20261009\\functions\\node_modules\\jest-runner\\build\\index.js:344:7)"
+              ]
+            },
+            {
+              "name": "immediate mode does not bypass approved capacity",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "after": {
+    "flutterTargeted": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "tests": [
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "switching mode invalidates quote and consent, preserves cargo and contacts",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "immediate choice survives widget recreation without becoming a date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "unavailable reservation never sends immediate request or quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "confirmation honestly shows immediate preference and preserves quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "driver/client load summary communicates immediate request",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "legacy draft does not silently change its quote payload",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": []
+    },
+    "flutterRegression": {
+      "passed": 200,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "tests": [
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "switching mode invalidates quote and consent, preserves cargo and contacts",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "immediate choice survives widget recreation without becoming a date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "unavailable reservation never sends immediate request or quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "confirmation honestly shows immediate preference and preserves quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "driver/client load summary communicates immediate request",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "legacy draft does not silently change its quote payload",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 date picker language fr",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 time picker language and cancel preserves instant fr",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 selected date summary is localized fr",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 date picker language en",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 time picker language and cancel preserves instant en",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 selected date summary is localized en",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 date picker language es",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 time picker language and cancel preserves instant es",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Q1 selected date summary is localized es",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "unavailable booking keeps the draft and offers retry, signed=false",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "unavailable booking keeps the draft and offers retry, signed=true",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Guest starts without authentication",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Login keeps the complete draft and its step",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Restores contacts, item dimensions, addresses and current step",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "guest handoff takes precedence, stays bound to the signed-in account",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "expired draft is removed",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "changing dimensions invalidates the quote immediately",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Repeated confirmation invokes creation once and keeps a refresh receipt",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Bank setup interruption never enables confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Quote unavailable error is recoverable and does not expose internals",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Quote internal error is recoverable and does not expose internals",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Network error during confirmation keeps draft for retry",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "Expired quote keeps objects and requires server repricing",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M isolation: default HTTP disabled and IO transport denied",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [--------] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [        ] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [()----()] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [1234567] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [1-------] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [1234ABCD] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects pickup_phone [514.555.0100] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [--------] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [        ] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [()----()] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [1234567] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [1-------] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [1234ABCD] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M rejects dropoff_phone [514.555.0100] before confirmation",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M required pickup_name then correction permits progression",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M required pickup_phone then correction permits progression",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M required dropoff_name then correction permits progression",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M required dropoff_phone then correction permits progression",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [12345678] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [514-555-0100] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [(514) 555 0100] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [+33 1 23 45 67 89] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [1234567890123456789012345] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M accepts existing server phone format [+1234567890123456789012345] unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M phone counter follows 25 plus optional leading sign",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M overlength paste [12345678901234567890123456] remains editable and is rejected",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M overlength paste [+12345678901234567890123456] remains editable and is rejected",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M name and optional instruction existing limits remain",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M correction navigation and widget restoration preserve contacts and quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M valid contact payload reaches only simulated creation unchanged",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M fr Size(375.0, 812.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M fr Size(430.0, 932.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M fr Size(1440.0, 900.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M fr Size(375.0, 812.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M fr Size(430.0, 932.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M en Size(375.0, 812.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M en Size(430.0, 932.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M en Size(1440.0, 900.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M en Size(375.0, 812.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M en Size(430.0, 932.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M es Size(375.0, 812.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M es Size(430.0, 932.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M es Size(1440.0, 900.0) text 1.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M es Size(375.0, 812.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "M es Size(430.0, 932.0) text 2.0 messages fit",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N isolation: HTTP disabled; no Firebase app",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=false (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=false (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=false (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=false (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=true (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=true (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=true (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment fr ready=true (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=false (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=false (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=false (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=false (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=true (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=true (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=true (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment en ready=true (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=false (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=false (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=false (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=false (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=true (375.0, 812.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=true (430.0, 932.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=true (1440.0, 900.0, 1.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N payment es ready=true (375.0, 812.0, 2.0)",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N setup loading then explicit ready response; no premature success",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N setup failure retains data and permits retry",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N no prepared method and failed status do not claim saved card",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date fr (2099-01-31T17:45:00Z, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date fr (2099-03-01T02:15:00Z, février, February, febrero, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date fr (2100-01-01T02:15:00Z, décembre, December, diciembre, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date fr (2099-07-31T17:45:00Z, juillet, July, julio, 2099, 13:45, UTC-04:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date fr (2099-01-31T12:45:00-05:00, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date fr source=null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date fr source=not-a-date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date fr source=",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date en (2099-01-31T17:45:00Z, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date en (2099-03-01T02:15:00Z, février, February, febrero, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date en (2100-01-01T02:15:00Z, décembre, December, diciembre, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date en (2099-07-31T17:45:00Z, juillet, July, julio, 2099, 13:45, UTC-04:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date en (2099-01-31T12:45:00-05:00, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date en source=null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date en source=not-a-date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date en source=",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date es (2099-01-31T17:45:00Z, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date es (2099-03-01T02:15:00Z, février, February, febrero, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date es (2100-01-01T02:15:00Z, décembre, December, diciembre, 2099, 21:15, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date es (2099-07-31T17:45:00Z, juillet, July, julio, 2099, 13:45, UTC-04:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N date es (2099-01-31T12:45:00-05:00, janvier, January, enero, 2099, 12:45, UTC-05:00) local Quebec display only",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date es source=null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date es source=not-a-date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N unknown date es source=",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N navigation and reconstruction preserve date contacts and quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "N confirmation payload unchanged and duplicate callback guarded",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O isolation: memory-only transport and no Firebase",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (430.0, 932.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (430.0, 932.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (430.0, 932.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (1440.0, 900.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (1440.0, 900.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (1440.0, 900.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 2.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 2.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive fr (375.0, 812.0, 2.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O actual receipt to tracking reference and return fr",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (430.0, 932.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (430.0, 932.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (430.0, 932.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (1440.0, 900.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (1440.0, 900.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (1440.0, 900.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 2.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 2.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive en (375.0, 812.0, 2.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O actual receipt to tracking reference and return en",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (430.0, 932.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (430.0, 932.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (430.0, 932.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (1440.0, 900.0, 1.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (1440.0, 900.0, 1.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (1440.0, 900.0, 1.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 2.0) search",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 2.0) assigned",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O responsive es (375.0, 812.0, 2.0) error",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O actual receipt to tracking reference and return es",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O assigned status without valid driver null",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O assigned status without valid driver ",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O assigned status without valid driver    ",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.offered",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.cancelled",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.completed",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.delivered",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.disputed",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.refunded",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O concrete status MissionStatus.quoted",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O initial loading and disappeared mission",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O mismatched mission returned on A stream is never B",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O foreign customer data and reference remain inaccessible",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O missing reference never reconstructed from requested route",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O unsupported raw status new_status remains neutral",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O unsupported raw status payment_failed remains neutral",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O unsupported raw status null remains neutral",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O changing A to B clears old scope even before B response",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "O assigned GPS refuses foreign position and permits fresh correct data",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": []
+    },
+    "flutterFinalSubtitle": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "tests": [
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices fr Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices en Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(430.0, 932.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(1440.0, 900.0) text 1.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "timing choices es Size(375.0, 812.0) text 2.0",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "switching mode invalidates quote and consent, preserves cargo and contacts",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "immediate choice survives widget recreation without becoming a date",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "unavailable reservation never sends immediate request or quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "confirmation honestly shows immediate preference and preserves quote",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "driver/client load summary communicates immediate request",
+          "result": "success",
+          "skipped": false
+        },
+        {
+          "name": "legacy draft does not silently change its quote payload",
+          "result": "success",
+          "skipped": false
+        }
+      ],
+      "errors": []
+    },
+    "unit": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "suites": [
+        {
+          "name": "test\\unit\\bookingTiming.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "explicit immediate request needs no fabricated future timestamp",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "explicit scheduled request preserves the exact requested instant",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "legacy scheduled loads retain their original normalized representation",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "missing time is not implicitly immediate: undefined",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "missing time is not implicitly immediate: scheduled",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects unknown explicit timing mode: now",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects unknown explicit timing mode: ",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects unknown explicit timing mode: 1",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects unknown explicit timing mode: null",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "immediate mode cannot carry a contradictory scheduled date",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "immediate mode does not bypass approved capacity",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        },
+        {
+          "name": "test\\unit\\booking.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "converts inches and pounds on the server",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "unknown/approximate measurements never give a reservable recommendation: { length: null }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "unknown/approximate measurements never give a reservable recommendation: { weight: null }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "unknown/approximate measurements never give a reservable recommendation: { approximate: true }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "no unapproved or invented vehicle capacities",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects excess size, weight and opening: { length: 201 }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects excess size, weight and opening: { weight: 201 }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects excess size, weight and opening: { height: 91 }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects excess size, weight and opening: { width: 91, length: 91 }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "volume may fit while multiple boxes cannot share the floor",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "accepts a verified non-overlapping plan without stacking",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "total payload includes quantities",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "upright restriction cannot be rotated away",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "two handlers and equipment are real capability requirements",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "invalid units, duplicate IDs, negative and unbounded values rejected",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "sort recommendation by configured rank, never browser preference",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "incomplete bank authentication never means ready",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects checkout ownership/environment mismatch: { customerId: 'other' }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects checkout ownership/environment mismatch: { quoteId: 'other' }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects checkout ownership/environment mismatch: { userId: 'other' }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "rejects checkout ownership/environment mismatch: { livemode: true }",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "verified completed setup returns only opaque payment method",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "configured loading/unloading fees are applied without changing existing rates",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        }
+      ]
+    },
+    "integration": {
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "success": true,
+      "suites": [
+        {
+          "name": "test\\integration\\bookingTimingDispatch.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "immediate quote creates mission, driver offer and in-app notification with identical cents",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "scheduled quote creates mission, driver offer and in-app notification with identical cents",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "changing immediate to scheduled cannot reuse the official quote",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "timing choice alone does not change the financial result",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        },
+        {
+          "name": "test\\integration\\dispatchNoDriverAvailable.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "Phase 7 — Bloc B (MIS-C-02) : aucun chauffeur disponible à la création laisse la mission en searching_driver, ne crée AUCUNE delivery_offers, ne plante pas",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "Phase 7 — Bloc B (MIS-C-02) : aucun chauffeur disponible à la création [régression positive] si un chauffeur éligible existe dans la zone, une offre EST créée et status -> offered",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        },
+        {
+          "name": "test\\integration\\calculateDeliveryQuote.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "calculateDeliveryQuote — cas nominal un client authentifié obtient un devis persisté dans delivery_quotes, non consommé, avec durée de validité",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — cas nominal un appel NON authentifié échoue avec unauthenticated",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — cas nominal ignore distance/durée injectées par le client et conserve le trajet serveur",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — cas nominal aucune pricing_configs/active configurée échoue avec failed-precondition (aucun devis fantôme calculé)",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — résolution SERVEUR du code promo (jamais un montant client) un code promo valide réduit bien le customerTotal par rapport à un devis sans code",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — résolution SERVEUR du code promo (jamais un montant client) un code promo INEXISTANT est ignoré silencieusement (dégrade à 0 remise, ne bloque jamais le devis)",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — résolution SERVEUR du code promo (jamais un montant client) un code promo EXPIRÉ n'est PAS appliqué",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — résolution SERVEUR du code promo (jamais un montant client) un code promo is_active=false n'est PAS appliqué même dans sa fenêtre de validité",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "calculateDeliveryQuote — résolution SERVEUR du code promo (jamais un montant client) un montant de remise envoyé directement par le client (champ non déclaré dans l'interface) est IGNORÉ",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        },
+        {
+          "name": "test\\integration\\bookingJourney.test.ts",
+          "status": "passed",
+          "tests": [
+            {
+              "name": "concurrent confirmation creates one mission, preserves cents, cargo and private consent",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "changed load, unverified email and stale consent cannot confirm",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "draft owner binding and stale revision guard",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "real vehicle unknown, unverified, expired or undersized is rejected",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "unknown dimensions open a private review and never a mission",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "a recalculated quote for the same draft cannot create a second mission",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "hosted setup retry reuses its session; interrupted authentication never marks a card ready",
+              "status": "passed",
+              "failureMessages": []
+            },
+            {
+              "name": "expired photo cleanup is isolated by account and retries a temporary Storage failure",
+              "status": "passed",
+              "failureMessages": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "quality": {
+    "initial": {
+      "analyze": 0,
+      "format": 0,
+      "diffCheck": 0
+    },
+    "finalFormat": {
+      "code": 0,
+      "args": [
+        "format",
+        "--output=none",
+        "--set-exit-if-changed",
+        "lib/screens/delivery/delivery_request_flow_screen.dart",
+        "lib/services/booking/booking_draft.dart",
+        "lib/widgets/booking_load_summary.dart",
+        "test/customer/delivery_timing_test.dart"
+      ]
+    },
+    "finalAnalyze": {
+      "code": 0,
+      "args": [
+        "--no-version-check",
+        "analyze",
+        "--no-pub",
+        "lib/screens/delivery/delivery_request_flow_screen.dart",
+        "lib/services/booking/booking_draft.dart",
+        "lib/widgets/booking_load_summary.dart",
+        "test/customer/delivery_timing_test.dart"
+      ]
+    },
+    "webBuild": {
+      "code": 0,
+      "args": [
+        "--no-version-check",
+        "build",
+        "web",
+        "--release",
+        "--no-pub",
+        "--dart-define=USE_FIREBASE_EMULATORS=true"
+      ]
+    }
+  },
+  "integrationAttempts": [
+    {
+      "attempt": 1,
+      "result": "Emulator startup failed before any test",
+      "error": "Expected single_project_mode to be set for single_project_mode_error"
+    },
+    {
+      "attempt": 2,
+      "result": "4 suites failed to initialize; no test executed",
+      "error": "GOOGLE_APPLICATION_CREDENTIALS pointed to an intentionally absent file"
+    },
+    {
+      "attempt": 3,
+      "passed": 0,
+      "failed": 23,
+      "skipped": 0,
+      "result": "Emulator failed fixture writes before business assertions",
+      "error": "java.util.MissingResourceException: Can't find bundle for base name com.google.firebase.rules.validations.JValidationMessages_messages, locale fr_CA",
+      "metadataAttemptsBlockedBeforeTransmission": 4
+    },
+    {
+      "attempt": 4,
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0,
+      "result": "Passed; dedicated emulator stopped",
+      "javaLocale": "en_US (process arguments only)",
+      "metadataServerDetection": "none",
+      "blockedNetworkLogExists": false
+    }
+  ],
+  "distinctFinalTests": {
+    "flutter": 200,
+    "unit": 34,
+    "integration": 23,
+    "total": 257,
+    "repeated18NotAdded": true
+  },
+  "isolation": {
+    "project": "demo-movik-test",
+    "firestore": "127.0.0.1:8080",
+    "node": "20.20.2",
+    "functionsEmulator": false,
+    "routes": "existing test/setupRouteMock.ts",
+    "payments": "FakePaymentProvider",
+    "notifications": "sendDeliveryOfferPush jest mock",
+    "flutter": "no_default_http_client=true and existing offlineTests/MemoryBookingStorage/TestBookingApi/BookingTestAuth",
+    "network": "Jest process: socket/TLS/DNS/fetch guards reject non-loopback/non-8080 and child processes; not OS confinement.",
+    "production": "Only narrow read-only diagnostic queries; no production write. No production service used by tests.",
+    "limitations": [
+      "No Eventarc/callable transport test",
+      "No actual FCM notification",
+      "No Stripe Sandbox/LIVE",
+      "No Chrome or physical phone test",
+      "Autonomous tiles test 1.3L still blocked and deferred"
+    ]
+  }
+}

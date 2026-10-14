@@ -12,6 +12,8 @@ export interface Access { floor: number; stairs: boolean; elevator: boolean; hel
 export interface BookingLoad {
   schema_version: 1; draft_id: string; items: CargoItem[]; pickup: Access; dropoff: Access;
   handlers: number; equipment: string[]; requested_at: string | null;
+  /** Omitted on legacy scheduled snapshots to preserve their integrity contract. */
+  timing_mode?: 'immediate' | 'scheduled';
 }
 export interface Capacity {
   category: string; rank: number; version: string; verified: boolean;
@@ -78,8 +80,16 @@ export function normalizeLoad(raw: unknown): BookingLoad {
   if (!Array.isArray(equipment) || equipment.length > 10) throw invalidArgument('Équipement invalide.');
   const requested = v.requested_at == null ? null : str(v.requested_at, 40);
   if (requested && !Number.isFinite(Date.parse(requested))) throw invalidArgument('Date demandée invalide.');
+  const mode = v.timing_mode;
+  if (mode !== undefined && mode !== 'immediate' && mode !== 'scheduled') {
+    throw invalidArgument('Choisissez une demande dès maintenant ou programmée.');
+  }
+  if (mode === 'immediate' && requested !== null) {
+    throw invalidArgument('Une demande dès maintenant ne doit pas contenir de date programmée.');
+  }
   return { schema_version: 1, draft_id: draftId, items, pickup: access(v.pickup), dropoff: access(v.dropoff),
-    handlers: num(v.handlers, 1, 2, true), equipment: [...new Set(equipment.map(e => str(e, 50)))].sort(), requested_at: requested };
+    handlers: num(v.handlers, 1, 2, true), equipment: [...new Set(equipment.map(e => str(e, 50)))].sort(), requested_at: requested,
+    ...(mode === undefined ? {} : { timing_mode: mode }) };
 }
 
 export function validCapacity(c: Capacity): boolean {
@@ -122,7 +132,7 @@ export function recommend(load: BookingLoad, rules: BookingRules) {
   if (load.items.some(i => i.length_cm === null || i.width_cm === null || i.height_cm === null)) reasons.push('dimensions_unknown');
   if (load.items.some(i => i.weight_kg === null)) reasons.push('weight_unknown');
   if (load.items.some(i => i.approximate)) reasons.push('approximate_measurements');
-  if (!load.requested_at) reasons.push('requested_time_missing');
+  if (load.timing_mode !== 'immediate' && !load.requested_at) reasons.push('requested_time_missing');
   if (!rules?.approved || !rules.version || !Array.isArray(rules.capacities) || !rules.capacities.some(validCapacity) ||
     !(rules.heavy_item_kg > 0) || !(rules.bulky_item_cm > 0)) reasons.push('capacity_unconfigured');
   const compatible = reasons.length ? [] : rules.capacities.filter(c => fitsVehicle(load, c)).sort((a,b) => a.rank-b.rank || a.category.localeCompare(b.category));
