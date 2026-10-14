@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies/prérequis actifs non fermés : **P0 0, P1 1, P2 1** ; 30 fiches conservées, dont 28 fermées dans leurs périmètres historiques. P1-BOOKING-CONFIG-01 reste bloqué par les configurations opérationnelles absentes ; P2-BOOKING-TIMING-01 est corrigé et testé localement, non fermé et non déployé. Ce décompte ne constitue pas une autorisation de lancement. Les anciennes clôtures, limites, P3 et prérequis restent conservés ci-dessous.
+Anomalies/prérequis actifs non fermés : **P0 0, P1 1, P2 2** ; 31 fiches conservées, dont 28 fermées dans leurs périmètres historiques. P1-BOOKING-CONFIG-01 reste bloqué par les configurations opérationnelles absentes ; P2-BOOKING-TIMING-01 est corrigé et testé localement, non fermé et non déployé. Ce décompte ne constitue pas une autorisation de lancement. Les anciennes clôtures, limites, P3 et prérequis restent conservés ci-dessous.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -51,7 +51,13 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | P1-BOOKING-CONFIG-01 | P1 | Prérequis de mise en service, pas un défaut de calcul | BLOQUÉ — CONFIGURATION MÉTIER REQUISE | Réservations/acceptations désactivées ; politique, capacités et zone absentes ; aucune capacité véhicule vérifiée. |
 | P2-BOOKING-TIMING-01 | P2 | Choix immédiat absent, corrigé et testé localement | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Choix explicite dès maintenant/programmée, conservation du brouillon et devis invalidé lors du changement ; aucun horaire ni tarif inventé. |
 
+| P2-AUTH-LOGOUT-01 | P2 | Retour accueil apres deconnexion publique | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Navigation apres signOut et erreur localisee si echec. |
+
 ## Fiches actives
+
+### P2-AUTH-LOGOUT-01
+
+14 octobre 2026 : reproduit (12 echecs), corrige et valide localement (31 tests combines reussis, aucun echec/ignore). AppShell, home_copy et public_logout_navigation_test. Preuve : artifacts/logout-20261014-I3w87v/CHECKPOINT_LOGOUT.md. Aucun test Firebase reel, Chrome ou production. Non ferme. Historique conserve.
 
 ### P1-WEBHOOK-01
 

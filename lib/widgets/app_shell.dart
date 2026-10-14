@@ -11,6 +11,23 @@ import '../providers/firebase_auth_provider.dart';
 import '../providers/locale_provider.dart';
 import 'language_selector.dart';
 
+Future<void> _signOutAndReturnHome(BuildContext context, String locale) async {
+  final auth = context.read<FirebaseAuthProvider>();
+  final router = GoRouter.of(context);
+  // The drawer closes before Firebase completes; retain the shell context.
+  final shellContext = Scaffold.of(context).context;
+  final messenger = ScaffoldMessenger.of(context);
+  final errorMessage = HomeCopy.text('sign_out_failed', locale);
+  try {
+    await auth.signOut();
+    if (shellContext.mounted) router.go('/$locale');
+  } catch (_) {
+    if (messenger.mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+    }
+  }
+}
+
 String _deliveryTagline(String locale) {
   switch (locale) {
     case 'en':
@@ -198,7 +215,7 @@ class _AccountMenu extends StatelessWidget {
           context.go('/$locale/fournisseur/tableau-de-bord');
         }
         if (value == 'admin') context.go('/$locale/admin');
-        if (value == 'logout') auth.signOut();
+        if (value == 'logout') _signOutAndReturnHome(context, locale);
       },
       itemBuilder: (context) => [
         PopupMenuItem(value: 'dashboard', child: Text(t('nav_dashboard'))),
@@ -316,7 +333,11 @@ class _MobileDrawer extends StatelessWidget {
                 t('nav_dashboard'),
                 () => context.go('/$locale/tableau-de-bord'),
               ),
-              item(Icons.logout, t('nav_logout'), () => auth.signOut()),
+              item(
+                Icons.logout,
+                t('nav_logout'),
+                () => _signOutAndReturnHome(context, locale),
+              ),
             ] else
               item(
                 Icons.login,
