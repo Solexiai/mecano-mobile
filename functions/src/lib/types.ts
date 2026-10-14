@@ -747,6 +747,9 @@ export interface ProviderWebhookEventDoc {
   received_at: admin_Timestamp;
   processed_at?: admin_Timestamp | null;
   processing_status: WebhookProcessingStatus;
+  // Finite claim for a currently active webhook dispatch; null after
+  // completion/failure. Older documents may not have this optional field.
+  processing_lease_until?: admin_Timestamp | null;
   attempt_count: number;
   // 🔒 conservé pour rétro-compatibilité (alias historique d'attempt_count).
   processing_attempts?: number;
