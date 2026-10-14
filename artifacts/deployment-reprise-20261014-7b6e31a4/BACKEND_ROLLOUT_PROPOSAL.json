@@ -1,0 +1,181 @@
+{
+  "at": "2026-10-14T15:11:05.588Z",
+  "head": "8ab7864593555db74d2f2aa417366a7a4d0621e1",
+  "comparison": "Static closure vs public Web commit dd85a60; production backend source commit not independently attested",
+  "alreadyDeployedCount": 64,
+  "localExports": 69,
+  "newExports": [
+    {
+      "name": "onPaymentAuthorizedAfterMissionCancel",
+      "file": "functions/src/functions/onPaymentAuthorizedAfterMissionCancel.ts"
+    },
+    {
+      "name": "recoverCancelledPendingPayments",
+      "file": "functions/src/functions/recoverCancelledPendingPayments.ts"
+    },
+    {
+      "name": "updateDisputeStatus",
+      "file": "functions/src/functions/updateDisputeStatus.ts"
+    },
+    {
+      "name": "resolveReconciliationAnomaly",
+      "file": "functions/src/functions/resolveReconciliationAnomaly.ts"
+    },
+    {
+      "name": "reverseDriverPayout",
+      "file": "functions/src/functions/reverseDriverPayout.ts"
+    }
+  ],
+  "affected": [
+    {
+      "name": "suspendDriver",
+      "file": "functions/src/functions/suspendDriver.ts",
+      "changedDependencies": [
+        "functions/src/functions/suspendDriver.ts",
+        "functions/src/lib/driverSuspensionPolicy.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "reactivateDriver",
+      "file": "functions/src/functions/reactivateDriver.ts",
+      "changedDependencies": [
+        "functions/src/functions/reactivateDriver.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "acceptDelivery",
+      "file": "functions/src/functions/acceptDelivery.ts",
+      "changedDependencies": [
+        "functions/src/functions/acceptDelivery.ts",
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "adminAssignDelivery",
+      "file": "functions/src/functions/adminAssignDelivery.ts",
+      "changedDependencies": [
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "completePickup",
+      "file": "functions/src/functions/completePickup.ts",
+      "changedDependencies": [
+        "functions/src/functions/completePickup.ts",
+        "functions/src/lib/driverSuspensionPolicy.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "completeDelivery",
+      "file": "functions/src/functions/completeDelivery.ts",
+      "changedDependencies": [
+        "functions/src/functions/completeDelivery.ts",
+        "functions/src/lib/driverSuspensionPolicy.ts",
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "updateMissionTrackingStatus",
+      "file": "functions/src/functions/updateMissionTrackingStatus.ts",
+      "changedDependencies": [
+        "functions/src/functions/updateMissionTrackingStatus.ts",
+        "functions/src/lib/driverSuspensionPolicy.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "onMissionEndedClearTracking",
+      "file": "functions/src/functions/onMissionEndedClearTracking.ts",
+      "changedDependencies": [
+        "functions/src/functions/onMissionEndedClearTracking.ts",
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "onPaymentAuthorizedAfterMissionCancel",
+      "file": "functions/src/functions/onPaymentAuthorizedAfterMissionCancel.ts",
+      "changedDependencies": [
+        "functions/src/functions/onPaymentAuthorizedAfterMissionCancel.ts",
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": false
+    },
+    {
+      "name": "recoverCancelledPendingPayments",
+      "file": "functions/src/functions/recoverCancelledPendingPayments.ts",
+      "changedDependencies": [
+        "functions/src/functions/recoverCancelledPendingPayments.ts",
+        "functions/src/payment/recoverCancelledPendingAuthorization.ts",
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": false
+    },
+    {
+      "name": "recordTrackingPoint",
+      "file": "functions/src/functions/recordTrackingPoint.ts",
+      "changedDependencies": [
+        "functions/src/functions/recordTrackingPoint.ts",
+        "functions/src/lib/driverSuspensionPolicy.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "calculateDriverPayout",
+      "file": "functions/src/functions/calculateDriverPayout.ts",
+      "changedDependencies": [
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "processScheduledDriverPayouts",
+      "file": "functions/src/functions/processScheduledDriverPayouts.ts",
+      "changedDependencies": [
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "refundPayment",
+      "file": "functions/src/functions/refundPayment.ts",
+      "changedDependencies": [
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "processStripeWebhook",
+      "file": "functions/src/functions/processStripeWebhook.ts",
+      "changedDependencies": [
+        "functions/src/functions/processStripeWebhook.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "processStripeConnectWebhook",
+      "file": "functions/src/functions/processStripeWebhook.ts",
+      "changedDependencies": [
+        "functions/src/functions/processStripeWebhook.ts"
+      ],
+      "alreadyDeployed": true
+    },
+    {
+      "name": "reverseDriverPayout",
+      "file": "functions/src/functions/reverseDriverPayout.ts",
+      "changedDependencies": [
+        "functions/src/payment/paymentOrchestration.ts"
+      ],
+      "alreadyDeployed": false
+    }
+  ],
+  "typesChanges": "Only optional interface fields, no runtime constants modified",
+  "rulesChanged": "firestore.rules",
+  "action": "PROPOSAL ONLY. No Firebase deployment. Confirm rollout, backups/rollback and newly activated payment recovery before execution."
+}

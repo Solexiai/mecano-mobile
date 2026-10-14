@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-14T15:15:27.353Z",
+  "files": {
+    "preview": {
+      "origin": "https://mecano-mobile-ay1wfmyvv-solexis-projects-4c019079.vercel.app",
+      "bytes": 5070109,
+      "sha256": "95d6c92f6aeed6d962c007c5071698418a42258f514c4265ec371bf42ea49175"
+    },
+    "staged": {
+      "origin": "https://mecano-mobile-28prusr3a-solexis-projects-4c019079.vercel.app",
+      "bytes": 5070109,
+      "sha256": "95d6c92f6aeed6d962c007c5071698418a42258f514c4265ec371bf42ea49175"
+    }
+  },
+  "sameJavaScript": true,
+  "note": "Protected Vercel GET only; no application API called. No JS content or public client keys printed."
+}
