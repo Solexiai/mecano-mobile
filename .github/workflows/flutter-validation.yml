@@ -3,7 +3,7 @@ name: Flutter validation
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['lib/**', 'test/**', 'pubspec.yaml', 'pubspec.lock', '.github/workflows/flutter-validation.yml']
+    paths: ['lib/**', 'test/**', 'analysis_options.yaml', 'pubspec.yaml', 'pubspec.lock', '.github/workflows/flutter-validation.yml']
   push:
     branches:
       - fix/quote-mission-payment-integrity

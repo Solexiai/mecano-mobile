@@ -22,6 +22,12 @@ analyzer:
     # NOT part of this app and must never be analyzed as app code (Phase 7,
     # Bloc X — flutter analyze noise found while validating X-10).
     - functions/**
+    # Historical QA evidence includes copied/incomplete *.dart fixtures whose
+    # imports were meaningful only in their original test directories. These
+    # are not Flutter application sources or runnable tests. Keep the files,
+    # but exclude them from the repo-wide analyzer/CI; lib/ and test/ remain
+    # fully analyzed.
+    - artifacts/**
 include: package:flutter_lints/flutter.yaml
 
 linter:
