@@ -1,8 +1,5 @@
 // P2-COPY-001: preserve the existing public examples and category route.
 // Real Flutter widgets with the shared offline transport, not Chrome proof.
-import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -12,35 +9,12 @@ import 'package:movik_connect/l10n/home_copy.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
 import '../helpers/booking_test_harness.dart';
 import '../helpers/gps_offline_transport.dart';
+import '../helpers/public_render_test_helpers.dart' show loadRobotoTestFonts;
 import 'home_screen_test.dart' show mountHome;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUpAll(() async {
-    // flutter_tester uses Ahem by default. Load the application's Material
-    // font from the installed SDK for meaningful truncation assertions.
-    // No download, altered theme, product change or weaker assertion.
-    final configFile = File('.dart_tool/package_config.json');
-    final config = jsonDecode(await configFile.readAsString()) as Map;
-    final packages = config['packages'] as List;
-    final flutter = packages.cast<Map>().singleWhere(
-      (package) => package['name'] == 'flutter',
-    );
-    final flutterPackage = Directory.fromUri(
-      configFile.absolute.uri.resolve(flutter['rootUri'] as String),
-    );
-    final sdk = flutterPackage.parent.parent;
-    final fonts = FontLoader('Roboto');
-    for (final weight in ['regular', 'medium', 'bold', 'black']) {
-      final file = File.fromUri(
-        sdk.uri.resolve(
-          'bin/cache/artifacts/material_fonts/roboto-$weight.ttf',
-        ),
-      );
-      fonts.addFont(file.readAsBytes().then(ByteData.sublistView));
-    }
-    await fonts.load();
-  });
+  setUpAll(loadRobotoTestFonts);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     expect(Firebase.apps, isEmpty);

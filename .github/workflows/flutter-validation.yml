@@ -56,6 +56,9 @@ jobs:
 
       - name: Run Flutter tests
         shell: bash
+        env:
+          # Confirmation date fixtures explicitly cover Quebec winter/summer time.
+          TZ: America/Toronto
         run: |
           set +e
           flutter test --dart-define=no_default_http_client=true --reporter expanded > flutter-tests.log 2>&1

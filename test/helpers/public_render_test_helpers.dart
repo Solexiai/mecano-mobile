@@ -6,7 +6,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Existing SDK files only; no download or product theme replacement.
+// Versioned test fixtures preserve the font metrics used in the local audit.
+Future<void> loadRobotoTestFonts() async {
+  final fonts = FontLoader('Roboto');
+  for (final weight in ['regular', 'medium', 'bold', 'black']) {
+    final file = File('test/fixtures/fonts/roboto-$weight.ttf');
+    fonts.addFont(file.readAsBytes().then(ByteData.sublistView));
+  }
+  await fonts.load();
+}
+
+// Local font fixtures and SDK icons only; no download or product theme change.
 Future<void> loadLocalMaterialFonts() async {
   final configFile = File('.dart_tool/package_config.json');
   final config = jsonDecode(await configFile.readAsString()) as Map;
@@ -16,14 +26,7 @@ Future<void> loadLocalMaterialFonts() async {
   final sdk = Directory.fromUri(
     configFile.absolute.uri.resolve(flutter['rootUri'] as String),
   ).parent.parent;
-  final fonts = FontLoader('Roboto');
-  for (final weight in ['regular', 'medium', 'bold', 'black']) {
-    final file = File.fromUri(
-      sdk.uri.resolve('bin/cache/artifacts/material_fonts/roboto-$weight.ttf'),
-    );
-    fonts.addFont(file.readAsBytes().then(ByteData.sublistView));
-  }
-  await fonts.load();
+  await loadRobotoTestFonts();
   // Load actual SDK icons too. TextStyles without an explicit font family
   // can still use Ahem in flutter_tester; captures do not prove Chrome fonts.
   final icons = FontLoader('MaterialIcons');
