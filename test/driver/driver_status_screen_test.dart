@@ -191,7 +191,7 @@ class _FakeDriverRepository implements DriverRepository {
   @override
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => throw UnimplementedError();
   @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) =>
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status, {int limit = 50}) =>
       throw UnimplementedError();
   @override
   Future<void> approveDriver(String driverId) => throw UnimplementedError();
@@ -201,7 +201,7 @@ class _FakeDriverRepository implements DriverRepository {
   Future<void> requestDriverDocuments(String driverId, String reason) =>
       throw UnimplementedError();
   @override
-  Future<void> suspendDriver(String driverId, String reason) => throw UnimplementedError();
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) => throw UnimplementedError();
   @override
   Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
   @override
@@ -277,6 +277,7 @@ DriverProfileV2 _buildProfile({
   String? documentsRequiredReason,
   String? rejectionReason,
   String? suspensionReason,
+  String? suspensionMode,
 }) {
   return DriverProfileV2(
     uid: _driverId,
@@ -291,6 +292,7 @@ DriverProfileV2 _buildProfile({
     documentsRequiredReason: documentsRequiredReason,
     rejectionReason: rejectionReason,
     suspensionReason: suspensionReason,
+    suspensionMode: suspensionMode,
   );
 }
 
@@ -736,6 +738,25 @@ void main() {
   });
 
   group('suspended', () {
+    testWidgets('ordinary suspension keeps dashboard access without an online switch', (tester) async {
+      await pumpWithStatus(tester, _buildProfile(
+        status: DriverStatus.suspended,
+        suspensionMode: 'ordinary',
+      ));
+      expect(_elevatedButtonWithText(t('driver_status_go_to_dashboard')), findsOneWidget);
+      expect(find.byType(Switch), findsNothing);
+      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+    });
+
+    testWidgets('urgent suspension does not offer dashboard access', (tester) async {
+      await pumpWithStatus(tester, _buildProfile(
+        status: DriverStatus.suspended,
+        suspensionMode: 'urgent',
+      ));
+      expect(_elevatedButtonWithText(t('driver_status_go_to_dashboard')), findsNothing);
+      expect(find.byType(Switch), findsNothing);
+    });
+
     testWidgets('affiche le motif de suspension et le CTA "retour accueil" uniquement, sans switch',
         (tester) async {
       await pumpWithStatus(

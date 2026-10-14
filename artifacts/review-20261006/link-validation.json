@@ -1,0 +1,62 @@
+{
+  "results": [
+    {
+      "label": "Obtenir mon devis",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande",
+      "passed": true
+    },
+    {
+      "label": "Devenir chauffeur",
+      "url": "http://127.0.0.1:8092/fr/devenir-chauffeur",
+      "passed": true
+    },
+    {
+      "label": "Connexion",
+      "url": "http://127.0.0.1:8092/fr/connexion",
+      "passed": true
+    },
+    {
+      "label": "FAQ",
+      "url": "http://127.0.0.1:8092/fr/faq",
+      "passed": true
+    },
+    {
+      "label": "Tarifs",
+      "url": "http://127.0.0.1:8092/fr/tarifs",
+      "passed": true
+    },
+    {
+      "label": "Sécurité",
+      "url": "http://127.0.0.1:8092/fr/securite",
+      "passed": true
+    },
+    {
+      "label": "Contact",
+      "url": "http://127.0.0.1:8092/fr/contact",
+      "passed": true
+    },
+    {
+      "label": "Comment ça marche",
+      "url": "http://127.0.0.1:8092/fr/comment-ca-marche",
+      "passed": true
+    },
+    {
+      "label": "Politique de confidentialité",
+      "url": "http://127.0.0.1:8092/fr/legal/privacy",
+      "passed": true
+    },
+    {
+      "label": "Conditions d'utilisation",
+      "url": "http://127.0.0.1:8092/fr/legal/terms",
+      "passed": true
+    },
+    {
+      "label": "Politique d'annulation",
+      "url": "http://127.0.0.1:8092/fr/legal/cancellation",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Desktop French accessibility clicks only; category and login resume also covered by Flutter tests"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-12T14:47:56.705Z",
+  "engine": "5d531788691ec3404cac0cee66ead4007b177363",
+  "stamps": [
+    {
+      "name": "flutter_web_sdk",
+      "version": "5d531788691ec3404cac0cee66ead4007b177363"
+    },
+    {
+      "name": "flutter_sdk",
+      "version": "5d531788691ec3404cac0cee66ead4007b177363"
+    },
+    {
+      "name": "font-subset",
+      "version": "5d531788691ec3404cac0cee66ead4007b177363"
+    },
+    {
+      "name": "engine_stamp",
+      "version": "5d531788691ec3404cac0cee66ead4007b177363"
+    }
+  ],
+  "nativeAssetHooks": [],
+  "materialFonts": "flutter_infra_release/flutter/fonts/3012db47f3130e62f7cc0beabff968a33cbec8d8/fonts.zip",
+  "sdkVersion": {
+    "frameworkVersion": "3.47.1",
+    "channel": "[user-branch]",
+    "repositoryUrl": "https://github.com/flutter/flutter.git",
+    "frameworkRevision": "6655482ec06e547f90abf8ae7590466f4415978d",
+    "frameworkCommitDate": "2026-08-19 10:07:23 -0700",
+    "engineRevision": "5d531788691ec3404cac0cee66ead4007b177363",
+    "engineCommitDate": "2026-08-18 23:36:01.000Z",
+    "engineContentHash": "11d79658c444477b06513d32b52c8c4ccb7276b0",
+    "engineBuildDate": "2026-08-18 23:19:20.672",
+    "dartSdkVersion": "3.13.1",
+    "devToolsVersion": "2.60.0",
+    "flutterVersion": "3.47.1"
+  },
+  "legacyCanvasKitExists": false,
+  "note": "Correction inventory: real stamp is flutter_web_sdk.stamp, verified current. No pub command, no app runtime, no test server. Process-only storage/pub URLs loopback-denied, analytics disabled."
+}

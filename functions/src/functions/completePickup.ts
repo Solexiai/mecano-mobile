@@ -7,6 +7,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { MissionStatuses } from "../lib/types";
+import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy";
 
 export interface CompletePickupRequest {
   missionId: string;
@@ -31,6 +32,10 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
     if (![MissionStatuses.ASSIGNED, MissionStatuses.DRIVER_TO_PICKUP, MissionStatuses.ARRIVED_AT_PICKUP].includes(mission.status)) {
       throw failedPrecondition(`Transition invalide depuis le statut '${mission.status}'.`);
     }
+
+    // This read participates in the transaction, so an urgent suspension
+    // committed concurrently forces Firestore to retry and refuse progress.
+    await requireMissionProgressPermission(tx, ctx.uid);
 
     const now = admin.firestore.Timestamp.now();
 

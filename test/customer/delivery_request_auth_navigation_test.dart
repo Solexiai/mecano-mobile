@@ -1,72 +1,31 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'package:movik_connect/l10n/app_strings.dart';
-import 'package:movik_connect/providers/firebase_auth_provider.dart';
-import 'package:movik_connect/providers/locale_provider.dart';
-import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
+import '../helpers/booking_test_harness.dart';
 
 void main() {
-  setUp(() {
-    SharedPreferences.setMockInitialValues({});
+  testWidgets('Guest starts without authentication', (t) async {
+    await pumpBooking(
+      t,
+      storage: MemoryBookingStorage(null),
+      api: TestBookingApi(),
+      auth: BookingTestAuth(signed: false),
+    );
+    expect(find.text('Organisez votre livraison'), findsOneWidget);
+    expect(find.text('AUTH_SCREEN'), findsNothing);
+    await disposeBooking(t);
   });
-
-  testWidgets(
-    'guest can start the delivery request form before authentication',
-    (tester) async {
-      final router = GoRouter(
-        initialLocation: '/fr',
-        routes: [
-          GoRoute(
-            path: '/fr',
-            builder: (context, state) => Scaffold(
-              body: ElevatedButton(
-                onPressed: () => context.push('/fr/livraison/demande'),
-                child: const Text('OPEN_REQUEST'),
-              ),
-            ),
-          ),
-          GoRoute(
-            path: '/fr/livraison/demande',
-            builder: (context, state) =>
-                const DeliveryRequestFlowScreen(locale: 'fr'),
-          ),
-          GoRoute(
-            path: '/fr/connexion',
-            builder: (context, state) =>
-                const Scaffold(body: Text('AUTH_SCREEN')),
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => LocaleProvider()),
-            ChangeNotifierProvider(
-              create: (_) => FirebaseAuthProvider(backendConfigured: false),
-            ),
-          ],
-          child: MaterialApp.router(routerConfig: router),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('OPEN_REQUEST'));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text(AppStrings.t('delivery_hero_headline', 'fr')),
-        findsOneWidget,
-      );
-      expect(
-        find.text(AppStrings.t('delivery_sign_in_button', 'fr')),
-        findsNothing,
-      );
-      expect(find.text('AUTH_SCREEN'), findsNothing);
-    },
-  );
+  testWidgets('Login keeps the complete draft and its step', (t) async {
+    final store = MemoryBookingStorage(testDraft(step: 1));
+    await pumpBooking(
+      t,
+      storage: store,
+      api: TestBookingApi(),
+      auth: BookingTestAuth(signed: false),
+    );
+    await tapBooking(t, 'Se connecter et obtenir mon prix');
+    expect(find.text('AUTH_SCREEN'), findsOneWidget);
+    expect(store.handoffs, 1);
+    expect(store.saved!.step, 1);
+    expect(store.saved!.items.first['length'], 25.4);
+    await disposeBooking(t);
+  });
 }

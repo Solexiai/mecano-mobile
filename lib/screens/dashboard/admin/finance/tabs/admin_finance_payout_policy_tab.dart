@@ -96,10 +96,13 @@ class _AdminFinancePayoutPolicyTabState
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
                           t('admin_finance_action_admin_only'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,
-                            color: AppColors.warning,
+                            color: AppColors.statusBadgeTextColor(
+                              AppColors.warning,
+                              Theme.of(context).brightness,
+                            ),
                           ),
                         ),
                       ),

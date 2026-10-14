@@ -698,6 +698,14 @@ class _StatusCard extends StatelessWidget {
         ];
       case DriverStatus.suspended:
         return [
+          // Ordinary suspension may finish an already assigned mission,
+          // without regaining the ability to go online or accept a new job.
+          if (profile.suspensionMode == 'ordinary')
+            ElevatedButton.icon(
+              onPressed: busy ? null : onGoToDriverDashboard,
+              icon: const Icon(Icons.dashboard_outlined, size: 18),
+              label: Text(t('driver_status_go_to_dashboard')),
+            ),
           OutlinedButton(
             onPressed: busy ? null : onGoHome,
             child: Text(t('driver_status_go_home')),

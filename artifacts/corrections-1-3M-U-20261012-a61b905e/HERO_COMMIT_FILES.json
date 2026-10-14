@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-12T14:32:15.384Z",
+  "parent": "7700931ee7a91b8b9a29c2f91ca3ccdf857e6c29",
+  "files": [
+    {
+      "path": "assets/home/hero_neutral.png",
+      "bytes": 1791300,
+      "sha256": "c687035e45b047a6b9516bf40f672ec05cdd0f9b6a51d9be171bcb11b00726e5"
+    },
+    {
+      "path": "lib/screens/home/home_screen.dart",
+      "bytes": 32208,
+      "sha256": "5a8a3370e0c32ef90b863d512c8a063a601a4e7970ce471ef936e8a971a50be3"
+    },
+    {
+      "path": "lib/l10n/home_copy.dart",
+      "bytes": 17055,
+      "sha256": "55d53e7e1df266dfba7efd987797c00685db20b9a4bcb049e810fbdf19f2333d"
+    },
+    {
+      "path": "test/home/home_hero_locale_test.dart",
+      "bytes": 4441,
+      "sha256": "f8a9325461f384f54c88daf194121d1d0bc99344537f5251c375c86c4453d4fd"
+    },
+    {
+      "path": "test/helpers/public_render_test_helpers.dart",
+      "bytes": 2284,
+      "sha256": "63cd917623c6b42be12f1d80905731efa8a952b9cfac54bef39a4a1d6e8b1825"
+    },
+    {
+      "path": "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+      "bytes": 471781,
+      "sha256": "7cf1de1eda68bd12195af52fbd03e4e239aa385f626d6f6e1bfe15aebda130a4"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md",
+      "bytes": 5700,
+      "sha256": "e25f957f6359f51e4d09068dc0066214276bc19aede71fecb184c6a2bd655787"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/IMAGE_EDIT.json",
+      "bytes": 1687,
+      "sha256": "f8cf10417da237884f0c90006ffecb1aa6480b90cce066a5fd3957e58206f5c1"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_EVIDENCE.json",
+      "bytes": 19584,
+      "sha256": "7c6a6cd60ac0cfe61d6b715aa0006cdbb66b066ef06c24b5134f2b756ddee311"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-before.summary.json",
+      "bytes": 4607,
+      "sha256": "b10c5d13e26f81d1d0fe1a77297043266da594fdfd071d6108b3ee7866e6b103"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-reproduction.summary.json",
+      "bytes": 3792,
+      "sha256": "f46716166c6c796ff20dca6d5241e35f083cd463fe4c9c5274c1f0bff2864d27"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-after.summary.json",
+      "bytes": 3778,
+      "sha256": "4c65995a459dd83a21442e6e46c630c8700e5dc6c2986eb9284c2bd3d30b9729"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-final.summary.json",
+      "bytes": 1882,
+      "sha256": "8c97536be65a55324311d3567e507401721e60f3ab30c6c0cb82c730034259d9"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified.summary.json",
+      "bytes": 1888,
+      "sha256": "50b3ee24c001a5fb98c2ace6103074894659388ac105248c9962735d35ee546b"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-permanent.summary.json",
+      "bytes": 1890,
+      "sha256": "27fdc07eab9d8f82adb5474f8b5a617f4f4a47e88f61e8ab7b0f8f4788b21b9e"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-regression.summary.json",
+      "bytes": 10533,
+      "sha256": "efd5600909d4e2ac32d6192dec74c18bb61be1a5fa5f78afb3643f6b3ffc73fa"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-analyze-final.txt",
+      "bytes": 198,
+      "sha256": "6f25a3d022413a291365544e6ad94a6963251f142ab33a2cbbc7c2ab7fe064f1"
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-format.txt",
+      "bytes": 98,
+      "sha256": "3a2b340f692971f5a4ba3b52d5a1ba8a67ef27f7d12fe4610bed9b34882b1c8b"
+    }
+  ],
+  "manifestFile": "artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_COMMIT_FILES.json"
+}

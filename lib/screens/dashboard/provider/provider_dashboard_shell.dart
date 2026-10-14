@@ -36,6 +36,10 @@ class ProviderDashboardShell extends StatefulWidget {
 
 class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   late int _index = widget.initialTabIndex.clamp(0, 3).toInt();
+  // Each tab is mounted only on its first visit, then retained in place.
+  // Initial route to Stripe Connect profile (index 3) stays supported.
+  late final List<bool> _visitedTabs;
+  String? _tabsDriverId;
   bool _togglingAvailability = false;
   bool _signingOut = false;
 
@@ -47,6 +51,21 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   // de re-souscrire inutilement à Firestore. Mémoïsé par `driverId`.
   String? _cachedDriverId;
   Stream<DriverProfileV2?>? _driverProfileStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _visitedTabs = List<bool>.filled(4, false);
+    _visitedTabs[_index] = true;
+  }
+
+  void _selectTab(int index) {
+    if (index < 0 || index >= _visitedTabs.length || index == _index) return;
+    setState(() {
+      _visitedTabs[index] = true;
+      _index = index;
+    });
+  }
 
   Stream<DriverProfileV2?> _ensureDriverProfileStream(String driverId) {
     if (_cachedDriverId != driverId || _driverProfileStream == null) {
@@ -153,6 +172,14 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     }
 
     final driverId = auth.effectiveUid!;
+    // Do not reuse an old driver's tab visit history after an account
+    // switch in the same widget. Cached child state is owned by its user.
+    if (_tabsDriverId != driverId) {
+      _tabsDriverId = driverId;
+      _index = widget.initialTabIndex.clamp(0, 3).toInt();
+      _visitedTabs.fillRange(0, _visitedTabs.length, false);
+      _visitedTabs[_index] = true;
+    }
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 900;
@@ -169,11 +196,20 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     // fonctionnel, avec un Tooltip pour conserver l'information de statut
     // de façon accessible même sans le texte.
     final isNarrowPhone = screenWidth < 480;
-    final tabs = [
-      const ProviderJobsTab(),
-      const ProviderCalendarTab(),
-      const ProviderEarningsTab(),
-      const ProviderProfileTab(),
+    final tabs = <Widget>[
+      if (_visitedTabs[0]) const ProviderJobsTab() else const SizedBox.shrink(),
+      if (_visitedTabs[1])
+        const ProviderCalendarTab()
+      else
+        const SizedBox.shrink(),
+      if (_visitedTabs[2])
+        const ProviderEarningsTab()
+      else
+        const SizedBox.shrink(),
+      if (_visitedTabs[3])
+        const ProviderProfileTab()
+      else
+        const SizedBox.shrink(),
     ];
     final navItems = [
       (Icons.assignment_outlined, t('nav_available_jobs')),
@@ -270,49 +306,39 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
           const SizedBox(width: 4),
         ],
       ),
-      // Bloc M (gap performance identifié, NON corrigé ce tour) : `tabs[_index]`
-      // détruit/recrée le State de l'onglet non affiché à chaque changement
-      // d'onglet (ré-abonnement Firestore, ex: `_ensureStreams()` de
-      // ProviderJobsTab). Un remplacement par `IndexedStack` a été tenté puis
-      // REVERTÉ : `IndexedStack` construit les 4 onglets simultanément dès le
-      // premier rendu (y compris Earnings/Calendar/Profile, jamais visités),
-      // ce qui souscrit immédiatement à des flux Firestore supplémentaires
-      // (finance, profil) même quand l'utilisateur reste sur "Missions
-      // disponibles" — un coût réseau/mémoire ajouté au démarrage, pire que
-      // le gap initial pour l'usage MVP typique (rester sur le premier
-      // onglet). Un vrai correctif nécessiterait une construction paresseuse
-      // par onglet (ex: `AutomaticKeepAliveClientMixin` par onglet, ou
-      // construire l'IndexedStack enfant par enfant uniquement après première
-      // visite) — DEFERRED NON-BLOCKING, documenté dans PHASE7_BUG_REPORT.md
-      // pour un prochain bloc (hors urgence P0/P1 : le gap actuel n'affecte
-      // que la fraîcheur du flux après un retour d'onglet, pas une fuite ni
-      // un crash).
-      body: isDesktop
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _index,
-                  onDestinationSelected: (i) => setState(() => _index = i),
-                  labelType: NavigationRailLabelType.all,
-                  destinations: navItems
-                      .map(
-                        (n) => NavigationRailDestination(
-                          icon: Icon(n.$1),
-                          label: Text(n.$2),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(child: tabs[_index]),
-              ],
-            )
-          : tabs[_index],
+      // GAP-M-05: IndexedStack retains each visited tab's State and streams.
+      // Unvisited tabs remain cheap placeholders: they are not constructed
+      // at startup, avoiding premature finance/profile Firestore listeners.
+      // The Row/Expanded wrapper stays stable across mobile/desktop layouts,
+      // so switching layouts does not discard already visited child states.
+      body: Row(
+        children: [
+          if (isDesktop) ...[
+            NavigationRail(
+              selectedIndex: _index,
+              onDestinationSelected: _selectTab,
+              labelType: NavigationRailLabelType.all,
+              destinations: navItems
+                  .map(
+                    (n) => NavigationRailDestination(
+                      icon: Icon(n.$1),
+                      label: Text(n.$2),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const VerticalDivider(width: 1),
+          ],
+          Expanded(
+            child: IndexedStack(index: _index, children: tabs),
+          ),
+        ],
+      ),
       bottomNavigationBar: isDesktop
           ? null
           : BottomNavigationBar(
               currentIndex: _index,
-              onTap: (i) => setState(() => _index = i),
+              onTap: _selectTab,
               items: navItems
                   .map(
                     (n) =>

@@ -153,6 +153,11 @@ service cloud.firestore {
         request.resource.data.get('suspended_at', null) == resource.data.get('suspended_at', null) &&
         request.resource.data.get('suspended_by_user_id', null) == resource.data.get('suspended_by_user_id', null) &&
         request.resource.data.get('suspension_reason', null) == resource.data.get('suspension_reason', null) &&
+        // SEC-GAP-S04: the suspension level is an administrative privilege,
+        // never a driver-editable declaration. Support legacy profiles where
+        // the optional field is absent, without allowing insertion, removal
+        // or escalation/downgrade via direct client writes.
+        request.resource.data.get('suspension_mode', null) == resource.data.get('suspension_mode', null) &&
         request.resource.data.get('reactivated_at', null) == resource.data.get('reactivated_at', null) &&
         request.resource.data.get('reactivated_by_user_id', null) == resource.data.get('reactivated_by_user_id', null) &&
         // online_status ne peut être changé par le chauffeur lui-même QUE
@@ -164,7 +169,8 @@ service cloud.firestore {
       // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
       // rejection_reason, identity_verified, vehicle_verified, rating,
       // completed_missions, documents_all_valid, current_geohash,
-      // documents_required_*, suspended_*, suspension_reason, reactivated_*)
+      // documents_required_*, suspended_*, suspension_reason, suspension_mode,
+      // reactivated_*)
       // ne sont JAMAIS modifiables par un client, y compris analyst/admin :
       // ils passent exclusivement par les Cloud Functions approveDriver() /
       // rejectDriver() / requestDriverDocuments() / suspendDriver() /
@@ -209,12 +215,14 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && isDriver() &&
         request.resource.data.driver_id == uid() &&
-        request.resource.data.is_verified == false;
+        request.resource.data.is_verified == false &&
+        !request.resource.data.keys().hasAny(['verified_capacity', 'capacity_valid_until']);
 
       allow update: if isSignedIn() && (
         (resource.data.driver_id == uid() &&
          request.resource.data.driver_id == resource.data.driver_id &&
-         request.resource.data.is_verified == resource.data.is_verified) ||
+         request.resource.data.is_verified == resource.data.is_verified &&
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified_capacity', 'capacity_valid_until'])) ||
         isAnalystOrAbove()
       );
 
@@ -247,11 +255,19 @@ service cloud.firestore {
          resource.data.active_delivery_id != null &&
          exists(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)) &&
          get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.customer_id == uid() &&
-         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.driver_id == driverId)
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.driver_id == driverId &&
+         // R-K-03-A : une mission terminale ne donne plus accès à la position
+         // courante, même avant le nettoyage asynchrone du lien actif.
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.active_delivery_id)).data.status in [
+           'assigned', 'driver_to_pickup', 'arrived_at_pickup',
+           'picked_up', 'in_transit', 'arrived_at_dropoff'
+         ])
       );
 
-      // Le chauffeur écrit sa propre position uniquement.
-      allow write: if isSignedIn() && uid() == driverId && isDriver();
+      // R-K-03-A : position et lien actif sont écrits exclusivement côté serveur.
+      // Flutter appelle recordTrackingPoint ; assignation et nettoyage utilisent
+      // l’Admin SDK. Aucun client ne peut forger/supprimer active_delivery_id.
+      allow write: if false;
 
       match /history/{eventId} {
         allow read: if isSignedIn() && (
@@ -302,6 +318,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         resource.data.customer_id == uid() &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'booking_snapshot', 'assigned_vehicle_id', 'assigned_capacity_version', 'requested_time_status',
           'assignment_mode',
           'internal_test_authorized',
           'internal_test_assigned_by',
@@ -353,6 +370,12 @@ service cloud.firestore {
 
       allow delete: if false;
 
+      match /private/{documentId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.driver_id == uid() || isAnalystOrAbove());
+        allow write: if false;
+      }
       match /stops/{stopId} {
         allow read: if isSignedIn() && (
           get(/databases/$(database)/documents/delivery_requests/$(missionId)).data.customer_id == uid() ||
@@ -530,6 +553,17 @@ service cloud.firestore {
 
     // payment_profiles/{customerId} — référence Stripe client (aucune
     // donnée de carte sensible), lisible uniquement par son propriétaire.
+    match /booking_attempts/{attemptId} { allow read, write: if false; }
+    match /booking_photo_grants/{draftId} { allow read, write: if false; }
+    match /booking_reviews/{reviewId} {
+      allow read: if isSignedIn() && (resource.data.customer_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+    match /booking_drafts/{customerId} {
+      allow read: if isSignedIn() && customerId == uid() && resource.data.expires_at > request.time;
+      allow write: if false;
+    }
+    match /booking_payment_setups/{setupId} { allow read, write: if false; }
     match /payment_profiles/{customerId} {
       allow read: if isSignedIn() && (uid() == customerId || isAnalystOrAbove());
       allow write: if false;

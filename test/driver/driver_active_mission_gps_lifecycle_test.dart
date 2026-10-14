@@ -42,6 +42,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/gps_offline_transport.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -87,7 +88,9 @@ class FakeGeolocatorPlatform extends GeolocatorPlatform {
   Future<LocationPermission> requestPermission() async => permissionOnCheck;
 
   @override
-  Future<Position> getCurrentPosition({LocationSettings? locationSettings}) async {
+  Future<Position> getCurrentPosition({
+    LocationSettings? locationSettings,
+  }) async {
     getCurrentPositionCallCount++;
     return Position(
       longitude: -73.7,
@@ -115,11 +118,14 @@ class _FakeLocationRepository implements LocationRepository {
   }
 
   @override
-  Stream<DriverLocation?> watchDriverLocation(String driverId) => Stream.value(null);
+  Stream<DriverLocation?> watchDriverLocation(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(String driverId) =>
-      Stream.value(const []);
+  Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
+    String driverId, {
+    required String missionId,
+  }) => Stream.value(const []);
 }
 
 /// `MissionRepository` fake — permet de rejouer la mission avec un nouveau
@@ -166,29 +172,43 @@ class _FakeMissionRepository implements MissionRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<DeliveryMission> createMissionFromQuote(CreateMissionRequest request) =>
-      throw UnimplementedError();
+  Future<DeliveryMission> createMissionFromQuote(
+    CreateMissionRequest request,
+  ) => throw UnimplementedError();
 
   @override
-  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) => Stream.value(null);
+  Stream<DeliveryMission?> watchActiveMissionForDriver(String driverId) =>
+      Stream.value(null);
 
   @override
-  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) => Stream.value(const []);
-
-  @override
-  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(String driverId) =>
+  Stream<List<DeliveryMission>> watchCustomerMissions(String customerId) =>
       Stream.value(const []);
 
   @override
-  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) => Stream.value(const []);
+  Stream<List<DeliveryMission>> watchAvailableMissionsForDriver(
+    String driverId,
+  ) => Stream.value(const []);
 
   @override
-  Future<AcceptMissionResult> acceptMission({required String missionId, required String driverId}) async {
-    return const AcceptMissionResult(success: false, errorCode: 'not_used_in_test');
+  Stream<List<DeliveryOffer>> watchOffersForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Future<AcceptMissionResult> acceptMission({
+    required String missionId,
+    required String driverId,
+  }) async {
+    return const AcceptMissionResult(
+      success: false,
+      errorCode: 'not_used_in_test',
+    );
   }
 
   @override
-  Future<void> markDeliveryCompleted(String missionId, {required String proofOfDeliveryUrl}) async {}
+  Future<void> markDeliveryCompleted(
+    String missionId, {
+    required String proofOfDeliveryUrl,
+  }) async {}
 }
 
 DeliveryMission _copyWithStatus(DeliveryMission m, MissionStatus status) {
@@ -261,12 +281,14 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
     routes: [
       GoRoute(
         path: '/fr/provider/mission/:missionId',
-        builder: (context, state) =>
-            DriverActiveMissionScreen(missionId: state.pathParameters['missionId']!),
+        builder: (context, state) => DriverActiveMissionScreen(
+          missionId: state.pathParameters['missionId']!,
+        ),
       ),
       GoRoute(
         path: '/fr/provider/dashboard',
-        builder: (context, state) => const Scaffold(body: Text('DASHBOARD_STUB')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('DASHBOARD_STUB')),
       ),
     ],
   );
@@ -279,7 +301,9 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
   );
 }
 
-void main() {
+void main() => offlineTests(_registerTests);
+
+void _registerTests() {
   late FakeGeolocatorPlatform fakeGeolocator;
   late _FakeLocationRepository fakeLocationRepo;
   late FirebaseAuthProvider auth;
@@ -305,10 +329,12 @@ void main() {
   String btn(String key) => AppStrings.t(key, 'fr');
 
   group('H-2 — Lifecycle GPS : CAS 1 (mission active -> start)', () {
-    testWidgets(
+    offlineWidgetTest(
       'mission assigned (statut de partage) : 1 rapport de position immédiat, permission vérifiée une seule fois',
       (tester) async {
-        final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.assigned));
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(status: MissionStatus.assigned),
+        );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
@@ -323,10 +349,12 @@ void main() {
   });
 
   group('H-2 — Lifecycle GPS : CAS 2 (mission completed -> stop)', () {
-    testWidgets(
+    offlineWidgetTest(
       'inTransit -> completed : le partage s\'arrête, aucun nouveau rapport, aucune nouvelle vérification de permission',
       (tester) async {
-        final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.inTransit));
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(status: MissionStatus.inTransit),
+        );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
@@ -347,11 +375,16 @@ void main() {
           find.text(btn('driver_active_mission_already_completed')),
           findsOneWidget,
         );
-        expect(fakeLocationRepo.reportCallCount, 1, reason: 'aucun nouveau rapport après completed');
+        expect(
+          fakeLocationRepo.reportCallCount,
+          1,
+          reason: 'aucun nouveau rapport après completed',
+        );
         expect(
           fakeGeolocator.checkPermissionCallCount,
           1,
-          reason: 'stop() ne doit jamais retenter une vérification de permission',
+          reason:
+              'stop() ne doit jamais retenter une vérification de permission',
         );
 
         // Laisse passer plusieurs frames supplémentaires pour confirmer
@@ -367,11 +400,12 @@ void main() {
   });
 
   group('H-2 — Lifecycle GPS : CAS 3 (mission cancelled -> stop)', () {
-    testWidgets(
+    offlineWidgetTest(
       'driverToPickup -> cancelled : le partage s\'arrête, aucun nouveau rapport, aucune nouvelle vérification de permission',
       (tester) async {
-        final fakeRepo =
-            _FakeMissionRepository(_buildMission(status: MissionStatus.driverToPickup));
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(status: MissionStatus.driverToPickup),
+        );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
@@ -388,11 +422,16 @@ void main() {
           find.text(btn('driver_active_mission_cancelled')),
           findsOneWidget,
         );
-        expect(fakeLocationRepo.reportCallCount, 1, reason: 'aucun nouveau rapport après cancelled');
+        expect(
+          fakeLocationRepo.reportCallCount,
+          1,
+          reason: 'aucun nouveau rapport après cancelled',
+        );
         expect(
           fakeGeolocator.checkPermissionCallCount,
           1,
-          reason: 'stop() ne doit jamais retenter une vérification de permission',
+          reason:
+              'stop() ne doit jamais retenter une vérification de permission',
         );
 
         for (var i = 0; i < 5; i++) {
@@ -405,10 +444,12 @@ void main() {
   });
 
   group('H-2 — Idempotence du lifecycle au niveau écran', () {
-    testWidgets(
+    offlineWidgetTest(
       'succession de statuts tous "partage actif" (assigned -> driverToPickup -> arrivedAtPickup) : la boucle GPS ne redémarre JAMAIS une seconde fois',
       (tester) async {
-        final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.assigned));
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(status: MissionStatus.assigned),
+        );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
@@ -439,10 +480,12 @@ void main() {
   });
 
   group('H-2 — Nettoyage à la fermeture de l\'écran (dispose)', () {
-    testWidgets(
+    offlineWidgetTest(
       'démontage de l\'écran alors que le partage est actif : stop() exécuté sans exception, aucun rapport résiduel',
       (tester) async {
-        final fakeRepo = _FakeMissionRepository(_buildMission(status: MissionStatus.pickedUp));
+        final fakeRepo = _FakeMissionRepository(
+          _buildMission(status: MissionStatus.pickedUp),
+        );
         BackendLocator.missionRepositoryOverride = fakeRepo;
         addTearDown(fakeRepo.dispose);
 
@@ -452,7 +495,9 @@ void main() {
 
         // Remplace l'arbre de widgets par un écran neutre : démonte
         // `DriverActiveMissionScreen` (appelle `dispose()` -> `stop()`).
-        await tester.pumpWidget(const MaterialApp(home: Scaffold(body: Text('AUTRE_ECRAN'))));
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: Text('AUTRE_ECRAN'))),
+        );
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);

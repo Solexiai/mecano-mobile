@@ -69,16 +69,14 @@ class FirebaseLocationRepository implements LocationRepository {
 
   @override
   Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
-    String driverId,
-  ) {
-    // Requête SIMPLE (pas de where/orderBy composite) : lit toute la
-    // sous-collection `history` de ce chauffeur — protégée par
-    // firestore.rules (driver lui-même / analyste-admin / client avec
-    // mission active dont delivery_id correspond). Tri + filtrage par
-    // mission active courante effectués côté appelant, conformément à la
-    // convention "requête simple + tri en mémoire" du projet (évite tout
-    // besoin d'index composite dédié sur cette sous-collection).
-    return _locations.doc(driverId).collection('history').snapshots().map((
+    String driverId, {
+    required String missionId,
+  }) {
+    // Filtrage serveur obligatoire : un client ne peut lire que les points
+    // d'une mission lui appartenant. Un filtrage Dart seul est trop tardif.
+    // Pas de tri Firestore : les points autorisés restent triés dans la carte.
+    return _locations.doc(driverId).collection('history')
+        .where('delivery_id', isEqualTo: missionId).snapshots().map((
       snap,
     ) {
       return snap.docs

@@ -1,0 +1,8 @@
+{
+  "approved": false,
+  "require_booking_details": true,
+  "version": "REQUIRES_APPROVAL",
+  "heavy_item_kg": null,
+  "bulky_item_cm": null,
+  "capacities": []
+}

@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-14T18:00:19.582Z",
+  "commit": "7d75ca1aabb5c54f44a6ad9d50eb033dfe1e658d",
+  "run": 38610637557,
+  "job": 116012762588,
+  "passed": 1063,
+  "failed": 2,
+  "dateAndMarketplaceFailuresResolved": true,
+  "remaining": "PathNotFoundException: Cannot open file, path = /home/runner/work/mecano-mobile/mecano-mobile/.flutter/bin/cache/artifacts/material_fonts/materialicons-regular.otf",
+  "suites": [
+    "home_hero_locale_test.dart",
+    "public_menu_locale_test.dart"
+  ],
+  "correction": "Preserve exact local MaterialIcons font as licensed test fixture; no SDK-cache lookup",
+  "fontFixtures": [
+    {
+      "file": "materialicons-regular.otf",
+      "bytes": 1645184,
+      "sha256": "d9865b671a09d683d13a863089d8825e0f61a37696ce5d7d448bc8023aa62453"
+    },
+    {
+      "file": "materialicons_license.txt",
+      "bytes": 18531,
+      "sha256": "be698262aecd042c0de6f886cc0af622f8def446462026992cc530275d8a9e74"
+    }
+  ],
+  "productChanges": []
+}

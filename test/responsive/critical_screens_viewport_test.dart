@@ -306,37 +306,25 @@ void main() {
     );
   });
 
-  group('J-5 — modals/dialogs (SafetyScreen, dialog de signalement)', () {
-    testWidgets(
-      'J-5 : dialog "Signaler un problème" à largeur étroite (320px) — '
-      'contenu visible, champ de texte et boutons accessibles, aucun overflow',
-      (tester) async {
-        _setViewport(tester, 320, 700);
+  group('J-5 — SafetyScreen support status at narrow width', () {
+    testWidgets('J-5 : aucun faux formulaire de signalement à 320px — '
+        'avis de support et bouton Contact accessibles sans overflow', (
+      tester,
+    ) async {
+      _setViewport(tester, 320, 700);
 
-        await tester.pumpWidget(_wrapSafetyScreen(locale: 'fr'));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(_wrapSafetyScreen(locale: 'fr'));
+      await tester.pumpAndSettle();
 
-        await tester.ensureVisible(find.text('Signaler un problème').first);
-        await tester.tap(find.text('Signaler un problème').first);
-        await tester.pumpAndSettle();
+      final contact = find.widgetWithText(TextButton, 'Contact');
+      await tester.ensureVisible(contact);
+      await tester.pumpAndSettle();
 
-        expect(tester.takeException(), isNull);
-
-        // Le dialog est bien affiché (titre + champ de texte + 2 boutons
-        // d'action) et tous ses éléments sont accessibles sans overflow.
-        expect(find.byType(AlertDialog), findsOneWidget);
-        expect(find.byType(TextField), findsOneWidget);
-        expect(find.text('Annuler'), findsOneWidget);
-        expect(find.text('Envoyer'), findsOneWidget);
-
-        // Le bouton "Annuler" doit rester actionnable (ferme le dialog
-        // sans exception), preuve qu'aucune action n'est cachée hors zone
-        // tactile même à largeur étroite.
-        await tester.tap(find.text('Annuler'));
-        await tester.pumpAndSettle();
-        expect(find.byType(AlertDialog), findsNothing);
-        expect(tester.takeException(), isNull);
-      },
-    );
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.textContaining('canal officiel de soutien'), findsOneWidget);
+      expect(contact, findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

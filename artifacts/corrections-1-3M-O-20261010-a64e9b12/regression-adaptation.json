@@ -1,0 +1,16 @@
+[
+  {
+    "source": "test/customer/customer_tracking_cross_customer_test.dart",
+    "copy": "offline_customer_tracking_cross_customer_test.dart",
+    "calls": 3,
+    "assertionsIdentical": true,
+    "sourceSha256": "dba64f3cb757d36617a62789c21d0eabe9feb846e82c8708909da870e1f6f948"
+  },
+  {
+    "source": "test/network/mission_tracking_listener_error_test.dart",
+    "copy": "offline_mission_tracking_listener_error_test.dart",
+    "calls": 2,
+    "assertionsIdentical": true,
+    "sourceSha256": "e7c303bd9e175e811b85245b7b50a8e2b30df21a6635bdff550159c4ef1bafea"
+  }
+]

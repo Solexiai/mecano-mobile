@@ -35,6 +35,7 @@ import type { Response } from "express";
 import Stripe from "stripe";
 import { processStripeWebhook, processStripeConnectWebhook } from "../../src/functions/processStripeWebhook";
 import { admin, db } from "../../src/lib/admin";
+import * as auditModule from "../../src/lib/audit";
 import {
   DisputeStatuses,
   PaymentStatuses,
@@ -493,10 +494,33 @@ describe("processStripeWebhook", () => {
     const bodies = [first.body, second.body] as { received: boolean; alreadyProcessed?: boolean }[];
     const freshCount = bodies.filter((b) => !b.alreadyProcessed).length;
     const alreadyProcessedCount = bodies.filter((b) => b.alreadyProcessed === true).length;
-    // Exactement un seul traitement "frais", l'autre observe alreadyProcessed
-    // (l'ordre exact d'arrivée n'est pas déterministe, seul le COMPTE l'est).
-    expect(freshCount).toBe(1);
-    expect(alreadyProcessedCount).toBe(1);
+    // Assert the ACTUAL business effects before interpreting HTTP responses.
+    // A double "fresh" reply is not sufficient proof of double capture,
+    // but duplicate webhook audit records would be a concrete side effect.
+    const observedEvent = await getEventDoc(eventId);
+    const capturedAudits = await db.collection("audit_logs")
+      .where("target_id", "==", paymentId)
+      .where("action", "==", "payment_captured")
+      .get();
+    const processedAudits = await db.collection("audit_logs")
+      .where("target_id", "==", eventId)
+      .where("action", "==", "webhook_event_processed")
+      .get();
+    expect({
+      freshCount,
+      alreadyProcessedCount,
+      status: observedEvent?.processing_status,
+      attemptCount: observedEvent?.attempt_count,
+      capturedAudits: capturedAudits.size,
+      processedAudits: processedAudits.size,
+    }).toEqual({
+      freshCount: 1,
+      alreadyProcessedCount: 1,
+      status: "processed",
+      attemptCount: 1,
+      capturedAudits: 1,
+      processedAudits: 1,
+    });
 
     const doc = await getEventDoc(eventId);
     expect(doc!.processing_status).toBe("processed");
@@ -514,6 +538,158 @@ describe("processStripeWebhook", () => {
 
     await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
   });
+
+  test("WEBHOOK P1-CONCURRENT: in-flight duplicate never dispatches a second business audit", async () => {
+    const eventId = "evt_p1_inflight_duplicate_001";
+    const missionId = "webhook_p1_inflight_mission";
+    const paymentId = "webhook_p1_inflight_payment";
+    await seedPayment(paymentId, missionId, { providerPaymentIntentId: "pi_p1_inflight_001" });
+    const payload = buildStripeEventPayload(eventId, "payment_intent.succeeded", {
+      id: "pi_p1_inflight_001",
+    });
+    const sig = signPayload(payload);
+    let releaseAudit!: () => void;
+    let auditReached!: () => void;
+    const holdAudit = new Promise<void>((resolve) => { releaseAudit = resolve; });
+    const atAudit = new Promise<void>((resolve) => { auditReached = resolve; });
+    const originalWriteAuditLog = auditModule.writeAuditLog;
+    let firstAuditHeld = false;
+    const auditSpy = jest.spyOn(auditModule, "writeAuditLog").mockImplementation(async (entry) => {
+      if (entry.action === "payment_captured" && !firstAuditHeld) {
+        firstAuditHeld = true;
+        auditReached();
+        await holdAudit;
+      }
+      return originalWriteAuditLog(entry);
+    });
+    const transactionSpy = jest.spyOn(db, "runTransaction");
+    let first: Promise<{ status: number; body: unknown }> | null = null;
+    let second: Promise<{ status: number; body: unknown }> | null = null;
+    try {
+      first = invokeWebhook(payload, sig);
+      await atAudit; // first webhook has claimed the event and begun dispatch
+      second = invokeWebhook(payload, sig);
+
+      // Wait for the competing Firestore acquire transaction, not a sleep
+      // that might miss the race under load.
+      const secondTransaction = await Promise.race([
+        (async () => {
+          for (let i = 0; i < 500; i++) {
+            if (transactionSpy.mock.results.length >= 2) {
+              return transactionSpy.mock.results[1].value as Promise<unknown>;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+          throw new Error("Second webhook never attempted an acquire transaction");
+        })(),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Acquire timeout")), 8000)),
+      ]);
+      await Promise.race([
+        secondTransaction,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Acquire transaction timeout")), 8000)),
+      ]);
+      releaseAudit();
+      const responses = await Promise.all([first, second]);
+      const eventDoc = await getEventDoc(eventId);
+      const captured = await db.collection("audit_logs")
+        .where("target_id", "==", paymentId)
+        .where("action", "==", "payment_captured").get();
+      const processed = await db.collection("audit_logs")
+        .where("target_id", "==", eventId)
+        .where("action", "==", "webhook_event_processed").get();
+      const countFresh = responses.filter((x) => !(x.body as { alreadyProcessed?: boolean }).alreadyProcessed).length;
+      expect({
+        responses: responses.map((x) => x.status),
+        fresh: countFresh,
+        alreadyProcessed: responses.length - countFresh,
+        eventStatus: eventDoc?.processing_status,
+        attemptCount: eventDoc?.attempt_count,
+        businessAudits: captured.size,
+        eventAudits: processed.size,
+      }).toEqual({
+        responses: [200, 200],
+        fresh: 1,
+        alreadyProcessed: 1,
+        eventStatus: "processed",
+        attemptCount: 1,
+        businessAudits: 1,
+        eventAudits: 1,
+      });
+    } finally {
+      releaseAudit();
+      if (first || second) await Promise.allSettled([first, second].filter((x) => x !== null));
+      auditSpy.mockRestore();
+      transactionSpy.mockRestore();
+      await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
+    }
+  }, 40000);
+
+  test("P1-WEBHOOK-01: active processing lease never dispatches or falsely acknowledges", async () => {
+    const eventId = "evt_p1_processing_lease_001";
+    const missionId = "webhook_processing_lease_mission";
+    const paymentId = "webhook_processing_lease_payment";
+    const intentId = "pi_processing_lease_001";
+    await seedPayment(paymentId, missionId, { providerPaymentIntentId: intentId });
+    await db.collection("provider_webhook_events").doc(eventId).set({
+      provider: "stripe",
+      provider_event_id: eventId,
+      event_type: "payment_intent.succeeded",
+      received_at: admin.firestore.Timestamp.now(),
+      processing_lease_until: admin.firestore.Timestamp.fromMillis(Date.now() + 60 * 1000),
+      processing_status: "received",
+      attempt_count: 1,
+      processing_attempts: 1,
+    });
+
+    const payload = buildStripeEventPayload(eventId, "payment_intent.succeeded", { id: intentId });
+    const result = await invokeWebhook(payload, signPayload(payload));
+    expect(result.status).toBe(503);
+    expect(result.body).toMatchObject({ received: false, inProgress: true, retryable: true });
+    const docAfter = await getEventDoc(eventId);
+    expect(docAfter?.processing_status).toBe("received");
+    expect(docAfter?.attempt_count).toBe(1);
+    const captured = await db.collection("audit_logs")
+      .where("target_id", "==", paymentId)
+      .where("action", "==", "payment_captured")
+      .get();
+    expect(captured.empty).toBe(true);
+    await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
+  }, 30000);
+
+  test("P1-WEBHOOK-01: expired claim is retried once with no duplicate business audit", async () => {
+    const eventId = "evt_p1_expired_lease_001";
+    const missionId = "webhook_expired_lease_mission";
+    const paymentId = "webhook_expired_lease_payment";
+    const intentId = "pi_expired_lease_001";
+    await seedPayment(paymentId, missionId, { providerPaymentIntentId: intentId });
+    const stale = admin.firestore.Timestamp.fromMillis(Date.now() - 60 * 60 * 1000);
+    await db.collection("provider_webhook_events").doc(eventId).set({
+      provider: "stripe",
+      provider_event_id: eventId,
+      event_type: "payment_intent.succeeded",
+      received_at: stale,
+      processing_lease_until: stale,
+      processing_status: "received",
+      attempt_count: 1,
+      processing_attempts: 1,
+    });
+
+    const payload = buildStripeEventPayload(eventId, "payment_intent.succeeded", { id: intentId });
+    const first = await invokeWebhook(payload, signPayload(payload));
+    const replay = await invokeWebhook(payload, signPayload(payload));
+    expect(first).toEqual({ status: 200, body: { received: true } });
+    expect(replay).toEqual({ status: 200, body: { received: true, alreadyProcessed: true } });
+    const docAfter = await getEventDoc(eventId);
+    expect(docAfter?.processing_status).toBe("processed");
+    expect(docAfter?.attempt_count).toBe(2);
+    const captured = await db.collection("audit_logs")
+      .where("target_id", "==", paymentId).where("action", "==", "payment_captured").get();
+    const processed = await db.collection("audit_logs")
+      .where("target_id", "==", eventId).where("action", "==", "webhook_event_processed").get();
+    expect(captured.size).toBe(1);
+    expect(processed.size).toBe(1);
+    await cleanupAll({ eventIds: [eventId], paymentIds: [paymentId], missionIds: [missionId] });
+  }, 30000);
 
   test("évènement déjà `processed` (pré-existant en base) => 200 sans exécution", async () => {
     const eventId = "evt_already_processed_001";

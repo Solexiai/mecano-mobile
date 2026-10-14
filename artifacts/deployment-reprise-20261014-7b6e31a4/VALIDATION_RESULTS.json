@@ -1,0 +1,96 @@
+{
+  "at": "2026-10-14T15:03:28.783Z",
+  "base": "c24bf8340fff939e2a74855bd5a6a8aaabf3b6ac",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "flutter": [
+    {
+      "name": "flutter-before",
+      "passed": 9,
+      "failed": 20,
+      "skipped": 0,
+      "exit": 1,
+      "logSha256": "a73494babde67a2cb0a9a1640d4bb393f53916829203f6c60dbdffcc1f93e424"
+    },
+    {
+      "name": "flutter-after",
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "6a6a74aacb6449a7cd66d06dc980a508b782bc9f57fb869bab95084100131571"
+    },
+    {
+      "name": "flutter-full",
+      "passed": 1088,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "4d02cde4a9b4733c280dd9d01c84333c4466f6376b897a6d384ff24b8a838dc4"
+    }
+  ],
+  "server": [
+    {
+      "name": "node20-unit",
+      "passed": 228,
+      "failed": 0,
+      "skipped": 0,
+      "suitesPassed": 15,
+      "suitesFailed": 0,
+      "success": true,
+      "reportSha256": "fbeda6f7f859943dd19eec979d599adf381161f397b37e3ad9f7beaab9810acc"
+    },
+    {
+      "name": "node20-integration-v2",
+      "passed": 734,
+      "failed": 0,
+      "skipped": 0,
+      "suitesPassed": 50,
+      "suitesFailed": 0,
+      "success": true,
+      "reportSha256": "67854051c07129c49b3fe209157fdf0e529979057a3a36d8ba348b9050694cc2"
+    }
+  ],
+  "node": "20.20.2",
+  "quality": {
+    "flutter-full": 0,
+    "flutter-analyze": 0,
+    "dart-format-check": 0,
+    "typescript-node20": 0,
+    "lint-node20": 0,
+    "node20-unit": 0,
+    "node20-integration-v2": 0,
+    "integrity-final": 0,
+    "bash-syntax": 0
+  },
+  "businessSourcesUnchanged": 356,
+  "existingUntrackedPreserved": 2803,
+  "network": {
+    "unit": {
+      "events": 2,
+      "localConnects": 0,
+      "refused": {
+        "BLOCKED_CHILD:execFile": 1
+      }
+    },
+    "integration-v2": {
+      "events": 193,
+      "localConnects": 99,
+      "refused": {
+        "BLOCKED_CHILD:execFile": 1,
+        "BLOCKED:169.254.169.254": 46,
+        "BLOCKED:metadata.google.internal.": 46
+      }
+    }
+  },
+  "failedRunsPreserved": [
+    "node20-integration.log: interrupted after loopback discovery 4400 denied; not a passed run",
+    "vercel-stage-build-details.log: CRLF Bash script rejected; domain unchanged"
+  ],
+  "limits": [
+    "No real payment or production database test",
+    "Flutter VM results do not certify Chrome or physical GPS",
+    "1.3L remains blocked/reported",
+    "Node socket guard is not OS confinement",
+    "New Firebase triggers/scheduler not deployed"
+  ]
+}

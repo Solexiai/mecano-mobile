@@ -1,3 +1,4 @@
+import { completeSavedSetup } from "./bookingCardSetup";
 // -----------------------------------------------------------------------------
 // processStripeWebhook / processStripeConnectWebhook — Endpoints HTTP RÉELS
 // (onRequest) recevant les webhooks Stripe signés (Phase 6, directive 38
@@ -141,6 +142,15 @@ async function dispatchStripeEvent(
   let relatedDriverId: string | null = null;
 
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const id = session.metadata?.movik_quote_id;
+      if (session.mode === 'setup' && id && /^[a-zA-Z0-9_-]{1,100}$/.test(id)) {
+        const saved = (await db.doc(`booking_payment_setups/${id}`).get()).data();
+        if (saved?.session_id === session.id) await completeSavedSetup(id);
+      }
+      break;
+    }
     // ---- Paiement : autorisation/capture réussie ou échouée ----
     case "payment_intent.succeeded":
     case "payment_intent.payment_failed": {
@@ -480,6 +490,28 @@ async function dispatchStripeEvent(
  * (`provider_webhook_events/{event.id}`) sont 100% PARTAGÉES — aucune
  * duplication (voir bloc de commentaire en tête de fichier).
  */
+// P1-WEBHOOK-01: a received event is an in-flight processing claim, not
+// permission for a second HTTP invocation to dispatch concurrently. The
+// finite lease also allows a later Stripe retry after an interrupted worker.
+// A duplicate is acknowledged only after the original event is processed.
+const WEBHOOK_PROCESSING_LEASE_MS = 10 * 60 * 1000;
+const WEBHOOK_DUPLICATE_WAIT_MS = 10 * 1000;
+const WEBHOOK_DUPLICATE_POLL_MS = 100;
+
+async function waitForWebhookSettlement(
+  eventRef: FirebaseFirestore.DocumentReference
+): Promise<"processed" | "failed" | "pending"> {
+  const deadline = Date.now() + WEBHOOK_DUPLICATE_WAIT_MS;
+  while (Date.now() < deadline) {
+    const snap = await eventRef.get();
+    const status = snap.data()?.processing_status;
+    if (status === WebhookProcessingStatuses.PROCESSED) return "processed";
+    if (status === WebhookProcessingStatuses.FAILED) return "failed";
+    await new Promise<void>((resolve) => setTimeout(resolve, WEBHOOK_DUPLICATE_POLL_MS));
+  }
+  return "pending";
+}
+
 function buildStripeWebhookHandler(
   sourceFunctionName: "processStripeWebhook" | "processStripeConnectWebhook",
   getWebhookSecretValue: () => string
@@ -619,25 +651,48 @@ function buildStripeWebhookHandler(
     const eventRef = db.collection("provider_webhook_events").doc(event.id);
     const now = admin.firestore.Timestamp.now();
 
-    // get-or-create atomique : si déjà `processed`, on accuse réception
-    // SANS ré-exécuter le moindre effet (retry-safe, exactement-une-fois
-    // du point de vue des effets financiers).
+    // A new event claims the right to dispatch atomically. A *second*
+    // invocation seeing RECEIVED while that lease is active must not
+    // dispatch: even an "audit-only" Stripe event writes non-idempotent
+    // audit_logs. Failed events and expired leases remain retryable.
+    const leaseExpiresAt = admin.firestore.Timestamp.fromMillis(
+      Date.now() + WEBHOOK_PROCESSING_LEASE_MS
+    );
     const acquireResult = await db.runTransaction(async (tx) => {
       const snap = await tx.get(eventRef);
       if (snap.exists) {
         const data = snap.data()!;
         if (data.processing_status === WebhookProcessingStatuses.PROCESSED) {
-          return { alreadyProcessed: true as const };
+          return { state: "alreadyProcessed" as const };
         }
-        // received/failed : on retente (compteur d'essais incrémenté),
-        // jamais une nouvelle écriture financière DUPLIQUÉE puisque le
-        // dispatch lui-même délègue à des opérations idempotentes.
+        if (data.processing_status === WebhookProcessingStatuses.IGNORED) {
+          return { state: "alreadyProcessed" as const };
+        }
+        if (data.processing_status === WebhookProcessingStatuses.RECEIVED) {
+          // Backward compatibility for older RECEIVED rows without a lease:
+          // use their stored received_at rather than assuming a stale event.
+          const storedLease = data.processing_lease_until;
+          const receivedAt = data.received_at;
+          const expiryMillis = typeof storedLease?.toMillis === "function"
+            ? storedLease.toMillis()
+            : typeof receivedAt?.toMillis === "function"
+              ? receivedAt.toMillis() + WEBHOOK_PROCESSING_LEASE_MS
+              : 0;
+          if (expiryMillis > Date.now()) {
+            return { state: "inProgress" as const };
+          }
+        }
+        // FAILED or expired RECEIVED: one retry acquires the finite lease.
         tx.update(eventRef, {
+          processing_status: WebhookProcessingStatuses.RECEIVED,
+          processing_lease_until: leaseExpiresAt,
           attempt_count: admin.firestore.FieldValue.increment(1),
           processing_attempts: admin.firestore.FieldValue.increment(1),
           received_at: now,
+          last_error: null,
+          error_code: null,
         });
-        return { alreadyProcessed: false as const };
+        return { state: "claimed" as const };
       }
       tx.set(eventRef, {
         provider: "stripe",
@@ -646,6 +701,7 @@ function buildStripeWebhookHandler(
         received_at: now,
         processed_at: null,
         processing_status: WebhookProcessingStatuses.RECEIVED,
+        processing_lease_until: leaseExpiresAt,
         attempt_count: 1,
         processing_attempts: 1,
         last_error: null,
@@ -657,11 +713,27 @@ function buildStripeWebhookHandler(
         related_mission_id: null,
         related_driver_id: null,
       });
-      return { alreadyProcessed: false as const };
+      return { state: "claimed" as const };
     });
 
-    if (acquireResult.alreadyProcessed) {
+    if (acquireResult.state === "alreadyProcessed") {
       response.status(200).send({ received: true, alreadyProcessed: true });
+      return;
+    }
+    if (acquireResult.state === "inProgress") {
+      const settled = await waitForWebhookSettlement(eventRef);
+      if (settled === "processed") {
+        response.status(200).send({ received: true, alreadyProcessed: true });
+      } else {
+        // Never acknowledge an incomplete/failed dispatch as success: a 503
+        // allows Stripe to retry safely after failure or the lease expires.
+        response.setHeader?.("Retry-After", "10");
+        response.status(503).send({
+          received: false,
+          inProgress: settled === "pending",
+          retryable: true,
+        });
+      }
       return;
     }
 
@@ -673,6 +745,7 @@ function buildStripeWebhookHandler(
 
       await eventRef.update({
         processing_status: WebhookProcessingStatuses.PROCESSED,
+        processing_lease_until: null,
         processed_at: admin.firestore.Timestamp.now(),
         related_payment_id: related.relatedPaymentId,
         related_payout_id: related.relatedPayoutId,
@@ -728,6 +801,7 @@ function buildStripeWebhookHandler(
 
       await eventRef.update({
         processing_status: WebhookProcessingStatuses.FAILED,
+        processing_lease_until: null,
         last_error: message,
         error_code: "webhook_dispatch_failed",
       });

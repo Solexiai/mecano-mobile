@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-11T17:10:11.149Z",
+  "head": "18f12ff393d54b5cd32219cc9188f1354a90e1db",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "release": "77c3c61534d1300ddc0eab5585f78b9662a69537",
+  "publicPaths": [
+    "lib/screens/home",
+    "lib/l10n/home_copy.dart",
+    "lib/screens/info",
+    "lib/screens/delivery/delivery_landing_screen.dart",
+    "lib/widgets/app_shell.dart",
+    "web",
+    "assets"
+  ],
+  "publicDiff": "",
+  "scans": {
+    "lib": {
+      "exit": 1,
+      "matches": ""
+    },
+    "web": {
+      "exit": 1,
+      "matches": ""
+    }
+  },
+  "fix": "49e865c7a91eb0fda8be6fbc5fcc88b1058c3b5f",
+  "fixMetadata": "49e865c7a91eb0fda8be6fbc5fcc88b1058c3b5f 2026-10-01T13:11:57-04:00 feat(public): prepare Granby launch review\n",
+  "before": [
+    {
+      "line": 459,
+      "text": "        'Leboncoin, Marketplace, Kijiji, etc.',"
+    }
+  ],
+  "afterHome": [
+    {
+      "line": 486,
+      "text": "        'cat_marketplace',"
+    },
+    {
+      "line": 488,
+      "text": "        h('marketplace_examples'),"
+    }
+  ],
+  "afterCopy": [
+    {
+      "line": 326,
+      "text": "    'marketplace_examples': {"
+    },
+    {
+      "line": 327,
+      "text": "      'fr': 'Facebook Marketplace, Kijiji, etc.',"
+    },
+    {
+      "line": 328,
+      "text": "      'en': 'Facebook Marketplace, Kijiji, etc.',"
+    },
+    {
+      "line": 329,
+      "text": "      'es': 'Facebook Marketplace, Kijiji, etc.',"
+    }
+  ],
+  "historicalReport": {
+    "path": "C:/Users/Utilisateur/mecano-mobile/artifacts/checkpoint-1-3B-20261008-Vm7G5Q/CHECKPOINT_PHASE1_1_3B.md",
+    "sha256": "fdcdfb90244e75ccba0e287e27158dd99dd1f2585b3493f4429fb23b494b7475",
+    "currentSha256": "fdcdfb90244e75ccba0e287e27158dd99dd1f2585b3493f4429fb23b494b7475",
+    "matches": [
+      {
+        "line": 48,
+        "text": "- Anciennes mentions Leboncoin / couverture partout au Québec absentes du contenu observé."
+      },
+      {
+        "line": 70,
+        "text": "P2-COPY-001 — Leboncoin : absent de l'accueil release examiné ; Facebook Marketplace/Kijiji affichés."
+      }
+    ]
+  },
+  "priorR": {
+    "path": "artifacts/reconciliation-1-3M-R-20261011-7c41e2a9/CHECKPOINT_COPY.md",
+    "sha256": "398b4d0f126a8c0e48cdea23bda8d50d9d853f6ce02dbc961d325f0e2710a866"
+  },
+  "hashes": {
+    "lib/screens/home/home_screen.dart": "6a78604d688b83a05aab8aa8846aa6aea0a81cc64d20b8be9d412cf1b2a9d78a",
+    "lib/l10n/home_copy.dart": "e34b38cd7ff225c3bed18cbdf939bb281a4d01ba3efad1af97160f6b1e2a59bf",
+    "lib/widgets/app_shell.dart": "325c5addeedcce9c7ae2e584705620c11fef3309284756776522ced6c795b556",
+    "lib/router/app_router.dart": "19521b66b18df9460e6d0cc7f9cdaebe44634ab56b20f934d87ec5debfa5c202",
+    "assets/home/category_marketplace.png": "db1a3822cd32afb6d02d76708cd7b8f7b2645a1e9410efd9b77bc22da2a1b206"
+  }
+}

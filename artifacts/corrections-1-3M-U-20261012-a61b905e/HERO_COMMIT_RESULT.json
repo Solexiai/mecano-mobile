@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-12T14:32:55.638Z",
+  "parent": "7700931ee7a91b8b9a29c2f91ca3ccdf857e6c29",
+  "head": "a3efb1e808f0a82d5b81e00c6f40287677d27d03",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "index": "",
+  "trackedStatus": "",
+  "stat": " .../CHECKPOINT_I18N_001.md                         |  46 +++\n .../HERO_COMMIT_FILES.json                         |  97 ++++++\n .../HERO_EVIDENCE.json                             | 125 +++++++\n .../IMAGE_EDIT.json                                |  19 +\n .../hero-after.summary.json                        | 129 +++++++\n .../hero-analyze-final.txt                         | Bin 0 -> 198 bytes\n .../hero-before.summary.json                       | 149 ++++++++\n .../hero-final.summary.json                        |  83 +++++\n .../hero-format.txt                                | Bin 0 -> 98 bytes\n .../hero-permanent.summary.json                    |  83 +++++\n .../hero-regression.summary.json                   | 388 +++++++++++++++++++++\n .../hero-reproduction.summary.json                 | 129 +++++++\n .../hero-verified.summary.json                     |  83 +++++\n assets/home/hero_neutral.png                       | Bin 0 -> 1791300 bytes\n docs/audit/REGISTRE_BOGUES_MOVIK.md                |  17 +-\n lib/l10n/home_copy.dart                            |   5 +\n lib/screens/home/home_screen.dart                  |  18 +-\n test/helpers/public_render_test_helpers.dart       |  61 ++++\n test/home/home_hero_locale_test.dart               | 132 +++++++\n 19 files changed, 1556 insertions(+), 8 deletions(-)\n",
+  "files": [
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_COMMIT_FILES.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_EVIDENCE.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/IMAGE_EDIT.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-after.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-analyze-final.txt",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-before.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-final.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-format.txt",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-permanent.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-regression.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-reproduction.summary.json",
+    "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified.summary.json",
+    "assets/home/hero_neutral.png",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "lib/l10n/home_copy.dart",
+    "lib/screens/home/home_screen.dart",
+    "test/helpers/public_render_test_helpers.dart",
+    "test/home/home_hero_locale_test.dart"
+  ],
+  "commit": "[fix/gps-client-history-scope-20261009 a3efb1e] fix(i18n): use neutral hero illustration for English and Spanish\n 19 files changed, 1556 insertions(+), 8 deletions(-)\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_COMMIT_FILES.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/HERO_EVIDENCE.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/IMAGE_EDIT.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-after.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-analyze-final.txt\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-before.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-final.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-format.txt\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-permanent.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-regression.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-reproduction.summary.json\n create mode 100644 artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified.summary.json\n create mode 100644 assets/home/hero_neutral.png\n create mode 100644 test/helpers/public_render_test_helpers.dart\n create mode 100644 test/home/home_hero_locale_test.dart\n"
+}

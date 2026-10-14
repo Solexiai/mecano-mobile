@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 import { assertFails, assertSucceeds, RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { createTestEnv } from "./setup";
 
 let testEnv: RulesTestEnvironment;
@@ -1613,9 +1613,15 @@ describe("Security Rules — driver_internal_notes/{noteId} : write Cloud Functi
 // (Phase 5, partie 2 — trajet réellement parcouru).
 // -----------------------------------------------------------------------
 describe("Security Rules — driver_locations/{driverId} : position courante", () => {
-  it("le chauffeur PEUT lire ET écrire sa propre position", async () => {
+  it("le chauffeur PEUT lire sa position serveur mais NE PEUT PAS écrire directement", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "driver_locations/track_driver_001"), {
+        driver_id: "track_driver_001", latitude: 45.5, longitude: -73.5,
+        active_delivery_id: null,
+      });
+    });
     const driver = testEnv.authenticatedContext("track_driver_001", { role: "driver" });
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(driver.firestore(), "driver_locations/track_driver_001"), {
         driver_id: "track_driver_001",
         latitude: 45.5,
@@ -1864,6 +1870,50 @@ describe("Security Rules — driver_locations/{driverId}/history/{eventId} : tra
         longitude: -73.5,
       })
     );
+  });
+
+  it("P1-M-01 : requête historique client filtrée par mission, autres missions refusées", async () => {
+    const path = "driver_locations/hist_driver_scope/history";
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_scope_A"), {
+        customer_id: "hist_customer_A", driver_id: "hist_driver_scope", status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), "delivery_requests/hist_scope_B"), {
+        customer_id: "hist_customer_B", driver_id: "hist_driver_scope", status: "in_transit",
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_A1"), {
+        delivery_id: "hist_scope_A", latitude: 45.5, longitude: -73.5,
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_A2"), {
+        delivery_id: "hist_scope_A", latitude: 45.6, longitude: -73.6,
+      });
+      await setDoc(doc(ctx.firestore(), path + "/point_B1"), {
+        delivery_id: "hist_scope_B", latitude: 45.7, longitude: -73.7,
+      });
+    });
+
+    const customerA = testEnv.authenticatedContext("hist_customer_A", { role: "customer" });
+    const customerB = testEnv.authenticatedContext("hist_customer_B", { role: "customer" });
+    const driver = testEnv.authenticatedContext("hist_driver_scope", { role: "driver" });
+    const allA = collection(customerA.firestore(), path);
+    // Firestore Security Rules ne filtrent pas la collection après lecture.
+    await assertFails(getDocs(allA));
+    await assertSucceeds(getDoc(doc(customerA.firestore(), path + "/point_A1")));
+    await assertFails(getDoc(doc(customerA.firestore(), path + "/point_B1")));
+
+    const scopedA = await assertSucceeds(getDocs(query(allA, where("delivery_id", "==", "hist_scope_A"))));
+    expect(scopedA.size).toBe(2);
+    expect(scopedA.docs.every((point) => point.data().delivery_id === "hist_scope_A")).toBe(true);
+    await assertFails(getDocs(query(allA, where("delivery_id", "==", "hist_scope_B"))));
+
+    const scopedB = await assertSucceeds(getDocs(query(
+      collection(customerB.firestore(), path), where("delivery_id", "==", "hist_scope_B")
+    )));
+    expect(scopedB.size).toBe(1);
+
+    // Le chauffeur garde ses droits sur son propre historique complet.
+    const allDriver = await assertSucceeds(getDocs(collection(driver.firestore(), path)));
+    expect(allDriver.size).toBe(3);
   });
 
   it("[négatif] même le chauffeur propriétaire NE PEUT PAS supprimer un point d'historique (immuable, Cloud Functions only)", async () => {
@@ -2863,5 +2913,32 @@ describe("Security Rules — routing_request_limits", () => {
     const counter = doc(client.firestore(), "routing_request_limits/opaque-counter");
     await assertFails(getDoc(counter));
     await assertFails(setDoc(counter, { startedAtMs: 0, count: 0 }));
+  });
+});
+
+describe('Booking privacy and verified vehicle capabilities', () => {
+  it('drafts are private, expiring and server-write-only', async () => {
+    await testEnv.withSecurityRulesDisabled(async c => {
+      await setDoc(doc(c.firestore(),'booking_drafts/owner'),{owner_uid:'owner',expires_at:new Date(Date.now()+3600000)});
+    });
+    const owner=testEnv.authenticatedContext('owner',{role:'customer'}).firestore();
+    const other=testEnv.authenticatedContext('other',{role:'customer'}).firestore();
+    await assertSucceeds(getDoc(doc(owner,'booking_drafts/owner')));
+    await assertFails(getDoc(doc(other,'booking_drafts/owner')));
+    await assertFails(setDoc(doc(owner,'booking_drafts/owner'),{owner_uid:'owner'}));
+  });
+  it('a driver cannot forge or modify verified capacity', async () => {
+    const driver=testEnv.authenticatedContext('driver',{role:'driver'}).firestore();
+    await assertFails(setDoc(doc(driver,'driver_vehicles/forged'),{driver_id:'driver',is_verified:false,verified_capacity:{payload_kg:10000}}));
+    await testEnv.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),'driver_vehicles/verified'),{driver_id:'driver',is_verified:true,verified_capacity:{payload_kg:100}});});
+    await assertFails(updateDoc(doc(driver,'driver_vehicles/verified'),{verified_capacity:{payload_kg:10000}}));
+  });
+  it('pickup and recipient contacts are hidden from unassigned drivers',async()=>{
+    await testEnv.withSecurityRulesDisabled(async c=>{
+      await setDoc(doc(c.firestore(),'delivery_requests/booking_private'),{customer_id:'owner',driver_id:'assigned',status:'offered'});
+      await setDoc(doc(c.firestore(),'delivery_requests/booking_private/private/booking'),{contacts:{phone:'PRIVATE'}});
+    });
+    for(const user of ['owner','assigned'])await assertSucceeds(getDoc(doc(testEnv.authenticatedContext(user,{role:user==='owner'?'customer':'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
+    await assertFails(getDoc(doc(testEnv.authenticatedContext('unassigned',{role:'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
   });
 });

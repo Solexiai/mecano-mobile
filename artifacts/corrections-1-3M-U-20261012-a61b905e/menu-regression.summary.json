@@ -1,0 +1,361 @@
+{
+  "name": "menu-regression",
+  "log": "menu-regression.jsonl",
+  "logSha256": "f61a8cc7fae14212709b41bb4c5bbad31d3a7a3ddae831d4f7328bd37a3588bc",
+  "exit": 0,
+  "passed": 68,
+  "failed": 0,
+  "skipped": 0,
+  "done": {
+    "success": true,
+    "type": "done",
+    "time": 82823
+  },
+  "tests": [
+    {
+      "name": "homepage copy covers fr without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage fr at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage fr text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage fr text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action fr goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage copy covers en without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage en at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage en text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage en text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action en goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage copy covers es without fallback",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 320.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 390.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 768.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "full homepage es at 1280.0 has no overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage es text at 200%, 320px, dark=false",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "homepage es text at 200%, 320px, dark=true",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "primary action es goes directly to existing request",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "category survives into the guest request form",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "guest request resumes after authentication with category and draft preserved",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "anonymous navigation has no administration entry",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "driver account menu offers the existing driver space only when eligible",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "contact cannot claim a message was sent or show demo coordinates",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "return intent is local, allowlisted and sanitizes category",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "language changes keep category in the guest request form",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale fr 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale fr 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale fr 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale fr 375.0 x 812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale en 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale en 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale en 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale en 375.0 x 812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale es 375.0 x 812.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale es 430.0 x 932.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale es 1440.0 x 900.0 text=1.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero locale es 375.0 x 812.0 text=2.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "hero changes with language selector without stale asset",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route renders in fr without overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route renders in en without overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route renders in es without overflow",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch pages render in fr",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch pages render in en",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch pages render in es",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public launch information pages render without stale claims",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in fr at 320.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in fr at 390.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in fr at 768.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in fr at 1280.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in en at 320.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in en at 390.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in en at 768.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in en at 1280.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in es at 320.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in es at 390.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in es at 768.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "public navigation pages render in es at 1280.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route has no overflow at 320.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route has no overflow at 390.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route has no overflow at 768.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route has no overflow at 1280.0",
+      "result": "success",
+      "skipped": false
+    },
+    {
+      "name": "Granby QR route supports 200% text on phone",
+      "result": "success",
+      "skipped": false
+    }
+  ],
+  "errors": [],
+  "transport": [
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+    "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+  ]
+}

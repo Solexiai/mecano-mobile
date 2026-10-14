@@ -13,22 +13,37 @@ class ComingSoonBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
+    final warningLabel = AppColors.statusBadgeTextColor(
+      AppColors.warning,
+      Theme.of(context).brightness,
+    );
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: small ? 8 : 12, vertical: small ? 3 : 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: small ? 8 : 12,
+        vertical: small ? 3 : 5,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.14),
+        color: AppColors.statusBadgeBackground(
+          AppColors.warning,
+          Theme.of(context).brightness,
+          alpha: 0.14,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.access_time_rounded, size: small ? 12 : 14, color: AppColors.warning),
+          Icon(
+            Icons.access_time_rounded,
+            size: small ? 12 : 14,
+            color: warningLabel,
+          ),
           const SizedBox(width: 4),
           Text(
             t('common_coming_soon'),
             style: TextStyle(
-              color: AppColors.warning,
+              color: warningLabel,
               fontWeight: FontWeight.w700,
               fontSize: small ? 11 : 12,
             ),
@@ -54,7 +69,11 @@ class DemoDataBadge extends StatelessWidget {
       ),
       child: Text(
         t('common_demo_data'),
-        style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 11),
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
     );
   }

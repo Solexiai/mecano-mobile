@@ -102,7 +102,7 @@ class _FakeDriverRepository implements DriverRepository {
   @override
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => throw UnimplementedError();
   @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status) =>
+  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status, {int limit = 50}) =>
       throw UnimplementedError();
   @override
   Future<void> approveDriver(String driverId) => throw UnimplementedError();
@@ -112,7 +112,7 @@ class _FakeDriverRepository implements DriverRepository {
   Future<void> requestDriverDocuments(String driverId, String reason) =>
       throw UnimplementedError();
   @override
-  Future<void> suspendDriver(String driverId, String reason) => throw UnimplementedError();
+  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) => throw UnimplementedError();
   @override
   Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
   @override

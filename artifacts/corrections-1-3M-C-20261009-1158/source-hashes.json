@@ -1,0 +1,62 @@
+﻿[
+    {
+        "path":  "lib/widgets/live_tracking_map.dart",
+        "sha256":  "96CBC2F84E38DC6E36015C7B872CEE795F725951411642AA564D122BBDDDE09C"
+    },
+    {
+        "path":  "lib/backend/repositories/location_repository.dart",
+        "sha256":  "4FE5C44570CADAE72433B3F39F636D6272F26B854454DC6173FB56C4B178C922"
+    },
+    {
+        "path":  "lib/backend/repositories/firebase_location_repository.dart",
+        "sha256":  "7D01209DA32DA835F7F46BF6A4302AD0C9EC59C72029578B5C8B2331C8202D57"
+    },
+    {
+        "path":  "lib/screens/customer/customer_tracking_screen.dart",
+        "sha256":  "4DADB682840169B6EA66D956B4E8DE1414F1B96BBA374FB227D9288358FBCEBA"
+    },
+    {
+        "path":  "lib/screens/driver/driver_active_mission_screen.dart",
+        "sha256":  "0C61DCB05117DFD83BA24E5ED2390BD5026162402E545BBC439232F663B407A3"
+    },
+    {
+        "path":  "lib/backend/backend_locator.dart",
+        "sha256":  "2463BBEDCE3A5D773376D06605743528E3765B51300B86BCA4D5CEC277A45DD4"
+    },
+    {
+        "path":  "lib/providers/firebase_auth_provider.dart",
+        "sha256":  "015C40F96469BFADC34B1274C8DB0959471DDA00DDB037B5A4FA25B975CAC9EA"
+    },
+    {
+        "path":  "lib/services/driver_location_reporter.dart",
+        "sha256":  "FC4257C1FDF6289C1B6E45466608E67DC4E739F9FDFC9216EBA21AEB85D2C66B"
+    },
+    {
+        "path":  "test/driver/driver_active_mission_gps_lifecycle_test.dart",
+        "sha256":  "5E6C499210F03C152522256A54D1787FABF4856D98D9735F239245B551AF6A8A"
+    },
+    {
+        "path":  "test/driver/driver_active_mission_status_gaps_test.dart",
+        "sha256":  "C527DC85DA12C76A35C7F063072833C768A7E90515A08A3F7A065EA31E8A95FB"
+    },
+    {
+        "path":  "test/customer/customer_tracking_cross_customer_test.dart",
+        "sha256":  "DBA64F3CB757D36617A62789C21D0EABE9FEB846E82C8708909DA870E1F6F948"
+    },
+    {
+        "path":  "test/customer/customer_tracking_screen_auth_test.dart",
+        "sha256":  "F48EABDE56868CD98758A3F7792B9B13534AFFF1B5C2584C4BA88F6673AF8E63"
+    },
+    {
+        "path":  "test/responsive/bloc_u_mobile_sanity_test.dart",
+        "sha256":  "B87417DB01188E5C2ABE2471C664E802CC141F22859BE26D8415CCF28FF5CF67"
+    },
+    {
+        "path":  "firestore.rules",
+        "sha256":  "AEF2C7C8A6C32A776879C6AC3043D2397A6607BA0E788D619FFD177F15120899"
+    },
+    {
+        "path":  "pubspec.lock",
+        "sha256":  "0AFFA1BEA8CB4BE005C2AD7B99B2C94B825B8EB121064F30EDCB9F2B9B86FCB1"
+    }
+]

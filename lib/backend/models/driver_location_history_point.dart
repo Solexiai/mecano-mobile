@@ -22,7 +22,9 @@ class DriverLocationHistoryPoint {
   final String deliveryId;
   final double latitude;
   final double longitude;
-  final DateTime recordedAt;
+
+  /// Undated points cannot establish chronology.
+  final DateTime? recordedAt;
 
   const DriverLocationHistoryPoint({
     required this.deliveryId,
@@ -36,7 +38,7 @@ class DriverLocationHistoryPoint {
       deliveryId: json['delivery_id'] as String? ?? '',
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
-      recordedAt: parseFirestoreDate(json['recorded_at']) ?? DateTime.now(),
+      recordedAt: parseFirestoreDate(json['recorded_at']),
     );
   }
 }

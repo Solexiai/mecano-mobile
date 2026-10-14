@@ -17,15 +17,51 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../backend/backend_locator.dart';
+import '../../backend/repositories/firestore_query_window.dart';
 import '../../backend/models/app_notification.dart';
 import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   final String userId;
   const NotificationsScreen({super.key, required this.userId});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  int _window = kFirestoreLiveWindowStep;
+  late Stream<List<AppNotification>> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshStream();
+  }
+
+  @override
+  void didUpdateWidget(covariant NotificationsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      _window = kFirestoreLiveWindowStep;
+      _refreshStream();
+    }
+  }
+
+  void _refreshStream() {
+    _stream = BackendLocator.notificationRepository.watchNotifications(
+      widget.userId,
+      limit: _window,
+    );
+  }
+
+  void _loadMore() => setState(() {
+    _window += kFirestoreLiveWindowStep;
+    _refreshStream();
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +96,8 @@ class NotificationsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () =>
-                BackendLocator.notificationRepository.markAllAsRead(userId),
+            onPressed: () => BackendLocator.notificationRepository
+                .markAllAsRead(widget.userId),
             child: Text(
               t('notifications_mark_all_read'),
               style: const TextStyle(fontSize: 12.5),
@@ -71,11 +107,10 @@ class NotificationsScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: StreamBuilder<List<AppNotification>>(
-          stream: BackendLocator.notificationRepository.watchNotifications(
-            userId,
-          ),
+          stream: _stream,
           builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
+            if (snap.connectionState == ConnectionState.waiting &&
+                !snap.hasData) {
               return Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -114,46 +149,64 @@ class NotificationsScreen extends StatelessWidget {
               );
             }
 
-            return ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, i) {
-                final n = items[i];
-                return _NotificationTile(
-                  notification: n,
-                  t: t,
-                  onTap: () {
-                    if (!n.isRead) {
-                      // Phase 7, Bloc G (gap G-4) : `markAsRead()` est une
-                      // écriture Firestore directe (pas de Cloud Function)
-                      // qui peut échouer (réseau, permission transitoire).
-                      // Le marquage lu/non-lu est un confort UX secondaire :
-                      // son échec ne doit JAMAIS bloquer la navigation.
-                      BackendLocator.notificationRepository
-                          .markAsRead(userId, n.id)
-                          .catchError((_) {});
-                    }
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, i) {
+                      final n = items[i];
+                      return _NotificationTile(
+                        notification: n,
+                        t: t,
+                        onTap: () {
+                          if (!n.isRead) {
+                            // Phase 7, Bloc G (gap G-4) : `markAsRead()` est une
+                            // écriture Firestore directe (pas de Cloud Function)
+                            // qui peut échouer (réseau, permission transitoire).
+                            // Le marquage lu/non-lu est un confort UX secondaire :
+                            // son échec ne doit JAMAIS bloquer la navigation.
+                            BackendLocator.notificationRepository
+                                .markAsRead(widget.userId, n.id)
+                                .catchError((_) {});
+                          }
 
-                    // Phase 8D : une notification `delivery_offer` pointe vers
-                    // la liste des jobs. À ce stade aucun chauffeur n'a encore
-                    // gagné l'acceptation atomique, donc l'écran Mission Active
-                    // serait sémantiquement faux et potentiellement vide.
-                    if (isDriver && n.type == 'delivery_offer') {
-                      context.go('/$locale/fournisseur/tableau-de-bord');
-                      return;
-                    }
+                          // Phase 8D : une notification `delivery_offer` pointe vers
+                          // la liste des jobs. À ce stade aucun chauffeur n'a encore
+                          // gagné l'acceptation atomique, donc l'écran Mission Active
+                          // serait sémantiquement faux et potentiellement vide.
+                          if (isDriver && n.type == 'delivery_offer') {
+                            context.go('/$locale/fournisseur/tableau-de-bord');
+                            return;
+                          }
 
-                    final missionId = n.missionId;
-                    if (missionId == null || missionId.isEmpty) return;
-                    if (isDriver) {
-                      context.go('/$locale/fournisseur/mission/$missionId');
-                    } else {
-                      context.go('/$locale/livraison/suivi/$missionId');
-                    }
-                  },
-                );
-              },
+                          final missionId = n.missionId;
+                          if (missionId == null || missionId.isEmpty) return;
+                          if (isDriver) {
+                            context.go(
+                              '/$locale/fournisseur/mission/$missionId',
+                            );
+                          } else {
+                            context.go('/$locale/livraison/suivi/$missionId');
+                          }
+                        },
+                      );
+                    },
+                  ),
+                ),
+                if (items.length >= _window)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                    child: OutlinedButton.icon(
+                      key: const Key('notifications-load-more'),
+                      onPressed: _loadMore,
+                      icon: const Icon(Icons.expand_more),
+                      label: Text(t('common_load_more')),
+                    ),
+                  ),
+              ],
             );
           },
         ),

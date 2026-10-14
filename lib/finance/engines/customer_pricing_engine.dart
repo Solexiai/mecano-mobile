@@ -16,6 +16,8 @@ import '../models/pricing_config.dart';
 /// Caractéristiques de manutention d'une mission, utilisées pour calculer
 /// les frais de manutention.
 class HandlingFlags {
+  final bool needsLoading;
+  final bool needsUnloading;
   final bool isHeavyItem;
   final bool isBulkyItem;
   final bool needsStairs;
@@ -24,6 +26,8 @@ class HandlingFlags {
   final bool needsSpecialEquipment;
 
   const HandlingFlags({
+    this.needsLoading = false,
+    this.needsUnloading = false,
     this.isHeavyItem = false,
     this.isBulkyItem = false,
     this.needsStairs = false,
@@ -73,7 +77,8 @@ class CustomerPricingResult {
   final double additionalStopsFee;
   final double surchargesTotal;
   final double subtotal; // somme de tout ce qui précède, APRÈS remise client
-  final double customerDiscountAmount; // remise appliquée (>= 0, plafonnée au subtotal brut)
+  final double
+  customerDiscountAmount; // remise appliquée (>= 0, plafonnée au subtotal brut)
   final double customerServiceFee;
   final double taxAmount;
   final double customerTotal;
@@ -109,18 +114,18 @@ class CustomerPricingResult {
   }
 
   Map<String, dynamic> toJson() => {
-        'pricing_version': pricingVersion,
-        'mission_base_value': missionBaseValue,
-        'handling_fees_total': handlingFeesTotal,
-        'waiting_fee': waitingFee,
-        'additional_stops_fee': additionalStopsFee,
-        'surcharges_total': surchargesTotal,
-        'subtotal': subtotal,
-        'customer_discount_amount': customerDiscountAmount,
-        'customer_service_fee': customerServiceFee,
-        'tax_amount': taxAmount,
-        'customer_total': customerTotal,
-      };
+    'pricing_version': pricingVersion,
+    'mission_base_value': missionBaseValue,
+    'handling_fees_total': handlingFeesTotal,
+    'waiting_fee': waitingFee,
+    'additional_stops_fee': additionalStopsFee,
+    'surcharges_total': surchargesTotal,
+    'subtotal': subtotal,
+    'customer_discount_amount': customerDiscountAmount,
+    'customer_service_fee': customerServiceFee,
+    'tax_amount': taxAmount,
+    'customer_total': customerTotal,
+  };
 }
 
 class CustomerPricingEngine {
@@ -145,24 +150,33 @@ class CustomerPricingEngine {
     }
 
     // 1. Valeur de base de la mission.
-    final rawBase = rule.baseFare +
+    final rawBase =
+        rule.baseFare +
         (rule.ratePerKm * input.distanceKm) +
         (rule.ratePerMinute * input.estimatedDurationMinutes);
-    final missionBaseValue = rawBase < rule.minimumCharge ? rule.minimumCharge : rawBase;
+    final missionBaseValue = rawBase < rule.minimumCharge
+        ? rule.minimumCharge
+        : rawBase;
 
     // 2. Frais de manutention.
     final h = config.handlingFees;
     final handling = input.handling;
     double handlingFeesTotal = 0;
+    if (handling.needsLoading) handlingFeesTotal += h.loadingFee;
+    if (handling.needsUnloading) handlingFeesTotal += h.unloadingFee;
     if (handling.isHeavyItem) handlingFeesTotal += h.heavyItemFee;
     if (handling.isBulkyItem) handlingFeesTotal += h.bulkyItemFee;
     if (handling.needsStairs) handlingFeesTotal += h.stairsFee;
     if (handling.noElevator) handlingFeesTotal += h.noElevatorFee;
     if (handling.needsSecondHandler) handlingFeesTotal += h.secondHandlerFee;
-    if (handling.needsSpecialEquipment) handlingFeesTotal += h.specialEquipmentFee;
+    if (handling.needsSpecialEquipment) {
+      handlingFeesTotal += h.specialEquipmentFee;
+    }
 
     // 3. Frais d'attente.
-    final waitingFee = config.waitingFee.computeWaitingFee(input.totalWaitingMinutes);
+    final waitingFee = config.waitingFee.computeWaitingFee(
+      input.totalWaitingMinutes,
+    );
 
     // 4. Frais d'arrêts supplémentaires.
     final additionalStopsFee =
@@ -172,13 +186,15 @@ class CustomerPricingEngine {
     double surchargesTotal = 0;
     final baseForSurcharges = missionBaseValue + handlingFeesTotal;
     for (final surcharge in config.surcharges) {
-      if (surcharge.enabled && input.applicableSurchargeIds.contains(surcharge.id)) {
+      if (surcharge.enabled &&
+          input.applicableSurchargeIds.contains(surcharge.id)) {
         surchargesTotal += surcharge.computeAmount(baseForSurcharges);
       }
     }
 
     // 6. Sous-total avant remise, frais de service et taxes.
-    final rawSubtotal = missionBaseValue +
+    final rawSubtotal =
+        missionBaseValue +
         handlingFeesTotal +
         waitingFee +
         additionalStopsFee +
@@ -187,10 +203,11 @@ class CustomerPricingEngine {
     // 6bis. Remise client (code promo déjà validé) — plancher à 0, jamais
     // négative, jamais supérieure au subtotal brut (une remise ne peut pas
     // transformer une mission en revenu négatif pour la plateforme).
-    final customerDiscountAmount =
-        input.customerDiscountAmount <= 0
-            ? 0.0
-            : (input.customerDiscountAmount > rawSubtotal ? rawSubtotal : input.customerDiscountAmount);
+    final customerDiscountAmount = input.customerDiscountAmount <= 0
+        ? 0.0
+        : (input.customerDiscountAmount > rawSubtotal
+              ? rawSubtotal
+              : input.customerDiscountAmount);
     final subtotal = rawSubtotal - customerDiscountAmount;
 
     // 7. Frais de service client (revenu plateforme distinct de la

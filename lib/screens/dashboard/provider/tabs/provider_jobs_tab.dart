@@ -1,3 +1,6 @@
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../../../backend/repositories/mission_repository.dart';
+import '../../../../widgets/booking_load_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -62,10 +65,64 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       _acceptErrors.remove(mission.id);
     });
     try {
-      final result = await BackendLocator.missionRepository.acceptMission(
-        missionId: mission.id,
-        driverId: driverId,
-      );
+      AcceptMissionResult result;
+      if (mission.bookingSnapshot != null) {
+        final response = await FirebaseFunctions.instance
+            .httpsCallable('getBookingVehicleForAcceptance')
+            .call({'missionId': mission.id});
+        final vehicle = (response.data as Map)['vehicle'] as Map?;
+        if (!mounted) return;
+        final locale = context.read<LocaleProvider>().locale;
+        String tr(String fr, String en, String es) => locale == 'en'
+            ? en
+            : locale == 'es'
+            ? es
+            : fr;
+        if (vehicle == null) throw StateError('No compatible vehicle');
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(
+              tr(
+                'Confirmer le véhicule utilisé',
+                'Confirm the vehicle you will use',
+                'Confirmar el vehículo que usarás',
+              ),
+            ),
+            content: Text('${vehicle['label']}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(tr('Retour', 'Back', 'Volver')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(
+                  tr(
+                    'J’utilise ce véhicule',
+                    'I will use this vehicle',
+                    'Usaré este vehículo',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) {
+          if (mounted) setState(() => _accepting.remove(mission.id));
+          return;
+        }
+        await FirebaseFunctions.instance.httpsCallable('acceptDelivery').call({
+          'missionId': mission.id,
+          'vehicleId': vehicle['id'],
+        });
+        result = const AcceptMissionResult(success: true);
+      } else {
+        result = await BackendLocator.missionRepository.acceptMission(
+          missionId: mission.id,
+          driverId: driverId,
+        );
+      }
       if (!mounted) return;
       setState(() {
         _accepting.remove(mission.id);
@@ -373,6 +430,11 @@ class _JobCard extends StatelessWidget {
             text:
                 '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$',
           ),
+          if (mission.bookingSnapshot != null)
+            BookingLoadSummary(
+              snapshot: mission.bookingSnapshot!,
+              locale: context.read<LocaleProvider>().locale,
+            ),
           if (mission.description.isNotEmpty)
             _InfoRow(icon: Icons.info_outline, text: mission.description),
           const SizedBox(height: 14),

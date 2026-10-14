@@ -20,7 +20,9 @@ class DriverLocation {
   final double? accuracy;
   final double? heading;
   final double? speed;
-  final DateTime updatedAt;
+
+  /// Null means the server date is missing or unreadable; never synthesize now.
+  final DateTime? updatedAt;
   final String? activeDeliveryId;
 
   const DriverLocation({
@@ -35,15 +37,15 @@ class DriverLocation {
   });
 
   Map<String, dynamic> toJson() => {
-        'driver_id': driverId,
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy': accuracy,
-        'heading': heading,
-        'speed': speed,
-        'updated_at': updatedAt.toIso8601String(),
-        'active_delivery_id': activeDeliveryId,
-      };
+    'driver_id': driverId,
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy': accuracy,
+    'heading': heading,
+    'speed': speed,
+    'updated_at': updatedAt?.toIso8601String(),
+    'active_delivery_id': activeDeliveryId,
+  };
 
   factory DriverLocation.fromJson(Map<String, dynamic> json) {
     return DriverLocation(
@@ -53,7 +55,7 @@ class DriverLocation {
       accuracy: (json['accuracy'] as num?)?.toDouble(),
       heading: (json['heading'] as num?)?.toDouble(),
       speed: (json['speed'] as num?)?.toDouble(),
-      updatedAt: parseFirestoreDate(json['updated_at']) ?? DateTime.now(),
+      updatedAt: parseFirestoreDate(json['updated_at']),
       activeDeliveryId: json['active_delivery_id'] as String?,
     );
   }

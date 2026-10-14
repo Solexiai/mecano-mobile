@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-12T14:59:38.280Z",
+  "parent": "cbbaf266df2fccad1da71c7f58bafbae87aea091",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "rows": 27,
+  "counts": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 6
+  },
+  "openIds": [
+    "P2-BUILD-001",
+    "P2-L-01",
+    "GAP-M-05",
+    "GAP-M-06",
+    "GAP-S-02",
+    "GAP-S-04"
+  ],
+  "quality": {
+    "hero-quality": {
+      "exit": "0",
+      "log": "Analyzing 4 items...                                            \r\nNo issues found! (ran in 5.4s)\r\n",
+      "sha256": "05cc05cf61d109d80fa133f21e94fa67223f2d41e9643f4a452c57d262df34f2"
+    },
+    "hero-format": {
+      "exit": "0",
+      "log": "Formatted 4 files (0 changed) in 0.12 seconds.\r\n",
+      "sha256": "3a2b340f692971f5a4ba3b52d5a1ba8a67ef27f7d12fe4610bed9b34882b1c8b"
+    },
+    "menu-quality": {
+      "exit": "0",
+      "log": "Analyzing 5 items...                                            \r\nNo issues found! (ran in 6.1s)\r\n",
+      "sha256": "a3df8af8094914ec57559a0995ad9e7c7a6264f7a150f52f32436173d069b363"
+    },
+    "menu-format": {
+      "exit": "0",
+      "log": "Formatted 5 files (0 changed) in 0.11 seconds.\r\n",
+      "sha256": "584dffb2f14648caee2ee7748938c57a4b246f533407a8534cd60a9735d75035"
+    }
+  },
+  "diffCheck": "passed",
+  "preservation": {
+    "initialFiles": 3072,
+    "unchanged": 3067,
+    "changed": [
+      "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+      "lib/l10n/home_copy.dart",
+      "lib/screens/home/home_screen.dart",
+      "lib/widgets/app_shell.dart",
+      "test/home/home_screen_test.dart"
+    ],
+    "missing": [],
+    "unexpected": []
+  },
+  "captureCount": 21,
+  "buildExit": 0,
+  "buildIssueClosed": false,
+  "distinctSuccessfulTests": 123,
+  "indexBefore": "",
+  "trackedStatusBeforeCommit": " M docs/audit/REGISTRE_BOGUES_MOVIK.md\n"
+}

@@ -339,3 +339,31 @@ describe("Storage Rules — deny-by-default", () => {
     await assertFails(getBytes(fileRef));
   });
 });
+
+describe('Booking photos',()=>{
+ it('are private before dispatch, immutable, and readable by an eligible driver only after a mission grant',async()=>{
+  await testEnv.withSecurityRulesDisabled(async ctx=>{
+   await setDoc(doc(ctx.firestore(),'booking_drafts/photo_customer'),{draft_id:'draft-photo-test',photo_item_ids:['item-test'],expires_at:new Date(Date.now()+3600000)});
+   await setDoc(doc(ctx.firestore(),'driver_profiles/photo_driver'),{status:'approved'});
+  });
+  const owner=testEnv.authenticatedContext('photo_customer',{role:'customer'});const driver=testEnv.authenticatedContext('photo_driver',{role:'driver'});
+  const path='booking_photos/photo_customer/draft-photo-test/item-test/0.jpg';
+  await assertSucceeds(uploadBytes(ref(owner.storage(),path),smallImage,{contentType:'image/jpeg'}));
+  await assertFails(uploadBytes(ref(owner.storage(),path),smallImage,{contentType:'image/jpeg'}));
+  await assertFails(getBytes(ref(driver.storage(),path)));
+  await assertFails(uploadBytes(ref(owner.storage(),path.replace('0.jpg','3.jpg')),smallImage,{contentType:'image/jpeg'}));
+  await testEnv.withSecurityRulesDisabled(async ctx=>{
+   await setDoc(doc(ctx.firestore(),'booking_photo_grants/photo_customer_draft-photo-test'),{mission_id:'photo_mission',customer_id:'photo_customer'});
+   await setDoc(doc(ctx.firestore(),'delivery_requests/photo_mission'),{customer_id:'photo_customer',driver_id:null,status:'searching_driver'});
+  });
+  await assertSucceeds(getBytes(ref(driver.storage(),path)));
+  // A coincident draft ID in another account must not share this grant.
+  const otherPath=path.replace('photo_customer','photo_other');
+  await testEnv.withSecurityRulesDisabled(async ctx=>{
+   await uploadBytes(ref(ctx.storage(),otherPath),smallImage,{contentType:'image/jpeg'});
+  });
+  await assertFails(getBytes(ref(driver.storage(),otherPath)));
+  const stranger=testEnv.authenticatedContext('photo_stranger',{role:'customer'});
+  await assertFails(getBytes(ref(stranger.storage(),path)));
+ });
+});

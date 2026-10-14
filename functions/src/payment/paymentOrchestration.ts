@@ -205,6 +205,12 @@ export async function createAndAuthorizeMissionPayment(
     }
 
     const mission = missionSnap.data()!;
+    // A customer can cancel the mission directly under Firestore Rules while
+    // acceptDelivery prepares payment. Never start an authorization for a
+    // mission that was already cancelled before this transaction commits.
+    if (mission.status === MissionStatuses.CANCELLED) {
+      throw failedPrecondition("La mission a été annulée avant l'autorisation de paiement.");
+    }
     const quote = quoteSnap.data()!;
     const financialSnapshot = financialSnapshotSnap.data()!;
     const lockedQuote = resolveLockedQuote(quoteId, quote);
@@ -337,6 +343,29 @@ export async function createAndAuthorizeMissionPayment(
       metadata: { movik_mission_id: missionId, movik_payment_id: paymentId },
     });
 
+    // GAP-S-02: createPayment uses confirm:false. Persist the provider's
+    // PaymentIntent reference BEFORE authorizePayment can place a hold.
+    // An interruption after confirmation can then be reconciled safely.
+    await db.runTransaction(async (tx) => {
+      const ref = db.collection("payments").doc(paymentId);
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw notFound(`payments/${paymentId} introuvable.`);
+      const payment = snap.data() as PaymentDoc;
+      if (
+        payment.status !== PaymentStatuses.AUTHORIZATION_PENDING ||
+        payment.mission_id !== missionId ||
+        payment.stripe_environment !== provider.environment ||
+        (payment.provider_payment_intent_id &&
+          payment.provider_payment_intent_id !== created.providerPaymentIntentId)
+      ) {
+        throw failedPrecondition("Référence de paiement incohérente avant autorisation.");
+      }
+      tx.update(ref, {
+        provider_payment_intent_id: created.providerPaymentIntentId,
+        updated_at: admin.firestore.Timestamp.now(),
+      });
+    });
+
     // 🔒 BLOC H (catalogue d'évènements financiers) — journalise la création
     // RÉELLE du PaymentIntent côté provider (distinct de `payment_captured`/
     // `payment_failed` déjà audités via processStripeWebhook.ts). N'est
@@ -373,6 +402,11 @@ export async function createAndAuthorizeMissionPayment(
     }
 
     // ---- Étape 3 : Transaction Firestore — applique le succès ----
+    // The provider may finish AFTER a customer cancellation. Persist the
+    // authorized provider reference, but never overwrite a terminal mission.
+    // The cancellation will be compensated with the existing idempotent
+    // cancelAuthorization flow immediately after this transaction.
+    let cancelledDuringAuthorization = false;
     await db.runTransaction(async (tx) => {
       const missionRef = db.collection("delivery_requests").doc(missionId);
       const payRef = db.collection("payments").doc(paymentId);
@@ -381,6 +415,8 @@ export async function createAndAuthorizeMissionPayment(
       const current = paySnap.data() as PaymentDoc;
       assertValidPaymentTransition(current.status, PaymentStatuses.AUTHORIZED);
 
+      cancelledDuringAuthorization =
+        missionSnap.exists && missionSnap.data()?.status === MissionStatuses.CANCELLED;
       const now = admin.firestore.Timestamp.now();
       tx.update(payRef, {
         status: PaymentStatuses.AUTHORIZED,
@@ -389,10 +425,37 @@ export async function createAndAuthorizeMissionPayment(
         authorized_at: now,
         updated_at: now,
       });
-      if (missionSnap.exists) {
+      if (missionSnap.exists && !cancelledDuringAuthorization) {
         tx.update(missionRef, { payment_status: PaymentStatuses.AUTHORIZED });
       }
     });
+
+    if (cancelledDuringAuthorization) {
+      // Do not route cancellation-compensation failures through
+      // failMissionPayment(): that would turn a terminal cancellation into
+      // a generic payment failure without releasing the provider hold.
+      let cancelled = false;
+      try {
+        const compensation = await cancelMissionPaymentAuthorization(missionId, paymentId);
+        cancelled = compensation.success && !compensation.skipped;
+      } catch (err) {
+        logFinancialFailure(
+          "cancel_authorization",
+          operationStartedAt,
+          "cancel_after_authorize_failed",
+          { missionId, paymentId },
+          { correlationId, message: err instanceof Error ? err.message : String(err) }
+        );
+      }
+      return {
+        paymentId,
+        status: cancelled ? PaymentStatuses.CANCELLED : PaymentStatuses.AUTHORIZED,
+        success: false,
+        failureMessage: cancelled
+          ? "Mission annulée pendant l'autorisation ; autorisation libérée."
+          : "Mission annulée ; libération du paiement à vérifier.",
+      };
+    }
 
     await writeAuditLog({
       actorUserId: customerId,
@@ -444,11 +507,14 @@ async function failMissionPayment(
     operationStartedAt: startFinancialOperationTimer(),
     operation: "create_payment",
   };
+  let cancelledInsteadOfFailed = false;
+  let paymentAlreadyCancelled = false;
   await db.runTransaction(async (tx) => {
     const missionRef = db.collection("delivery_requests").doc(missionId);
     const missionSnap = await tx.get(missionRef);
     if (!missionSnap.exists) return;
     const mission = missionSnap.data()!;
+    cancelledInsteadOfFailed = mission.status === MissionStatuses.CANCELLED;
     const driverId = mission.driver_id as string | null;
 
     let payRef: FirebaseFirestore.DocumentReference | null = null;
@@ -458,34 +524,55 @@ async function failMissionPayment(
       paySnap = await tx.get(payRef);
     }
 
+    // Le lien peut déjà appartenir à une nouvelle mission. Sa lecture doit
+    // participer à la transaction, avant toute écriture de compensation.
+    const driverLocationRef = driverId ? db.collection("driver_locations").doc(driverId) : null;
+    const driverLocation = driverLocationRef ? await tx.get(driverLocationRef) : null;
+    const activeDeliveryId = driverLocation?.get("active_delivery_id") ?? null;
+    const releasesDriver = activeDeliveryId === null || activeDeliveryId === missionId;
+
     const now = admin.firestore.Timestamp.now();
 
     if (payRef && paySnap && paySnap.exists) {
       const current = paySnap.data() as PaymentDoc;
-      if (!["failed", "cancelled"].includes(current.status)) {
-        assertValidPaymentTransition(current.status, PaymentStatuses.FAILED);
+      paymentAlreadyCancelled = current.status === PaymentStatuses.CANCELLED;
+      if (!paymentAlreadyCancelled) {
+        if (current.status !== PaymentStatuses.FAILED) {
+          assertValidPaymentTransition(current.status, PaymentStatuses.FAILED);
+        }
+        tx.update(payRef, {
+          status: PaymentStatuses.FAILED,
+          provider_payment_intent_id: providerPaymentIntentId ?? current.provider_payment_intent_id,
+          failed_at: now,
+          failure_code: failureCode,
+          failure_message: failureMessage,
+          updated_at: now,
+        });
       }
-      tx.update(payRef, {
-        status: PaymentStatuses.FAILED,
-        provider_payment_intent_id: providerPaymentIntentId ?? current.provider_payment_intent_id,
-        failed_at: now,
-        failure_code: failureCode,
-        failure_message: failureMessage,
-        updated_at: now,
+    }
+
+    // A payment failure must never resurrect a cancelled mission as
+    // payment_failed. The cancellation remains the authoritative terminal
+    // state even if the provider fails while the customer cancels.
+    if (!cancelledInsteadOfFailed) {
+      tx.update(missionRef, {
+        status: MissionStatuses.PAYMENT_FAILED,
+        payment_status: PaymentStatuses.FAILED,
+        driver_id: null,
+        driver_display_name: null,
+      });
+    } else {
+      tx.update(missionRef, {
+        payment_status: paymentAlreadyCancelled
+          ? PaymentStatuses.CANCELLED
+          : PaymentStatuses.FAILED,
       });
     }
 
-    tx.update(missionRef, {
-      status: MissionStatuses.PAYMENT_FAILED,
-      payment_status: PaymentStatuses.FAILED,
-      driver_id: null,
-      driver_display_name: null,
-    });
-
-    if (driverId) {
+    if (!cancelledInsteadOfFailed && driverId && driverLocationRef && releasesDriver) {
       const driverRef = db.collection("driver_profiles").doc(driverId);
       tx.update(driverRef, { online_status: "online" });
-      tx.set(db.collection("driver_locations").doc(driverId), { active_delivery_id: null }, { merge: true });
+      tx.set(driverLocationRef, { active_delivery_id: null }, { merge: true });
     }
 
     const eventRef = missionRef.collection("tracking_events").doc();
@@ -507,7 +594,7 @@ async function failMissionPayment(
 
   return {
     paymentId: paymentId ?? "",
-    status: PaymentStatuses.FAILED,
+    status: cancelledInsteadOfFailed ? PaymentStatuses.CANCELLED : PaymentStatuses.FAILED,
     success: false,
     failureMessage,
   };

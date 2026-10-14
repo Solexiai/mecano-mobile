@@ -1,0 +1,452 @@
+{
+  "before": {
+    "passed": 9,
+    "failed": 50,
+    "skipped": 0,
+    "finished": {
+      "success": false,
+      "type": "done",
+      "time": 20256
+    },
+    "errors": [
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (430.0, 932.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (430.0, 932.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (430.0, 932.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (430.0, 932.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (1440.0, 900.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (1440.0, 900.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (1440.0, 900.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (1440.0, 900.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return fr",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return fr",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (430.0, 932.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (430.0, 932.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (430.0, 932.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (430.0, 932.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (1440.0, 900.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (1440.0, 900.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (1440.0, 900.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (1440.0, 900.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return en",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return en",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (1440.0, 900.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (1440.0, 900.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (1440.0, 900.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (1440.0, 900.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return es",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return es",
+        "stack": ""
+      },
+      {
+        "test": "O assigned status without valid driver null",
+        "error": "Test failed. See exception logs above.\nThe test description was: O assigned status without valid driver null",
+        "stack": ""
+      },
+      {
+        "test": "O assigned status without valid driver ",
+        "error": "Test failed. See exception logs above.\nThe test description was: O assigned status without valid driver ",
+        "stack": ""
+      },
+      {
+        "test": "O assigned status without valid driver    ",
+        "error": "Test failed. See exception logs above.\nThe test description was: O assigned status without valid driver    ",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.offered",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.offered",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.cancelled",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.cancelled",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.completed",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.completed",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.delivered",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.delivered",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.disputed",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.disputed",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.refunded",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.refunded",
+        "stack": ""
+      },
+      {
+        "test": "O concrete status MissionStatus.quoted",
+        "error": "Test failed. See exception logs above.\nThe test description was: O concrete status MissionStatus.quoted",
+        "stack": ""
+      },
+      {
+        "test": "O mismatched mission returned on A stream is never B",
+        "error": "Test failed. See exception logs above.\nThe test description was: O mismatched mission returned on A stream is never B",
+        "stack": ""
+      },
+      {
+        "test": "O missing reference never reconstructed from requested route",
+        "error": "Test failed. See exception logs above.\nThe test description was: O missing reference never reconstructed from requested route",
+        "stack": ""
+      },
+      {
+        "test": "O unsupported raw status new_status remains neutral",
+        "error": "Test failed. See exception logs above.\nThe test description was: O unsupported raw status new_status remains neutral",
+        "stack": ""
+      },
+      {
+        "test": "O unsupported raw status payment_failed remains neutral",
+        "error": "Test failed. See exception logs above.\nThe test description was: O unsupported raw status payment_failed remains neutral",
+        "stack": ""
+      },
+      {
+        "test": "O unsupported raw status null remains neutral",
+        "error": "Test failed. See exception logs above.\nThe test description was: O unsupported raw status null remains neutral",
+        "stack": ""
+      },
+      {
+        "test": "O changing A to B clears old scope even before B response",
+        "error": "Test failed. See exception logs above.\nThe test description was: O changing A to B clears old scope even before B response",
+        "stack": ""
+      },
+      {
+        "test": "O assigned GPS refuses foreign position and permits fresh correct data",
+        "error": "Test failed. See exception logs above.\nThe test description was: O assigned GPS refuses foreign position and permits fresh correct data",
+        "stack": ""
+      }
+    ]
+  },
+  "after": {
+    "passed": 38,
+    "failed": 21,
+    "skipped": 0,
+    "finished": {
+      "success": false,
+      "type": "done",
+      "time": 24463
+    },
+    "errors": [
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive fr (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive fr (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return fr",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return fr",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive en (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive en (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return en",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return en",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (430.0, 932.0, 1.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (430.0, 932.0, 1.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) search",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) search",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) assigned",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) assigned",
+        "stack": ""
+      },
+      {
+        "test": "O responsive es (375.0, 812.0, 2.0) error",
+        "error": "Test failed. See exception logs above.\nThe test description was: O responsive es (375.0, 812.0, 2.0) error",
+        "stack": ""
+      },
+      {
+        "test": "O actual receipt to tracking reference and return es",
+        "error": "Test failed. See exception logs above.\nThe test description was: O actual receipt to tracking reference and return es",
+        "stack": ""
+      }
+    ]
+  },
+  "final": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "finished": {
+      "success": true,
+      "type": "done",
+      "time": 14414
+    },
+    "errors": []
+  },
+  "regression": {
+    "passed": 16,
+    "failed": 3,
+    "skipped": 0,
+    "finished": {
+      "success": false,
+      "type": "done",
+      "time": 21246
+    },
+    "errors": [
+      {
+        "test": "F-1 (r├®gression) : client A ouvrant SA PROPRE mission continue de fonctionner normalement apr├¿s le fix",
+        "error": "Test failed. See exception logs above.\nThe test description was: F-1 (r├®gression) : client A ouvrant SA PROPRE mission continue de fonctionner normalement apr├¿s le fix",
+        "stack": ""
+      },
+      {
+        "test": "G-3.1 : listener Firestore watchMission() -> error -> aucun crash, aucun ├®cran blanc, message r├®seau coh├®rent, aucune ancienne donn├®e trompeuse affich├®e comme encore valide",
+        "error": "Test failed. See exception logs above.\nThe test description was: G-3.1 : listener Firestore watchMission() -> error -> aucun crash, aucun ├®cran blanc, message r├®seau coh├®rent, aucune ancienne donn├®e trompeuse affich├®e comme encore valide",
+        "stack": ""
+      },
+      {
+        "test": "G-3.2 : apr├¿s une erreur listener, une nouvelle ├®mission valide sur le m├¬me flux -> reprise naturelle, donn├®es ├á nouveau affich├®es, aucun crash",
+        "error": "Test failed. See exception logs above.\nThe test description was: G-3.2 : apr├¿s une erreur listener, une nouvelle ├®mission valide sur le m├¬me flux -> reprise naturelle, donn├®es ├á nouveau affich├®es, aucun crash",
+        "stack": ""
+      }
+    ]
+  },
+  "regression-final": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "finished": {
+      "success": true,
+      "type": "done",
+      "time": 23773
+    },
+    "errors": []
+  },
+  "gps-freshness": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "finished": {
+      "success": true,
+      "type": "done",
+      "time": 8493
+    },
+    "errors": []
+  },
+  "gps-errors": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0,
+    "finished": {
+      "success": true,
+      "type": "done",
+      "time": 8496
+    },
+    "errors": []
+  }
+}

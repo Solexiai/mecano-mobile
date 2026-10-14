@@ -1,0 +1,285 @@
+{
+  "date": "2026-10-12T14:55:10.621Z",
+  "base": "7700931ee7a91b8b9a29c2f91ca3ccdf857e6c29",
+  "head": "cbbaf266df2fccad1da71c7f58bafbae87aea091",
+  "initialFiles": 3072,
+  "unchanged": 3067,
+  "changed": [
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "lib/l10n/home_copy.dart",
+    "lib/screens/home/home_screen.dart",
+    "lib/widgets/app_shell.dart",
+    "test/home/home_screen_test.dart"
+  ],
+  "missing": [],
+  "unexpected": [],
+  "quality": {
+    "hero-analyze-final": {
+      "exit": "0",
+      "log": "Analyzing 4 items...                                            \r\nNo issues found! (ran in 5.0s)\r\n"
+    },
+    "hero-format": {
+      "exit": "0",
+      "log": "Formatted 4 files (0 changed) in 0.12 seconds.\r\n"
+    },
+    "menu-analyze": {
+      "exit": "1",
+      "log": "Analyzing 4 items...                                            \r\n\r\n   info - 'hasFlag' is deprecated and shouldn't be used. Use flagsCollection instead. This feature was deprecated after v3.32.0-0.0.pre. Try replacing the use of the deprecated member with the replacement - test\\home\\public_menu_locale_test.dart:81:25 - deprecated_member_use\r\n\r\nflutter.bat : 1 issue found. (ran in 9.1s)\r\nAu caractère Ligne:5 : 1\r\n+ & 'C:\\Users\\Utilisateur\\mecano-mobile\\.flutter\\bin\\flutter.bat' --no- ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (1 issue found. (ran in 9.1s):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n"
+    },
+    "menu-format": {
+      "exit": "0",
+      "log": "Formatted 5 files (0 changed) in 0.11 seconds.\r\n"
+    }
+  },
+  "captures": [
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-en-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "82c49a9bc5301d93d5a01ec38d34a22d980118a241fee681857dc9e318883b4b",
+      "bytes": 758393
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-en-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "c8601e265c4f745531ee6cc64b73164af367da01f8d12cbf16edccb8836d878e",
+      "bytes": 204733
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-en-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "4d748b5dcad65b1bccdcd0435088fb2fae67d9bbbbb3183219058b371810ec25",
+      "bytes": 185441
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-en-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "b58ec6ecb99f3299897b52bed9cde9656ab79ed7097ba0aaa5d54b5f48cc5e23",
+      "bytes": 252854
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-es-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "5e136206836289eeb65a8fefb9075a15b1f20bac80acf49919811ebdd28ecc6f",
+      "bytes": 750281
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-es-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "1c0f2f9fe96fac0333049a59a912fece1e7ca94babdb007f8b27d8b1b958ce02",
+      "bytes": 198486
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-es-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "2157ddc72ee036bf7b6a5be6e03bf3415fcbb7064ed00de9aeea50814994955a",
+      "bytes": 187931
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-es-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "51c852e448a05c10039a85b43690310b94f1dd6f6becc31fcca9cf97e9077723",
+      "bytes": 253848
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-fr-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "be513e463a3a470e490a687193023d508264d0b7737542ccf21f02f76507dd5a",
+      "bytes": 704121
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-fr-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "0e15624578aed001226bede617bcbe75cdfaa7710d9d1aa8dc85aff1a98225e3",
+      "bytes": 204988
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-fr-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "de9f11e7c87baf89ed4b1dca40beccaacbf4eaa71369d013440c8a1fbbebbe03",
+      "bytes": 194192
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified/hero-fr-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "5cbb96cbb2fd7f40fa7041da4d69639ee2655d7948ed19ac3db60b812d312d91",
+      "bytes": 259727
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-en-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "7645830cf3e1e9f738640c5fb5af33bdb5d9a44b238d99b2ad850a079ef7d8d8",
+      "bytes": 88726
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-en-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "525e37f15ffff3adf36e6b30b297ef4d6ee37837fb8d194a987183184d90e9e6",
+      "bytes": 84036
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-en-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "03672fb86204668b34801b646aceeb5e53e2533f729179dae9ca601fce16be97",
+      "bytes": 269514
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-es-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "c2e246c38a70b3fd7f1a45746abebdfeb67c1b786bf5a7601be99b82247a754a",
+      "bytes": 191176
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-es-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "d08f4cefa01dc4184d683574e60d7ac5b62649f6e44df8aff2100442d700ed10",
+      "bytes": 88348
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-es-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "e9e56e3d8d73ed3c23cfc4c8f959f6cb92e170ed1895a21161a0385dacf0ab4b",
+      "bytes": 272662
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-fr-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "3f89dc2085d78a31b4cef0c9a1470caca0153db896b78dd966e014be5bfdee04",
+      "bytes": 89801
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-fr-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "e4a0b6cc691637cae6c77a1a472383c82bc78cea987752640940c4a23bf03507",
+      "bytes": 80864
+    },
+    {
+      "path": "artifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-fr-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "bc2d7c1f9f9daab2171276faf53c47b2f041242aac5c1a50241cdf5816910a62",
+      "bytes": 279214
+    }
+  ],
+  "sdkHits": [
+    {
+      "file": "cupertino/app.dart",
+      "line": 82,
+      "text": "///     child: Center(child: Icon(CupertinoIcons.share)),"
+    },
+    {
+      "file": "cupertino/app.dart",
+      "line": 101,
+      "text": "///         child: Center(child: Icon(CupertinoIcons.share)),"
+    },
+    {
+      "file": "cupertino/app.dart",
+      "line": 109,
+      "text": "///         child: Center(child: Icon(CupertinoIcons.share)),"
+    },
+    {
+      "file": "cupertino/app.dart",
+      "line": 133,
+      "text": "///     child: Center(child: Icon(CupertinoIcons.share)),"
+    },
+    {
+      "file": "cupertino/app.dart",
+      "line": 544,
+      "text": "icon: CupertinoIcons.xmark,"
+    },
+    {
+      "file": "cupertino/app.dart",
+      "line": 558,
+      "text": "icon: usesDefaultAlignment ? CupertinoIcons.arrow_right : CupertinoIcons.arrow_left,"
+    },
+    {
+      "file": "cupertino/expansion_tile.dart",
+      "line": 151,
+      "text": "CupertinoIcons.right_chevron,"
+    },
+    {
+      "file": "cupertino/icons.dart",
+      "line": 37,
+      "text": "///       CupertinoIcons.heart_fill,"
+    },
+    {
+      "file": "cupertino/icons.dart",
+      "line": 43,
+      "text": "///       CupertinoIcons.bell_fill,"
+    },
+    {
+      "file": "cupertino/icons.dart",
+      "line": 48,
+      "text": "///       CupertinoIcons.umbrella_fill,"
+    },
+    {
+      "file": "cupertino/list_tile.dart",
+      "line": 408,
+      "text": "CupertinoIcons.right_chevron,"
+    },
+    {
+      "file": "cupertino/nav_bar.dart",
+      "line": 2340,
+      "text": "text: String.fromCharCode(CupertinoIcons.back.codePoint),"
+    },
+    {
+      "file": "cupertino/nav_bar.dart",
+      "line": 2345,
+      "text": "fontFamily: CupertinoIcons.back.fontFamily,"
+    },
+    {
+      "file": "cupertino/nav_bar.dart",
+      "line": 2346,
+      "text": "package: CupertinoIcons.back.fontPackage,"
+    },
+    {
+      "file": "cupertino/search_field.dart",
+      "line": 130,
+      "text": "this.prefixIcon = const Icon(CupertinoIcons.search),"
+    },
+    {
+      "file": "cupertino/search_field.dart",
+      "line": 132,
+      "text": "this.suffixIcon = const Icon(CupertinoIcons.xmark_circle_fill),"
+    },
+    {
+      "file": "cupertino/search_field.dart",
+      "line": 246,
+      "text": "/// Defaults to an [Icon] widget with the [CupertinoIcons.search] icon."
+    },
+    {
+      "file": "cupertino/search_field.dart",
+      "line": 258,
+      "text": "/// Defaults to the X-Mark [CupertinoIcons.xmark_circle_fill]. \"To change the"
+    },
+    {
+      "file": "cupertino/text_field.dart",
+      "line": 1317,
+      "text": "CupertinoIcons.clear_thick_circled,"
+    }
+  ],
+  "sdkHitCount": 19,
+  "productDiff": "diff --git a/lib/l10n/home_copy.dart b/lib/l10n/home_copy.dart\nindex d8e40b9..d07e8ea 100644\n--- a/lib/l10n/home_copy.dart\n+++ b/lib/l10n/home_copy.dart\n@@ -2,6 +2,16 @@\n /// Keep all three locales together; category names remain in AppStrings.\n abstract final class HomeCopy {\n   static const strings = <String, Map<String, String>>{\n+    'open_navigation_menu': {\n+      'fr': 'Ouvrir le menu de navigation',\n+      'en': 'Open navigation menu',\n+      'es': 'Abrir el menú de navegación',\n+    },\n+    'hero_scene_label': {\n+      'fr': 'Camionnette Movi-K et chauffeur préparant une livraison',\n+      'en': 'Movi-K van and driver preparing a delivery',\n+      'es': 'Furgoneta Movi-K y conductor preparando una entrega',\n+    },\n     'eyebrow': {\n       'fr': 'Livraison de meubles et d’objets volumineux',\n       'en': 'Furniture and large-item delivery',\ndiff --git a/lib/screens/home/home_screen.dart b/lib/screens/home/home_screen.dart\nindex 777ad94..4a0bade 100644\n--- a/lib/screens/home/home_screen.dart\n+++ b/lib/screens/home/home_screen.dart\n@@ -38,11 +38,16 @@ class HomeScreen extends StatelessWidget {\n   );\n }\n \n+String _heroAsset(String locale) => locale == 'en' || locale == 'es'\n+    ? 'assets/home/hero_neutral.png'\n+    : 'assets/home/hero_clean.png';\n+\n class _Hero extends StatelessWidget {\n   final VoidCallback quote, driver;\n   const _Hero({required this.quote, required this.driver});\n   @override\n   Widget build(BuildContext context) {\n+    final locale = context.watch<LocaleProvider>().locale;\n     final width = MediaQuery.sizeOf(context).width;\n     final desktop = width >= 980;\n \n@@ -107,12 +112,14 @@ class _Hero extends StatelessWidget {\n                           child: AspectRatio(\n                             aspectRatio: 524 / 350,\n                             child: Image.asset(\n-                              'assets/home/hero_clean.png',\n+                              _heroAsset(locale),\n                               fit: BoxFit.cover,\n                               alignment: Alignment.centerRight,\n                               filterQuality: FilterQuality.high,\n-                              semanticLabel:\n-                                  'Camionnette Movi-K avec chauffeur préparant une livraison',\n+                              semanticLabel: HomeCopy.text(\n+                                'hero_scene_label',\n+                                locale,\n+                              ),\n                             ),\n                           ),\n                         ),\n@@ -243,15 +250,16 @@ class _HeroRight extends StatelessWidget {\n   Widget build(BuildContext context) {\n     final desktop = MediaQuery.sizeOf(context).width >= 980;\n \n+    final locale = context.watch<LocaleProvider>().locale;\n     final scene = Semantics(\n       image: true,\n-      label: 'Camionnette Movi-K et chauffeur préparant une livraison',\n+      label: HomeCopy.text('hero_scene_label', locale),\n       child: ClipRRect(\n         borderRadius: BorderRadius.circular(30),\n         child: AspectRatio(\n           aspectRatio: 524 / 350,\n           child: Image.asset(\n-            'assets/home/hero_clean.png',\n+            _heroAsset(locale),\n             fit: BoxFit.cover,\n             alignment: Alignment.centerRight,\n             filterQuality: FilterQuality.medium,\ndiff --git a/lib/widgets/app_shell.dart b/lib/widgets/app_shell.dart\nindex 6954d6e..89aa54e 100644\n--- a/lib/widgets/app_shell.dart\n+++ b/lib/widgets/app_shell.dart\n@@ -101,6 +101,14 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {\n \n     return AppBar(\n       toolbarHeight: 72,\n+      leading: isDesktop\n+          ? null\n+          : IconButton(\n+              key: const Key('public-navigation-menu'),\n+              tooltip: HomeCopy.text('open_navigation_menu', locale),\n+              onPressed: () => Scaffold.of(context).openDrawer(),\n+              icon: const Icon(Icons.menu),\n+            ),\n       titleSpacing: isDesktop ? 24 : (isPhone ? 4 : 12),\n       title: Row(\n         children: [\ndiff --git a/test/home/home_screen_test.dart b/test/home/home_screen_test.dart\nindex 2a3c8c9..a13c697 100644\n--- a/test/home/home_screen_test.dart\n+++ b/test/home/home_screen_test.dart\n@@ -275,7 +275,7 @@ void main() {\n     tester,\n   ) async {\n     await mountHome(tester);\n-    await tester.tap(find.byTooltip('Open navigation menu'));\n+    await tester.tap(find.byTooltip('Ouvrir le menu de navigation'));\n     await tester.pumpAndSettle();\n     expect(find.text('Administration'), findsNothing);\n   });\n",
+  "protectedDiff": "",
+  "newTracked": "A\tartifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_001.md\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/CHECKPOINT_I18N_002.md\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/HERO_COMMIT_FILES.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/HERO_COMMIT_RESULT.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/HERO_EVIDENCE.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/IMAGE_EDIT.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/MENU_COMMIT_FILES.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/MENU_EVIDENCE.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-after.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-analyze-final.txt\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-before.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-final.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-format.txt\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-permanent.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-regression.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-reproduction.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/hero-verified.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-after.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-before.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-final.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-en-375.0-812.0-1.0.png\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-es-375.0-812.0-1.0.png\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-final/menu-fr-375.0-812.0-1.0.png\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-format.txt\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-quality.txt\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-regression.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-reproduction-final.summary.json\nA\tartifacts/corrections-1-3M-U-20261012-a61b905e/menu-reproduction.summary.json\nA\tassets/home/hero_neutral.png\nM\tdocs/audit/REGISTRE_BOGUES_MOVIK.md\nM\tlib/l10n/home_copy.dart\nM\tlib/screens/home/home_screen.dart\nM\tlib/widgets/app_shell.dart\nA\ttest/helpers/public_render_test_helpers.dart\nA\ttest/home/home_hero_locale_test.dart\nM\ttest/home/home_screen_test.dart\nA\ttest/home/public_menu_locale_test.dart\n",
+  "diffCheck": ""
+}

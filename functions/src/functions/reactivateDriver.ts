@@ -47,6 +47,7 @@ export const reactivateDriver = onCall<ReactivateDriverRequest>(async (request) 
       suspended_at: null,
       suspended_by_user_id: null,
       suspension_reason: null,
+      suspension_mode: null,
       reactivated_at: admin.firestore.FieldValue.serverTimestamp(),
       reactivated_by_user_id: ctx.uid,
     });

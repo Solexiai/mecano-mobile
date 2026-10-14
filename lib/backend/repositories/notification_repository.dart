@@ -17,7 +17,10 @@ import '../backend_exceptions.dart';
 abstract class NotificationRepository {
   /// Flux temps réel des notifications de l'utilisateur courant, triées
   /// des plus récentes aux plus anciennes.
-  Stream<List<AppNotification>> watchNotifications(String userId);
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  });
 
   /// Flux temps réel du nombre de notifications non lues.
   Stream<int> watchUnreadCount(String userId);
@@ -35,8 +38,10 @@ class NotConfiguredNotificationRepository implements NotificationRepository {
   const NotConfiguredNotificationRepository();
 
   @override
-  Stream<List<AppNotification>> watchNotifications(String userId) =>
-      Stream.value(const []);
+  Stream<List<AppNotification>> watchNotifications(
+    String userId, {
+    int limit = 50,
+  }) => Stream.value(const []);
 
   @override
   Stream<int> watchUnreadCount(String userId) => Stream.value(0);
@@ -44,12 +49,14 @@ class NotConfiguredNotificationRepository implements NotificationRepository {
   @override
   Future<void> markAsRead(String userId, String notificationId) {
     throw BackendNotConfiguredException(
-        'markAsRead: Firebase Firestore non configuré.');
+      'markAsRead: Firebase Firestore non configuré.',
+    );
   }
 
   @override
   Future<void> markAllAsRead(String userId) {
     throw BackendNotConfiguredException(
-        'markAllAsRead: Firebase Firestore non configuré.');
+      'markAllAsRead: Firebase Firestore non configuré.',
+    );
   }
 }

@@ -1,0 +1,99 @@
+[
+  {
+    "phase": "isolation",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 6451
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "before",
+    "passed": 6,
+    "failed": 17,
+    "skipped": 0,
+    "transport": []
+  },
+  {
+    "phase": "before-closed-cleanup",
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "done": {
+      "success": false,
+      "type": "done",
+      "time": 8031
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=48; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "before-complete",
+    "passed": 7,
+    "failed": 21,
+    "skipped": 0,
+    "done": {
+      "success": false,
+      "type": "done",
+      "time": 13773
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=1128; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "after",
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 14289
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=1128; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "final-targeted",
+    "passed": 73,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 28635
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=1128; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=680; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=672; unexpected=0; external_transport=none"
+    ]
+  },
+  {
+    "phase": "regression",
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "done": {
+      "success": true,
+      "type": "done",
+      "time": 30903
+    },
+    "transport": [
+      "OFFLINE_TRANSPORT: in_memory=120; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none",
+      "OFFLINE_TRANSPORT: in_memory=24; unexpected=0; external_transport=none"
+    ]
+  }
+]

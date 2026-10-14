@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "label": "Commencer un devis pour Meubles",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_furniture",
+      "passed": true
+    },
+    {
+      "label": "Commencer un devis pour Appareils électroménagers",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_appliances",
+      "passed": true
+    },
+    {
+      "label": "Commencer un devis pour Achats Marketplace",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_marketplace",
+      "passed": true
+    },
+    {
+      "label": "Commencer un devis pour Matériaux de construction",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_building_materials",
+      "passed": true
+    },
+    {
+      "label": "Commencer un devis pour Grand téléviseur",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_tv",
+      "passed": true
+    },
+    {
+      "label": "Commencer un devis pour Achats Costco",
+      "url": "http://127.0.0.1:8092/fr/livraison/demande?category=cat_costco",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Desktop French accessibility clicks only; category and login resume also covered by Flutter tests"
+  ]
+}

@@ -41,12 +41,38 @@ class AppColors {
   // `warningText` (ambre plus foncé) est réservé aux endroits où la
   // couleur "warning" est utilisée comme couleur de TEXTE lisible (pas
   // un simple badge/pastille décoratif) — contraste ~5.0:1 sur blanc,
-  // ~4.7:1 sur `background`. Les badges/pastilles décoratifs existants
-  // (StatusBadge, ComingSoonBadge, etc.) restent inchangés : ils affichent
-  // un texte COURT (statut/label) toujours accompagné d'un intitulé
-  // explicite ailleurs dans l'écran, donc non bloquants MVP (voir
-  // PHASE7_BUG_REPORT.md, DEFERRED NON-BLOCKING P2/P3).
+  // ~4.7:1 sur `background`. Pour les textes de badges sur un fond
+  // légèrement teinté, P2-L-01 utilise les variantes warningBadgeTextLight/
+  // warningBadgeTextDark et laisse la couleur warning décorative intacte.
+  // Les statuts et leurs correspondances métier restent inchangés.
   static const Color warningText = Color(0xFFB45309);
+
+  // P2-L-01: color of readable warning labels on translucent badge backgrounds.
+  // Keep warning itself for the background/border; do not change status maps.
+  static const Color warningBadgeTextLight = Color(0xFF92400E);
+  static const Color warningBadgeTextDark = Color(0xFFFDE68A);
+
+  static Color statusBadgeTextColor(Color statusColor, Brightness brightness) {
+    if (statusColor != warning) return statusColor;
+    return brightness == Brightness.dark
+        ? warningBadgeTextDark
+        : warningBadgeTextLight;
+  }
+
+  // The warning badge background is opaque after blending with the themed
+  // surface. It remains legible even inside legacy screens that hard-code a
+  // different parent surface color in dark mode.
+  static Color statusBadgeBackground(
+    Color statusColor,
+    Brightness brightness, {
+    double alpha = 0.12,
+  }) {
+    if (statusColor != warning) return statusColor.withValues(alpha: alpha);
+    return Color.alphaBlend(
+      warning.withValues(alpha: alpha),
+      brightness == Brightness.dark ? surfaceDark : surface,
+    );
+  }
 
   // Gradients
   static const LinearGradient heroGradient = LinearGradient(

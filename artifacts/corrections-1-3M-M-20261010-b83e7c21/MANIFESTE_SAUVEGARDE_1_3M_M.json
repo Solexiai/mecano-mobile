@@ -1,0 +1,86 @@
+{
+    "date":  "2026-10-10T14:10:26.725Z",
+    "head":  "2df26054e0fb3491cdc75cfbef3f551fab07e1f5",
+    "branch":  "fix/gps-client-history-scope-20261009",
+    "index_empty":  true,
+    "staged":  false,
+    "commit_created":  false,
+    "selection":  [
+                      {
+                          "path":  "lib/screens/delivery/delivery_request_flow_screen.dart",
+                          "bytes":  67437,
+                          "sha256":  "41d566b0e6dea1098eee77eb71a3382612f40c3345beec57ad28baceeb17cf10"
+                      },
+                      {
+                          "path":  "test/customer/delivery_contact_validation_test.dart",
+                          "bytes":  12834,
+                          "sha256":  "1bfd4f3c617b9e3e2c3dc5a898484bd653269ec492c86c7256a30e20802d7478"
+                      },
+                      {
+                          "path":  "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+                          "bytes":  434335,
+                          "sha256":  "bf9aa5665f7e8f7d176ee995ec450f35b2218c18a326ca299cf5b255c7e7f8cb"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/CHECKPOINT_MOVIK_1_3M_M_P2_H_01_H_02.md",
+                          "bytes":  16757,
+                          "sha256":  "b4854c2ec6c233d2fe76d1ed61d30ebd642604eb1f1cb6c12a06cebf4db38695"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/ISOLATION.md",
+                          "bytes":  1855,
+                          "sha256":  "554c94c0175ad21279f420cfa364753c5bff721fd0a3a608647c74f02ed17950"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/RESULTATS.json",
+                          "bytes":  16059,
+                          "sha256":  "b2e53443c1576fe873e1ce3173e1cc4259b26a61477dae29b0ba4f8bb1399a97"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/RESULT-before.jsonl",
+                          "bytes":  133614,
+                          "sha256":  "736405a34ad40ffeff5af5996eb4fc396d5654225f3249e8f555a7a6d2beb804"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/RESULT-before-guidance.jsonl",
+                          "bytes":  6788,
+                          "sha256":  "bb54cd5ac83ec22bd492c0034388c13dd4db0967f8083fe451c8cd30f73b7623"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/RESULT-final-v2.jsonl",
+                          "bytes":  48980,
+                          "sha256":  "b975b13d25c504c2ccf9734d30f0d2c64e28b2550504676102267cc4f906e2cf"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/RESULT-regression.jsonl",
+                          "bytes":  28414,
+                          "sha256":  "eba9e894e3da47b8ed6678539517041d9a3b2b2840e9153556dd67c3496b3f42"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/quality-exits.json",
+                          "bytes":  93,
+                          "sha256":  "6c1c67d460e04b380b0bc7b57360037ef9b78625bf0a4a7b5578b0f84974f2dc"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/CONTROLES_FINAUX.json",
+                          "bytes":  512,
+                          "sha256":  "d35e8fae63fde06fb3ec63ccdae75f39910b2f1f22fff0057a8232d1a1073269"
+                      },
+                      {
+                          "path":  "artifacts/corrections-1-3M-M-20261010-b83e7c21/MANIFESTE_SAUVEGARDE_1_3M_M.json",
+                          "sha256":  null,
+                          "note":  "Auto-empreinte exclue."
+                      }
+                  ],
+    "passed_final_distinct":  66,
+    "failed_final":  0,
+    "skipped_final":  0,
+    "open":  {
+                 "P0":  0,
+                 "P1":  2,
+                 "P2":  18
+             },
+    "status":  "P2-H-01 and P2-H-02: CLOSED in validated simulated scope, NOT DEPLOYED, approved 2026-10-10",
+    "secret_pattern_scan":  "Aucune correspondance sur les motifs privés/Stripe/GitHub/Google examinés ; non exhaustif",
+    "note":  "Local commit selection after explicit closure approval; raw analyze/format logs preserved on disk but not included. No push, merge or deployment."
+}

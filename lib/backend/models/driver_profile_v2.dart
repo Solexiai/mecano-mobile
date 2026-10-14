@@ -48,6 +48,7 @@ class DriverProfileV2 {
   final String? documentsRequiredReason;
   final DateTime? documentsRequiredAt;
   final String? suspensionReason;
+  final String? suspensionMode;
   final DateTime? suspendedAt;
 
   // Stripe Connect — lecture seule côté Flutter.
@@ -89,6 +90,7 @@ class DriverProfileV2 {
     this.documentsRequiredReason,
     this.documentsRequiredAt,
     this.suspensionReason,
+    this.suspensionMode,
     this.suspendedAt,
     this.stripeConnectedAccountId,
     this.stripeOnboardingUrl,
@@ -144,6 +146,7 @@ class DriverProfileV2 {
     'documents_required_reason': documentsRequiredReason,
     'documents_required_at': documentsRequiredAt?.toIso8601String(),
     'suspension_reason': suspensionReason,
+    'suspension_mode': suspensionMode,
     'suspended_at': suspendedAt?.toIso8601String(),
     'stripe_connected_account_id': stripeConnectedAccountId,
     'stripe_onboarding_url': stripeOnboardingUrl,
@@ -211,6 +214,7 @@ class DriverProfileV2 {
       documentsRequiredReason: json['documents_required_reason'] as String?,
       documentsRequiredAt: _parseDate(json['documents_required_at']),
       suspensionReason: json['suspension_reason'] as String?,
+      suspensionMode: json['suspension_mode'] as String?,
       suspendedAt: _parseDate(json['suspended_at']),
       stripeConnectedAccountId: json['stripe_connected_account_id'] as String?,
       stripeOnboardingUrl: json['stripe_onboarding_url'] as String?,

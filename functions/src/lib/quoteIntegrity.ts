@@ -1,3 +1,4 @@
+import type { BookingSnapshot } from "./booking";
 import { createHash } from "crypto";
 
 import { failedPrecondition } from "./errors";
@@ -30,6 +31,7 @@ export interface LockedQuotePricingSnapshot {
   tax_snapshot: TaxSnapshot | null;
   breakdown: CustomerPricingResult;
   customer_total_minor: number;
+  booking?: BookingSnapshot;
 }
 
 export interface QuoteIntegrityEnvelope {

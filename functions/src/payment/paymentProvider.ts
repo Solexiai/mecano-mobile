@@ -1,3 +1,4 @@
+import type { CardSetup } from "../lib/bookingPayment";
 // -----------------------------------------------------------------------------
 // paymentProvider.ts — Abstraction PaymentProvider CÔTÉ SERVEUR (point 2 du
 // cahier des charges Phase 6).
@@ -232,6 +233,12 @@ export interface ListProviderRefundsResult {
 }
 
 export abstract class PaymentProvider {
+  async createCardSetup(_params: { customerId: string; userId: string; quoteId: string; returnUrl: string; locale: string }): Promise<CardSetup> {
+    void _params;
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async getCardSetup(_id: string): Promise<CardSetup> { void _id; throw new PaymentProviderNotConfiguredError(); }
+
   // ---------------------------------------------------------------------
   // 🔒 Phase 8B (item f, isolation d'environnement) — CHAQUE implémentation
   // concrète DOIT exposer l'environnement Stripe (test|live) qu'elle

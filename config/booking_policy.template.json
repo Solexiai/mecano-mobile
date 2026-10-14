@@ -1,0 +1,9 @@
+{
+  "approved": false,
+  "version": "REQUIRES_APPROVAL",
+  "terms_url": null,
+  "privacy_url": null,
+  "cancellation_text": { "fr": "", "en": "", "es": "" },
+  "payment_text": { "fr": "", "en": "", "es": "" },
+  "setup_enabled": false
+}

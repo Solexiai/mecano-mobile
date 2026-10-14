@@ -1,3 +1,4 @@
+import { requireCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // acceptDelivery — Cloud Function callable (driver). 🔒 CŒUR DE L'ATOMICITÉ.
 //
@@ -38,6 +39,7 @@ import {
   FoundingDriverStatuses,
   MissionAssignmentModes,
   MissionStatuses,
+  PaymentStatuses,
   OPEN_FOR_ACCEPTANCE_STATUSES,
   PricingVersionDoc,
 } from "../lib/types";
@@ -50,6 +52,7 @@ import { supportsVehicleCategory } from "../lib/vehicleCategory";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
+  vehicleId?: string;
 }
 
 function isAuthorizedInternalTestMission(mission: Record<string, unknown>): boolean {
@@ -118,6 +121,8 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
 
     const mission = missionSnap.data()!;
     const driver = driverSnap.data() as DriverProfileDoc;
+    if (mission.booking_snapshot && (typeof request.data.vehicleId !== 'string' || !request.data.vehicleId)) throw failedPrecondition('Confirmez le véhicule utilisé pour cette livraison.');
+    const assignedVehicle = await requireCompatibleVehicle(driverId, mission.booking_snapshot, tx, request.data.vehicleId);
 
     // ---- Vérifications d'éligibilité chauffeur ----
     if (driver.status !== DriverStatuses.APPROVED) {
@@ -151,7 +156,8 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     if (isInternalTest) {
       const now = admin.firestore.Timestamp.now();
       tx.update(missionRef, {
-        driver_id: driverId,
+        ...assignedVehicle,
+      driver_id: driverId,
         driver_display_name: driver.full_name,
         status: MissionStatuses.ASSIGNED,
         accepted_at: now,
@@ -342,6 +348,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
 
     // ---- Écriture atomique : mission + driver_profile + snapshot pending ----
     tx.update(missionRef, {
+      ...assignedVehicle,
       driver_id: driverId,
       driver_display_name: driver.full_name,
       status: MissionStatuses.ASSIGNED,
@@ -372,6 +379,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       snapshot_id: snapshotRef.id,
       mission_id: missionId,
       customer_id: mission.customer_id,
+      ...assignedVehicle,
       driver_id: driverId,
       pricing_version: mission.pricing_version,
       quote_id: mission.active_quote_id,
@@ -469,6 +477,16 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   });
 
   if (!paymentOutcome.success) {
+    if (paymentOutcome.status === PaymentStatuses.CANCELLED) {
+      throw failedPrecondition(
+        "Mission annulée pendant l'autorisation ; autorisation de paiement libérée."
+      );
+    }
+    if (paymentOutcome.status === PaymentStatuses.AUTHORIZED) {
+      throw failedPrecondition(
+        "Mission annulée ; vérification de la libération du paiement nécessaire."
+      );
+    }
     throw failedPrecondition(
       `Autorisation de paiement refusée (${paymentOutcome.status}): ${
         paymentOutcome.failureMessage ?? "raison inconnue"

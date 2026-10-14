@@ -60,7 +60,13 @@ function customerRequest(
 function trackingRequest(driverId: string, data: RecordTrackingPointRequest): CallableRequest<RecordTrackingPointRequest> {
   return {
     data,
-    auth: { uid: driverId, token: {} as DecodedIdToken, rawToken: "fake-raw-token-for-emulator-test" },
+    // GPS reporting is driver-only. Mirror the custom claims issued by Auth
+    // instead of weakening recordTrackingPoint's existing role guard.
+    auth: {
+      uid: driverId,
+      token: { role: "driver", roles: ["driver"] } as unknown as DecodedIdToken,
+      rawToken: "fake-raw-token-for-emulator-test",
+    },
     rawRequest: {} as Request,
     acceptsStreaming: false,
   };
@@ -351,6 +357,26 @@ describe("BLOC T-3 — recordTrackingPoint volume (20 mises à jour successives 
       db.collection("driver_profiles").doc(DRIVER_ID).delete(),
       db.collection("delivery_requests").doc(MISSION_ID).delete(),
     ]);
+  });
+
+  it("refuses the same GPS tracking request without a driver role, with no side effects", async () => {
+    const authorized = trackingRequest(DRIVER_ID, {
+      latitude: 45.5, longitude: -73.6,
+    });
+    const unauthenticatedRole = {
+      ...authorized,
+      auth: {
+        ...authorized.auth!,
+        token: {} as DecodedIdToken,
+      },
+    };
+    await expect(recordTrackingPoint.run(unauthenticatedRole))
+      .rejects.toMatchObject({ code: "permission-denied" });
+    const history = await db.collection("driver_locations")
+      .doc(DRIVER_ID).collection("history").get();
+    expect(history.empty).toBe(true);
+    const position = (await db.collection("driver_locations").doc(DRIVER_ID).get()).data()!;
+    expect(position.latitude).toBeUndefined();
   });
 
   it("20 points GPS successifs produisent EXACTEMENT 20 documents d'historique, la position courante reflète le DERNIER point, aucune duplication", async () => {

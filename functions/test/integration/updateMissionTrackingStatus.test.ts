@@ -48,6 +48,9 @@ function buildRequest(
 }
 
 async function seedMission(status: string, driverId: string | null = DRIVER_ID): Promise<void> {
+  await db.collection("driver_profiles").doc(DRIVER_ID).set({
+    uid: DRIVER_ID, status: "approved", online_status: "on_mission",
+  });
   await db.collection("delivery_requests").doc(MISSION_ID).set({
     customer_id: "tracking_customer_001",
     driver_id: driverId,
@@ -63,6 +66,7 @@ async function seedMission(status: string, driverId: string | null = DRIVER_ID):
 
 async function cleanup(): Promise<void> {
   await db.collection("delivery_requests").doc(MISSION_ID).delete();
+  await db.collection("driver_profiles").doc(DRIVER_ID).delete();
   const [events, auditLogs] = await Promise.all([
     db.collection("delivery_requests").doc(MISSION_ID).collection("tracking_events").get(),
     db.collection("audit_logs").where("target_id", "==", MISSION_ID).get(),

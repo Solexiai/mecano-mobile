@@ -1,0 +1,2 @@
+# Keep the Vercel Linux build script executable from Windows checkouts.
+scripts/vercel_build.sh text eol=lf

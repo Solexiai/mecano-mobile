@@ -1,3 +1,4 @@
+import { requireCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // acceptDelivery — Cloud Function callable (driver). 🔒 CŒUR DE L'ATOMICITÉ.
 //
@@ -131,6 +132,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
 
     const mission = missionSnap.data()!;
     const driver = driverSnap.data() as DriverProfileDoc;
+    const assignedVehicle = await requireCompatibleVehicle(driverId, mission.booking_snapshot, tx);
 
     // ---- Vérifications d'éligibilité chauffeur ----
     if (driver.status !== DriverStatuses.APPROVED) {
@@ -178,7 +180,8 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       // Le mode interne assigne réellement le chauffeur pour permettre le
       // parcours terrain complet, mais ne crée aucun contrat financier.
       tx.update(missionRef, {
-        driver_id: driverId,
+        ...assignedVehicle,
+      driver_id: driverId,
         driver_display_name: driver.full_name,
         status: MissionStatuses.ASSIGNED,
         accepted_at: now,
@@ -364,6 +367,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
 
     // ---- Écriture atomique : mission + driver_profile + snapshot pending ----
     tx.update(missionRef, {
+      ...assignedVehicle,
       driver_id: driverId,
       driver_display_name: driver.full_name,
       status: MissionStatuses.ASSIGNED,
@@ -389,6 +393,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       snapshot_id: snapshotRef.id,
       mission_id: missionId,
       customer_id: mission.customer_id,
+      ...assignedVehicle,
       driver_id: driverId,
       pricing_version: mission.pricing_version,
       quote_id: mission.active_quote_id,

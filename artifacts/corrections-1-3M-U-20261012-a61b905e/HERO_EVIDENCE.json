@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-12T14:32:15.165Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "7700931ee7a91b8b9a29c2f91ca3ccdf857e6c29",
+  "counts": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 7
+  },
+  "rows": 27,
+  "changedPreexisting": [
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "lib/l10n/home_copy.dart",
+    "lib/screens/home/home_screen.dart"
+  ],
+  "filesChecked": 3072,
+  "activeHooks": [],
+  "images": [
+    {
+      "path": "hero-verified/hero-en-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "82c49a9bc5301d93d5a01ec38d34a22d980118a241fee681857dc9e318883b4b",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-en-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "c8601e265c4f745531ee6cc64b73164af367da01f8d12cbf16edccb8836d878e",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-en-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "4d748b5dcad65b1bccdcd0435088fb2fae67d9bbbbb3183219058b371810ec25",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-en-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "b58ec6ecb99f3299897b52bed9cde9656ab79ed7097ba0aaa5d54b5f48cc5e23",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-es-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "5e136206836289eeb65a8fefb9075a15b1f20bac80acf49919811ebdd28ecc6f",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-es-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "1c0f2f9fe96fac0333049a59a912fece1e7ca94babdb007f8b27d8b1b958ce02",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-es-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "2157ddc72ee036bf7b6a5be6e03bf3415fcbb7064ed00de9aeea50814994955a",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-es-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "51c852e448a05c10039a85b43690310b94f1dd6f6becc31fcca9cf97e9077723",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-fr-1440.0-900.0-1.0.png",
+      "width": 1440,
+      "height": 900,
+      "sha256": "be513e463a3a470e490a687193023d508264d0b7737542ccf21f02f76507dd5a",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-fr-375.0-812.0-1.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "0e15624578aed001226bede617bcbe75cdfaa7710d9d1aa8dc85aff1a98225e3",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-fr-375.0-812.0-2.0.png",
+      "width": 375,
+      "height": 812,
+      "sha256": "de9f11e7c87baf89ed4b1dca40beccaacbf4eaa71369d013440c8a1fbbebbe03",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    },
+    {
+      "path": "hero-verified/hero-fr-430.0-932.0-1.0.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "5cbb96cbb2fd7f40fa7041da4d69639ee2655d7948ed19ac3db60b812d312d91",
+      "review": "Examinée ; illustration correcte, pas de chevauchement démontré ; police test résiduelle de certains boutons, pas Chrome."
+    }
+  ],
+  "failures": [
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale en 375.0 x 812.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale en 430.0 x 932.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale en 1440.0 x 900.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale en 375.0 x 812.0 text=2.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale es 375.0 x 812.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale es 430.0 x 932.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale es 1440.0 x 900.0 text=1.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:44:9)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 44\nThe test description was:\n  hero locale es 375.0 x 812.0 text=2.0\n════════════════════════════════════════════════════════════════════════════════════════════════════",
+    "══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════\nThe following TestFailure was thrown running a test:\nExpected: 'assets/home/hero_neutral.png'\n  Actual: 'assets/home/hero_clean.png'\n   Which: is different.\n          Expected: ... home/hero_neutral.pn ...\n            Actual: ... home/hero_clean.png\n                                  ^\n           Differ at offset 17\n\nWhen the exception was thrown, this was the stack:\n#4      main.<anonymous closure> (file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart:66:7)\n<asynchronous suspension>\n#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)\n<asynchronous suspension>\n#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)\n<asynchronous suspension>\n<asynchronous suspension>\n(elided one frame from package:stack_trace)\n\nThis was caught by the test expectation on the following line:\n  file:///C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/home/home_hero_locale_test.dart line 66\nThe test description was:\n  hero changes with language selector without stale asset\n════════════════════════════════════════════════════════════════════════════════════════════════════"
+  ],
+  "quality": {
+    "analyze": 0,
+    "format": 0,
+    "diffCheck": 0
+  },
+  "limits": [
+    "widget raster only; residual Ahem button fonts",
+    "no Chrome/physical/production",
+    "autonomous tile 1.3L blocked and deferred"
+  ]
+}

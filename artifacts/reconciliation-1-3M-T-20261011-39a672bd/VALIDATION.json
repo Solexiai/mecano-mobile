@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-11T17:21:22.197Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "headInitial": "18f12ff393d54b5cd32219cc9188f1354a90e1db",
+  "headBeforeCommit": "18f12ff393d54b5cd32219cc9188f1354a90e1db",
+  "trackedStatus": " M docs/audit/REGISTRE_BOGUES_MOVIK.md\n",
+  "initialIndex": "",
+  "indexBeforeCommit": "",
+  "closure": {
+    "id": "P2-COPY-001",
+    "status": "FERMÉ — PÉRIMÈTRE LOCAL/SIMULÉ VALIDÉ — NON DÉPLOYÉ",
+    "previous": "VALIDÉ — HISTORIQUE, NON FERMÉ",
+    "counts": {
+      "P0": 0,
+      "P1": 0,
+      "P2": 8
+    },
+    "rows": 27,
+    "open": [
+      "P2-I18N-001",
+      "P2-I18N-002",
+      "P2-BUILD-001",
+      "P2-L-01",
+      "GAP-M-05",
+      "GAP-M-06",
+      "GAP-S-02",
+      "GAP-S-04"
+    ]
+  },
+  "results": {
+    "marketplace": {
+      "passed": 9,
+      "failed": 3,
+      "skipped": 0,
+      "exit": 1,
+      "logSha256": "c0a0175fff52e0249bc5f2c726b0e3aec051187a0635aac3bf5a5fc0b94bd079"
+    },
+    "marketplace-final": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "73ae8ae42b22f0c8c4df921b1841c342c43073e1c61fcf297eab7931546f5fd3"
+    },
+    "marketplace-verified": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "14e54aa4a4406d62d3b3f4893198004d023bd90e741bf4b1b2ee999f5a515f40"
+    },
+    "regressions": {
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "5839917982cc40603dea846783c33d8561117c2c0977928d1553c20b38f8a3a6"
+    },
+    "public-pages": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "logSha256": "9dda4c7310bcec3d828696412941457a0e1ec96a2ac710bd8400ed25c6357a19"
+    }
+  },
+  "distinctFinal": {
+    "passed": 76,
+    "failed": 0,
+    "skipped": 0
+  },
+  "quality": {
+    "analyze-final": {
+      "exit": 0,
+      "output": "Analyzing 8 items...                                            \r\nNo issues found! (ran in 5.2s)\r\n",
+      "sha256": "589ceaf02e460337d02e303798e2a6843fabfe93f9fda5ab10f24469fa09cac4"
+    },
+    "format-final": {
+      "exit": 0,
+      "output": "Formatted 1 file (0 changed) in 0.02 seconds.\r\n",
+      "sha256": "6709135d1a9a364b1d439fff503846aa2fa88695376fecbfb0fe732379662c1e"
+    },
+    "diff-check": {
+      "exit": 0,
+      "output": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "initialAnalysis": {
+      "exit": 1,
+      "output": "Analyzing 8 items...                                            \r\n\r\n   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart'. Try removing the import directive - test\\home\\home_marketplace_copy_test.dart:5:8 - unnecessary_import\r\n\r\nflutter.bat : 1 issue found. (ran in 6.0s)\r\nAu caractère Ligne:6 : 1\r\n+ & 'C:\\Users\\Utilisateur\\mecano-mobile\\.flutter\\bin\\flutter.bat' --no- ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (1 issue found. (ran in 6.0s):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n",
+      "resolution": "Removed only redundant dart:typed_data import; final analysis clean; 12 target cases rerun."
+    }
+  },
+  "diffCheck": {
+    "exit": 0,
+    "output": "warning: in the working copy of 'docs/audit/REGISTRE_BOGUES_MOVIK.md', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "integrity": {
+    "preexistingFiles": 3031,
+    "initialSnapshotSha256": "157676ea81736c1b8ff32473cc7bfce684bb8803c55f416038368f28e7694d68",
+    "changedPreexisting": [
+      "docs/audit/REGISTRE_BOGUES_MOVIK.md"
+    ],
+    "productChanges": [],
+    "financeChanges": [],
+    "gpsChanges": [],
+    "noOtherWorktreeMutated": true,
+    "activeHooks": [],
+    "secretScanFlags": []
+  },
+  "files": [
+    "test/home/home_marketplace_copy_test.dart",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/CHECKPOINT_MOVIK_1_3M_T.md",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/SOURCE_HISTORY.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/FONT_EVIDENCE.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/INITIAL_FAILURES.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace.summary.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace-final.summary.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace-verified.summary.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/regressions.summary.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/public-pages.summary.json",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/VALIDATION.json"
+  ],
+  "hashes": {
+    "test/home/home_marketplace_copy_test.dart": "bed40b16b5159910b9f26393413379cc405b1af933fc9a20228007934fcb5816",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "37043543d068df60e6fe5bf0accc1a2aec801a1bed43dc64aee050913fef1afa",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/CHECKPOINT_MOVIK_1_3M_T.md": "006ee765a99b39bfebf933bb828c1a39db06c2b71c1dd1a816042ab6fcee762c",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/SOURCE_HISTORY.json": "5cb66d4db349ad488d249ed5cd2347baa25ed1b6b0b228382447d6f2ecd5f569",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/FONT_EVIDENCE.json": "5516daf6609951245aa32f41618da97cac469f857f9bc2fb3ed25d3cd3adf8a5",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/INITIAL_FAILURES.json": "66c5bd5f49a25d36b3c3b835189014c2de669191db714862dd19acf174f0b53f",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace.summary.json": "2b138cddd6153651cecc10b36add3f75dd2f2f3a79480c1a6e4c9080d8f367f9",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace-final.summary.json": "515a17a264d661814280987bea8e103e1425d1b704345f1576cc4c6c382a19c0",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/marketplace-verified.summary.json": "779428d3297f7cb92217d1af55c91d55b609034f5603f11d8e8d09e66c7d5b7e",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/regressions.summary.json": "abc97e4006e04f75552d6d64289752099f0b1c5dda9063fada51ab696026d3f2",
+    "artifacts/reconciliation-1-3M-T-20261011-39a672bd/public-pages.summary.json": "29fb954d568f2a7ff030b1872fa350e0bb8ebe3e34db9ac40c1609295772027c"
+  },
+  "excluded": [
+    "raw logs",
+    "initial full Git inventory",
+    "intermediate scripts",
+    "initial test backups",
+    "all pre-existing untracked artifacts",
+    "caches/builds"
+  ],
+  "limits": [
+    "Flutter widget only, not Chrome or physical device",
+    "no production/deployed version validation",
+    "local SDK fonts required for new typography test",
+    "1.3L remains blocked and deferred"
+  ],
+  "commitMessage": "test(public): preserve marketplace copy and close P2-COPY-001"
+}

@@ -271,6 +271,11 @@ class AppStrings {
     // (fr) / "01/12/2026 at 2:30 PM"-style (en, connecteur seul ici) / "a las" (es).
     'datetime_connector_at': {'fr': 'à', 'en': 'at', 'es': 'a las'},
     'common_see_all': {'fr': 'Tout voir', 'en': 'See all', 'es': 'Ver todo'},
+    'common_load_more': {
+      'fr': 'Afficher plus',
+      'en': 'Load more',
+      'es': 'Mostrar más',
+    },
     'common_upload_photo': {
       'fr': 'Ajouter des photos',
       'en': 'Upload photos',
@@ -698,7 +703,8 @@ class AppStrings {
       'es': 'Iniciar sesión',
     },
     'delivery_quote_login_required': {
-      'fr': 'Connectez-vous pour calculer votre prix et poursuivre la réservation.',
+      'fr':
+          'Connectez-vous pour calculer votre prix et poursuivre la réservation.',
       'en': 'Sign in to calculate your price and continue your booking.',
       'es': 'Inicia sesión para calcular tu precio y continuar la reserva.',
     },
@@ -1089,6 +1095,36 @@ class AppStrings {
       'en': 'Unable to send your position right now.',
       'es': 'No se pudo enviar su posición en este momento.',
     },
+    'customer_tracking_title': {
+      'fr': 'Suivi',
+      'en': 'Tracking',
+      'es': 'Seguimiento',
+    },
+    'tracking_reference': {
+      'fr': 'Référence',
+      'en': 'Reference',
+      'es': 'Referencia',
+    },
+    'tracking_reference_unavailable': {
+      'fr': 'Référence indisponible',
+      'en': 'Reference unavailable',
+      'es': 'Referencia no disponible',
+    },
+    'tracking_searching_driver': {
+      'fr': 'Nous recherchons un chauffeur pour votre livraison.',
+      'en': 'We are looking for a driver for your delivery.',
+      'es': 'Estamos buscando un conductor para tu entrega.',
+    },
+    'tracking_no_driver_assigned': {
+      'fr': 'Aucun chauffeur n’est assigné à cette livraison pour le moment.',
+      'en': 'No driver is assigned to this delivery at the moment.',
+      'es': 'Por el momento, no hay ningún conductor asignado a esta entrega.',
+    },
+    'tracking_status_unavailable': {
+      'fr': 'État du suivi indisponible.',
+      'en': 'Tracking status unavailable.',
+      'es': 'Estado del seguimiento no disponible.',
+    },
     'tracking_title': {
       'fr': 'Suivi en direct',
       'en': 'Live tracking',
@@ -1100,6 +1136,36 @@ class AppStrings {
       'en': 'Live tracking will be available once a driver is on the way.',
       'es':
           'El seguimiento en vivo estará disponible en cuanto un conductor esté en camino.',
+    },
+    'tracking_position_permission_denied': {
+      'fr': 'Accès à la position refusé.',
+      'en': 'Access to the position was denied.',
+      'es': 'Acceso a la posición denegado.',
+    },
+    'tracking_position_unavailable': {
+      'fr': 'Les données de suivi sont momentanément indisponibles.',
+      'en': 'Tracking data is temporarily unavailable.',
+      'es': 'Los datos de seguimiento no están disponibles temporalmente.',
+    },
+    'tracking_history_permission_denied': {
+      'fr': 'Accès au trajet refusé.',
+      'en': 'Access to the route was denied.',
+      'es': 'Acceso al trayecto denegado.',
+    },
+    'tracking_history_unavailable': {
+      'fr': 'Le trajet est momentanément indisponible.',
+      'en': 'The route is temporarily unavailable.',
+      'es': 'El trayecto no está disponible temporalmente.',
+    },
+    'tracking_position_stale': {
+      'fr': 'Position non actualisée',
+      'en': 'Position not updated',
+      'es': 'Posición sin actualizar',
+    },
+    'tracking_last_known_position': {
+      'fr': 'Dernière position connue',
+      'en': 'Last known position',
+      'es': 'Última posición conocida',
     },
     'tracking_waiting_for_signal': {
       'fr': 'En attente du signal GPS du chauffeur…',
@@ -1959,17 +2025,17 @@ class AppStrings {
 
     // ---------- Driver recruitment ----------
     'driver_hero_headline': {
-      'fr': 'Transformez votre véhicule en revenu.',
-      'en': 'Turn your vehicle into income.',
-      'es': 'Convierte tu vehículo en ingresos.',
+      'fr': 'Préparez votre dossier chauffeur Movi‑K.',
+      'en': 'Prepare your Movi‑K driver application.',
+      'es': 'Prepara tu expediente de conductor Movi‑K.',
     },
     'driver_hero_sub': {
       'fr':
-          "Choisissez votre horaire, définissez votre zone de service et n'acceptez que les livraisons qui vous conviennent.",
+          'Définissez votre zone et votre disponibilité. Le profil, le véhicule et les documents requis doivent être approuvés avant l’activation; le lancement est prévu à Granby et dans les environs.',
       'en':
-          'Choose your schedule, define your service area and accept only the delivery jobs that work for you.',
+          'Set your service area and availability. Your profile, vehicle and required documents must be approved before activation; launch is planned for Granby and surrounding areas.',
       'es':
-          'Elige tu horario, define tu área de servicio y acepta solo los trabajos que te convengan.',
+          'Define tu zona y disponibilidad. El perfil, el vehículo y los documentos requeridos deben aprobarse antes de la activación; el lanzamiento está previsto en Granby y alrededores.',
     },
     'driver_pending_verification': {
       'fr': 'En attente de vérification',
@@ -2850,6 +2916,21 @@ class AppStrings {
       'fr': 'Suspendre',
       'en': 'Suspend',
       'es': 'Suspender',
+    },
+    'admin_suspend_ordinary': {
+      'fr': 'Suspension ordinaire',
+      'en': 'Ordinary suspension',
+      'es': 'Suspensión ordinaria',
+    },
+    'admin_suspend_urgent': {
+      'fr': 'Suspension urgente',
+      'en': 'Urgent suspension',
+      'es': 'Suspensión urgente',
+    },
+    'admin_suspend_escalate': {
+      'fr': 'Passer en suspension urgente',
+      'en': 'Escalate to urgent suspension',
+      'es': 'Cambiar a suspensión urgente',
     },
     'admin_action_reactivate': {
       'fr': 'Réactiver',

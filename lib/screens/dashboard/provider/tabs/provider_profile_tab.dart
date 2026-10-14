@@ -52,7 +52,13 @@ class ProviderProfileTab extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(t('provider_profile_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              Text(
+                t('provider_profile_title'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 20),
               Center(
                 child: Column(
@@ -61,24 +67,47 @@ class ProviderProfileTab extends StatelessWidget {
                       radius: 40,
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       child: Text(
-                        displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : '?',
-                        style: const TextStyle(fontSize: 28, color: AppColors.primary, fontWeight: FontWeight.w800),
+                        displayName.isNotEmpty
+                            ? displayName.substring(0, 1).toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Text(displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
-                        color: (profile?.status == DriverStatus.approved ? AppColors.success : AppColors.warning)
-                            .withValues(alpha: 0.12),
+                        color:
+                            (profile?.status == DriverStatus.approved
+                                    ? AppColors.success
+                                    : AppColors.warning)
+                                .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         _statusLabel(t, profile?.status),
                         style: TextStyle(
-                          color: profile?.status == DriverStatus.approved ? AppColors.success : AppColors.warning,
+                          color: AppColors.statusBadgeTextColor(
+                            profile?.status == DriverStatus.approved
+                                ? AppColors.success
+                                : AppColors.warning,
+                            Theme.of(context).brightness,
+                          ),
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -97,7 +126,9 @@ class ProviderProfileTab extends StatelessWidget {
                     title: Text(t('provider_profile_accepted_vehicles')),
                     trailing: Text(
                       (profile?.acceptedVehicleCategories.isNotEmpty ?? false)
-                          ? profile!.acceptedVehicleCategories.map((c) => c.name).join(', ')
+                          ? profile!.acceptedVehicleCategories
+                                .map((c) => c.name)
+                                .join(', ')
                           : '—',
                     ),
                   ),
@@ -118,8 +149,12 @@ class ProviderProfileTab extends StatelessWidget {
                     leading: const Icon(Icons.badge_outlined),
                     title: Text(t('provider_profile_id_document')),
                     trailing: Icon(
-                      profile?.status == DriverStatus.approved ? Icons.check_circle : Icons.hourglass_top,
-                      color: profile?.status == DriverStatus.approved ? AppColors.success : AppColors.warning,
+                      profile?.status == DriverStatus.approved
+                          ? Icons.check_circle
+                          : Icons.hourglass_top,
+                      color: profile?.status == DriverStatus.approved
+                          ? AppColors.success
+                          : AppColors.warning,
                     ),
                   ),
                   ListTile(
@@ -127,8 +162,12 @@ class ProviderProfileTab extends StatelessWidget {
                     leading: const Icon(Icons.description_outlined),
                     title: Text(t('provider_profile_insurance')),
                     trailing: Icon(
-                      profile?.status == DriverStatus.approved ? Icons.check_circle : Icons.hourglass_top,
-                      color: profile?.status == DriverStatus.approved ? AppColors.success : AppColors.warning,
+                      profile?.status == DriverStatus.approved
+                          ? Icons.check_circle
+                          : Icons.hourglass_top,
+                      color: profile?.status == DriverStatus.approved
+                          ? AppColors.success
+                          : AppColors.warning,
                     ),
                   ),
                 ],
@@ -151,19 +190,31 @@ class ProviderProfileTab extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(t('provider_profile_no_reviews_yet'), style: const TextStyle(color: AppColors.textSecondary)),
+                    child: Text(
+                      t('provider_profile_no_reviews_yet'),
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              Row(children: [
-                Expanded(child: Text(t('provider_profile_support'), style: const TextStyle(fontWeight: FontWeight.w700))),
-                const ComingSoonBadge(small: true),
-              ]),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      t('provider_profile_support'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const ComingSoonBadge(small: true),
+                ],
+              ),
               const SizedBox(height: 20),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error)),
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                ),
                 onPressed: () => auth.signOut(),
                 icon: const Icon(Icons.logout),
                 label: Text(t('nav_logout')),
@@ -186,7 +237,11 @@ class _SectionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

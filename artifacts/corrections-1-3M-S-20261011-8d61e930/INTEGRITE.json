@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-11T16:53:52.572Z",
+  "branch": "fix/gps-client-history-scope-20261009",
+  "head": "da3f1d459c3205e55aec3f1d972aab45b4fa7423",
+  "initialFiles": 2978,
+  "changedPreexisting": [
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+    "lib/finance/presentation/money_format.dart",
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "pubspec.lock",
+    "pubspec.yaml",
+    "test/customer/delivery_address_autocomplete_test.dart",
+    "test/customer/delivery_dimension_display_test.dart",
+    "test/customer/delivery_request_flow_error_messages_test.dart"
+  ],
+  "missing": [],
+  "unexpected": [],
+  "protectedFiles": 218,
+  "protectedChanges": [],
+  "businessMethods": {
+    "_quote": {
+      "unchanged": true,
+      "sha256": "7d6cc4e9a8b8b2aff2ab4075a53e9107f69a04a840a6760b6bdeac66f4f9fd00"
+    },
+    "_refreshCard": {
+      "unchanged": true,
+      "sha256": "e4c624ffa559a7754ca3cc483fcf524cc8134aaa5fc5e22520cb27e5f6e40933"
+    },
+    "_setupCard": {
+      "unchanged": true,
+      "sha256": "2d93191a5db5fd539516abd60852fd02df4dac60a6033e7dae119796d3a3e275"
+    },
+    "_confirm": {
+      "unchanged": true,
+      "sha256": "0b7f989f885b3ebd673aea257c58ddcc87b81c3fdd9f9443327a63555aa54f02"
+    }
+  },
+  "secretPatternMatches": [],
+  "sourceHashes": {
+    "lib/finance/presentation/money_format.dart": {
+      "before": "9dffa17eb2e052662b069235c35cbef28a61f2cf91eda8231e03737ad9f82563",
+      "after": "2ee20a60732a7e54fe67e1a471b878abe59710a819d77087400484981e084f16"
+    },
+    "lib/screens/delivery/delivery_request_flow_screen.dart": {
+      "before": "672ed069b41833a33eacf78913ad2931f5e9ff0512442713c1329c3aa936553e",
+      "after": "1c8bb945060ef0acc353bec5d1c418145190f99ac4da38afa80baf49d1fea8f0"
+    },
+    "pubspec.yaml": {
+      "before": "1d738e4b219e8f838b8b91cd2cefe13c7d28530d4ed5f6053e228afe15255663",
+      "after": "9606b257787c92a45dfdc58c35fbed3cc7e9ac6ac4a77218af9e50aef2332fc9"
+    },
+    "pubspec.lock": {
+      "before": "0affa1bea8cb4be005c2ad7b99b2c94b825b8eb121064f30edcb9f2b9b86fcb1",
+      "after": "0ecafbf79d98fb48753e648a948c0fe95b695e5320281f97e00a58f400512b10"
+    },
+    "test/customer/delivery_address_autocomplete_test.dart": {
+      "before": "d895e479c9a42cca1639194772148c01c5503de871398ac70c48c25ea9e6832e",
+      "after": "0b56d8e25a09db4482083689f50967f45be45e6e18890aadefcd8a11515c5bd3"
+    },
+    "test/customer/delivery_dimension_display_test.dart": {
+      "before": "3bdc423e09ee3eafc0daa95b3c3a2ca630e92b8931d34bd277917840b043f185",
+      "after": "4bacbde7458ff003cab62e9158b21a8a42ae99fe4908af662d96c8a171e84dde"
+    },
+    "test/customer/delivery_request_flow_error_messages_test.dart": {
+      "before": "4d53b41e73dfa874916fc78a9dbd9c29871c7dff1ceef2ed946d905a6a6ad712",
+      "after": "b3c44a35ac33698b2388e61bbca7c3c7671620ce9a2c17cd169b771b74cddd5b"
+    },
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": {
+      "before": "4d5da6bb406c7c13617f8150702df5c416dcc27a309af553f6624dbb7ade0ee8",
+      "after": "b6322b727f15001c463f319040ffe1ccdadcea4d546fa2980452542d2be0cace"
+    },
+    "test/customer/delivery_quote_display_test.dart": {
+      "before": null,
+      "after": "00a777c9a0eed94849bcded2f8cd032fe5b979017f1248bf9c028cf259d5fe67"
+    },
+    "test/finance/money_format_localization_test.dart": {
+      "before": null,
+      "after": "b360140224644d88df8755323c7e2b7522314843f98b1c87bb06930b1ee0e518"
+    }
+  }
+}

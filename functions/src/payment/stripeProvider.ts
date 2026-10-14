@@ -1,3 +1,4 @@
+import type { CardSetup } from "../lib/bookingPayment";
 // -----------------------------------------------------------------------------
 // stripeProvider.ts — Implémentation RÉELLE de PaymentProvider via Stripe
 // Connect. Voir docs/PAYMENT_ARCHITECTURE.md pour la justification complète
@@ -71,13 +72,36 @@ export class StripeProvider extends PaymentProvider {
     this.environment = resolveStripeEnvironmentFromSecretKey(secretKey);
   }
 
+  async createCardSetup(params: { customerId: string; userId: string; quoteId: string; returnUrl: string; locale: string }): Promise<CardSetup> {
+    const session = await this.stripe.checkout.sessions.create({
+      mode: 'setup', customer: params.customerId, payment_method_types: ['card'],
+      success_url: params.returnUrl, cancel_url: params.returnUrl,
+      locale: params.locale === 'en' ? 'en' : params.locale === 'es' ? 'es' : 'fr-CA',
+      metadata: { movik_user_id: params.userId, movik_quote_id: params.quoteId },
+      setup_intent_data: { metadata: { movik_user_id: params.userId, movik_quote_id: params.quoteId } },
+    }, { idempotencyKey: `booking-card:${this.environment}:${params.quoteId}` });
+    return this.cardSetupResult(session);
+  }
+  async getCardSetup(id: string): Promise<CardSetup> {
+    return this.cardSetupResult(await this.stripe.checkout.sessions.retrieve(id, { expand: ['setup_intent'] }));
+  }
+  private cardSetupResult(s: Stripe.Checkout.Session): CardSetup {
+    const setup = typeof s.setup_intent === 'object' && s.setup_intent ? s.setup_intent : null;
+    const customerId = typeof s.customer === 'string' ? s.customer : s.customer?.id ?? '';
+    const setupCustomer = typeof setup?.customer === 'string' ? setup.customer : setup?.customer?.id;
+    const method = typeof setup?.payment_method === 'string' ? setup.payment_method : setup?.payment_method?.id;
+    return { id: s.id, url: s.url, customerId,
+      complete: s.mode === 'setup' && s.status === 'complete' && setup?.status === 'succeeded' && setupCustomer === customerId,
+      paymentMethodId: method ?? null, livemode: s.livemode,
+      quoteId: s.metadata?.movik_quote_id ?? '', userId: s.metadata?.movik_user_id ?? '' };
+  }
   // ---- 1. createCustomer ----
   async createCustomer(params: CreateCustomerParams): Promise<CreateCustomerResult> {
     const customer = await this.stripe.customers.create({
       email: params.email,
       name: params.displayName,
       metadata: { movik_user_id: params.userId },
-    });
+    }, { idempotencyKey: `customer:${this.environment}:${params.userId}` });
     return { providerCustomerId: customer.id };
   }
 

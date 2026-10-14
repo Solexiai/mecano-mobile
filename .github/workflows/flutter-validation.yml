@@ -3,7 +3,7 @@ name: Flutter validation
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['lib/**', 'test/**', 'pubspec.yaml', 'pubspec.lock', '.github/workflows/flutter-validation.yml']
+    paths: ['lib/**', 'test/**', 'analysis_options.yaml', 'pubspec.yaml', 'pubspec.lock', '.github/workflows/flutter-validation.yml']
   push:
     branches:
       - fix/quote-mission-payment-integrity
@@ -56,9 +56,12 @@ jobs:
 
       - name: Run Flutter tests
         shell: bash
+        env:
+          # Confirmation date fixtures explicitly cover Quebec winter/summer time.
+          TZ: America/Toronto
         run: |
           set +e
-          flutter test --reporter expanded > flutter-tests.log 2>&1
+          flutter test --dart-define=no_default_http_client=true --reporter expanded > flutter-tests.log 2>&1
           result=$?
           grep -B 4 -A 15 -E '\[E\]|EXCEPTION|Expected:|Actual:|Error:|Some tests failed|All tests passed' flutter-tests.log || true
           tail -n 8 flutter-tests.log

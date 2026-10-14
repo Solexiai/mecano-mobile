@@ -33,6 +33,8 @@ export {
   onDriverBecameAvailableDispatch,
 } from "./functions/dispatchMissionToDrivers";
 export { onMissionEndedClearTracking } from "./functions/onMissionEndedClearTracking";
+export { onPaymentAuthorizedAfterMissionCancel } from "./functions/onPaymentAuthorizedAfterMissionCancel";
+export { recoverCancelledPendingPayments } from "./functions/recoverCancelledPendingPayments";
 export { onMissionStatusChangeNotifyCustomer } from "./functions/onMissionStatusChangeNotifyCustomer";
 
 // ---- Notifications push (Phase 8D) ----
@@ -85,3 +87,6 @@ export { cleanupExpiredTrackingHistory } from "./functions/cleanupExpiredTrackin
 
 // ---- Feature flags / kill switches (Phase 7, Bloc X) ----
 export { updateRuntimeFlags } from "./functions/updateRuntimeFlags";
+
+export { getBookingVehicleForAcceptance, requestBookingReview, getBookingQuote, getBookingConfiguration, reviewDeliveryLoad, saveBookingDraft, getBookingDraft, clearBookingDraft, cleanupBookingDrafts } from "./functions/bookingJourney";
+export { startBookingCardSetup, getBookingCardStatus } from './functions/bookingCardSetup';

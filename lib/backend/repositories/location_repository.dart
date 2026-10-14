@@ -17,15 +17,13 @@ abstract class LocationRepository {
   /// uniquement.
   Stream<DriverLocation?> watchDriverLocation(String driverId);
 
-  /// Historique GPS du chauffeur (Phase 5, partie 2 — trajet réellement
-  /// parcouru). Retourne TOUS les points connus pour ce chauffeur (toutes
-  /// missions confondues, non triés) — le filtrage par mission active
-  /// courante ET le tri chronologique sont effectués côté appelant
-  /// (`LiveTrackingMap`), conformément à la convention du projet
-  /// "requête simple + tri en mémoire" (évite un index composite dédié).
+  /// Historique GPS limité à UNE mission. Le filtre doit être appliqué
+  /// côté Firestore AVANT snapshots() : les Security Rules ne filtrent pas
+  /// les résultats d'une requête non autorisée.
   Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
-    String driverId,
-  );
+    String driverId, {
+    required String missionId,
+  });
 }
 
 class NotConfiguredLocationRepository implements LocationRepository {
@@ -41,6 +39,7 @@ class NotConfiguredLocationRepository implements LocationRepository {
 
   @override
   Stream<List<DriverLocationHistoryPoint>> watchDriverLocationHistory(
-    String driverId,
-  ) => Stream.value(const []);
+    String driverId, {
+    required String missionId,
+  }) => Stream.value(const []);
 }

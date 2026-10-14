@@ -1,0 +1,191 @@
+{
+  "date": "2026-10-11T16:50:41.130Z",
+  "executions": {
+    "before": {
+      "passed": 0,
+      "failed": 35,
+      "skipped": 0,
+      "exit": 1,
+      "complete": {
+        "success": false,
+        "type": "done",
+        "time": 28907
+      },
+      "files": {
+        "customer/delivery_quote_display_test.dart": {
+          "passed": 0,
+          "failed": 35,
+          "skipped": 0
+        }
+      },
+      "failedTests": [
+        "S quote fr step=1 layout=(375.0, 812.0, 1.0)",
+        "S quote fr step=1 layout=(430.0, 932.0, 1.0)",
+        "S quote fr step=1 layout=(1440.0, 900.0, 1.0)",
+        "S quote fr step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote fr step=3 layout=(375.0, 812.0, 1.0)",
+        "S quote fr step=3 layout=(430.0, 932.0, 1.0)",
+        "S quote fr step=3 layout=(1440.0, 900.0, 1.0)",
+        "S quote fr step=3 layout=(375.0, 812.0, 2.0)",
+        "S money boundaries fr preserve source",
+        "S distance boundaries fr preserve source",
+        "S absent and invalid display values fr are not invented",
+        "S quote en step=1 layout=(375.0, 812.0, 1.0)",
+        "S quote en step=1 layout=(430.0, 932.0, 1.0)",
+        "S quote en step=1 layout=(1440.0, 900.0, 1.0)",
+        "S quote en step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote en step=3 layout=(375.0, 812.0, 1.0)",
+        "S quote en step=3 layout=(430.0, 932.0, 1.0)",
+        "S quote en step=3 layout=(1440.0, 900.0, 1.0)",
+        "S quote en step=3 layout=(375.0, 812.0, 2.0)",
+        "S money boundaries en preserve source",
+        "S distance boundaries en preserve source",
+        "S absent and invalid display values en are not invented",
+        "S quote es step=1 layout=(375.0, 812.0, 1.0)",
+        "S quote es step=1 layout=(430.0, 932.0, 1.0)",
+        "S quote es step=1 layout=(1440.0, 900.0, 1.0)",
+        "S quote es step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote es step=3 layout=(375.0, 812.0, 1.0)",
+        "S quote es step=3 layout=(430.0, 932.0, 1.0)",
+        "S quote es step=3 layout=(1440.0, 900.0, 1.0)",
+        "S quote es step=3 layout=(375.0, 812.0, 2.0)",
+        "S money boundaries es preserve source",
+        "S distance boundaries es preserve source",
+        "S absent and invalid display values es are not invented",
+        "S locale switches rebuild the real flow without changing quote or inputs",
+        "S price details confirmation reconstruction preserve exact quote and fake submission"
+      ],
+      "transport": []
+    },
+    "after-1": {
+      "passed": 35,
+      "failed": 6,
+      "skipped": 0,
+      "exit": 1,
+      "complete": {
+        "success": false,
+        "type": "done",
+        "time": 37934
+      },
+      "files": {
+        "customer/delivery_quote_display_test.dart": {
+          "passed": 29,
+          "failed": 6,
+          "skipped": 0
+        },
+        "finance/money_format_localization_test.dart": {
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "failedTests": [
+        "S quote fr step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote fr step=3 layout=(375.0, 812.0, 2.0)",
+        "S quote en step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote en step=3 layout=(375.0, 812.0, 2.0)",
+        "S quote es step=1 layout=(375.0, 812.0, 2.0)",
+        "S quote es step=3 layout=(375.0, 812.0, 2.0)"
+      ],
+      "transport": []
+    },
+    "after-2": {
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "complete": {
+        "success": true,
+        "type": "done",
+        "time": 31937
+      },
+      "files": {
+        "customer/delivery_quote_display_test.dart": {
+          "passed": 41,
+          "failed": 0,
+          "skipped": 0
+        },
+        "finance/money_format_localization_test.dart": {
+          "passed": 6,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "failedTests": [],
+      "transport": []
+    },
+    "regression": {
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0,
+      "complete": {
+        "success": true,
+        "type": "done",
+        "time": 90475
+      },
+      "files": {
+        "customer/delivery_confirmation_presentation_test.dart": {
+          "passed": 54,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/delivery_request_flow_double_submit_test.dart": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/delivery_request_flow_error_messages_test.dart": {
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/delivery_request_draft_resume_test.dart": {
+          "passed": 4,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/booking_service_availability_test.dart": {
+          "passed": 2,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/delivery_dimension_display_test.dart": {
+          "passed": 20,
+          "failed": 0,
+          "skipped": 0
+        },
+        "customer/delivery_address_autocomplete_test.dart": {
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "failedTests": [],
+      "transport": [
+        "OFFLINE_TRANSPORT: in_memory=0; unexpected=0; external_transport=none"
+      ]
+    }
+  },
+  "analyze-1": {
+    "exit": 1,
+    "log": "Analyzing 4 items...                                            \r\n\r\n   info - Statements in an if should be enclosed in a block. Try wrapping the statement in a block - test\\customer\\delivery_quote_display_test.dart:39:7 - curly_braces_in_flow_control_structures\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:39:24 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:126:11 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:128:15 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:130:15 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:141:39 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:159:23 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:182:7 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:193:37 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:193:56 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:201:7 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:211:37 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:224:35 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:276:20 - prefer_interpolation_to_compose_strings\r\n   info - Use interpolation to compose strings and values. Try using string interpolation to build the composite string - test\\customer\\delivery_quote_display_test.dart:276:39 - prefer_interpolation_to_compose_strings\r\n\r\nflutter.bat : 15 issues found. (ran in 10.7s)\r\nAu caractère Ligne:6 : 1\r\n+ & 'C:\\Users\\Utilisateur\\mecano-mobile\\.flutter\\bin\\flutter.bat' --no- ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (15 issues found. (ran in 10.7s):String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+  },
+  "analyze-2": {
+    "exit": 0,
+    "log": "Analyzing 7 items...                                            \r\nNo issues found! (ran in 11.3s)"
+  },
+  "format-final": {
+    "exit": 0,
+    "log": "Formatted 7 files (0 changed) in 0.29 seconds."
+  },
+  "diff-check": {
+    "exit": 0,
+    "log": "git : warning: in the working copy of 'lib/finance/presentation/money_format.dart', LF will be replaced by CRLF the \r\nnext time Git touches it\r\nAu caractère Ligne:6 : 1\r\n+ git diff --check *> 'artifacts/corrections-1-3M-S-20261011-8d61e930\\d ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (warning: in the... Git touches it:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nwarning: in the working copy of 'lib/screens/delivery/delivery_request_flow_screen.dart', LF will be replaced by CRLF \r\nthe next time Git touches it\r\nwarning: in the working copy of 'pubspec.yaml', LF will be replaced by CRLF the next time Git touches it\r\nwarning: in the working copy of 'test/customer/delivery_dimension_display_test.dart', LF will be replaced by CRLF the \r\nnext time Git touches it"
+  },
+  "pub-offline": {
+    "exit": 0,
+    "log": "Resolving dependencies...\r\nDownloading packages...\r\n  http 1.5.0 (1.6.0 available)\r\n  intl 0.20.3 (from transitive dependency to direct dependency)\r\nChanged 1 dependency!\r\n1 package has newer versions incompatible with dependency constraints.\r\nTry `flutter pub outdated` for more information."
+  },
+  "finalDistinctTests": 144
+}
