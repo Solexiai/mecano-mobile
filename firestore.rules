@@ -153,6 +153,11 @@ service cloud.firestore {
         request.resource.data.get('suspended_at', null) == resource.data.get('suspended_at', null) &&
         request.resource.data.get('suspended_by_user_id', null) == resource.data.get('suspended_by_user_id', null) &&
         request.resource.data.get('suspension_reason', null) == resource.data.get('suspension_reason', null) &&
+        // SEC-GAP-S04: the suspension level is an administrative privilege,
+        // never a driver-editable declaration. Support legacy profiles where
+        // the optional field is absent, without allowing insertion, removal
+        // or escalation/downgrade via direct client writes.
+        request.resource.data.get('suspension_mode', null) == resource.data.get('suspension_mode', null) &&
         request.resource.data.get('reactivated_at', null) == resource.data.get('reactivated_at', null) &&
         request.resource.data.get('reactivated_by_user_id', null) == resource.data.get('reactivated_by_user_id', null) &&
         // online_status ne peut être changé par le chauffeur lui-même QUE
@@ -164,7 +169,8 @@ service cloud.firestore {
       // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
       // rejection_reason, identity_verified, vehicle_verified, rating,
       // completed_missions, documents_all_valid, current_geohash,
-      // documents_required_*, suspended_*, suspension_reason, reactivated_*)
+      // documents_required_*, suspended_*, suspension_reason, suspension_mode,
+      // reactivated_*)
       // ne sont JAMAIS modifiables par un client, y compris analyst/admin :
       // ils passent exclusivement par les Cloud Functions approveDriver() /
       // rejectDriver() / requestDriverDocuments() / suspendDriver() /

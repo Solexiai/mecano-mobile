@@ -1,6 +1,6 @@
 ﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
-Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : P2-L-01, 13 octobre 2026 ; contraste des badges warning corrigé et testé localement, non déployé.
+Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : SEC-GAP-S04, 14 octobre 2026 ; garde suspension_mode validé en émulateur, non déployé.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
 
 ## Règle permanente
@@ -483,6 +483,9 @@ Historique de la fiche avant T conservé ci-dessous :
 - Critère de fermeture : Un seul état cohérent et effets financiers idempotents. + règle permanente ci-dessus.
 
 ### GAP-S-04
+
+- **Addendum sécurité 2026-10-14 — FERMÉ UNIQUEMENT EN ÉMULATEUR, NON DÉPLOYÉ.** La qualification QC26 a reproduit une élévation de permissions par écriture cliente de `driver_profiles/{uid}.suspension_mode` (`urgent` vers `ordinary`) malgré les blocages serveur. Le garde Firestore `request.resource.data.get('suspension_mode', null) == resource.data.get('suspension_mode', null)` interdit désormais la modification directe du niveau de suspension par le chauffeur, en préservant les documents anciens où le champ est absent. Tests : 8/8 nouveaux tests négatifs/positifs et 281/281 tests de régression sur cinq suites Firestore/Auth Emulator, code 0. Appels directs analyst/admin clients refusés, écriture Admin SDK simulée conservée. Aucun tarif, montant, commission, snapshot, Stripe ou comportement des Cloud Functions modifié. Preuve : `artifacts/security-suspension-mode-20261014/CHECKPOINT_SECURITY_GAP_S04.md`.
+- **Limite** : ces résultats locaux ne vérifient pas les règles Firebase déployées et ne constituent pas une autorisation de lancement. Les échecs de qualification QC26 (CI globale/mission GPS/fixture loadMvpBlocT) demeurent ouverts en tant que prérequis distincts.
 
 - Mise à jour 2026-10-13 — **FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ**. Politique approuvée : suspension ordinaire empêche de nouvelles acceptations et l'accès en ligne mais autorise à terminer une mission déjà assignée ; suspension urgente interdit ramassage, livraison, transitions intermédiaires et GPS, exigeant intervention administrative. L'interface admin peut sélectionner les deux modes et escalader une suspension ordinaire en urgente ; un profil suspendu historique sans mode est refusé comme urgent par prudence. Aucune annulation automatique, aucun remboursement ni mouvement financier ajouté. Le statut offline reste offline après achèvement d'une mission sous suspension ordinaire.
 - Preuves : 10 tests ciblés sur émulateur Firestore/Auth, 150 tests serveur sur 9 suites et 33 tests Flutter sur 3 suites réussis ; TypeScript, ESLint et Dart analyze ciblés sans anomalies. Aucun essai navigateur/appareil réel, aucune preuve de déploiement. Voir artifacts/gapS04-suspensions-20261013/CHECKPOINT_GAP_S04.md.
