@@ -2,6 +2,11 @@
 /// Keep all three locales together; category names remain in AppStrings.
 abstract final class HomeCopy {
   static const strings = <String, Map<String, String>>{
+    'sign_out_failed': {
+      'fr': 'Déconnexion impossible pour le moment. Réessayez.',
+      'en': 'Unable to sign out right now. Please try again.',
+      'es': 'No se puede cerrar sesión ahora. Inténtalo de nuevo.',
+    },
     'open_navigation_menu': {
       'fr': 'Ouvrir le menu de navigation',
       'en': 'Open navigation menu',

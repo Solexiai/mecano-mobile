@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-14T19:11:15.943Z",
+  "base": "0780c0efa75023dc1f012eed319bedc31b2ccbe5",
+  "branch": "fix/booking-timing-20261014",
+  "productFiles": [
+    "functions/src/lib/booking.ts",
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "lib/services/booking/booking_draft.dart",
+    "lib/widgets/booking_load_summary.dart"
+  ],
+  "testFiles": [
+    "functions/test/unit/bookingTiming.test.ts",
+    "functions/test/integration/bookingTimingDispatch.test.ts",
+    "test/customer/delivery_timing_test.dart"
+  ],
+  "registry": "docs/audit/REGISTRE_BOGUES_MOVIK.md",
+  "registryRows": 30,
+  "open": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 1
+  },
+  "hashes": {
+    "functions/src/lib/booking.ts": "4fa0e3b1c6208bb03f000390ef4283e0272aace0012b0863080695691f642ef2",
+    "lib/screens/delivery/delivery_request_flow_screen.dart": "20c52b2eae2cf4cc22ba1324f1d4bba5d5d04a164e283cf28f6fa24ca3a15b37",
+    "lib/services/booking/booking_draft.dart": "3793c53c879f5286631a4964c28a6a07589dd67acb6bd01de9ad517d07adc6bc",
+    "lib/widgets/booking_load_summary.dart": "c26342b345bf531a7199b5b6ddb9ea3da4abf2da27a21e187e6f362258aa1e31",
+    "functions/test/unit/bookingTiming.test.ts": "87900111034330394838c56ae028645b81869e939634e500f5cbcd77ded06385",
+    "functions/test/integration/bookingTimingDispatch.test.ts": "d8d3b3dbb1e0c8fd2ea4241b0747adef9bb677fd405ebf36099dff566001dd7d",
+    "test/customer/delivery_timing_test.dart": "d0a232c500c5ea81e7b71fb9a0da30ae8b35f1d8b82cf65031d94eef74219455",
+    "docs/audit/REGISTRE_BOGUES_MOVIK.md": "554ddf7a338746cbe3b9aebc46af8c793cfb150c816c48c34d1aab09a213dcd4"
+  },
+  "trackedDiff": "docs/audit/REGISTRE_BOGUES_MOVIK.md                | 35 +++++++-\n functions/src/lib/booking.ts                       | 14 +++-\n .../delivery/delivery_request_flow_screen.dart     | 96 ++++++++++++++++------\n lib/services/booking/booking_draft.dart            |  3 +\n lib/widgets/booking_load_summary.dart              | 10 ++-\n 5 files changed, 128 insertions(+), 30 deletions(-)",
+  "originalUntrackedEntriesStillPresent": true,
+  "productScopeVerified": [
+    "functions/src/lib/booking.ts",
+    "lib/screens/delivery/delivery_request_flow_screen.dart",
+    "lib/services/booking/booking_draft.dart",
+    "lib/widgets/booking_load_summary.dart"
+  ],
+  "unchangedByGit": [
+    "firestore.rules",
+    "functions/src/payment",
+    "functions/src/lib/pricingEngine.ts",
+    "lib/widgets/live_tracking_map.dart"
+  ],
+  "noFinancialAlgorithmChange": true,
+  "note": "Only timing normalization/recommendation metadata changed server-side. Existing quote, payment, financial snapshot and ledger algorithms were not edited. This is not certification of Stripe LIVE."
+}

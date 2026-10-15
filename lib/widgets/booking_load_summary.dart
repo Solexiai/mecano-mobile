@@ -79,7 +79,15 @@ class BookingLoadSummary extends StatelessWidget {
         Text(
           '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')}: ${load['handlers']} · ${tr('Équipement', 'Equipment', 'Equipo')}: ${(load['equipment'] as List? ?? []).join(', ')}',
         ),
-        if (load['requested_at'] != null)
+        if (load['timing_mode'] == 'immediate')
+          Text(
+            tr(
+              'Dès maintenant — selon la disponibilité du chauffeur',
+              'As soon as possible — subject to driver availability',
+              'Lo antes posible — según la disponibilidad del conductor',
+            ),
+          )
+        else if (load['requested_at'] != null)
           Text(
             '${tr('Date demandée (à confirmer)', 'Requested date (to be confirmed)', 'Fecha solicitada (por confirmar)')}: ${DateTime.tryParse(load['requested_at'] as String)?.toLocal()}',
           ),

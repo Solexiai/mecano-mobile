@@ -62,6 +62,8 @@ class BookingDraft {
       quote != null &&
       (quote!['expiresAtMillis'] as num) >
           DateTime.now().millisecondsSinceEpoch;
+  bool get isImmediate => data['timing_mode'] == 'immediate';
+
   Map<String, dynamic> get load => {
     'draft_id': id,
     'items': items,
@@ -70,6 +72,7 @@ class BookingDraft {
     'handlers': data['handlers'],
     'equipment': data['equipment'],
     'requested_at': data['requested_at'],
+    if (data['timing_mode'] != null) 'timing_mode': data['timing_mode'],
   };
   List<Map<String, dynamic>> get stops => [
     {'type': 'pickup', 'address': data['pickup']},

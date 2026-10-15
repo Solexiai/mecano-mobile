@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-14T18:32:42.986Z",
+  "project": "movik-connect-prod",
+  "mode": "READ ONLY",
+  "documents": {
+    "runtime_flags": {
+      "exists": true,
+      "updateTime": "2026-09-03T16:31:29.390490Z",
+      "flags": {
+        "accept_new_delivery_requests": false,
+        "allow_driver_acceptance": false,
+        "payments_enabled": false,
+        "driver_payouts_enabled": false
+      }
+    },
+    "booking_policy": {
+      "exists": false
+    },
+    "booking_capacity": {
+      "exists": false
+    },
+    "service_zones": {
+      "exists": false
+    }
+  }
+}

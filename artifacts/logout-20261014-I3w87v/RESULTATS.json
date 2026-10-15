@@ -1,0 +1,17 @@
+{
+  "before.jsonl": {
+    "passed": 0,
+    "failed": 12,
+    "skipped": 0
+  },
+  "after.log": {
+    "passed": 12,
+    "failed": 0,
+    "skipped": 0
+  },
+  "regression.jsonl": {
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0
+  }
+}
