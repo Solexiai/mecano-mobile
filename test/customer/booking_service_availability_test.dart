@@ -21,8 +21,14 @@ void main() {
           find.textContaining('La réservation est indisponible'),
           findsOneWidget,
         );
-        expect(find.text('Calculer mon devis officiel'), findsNothing);
-        expect(find.text('Se connecter et obtenir mon prix'), findsNothing);
+        expect(
+          find.text(
+            signed
+                ? 'Calculer mon devis officiel'
+                : 'Se connecter et obtenir mon prix',
+          ),
+          findsOneWidget,
+        );
         expect(storage.saved!.id, draft.id);
         expect(storage.saved!.items.first['label'], 'Canapé de test');
         expect(api.calls, isNot(contains('calculateDeliveryQuote')));

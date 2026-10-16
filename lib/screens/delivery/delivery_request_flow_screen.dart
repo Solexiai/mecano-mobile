@@ -1,11 +1,13 @@
 import '../../finance/presentation/money_format.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../services/delivery_request_draft.dart';
 
 import 'package:flutter/material.dart';
+import '../../services/booking/booking_photo_analysis.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +22,7 @@ import '../../router/delivery_request_intent.dart';
 import '../../services/booking/booking_api.dart';
 import '../../services/booking/booking_photos.dart';
 import '../../widgets/booking_load_summary.dart';
+import '../../widgets/photo_booking_item.dart';
 import '../../services/booking/booking_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
@@ -33,11 +36,17 @@ class DeliveryRequestFlowScreen extends StatefulWidget {
     this.initialCategory,
     this.api,
     this.storage,
+    this.photoIntakeEnabled = const bool.fromEnvironment('ENABLE_PHOTO_INTAKE'),
+    this.photoUploader,
+    this.photoLoader,
   });
   final String locale;
   final String? initialCategory;
   final BookingApi? api;
   final BookingDraftStorage? storage;
+  final bool photoIntakeEnabled;
+  final BookingPhotoUploader? photoUploader;
+  final BookingPhotoLoader? photoLoader;
   @override
   State<DeliveryRequestFlowScreen> createState() =>
       _DeliveryRequestFlowScreenState();
@@ -60,8 +69,34 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _cardReady = false,
       _configurationChecked = false;
   int _epoch = 0;
+  final Map<String, BookingPhotoSuggestion> _photoSuggestions = {};
+  final Map<String, String> _photoErrors = {};
   String? _message, _saveError;
   Map<String, dynamic>? _policy, _review;
+  bool _configurationError = false,
+      _bookingEnabled = false,
+      _paymentEnabled = false;
+  bool get _canBook =>
+      _configurationChecked &&
+      !_configurationError &&
+      _policy != null &&
+      _bookingEnabled;
+  bool get _canPay =>
+      _canBook && _paymentEnabled && _policy!['setup_enabled'] == true;
+  String get _configurationNotice => _configurationError
+      ? tr(
+          'Impossible de vérifier la disponibilité du service. Vous pouvez continuer votre brouillon, sans réservation ni paiement.',
+          'Service availability could not be checked. You can continue your draft without booking or payment.',
+          'No se pudo verificar la disponibilidad. Puedes continuar tu borrador sin reserva ni pago.',
+        )
+      : !_canBook
+      ? _reservationUnavailable
+      : tr(
+          'Le paiement est temporairement indisponible. Vous pouvez préparer votre demande sans la confirmer.',
+          'Payment is temporarily unavailable. You can prepare your request without confirming it.',
+          'El pago no está disponible temporalmente. Puedes preparar tu solicitud sin confirmarla.',
+        );
+  bool get _photoMode => _draft.data['intake_mode'] == 'photo_assisted';
   BookingApi get _api => widget.api ?? FirebaseBookingApi(_uid);
   String tr(String fr, String en, String es) => widget.locale == 'en'
       ? en
@@ -99,6 +134,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _identityKnown = true;
       _uid = uid;
       _epoch++;
+      _photoSuggestions.clear();
+      _photoErrors.clear();
       _loaded = false;
       _debounce?.cancel();
       _restore(_epoch);
@@ -225,6 +262,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _review = null;
     _policy = null;
     _configurationChecked = false;
+    _configurationError = false;
+    _bookingEnabled = false;
+    _paymentEnabled = false;
     setState(() {
       _loaded = true;
     });
@@ -268,7 +308,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           if (mounted && epoch == _epoch) {
             setState(() {
               _draft.data['quote'] = null;
-              _draft.step = 1;
+              // Keep the current preparation step when quote revalidation fails.
             });
           }
         }
@@ -278,19 +318,30 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
 
   Future<void> _loadConfiguration(int epoch) async {
     Map<String, dynamic>? policy;
+    bool error = false, booking = false, payment = false;
     try {
       final config = await _api.call('getBookingConfiguration');
+      final availability = config['availability'];
+      if (availability is Map) {
+        booking = availability['booking_enabled'] == true;
+        payment = availability['payment_enabled'] == true;
+        error = availability['technical_error'] == true;
+      }
       if (config['policy'] is Map) {
         final value = Map<String, dynamic>.from(config['policy'] as Map);
         if (value['approved'] == true) policy = value;
       }
     } catch (_) {
-      // Keep the draft usable when the reservation service is unavailable.
+      error = true;
     }
     if (!mounted || epoch != _epoch) return;
     setState(() {
       _policy = policy;
       _configurationChecked = true;
+      _configurationError = error;
+      _bookingEnabled = booking;
+      _paymentEnabled = payment;
+      if (!_canPay) _cardReady = false;
     });
   }
 
@@ -387,9 +438,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (mounted && epoch == _epoch) {
         setState(() {
           _message = tr(
-            'Choisissez une photo JPEG de moins de 5 Mo.',
-            'Choose a JPEG photo under 5 MB.',
-            'Elige una foto JPEG de menos de 5 MB.',
+            'Choisissez une image JPG, PNG ou WebP de 20 Mo maximum. Si le format est HEIC, exportez-la en JPG.',
+            'Choose a JPG, PNG or WebP image up to 20 MB. Export HEIC images as JPG.',
+            'Elige una imagen JPG, PNG o WebP de hasta 20 MB. Exporta HEIC a JPG.',
           );
         });
       }
@@ -413,9 +464,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (mounted && epoch == _epoch) {
         setState(() {
           _message = tr(
-            'Connexion indisponible. Vos données restent dans cet onglet. Réessayez.',
-            'Connection unavailable. Your details remain in this tab. Retry.',
-            'Conexión no disponible. Tus datos permanecen en esta pestaña. Reintenta.',
+            'Une erreur technique empêche cette opération. Votre brouillon est conservé; vous pouvez continuer à le préparer.',
+            'A technical error prevented this action. Your draft is saved; you can keep preparing it.',
+            'Un error técnico impidió esta operación. Tu borrador se conserva y puedes seguir preparándolo.',
           );
         });
       }
@@ -448,10 +499,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         (a['postal_code'] as String? ?? '').isNotEmpty;
   });
   Future<void> _quote() async {
-    if (_policy == null) {
-      setState(() => _message = _reservationUnavailable);
-      return;
-    }
+    // A server quote does not require payment or approved booking terms.
+    // The server still reviews the load and owns every price decision.
     if (_uid == null) {
       await _login();
       return;
@@ -482,7 +531,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _refreshCard() async {
-    if (_draft.quote == null ||
+    if (!_canPay ||
+        _draft.quote == null ||
         _uid == null ||
         _draft.data['missionId'] != null) {
       return;
@@ -503,6 +553,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _setupCard() async {
+    if (!_canPay || !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
+      return;
+    }
     final epoch = _epoch;
     await _save();
     if (_saveError != null) return;
@@ -533,6 +586,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _confirm() async {
+    if (!_canPay ||
+        !_cardReady ||
+        !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
+      return;
+    }
     final epoch = _epoch;
     await _save();
     final q = _draft.quote!;
@@ -573,6 +631,171 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     super.dispose();
   }
 
+  Future<void> _startPhotoItem() async {
+    if (_uid == null) {
+      await _login();
+      return;
+    }
+    final epoch = _epoch, draftId = _draft.id;
+    final existing = _photoMode
+        ? _draft.items
+              .where((item) => isEmptyPhotoBookingItem(item as Map))
+              .firstOrNull
+        : null;
+    if (existing == null && _draft.items.length >= 20) return;
+    _draft.data['intake_mode'] = 'photo_assisted';
+    _draft.data.remove('requested_vehicle');
+    for (final raw in _draft.items) {
+      raw['identification_confirmed'] ??= false;
+      raw['special_handling'] ??= false;
+    }
+    if (existing == null) _addItem('other');
+    final item = (existing ?? _draft.items.last) as Map;
+    try {
+      await _addPhoto(item);
+    } finally {
+      // Cancel/error only removes the untouched placeholder created by this action.
+      if (existing == null &&
+          mounted &&
+          epoch == _epoch &&
+          _draft.id == draftId &&
+          _draft.items.contains(item) &&
+          isEmptyPhotoBookingItem(item)) {
+        _draft.items.remove(item);
+        _changed();
+        await _save();
+      }
+    }
+  }
+
+  Widget _photoItemAction({bool another = false}) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      OutlinedButton.icon(
+        key: const ValueKey('photo-new-object'),
+        icon: const Icon(Icons.add),
+        label: Text(
+          another
+              ? tr(
+                  'Ajouter un autre objet',
+                  'Add another item',
+                  'Añadir otro objeto',
+                )
+              : tr(
+                  'Commencer par une photo',
+                  'Start with a photo',
+                  'Empezar con una foto',
+                ),
+        ),
+        onPressed:
+            _busy ||
+                (_draft.items.length >= 20 &&
+                    !_draft.items.any(
+                      (item) => isEmptyPhotoBookingItem(item as Map),
+                    ))
+            ? null
+            : () => _run(_startPhotoItem),
+      ),
+      Text(
+        tr(
+          'Chaque photo ajoutée est analysée automatiquement par OpenAI pour proposer la catégorie et la description. Vérifiez le résultat.',
+          'Each added photo is automatically analyzed by OpenAI to suggest the category and description. Check the result.',
+          'OpenAI analiza automáticamente cada foto añadida para sugerir la categoría y la descripción. Revisa el resultado.',
+        ),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    ],
+  );
+
+  Future<void> _addPhoto(Map item) async {
+    if (_uid == null) {
+      await _login();
+      return;
+    }
+    final uid = _uid!, draftId = _draft.id, epoch = _epoch;
+    await _save();
+    if (_saveError != null ||
+        !mounted ||
+        epoch != _epoch ||
+        draftId != _draft.id) {
+      return;
+    }
+    final photos = item['photos'] as List? ?? <String>[];
+    if (photos.length >= 3) return;
+    final path = await (widget.photoUploader ?? uploadBookingPhoto)(
+      uid: uid,
+      draftId: draftId,
+      itemId: item['id'] as String,
+      slot: photos.length,
+    );
+    if (path == null ||
+        !mounted ||
+        epoch != _epoch ||
+        _uid != uid ||
+        _draft.id != draftId ||
+        !_draft.items.contains(item)) {
+      return;
+    }
+    photos.add(path);
+    item['photos'] = photos;
+    item.remove('photo_size_hint');
+    _photoSuggestions.remove(item['id']);
+    _photoErrors.remove(item['id']);
+    item['identification_confirmed'] = false;
+    _changed();
+    if (_photoMode) await _analyzePhoto(item);
+  }
+
+  Future<void> _analyzePhoto(Map item) async {
+    if (_uid == null || !_photoMode) return;
+    final photos = item['photos'] as List? ?? [];
+    if (photos.isEmpty) return;
+    final path = photos.last as String;
+    final uid = _uid, epoch = _epoch, draftId = _draft.id;
+    final itemId = item['id'] as String;
+    final fingerprint = jsonEncode(item);
+    final locale = widget.locale;
+    bool stillCurrent() =>
+        mounted &&
+        _epoch == epoch &&
+        _uid == uid &&
+        _draft.id == draftId &&
+        widget.locale == locale &&
+        _draft.items.contains(item) &&
+        jsonEncode(item) == fingerprint;
+    setState(() {
+      _photoSuggestions.remove(itemId);
+      _photoErrors.remove(itemId);
+    });
+    await _save();
+    if (!stillCurrent() || _saveError != null) return;
+    try {
+      final result = await _api.call('analyzeBookingPhoto', {
+        'draftId': draftId,
+        'itemId': itemId,
+        'photoPath': path,
+        'locale': locale,
+        'consent': true,
+      });
+      if (!stillCurrent()) return;
+      final suggestion = BookingPhotoSuggestion.fromResponse(result, path);
+      suggestion.applyTo(item);
+      _photoSuggestions[itemId] = suggestion;
+      _changed();
+      await _save();
+    } catch (_) {
+      if (!stillCurrent()) return;
+      setState(() {
+        _photoErrors[itemId] = tr(
+          'Analyse indisponible. Vos informations sont conservées. Réessayez ou choisissez la catégorie vous-même.',
+          'Analysis unavailable. Your details are saved. Retry or choose the category yourself.',
+          'Análisis no disponible. Tus datos se conservaron. Reintenta o elige la categoría.',
+        );
+      });
+    }
+  }
+
   void _addItem(String category, {bool notify = true}) {
     final entry =
         _catalog.where((e) => e.$1 == category).firstOrNull ?? _catalog.last;
@@ -590,12 +813,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'approximate': false,
       'upright': true,
       'photos': <String>[],
+      if (_photoMode) 'identification_confirmed': false,
+      if (_photoMode) 'special_handling': false,
     });
     if (notify) _changed();
   }
 
   List<(String, String, IconData)> get _catalog => [
-    ('sofa', tr('Canapé', 'Sofa', 'Sofá'), Icons.weekend_outlined),
+    (
+      'sofa',
+      tr('Divan / sofa / sectionnel', 'Sofa / sectional', 'Sofá / seccional'),
+      Icons.weekend_outlined,
+    ),
     ('armchair', tr('Fauteuil', 'Armchair', 'Sillón'), Icons.chair_outlined),
     (
       'fridge',
@@ -675,9 +904,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 const SizedBox(height: 8),
                 Text(
                   tr(
-                    'Objets volumineux · Dès maintenant ou sur demande programmée · Devis calculé par Movi-K',
-                    'Large items · As soon as possible or scheduled · Quote calculated by Movi-K',
-                    'Objetos voluminosos · Lo antes posible o programada · Presupuesto de Movi-K',
+                    'Ajoutez votre objet, les deux adresses, puis consultez votre prix.',
+                    'Add your item and both addresses, then see your price.',
+                    'Añade tu objeto y ambas direcciones, y consulta tu precio.',
                   ),
                 ),
                 if (!_loaded)
@@ -738,8 +967,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     ),
                   ),
                 ] else ...[
-                  if (_configurationChecked && _policy == null)
-                    _note(_reservationUnavailable, warning: true),
+                  if (_configurationChecked && !_canPay)
+                    _note(_configurationNotice, warning: true),
                   const SizedBox(height: 24),
                   Wrap(
                     spacing: 8,
@@ -764,9 +993,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                             'Borrador guardado en esta pestaña por 24 h. Al cerrar la pestaña se borra el borrador de invitado.',
                           )
                         : tr(
-                            'Brouillon privé sauvegardé automatiquement, valable 24 h.',
-                            'Private draft saved automatically, valid for 24 hours.',
-                            'Borrador privado guardado automáticamente, válido por 24 h.',
+                            'Brouillon enregistré · 24 h',
+                            'Draft saved · 24 hours',
+                            'Borrador guardado · 24 h',
                           ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -817,11 +1046,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   List<Widget> _delivery() => [
-    if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
-      _note(
-        '${tr('Catégorie sélectionnée', 'Selected category', 'Categoría seleccionada')} : '
-        '${AppStrings.t(_draft.data['category'] as String, widget.locale)}',
-      ),
     _heading(
       tr(
         'Que souhaitez-vous transporter ?',
@@ -829,31 +1053,49 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         '¿Qué quieres transportar?',
       ),
     ),
-    Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _catalog
-          .map(
-            (e) => OutlinedButton.icon(
-              onPressed: _draft.items.length >= 20
-                  ? null
-                  : () => _addItem(e.$1),
-              icon: Icon(e.$3),
-              label: Text(e.$2),
-            ),
-          )
-          .toList(),
-    ),
+
+    if ((widget.photoIntakeEnabled || _photoMode) &&
+        (!_photoMode || _draft.items.isEmpty))
+      _photoItemAction(),
+    if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
+      _note(
+        '${tr('Catégorie sélectionnée', 'Selected category', 'Categoría seleccionada')} : '
+        '${AppStrings.t(_draft.data['category'] as String, widget.locale)}',
+      ),
+    if (!_photoMode)
+      ExpansionTile(
+        key: const ValueKey('manual-item-catalog'),
+        initiallyExpanded: !widget.photoIntakeEnabled,
+        tilePadding: EdgeInsets.zero,
+        title: Text(
+          tr(
+            'Ou choisir un objet sans photo',
+            'Or choose an item without a photo',
+            'O elige un objeto sin foto',
+          ),
+        ),
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _catalog
+                .map(
+                  (e) => OutlinedButton.icon(
+                    onPressed: _draft.items.length >= 20
+                        ? null
+                        : () => _addItem(e.$1),
+                    icon: Icon(e.$3),
+                    label: Text(e.$2),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
     ..._draft.items.map(
       (item) => _item(Map<String, dynamic>.from(item as Map)),
     ),
-    _note(
-      tr(
-        'Mesurez l’objet emballé. Laissez une mesure vide si vous ne la connaissez pas : une vérification sera nécessaire. Aucune dimension n’est supposée.',
-        'Measure the packaged item. Leave an unknown measurement blank: review will be required. No dimensions are assumed.',
-        'Mide el objeto embalado. Deja en blanco las medidas desconocidas: será necesaria una revisión. No se suponen dimensiones.',
-      ),
-    ),
+    if (_photoMode && _draft.items.isNotEmpty) _photoItemAction(another: true),
     _heading(
       tr('Ramassage et livraison', 'Pickup and delivery', 'Recogida y entrega'),
     ),
@@ -869,53 +1111,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ),
     _heading(
       tr(
-        'Services et créneau demandé',
-        'Services and requested time',
-        'Servicios y horario solicitado',
+        'Quand souhaitez-vous la livraison ?',
+        'When would you like delivery?',
+        '¿Cuándo quieres la entrega?',
       ),
-    ),
-    DropdownButtonFormField<int>(
-      initialValue: (_draft.data['handlers'] as num).toInt(),
-      decoration: InputDecoration(
-        labelText: tr(
-          'Nombre de manutentionnaires requis',
-          'Required handlers',
-          'Personas necesarias para cargar',
-        ),
-      ),
-      items: [
-        1,
-        2,
-      ].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
-      onChanged: (n) {
-        _draft.data['handlers'] = n;
-        _changed();
-      },
-    ),
-    const SizedBox(height: 12),
-    Wrap(
-      spacing: 8,
-      children:
-          [
-                ('dolly', tr('Diable', 'Dolly', 'Carretilla')),
-                ('straps', tr('Sangles', 'Straps', 'Correas')),
-                (
-                  'liftgate',
-                  tr('Hayon élévateur', 'Liftgate', 'Plataforma elevadora'),
-                ),
-              ]
-              .map(
-                (e) => FilterChip(
-                  label: Text(e.$2),
-                  selected: (_draft.data['equipment'] as List).contains(e.$1),
-                  onSelected: (v) {
-                    final list = _draft.data['equipment'] as List;
-                    v ? list.add(e.$1) : list.remove(e.$1);
-                    _changed();
-                  },
-                ),
-              )
-              .toList(),
     ),
     Wrap(
       spacing: 8,
@@ -972,6 +1171,63 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               'Date and time are your preference. They depend on driver acceptance and availability.',
               'La fecha y hora expresan tu preferencia y dependen de la aceptación y disponibilidad del conductor.',
             ),
+    ),
+    ExpansionTile(
+      key: const ValueKey('booking-help-options'),
+      tilePadding: EdgeInsets.zero,
+      title: Text(
+        tr('Aide et équipement', 'Help and equipment', 'Ayuda y equipo'),
+      ),
+      subtitle: Text(
+        '${_draft.data['handlers']} · ${tr('personne(s) pour la manutention', 'handler(s)', 'persona(s) para cargar')}',
+      ),
+      children: [
+        DropdownButtonFormField<int>(
+          initialValue: (_draft.data['handlers'] as num).toInt(),
+          decoration: InputDecoration(
+            labelText: tr(
+              'Nombre de manutentionnaires requis',
+              'Required handlers',
+              'Personas necesarias para cargar',
+            ),
+          ),
+          items: [
+            1,
+            2,
+          ].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
+          onChanged: (n) {
+            _draft.data['handlers'] = n;
+            _changed();
+          },
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children:
+              [
+                    ('dolly', tr('Diable', 'Dolly', 'Carretilla')),
+                    ('straps', tr('Sangles', 'Straps', 'Correas')),
+                    (
+                      'liftgate',
+                      tr('Hayon élévateur', 'Liftgate', 'Plataforma elevadora'),
+                    ),
+                  ]
+                  .map(
+                    (e) => FilterChip(
+                      label: Text(e.$2),
+                      selected: (_draft.data['equipment'] as List).contains(
+                        e.$1,
+                      ),
+                      onSelected: (v) {
+                        final list = _draft.data['equipment'] as List;
+                        v ? list.add(e.$1) : list.remove(e.$1);
+                        _changed();
+                      },
+                    ),
+                  )
+                  .toList(),
+        ),
+      ],
     ),
     _button(
       tr('Voir mon prix', 'See my price', 'Ver mi precio'),
@@ -1077,6 +1333,30 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
 
   Widget _item(Map<String, dynamic> copy) {
     final item = _draft.items.firstWhere((i) => i['id'] == copy['id']) as Map;
+    if (_photoMode) {
+      return PhotoBookingItem(
+        item: item,
+        locale: widget.locale,
+        categories: _catalog.map((e) => (e.$1, e.$2)).toList(),
+        photoLoader: widget.photoLoader,
+        onChanged: () {
+          _photoSuggestions.remove(item['id']);
+          _photoErrors.remove(item['id']);
+          _changed();
+        },
+        onAnalyzePhoto: () => _run(() => _analyzePhoto(item)),
+        suggestion: _photoSuggestions[item['id']],
+        analysisError: _photoErrors[item['id']],
+        analysisBusy: _busy,
+        onRemove: () {
+          _photoSuggestions.remove(item['id']);
+          _photoErrors.remove(item['id']);
+          _draft.items.remove(item);
+          _changed();
+        },
+        onAddPhoto: () => _run(() => _addPhoto(item)),
+      );
+    }
     Widget number(String key, String label) => SizedBox(
       width: 145,
       child: TextFormField(
@@ -1339,69 +1619,116 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
       // A restored address must also be invalidated if the user types. The
       // autocomplete field did not previously know its initial resolved text.
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 12,
-        runSpacing: 8,
+      ExpansionTile(
+        key: ValueKey('access-$key-${_draft.id}'),
+        tilePadding: EdgeInsets.zero,
+        title: Text(
+          tr(
+            'Accès et aide sur place',
+            'Access and help on site',
+            'Acceso y ayuda en el lugar',
+          ),
+        ),
+        subtitle: Text(
+          '${tr('Étage', 'Floor', 'Piso')} ${access['floor']} · ${access['help'] == true ? tr('aide prévue', 'help available', 'ayuda prevista') : tr('sans aide sur place', 'no help on site', 'sin ayuda en el lugar')}',
+        ),
         children: [
-          SizedBox(
-            width: 150,
-            child: TextFormField(
-              key: ValueKey('$key-floor-${_draft.id}'),
-              initialValue: '${access['floor']}',
-              keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: InputDecoration(
-                labelText: tr(
-                  'Étage (0 = sol)',
-                  'Floor (0 = ground)',
-                  'Piso (0 = calle)',
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              SizedBox(
+                width: 150,
+                child: TextFormField(
+                  key: ValueKey('$key-floor-${_draft.id}'),
+                  initialValue: '${access['floor']}',
+                  keyboardType: const TextInputType.numberWithOptions(
+                    signed: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: tr(
+                      'Étage (0 = sol)',
+                      'Floor (0 = ground)',
+                      'Piso (0 = calle)',
+                    ),
+                  ),
+                  onChanged: (v) {
+                    access['floor'] = int.tryParse(v) ?? -999;
+                    _changed();
+                  },
                 ),
               ),
-              onChanged: (v) {
-                access['floor'] = int.tryParse(v) ?? -999;
-                _changed();
-              },
+              FilterChip(
+                label: Text(tr('Escaliers', 'Stairs', 'Escaleras')),
+                selected: access['stairs'] == true,
+                onSelected: (v) {
+                  access['stairs'] = v;
+                  _changed();
+                },
+              ),
+              FilterChip(
+                label: Text(tr('Ascenseur', 'Elevator', 'Ascensor')),
+                selected: access['elevator'] == true,
+                onSelected: (v) {
+                  access['elevator'] = v;
+                  _changed();
+                },
+              ),
+            ],
+          ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              key == 'pickup'
+                  ? tr(
+                      'Aide au chargement',
+                      'Loading help',
+                      'Ayuda para cargar',
+                    )
+                  : tr(
+                      'Aide au déchargement',
+                      'Unloading help',
+                      'Ayuda para descargar',
+                    ),
             ),
-          ),
-          FilterChip(
-            label: Text(tr('Escaliers', 'Stairs', 'Escaleras')),
-            selected: access['stairs'] == true,
-            onSelected: (v) {
-              access['stairs'] = v;
-              _changed();
-            },
-          ),
-          FilterChip(
-            label: Text(tr('Ascenseur', 'Elevator', 'Ascensor')),
-            selected: access['elevator'] == true,
-            onSelected: (v) {
-              access['elevator'] = v;
+            value: access['help'] as bool,
+            onChanged: (v) {
+              access['help'] = v;
               _changed();
             },
           ),
         ],
       ),
-      CheckboxListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(
-          key == 'pickup'
-              ? tr('Aide au chargement', 'Loading help', 'Ayuda para cargar')
-              : tr(
-                  'Aide au déchargement',
-                  'Unloading help',
-                  'Ayuda para descargar',
-                ),
-        ),
-        value: access['help'] as bool,
-        onChanged: (v) {
-          access['help'] = v;
-          _changed();
-        },
-      ),
     ];
   }
 
   String _reason(String reason) => switch (reason) {
+    'photo_policy_unconfigured' || 'photo_category_unconfigured' => tr(
+      'La demande par photo n’est pas encore disponible pour cet objet.',
+      'Photo booking is not available for this item yet.',
+      'La solicitud por foto aún no está disponible para este objeto.',
+    ),
+    'photo_required' => tr(
+      'Ajoutez une photo de chaque objet.',
+      'Add a photo of each item.',
+      'Añade una foto de cada objeto.',
+    ),
+    'object_confirmation_required' => tr(
+      'Confirmez la catégorie et l’objet photographié.',
+      'Confirm the category and pictured item.',
+      'Confirma la categoría y el objeto fotografiado.',
+    ),
+    'special_details_required' => tr(
+      'Cet objet nécessite des précisions avant le devis.',
+      'This item needs more details before a quote.',
+      'Este objeto necesita más detalles antes del presupuesto.',
+    ),
+    'no_eligible_photo_vehicle' => tr(
+      'Aucun véhicule configuré ne répond aux informations fournies.',
+      'No configured vehicle meets the supplied details.',
+      'Ningún vehículo configurado cumple con los datos indicados.',
+    ),
     'dimensions_unknown' => tr(
       'Complétez les trois dimensions de chaque objet.',
       'Complete all three dimensions for each item.',
@@ -1447,16 +1774,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _heading(_titles[1]),
     if (!_configurationChecked)
       const LinearProgressIndicator()
-    else if (_policy == null)
-      _button(
-        tr(
-          'Vérifier à nouveau la disponibilité',
-          'Check availability again',
-          'Comprobar disponibilidad de nuevo',
+    else if (!_canPay)
+      TextButton(
+        onPressed: _busy ? null : () => _run(() => _loadConfiguration(_epoch)),
+        child: Text(
+          tr(
+            'Vérifier à nouveau la disponibilité',
+            'Check availability again',
+            'Comprobar disponibilidad de nuevo',
+          ),
         ),
-        () => _run(() => _loadConfiguration(_epoch)),
-      )
-    else if (_uid == null) ...[
+      ),
+    if (_configurationChecked && _uid == null) ...[
       _note(
         tr(
           'Connectez-vous pour obtenir le devis officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',
@@ -1472,7 +1801,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         () => _run(_login),
       ),
-    ] else ...[
+    ] else if (_configurationChecked) ...[
+      if (_review != null && _review!['status'] != 'ready')
+        _note(
+          tr(
+            'Le devis ne peut pas encore être calculé. Vous pouvez continuer à préparer la demande; aucun prix ni réservation ne sera confirmé.',
+            'The quote cannot be calculated yet. You can keep preparing the request; no price or booking will be confirmed.',
+            'El presupuesto aún no se puede calcular. Puedes seguir preparando la solicitud; no se confirmará precio ni reserva.',
+          ),
+          warning: true,
+        ),
       if (_review?['reasons'] is List)
         ...(_review!['reasons'] as List).map(
           (r) => _note(_reason(r as String), warning: true),
@@ -1511,7 +1849,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           ),
           () => _run(_quote),
         ),
-      if ((_review?['compatible_categories'] as List? ?? []).length > 1) ...[
+      if (!_photoMode &&
+          (_review?['compatible_categories'] as List? ?? []).length > 1) ...[
         DropdownButtonFormField<String>(
           initialValue: _draft.quote?['vehicleCategory'] as String?,
           decoration: InputDecoration(
@@ -1544,13 +1883,22 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ],
       if (_draft.quoteValid) ...[
-        _note(
-          tr(
-            'Le véhicule recommandé est vérifié à nouveau avec le véhicule réel du chauffeur à l’acceptation.',
-            'The recommended vehicle is checked against the driver’s actual vehicle on acceptance.',
-            'Se verifica la recomendación con el vehículo real del conductor al aceptar.',
+        if (_photoMode)
+          _note(
+            tr(
+              'Movi-K propose le véhicule. Le chauffeur examine la photo et accepte ou refuse la demande. Les mesures inconnues ne sont pas des capacités vérifiées.',
+              'Movi-K proposes the vehicle. The driver reviews the photo and accepts or declines. Unknown measurements are not verified capacity.',
+              'Movi-K propone el vehículo. El conductor evalúa la foto y acepta o rechaza. Las medidas desconocidas no son capacidad verificada.',
+            ),
+          )
+        else
+          _note(
+            tr(
+              'Le véhicule recommandé est vérifié à nouveau avec le véhicule réel du chauffeur à l’acceptation.',
+              'The recommended vehicle is checked against the driver’s actual vehicle on acceptance.',
+              'Se verifica la recomendación con el vehículo real del conductor al aceptar.',
+            ),
           ),
-        ),
         _button(
           tr(
             'Continuer vers mes coordonnées',
@@ -1571,6 +1919,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ),
     ],
+    if (!_draft.quoteValid)
+      _button(
+        tr(
+          'Continuer à préparer ma demande',
+          'Continue preparing my request',
+          'Seguir preparando mi solicitud',
+        ),
+        () => _step(2),
+      ),
   ];
   List<Widget> _quoteSummary() {
     final quote = _draft.quote!;
@@ -1683,7 +2040,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   List<Widget> _details(FirebaseAuthProvider auth) => [
     _heading(_titles[2]),
     Text(auth.effectiveEmail ?? ''),
-    if (auth.user?.emailVerified != true) ...[
+    if (_uid != null && auth.user?.emailVerified != true) ...[
       _note(
         tr(
           'Vérifiez votre adresse courriel pour réserver.',
@@ -1844,7 +2201,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
     ),
     _button(
-      tr('Vérifier et confirmer', 'Review and confirm', 'Revisar y confirmar'),
+      _canPay && _draft.quoteValid
+          ? tr(
+              'Vérifier et confirmer',
+              'Review and confirm',
+              'Revisar y confirmar',
+            )
+          : tr('Consulter le résumé', 'Review my draft', 'Ver el resumen'),
       () {
         if (_contactsForm.currentState?.validate() == true) _step(3);
       },
@@ -1852,6 +2215,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   ];
   List<Widget> _confirmation(FirebaseAuthProvider auth) => [
     _heading(_titles[3]),
+    if (!_canPay || !_draft.quoteValid)
+      _note(
+        tr(
+          'Résumé de votre brouillon. Aucune réservation confirmée, aucun paiement effectué. Vos coordonnées restent modifiables.',
+          'Draft summary. No booking confirmed and no payment made. Your contact details remain editable.',
+          'Resumen del borrador. No hay reserva confirmada ni pago realizado. Puedes editar tus datos.',
+        ),
+        warning: true,
+      ),
+    if (_draft.quote == null)
+      _note(
+        tr(
+          'Prix non disponible : un devis officiel sera nécessaire avant toute confirmation.',
+          'Price unavailable: an official quote is required before confirmation.',
+          'Precio no disponible: se necesita un presupuesto oficial antes de confirmar.',
+        ),
+      ),
     Text('${_pickup.text}\n↓\n${_dropoff.text}'),
     const SizedBox(height: 12),
     for (final item in _draft.items)
@@ -2027,7 +2407,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         icon: Icons.lock_outline,
       ),
       TextButton(
-        onPressed: () => _run(_refreshCard),
+        onPressed: _canPay && !_busy ? () => _run(_refreshCard) : null,
         child: Text(
           tr(
             'J’ai terminé chez Stripe : vérifier',
@@ -2050,10 +2430,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Widget _quoteLoadSummary() => BookingLoadSummary(
     snapshot: Map<String, dynamic>.from(_draft.quote!['booking'] as Map? ?? {}),
     locale: widget.locale,
+    photoLoader: widget.photoLoader,
   );
   bool _readyToConfirm(FirebaseAuthProvider auth) =>
-      _policy != null &&
-      _policy!['setup_enabled'] == true &&
+      _canPay &&
       _draft.data['accepted'] == true &&
       _draft.quoteValid &&
       auth.user?.emailVerified == true;

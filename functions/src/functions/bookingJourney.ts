@@ -1,3 +1,4 @@
+import { getPublicBookingConfiguration } from '../lib/bookingAvailability';
 import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { normalizeLoad } from '../lib/booking';
@@ -6,9 +7,9 @@ import { requireSignedIn } from '../lib/auth';
 import { resolveLockedQuote } from '../lib/quoteIntegrity';
 import { permissionDenied } from '../lib/errors';
 import { invalidArgument } from '../lib/errors';
-import { findCompatibleVehicle, getBookingPolicy, reviewBooking } from '../lib/bookingServer';
+import { findCompatibleVehicle, reviewBooking } from '../lib/bookingServer';
 
-export const getBookingConfiguration = onCall(async () => ({ policy: await getBookingPolicy() }));
+export const getBookingConfiguration = onCall(async () => getPublicBookingConfiguration());
 export const reviewDeliveryLoad = onCall(async request => {
   const { uid } = requireSignedIn(request);
   return (await reviewBooking(request.data.load, request.data.stops, uid)).review;

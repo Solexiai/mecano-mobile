@@ -1,0 +1,16 @@
+PASS test/unit/bookingAvailability.test.ts (14.469 s)
+  read-only booking availability
+    √ independent booking=true payment=true (9 ms)
+    √ independent booking=false payment=true (1 ms)
+    √ independent booking=true payment=false (1 ms)
+    √ independent booking=false payment=false (1 ms)
+    √ missing policy is not a transport error (1 ms)
+    √ Firestore failure remains distinguishable and fail closed (2 ms)
+    √ policy read failure is not converted into service closure (23 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+Snapshots:   0 total
+Time:        15.029 s
+Ran all test suites within paths "test/unit/bookingAvailability.test.ts".
+Test results written to: ..\artifacts\draft-preparation-20261016-1910\server-tests.json

@@ -1,0 +1,196 @@
+{
+  "at": "2026-10-16T19:25:10.104Z",
+  "origin": "https://movi-k.com",
+  "realChrome": true,
+  "guest": true,
+  "syntheticTabDraft": true,
+  "calls": [
+    {
+      "function": "getBookingConfiguration",
+      "method": "OPTIONS",
+      "status": 204
+    },
+    {
+      "function": "getBookingConfiguration",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "function": "getBookingConfiguration",
+      "method": "POST",
+      "status": 200
+    },
+    {
+      "function": "getBookingConfiguration",
+      "method": "OPTIONS",
+      "status": 204
+    },
+    {
+      "function": "getBookingConfiguration",
+      "method": "POST",
+      "status": 200
+    }
+  ],
+  "errors": [],
+  "captures": [
+    {
+      "file": "public-final-price-mobile.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "file": "public-final-price-tablet.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "file": "public-final-price-desktop.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "public-final-details-mobile.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "file": "public-final-details-tablet.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "file": "public-final-details-desktop.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "public-final-summary-mobile.png",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "file": "public-final-summary-tablet.png",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "file": "public-final-summary-desktop.png",
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "summaryText": "Back\nLivraison\nComment ça marche\nTarifs\nSécurité\nFAQ\nConnexion\nShow menu FR\nObtenir mon devis\nOrganisez votre livraison\nAjoutez votre objet, les deux adresses, puis consultez votre prix.\nLa réservation est indisponible pour le moment. Vous pouvez préparer votre demande dans cet onglet, sans paiement ni réservation confirmée.\nBrouillon conservé 24 h dans cet onglet. Fermer l’onglet efface le brouillon invité.\nConfirmation et paiement\nRésumé de votre brouillon. Aucune réservation confirmée, aucun paiement effectué. Vos coordonnées restent modifiables.\nPrix non disponible : un devis officiel sera nécessaire avant toute confirmation.\n↓\n1 × Objet fictif de contrôle · ? × ? × ? cm · ? kg\nDès maintenant — selon la disponibilité du chauffeur\nManutentionnaires : 1\nRamassage : Client fictif · +15145550100\nLivraison : Destinataire fictif · +15145550101\nModifier la livraison\nModifier mes coordonnées\nRecalculer mon prix\nLes conditions de réservation et d’annulation doivent être publiées et validées par Movi-K. Votre brouillon est conservé.\nLa préparation du moyen de paiement est distincte de l’autorisation et du paiement final. Consultez les conditions de paiement affichées.\nVotre courriel doit être vérifié à l’étape 3.\nPréparation du moyen de paiement non confirmée.\nEnregistrer ma carte avec Stripe\nJ’ai terminé chez Stripe : vérifier\nConfirmer ma demande de livraison\nRetour\nMovi-K\nLa livraison de gros objets, près de chez vous.\nLivraison\nChauffeurs\nAide et informations\nLégal\nObtenir mon devis\nDevenir chauffeur\nFAQ\nPolitique de confidentialité\nTarifs\nConnexion\nContact\nConditions d'utilisation\nComment ça marche\nSécurité\nPolitique d'annulation\nÀ propos\n© 2026 Movi-K. Tous droits réservés.",
+  "draft": {
+    "id": "draft-preparation-synthetic",
+    "created": 1792178711886,
+    "revision": 7,
+    "step": 3,
+    "category": null,
+    "items": [
+      {
+        "id": "item",
+        "category": "sofa",
+        "label": "Objet fictif de contrôle",
+        "quantity": 1,
+        "length": null,
+        "width": null,
+        "height": null,
+        "weight": null,
+        "dimension_unit": "cm",
+        "weight_unit": "kg",
+        "approximate": false,
+        "upright": true,
+        "photos": [],
+        "identification_confirmed": true,
+        "special_handling": false
+      }
+    ],
+    "pickup": null,
+    "dropoff": null,
+    "pickup_access": {
+      "floor": 0,
+      "stairs": false,
+      "elevator": false,
+      "help": false
+    },
+    "dropoff_access": {
+      "floor": 0,
+      "stairs": false,
+      "elevator": false,
+      "help": false
+    },
+    "handlers": 1,
+    "equipment": [],
+    "requested_at": null,
+    "timing_mode": "immediate",
+    "intake_mode": "photo_assisted",
+    "contacts": {
+      "pickup_name": "Client fictif",
+      "pickup_phone": "+15145550100",
+      "dropoff_name": "Destinataire fictif",
+      "dropoff_phone": "+15145550101",
+      "instructions": "Instructions fictives"
+    },
+    "quote": null,
+    "accepted": false,
+    "marketing": false,
+    "missionId": null
+  },
+  "restored": {
+    "id": "draft-preparation-synthetic",
+    "created": 1792178711886,
+    "revision": 8,
+    "step": 2,
+    "category": null,
+    "items": [
+      {
+        "id": "item",
+        "category": "sofa",
+        "label": "Objet fictif de contrôle",
+        "quantity": 1,
+        "length": null,
+        "width": null,
+        "height": null,
+        "weight": null,
+        "dimension_unit": "cm",
+        "weight_unit": "kg",
+        "approximate": false,
+        "upright": true,
+        "photos": [],
+        "identification_confirmed": true,
+        "special_handling": false
+      }
+    ],
+    "pickup": null,
+    "dropoff": null,
+    "pickup_access": {
+      "floor": 0,
+      "stairs": false,
+      "elevator": false,
+      "help": false
+    },
+    "dropoff_access": {
+      "floor": 0,
+      "stairs": false,
+      "elevator": false,
+      "help": false
+    },
+    "handlers": 1,
+    "equipment": [],
+    "requested_at": null,
+    "timing_mode": "immediate",
+    "intake_mode": "photo_assisted",
+    "contacts": {
+      "pickup_name": "Client fictif",
+      "pickup_phone": "+15145550100",
+      "dropoff_name": "Destinataire fictif",
+      "dropoff_phone": "+15145550101",
+      "instructions": "Instructions fictives"
+    },
+    "quote": null,
+    "accepted": false,
+    "marketing": false,
+    "missionId": null
+  },
+  "success": true
+}

@@ -74,6 +74,9 @@ Future<(MemoryBookingStorage, _ContactsApi)> start(
   final api = _ContactsApi();
   final store =
       storage ?? MemoryBookingStorage(testDraft(step: 2, quote: true));
+  // The remote stub returns the same quote, including its original expiry.
+  // Two independent DateTime.now() calls are not the same server snapshot.
+  if (store.saved?.quote != null) api.quote = store.saved!.quote!;
   await pumpBooking(t, storage: store, api: api, locale: locale);
   expect(Firebase.apps, isEmpty);
   return (store, api);

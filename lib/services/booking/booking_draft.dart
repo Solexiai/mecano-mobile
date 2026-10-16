@@ -73,6 +73,7 @@ class BookingDraft {
     'equipment': data['equipment'],
     'requested_at': data['requested_at'],
     if (data['timing_mode'] != null) 'timing_mode': data['timing_mode'],
+    if (data['intake_mode'] != null) 'intake_mode': data['intake_mode'],
   };
   List<Map<String, dynamic>> get stops => [
     {'type': 'pickup', 'address': data['pickup']},

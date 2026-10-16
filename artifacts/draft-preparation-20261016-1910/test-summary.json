@@ -1,0 +1,54 @@
+{
+  "flutterDistinctFinal": 201,
+  "serverDistinctFinal": 7,
+  "finalFailures": 0,
+  "ignored": 0,
+  "executions": [
+    {
+      "label": "preparation-before",
+      "passed": 12,
+      "failed": 5,
+      "ignored": 0
+    },
+    {
+      "label": "preparation-after",
+      "passed": 23,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "label": "preparation-regression",
+      "passed": 176,
+      "failed": 2,
+      "ignored": 0,
+      "reason": "missing no_default_http_client compiler define; repeated without weakening assertions"
+    },
+    {
+      "label": "preparation-regression-final",
+      "passed": 200,
+      "failed": 1,
+      "ignored": 0,
+      "reason": "independently generated quote fixture expiry differs by 1 ms"
+    },
+    {
+      "label": "preparation-contacts-final",
+      "passed": 46,
+      "failed": 0,
+      "ignored": 0,
+      "reason": "same quote fixture reused, equality assertion preserved"
+    },
+    {
+      "label": "preparation-error-final",
+      "passed": 21,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "label": "server",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "note": "Do not sum overlapping runs. Latest successful run for each scenario gives 201 Flutter cases; no new pricing engine test claimed."
+}

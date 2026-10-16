@@ -1,0 +1,21 @@
+{
+  "lib/screens/delivery/delivery_request_flow_screen.dart": "9702f7a12b9cb8a5695a033ffe9d45eebaf950118aef465005e6c1a216c21a19",
+  "lib/services/booking/booking_draft.dart": "68bc5567248a965def0535ada544c1786c617e6040c40ed46c0e26f6d1ff3328",
+  "lib/services/booking/booking_photos.dart": "7a5272e46f37f7bc17b6efd5cfcdfa81812749e934efa207dd751d41d8a3ffc6",
+  "lib/services/booking/booking_photo_analysis.dart": "9df682934622d254c4ef9766763ed032fb4536b05fb194b0801d2cc035110b03",
+  "lib/services/booking/booking_photo_preparation.dart": "91485fa3d58403ac54c07c8f2e947575f392e315fb94d9a00cb4e1626cd4e895",
+  "lib/services/booking/booking_photo_encoder_stub.dart": "3970bf1c4e3354a8e93b536a7ea47575d0a70b5225cff12be7b03488a2f11e37",
+  "lib/services/booking/booking_photo_encoder_web.dart": "8034b790ef557f6e680d61f898de84fa263780a2dc9a8e09e23d14afd65712d6",
+  "lib/widgets/booking_load_summary.dart": "6edf9042fb3926910f24e5ba5528f1b68ffcfca5457f4e45a042dd0c335a9345",
+  "lib/widgets/photo_booking_item.dart": "6df51ca93acc206e286f7201f3c95d507eb892c57b28b47a51e632d2b5f74006",
+  "functions/src/functions/bookingJourney.ts": "f3a321652e75cc9c19875b2cf131afe483e6ed9818255727e3565115f0fb4487",
+  "functions/src/lib/bookingAvailability.ts": "47b8ef65189a012ef7484d3c4eead32d9ba17238cdd2db09fed4fe849394c223",
+  "functions/test/unit/bookingAvailability.test.ts": "231b6263293f7a7a151eec298064ca060d8510d28145d42ebc5f5281630b7cce",
+  "test/helpers/booking_test_harness.dart": "84c83abcbd9fcdcb6e5120143dc750cd41fe79449380704b16b2630820fbab3d",
+  "test/customer/booking_preparation_test.dart": "4e2b722eb0ba596e20cf6f180d45e7de784062078f5096277192d2340ddc3d83",
+  "test/customer/booking_quote_without_policy_test.dart": "accf7b1704663db6d05ea7527ba3826bef3eac1105cd1673458290928592920b",
+  "test/customer/booking_service_availability_test.dart": "297179680d647b214bcbfb56dd4215779d3b8759069df6cee3faf7f1c1608f4f",
+  "test/customer/delivery_contact_validation_test.dart": "353551986e85ea2df2a6b1546b8de90a08c592028408e1787c30e3889a76aa7b",
+  "test/customer/booking_photo_preparation_test.dart": "f6a387bf52d833d5853b619cc75d61594ed4742d33f2561364d716659cdde4a0",
+  "docs/audit/REGISTRE_BOGUES_MOVIK.md": "a2b9a6717c2c97d643b8115d3b8a78a9145e2a27ee64eb26334b9432868378ba"
+}

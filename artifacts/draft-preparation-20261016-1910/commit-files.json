@@ -1,0 +1,21 @@
+[
+  "lib/screens/delivery/delivery_request_flow_screen.dart",
+  "lib/services/booking/booking_draft.dart",
+  "lib/services/booking/booking_photos.dart",
+  "lib/services/booking/booking_photo_analysis.dart",
+  "lib/services/booking/booking_photo_preparation.dart",
+  "lib/services/booking/booking_photo_encoder_stub.dart",
+  "lib/services/booking/booking_photo_encoder_web.dart",
+  "lib/widgets/booking_load_summary.dart",
+  "lib/widgets/photo_booking_item.dart",
+  "functions/src/functions/bookingJourney.ts",
+  "functions/src/lib/bookingAvailability.ts",
+  "functions/test/unit/bookingAvailability.test.ts",
+  "test/helpers/booking_test_harness.dart",
+  "test/customer/booking_preparation_test.dart",
+  "test/customer/booking_quote_without_policy_test.dart",
+  "test/customer/booking_service_availability_test.dart",
+  "test/customer/delivery_contact_validation_test.dart",
+  "test/customer/booking_photo_preparation_test.dart",
+  "docs/audit/REGISTRE_BOGUES_MOVIK.md"
+]

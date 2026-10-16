@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-16T19:24:22.299Z",
+  "out": [
+    {
+      "host": "movi-k.com",
+      "stamp": {
+        "feature": "draft-preparation-unblocked-v1",
+        "base": "197855b77063fdade69193f883a712e89dcdac74",
+        "builtAt": "2026-10-16T19:21:37.693Z",
+        "bundleSha256": "00401a108c56873c5fd69019ea2251e6720f336eee8f2c26b3145033ae2af464"
+      },
+      "bundleMatches": true
+    },
+    {
+      "host": "www.movi-k.com",
+      "stamp": {
+        "feature": "draft-preparation-unblocked-v1",
+        "base": "197855b77063fdade69193f883a712e89dcdac74",
+        "builtAt": "2026-10-16T19:21:37.693Z",
+        "bundleSha256": "00401a108c56873c5fd69019ea2251e6720f336eee8f2c26b3145033ae2af464"
+      },
+      "bundleMatches": true
+    }
+  ]
+}

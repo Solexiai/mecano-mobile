@@ -9,6 +9,8 @@ import 'package:movik_connect/providers/locale_provider.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
 import 'package:movik_connect/services/booking/booking_api.dart';
 import 'package:movik_connect/services/booking/booking_draft.dart';
+import 'package:movik_connect/services/booking/booking_photos.dart';
+import 'package:movik_connect/widgets/booking_load_summary.dart';
 
 class TestUser extends Fake implements fb.User {
   TestUser(this.verified);
@@ -153,6 +155,11 @@ class TestBookingApi implements BookingApi {
       case 'getBookingConfiguration':
         if (!configurationAvailable) return {'policy': null};
         return {
+          'availability': {
+            'booking_enabled': true,
+            'payment_enabled': true,
+            'technical_error': false,
+          },
           'policy': {
             'approved': true,
             'version': 'TEST',
@@ -193,6 +200,9 @@ Future<void> pumpBooking(
   required TestBookingApi api,
   BookingTestAuth? auth,
   String locale = 'fr',
+  bool photoIntakeEnabled = false,
+  BookingPhotoUploader? photoUploader,
+  BookingPhotoLoader? photoLoader,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final provider = auth ?? BookingTestAuth();
@@ -205,6 +215,9 @@ Future<void> pumpBooking(
           locale: locale,
           api: api,
           storage: storage,
+          photoIntakeEnabled: photoIntakeEnabled,
+          photoUploader: photoUploader,
+          photoLoader: photoLoader,
         ),
       ),
       GoRoute(

@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-16T19:22:21.695Z",
+  "flagsUnchanged": true,
+  "flags": {
+    "allow_driver_acceptance": {
+      "booleanValue": false
+    },
+    "payments_enabled": {
+      "booleanValue": false
+    },
+    "driver_payouts_enabled": {
+      "booleanValue": false
+    },
+    "accept_new_delivery_requests": {
+      "booleanValue": false
+    }
+  },
+  "function": {
+    "state": "ACTIVE",
+    "revision": "getbookingconfiguration-00002-ziw",
+    "updated": "2026-10-16T19:19:27.631214935Z"
+  }
+}

@@ -1,0 +1,25 @@
+00:00 +0: loading C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart
+00:00 +0: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=false
+00:02 +1: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=false
+00:03 +2: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=false
+00:04 +3: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=true
+00:06 +4: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:06 +5: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:07 +6: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:08 +7: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:09 +8: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:10 +9: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: quote does not require booking policy or prepare a payment
+00:10 +10: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(375.0, 812.0) es
+00:10 +11: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: server review refusal never produces a replacement quote
+00:10 +12: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) fr
+00:11 +13: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) fr
+00:11 +14: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_quote_without_policy_test.dart: missing policy still prevents confirmation even with a quote
+00:11 +15: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) en
+00:12 +16: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) es
+00:12 +17: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) fr
+00:12 +18: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) en
+00:13 +19: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) es
+00:13 +20: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) fr
+00:14 +21: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) en
+00:14 +22: C:/Users/Utilisateur/movik-gps-history-fix-20261009/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) es
+00:14 +23: All tests passed!

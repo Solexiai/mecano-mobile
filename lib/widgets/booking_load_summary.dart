@@ -2,15 +2,19 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+typedef BookingPhotoLoader = Future<Uint8List?> Function(String path);
+
 /// Authenticated reads only. Used before driver acceptance and in tracking.
 class BookingLoadSummary extends StatelessWidget {
   const BookingLoadSummary({
     super.key,
     required this.snapshot,
     required this.locale,
+    this.photoLoader,
   });
   final Map<String, dynamic> snapshot;
   final String locale;
+  final BookingPhotoLoader? photoLoader;
   String tr(String fr, String en, String es) => locale == 'en'
       ? en
       : locale == 'es'
@@ -30,6 +34,17 @@ class BookingLoadSummary extends StatelessWidget {
       initiallyExpanded: true,
       childrenPadding: const EdgeInsets.all(12),
       children: [
+        if (snapshot['vehicle_assessment'] == 'driver_photo_review')
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              tr(
+                'À évaluer sur photo : les dimensions et le poids peuvent être inconnus. La capacité de chargement n’est pas confirmée.',
+                'Review the photo: dimensions and weight may be unknown. Loading capacity is not confirmed.',
+                'Evalúa la foto: las dimensiones y el peso pueden ser desconocidos. La capacidad de carga no está confirmada.',
+              ),
+            ),
+          ),
         for (final raw in (load['items'] as List? ?? []))
           Builder(
             builder: (context) {
@@ -40,6 +55,41 @@ class BookingLoadSummary extends StatelessWidget {
                   Text(
                     '${i['quantity']} × ${i['label']} · ${i['length_cm'] ?? '?'} × ${i['width_cm'] ?? '?'} × ${i['height_cm'] ?? '?'} cm · ${i['weight_kg'] ?? '?'} kg',
                   ),
+                  if (snapshot['vehicle_assessment'] == 'driver_photo_review' &&
+                      [
+                        i['length_cm'],
+                        i['width_cm'],
+                        i['height_cm'],
+                      ].contains(null))
+                    Text(
+                      tr(
+                        'Dimensions non précisées',
+                        'Dimensions not provided',
+                        'Dimensiones no indicadas',
+                      ),
+                    ),
+                  if (snapshot['vehicle_assessment'] == 'driver_photo_review' &&
+                      i['weight_kg'] == null)
+                    Text(
+                      tr(
+                        'Poids non précisé',
+                        'Weight not provided',
+                        'Peso no indicado',
+                      ),
+                    ),
+                  if (i['handling_notes'] is String &&
+                      (i['handling_notes'] as String).trim().isNotEmpty)
+                    Text(
+                      '${tr('Précautions', 'Precautions', 'Precauciones')} : ${i['handling_notes']}',
+                    ),
+                  if (i['approximate'] == true)
+                    Text(
+                      tr(
+                        'Mesures approximatives fournies par le client',
+                        'Approximate measurements provided by the customer',
+                        'Medidas aproximadas indicadas por el cliente',
+                      ),
+                    ),
                   if (i['upright'] == true)
                     Text(
                       tr(
@@ -51,7 +101,12 @@ class BookingLoadSummary extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     children: (i['photos'] as List? ?? [])
-                        .map((p) => BookingPhoto(path: p as String))
+                        .map(
+                          (p) => BookingPhoto(
+                            path: p as String,
+                            loader: photoLoader,
+                          ),
+                        )
                         .toList(),
                   ),
                   const SizedBox(height: 10),
@@ -97,18 +152,29 @@ class BookingLoadSummary extends StatelessWidget {
 }
 
 class BookingPhoto extends StatefulWidget {
-  const BookingPhoto({super.key, required this.path});
+  const BookingPhoto({super.key, required this.path, this.loader});
   final String path;
+  final BookingPhotoLoader? loader;
   @override
   State<BookingPhoto> createState() => _BookingPhotoState();
 }
 
 class _BookingPhotoState extends State<BookingPhoto> {
-  late final Future<Uint8List?> _bytes = FirebaseStorage.instance
-      .ref(widget.path)
-      .getData(5 * 1024 * 1024);
+  Future<Uint8List?> _load() => widget.loader != null
+      ? widget.loader!(widget.path)
+      : FirebaseStorage.instance.ref(widget.path).getData(5 * 1024 * 1024);
+  late Future<Uint8List?> _bytes = _load();
+  @override
+  void didUpdateWidget(covariant BookingPhoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path || oldWidget.loader != widget.loader) {
+      _bytes = _load();
+    }
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<Uint8List?>(
+    key: ValueKey((widget.path, widget.loader)),
     future: _bytes,
     builder: (context, snapshot) => SizedBox(
       width: 120,
