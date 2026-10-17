@@ -494,11 +494,6 @@ class AppStrings {
       'en': 'Unloading assistance needed',
       'es': 'Ayuda de descarga necesaria',
     },
-    'delivery_item_heavy': {
-      'fr': 'Objet lourd (+50 kg)',
-      'en': 'Heavy item (50+ kg)',
-      'es': 'Objeto pesado (+50 kg)',
-    },
     'delivery_item_bulky': {
       'fr': 'Objet volumineux',
       'en': 'Bulky item',

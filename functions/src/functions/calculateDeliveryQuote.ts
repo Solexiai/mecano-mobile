@@ -128,6 +128,9 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     const rollout = await db.doc('system_config/booking_capacity').get();
     if (rollout.data()?.require_booking_details === true) throw failedPrecondition('Actualisez votre application pour décrire les objets à transporter.');
   }
+  // Owner-approved retirement (2026-10-17): new quotes never charge the heavy-item option.
+  // Keep historical pricing versions and locked quotes unchanged.
+  input.handling = { ...input.handling, isHeavyItem: false };
   if (!input.vehicleCategory) throw invalidArgument("vehicleCategory est requis.");
   if (!Array.isArray(input.stops) || input.stops.length < 2) {
     throw invalidArgument("Au moins 2 arrêts géocodés sont requis pour calculer le devis.");

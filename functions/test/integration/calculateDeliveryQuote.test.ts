@@ -219,3 +219,26 @@ describe("calculateDeliveryQuote — résolution SERVEUR du code promo (jamais u
     expect(result.customerTotal).toBe(withoutPromo.customerTotal);
   });
 });
+
+// Owner decision 2026-10-17: heavy-item surcharge retired for newly issued quotes only.
+describe('retired heavy-item option', () => {
+ afterEach(cleanup);
+ it('ignores legacy client heavy flag while preserving other fees and existing quotes', async () => {
+  await seedActivePricing();
+  const version=db.collection('pricing_versions').doc(PRICING_VERSION);
+  await version.update({'handling_fees.heavy_item_fee':10,'handling_fees.loading_fee':7});
+  const originalConfig=(await version.get()).data();
+  const legacyRef=db.collection('delivery_quotes').doc('historical-heavy-test');
+  const legacy={customer_id:CUSTOMER_ID,customer_total_minor:12345,pricing_snapshot:{handling:{isHeavyItem:true}},integrity_hash:'historical-unchanged'};
+  await legacyRef.set(legacy);
+  const ordinary=await calculateDeliveryQuote.run(buildRequest(CUSTOMER_ID,{...baseInput,handling:{needsLoading:true}}));
+  const heavy=await calculateDeliveryQuote.run(buildRequest(CUSTOMER_ID,{...baseInput,handling:{needsLoading:true,isHeavyItem:true}}));
+  expect(heavy.customerTotal).toBe(ordinary.customerTotal);
+  expect(heavy.breakdown.handlingFeesTotal).toBe(7);
+  const quote=(await db.collection('delivery_quotes').doc(heavy.quoteId).get()).data()!;
+  expect(quote.pricing_snapshot.handling.isHeavyItem).toBe(false);
+  expect(quote.customer_total_minor).toBe(Math.round(heavy.customerTotal*100));
+  expect((await version.get()).data()).toEqual(originalConfig);
+  expect((await legacyRef.get()).data()).toEqual(legacy);
+ });
+});

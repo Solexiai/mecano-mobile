@@ -23,7 +23,8 @@ export interface Capacity {
 }
 export interface BookingRules {
   approved: boolean; version: string; capacities: Capacity[];
-  heavy_item_kg: number; bulky_item_cm: number;
+  /** Legacy fee threshold retained for document compatibility; no longer required. */
+  heavy_item_kg?: number; bulky_item_cm: number;
 }
 export interface BookingSnapshot {
   load: BookingLoad; rules_version: string; category: string; capacity_version: string;
@@ -134,7 +135,7 @@ export function recommend(load: BookingLoad, rules: BookingRules) {
   if (load.items.some(i => i.approximate)) reasons.push('approximate_measurements');
   if (load.timing_mode !== 'immediate' && !load.requested_at) reasons.push('requested_time_missing');
   if (!rules?.approved || !rules.version || !Array.isArray(rules.capacities) || !rules.capacities.some(validCapacity) ||
-    !(rules.heavy_item_kg > 0) || !(rules.bulky_item_cm > 0)) reasons.push('capacity_unconfigured');
+    !(rules.bulky_item_cm > 0)) reasons.push('capacity_unconfigured');
   const compatible = reasons.length ? [] : rules.capacities.filter(c => fitsVehicle(load, c)).sort((a,b) => a.rank-b.rank || a.category.localeCompare(b.category));
   if (!reasons.length && !compatible.length) reasons.push('no_verified_fit');
   const selected = compatible[0];
@@ -143,7 +144,7 @@ export function recommend(load: BookingLoad, rules: BookingRules) {
     snapshot: selected ? { load, rules_version: rules.version, category: selected.category, capacity_version: selected.version } as BookingSnapshot : null };
 }
 export function bookingHandling(load: BookingLoad, rules: BookingRules) {
-  return { needsLoading: load.pickup.help, needsUnloading: load.dropoff.help, isHeavyItem: load.items.some(i => (i.weight_kg ?? 0) >= rules.heavy_item_kg),
+  return { needsLoading: load.pickup.help, needsUnloading: load.dropoff.help, isHeavyItem: false,
     isBulkyItem: load.items.some(i => Math.max(i.length_cm ?? 0, i.width_cm ?? 0, i.height_cm ?? 0) >= rules.bulky_item_cm),
     needsStairs: load.pickup.stairs || load.dropoff.stairs,
     noElevator: (load.pickup.stairs && !load.pickup.elevator) || (load.dropoff.stairs && !load.dropoff.elevator),
