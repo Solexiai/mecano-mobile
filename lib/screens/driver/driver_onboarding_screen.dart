@@ -64,7 +64,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   double _radiusKm = 25;
   final Set<String> _languages = {'fr'};
   final Set<String> _acceptedItemKeys = {};
-  bool _loadingAssistance = false;
+  int _maxLoadingTeamSize = 1;
 
   Uint8List? _vehiclePhotoBytes;
   String? _vehiclePhotoName;
@@ -592,16 +592,32 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             }).toList(),
           ),
           const SizedBox(height: 18),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.fitness_center_outlined),
-            title: Text(
-              t('driver_onboarding_loading_assistance'),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          Text(
+            _copy('loading_team_title'),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(_copy('loading_team_help')),
+          const SizedBox(height: 8),
+          RadioGroup<int>(
+            groupValue: _maxLoadingTeamSize,
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _maxLoadingTeamSize = value);
+              }
+            },
+            child: Column(
+              children: [
+                for (var size = 1; size <= 5; size++)
+                  RadioListTile<int>(
+                    key: ValueKey('driver-loading-team-$size'),
+                    contentPadding: EdgeInsets.zero,
+                    value: size,
+                    activeColor: AppColors.primary,
+                    title: Text(_copy('loading_team_$size')),
+                  ),
+              ],
             ),
-            value: _loadingAssistance,
-            activeThumbColor: AppColors.primary,
-            onChanged: (value) => setState(() => _loadingAssistance = value),
           ),
           const SizedBox(height: 18),
           _InfoPanel(
@@ -835,7 +851,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         baseLat: address.lat,
         baseLng: address.lng,
         spokenLanguages: languages,
-        loadingAssistanceAvailable: _loadingAssistance,
+        // The driver participates, including when no additional helper is available.
+        loadingAssistanceAvailable: true,
+        maxLoadingTeamSize: _maxLoadingTeamSize,
         status: DriverStatus.registrationIncomplete,
         serviceRadiusKm: _radiusKm,
         acceptedVehicleCategories: [category],
