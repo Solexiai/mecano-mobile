@@ -340,137 +340,138 @@ class PhotoBookingItem extends StatelessWidget {
                 onChanged();
               },
             ),
-            ExpansionTile(
-              key: ValueKey(
-                'photo-measures-${item['id']}-$special-$needsDetails',
-              ),
-              initiallyExpanded: needsDetails,
-              tilePadding: EdgeInsets.zero,
-              title: Text(
-                special
-                    ? tr(
-                        'Précisions sur l’objet',
-                        'Item details',
-                        'Detalles del objeto',
-                      )
-                    : tr(
-                        'Dimensions et précautions (facultatif)',
-                        'Dimensions and handling (optional)',
-                        'Dimensiones y cuidados (opcional)',
-                      ),
-              ),
-              children: [
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    tr(
-                      'Objet particulier ou hors dimensions',
-                      'Special or oversized item',
-                      'Objeto especial o de gran tamaño',
-                    ),
-                  ),
-                  value: item['special_handling'] == true,
-                  onChanged: (v) {
-                    item['special_handling'] = v == true;
-                    item['identification_confirmed'] = false;
-                    onChanged();
-                  },
+            if (special)
+              ExpansionTile(
+                key: ValueKey(
+                  'photo-measures-${item['id']}-$special-$needsDetails',
                 ),
-                if (special)
-                  Text(
-                    tr(
-                      'Pour cet objet, précisez les dimensions et la manutention. Le poids peut rester inconnu.',
-                      'For this item, add dimensions and handling details. Weight may remain unknown.',
-                      'Para este objeto, indica dimensiones y manipulación. El peso puede ser desconocido.',
-                    ),
-                  ),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    measure(
-                      'length',
-                      tr('Longueur', 'Length', 'Largo'),
-                      item['dimension_unit'] as String,
-                    ),
-                    measure(
-                      'width',
-                      tr('Largeur', 'Width', 'Ancho'),
-                      item['dimension_unit'] as String,
-                    ),
-                    measure(
-                      'height',
-                      tr('Hauteur', 'Height', 'Alto'),
-                      item['dimension_unit'] as String,
-                    ),
-                    measure(
-                      'weight',
+                initiallyExpanded: needsDetails,
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  special
+                      ? tr(
+                          'Précisions sur l’objet',
+                          'Item details',
+                          'Detalles del objeto',
+                        )
+                      : tr(
+                          'Dimensions et précautions (facultatif)',
+                          'Dimensions and handling (optional)',
+                          'Dimensiones y cuidados (opcional)',
+                        ),
+                ),
+                children: [
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
                       tr(
-                        'Poids par objet',
-                        'Weight per item',
-                        'Peso por objeto',
+                        'Objet particulier ou hors dimensions',
+                        'Special or oversized item',
+                        'Objeto especial o de gran tamaño',
                       ),
-                      item['weight_unit'] as String,
                     ),
-                  ],
-                ),
-                if (special)
-                  TextFormField(
-                    key: ValueKey('photo-${item['id']}-handling-notes'),
-                    initialValue: item['handling_notes'] as String? ?? '',
-                    minLines: 2,
-                    maxLines: 5,
-                    maxLength: 1200,
-                    decoration: InputDecoration(
-                      labelText: tr(
-                        'Précautions de manutention',
-                        'Handling precautions',
-                        'Precauciones de manipulación',
-                      ),
-                      hintText: tr(
-                        'Fragile, pièces attachées… ou « Aucune ».',
-                        'Fragile, bundled parts… or “None”.',
-                        'Frágil, piezas atadas… o «Ninguna».',
-                      ),
-                      hintMaxLines: 3,
-                    ),
+                    value: item['special_handling'] == true,
                     onChanged: (v) {
-                      item['handling_notes'] = v;
+                      item['special_handling'] = v == true;
+                      item['identification_confirmed'] = false;
                       onChanged();
                     },
                   ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    tr(
-                      'Mesures approximatives',
-                      'Approximate measurements',
-                      'Medidas aproximadas',
+                  if (special)
+                    Text(
+                      tr(
+                        'Pour cet objet, précisez les dimensions et la manutention. Le poids peut rester inconnu.',
+                        'For this item, add dimensions and handling details. Weight may remain unknown.',
+                        'Para este objeto, indica dimensiones y manipulación. El peso puede ser desconocido.',
+                      ),
                     ),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: [
+                      measure(
+                        'length',
+                        tr('Longueur', 'Length', 'Largo'),
+                        item['dimension_unit'] as String,
+                      ),
+                      measure(
+                        'width',
+                        tr('Largeur', 'Width', 'Ancho'),
+                        item['dimension_unit'] as String,
+                      ),
+                      measure(
+                        'height',
+                        tr('Hauteur', 'Height', 'Alto'),
+                        item['dimension_unit'] as String,
+                      ),
+                      measure(
+                        'weight',
+                        tr(
+                          'Poids par objet',
+                          'Weight per item',
+                          'Peso por objeto',
+                        ),
+                        item['weight_unit'] as String,
+                      ),
+                    ],
                   ),
-                  value: item['approximate'] == true,
-                  onChanged: (v) {
-                    item['approximate'] = v == true;
-                    onChanged();
-                  },
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    tr(
-                      'Doit rester debout',
-                      'Must remain upright',
-                      'Debe permanecer vertical',
+                  if (special)
+                    TextFormField(
+                      key: ValueKey('photo-${item['id']}-handling-notes'),
+                      initialValue: item['handling_notes'] as String? ?? '',
+                      minLines: 2,
+                      maxLines: 5,
+                      maxLength: 1200,
+                      decoration: InputDecoration(
+                        labelText: tr(
+                          'Précautions de manutention',
+                          'Handling precautions',
+                          'Precauciones de manipulación',
+                        ),
+                        hintText: tr(
+                          'Fragile, pièces attachées… ou « Aucune ».',
+                          'Fragile, bundled parts… or “None”.',
+                          'Frágil, piezas atadas… o «Ninguna».',
+                        ),
+                        hintMaxLines: 3,
+                      ),
+                      onChanged: (v) {
+                        item['handling_notes'] = v;
+                        onChanged();
+                      },
                     ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      tr(
+                        'Mesures approximatives',
+                        'Approximate measurements',
+                        'Medidas aproximadas',
+                      ),
+                    ),
+                    value: item['approximate'] == true,
+                    onChanged: (v) {
+                      item['approximate'] = v == true;
+                      onChanged();
+                    },
                   ),
-                  value: item['upright'] == true,
-                  onChanged: (v) {
-                    item['upright'] = v == true;
-                    onChanged();
-                  },
-                ),
-              ],
-            ),
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      tr(
+                        'Doit rester debout',
+                        'Must remain upright',
+                        'Debe permanecer vertical',
+                      ),
+                    ),
+                    value: item['upright'] == true,
+                    onChanged: (v) {
+                      item['upright'] = v == true;
+                      onChanged();
+                    },
+                  ),
+                ],
+              ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(

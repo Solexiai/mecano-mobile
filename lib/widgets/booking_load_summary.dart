@@ -1,3 +1,4 @@
+import 'booking_access_section.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -125,8 +126,71 @@ class BookingLoadSummary extends StatelessWidget {
                       ? tr('Ramassage', 'Pickup', 'Recogida')
                       : tr('Livraison', 'Delivery', 'Entrega'),
                 ),
-                subtitle: Text(
-                  '${tr('Étage', 'Floor', 'Piso')}: ${a['floor']} · ${tr('Escaliers', 'Stairs', 'Escaleras')}: ${a['stairs'] == true ? tr('Oui', 'Yes', 'Sí') : tr('Non', 'No', 'No')} · ${tr('Ascenseur', 'Elevator', 'Ascensor')}: ${a['elevator'] == true ? tr('Oui', 'Yes', 'Sí') : tr('Non', 'No', 'No')} · ${tr('Aide', 'Help', 'Ayuda')}: ${a['help'] == true ? tr('Oui', 'Yes', 'Sí') : tr('Non', 'No', 'No')}',
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(accessSummary(a, locale)),
+                    Text(
+                      a['help'] == true
+                          ? tr(
+                              'Avec aide Movi-K',
+                              'With Movi-K help',
+                              'Con ayuda Movi-K',
+                            )
+                          : a['help'] == false
+                          ? tr(
+                              'Sans aide Movi-K',
+                              'Without Movi-K help',
+                              'Sin ayuda Movi-K',
+                            )
+                          : tr(
+                              'Aide Movi-K à préciser',
+                              'Movi-K help to specify',
+                              'Ayuda Movi-K por precisar',
+                            ),
+                    ),
+                    if (a['help'] == true)
+                      Text(
+                        tr(
+                              'Aide pour soulever sur place : ',
+                              'On-site lifting help: ',
+                              'Ayuda para levantar en el lugar: ',
+                            ) +
+                            (a['onsite_help'] == 'yes'
+                                ? tr('Oui', 'Yes', 'Sí')
+                                : a['onsite_help'] == 'no'
+                                ? tr('Non', 'No', 'No')
+                                : tr(
+                                    'À confirmer',
+                                    'To confirm',
+                                    'Por confirmar',
+                                  )),
+                      ),
+                    if (a['inside'] is bool)
+                      Text(
+                        tr(
+                              'Déplacement à l’intérieur : ',
+                              'Indoor movement: ',
+                              'Traslado en el interior: ',
+                            ) +
+                            (a['inside'] == true
+                                ? tr('Oui', 'Yes', 'Sí')
+                                : tr('Non', 'No', 'No')),
+                      ),
+                    if (a['help'] == false &&
+                        a['inside'] == true &&
+                        a['customer_handles_inside'] == true)
+                      Text(
+                        tr(
+                          'Déplacement organisé par le client.',
+                          'Movement arranged by the customer.',
+                          'Traslado organizado por el cliente.',
+                        ),
+                      ),
+                    if (a['notes'] is String &&
+                        (a['notes'] as String).trim().isNotEmpty)
+                      Text(a['notes'] as String),
+                  ],
                 ),
               );
             },

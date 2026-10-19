@@ -1,3 +1,4 @@
+import '../../widgets/booking_access_section.dart';
 import '../../finance/presentation/money_format.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -565,6 +566,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'reasons': ['object_confirmation_required'],
         };
       });
+      return;
+    }
+    if (![
+      'pickup_access',
+      'dropoff_access',
+    ].every((key) => accessAnswersComplete(_draft.data[key] as Map))) {
+      setState(() {
+        _message = tr(
+          'Précisez l’aide et les accès au ramassage et à la livraison pour obtenir votre prix. Votre brouillon est conservé.',
+          'Complete help and access details at pickup and delivery to get your price. Your draft is saved.',
+          'Completa la ayuda y los accesos de recogida y entrega para obtener tu precio. Tu borrador está guardado.',
+        );
+        _draft.step = 0;
+      });
+      await _save();
       return;
     }
     final revision = _draft.revision, epoch = _epoch;
@@ -1705,6 +1721,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       AddressAutocompleteField(
         key: ValueKey('$key-${_draft.id}'),
         controller: controller,
+        resolvedText:
+            (_draft.data[key] as Map?)?['formatted_address'] as String?,
         label: label,
         onResolved: (a) {
           _draft.data[key] = {
@@ -1723,88 +1741,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           _changed();
         },
       ),
-      // A restored address must also be invalidated if the user types. The
-      // autocomplete field did not previously know its initial resolved text.
-      ExpansionTile(
+      BookingAccessSection(
         key: ValueKey('access-$key-${_draft.id}'),
-        tilePadding: EdgeInsets.zero,
-        title: Text(
-          tr(
-            'Accès et aide sur place',
-            'Access and help on site',
-            'Acceso y ayuda en el lugar',
-          ),
-        ),
-        subtitle: Text(
-          '${tr('Étage', 'Floor', 'Piso')} ${access['floor']} · ${access['help'] == true ? tr('aide prévue', 'help available', 'ayuda prevista') : tr('sans aide sur place', 'no help on site', 'sin ayuda en el lugar')}',
-        ),
-        children: [
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              SizedBox(
-                width: 150,
-                child: TextFormField(
-                  key: ValueKey('$key-floor-${_draft.id}'),
-                  initialValue: '${access['floor']}',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    signed: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: tr(
-                      'Étage (0 = sol)',
-                      'Floor (0 = ground)',
-                      'Piso (0 = calle)',
-                    ),
-                  ),
-                  onChanged: (v) {
-                    access['floor'] = int.tryParse(v) ?? -999;
-                    _changed();
-                  },
-                ),
-              ),
-              FilterChip(
-                label: Text(tr('Escaliers', 'Stairs', 'Escaleras')),
-                selected: access['stairs'] == true,
-                onSelected: (v) {
-                  access['stairs'] = v;
-                  _changed();
-                },
-              ),
-              FilterChip(
-                label: Text(tr('Ascenseur', 'Elevator', 'Ascensor')),
-                selected: access['elevator'] == true,
-                onSelected: (v) {
-                  access['elevator'] = v;
-                  _changed();
-                },
-              ),
-            ],
-          ),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              key == 'pickup'
-                  ? tr(
-                      'Aide au chargement',
-                      'Loading help',
-                      'Ayuda para cargar',
-                    )
-                  : tr(
-                      'Aide au déchargement',
-                      'Unloading help',
-                      'Ayuda para descargar',
-                    ),
-            ),
-            value: access['help'] as bool,
-            onChanged: (v) {
-              access['help'] = v;
-              _changed();
-            },
-          ),
-        ],
+        access: access,
+        pickup: key == 'pickup',
+        locale: widget.locale,
+        onChanged: _changed,
       ),
     ];
   }

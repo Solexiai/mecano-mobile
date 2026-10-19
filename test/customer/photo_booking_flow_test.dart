@@ -68,7 +68,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Divan / sofa / sectionnel').last);
       await tester.pumpAndSettle();
-      await tapBooking(tester, 'Dimensions et précautions (facultatif)');
+      expect(find.text('Dimensions et précautions (facultatif)'), findsNothing);
       final label = find.byKey(ValueKey('photo-label-$id'));
       await tester.ensureVisible(label);
       await tester.enterText(label, 'Canapé fictif');

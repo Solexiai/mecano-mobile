@@ -12,7 +12,12 @@ export interface CargoItem {
   identification_confirmed?: boolean; special_handling?: boolean;
   handling_notes?: string;
 }
-export interface Access { floor: number; stairs: boolean; elevator: boolean; help: boolean }
+export interface Access {
+  floor: number; stairs: boolean; elevator: boolean; help: boolean;
+  details_version?: 1; confirmed_fields?: string[];
+  onsite_help?: 'yes' | 'no' | 'unknown' | null;
+  inside?: boolean; customer_handles_inside?: boolean; notes?: string;
+}
 export interface BookingLoad {
   schema_version: 1; draft_id: string; items: CargoItem[]; pickup: Access; dropoff: Access;
   handlers: number; equipment: string[]; requested_at: string | null;
@@ -64,7 +69,26 @@ function bool(v: unknown): boolean {
 }
 function access(v: unknown): Access {
   const a = object(v);
-  return { floor: num(a.floor, -10, 200, true), stairs: bool(a.stairs), elevator: bool(a.elevator), help: bool(a.help) };
+  const result: Access = { floor: num(a.floor, -10, 200, true), stairs: bool(a.stairs), elevator: bool(a.elevator), help: bool(a.help) };
+  // Omitted on historical contracts: never rewrite a locked legacy snapshot.
+  if (a.details_version === undefined) return result;
+  if (a.details_version !== 1) throw invalidArgument('Version des réponses invalide.');
+  if (!Array.isArray(a.confirmed_fields) ||
+      !['floor','stairs','elevator'].every(k => (a.confirmed_fields as unknown[]).includes(k))) {
+    throw invalidArgument('Confirmez le niveau, les marches et l’ascenseur.');
+  }
+  const onsite = a.onsite_help;
+  if ((onsite != null && !['yes','no','unknown'].includes(onsite as string)) ||
+      (result.help && onsite == null)) throw invalidArgument('Précisez l’aide disponible sur place.');
+  const inside = bool(a.inside);
+  const customer = a.customer_handles_inside == null ? undefined : bool(a.customer_handles_inside);
+  if (!result.help && inside && customer !== true) {
+    throw invalidArgument('Précisez qui assure le déplacement entre l’intérieur et le véhicule.');
+  }
+  return {...result, details_version: 1, confirmed_fields: ['floor','stairs','elevator'],
+    onsite_help: onsite == null ? null : onsite as 'yes' | 'no' | 'unknown',
+    inside, ...(customer === undefined ? {} : {customer_handles_inside: customer}),
+    ...(a.notes == null ? {} : {notes: str(a.notes,1200,false)})};
 }
 export function normalizeLoad(raw: unknown): BookingLoad {
   const v = object(raw);

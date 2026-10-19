@@ -35,7 +35,14 @@ import '../services/address/address_autocomplete_provider.dart';
 import '../services/address/address_backend_locator.dart';
 import '../services/address/address_suggestion.dart';
 
-enum _SuggestionStatus { idle, loading, results, noResults, unavailable, resolving }
+enum _SuggestionStatus {
+  idle,
+  loading,
+  results,
+  noResults,
+  unavailable,
+  resolving,
+}
 
 class AddressAutocompleteField extends StatefulWidget {
   final TextEditingController controller;
@@ -54,6 +61,7 @@ class AddressAutocompleteField extends StatefulWidget {
   final AddressAutocompleteProvider? provider;
 
   final Duration debounceDuration;
+  final String? resolvedText;
 
   const AddressAutocompleteField({
     super.key,
@@ -62,11 +70,13 @@ class AddressAutocompleteField extends StatefulWidget {
     required this.onResolved,
     required this.onInvalidated,
     this.provider,
+    this.resolvedText,
     this.debounceDuration = const Duration(milliseconds: 350),
   });
 
   @override
-  State<AddressAutocompleteField> createState() => _AddressAutocompleteFieldState();
+  State<AddressAutocompleteField> createState() =>
+      _AddressAutocompleteFieldState();
 }
 
 class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
@@ -86,6 +96,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   @override
   void initState() {
     super.initState();
+    _lastResolvedText = widget.resolvedText == widget.controller.text
+        ? widget.resolvedText
+        : null;
     widget.controller.addListener(_onTextChanged);
   }
 
@@ -134,7 +147,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       if (!mounted) return;
       setState(() {
         _suggestions = results;
-        _status = results.isEmpty ? _SuggestionStatus.noResults : _SuggestionStatus.results;
+        _status = results.isEmpty
+            ? _SuggestionStatus.noResults
+            : _SuggestionStatus.results;
       });
     } on AddressProviderUnavailableException {
       if (!mounted) return;
@@ -157,7 +172,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       _suggestions = const [];
     });
     try {
-      final resolved = await _effectiveProvider.resolvePlace(suggestion.placeId);
+      final resolved = await _effectiveProvider.resolvePlace(
+        suggestion.placeId,
+      );
       if (!mounted) return;
       // IMPORTANT : positionner `_lastResolvedText` AVANT d'assigner
       // `controller.text` — l'assignation notifie les listeners de façon
@@ -188,9 +205,13 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           controller: widget.controller,
           decoration: InputDecoration(
             labelText: widget.label,
-            helperText: _lastResolvedText == null ? t('delivery_address_guidance') : null,
+            helperText: _lastResolvedText == null
+                ? t('delivery_address_guidance')
+                : null,
             helperMaxLines: 2,
-            suffixIcon: _status == _SuggestionStatus.loading || _status == _SuggestionStatus.resolving
+            suffixIcon:
+                _status == _SuggestionStatus.loading ||
+                    _status == _SuggestionStatus.resolving
                 ? const Padding(
                     padding: EdgeInsets.all(12),
                     child: SizedBox(
@@ -200,8 +221,12 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                     ),
                   )
                 : (_lastResolvedText != null
-                    ? const Icon(Icons.check_circle, color: AppColors.success, size: 20)
-                    : null),
+                      ? const Icon(
+                          Icons.check_circle,
+                          color: AppColors.success,
+                          size: 20,
+                        )
+                      : null),
           ),
         ),
         if (_status == _SuggestionStatus.noResults)
@@ -209,7 +234,10 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(
               t('delivery_address_no_suggestions'),
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
         if (_status == _SuggestionStatus.unavailable)
@@ -236,8 +264,15 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                 final suggestion = _suggestions[index];
                 return ListTile(
                   dense: true,
-                  leading: const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
-                  title: Text(suggestion.description, style: const TextStyle(fontSize: 13.5)),
+                  leading: const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(
+                    suggestion.description,
+                    style: const TextStyle(fontSize: 13.5),
+                  ),
                   onTap: () => _selectSuggestion(suggestion),
                 );
               },

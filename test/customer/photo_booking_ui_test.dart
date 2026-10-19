@@ -13,10 +13,7 @@ void main() {
       draft.items.first['special_handling'] = false;
       final storage = MemoryBookingStorage(draft);
       await pumpBooking(tester, storage: storage, api: TestBookingApi());
-      expect(
-        find.text('Dimensions et précautions (facultatif)'),
-        findsOneWidget,
-      );
+      expect(find.text('Dimensions et précautions (facultatif)'), findsNothing);
       expect(
         find.byKey(const ValueKey('photo-confirm-test-item')),
         findsOneWidget,

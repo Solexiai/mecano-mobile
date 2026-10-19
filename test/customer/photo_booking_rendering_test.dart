@@ -102,7 +102,7 @@ void main() {
             );
             await tester.pumpAndSettle();
             expect(find.byType(Image), findsWidgets);
-            expect(find.text(labels[locale]!), findsOneWidget);
+            expect(find.text(labels[locale]!), findsNothing);
             final confirmation = find.byKey(
               const ValueKey('photo-confirm-test-item'),
             );
@@ -111,15 +111,11 @@ void main() {
             await tester.pumpAndSettle();
             expect(value['identification_confirmed'], isTrue);
             expect(changes, 1);
-            await tester.ensureVisible(find.text(labels[locale]!));
-            await tester.tap(find.text(labels[locale]!));
-            await tester.pumpAndSettle();
-            final field = find.byKey(const ValueKey('photo-test-item-length'));
-            await tester.ensureVisible(field);
-            await tester.enterText(field, '123,5');
-            await tester.pumpAndSettle();
-            expect(value['length'], 123.5);
-            expect(value['weight'], isNull);
+            expect(
+              find.byKey(const ValueKey('photo-test-item-length')),
+              findsNothing,
+            );
+            expect(value['length'], isNull);
             await tester.ensureVisible(find.byType(BookingLoadSummary));
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);

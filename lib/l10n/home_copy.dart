@@ -36,9 +36,9 @@ abstract final class HomeCopy {
           'Muebles, electrodomésticos, cajas, compras de Marketplace y pequeñas mudanzas: describe tu proyecto y el trayecto para preparar un presupuesto.',
     },
     'quote': {
-      'fr': 'Obtenir mon devis',
-      'en': 'Get my quote',
-      'es': 'Obtener presupuesto',
+      'fr': 'Obtenir mon prix',
+      'en': 'Get my price',
+      'es': 'Obtener mi precio',
     },
     'quote_note': {
       'fr':

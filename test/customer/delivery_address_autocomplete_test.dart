@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/services/address/address_backend_locator.dart';
@@ -146,25 +147,48 @@ void main() {
           'es': 'Dirección de recogida',
         }[locale],
       );
-      expect(find.byType(ChoiceChip), findsNWidgets(4));
+      for (final title in {
+        'fr': [
+          'Ma livraison',
+          'Mon prix',
+          'Mes coordonnées',
+          'Confirmation et paiement',
+        ],
+        'en': [
+          'My delivery',
+          'My price',
+          'My details',
+          'Confirmation and payment',
+        ],
+        'es': ['Mi entrega', 'Mi precio', 'Mis datos', 'Confirmación y pago'],
+      }[locale]!) {
+        expect(find.textContaining(title), findsWidgets);
+      }
       await disposeBooking(t);
     });
   }
-  testWidgets('Unknown dimensions direct to review, never quote creation', (
-    t,
-  ) async {
-    final api = TestBookingApi()..reasons = ['dimensions_unknown'];
-    await pumpBooking(
-      t,
-      storage: MemoryBookingStorage(testDraft(step: 1)),
-      api: api,
-    );
-    await tapBooking(t, 'Calculer mon devis officiel');
-    expect(
-      find.textContaining('Complétez les trois dimensions'),
-      findsOneWidget,
-    );
-    expect(api.calls, isNot(contains('calculateDeliveryQuote')));
-    await disposeBooking(t);
-  });
+  testWidgets(
+    'Server refusal directs to details and never fabricates an official quote',
+    (t) async {
+      final api = TestBookingApi()
+        ..quoteError = FirebaseFunctionsException(
+          code: 'failed-precondition',
+          message: 'Synthetic refusal',
+          details: {'quote_reason': 'dimensions_unknown'},
+        );
+      await pumpBooking(
+        t,
+        storage: MemoryBookingStorage(testDraft(step: 1)),
+        api: api,
+      );
+      await tapBooking(t, 'Calculer mon devis officiel');
+      expect(
+        find.textContaining('Complétez les trois dimensions'),
+        findsOneWidget,
+      );
+      expect(api.calls, contains('calculateDeliveryQuote'));
+      expect(find.text('123,45\u00a0\$ CA'), findsNothing);
+      await disposeBooking(t);
+    },
+  );
 }
