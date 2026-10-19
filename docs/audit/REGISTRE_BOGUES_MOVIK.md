@@ -5039,3 +5039,8 @@ Approbation explicite du propriétaire à 15:46 Toronto : livraison non réalis�
 
 ### Prépublication activité chauffeurs — 2026-10-19
 Autorisation utilisateur : « pousse le ». Le contrôle de la version Firebase publiée a révélé des protections supplémentaires sur driver_vehicles (identité et revue de capacité réservées, caractéristiques d’un véhicule vérifié non modifiables par son propriétaire). Ces protections existantes sont conservées dans la branche avant publication des règles de présence, des avis et des constats administratifs. Aucune règle financière modifiée. Preuves : artifacts/admin-driver-activity-release-20261019/. Aucun ancien incident fermé par ce contrôle.
+
+
+### Publication activité chauffeurs et constats administratifs — 2026-10-19T20:07:31.706Z
+Source : 3763edfb6cdf7d3cb9dea0d814cc48b17210cbdb ; branche feat/admin-driver-activity-20261019. Vercel : dpl_F9g1fAHbU5xn7rcv8yp34uofFoQf. Empreinte main.dart.js : 814698fc8a4c43e3ea433a92b8fe6253ce01fe22fa816fda7d2d002ae7da1cf6. Les deux domaines publics servent le bundle attendu ; /fr/admin répond HTTP 200. Fonctions getAdminDriverActivity et reviewMissionFailure ACTIVE, accès non authentifié refusé (401). Règles publiées vérifiées égales au fichier local, avec conservation des protections préexistantes des véhicules vérifiés.
+Validation locale antérieure : 38 tests Flutter et 54 tests serveur simulés ; contrôle complémentaire des règles fusionnées : 14 tests réussis en émulateur. Build production réussi. Aucune mission ni aucun paiement réel créé, aucun constat administratif réel enregistré. Parcours privé administrateur et présence multi-appareils non validés en production authentifiée. Aucun ancien bogue fermé. Preuves : artifacts/admin-driver-activity-release-20261019/.
