@@ -1,0 +1,9 @@
+# Bloc admin À traiter — 19 octobre 2026
+
+Base : cd9928ff39513776d8bb0ce28a52d67ee1492bd7. Branche isolée feat/admin-action-center-20261019.
+
+Quatre cartes au-dessus des statistiques : pending_review, documents_required, missions searching_driver/offered (avant assignation confirmée), litiges opened/under_review. Les liens ouvrent les filtres correspondants. Les requêtes restent en lecture seule ; accès analyste ou supérieur conservé. Les compteurs manquants ne deviennent pas zéro ; anciens serveurs détectés pour le compteur litiges via actionCountsVersion. Navigation conservée lors du chargement ou échec des statistiques. Actualisation attend le résultat et ne retourne pas de Future depuis setState.
+
+Reproduction serveur : deux échecs initiaux (compteurs absents ; 6 litiges comptés au lieu de 2 dans les fixtures), un succès de garde accès. Après correction : 3/3 tests serveur simulés. Flutter : 32 scénarios distincts réussis dans leurs dernières exécutions (16 ciblés + 16 non-régression finances/fenêtres chauffeur), aucun ignoré ni échec final. Échecs intermédiaires préservés : défilement du test puis assertion setState/Future ; corrigés sans masquer les assertions. Mobile 375 et desktop 1440, FR/EN/ES à 200 %, quatre destinations, clavier, chargement, erreur/reprise et filtre litiges couverts par widgets simulés. Analyse Flutter complète, TypeScript sans émission, lint source ciblé, diff check et build Web validés. Journaux : artifacts/admin-action-center-20261019/.
+
+Aucune validation connectée en production de ces changements ; aucun déploiement, push, fusion, paiement ou écriture de dossier réel. Publication Web ET getAdminDashboardMetrics à autoriser avant mise en ligne. Les tarifs, paiements et autres chantiers ne sont pas modifiés. Le build local sert de preuve de compilation et ne constitue pas un paquet de production configuré.

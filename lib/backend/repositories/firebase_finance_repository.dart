@@ -387,11 +387,14 @@ class FirebaseFinanceRepository implements FinanceRepository {
 
   @override
   Stream<List<DisputeInfo>> watchDisputes({
+    bool openOnly = false,
     DisputeStatus? status,
     int limit = 50,
   }) {
     Query<Map<String, dynamic>> q = _disputes;
-    if (status != null) {
+    if (openOnly) {
+      q = q.where('status', whereIn: ['opened', 'under_review']).limit(limit);
+    } else if (status != null) {
       q = q.where('status', isEqualTo: status.firestoreValue).limit(limit);
     } else {
       q = q.orderBy('created_at', descending: true).limit(limit);

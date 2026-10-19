@@ -5019,3 +5019,7 @@ Preuves : artifacts/draft-preparation-20261016-1910/CHECKPOINT_PREPARATION_20261
 ## Décision du 17 octobre 2026 — retrait de l’option objet lourd
 
 Le propriétaire demande puis confirme la suppression du supplément de 10 CAD pour les nouveaux devis et autorise le push Git. Correction locale validée : nouveaux devis neutralisent le flag lourd, seuil tarifaire lourd retiré des prérequis ; autres frais et contrôles physiques préservés. Devis historiques, versions tarifaires stockées et moteur historique inchangés. Aucune nouvelle confirmation client « lourd » ajoutée. Décision commerciale antérieure sur poids inconnu résolue par suppression du supplément. Les autres prérequis restent bloquants ; aucune fermeture. Voir docs/audit/RETRAIT_OPTION_LOURD_20261017.md pour preuves et portée du commit. Aucun déploiement ni paiement réel.
+
+
+### 2026-10-19 — Bloc admin À traiter (validation locale)
+Ajout des quatre files cliquables et compteurs serveur distincts. Correction du comptage des litiges terminés et du rafraîchissement setState/Future ; navigation disponible même si les statistiques échouent. 32 tests Flutter distincts et 3 tests serveur simulés réussis, analyse/build Web/TypeScript/lint/diff check validés. Preuves et limites : docs/audit/ADMIN_ACTION_CENTER_20261019.md. Non déployé ; aucun ancien blocage fermé et aucun décompte historique révisé.

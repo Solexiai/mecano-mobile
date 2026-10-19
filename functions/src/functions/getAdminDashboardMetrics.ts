@@ -29,6 +29,9 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
     customers,
     drivers,
     pendingDrivers,
+    pendingReviewDrivers,
+    documentsRequiredDrivers,
+    unassignedMissions,
     activeMissions,
     completedMissions,
     payments,
@@ -40,6 +43,9 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
       .where("status", "in", PENDING_DRIVER_STATUSES)
       .count()
       .get(),
+    db.collection("driver_profiles").where("status", "==", "pending_review").count().get(),
+    db.collection("driver_profiles").where("status", "==", "documents_required").count().get(),
+    db.collection("delivery_requests").where("status", "in", ["searching_driver", "offered"]).count().get(),
     db.collection("delivery_requests")
       .where("status", "in", ACTIVE_MISSION_STATUSES)
       .count()
@@ -49,17 +55,19 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
       .count()
       .get(),
     db.collection("payments").count().get(),
-    db.collection("disputes").get(),
+    db.collection("disputes").where("status", "in", ["opened", "under_review"]).count().get(),
   ]);
 
-  const openDisputes = disputes.docs.filter(
-    (document) => document.data().status !== "resolved"
-  ).length;
+  const openDisputes = disputes.data().count;
 
   return {
+    actionCountsVersion: 1,
     customers: customers.data().count,
     drivers: drivers.data().count,
     pendingDrivers: pendingDrivers.data().count,
+    pendingReviewDrivers: pendingReviewDrivers.data().count,
+    documentsRequiredDrivers: documentsRequiredDrivers.data().count,
+    unassignedMissions: unassignedMissions.data().count,
     activeMissions: activeMissions.data().count,
     completedMissions: completedMissions.data().count,
     payments: payments.data().count,

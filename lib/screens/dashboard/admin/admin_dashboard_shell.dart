@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/app_colors.dart';
+import 'admin_action_center.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
 
 class AdminDashboardShell extends StatefulWidget {
-  const AdminDashboardShell({super.key});
+  const AdminDashboardShell({super.key, this.metricsLoader});
+  final Future<Map<String, dynamic>> Function()? metricsLoader;
 
   @override
   State<AdminDashboardShell> createState() => _AdminDashboardShellState();
@@ -23,7 +25,17 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
     _metrics = _loadMetrics();
   }
 
-  void _refresh() => setState(() => _metrics = _loadMetrics());
+  Future<void> _refresh() async {
+    final next = _loadMetrics();
+    setState(() {
+      _metrics = next;
+    });
+    try {
+      await next;
+    } catch (_) {
+      /* FutureBuilder displays the error. */
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,16 +71,11 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
         child: FutureBuilder<_AdminMetrics>(
           future: _metrics,
           builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return ListView(
-                children: [_ErrorPanel(onRetry: _refresh, isFrench: isFrench)],
-              );
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
             return _DashboardBody(
-              metrics: snapshot.data!,
+              metrics: snapshot.hasError ? null : snapshot.data,
+              loading: snapshot.connectionState == ConnectionState.waiting,
+              hasError: snapshot.hasError,
+              onRetry: _refresh,
               locale: locale,
               isFrench: isFrench,
             );
@@ -79,11 +86,17 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
   }
 
   Future<_AdminMetrics> _loadMetrics() async {
-    final response = await FirebaseFunctions.instance
-        .httpsCallable('getAdminDashboardMetrics')
-        .call();
-    final data = Map<String, dynamic>.from(response.data as Map);
+    final Map<String, dynamic> data;
+    if (widget.metricsLoader != null) {
+      data = await widget.metricsLoader!();
+    } else {
+      final response = await FirebaseFunctions.instance
+          .httpsCallable('getAdminDashboardMetrics')
+          .call();
+      data = Map<String, dynamic>.from(response.data as Map);
+    }
     return _AdminMetrics(
+      actions: AdminActionCounts.fromJson(data),
       customers: _asInt(data['customers']),
       drivers: _asInt(data['drivers']),
       pendingDrivers: _asInt(data['pendingDrivers']),
@@ -100,11 +113,17 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
 class _DashboardBody extends StatelessWidget {
   const _DashboardBody({
     required this.metrics,
+    required this.loading,
+    required this.hasError,
+    required this.onRetry,
     required this.locale,
     required this.isFrench,
   });
 
-  final _AdminMetrics metrics;
+  final _AdminMetrics? metrics;
+  final bool loading;
+  final bool hasError;
+  final VoidCallback onRetry;
   final String locale;
   final bool isFrench;
 
@@ -120,49 +139,49 @@ class _DashboardBody extends StatelessWidget {
     final cards = [
       _Metric(
         'Clients',
-        metrics.customers,
+        metrics?.customers,
         Icons.people_outline,
         AppColors.primary,
         '/$locale/admin/utilisateurs?filter=customers',
       ),
       _Metric(
         isFrench ? 'Chauffeurs' : 'Drivers',
-        metrics.drivers,
+        metrics?.drivers,
         Icons.local_shipping_outlined,
         AppColors.success,
         '/$locale/admin/chauffeurs?filter=all',
       ),
       _Metric(
         isFrench ? 'Dossiers à traiter' : 'Applications to review',
-        metrics.pendingDrivers,
+        metrics?.pendingDrivers,
         Icons.fact_check_outlined,
         AppColors.warning,
         '/$locale/admin/chauffeurs?filter=pending',
       ),
       _Metric(
         isFrench ? 'Missions actives' : 'Active jobs',
-        metrics.activeMissions,
+        metrics?.activeMissions,
         Icons.route_outlined,
         AppColors.info,
         '/$locale/admin/missions?filter=active',
       ),
       _Metric(
         isFrench ? 'Missions terminées' : 'Completed jobs',
-        metrics.completedMissions,
+        metrics?.completedMissions,
         Icons.check_circle_outline,
         AppColors.success,
         '/$locale/admin/missions?filter=completed',
       ),
       _Metric(
         isFrench ? 'Paiements' : 'Payments',
-        metrics.payments,
+        metrics?.payments,
         Icons.payments_outlined,
         AppColors.primary,
         '/$locale/admin/paiements?section=payments',
       ),
       _Metric(
         isFrench ? 'Litiges ouverts' : 'Open disputes',
-        metrics.openDisputes,
+        metrics?.openDisputes,
         Icons.report_problem_outlined,
         AppColors.error,
         '/$locale/admin/paiements?section=disputes',
@@ -178,6 +197,13 @@ class _DashboardBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              AdminActionCenter(
+                counts: metrics?.actions,
+                locale: locale,
+                loading: loading,
+              ),
+              if (hasError) _ErrorPanel(onRetry: onRetry, isFrench: isFrench),
+              const SizedBox(height: 28),
               Text(
                 isFrench ? 'Vue d’ensemble' : 'Overview',
                 style: const TextStyle(
@@ -228,7 +254,7 @@ class _DashboardBody extends StatelessWidget {
                 subtitle: isFrench
                     ? 'Approuver, demander des documents, suspendre ou supprimer un dossier.'
                     : 'Approve, request documents, suspend or delete an application.',
-                badge: metrics.pendingDrivers,
+                badge: metrics?.pendingDrivers ?? 0,
                 onTap: () => context.go('/$locale/admin/chauffeurs'),
               ),
               _ActionCard(
@@ -237,7 +263,7 @@ class _DashboardBody extends StatelessWidget {
                 subtitle: isFrench
                     ? 'Paiements, remboursements, versements, litiges, taxes et réconciliation.'
                     : 'Payments, refunds, payouts, disputes, taxes and reconciliation.',
-                badge: metrics.openDisputes,
+                badge: metrics?.openDisputes ?? 0,
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
             ],
@@ -281,7 +307,7 @@ class _MetricCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${metric.value}',
+                    metric.value?.toString() ?? '—',
                     style: const TextStyle(
                       fontSize: 25,
                       fontWeight: FontWeight.w900,
@@ -378,7 +404,7 @@ class _ErrorPanel extends StatelessWidget {
 class _Metric {
   const _Metric(this.label, this.value, this.icon, this.color, this.path);
   final String label;
-  final int value;
+  final int? value;
   final IconData icon;
   final Color color;
   final String path;
@@ -386,6 +412,7 @@ class _Metric {
 
 class _AdminMetrics {
   const _AdminMetrics({
+    required this.actions,
     required this.customers,
     required this.drivers,
     required this.pendingDrivers,
@@ -394,6 +421,7 @@ class _AdminMetrics {
     required this.payments,
     required this.openDisputes,
   });
+  final AdminActionCounts actions;
   final int customers;
   final int drivers;
   final int pendingDrivers;

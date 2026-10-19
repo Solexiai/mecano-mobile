@@ -9,7 +9,10 @@ import '../../../../providers/locale_provider.dart';
 import '../../../../widgets/internal_test_mission_banner.dart';
 import 'admin_mission_assignment_dialog.dart';
 
-enum AdminMissionFilter { all, active, completed }
+enum AdminMissionFilter { all, active, completed, unassigned }
+
+bool adminMissionAwaitingAssignment(MissionStatus status) =>
+    status == MissionStatus.searchingDriver || status == MissionStatus.offered;
 
 class AdminMissionsScreen extends StatefulWidget {
   const AdminMissionsScreen({super.key, this.initialFilter = 'active'});
@@ -35,6 +38,7 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
   void initState() {
     super.initState();
     _filter = switch (widget.initialFilter) {
+      'unassigned' => AdminMissionFilter.unassigned,
       'completed' => AdminMissionFilter.completed,
       'all' => AdminMissionFilter.all,
       _ => AdminMissionFilter.active,
@@ -76,6 +80,10 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  _chip(
+                    AdminMissionFilter.unassigned,
+                    fr ? 'Sans chauffeur' : 'Unassigned',
+                  ),
                   _chip(AdminMissionFilter.all, fr ? 'Toutes' : 'All'),
                   _chip(AdminMissionFilter.active, fr ? 'Actives' : 'Active'),
                   _chip(
@@ -113,6 +121,9 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
   }
 
   bool _matches(DeliveryMission mission) => switch (_filter) {
+    AdminMissionFilter.unassigned => adminMissionAwaitingAssignment(
+      mission.status,
+    ),
     AdminMissionFilter.all => true,
     AdminMissionFilter.active => _active.contains(mission.status),
     AdminMissionFilter.completed =>

@@ -20,6 +20,12 @@ import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
 
+DriverStatus? adminDriverInitialFilter(String value) => switch (value) {
+  'all' => null,
+  'documents_required' => DriverStatus.documentsRequired,
+  _ => DriverStatus.pendingReview,
+};
+
 /// null = filtre "Tous".
 const List<DriverStatus?> _kFilters = [
   null,
@@ -81,8 +87,18 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   @override
   void initState() {
     super.initState();
-    _filter = widget.initialFilter == 'all' ? null : DriverStatus.pendingReview;
+    _filter = adminDriverInitialFilter(widget.initialFilter);
     _refreshStream();
+  }
+
+  @override
+  void didUpdateWidget(covariant AdminDriversListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialFilter != widget.initialFilter) {
+      _filter = adminDriverInitialFilter(widget.initialFilter);
+      _window = kFirestoreLiveWindowStep;
+      _refreshStream();
+    }
   }
 
   void _refreshStream() {

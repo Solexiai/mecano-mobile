@@ -117,6 +117,7 @@ abstract class FinanceRepository {
   /// Litiges (`disputes/{id}`) les plus récents, optionnellement filtrés
   /// par statut.
   Stream<List<DisputeInfo>> watchDisputes({
+    bool openOnly = false,
     DisputeStatus? status,
     int limit = 50,
   });
@@ -300,6 +301,7 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
 
   @override
   Stream<List<DisputeInfo>> watchDisputes({
+    bool openOnly = false,
     DisputeStatus? status,
     int limit = 50,
   }) => Stream.value(const []);

@@ -29,7 +29,8 @@ const List<DisputeStatus?> _kDisputeFilters = [
 ];
 
 class AdminFinanceDisputesTab extends StatefulWidget {
-  const AdminFinanceDisputesTab({super.key});
+  const AdminFinanceDisputesTab({super.key, this.openOnly = false});
+  final bool openOnly;
 
   @override
   State<AdminFinanceDisputesTab> createState() =>
@@ -38,6 +39,8 @@ class AdminFinanceDisputesTab extends StatefulWidget {
 
 class _AdminFinanceDisputesTabState extends State<AdminFinanceDisputesTab> {
   DisputeStatus? _filter;
+  late bool _openOnly = widget.openOnly;
+  int _limit = 50;
 
   @override
   Widget build(BuildContext context) {
@@ -57,22 +60,45 @@ class _AdminFinanceDisputesTabState extends State<AdminFinanceDisputesTab> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _kDisputeFilters.map((f) {
-              final selected = f == _filter;
-              return ChoiceChip(
-                label: Text(
-                  f == null
-                      ? t('admin_finance_filter_all')
-                      : t(disputeStatusKey(f)),
-                ),
-                selected: selected,
-                onSelected: (_) => setState(() => _filter = f),
-              );
-            }).toList(),
+            children: [
+              ChoiceChip(
+                label: Text(switch (context.watch<LocaleProvider>().locale) {
+                  'fr' => 'Litiges ouverts',
+                  'es' => 'Disputas abiertas',
+                  _ => 'Open disputes',
+                }),
+                selected: _openOnly,
+                onSelected: (_) => setState(() {
+                  _openOnly = true;
+                  _filter = null;
+                  _limit = 50;
+                }),
+              ),
+              ..._kDisputeFilters.map((f) {
+                final selected = !_openOnly && f == _filter;
+                return ChoiceChip(
+                  label: Text(
+                    f == null
+                        ? t('admin_finance_filter_all')
+                        : t(disputeStatusKey(f)),
+                  ),
+                  selected: selected,
+                  onSelected: (_) => setState(() {
+                    _filter = f;
+                    _openOnly = false;
+                    _limit = 50;
+                  }),
+                );
+              }),
+            ],
           ),
           const SizedBox(height: 20),
           StreamBuilder<List<DisputeInfo>>(
-            stream: repo.watchDisputes(status: _filter, limit: 50),
+            stream: repo.watchDisputes(
+              status: _filter,
+              openOnly: _openOnly,
+              limit: _limit,
+            ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return FinanceLoadingState(message: t('admin_finance_loading'));
@@ -91,9 +117,14 @@ class _AdminFinanceDisputesTabState extends State<AdminFinanceDisputesTab> {
               final sorted = [...disputes]
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
               return Column(
-                children: sorted
-                    .map((d) => _DisputeRow(dispute: d, t: t))
-                    .toList(),
+                children: [
+                  ...sorted.map((d) => _DisputeRow(dispute: d, t: t)),
+                  if (disputes.length >= _limit)
+                    OutlinedButton(
+                      onPressed: () => setState(() => _limit += 50),
+                      child: Text(t('common_load_more')),
+                    ),
+                ],
               );
             },
           ),

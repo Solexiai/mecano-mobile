@@ -473,6 +473,7 @@ class AppRouter {
                   path: 'missions',
                   builder: (c, s) => AdminAuthGate(
                     child: AdminMissionsScreen(
+                      key: ValueKey(s.uri.toString()),
                       initialFilter:
                           s.uri.queryParameters['filter'] ?? 'active',
                     ),
@@ -482,6 +483,9 @@ class AppRouter {
                   path: 'paiements',
                   builder: (c, s) => AdminAuthGate(
                     child: AdminFinanceShell(
+                      key: ValueKey(s.uri.toString()),
+                      openDisputesOnly:
+                          s.uri.queryParameters['filter'] == 'open',
                       initialSection:
                           s.uri.queryParameters['section'] ?? 'payments',
                     ),

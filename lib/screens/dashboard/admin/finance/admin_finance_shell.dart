@@ -79,7 +79,12 @@ final List<_FinanceSection> _kSections = [
 ];
 
 class AdminFinanceShell extends StatefulWidget {
-  const AdminFinanceShell({super.key, this.initialSection = 'payments'});
+  const AdminFinanceShell({
+    super.key,
+    this.initialSection = 'payments',
+    this.openDisputesOnly = false,
+  });
+  final bool openDisputesOnly;
   final String initialSection;
 
   @override
@@ -158,7 +163,11 @@ class _AdminFinanceShellState extends State<AdminFinanceShell>
                 Expanded(
                   child: Container(
                     color: AppColors.background,
-                    child: _kSections[_railIndex].builder(),
+                    child: _railIndex == 3
+                        ? AdminFinanceDisputesTab(
+                            openOnly: widget.openDisputesOnly,
+                          )
+                        : _kSections[_railIndex].builder(),
                   ),
                 ),
               ],
@@ -169,7 +178,11 @@ class _AdminFinanceShellState extends State<AdminFinanceShell>
                   .map(
                     (s) => Container(
                       color: AppColors.background,
-                      child: s.builder(),
+                      child: s.titleKey == 'admin_finance_tab_disputes'
+                          ? AdminFinanceDisputesTab(
+                              openOnly: widget.openDisputesOnly,
+                            )
+                          : s.builder(),
                     ),
                   )
                   .toList(),
