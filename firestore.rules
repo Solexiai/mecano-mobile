@@ -623,6 +623,11 @@ service cloud.firestore {
     // -------------------------------------------------------------------
 
     // Foreground connectivity is separate from dispatch availability.
+    match /mission_outcome_reviews/{missionId} {
+      allow read: if isAnalystOrAbove();
+      allow write: if false; // Callable admin + atomic audit only.
+    }
+
     match /driver_presence/{sessionId} {
       allow read: if isAnalystOrAbove();
       allow create: if isDriver() &&

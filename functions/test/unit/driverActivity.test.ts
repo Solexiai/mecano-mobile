@@ -7,7 +7,7 @@ const missions = [
 ];
 const vote = {id:"a_customer", mission_id:"a", rater_role:"customer", rater_id:"c", stars:5};
 test("counts outcomes separately without inventing failed missions", () => {
-  expect(summarizeDriverActivity(missions, [])).toMatchObject({completed:1,cancelled:1,disputed:1,failed:null,rating:null,ratingCount:0});
+  expect(summarizeDriverActivity(missions, [])).toMatchObject({completed:1,cancelled:1,disputed:1,failed:0,rating:null,ratingCount:0});
 });
 test("canonical review wins over legacy duplicates, one vote per mission", () => {
   const legacy={...vote,id:"legacy",stars:1};

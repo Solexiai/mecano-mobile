@@ -14,11 +14,14 @@ export const getAdminDriverActivity = onCall(async request => {
     throw new HttpsError("not-found", "Driver profile unavailable.");
   }
   const snapshot = await db.collection("delivery_requests").where("driver_id", "==", driverId)
-    .select("status", "customer_id", "assignment_mode").limit(501).get();
+    .select("status", "customer_id", "assignment_mode", "driver_id", "completed_at", "delivered_at", "proof_of_delivery_url").limit(501).get();
   // Never display truncated totals as complete totals. This read-only endpoint
   // intentionally avoids changing historical financial/mission documents.
   if (snapshot.size > 500) throw new HttpsError("resource-exhausted", "Activity requires paginated reporting.");
-  const missions = snapshot.docs.map(d => ({...d.data(), id: d.id})) as ActivityMission[];
+  const outcomes = await db.collection("mission_outcome_reviews").where("driver_id", "==", driverId).limit(501).get();
+  if (outcomes.size > 500) throw new HttpsError("resource-exhausted", "Outcome history requires paginated reporting.");
+  const confirmed = new Set(outcomes.docs.filter(d => d.data().confirmed === true).map(d => d.id));
+  const missions = snapshot.docs.map(d => ({...d.data(), id: d.id, admin_failure_confirmed: confirmed.has(d.id)})) as ActivityMission[];
   const eligible = missions.filter(m => m.status === "completed" && m.assignment_mode !== "internal_test");
   const ratings: ActivityRating[] = [];
   for (let i = 0; i < eligible.length; i += 30) {

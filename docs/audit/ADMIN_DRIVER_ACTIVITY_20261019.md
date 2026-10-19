@@ -45,3 +45,6 @@ Tests : admin_driver_activity_test.dart, admin_driver_directory_ui_test.dart, dr
 Sources : code du dépôt et journaux ci-dessus examinés le 19 octobre 2026. Aucun relevé des données personnelles de production effectué.
 
 Validation finale après correction de la disposition et des métadonnées : analyze-release.exit = 0 (aucun problème), build-release.exit = 0 ; compilation Web finale réussie. Synthèse machine : artifacts/admin-driver-activity-20261019/validation-summary.json. Les échecs initiaux et intermédiaires demeurent conservés.
+
+## Décision ultérieure approuvée — 19 octobre 2026, 15:46 Toronto
+Le propriétaire approuve la distinction proposée : livraison non réalisée dont l'échec est confirmé par l'administration, annulations séparées, aucune responsabilité automatique du chauffeur. Le point de décision ci-dessus est résolu par MOVIK-FAILURE-REVIEW-20261019-001. Réalisation locale, contrôles serveur et preuves : docs/audit/MISSION_FAILURE_REVIEW_20261019.md. Aucune nouvelle publication à ce stade.

@@ -86,9 +86,9 @@ class _AdminDriverActivitySummaryState
           ),
           Text(
             copy(
-              'Échouées : classification non définie',
-              'Failed: classification not defined',
-              'Fallidas: clasificación no definida',
+              'Échecs confirmés : ${data['failed'] ?? '—'} · Sans attribution automatique de faute',
+              'Confirmed failures: ${data['failed'] ?? '—'} · No automatic blame assigned',
+              'Fallos confirmados: ${data['failed'] ?? '—'} · Sin atribución automática de culpa',
             ),
           ),
           ExpansionTile(

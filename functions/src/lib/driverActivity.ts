@@ -1,4 +1,8 @@
+import { canConfirmMissionFailure } from "./missionFailureReview";
+
 export interface ActivityMission {
+  [key: string]: unknown;
+  admin_failure_confirmed?: boolean;
   id: string;
   status?: string;
   customer_id?: string;
@@ -37,7 +41,7 @@ export function summarizeDriverActivity(
     completed: real.filter(m => m.status === "completed").length,
     cancelled: real.filter(m => m.status === "cancelled").length,
     disputed: real.filter(m => m.status === "disputed").length,
-    failed: null, // No approved mission-failure classification exists.
+    failed: real.filter(m => m.admin_failure_confirmed === true && canConfirmMissionFailure(m)).length,
     ratingCount: reviews.length,
     rating: reviews.length ? reviews.reduce((n, r) => n + r.stars, 0) / reviews.length : null,
     reviews,

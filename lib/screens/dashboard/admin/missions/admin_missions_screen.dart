@@ -8,6 +8,7 @@ import '../../../../models/enums.dart';
 import '../../../../providers/locale_provider.dart';
 import '../../../../widgets/internal_test_mission_banner.dart';
 import 'admin_mission_assignment_dialog.dart';
+import 'admin_mission_failure_review.dart';
 
 enum AdminMissionFilter { all, active, completed, unassigned }
 
@@ -185,6 +186,11 @@ class _MissionCard extends StatelessWidget {
           _line(Icons.location_on_outlined, dropoff),
           _line(Icons.local_shipping_outlined, driver),
           _line(Icons.tag, mission.id),
+          if (!mission.isInternalTest)
+            AdminMissionFailureReview(
+              key: ValueKey('failure-${mission.id}'),
+              mission: mission,
+            ),
           if (mission.driverId == null &&
               (mission.status == MissionStatus.searchingDriver ||
                   mission.status == MissionStatus.offered))

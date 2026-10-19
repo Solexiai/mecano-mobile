@@ -75,6 +75,7 @@ export { updatePricingConfiguration } from "./functions/updatePricingConfigurati
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";
 export { deleteDriverProfile } from "./functions/deleteDriverProfile";
+export { reviewMissionFailure } from "./functions/reviewMissionFailure";
 export { getAdminDriverActivity } from "./functions/getAdminDriverActivity";
 export { getAdminDashboardMetrics } from "./functions/getAdminDashboardMetrics";
 export { registerAsDriver } from "./functions/registerAsDriver";
