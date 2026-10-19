@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'core/url_strategy_stub.dart' if (dart.library.html) 'core/url_strategy_web.dart';
+import 'core/url_strategy_stub.dart'
+    if (dart.library.html) 'core/url_strategy_web.dart';
 
+import 'services/driver_presence.dart';
 import 'core/app_theme.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
@@ -76,6 +78,8 @@ class MovikApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp.router(
             title: 'Movi-k',
+            builder: (context, child) =>
+                DriverPresenceScope(child: child ?? const SizedBox.shrink()),
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),

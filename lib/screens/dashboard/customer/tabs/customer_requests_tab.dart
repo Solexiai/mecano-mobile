@@ -248,6 +248,21 @@ class _DeliveryTile extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          if (mission.status == MissionStatus.completed &&
+              !mission.isInternalTest &&
+              mission.driverId != null)
+            OutlinedButton.icon(
+              onPressed: () =>
+                  context.go('/$locale/livraison/suivi/${mission.id}'),
+              icon: const Icon(Icons.star_outline),
+              label: Text(
+                locale == 'fr'
+                    ? 'Évaluer le chauffeur / voir mon avis'
+                    : locale == 'es'
+                    ? 'Evaluar al conductor / ver mi opinión'
+                    : 'Rate driver / view my review',
+              ),
+            ),
           Row(
             children: [
               _StatusChip(label: t(mission.status.key), status: mission.status),

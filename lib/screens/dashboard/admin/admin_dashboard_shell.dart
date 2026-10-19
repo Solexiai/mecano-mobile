@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/app_colors.dart';
 import 'admin_action_center.dart';
+import 'drivers/admin_driver_presence_card.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
 
@@ -202,6 +203,8 @@ class _DashboardBody extends StatelessWidget {
                 locale: locale,
                 loading: loading,
               ),
+              const SizedBox(height: 12),
+              AdminDriverPresenceCard(locale: locale),
               if (hasError) _ErrorPanel(onRetry: onRetry, isFrench: isFrench),
               const SizedBox(height: 28),
               Text(

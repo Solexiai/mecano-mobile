@@ -621,11 +621,30 @@ service cloud.firestore {
     // -------------------------------------------------------------------
     // ratings/{id}
     // -------------------------------------------------------------------
+
+    // Foreground connectivity is separate from dispatch availability.
+    match /driver_presence/{sessionId} {
+      allow read: if isAnalystOrAbove();
+      allow create: if isDriver() &&
+        exists(/databases/$(database)/documents/driver_profiles/$(uid())) &&
+        request.resource.data.keys().hasOnly(['driver_id', 'updated_at']) &&
+        request.resource.data.driver_id == uid() &&
+        request.resource.data.updated_at == request.time;
+      allow update: if isDriver() && resource.data.driver_id == uid() &&
+        request.resource.data.keys().hasOnly(['driver_id', 'updated_at']) &&
+        request.resource.data.driver_id == uid() &&
+        request.resource.data.updated_at == request.time;
+      allow delete: if isSignedIn() && resource.data.driver_id == uid();
+    }
+
     match /ratings/{ratingId} {
       allow read: if isSignedIn();
 
       allow create: if isSignedIn() &&
         request.resource.data.rater_id == uid() &&
+        ratingId == request.resource.data.mission_id + '_' + request.resource.data.rater_role &&
+        request.resource.data.stars is int &&
+        request.resource.data.created_at == request.time &&
         request.resource.data.stars >= 1 && request.resource.data.stars <= 5 &&
         exists(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)) &&
         get(/databases/$(database)/documents/delivery_requests/$(request.resource.data.mission_id)).data.status == 'completed' &&

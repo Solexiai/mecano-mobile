@@ -19,9 +19,11 @@ import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
+import '../../../../services/driver_presence.dart';
+import 'admin_driver_activity_summary.dart';
 
 DriverStatus? adminDriverInitialFilter(String value) => switch (value) {
-  'all' => null,
+  'all' || 'connected' || 'offline' => null,
   'documents_required' => DriverStatus.documentsRequired,
   _ => DriverStatus.pendingReview,
 };
@@ -81,12 +83,23 @@ class AdminDriversListScreen extends StatefulWidget {
 
 class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   late DriverStatus? _filter;
+  String _city = '';
+  late String _presence;
+  String _copy(String fr, String en, String es) =>
+      switch (context.read<LocaleProvider>().locale) {
+        'fr' => fr,
+        'es' => es,
+        _ => en,
+      };
   int _window = kFirestoreLiveWindowStep;
   late Stream<List<DriverProfileV2>> _stream;
 
   @override
   void initState() {
     super.initState();
+    _presence = ['connected', 'offline'].contains(widget.initialFilter)
+        ? widget.initialFilter
+        : 'all';
     _filter = adminDriverInitialFilter(widget.initialFilter);
     _refreshStream();
   }
@@ -95,6 +108,9 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   void didUpdateWidget(covariant AdminDriversListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialFilter != widget.initialFilter) {
+      _presence = ['connected', 'offline'].contains(widget.initialFilter)
+          ? widget.initialFilter
+          : 'all';
       _filter = adminDriverInitialFilter(widget.initialFilter);
       _window = kFirestoreLiveWindowStep;
       _refreshStream();
@@ -122,110 +138,236 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   @override
   Widget build(BuildContext context) {
     final t = context.watch<LocaleProvider>().t;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('admin_drivers_title'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _kFilters.map((f) {
-              final selected = f == _filter;
-              return ChoiceChip(
-                label: Text(t(_filterLabelKey(f))),
-                selected: selected,
-                onSelected: (_) => _changeFilter(f),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          StreamBuilder<List<DriverProfileV2>>(
-            stream: _stream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 48),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 12),
-                        Text(
-                          t('admin_drivers_loading'),
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+    return DriverPresenceView(
+      builder: (context, connected) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('admin_drivers_title'),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _kFilters.map((f) {
+                final selected = f == _filter;
+                return ChoiceChip(
+                  label: Text(t(_filterLabelKey(f))),
+                  selected: selected,
+                  onSelected: (_) => _changeFilter(f),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              key: const Key('driver-city-search'),
+              decoration: InputDecoration(
+                labelText: _copy(
+                  'Rechercher par ville',
+                  'Search by city',
+                  'Buscar por ciudad',
+                ),
+                prefixIcon: const Icon(Icons.location_city),
+              ),
+              onChanged: (value) => setState(() => _city = value),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in [
+                  (
+                    'all',
+                    _copy(
+                      'Toutes les connexions',
+                      'All connections',
+                      'Todas las conexiones',
                     ),
                   ),
-                );
-              }
-
-              if (snapshot.hasError) {
-                return _ErrorState(
-                  message: t('admin_drivers_error'),
-                  onRetry: () => setState(_refreshStream),
-                );
-              }
-
-              final drivers = snapshot.data ?? const <DriverProfileV2>[];
-              // Migration aliases are filtered after the Firestore limit.
-              // Detect a full RAW window so they cannot hide later profiles.
-              final hasNext = drivers is FirestoreDriverWindow
-                  ? drivers.fetchedCount >= _window
-                  : drivers.length >= _window;
-              if (drivers.isEmpty && !hasNext) {
-                return _EmptyState(message: t('admin_drivers_empty'));
-              }
-
-              // Tri en mémoire (le plus récent en premier) — évite tout
-              // besoin d'index composite Firestore (orderBy + where).
-              final sorted = [...drivers]
-                ..sort((a, b) => b.lastUpdatedAt.compareTo(a.lastUpdatedAt));
-
-              return Column(
-                children: [
-                  if (drivers.isEmpty)
-                    _EmptyState(message: t('admin_drivers_empty'))
-                  else
-                    _DriversTable(drivers: sorted, t: t),
-                  if (hasNext)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: OutlinedButton.icon(
-                        key: const Key('admin-drivers-load-more'),
-                        onPressed: _loadMore,
-                        icon: const Icon(Icons.expand_more),
-                        label: Text(t('common_load_more')),
+                  ('connected', _copy('Connectés', 'Connected', 'Conectados')),
+                  ('offline', _copy('Hors ligne', 'Offline', 'Desconectados')),
+                ])
+                  ChoiceChip(
+                    label: Text(entry.$2),
+                    selected: _presence == entry.$1,
+                    onSelected: (_) => setState(() => _presence = entry.$1),
+                  ),
+              ],
+            ),
+            Text(
+              connected == null
+                  ? _copy(
+                      'Présence indisponible : aucun statut de connexion confirmé.',
+                      'Presence unavailable: no confirmed connection status.',
+                      'Presencia no disponible: estado sin confirmar.',
+                    )
+                  : _copy(
+                      'Connecté = application au premier plan, signal reçu depuis moins de 90 s. Ce statut ne signifie pas disponible pour une mission.',
+                      'Connected = app in foreground, signal received within 90 s. This does not mean available for a job.',
+                      'Conectado = aplicación en primer plano, señal de menos de 90 s. No significa disponible para un servicio.',
+                    ),
+            ),
+            const SizedBox(height: 20),
+            StreamBuilder<List<DriverProfileV2>>(
+              stream: _stream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 12),
+                          Text(
+                            t('admin_drivers_loading'),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                ],
-              );
-            },
-          ),
-        ],
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return _ErrorState(
+                    message: t('admin_drivers_error'),
+                    onRetry: () => setState(_refreshStream),
+                  );
+                }
+
+                final drivers = snapshot.data ?? const <DriverProfileV2>[];
+                // Migration aliases are filtered after the Firestore limit.
+                // Detect a full RAW window so they cannot hide later profiles.
+                final hasNext = drivers is FirestoreDriverWindow
+                    ? drivers.fetchedCount >= _window
+                    : drivers.length >= _window;
+                if (drivers.isEmpty && !hasNext) {
+                  return _EmptyState(message: t('admin_drivers_empty'));
+                }
+
+                // Tri en mémoire (le plus récent en premier) — évite tout
+                // besoin d'index composite Firestore (orderBy + where).
+                final sorted =
+                    drivers
+                        .where(
+                          (d) => matchesDriverDirectory(
+                            d,
+                            _city,
+                            _presence,
+                            connected,
+                          ),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => b.lastUpdatedAt.compareTo(a.lastUpdatedAt),
+                      );
+
+                return Column(
+                  children: [
+                    Text(
+                      _copy(
+                        'Recherche parmi ${drivers.length} dossiers chargés. Utilisez « Charger plus » pour élargir les résultats.',
+                        'Searching ${drivers.length} loaded records. Use Load more to expand results.',
+                        'Búsqueda en ${drivers.length} expedientes cargados. Cargue más para ampliar los resultados.',
+                      ),
+                    ),
+                    if (sorted.isEmpty)
+                      _EmptyState(message: t('admin_drivers_empty'))
+                    else
+                      _DriversTable(
+                        drivers: sorted,
+                        t: t,
+                        connected: connected,
+                      ),
+                    if (hasNext)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: OutlinedButton.icon(
+                          key: const Key('admin-drivers-load-more'),
+                          onPressed: _loadMore,
+                          icon: const Icon(Icons.expand_more),
+                          label: Text(t('common_load_more')),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+bool matchesDriverDirectory(
+  DriverProfileV2 driver,
+  String city,
+  String presence,
+  Set<String>? connected,
+) {
+  String normalize(String s) {
+    var v = s.toLowerCase().trim();
+    const accents = {
+      'à': 'a',
+      'â': 'a',
+      'ä': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ê': 'e',
+      'ë': 'e',
+      'î': 'i',
+      'ï': 'i',
+      'ô': 'o',
+      'ö': 'o',
+      'ù': 'u',
+      'û': 'u',
+      'ü': 'u',
+      'ç': 'c',
+    };
+    accents.forEach((a, b) => v = v.replaceAll(a, b));
+    return v;
+  }
+
+  if (!normalize(driver.city).contains(normalize(city))) return false;
+  if (presence == 'all') return true;
+  if (connected == null) return false;
+  return presence == 'connected'
+      ? connected.contains(driver.uid)
+      : !connected.contains(driver.uid);
+}
+
 class _DriversTable extends StatelessWidget {
   final List<DriverProfileV2> drivers;
   final String Function(String) t;
-  const _DriversTable({required this.drivers, required this.t});
+  final Set<String>? connected;
+  const _DriversTable({
+    required this.drivers,
+    required this.t,
+    required this.connected,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: drivers.map((d) => _DriverRow(driver: d, t: t)).toList(),
+      children: drivers
+          .map(
+            (d) => _DriverRow(
+              key: ValueKey(d.uid),
+              driver: d,
+              t: t,
+              connected: connected?.contains(d.uid),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -233,19 +375,27 @@ class _DriversTable extends StatelessWidget {
 class _DriverRow extends StatelessWidget {
   final DriverProfileV2 driver;
   final String Function(String) t;
-  const _DriverRow({required this.driver, required this.t});
+  final bool? connected;
+  const _DriverRow({
+    super.key,
+    required this.driver,
+    required this.t,
+    required this.connected,
+  });
 
   @override
   Widget build(BuildContext context) {
     final locale = context.read<LocaleProvider>().locale;
     final canDelete = context.watch<FirebaseAuthProvider>().isAdminOrAbove;
-    final nameParts = driver.fullName.trim().split(RegExp(r'\s+'));
-    final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-    final lastName = nameParts.length > 1 ? nameParts.skip(1).join(' ') : '';
-    final vehicleLabel = driver.acceptedVehicleCategories.isNotEmpty
-        ? t(driver.acceptedVehicleCategories.first.key)
-        : '—';
-
+    String copy(String fr, String en, String es) => switch (locale) {
+      'fr' => fr,
+      'es' => es,
+      _ => en,
+    };
+    final name = driver.fullName.trim();
+    final vehicle = driver.acceptedVehicleCategories.isEmpty
+        ? '—'
+        : t(driver.acceptedVehicleCategories.first.key);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -254,102 +404,113 @@ class _DriverRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: InkWell(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AdminDriverDetailScreen(driverId: driver.uid),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(
-                firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AdminDriverDetailScreen(driverId: driver.uid),
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$firstName $lastName'.trim(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  child: Text(name.isEmpty ? '?' : name[0].toUpperCase()),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    name,
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 4,
-                    children: [
-                      _MetaChip(
-                        icon: Icons.local_shipping_outlined,
-                        label: vehicleLabel,
-                      ),
-                      _MetaChip(
-                        icon: Icons.event_outlined,
-                        label:
-                            '${t('admin_drivers_col_updated_at')}: '
-                            '${_formatDate(driver.lastUpdatedAt, locale)}',
+                ),
+                if (canDelete)
+                  PopupMenuButton<String>(
+                    tooltip: 'Actions',
+                    onSelected: (value) {
+                      if (value == 'delete') {
+                        _confirmDeleteDriver(context, driver);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Supprimer le dossier chauffeur'),
                       ),
                     ],
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textSecondary,
                   ),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _statusColor(driver.status).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                t(driver.status.key),
-                style: TextStyle(
-                  color: AppColors.statusBadgeTextColor(
-                    _statusColor(driver.status),
-                    Theme.of(context).brightness,
-                  ),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (canDelete)
-              PopupMenuButton<String>(
-                tooltip: 'Actions',
-                onSelected: (value) {
-                  if (value == 'delete') {
-                    _confirmDeleteDriver(context, driver);
-                  }
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, color: AppColors.error),
-                        SizedBox(width: 8),
-                        Text('Supprimer le dossier chauffeur'),
-                      ],
+                decoration: BoxDecoration(
+                  color: _statusColor(driver.status).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  t(driver.status.key),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.statusBadgeTextColor(
+                      _statusColor(driver.status),
+                      Theme.of(context).brightness,
                     ),
                   ),
-                ],
-              )
-            else
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
-        ),
+                ),
+              ),
+              Text(driver.city.isEmpty ? '—' : driver.city),
+              Text(
+                connected == null
+                    ? copy(
+                        'Présence inconnue',
+                        'Presence unknown',
+                        'Presencia desconocida',
+                      )
+                    : connected!
+                    ? copy('Connecté', 'Connected', 'Conectado')
+                    : copy('Hors ligne', 'Offline', 'Desconectado'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          AdminDriverActivitySummary(
+            key: ValueKey('activity-${driver.uid}'),
+            driverId: driver.uid,
+            locale: locale,
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: [
+              _MetaChip(icon: Icons.local_shipping_outlined, label: vehicle),
+              _MetaChip(
+                icon: Icons.event_outlined,
+                label:
+                    "${t('admin_drivers_col_updated_at')}: ${_formatDate(driver.lastUpdatedAt, locale)}",
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -428,9 +589,14 @@ class _MetaChip extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: AppColors.textSecondary),
         const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        Flexible(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ),
       ],
     );

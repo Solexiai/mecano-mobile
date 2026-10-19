@@ -1478,9 +1478,9 @@ class AppStrings {
       'es': 'Entrega completada',
     },
     'notif_completed_body': {
-      'fr': 'Votre livraison est complétée.',
-      'en': 'Your delivery is completed.',
-      'es': 'Su entrega está completada.',
+      'fr': 'Votre livraison est complétée. Évaluez votre chauffeur sur 5 étoiles.',
+      'en': 'Your delivery is completed. Rate your driver out of 5 stars.',
+      'es': 'Su entrega está completada. Evalúe a su conductor sobre 5 estrellas.',
     },
     'notif_cancelled_title': {
       'fr': 'Mission annulée',
