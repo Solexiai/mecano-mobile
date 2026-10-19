@@ -683,8 +683,13 @@ void main() {
       findsNothing,
     );
     expect(
-      find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+      find.textContaining('pendant le téléversement des documents'),
       findsOneWidget,
     );
+    expect(
+      find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+      findsNothing,
+    );
+    expect(find.textContaining('simulated storage failure'), findsNothing);
   });
 }

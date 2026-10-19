@@ -22,6 +22,7 @@ import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/step_progress_form.dart';
+import 'driver_registration_failure.dart';
 
 /// Driver registration in four coherent sections:
 /// 1) contact + verified service-base address,
@@ -810,6 +811,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       _submitError = null;
     });
 
+    var failedStage = DriverRegistrationStage.account;
     try {
       if (!auth.isSignedIn) {
         final ok = await auth.signUpWithEmailPassword(
@@ -825,6 +827,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         }
       }
 
+      failedStage = DriverRegistrationStage.session;
       final uid = auth.effectiveUid;
       final address = _resolvedAddress;
       final category = _vehicleCategory;
@@ -860,6 +863,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         acceptedItemCategoryKeys: itemKeys,
         createdAt: DateTime.now(),
       );
+      failedStage = DriverRegistrationStage.profile;
       await BackendLocator.driverRepository.submitDriverOnboarding(profile);
 
       final makeModel = [
@@ -880,10 +884,14 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         isVerified: false,
         createdAt: DateTime.now(),
       );
+      failedStage = DriverRegistrationStage.vehicle;
       await BackendLocator.driverRepository.submitDriverVehicle(vehicle);
 
+      failedStage = DriverRegistrationStage.claims;
       await auth.refreshClaims();
+      failedStage = DriverRegistrationStage.documents;
       await _uploadDocuments(uid);
+      failedStage = DriverRegistrationStage.review;
       await BackendLocator.driverRepository.submitForReview();
 
       if (!mounted) return;
@@ -895,18 +903,25 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _submitError = _describeSubmitError(error, t);
+        _submitError = _describeSubmitError(error, t, failedStage);
       });
     }
   }
 
-  String _describeSubmitError(Object error, String Function(String) t) {
+  String _describeSubmitError(
+    Object error,
+    String Function(String) t,
+    DriverRegistrationStage stage,
+  ) {
+    // Record only a non-sensitive phase and error type: no personal data,
+    // Firebase tokens, raw backend messages or document content in logs.
+    debugPrint(
+      'Driver registration failed: phase=${stage.name}; type=${error.runtimeType}',
+    );
     if (isKillSwitchException(error)) {
-      debugPrint('Driver onboarding blocked by runtime flag: $error');
       return t('service_temporarily_unavailable');
     }
-    debugPrint('Driver onboarding error hidden from user: $error');
-    return t('driver_onboarding_error_generic_prefix');
+    return driverRegistrationFailureMessage(widget.locale, stage);
   }
 
   Future<void> _pickImage({
