@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../helpers/booking_test_harness.dart';
@@ -38,10 +39,10 @@ void main() {
           api: api,
           auth: BookingTestAuth(signed: signed),
         );
-        await tapBooking(t, 'Vérifier à nouveau la disponibilité');
+        expect(find.text('Vérifier à nouveau la disponibilité'), findsNothing);
         expect(
           api.calls.where((n) => n == 'getBookingConfiguration'),
-          hasLength(2),
+          hasLength(1),
         );
         await tapBooking(t, 'Continuer à préparer ma demande');
         expect(storage.saved!.step, 2);
@@ -97,7 +98,7 @@ void main() {
       );
       expect(
         find.textContaining('Impossible de vérifier la disponibilité'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         find.textContaining('La réservation est indisponible'),
@@ -105,6 +106,10 @@ void main() {
       );
       await tapBooking(t, 'Continuer à préparer ma demande');
       expect(find.text('Nom au ramassage'), findsOneWidget);
+      expect(
+        find.textContaining('Impossible de vérifier la disponibilité'),
+        findsOneWidget,
+      );
       await disposeBooking(t);
     },
   );
@@ -136,10 +141,15 @@ void main() {
       await disposeBooking(t);
     },
   );
-  testWidgets('review refusal preserves reason and enables draft preparation', (
+  testWidgets('quote refusal preserves reason and enables draft preparation', (
     t,
   ) async {
-    final api = PreparationApi()..reasons = ['capacity_unconfigured'];
+    final api = PreparationApi()
+      ..quoteError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'SIMULATED_ZONE_MISSING',
+        details: {'quote_reason': 'service_area_unconfigured'},
+      );
     await pumpBooking(
       t,
       storage: MemoryBookingStorage(testDraft(step: 1)),
@@ -147,10 +157,11 @@ void main() {
     );
     await tapBooking(t, 'Calculer mon devis officiel');
     expect(
-      find.textContaining('Le devis ne peut pas encore être calculé'),
+      find.textContaining('Le devis en ligne est momentanément indisponible.'),
       findsOneWidget,
     );
-    expect(api.calls, isNot(contains('calculateDeliveryQuote')));
+    expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
+    expect(api.calls, isNot(contains('reviewDeliveryLoad')));
     await tapBooking(t, 'Continuer à préparer ma demande');
     await tapBooking(t, 'Consulter le résumé');
     expect(api.calls, isNot(contains('createDeliveryRequest')));

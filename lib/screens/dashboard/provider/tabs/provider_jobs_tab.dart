@@ -1,4 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
+import '../../../../services/booking/booking_api.dart';
 import '../../../../backend/repositories/mission_repository.dart';
 import '../../../../widgets/booking_load_summary.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,9 @@ import '../../../../providers/locale_provider.dart';
 /// `acceptMission()`, qui invoque la Cloud Function `acceptDelivery` —
 /// aucune attribution locale, le serveur tranche en cas de concurrence.
 class ProviderJobsTab extends StatefulWidget {
-  const ProviderJobsTab({super.key});
+  const ProviderJobsTab({super.key, this.bookingApi, this.photoLoader});
+  final BookingApi? bookingApi;
+  final BookingPhotoLoader? photoLoader;
 
   @override
   State<ProviderJobsTab> createState() => _ProviderJobsTabState();
@@ -29,6 +31,8 @@ class ProviderJobsTab extends StatefulWidget {
 
 class _ProviderJobsTabState extends State<ProviderJobsTab> {
   final Set<String> _accepting = {};
+  final Set<String> _declining = {};
+  final Set<String> _declined = {};
   final Map<String, String> _acceptErrors = {};
 
   // 🔒 BUG-FIX (Phase 7, Bloc C item 3) : ne JAMAIS instancier un Stream
@@ -52,6 +56,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       return;
     }
     _cachedDriverId = driverId;
+    _accepting.clear();
+    _declining.clear();
+    _declined.clear();
+    _acceptErrors.clear();
     _availableMissionsStream = BackendLocator.missionRepository
         .watchAvailableMissionsForDriver(driverId);
     _activeMissionStream = BackendLocator.missionRepository
@@ -60,6 +68,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
   }
 
   Future<void> _accept(DeliveryMission mission, String driverId) async {
+    if (_accepting.contains(mission.id)) return;
     setState(() {
       _accepting.add(mission.id);
       _acceptErrors.remove(mission.id);
@@ -67,10 +76,12 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
     try {
       AcceptMissionResult result;
       if (mission.bookingSnapshot != null) {
-        final response = await FirebaseFunctions.instance
-            .httpsCallable('getBookingVehicleForAcceptance')
-            .call({'missionId': mission.id});
-        final vehicle = (response.data as Map)['vehicle'] as Map?;
+        final response =
+            await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
+              'getBookingVehicleForAcceptance',
+              {'missionId': mission.id},
+            );
+        final vehicle = response['vehicle'] as Map?;
         if (!mounted) return;
         final locale = context.read<LocaleProvider>().locale;
         String tr(String fr, String en, String es) => locale == 'en'
@@ -112,10 +123,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           if (mounted) setState(() => _accepting.remove(mission.id));
           return;
         }
-        await FirebaseFunctions.instance.httpsCallable('acceptDelivery').call({
-          'missionId': mission.id,
-          'vehicleId': vehicle['id'],
-        });
+        await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
+          'acceptDelivery',
+          {'missionId': mission.id, 'vehicleId': vehicle['id']},
+        );
         result = const AcceptMissionResult(success: true);
       } else {
         result = await BackendLocator.missionRepository.acceptMission(
@@ -143,6 +154,38 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
         _accepting.remove(mission.id);
         _acceptErrors[mission.id] = 'unknown_error';
       });
+    }
+  }
+
+  Future<void> _decline(DeliveryMission mission, String driverId) async {
+    if (_accepting.contains(mission.id)) return;
+    setState(() {
+      _accepting.add(mission.id);
+      _declining.add(mission.id);
+      _acceptErrors.remove(mission.id);
+    });
+    try {
+      final result = await (widget.bookingApi ?? FirebaseBookingApi(driverId))
+          .call('declineDeliveryOffer', {'missionId': mission.id});
+      if (!mounted ||
+          context.read<FirebaseAuthProvider>().effectiveUid != driverId) {
+        return;
+      }
+      if (result['declined'] != true) throw StateError('Decline not confirmed');
+      setState(() => _declined.add(mission.id));
+    } catch (_) {
+      if (mounted &&
+          context.read<FirebaseAuthProvider>().effectiveUid == driverId) {
+        setState(() => _acceptErrors[mission.id] = 'offer_decline_failed');
+      }
+    } finally {
+      if (mounted &&
+          context.read<FirebaseAuthProvider>().effectiveUid == driverId) {
+        setState(() {
+          _accepting.remove(mission.id);
+          _declining.remove(mission.id);
+        });
+      }
     }
   }
 
@@ -299,7 +342,9 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                       ),
                     );
                   }
-                  final missions = snapshot.data ?? const <DeliveryMission>[];
+                  final missions = (snapshot.data ?? const <DeliveryMission>[])
+                      .where((m) => !_declined.contains(m.id))
+                      .toList();
                   if (missions.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -322,6 +367,9 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                             isAccepting: _accepting.contains(m.id),
                             errorCode: _acceptErrors[m.id],
                             onAccept: () => _accept(m, driverId),
+                            onDecline: () => _decline(m, driverId),
+                            isDeclining: _declining.contains(m.id),
+                            photoLoader: widget.photoLoader,
                           ),
                         )
                         .toList(),
@@ -341,17 +389,28 @@ class _JobCard extends StatelessWidget {
   final String Function(String) t;
   final bool isAccepting;
   final String? errorCode;
-  final VoidCallback onAccept;
+  final VoidCallback onAccept, onDecline;
+  final bool isDeclining;
+  final BookingPhotoLoader? photoLoader;
   const _JobCard({
     required this.mission,
     required this.t,
     required this.isAccepting,
     required this.errorCode,
     required this.onAccept,
+    required this.onDecline,
+    required this.isDeclining,
+    this.photoLoader,
   });
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.read<LocaleProvider>().locale;
+    String tr(String fr, String en, String es) => locale == 'en'
+        ? en
+        : locale == 'es'
+        ? es
+        : fr;
     final pickup = mission.pickupAddress;
     final dropoff = mission.dropoffAddress;
     return Container(
@@ -433,6 +492,7 @@ class _JobCard extends StatelessWidget {
           if (mission.bookingSnapshot != null)
             BookingLoadSummary(
               snapshot: mission.bookingSnapshot!,
+              photoLoader: photoLoader,
               locale: context.read<LocaleProvider>().locale,
             ),
           if (mission.description.isNotEmpty)
@@ -450,7 +510,13 @@ class _JobCard extends StatelessWidget {
               // FirebaseMissionRepository.acceptMission() pour le mapping
               // errorCode == kKillSwitchErrorCode.
               child: Text(
-                errorCode == kKillSwitchErrorCode
+                errorCode == 'offer_decline_failed'
+                    ? tr(
+                        'Le refus n’a pas été enregistré. Réessayez.',
+                        'Your decline was not saved. Please retry.',
+                        'No se guardó el rechazo. Reintenta.',
+                      )
+                    : errorCode == kKillSwitchErrorCode
                     ? t('service_temporarily_unavailable')
                     : t('driver_jobs_accept_error'),
                 style: const TextStyle(color: AppColors.error, fontSize: 12.5),
@@ -461,7 +527,7 @@ class _JobCard extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: isAccepting ? null : onAccept,
-              child: isAccepting
+              child: isAccepting && !isDeclining
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -478,6 +544,22 @@ class _JobCard extends StatelessWidget {
                       ],
                     )
                   : Text(t('driver_jobs_accept')),
+            ),
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              key: ValueKey('decline-offer-${mission.id}'),
+              onPressed: isAccepting ? null : onDecline,
+              child: Text(
+                isDeclining
+                    ? tr('Refus en cours…', 'Declining…', 'Rechazando…')
+                    : tr(
+                        'Refuser cette demande',
+                        'Decline this request',
+                        'Rechazar esta solicitud',
+                      ),
+              ),
             ),
           ),
         ],

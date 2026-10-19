@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../helpers/booking_test_harness.dart';
@@ -31,30 +32,32 @@ void main() {
     await disposeBooking(t);
   });
 
-  testWidgets('server review refusal never produces a replacement quote', (
+  testWidgets('server pricing refusal never produces a replacement quote', (
     t,
   ) async {
     final draft = testDraft(step: 1);
     final store = MemoryBookingStorage(draft);
     final api = TestBookingApi()
       ..configurationAvailable = false
-      ..reasons = ['capacity_unconfigured', 'service_area_unconfigured'];
+      ..quoteError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'SIMULATED_ZONE_MISSING',
+        details: {'quote_reason': 'service_area_unconfigured'},
+      );
     await pumpBooking(t, storage: store, api: api);
     await tapBooking(t, 'Calculer mon devis officiel');
-    expect(api.calls, contains('reviewDeliveryLoad'));
-    expect(api.calls, isNot(contains('calculateDeliveryQuote')));
+    expect(api.calls, isNot(contains('reviewDeliveryLoad')));
+    expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
     expect(api.calls, isNot(contains('createDeliveryRequest')));
     expect(store.saved!.quote, isNull);
     expect(store.saved!.items, draft.items);
     expect(
-      find.text(
-        'Les capacités vérifiées des véhicules ne sont pas encore configurées.',
-      ),
+      find.textContaining('Le devis en ligne est momentanément indisponible.'),
       findsOneWidget,
     );
     expect(
       find.text('La zone de service doit être confirmée par Movi-K.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(t.takeException(), isNull);
     await disposeBooking(t);

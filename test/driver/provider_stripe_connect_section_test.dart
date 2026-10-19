@@ -68,6 +68,16 @@ DriverProfileV2 _profile({
 /// est exercée par ce widget ; toute autre méthode lève `UnimplementedError`
 /// (jamais appelée par `ProviderStripeConnectSection`).
 class _FakeDriverRepository implements DriverRepository {
+  // Interface compatibility with the already published vehicle repository.
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) => throw UnimplementedError();
+
   DriverStripeAccountResult? nextResult;
   Object? nextError;
   Completer<DriverStripeAccountResult>? pendingCompleter;

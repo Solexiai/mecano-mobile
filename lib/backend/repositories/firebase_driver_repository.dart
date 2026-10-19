@@ -228,6 +228,26 @@ class FirebaseDriverRepository implements DriverRepository {
   }
 
   @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) async {
+    await _functions.httpsCallable('reviewDriverVehicle').call({
+      'driverId': vehicle.driverId,
+      'vehicleId': vehicle.id,
+      'action': approve ? 'approve' : 'revoke',
+      'expectedIdentity': vehicle.verificationIdentity,
+      if (capacity != null) 'capacity': capacity,
+      if (validUntil != null)
+        'validUntil': validUntil.toUtc().toIso8601String(),
+      'verificationNote': note,
+    });
+  }
+
+  @override
   Future<void> approveDriver(String driverId) async {
     try {
       await _functions.httpsCallable('approveDriver').call({

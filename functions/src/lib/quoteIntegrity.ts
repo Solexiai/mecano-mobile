@@ -1,3 +1,4 @@
+import type { PreAssignmentQuote } from './quoteBeforeAssignment';
 import type { BookingSnapshot } from "./booking";
 import { createHash } from "crypto";
 
@@ -32,6 +33,8 @@ export interface LockedQuotePricingSnapshot {
   breakdown: CustomerPricingResult;
   customer_total_minor: number;
   booking?: BookingSnapshot;
+  /** Official price only; never a physical loading/booking approval. */
+  pre_assignment?: PreAssignmentQuote;
 }
 
 export interface QuoteIntegrityEnvelope {

@@ -1,5 +1,6 @@
 import { db } from './admin';
-import { BookingLoad, BookingRules, BookingSnapshot, Capacity, fitsVehicle, normalizeLoad, recommend } from './booking';
+import { validateBookingPhotos } from './bookingPhotoValidation';
+import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, normalizeLoad, recommend } from './booking';
 import { failedPrecondition, invalidArgument } from './errors';
 import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
 import { normalizeVehicleCategory } from './vehicleCategory';
@@ -10,6 +11,7 @@ export async function getBookingRules(): Promise<BookingRules> {
 export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   const load = normalizeLoad(raw);
   if (load.items.some(i => i.photos.some(p => !p.startsWith(`booking_photos/${uid}/${load.draft_id}/`) || p.includes('..')))) throw invalidArgument('Photo inaccessible.');
+  await validateBookingPhotos(load, uid);
   const rules = await getBookingRules();
   const review = recommend(load, rules);
   if (!Array.isArray(stops) || stops.length !== 2) throw invalidArgument('Une adresse de ramassage et une adresse de livraison sont requises.');
@@ -51,7 +53,7 @@ export async function findCompatibleVehicle(driverId: string, snapshot: BookingS
     const v = doc.data(); const capacity = v.verified_capacity as Capacity;
     if (v.is_verified !== true || !capacity || normalizeVehicleCategory(capacity.category) !== normalizeVehicleCategory(snapshot.category)) continue;
     if (!v.capacity_valid_until || typeof v.capacity_valid_until.toMillis !== 'function' || v.capacity_valid_until.toMillis() <= Date.now()) continue;
-    if (fitsVehicle(snapshot.load, capacity)) return { vehicle_id: doc.id, capacity_version: capacity.version };
+    if (eligibleForBookingSnapshot(snapshot, capacity)) return { vehicle_id: doc.id, capacity_version: capacity.version };
   }
   return null;
 }

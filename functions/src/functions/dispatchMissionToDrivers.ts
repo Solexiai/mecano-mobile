@@ -36,6 +36,10 @@ const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affin
 const MAX_CANDIDATE_DRIVERS = 15;
 
 async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): Promise<void> {
+  // Price-first requests await explicit operational/manual assignment.
+  // In particular, an internal test must never broadcast real driver offers.
+  const snapshot = 'pricing_snapshot' in mission ? mission.pricing_snapshot : undefined;
+  if (snapshot && typeof snapshot === 'object' && 'pre_assignment' in snapshot && snapshot.pre_assignment) return;
   // 🔒 Phase 7, Bloc Y (Y-1/Y-2) — un correlation_id + timer couvrent tout
   // le cycle de dispatch (recherche -> succès|aucun candidat), pour rendre
   // "dispatch échoué" (aucun chauffeur trouvé) observable/alertable côté
@@ -112,45 +116,55 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
   const now = admin.firestore.Timestamp.now();
   const expiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + OFFER_EXPIRY_MS);
 
-  const batch = db.batch();
-  for (const driverDoc of eligible) {
-    const offerRef = db.collection("delivery_offers").doc();
-    batch.set(offerRef, {
-      mission_id: missionId,
-      driver_id: driverDoc.id,
-      offered_at: now,
-      expires_at: expiresAt,
-      status: "pending",
-    });
-
-    // Notification in-app créée DANS LE MÊME batch que l'offre : si le commit
-    // réussit, le chauffeur voit au minimum la cloche/liste en temps réel,
-    // même si son appareil n'a pas autorisé FCM/APNs ou si le push échoue.
-    // ID déterministe par mission/chauffeur pour éviter les doublons lors
-    // d'un retry at-least-once du trigger Firestore.
-    const notificationRef = db
-      .collection("users")
-      .doc(driverDoc.id)
-      .collection("notifications")
-      .doc(`delivery_offer_${missionId}`);
-    batch.set(notificationRef, {
-      id: notificationRef.id,
-      type: "delivery_offer",
-      title_key: "notif_delivery_offer_title",
-      body_key: "notif_delivery_offer_body",
-      is_read: false,
-      created_at: now,
-      related_mission_id: missionId,
-      metadata: {
-        offer_id: offerRef.id,
+  const missionRef = db.collection("delivery_requests").doc(missionId);
+  // Firestore events may be replayed or overlap with assignment/cancellation.
+  // Only the transaction that still observes an unassigned searching mission
+  // may publish offers; a retry must not reopen it or notify drivers again.
+  const dispatched = await db.runTransaction(async (tx) => {
+    const current = (await tx.get(missionRef)).data();
+    if (!current || current.status !== MissionStatuses.SEARCHING_DRIVER || current.driver_id) {
+      return false;
+    }
+    for (const driverDoc of eligible) {
+      const offerRef = db.collection("delivery_offers").doc();
+      tx.set(offerRef, {
+        mission_id: missionId,
+        driver_id: driverDoc.id,
+        offered_at: now,
         expires_at: expiresAt,
-      },
+        status: "pending",
+      });
+
+      // Notification in-app créée DANS LA MÊME transaction que l'offre : si le commit
+      // réussit, le chauffeur voit au minimum la cloche/liste en temps réel,
+      // même si son appareil n'a pas autorisé FCM/APNs ou si le push échoue.
+      // ID déterministe par mission/chauffeur pour éviter les doublons lors
+      // d'un retry at-least-once du trigger Firestore.
+      const notificationRef = db
+        .collection("users")
+        .doc(driverDoc.id)
+        .collection("notifications")
+        .doc(`delivery_offer_${missionId}`);
+      tx.set(notificationRef, {
+        id: notificationRef.id,
+        type: "delivery_offer",
+        title_key: "notif_delivery_offer_title",
+        body_key: "notif_delivery_offer_body",
+        is_read: false,
+        created_at: now,
+        related_mission_id: missionId,
+        metadata: {
+          offer_id: offerRef.id,
+          expires_at: expiresAt,
+        },
+      });
+    }
+    tx.update(db.collection("delivery_requests").doc(missionId), {
+      status: MissionStatuses.OFFERED,
     });
-  }
-  batch.update(db.collection("delivery_requests").doc(missionId), {
-    status: MissionStatuses.OFFERED,
+    return true;
   });
-  await batch.commit();
+  if (!dispatched) return;
 
   // Push après le commit uniquement : ne jamais avertir un chauffeur d'une
   // offre qui n'a pas réellement été persistée. sendDeliveryOfferPush() est

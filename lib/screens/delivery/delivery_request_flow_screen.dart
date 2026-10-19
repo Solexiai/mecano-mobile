@@ -67,7 +67,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _loaded = false,
       _busy = false,
       _cardReady = false,
-      _configurationChecked = false;
+      _configurationChecked = false,
+      _internalTestAllowed = false;
   int _epoch = 0;
   final Map<String, BookingPhotoSuggestion> _photoSuggestions = {};
   final Map<String, String> _photoErrors = {};
@@ -81,9 +82,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       !_configurationError &&
       _policy != null &&
       _bookingEnabled;
+  bool get _assignmentPending => _draft.quote?['assignmentPending'] == true;
   bool get _canPay =>
-      _canBook && _paymentEnabled && _policy!['setup_enabled'] == true;
-  String get _configurationNotice => _configurationError
+      _canBook &&
+      !_assignmentPending &&
+      _paymentEnabled &&
+      _policy!['setup_enabled'] == true;
+  String get _configurationNotice => _assignmentPending
+      ? tr(
+          'Votre prix est calculé. Le chauffeur sera affecté séparément. Aucune réservation ni aucun paiement n’est confirmé.',
+          'Your price is calculated. The driver will be assigned separately. No booking or payment is confirmed.',
+          'Tu precio está calculado. El conductor se asignará por separado. No se confirma ninguna reserva ni pago.',
+        )
+      : _configurationError
       ? tr(
           'Impossible de vérifier la disponibilité du service. Vous pouvez continuer votre brouillon, sans réservation ni paiement.',
           'Service availability could not be checked. You can continue your draft without booking or payment.',
@@ -262,6 +273,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _review = null;
     _policy = null;
     _configurationChecked = false;
+    _internalTestAllowed = false;
     _configurationError = false;
     _bookingEnabled = false;
     _paymentEnabled = false;
@@ -318,9 +330,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
 
   Future<void> _loadConfiguration(int epoch) async {
     Map<String, dynamic>? policy;
-    bool error = false, booking = false, payment = false;
+    bool error = false, booking = false, payment = false, internalTest = false;
     try {
       final config = await _api.call('getBookingConfiguration');
+      internalTest = config['internal_test_request'] == true;
       final availability = config['availability'];
       if (availability is Map) {
         booking = availability['booking_enabled'] == true;
@@ -338,6 +351,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     setState(() {
       _policy = policy;
       _configurationChecked = true;
+      _internalTestAllowed = internalTest;
       _configurationError = error;
       _bookingEnabled = booking;
       _paymentEnabled = payment;
@@ -498,31 +512,89 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         (a['city'] as String? ?? '').isNotEmpty &&
         (a['postal_code'] as String? ?? '').isNotEmpty;
   });
+  bool get _photoConfirmationNeeded =>
+      _photoMode &&
+      _draft.items.any((item) => item['identification_confirmed'] != true);
+
+  Set<String> get _reviewReasons =>
+      (_review?['reasons'] as List? ?? []).whereType<String>().toSet();
+
+  static const _serviceReviewReasons = {
+    'photo_policy_unconfigured',
+    'photo_category_unconfigured',
+    'capacity_unconfigured',
+    'service_area_unconfigured',
+  };
+
+  Widget _reviewFeedback() {
+    final reasons = _reviewReasons;
+    final serviceUnavailable = reasons.any(_serviceReviewReasons.contains);
+    final actionable = reasons
+        .where((reason) => !_serviceReviewReasons.contains(reason))
+        .map(_reason)
+        .toSet();
+    final messages = <String>[
+      if (serviceUnavailable)
+        tr(
+          'Le devis en ligne est momentanément indisponible. Votre brouillon est conservé ; aucun prix ni réservation n’est confirmé.',
+          'Online quotes are temporarily unavailable. Your draft is saved; no price or booking is confirmed.',
+          'El presupuesto en línea no está disponible por el momento. Tu borrador está guardado; no se confirma precio ni reserva.',
+        ),
+      ...actionable,
+      if (!serviceUnavailable && actionable.isEmpty)
+        tr(
+          'Le devis ne peut pas encore être calculé. Votre brouillon est conservé.',
+          'The quote cannot be calculated yet. Your draft is saved.',
+          'El presupuesto aún no se puede calcular. Tu borrador está guardado.',
+        ),
+    ];
+    return _note(messages.join('\n\n'), warning: true);
+  }
+
   Future<void> _quote() async {
     // A server quote does not require payment or approved booking terms.
-    // The server still reviews the load and owns every price decision.
+    // Assignment review is deferred; the server still validates input and owns every price.
     if (_uid == null) {
       await _login();
       return;
     }
+    if (_photoConfirmationNeeded) {
+      setState(() {
+        _review = {
+          'status': 'review_required',
+          'reasons': ['object_confirmation_required'],
+        };
+      });
+      return;
+    }
     final revision = _draft.revision, epoch = _epoch;
-    final result = await _api.call('reviewDeliveryLoad', {
-      'load': _draft.load,
-      'stops': _draft.stops,
-    });
+    // Pricing and driver/capacity assignment are independent operations.
+    // Only the server calculates amounts, validates input and freezes the quote.
+    late Map<String, dynamic> quote;
+    try {
+      quote = await _api.call('calculateDeliveryQuote', {
+        'quotePurpose': 'price_before_assignment',
+        'booking': _draft.load,
+        'stops': _draft.stops,
+      });
+    } on FirebaseFunctionsException catch (error) {
+      final details = error.details;
+      if (details is Map && details['quote_reason'] is String) {
+        if (mounted && epoch == _epoch && revision == _draft.revision) {
+          setState(() {
+            _review = {
+              'status': 'review_required',
+              'reasons': [details['quote_reason']],
+            };
+          });
+        }
+        return;
+      }
+      rethrow;
+    }
     if (!mounted || epoch != _epoch || revision != _draft.revision) return;
     setState(() {
-      _review = result;
-    });
-    if (result['status'] != 'ready') return;
-    final quote = await _api.call('calculateDeliveryQuote', {
-      'booking': _draft.load,
-      'stops': _draft.stops,
-      if (_draft.data['requested_vehicle'] != null)
-        'requestedVehicleCategory': _draft.data['requested_vehicle'],
-    });
-    if (!mounted || epoch != _epoch || revision != _draft.revision) return;
-    setState(() {
+      _review = null;
       _draft.data['quote'] = quote;
       _draft.data['accepted'] = false;
     });
@@ -583,6 +655,40 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     )) {
       throw StateError('Checkout unavailable');
     }
+  }
+
+  Future<void> _submitInternalTest() async {
+    await _loadConfiguration(_epoch);
+    if (!mounted ||
+        !_internalTestAllowed ||
+        !_assignmentPending ||
+        !_draft.quoteValid) {
+      return;
+    }
+    final epoch = _epoch;
+    await _save();
+    if (_saveError != null) return;
+    final q = _draft.quote!;
+    final result = await _api.call('createDeliveryRequest', {
+      'quoteId': q['quoteId'],
+      'booking': _draft.load,
+      'contacts': _draft.contacts,
+      'stops': _draft.stops,
+      'requiredVehicleCategory': q['vehicleCategory'],
+      'description': '',
+      'itemCategoryKey': '',
+      'customerDisplayName': '',
+    });
+    if (!mounted || epoch != _epoch) return;
+    if (result['internalTest'] != true || result['missionId'] is! String) {
+      throw StateError('Internal-test response required');
+    }
+    final oldId = _draft.id;
+    setState(() {
+      _draft = BookingDraft()..data['missionId'] = result['missionId'];
+    });
+    await _persistLocal();
+    await _api.call('clearBookingDraft', {'draftId': oldId});
   }
 
   Future<void> _confirm() async {
@@ -967,7 +1073,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     ),
                   ),
                 ] else ...[
-                  if (_configurationChecked && !_canPay)
+                  if (_draft.step >= 2 && _configurationChecked && !_canPay)
                     _note(_configurationNotice, warning: true),
                   const SizedBox(height: 24),
                   Wrap(
@@ -1744,6 +1850,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'Approximate measurements need verification before booking.',
       'Las medidas aproximadas deben verificarse antes de reservar.',
     ),
+    'pricing_category_required' => tr(
+      'La grille tarifaire nécessite une règle de prix par catégorie. Movi-K doit la configurer avant ce devis.',
+      'The tariff needs a category pricing rule. Movi-K must configure it before this quote.',
+      'La tarifa requiere una regla de precio por categoría. Movi-K debe configurarla antes del presupuesto.',
+    ),
+    'pricing_handling_required' => tr(
+      'Une condition tarifaire de manutention doit être précisée par Movi-K. Aucun supplément n’a été inventé.',
+      'Movi-K must clarify a handling pricing condition. No surcharge has been invented.',
+      'Movi-K debe precisar una condición de precio de manipulación. No se ha inventado ningún suplemento.',
+    ),
+    'object_category_required' => tr(
+      'Confirmez la catégorie de votre objet.',
+      'Confirm your item category.',
+      'Confirma la categoría del objeto.',
+    ),
     'capacity_unconfigured' => tr(
       'Les capacités vérifiées des véhicules ne sont pas encore configurées.',
       'Verified vehicle capacities have not been configured yet.',
@@ -1772,20 +1893,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   };
   List<Widget> _price() => [
     _heading(_titles[1]),
-    if (!_configurationChecked)
-      const LinearProgressIndicator()
-    else if (!_canPay)
-      TextButton(
-        onPressed: _busy ? null : () => _run(() => _loadConfiguration(_epoch)),
-        child: Text(
-          tr(
-            'Vérifier à nouveau la disponibilité',
-            'Check availability again',
-            'Comprobar disponibilidad de nuevo',
-          ),
-        ),
-      ),
-    if (_configurationChecked && _uid == null) ...[
+    if (_uid == null) ...[
       _note(
         tr(
           'Connectez-vous pour obtenir le devis officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',
@@ -1801,21 +1909,49 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         () => _run(_login),
       ),
-    ] else if (_configurationChecked) ...[
-      if (_review != null && _review!['status'] != 'ready')
-        _note(
-          tr(
-            'Le devis ne peut pas encore être calculé. Vous pouvez continuer à préparer la demande; aucun prix ni réservation ne sera confirmé.',
-            'The quote cannot be calculated yet. You can keep preparing the request; no price or booking will be confirmed.',
-            'El presupuesto aún no se puede calcular. Puedes seguir preparando la solicitud; no se confirmará precio ni reserva.',
+    ] else ...[
+      if (_review != null && _review!['status'] != 'ready') _reviewFeedback(),
+      if (_photoConfirmationNeeded) ...[
+        if (_review == null)
+          _note(
+            tr(
+              'Vérifiez la catégorie et confirmez chaque objet ci-dessous avant de demander votre prix.',
+              'Check the category and confirm each item below before requesting your price.',
+              'Revisa la categoría y confirma cada objeto abajo antes de pedir tu precio.',
+            ),
           ),
-          warning: true,
+        for (final item in _draft.items)
+          if (item['identification_confirmed'] != true)
+            _item(Map<String, dynamic>.from(item as Map)),
+      ],
+      if (_reviewReasons.any(
+        (reason) => const {
+          'photo_required',
+          'special_details_required',
+          'dimensions_unknown',
+          'weight_unknown',
+          'outside_service_area',
+          'requested_time_past',
+          'requested_time_missing',
+        }.contains(reason),
+      ))
+        _button(
+          tr(
+            'Compléter les informations de ma livraison',
+            'Complete my delivery details',
+            'Completar los datos de mi entrega',
+          ),
+          () => _step(0),
         ),
-      if (_review?['reasons'] is List)
-        ...(_review!['reasons'] as List).map(
-          (r) => _note(_reason(r as String), warning: true),
-        ),
-      if (_review?['status'] == 'review_required')
+      if (_review?['status'] == 'review_required' &&
+          !_reviewReasons.any(_serviceReviewReasons.contains) &&
+          _reviewReasons.any(
+            (reason) => const {
+              'no_verified_fit',
+              'no_eligible_photo_vehicle',
+              'approximate_measurements',
+            }.contains(reason),
+          ))
         TextButton.icon(
           icon: const Icon(Icons.support_agent),
           label: Text(
@@ -1839,15 +1975,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             }
           }),
         ),
-      if (_draft.quote != null) ...[_quoteLoadSummary(), ..._quoteSummary()],
+      if (_draft.quote != null) ...[..._quoteSummary(), _quoteLoadSummary()],
       if (!_draft.quoteValid)
         _button(
-          tr(
-            'Calculer mon devis officiel',
-            'Calculate my official quote',
-            'Calcular mi presupuesto oficial',
-          ),
-          () => _run(_quote),
+          _review != null && _review!['status'] != 'ready'
+              ? tr(
+                  'Réessayer le devis',
+                  'Retry quote',
+                  'Reintentar presupuesto',
+                )
+              : tr(
+                  'Calculer mon devis officiel',
+                  'Calculate my official quote',
+                  'Calcular mi presupuesto oficial',
+                ),
+          _photoConfirmationNeeded ? null : () => _run(_quote),
         ),
       if (!_photoMode &&
           (_review?['compatible_categories'] as List? ?? []).length > 1) ...[
@@ -1883,7 +2025,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ],
       if (_draft.quoteValid) ...[
-        if (_photoMode)
+        if (_assignmentPending)
+          _note(
+            tr(
+              'Votre prix est calculé. Le chauffeur sera affecté séparément ; aucune réservation ni aucun paiement n’est confirmé à cette étape.',
+              'Your price is calculated. A driver will be assigned separately; no booking or payment is confirmed at this step.',
+              'Tu precio está calculado. El conductor se asignará por separado; en este paso no se confirma ninguna reserva ni pago.',
+            ),
+          )
+        else if (_photoMode)
           _note(
             tr(
               'Movi-K propose le véhicule. Le chauffeur examine la photo et accepte ou refuse la demande. Les mesures inconnues ne sont pas des capacités vérifiées.',
@@ -1994,9 +2144,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     ),
                   ),
               const Divider(),
-              Text(
-                '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
-              ),
+              if (quote['assignmentPending'] == true)
+                Text(
+                  tr(
+                    'Chauffeur à affecter après le devis',
+                    'Driver assignment follows the quote',
+                    'El conductor se asigna después del presupuesto',
+                  ),
+                )
+              else
+                Text(
+                  '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
+                ),
               Text(
                 '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${formatDistanceKm(quote['distanceKm'] is num ? quote['distanceKm'] as num : null, locale: widget.locale)}',
               ),
@@ -2215,6 +2374,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   ];
   List<Widget> _confirmation(FirebaseAuthProvider auth) => [
     _heading(_titles[3]),
+    if (_internalTestAllowed && _assignmentPending && _draft.quoteValid) ...[
+      _note(
+        tr(
+          'Compte de test autorisé : créez la demande, puis affectez le chauffeur manuellement dans l’administration. Aucun paiement ne sera déclenché.',
+          'Authorized test account: create the request, then assign the driver manually in administration. No payment will be triggered.',
+          'Cuenta de prueba autorizada: crea la solicitud y asigna el conductor manualmente en administración. No se iniciará ningún pago.',
+        ),
+      ),
+      _button(
+        tr(
+          'Créer la demande de test — sans paiement',
+          'Create test request — no payment',
+          'Crear solicitud de prueba — sin pago',
+        ),
+        () => _run(_submitInternalTest),
+      ),
+    ],
     if (!_canPay || !_draft.quoteValid)
       _note(
         tr(

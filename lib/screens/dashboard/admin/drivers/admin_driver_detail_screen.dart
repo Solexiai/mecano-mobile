@@ -24,6 +24,8 @@ import '../../../../finance/presentation/money_format.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'driver_document_display.dart';
+import '../../../../widgets/driver_vehicle_review_card.dart';
+import '../../../../l10n/vehicle_review_copy.dart';
 
 class AdminDriverDetailScreen extends StatefulWidget {
   final String driverId;
@@ -314,7 +316,7 @@ class _VehicleSection extends StatefulWidget {
 }
 
 class _VehicleSectionState extends State<_VehicleSection> {
-  late final Future<List<DriverVehicle>> _vehiclesFuture = BackendLocator
+  late Future<List<DriverVehicle>> _vehiclesFuture = BackendLocator
       .driverRepository
       .getDriverVehicles(widget.driverId);
 
@@ -333,6 +335,21 @@ class _VehicleSectionState extends State<_VehicleSection> {
               child: LinearProgressIndicator(),
             );
           }
+          if (snap.hasError) {
+            final locale = context.watch<LocaleProvider>().locale;
+            return Column(
+              children: [
+                Text(VehicleReviewCopy.text(locale, 'load_error')),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _vehiclesFuture = BackendLocator.driverRepository
+                        .getDriverVehicles(widget.driverId);
+                  }),
+                  child: Text(VehicleReviewCopy.text(locale, 'retry')),
+                ),
+              ],
+            );
+          }
           final vehicles = snap.data ?? const <DriverVehicle>[];
           if (vehicles.isEmpty) {
             return Text(
@@ -340,44 +357,18 @@ class _VehicleSectionState extends State<_VehicleSection> {
               style: const TextStyle(color: AppColors.textSecondary),
             );
           }
-          final v = vehicles.first;
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _KeyValueRow(
-                label: t('admin_driver_field_category'),
-                value: t(v.category.key),
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_make'),
-                value: v.displayMake.isEmpty ? na : v.displayMake,
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_model'),
-                value: v.displayModel.isEmpty ? na : v.displayModel,
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_year'),
-                value: v.year == 0 ? na : '${v.year}',
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_color'),
-                value: v.color ?? na,
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_plate'),
-                value: v.plate.isEmpty ? na : v.plate,
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_capacity'),
-                value: v.maxPayloadKg != null ? '${v.maxPayloadKg} kg' : na,
-              ),
-              _KeyValueRow(
-                label: t('admin_driver_field_vehicle_verified'),
-                value: v.isVerified
-                    ? t('admin_driver_verified')
-                    : t('admin_driver_not_verified'),
-              ),
+              for (final vehicle in vehicles)
+                DriverVehicleReviewCard(
+                  vehicle: vehicle,
+                  locale: context.watch<LocaleProvider>().locale,
+                  onReviewed: () => setState(() {
+                    _vehiclesFuture = BackendLocator.driverRepository
+                        .getDriverVehicles(widget.driverId);
+                  }),
+                ),
             ],
           );
         },

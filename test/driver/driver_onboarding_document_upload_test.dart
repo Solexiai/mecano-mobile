@@ -99,6 +99,16 @@ class _UploadRepo implements DriverDocumentUploadRepository {
 }
 
 class _DriverRepo implements DriverRepository {
+  // Interface compatibility with the already published vehicle repository.
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) => throw UnimplementedError();
+
   int onboardingCalls = 0;
   int vehicleCalls = 0;
   int submitReviewCalls = 0;

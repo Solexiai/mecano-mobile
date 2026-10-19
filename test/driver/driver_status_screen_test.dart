@@ -98,6 +98,16 @@ class _FakeDriverDocumentUploadRepository
 }
 
 class _FakeDriverRepository implements DriverRepository {
+  // Interface compatibility with the already published vehicle repository.
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) => throw UnimplementedError();
+
   DriverProfileV2? profile;
 
   // Volontairement NON-broadcast (single-subscription) — voir en-tête.

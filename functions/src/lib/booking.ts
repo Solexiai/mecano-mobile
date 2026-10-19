@@ -1,12 +1,16 @@
 /** Booking contract. Capacities and handling thresholds MUST come from approved
  * configuration. Conservative fit: no stacking, no diagonal loading, fixed
  * upright orientation when requested. A refusal can require human review. */
-import { invalidArgument } from './errors';
+import { invalidArgument, failedPrecondition } from './errors';
+import { classifyPhotoIntake } from './photoIntake';
+import { normalizeVehicleCategory } from './vehicleCategory';
 
 export interface CargoItem {
   id: string; category: string; label: string; quantity: number;
   length_cm: number | null; width_cm: number | null; height_cm: number | null;
   weight_kg: number | null; approximate: boolean; upright: boolean; photos: string[];
+  identification_confirmed?: boolean; special_handling?: boolean;
+  handling_notes?: string;
 }
 export interface Access { floor: number; stairs: boolean; elevator: boolean; help: boolean }
 export interface BookingLoad {
@@ -14,6 +18,8 @@ export interface BookingLoad {
   handlers: number; equipment: string[]; requested_at: string | null;
   /** Omitted on legacy scheduled snapshots to preserve their integrity contract. */
   timing_mode?: 'immediate' | 'scheduled';
+  /** Explicit opt-in; omitted from legacy normalized loads. */
+  intake_mode?: 'photo_assisted';
 }
 export interface Capacity {
   category: string; rank: number; version: string; verified: boolean;
@@ -25,12 +31,18 @@ export interface BookingRules {
   approved: boolean; version: string; capacities: Capacity[];
   /** Legacy fee threshold retained for document compatibility; no longer required. */
   heavy_item_kg?: number; bulky_item_cm: number;
+  /** Server-owned rollout and object-to-vehicle policy. No default mapping. */
+  photo_intake?: { enabled: boolean; version: string; category_vehicle_categories: Record<string, string[]> };
 }
 export interface BookingSnapshot {
   load: BookingLoad; rules_version: string; category: string; capacity_version: string;
+  vehicle_assessment?: 'driver_photo_review';
+  photo_policy_version?: string;
 }
 export type ReviewReason = 'dimensions_unknown' | 'weight_unknown' | 'approximate_measurements' |
-  'capacity_unconfigured' | 'no_verified_fit' | 'requested_time_missing';
+  'capacity_unconfigured' | 'no_verified_fit' | 'requested_time_missing' |
+  'photo_policy_unconfigured' | 'photo_category_unconfigured' | 'photo_required' |
+  'object_confirmation_required' | 'special_details_required' | 'no_eligible_photo_vehicle';
 
 function object(v: unknown): Record<string, unknown> {
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw invalidArgument('Description de livraison invalide.');
@@ -56,6 +68,8 @@ function access(v: unknown): Access {
 }
 export function normalizeLoad(raw: unknown): BookingLoad {
   const v = object(raw);
+  if (v.intake_mode !== undefined && v.intake_mode !== 'photo_assisted') throw invalidArgument('Mode de description invalide.');
+  const photoIntake = v.intake_mode === 'photo_assisted';
   const draftId = str(v.draft_id,80);
   if (!/^[a-zA-Z0-9_-]{8,80}$/.test(draftId)) throw invalidArgument('Identifiant du brouillon invalide.');
   if (!Array.isArray(v.items) || !v.items.length || v.items.length > 20) throw invalidArgument('Ajoutez de 1 à 20 objets.');
@@ -74,6 +88,8 @@ export function normalizeLoad(raw: unknown): BookingLoad {
       length_cm: dim(i.length), width_cm: dim(i.width), height_cm: dim(i.height),
       weight_kg: i.weight == null ? null : Math.round(num(i.weight, 0.01, 100000) * (i.weight_unit === 'lb' ? 0.45359237 : 1) * 1000) / 1000,
       approximate: bool(i.approximate), upright: bool(i.upright),
+      ...(photoIntake ? { identification_confirmed: bool(i.identification_confirmed), special_handling: bool(i.special_handling),
+        ...(i.handling_notes == null ? {} : { handling_notes: str(i.handling_notes, 1200, false) }) } : {}),
       photos: Array.isArray(i.photos) && i.photos.length <= 3 ? i.photos.map(p => str(p, 400)) : [] };
   });
   if (count > 20) throw invalidArgument('Au-delà de 20 pièces, une étude de chargement est nécessaire.');
@@ -90,7 +106,8 @@ export function normalizeLoad(raw: unknown): BookingLoad {
   }
   return { schema_version: 1, draft_id: draftId, items, pickup: access(v.pickup), dropoff: access(v.dropoff),
     handlers: num(v.handlers, 1, 2, true), equipment: [...new Set(equipment.map(e => str(e, 50)))].sort(), requested_at: requested,
-    ...(mode === undefined ? {} : { timing_mode: mode }) };
+    ...(mode === undefined ? {} : { timing_mode: mode }),
+    ...(photoIntake ? { intake_mode: 'photo_assisted' as const } : {}) };
 }
 
 export function validCapacity(c: Capacity): boolean {
@@ -105,9 +122,12 @@ export function fitsVehicle(load: BookingLoad, c: Capacity): boolean {
   if ((load.pickup.stairs || load.dropoff.stairs) && !c.services.includes('stairs')) return false;
   if (load.items.some(i => i.approximate || i.length_cm === null || i.width_cm === null || i.height_cm === null || i.weight_kg === null)) return false;
   if (load.items.reduce((s, i) => s + i.weight_kg! * i.quantity, 0) > c.payload_kg) return false;
+  return fitsKnownGeometry(load.items, c);
+}
+function fitsKnownGeometry(items: CargoItem[], c: Capacity): boolean {
   // Shelf packing establishes an actual non-overlapping plan; total volume
   // alone never accepts a load. No stacking assumptions for fragile cargo.
-  const boxes = load.items.flatMap(i => Array.from({ length: i.quantity }, () => i))
+  const boxes = items.flatMap(i => Array.from({ length: i.quantity }, () => i))
     .sort((a, b) => b.length_cm! * b.width_cm! - a.length_cm! * a.width_cm!);
   const shelves: { length: number; usedWidth: number }[] = [];
   let usedLength = 0;
@@ -129,6 +149,7 @@ export function fitsVehicle(load: BookingLoad, c: Capacity): boolean {
   return true;
 }
 export function recommend(load: BookingLoad, rules: BookingRules) {
+  if (load.intake_mode === 'photo_assisted') return recommendPhoto(load, rules);
   const reasons: ReviewReason[] = [];
   if (load.items.some(i => i.length_cm === null || i.width_cm === null || i.height_cm === null)) reasons.push('dimensions_unknown');
   if (load.items.some(i => i.weight_kg === null)) reasons.push('weight_unknown');
@@ -149,4 +170,84 @@ export function bookingHandling(load: BookingLoad, rules: BookingRules) {
     needsStairs: load.pickup.stairs || load.dropoff.stairs,
     noElevator: (load.pickup.stairs && !load.pickup.elevator) || (load.dropoff.stairs && !load.dropoff.elevator),
     needsSecondHandler: load.handlers === 2, needsSpecialEquipment: load.equipment.length > 0 };
+}
+
+/** Eligibility to inspect a photo offer is NOT a verified vehicle fit. */
+export function eligibleForPhotoReview(load: BookingLoad, c: Capacity): boolean {
+  if (load.intake_mode !== 'photo_assisted' || !validCapacity(c) ||
+    !['pickup_truck', 'cargo_van', 'cube_truck'].includes(normalizeVehicleCategory(c.category))) return false;
+  if (!load.items.length || load.items.some(i => !isCompletePhotoItem(i))) return false;
+  if (load.handlers > c.handlers || load.equipment.some(e => !c.equipment.includes(e))) return false;
+  if ((load.pickup.help || load.dropoff.help) && !c.services.includes('handling')) return false;
+  if ((load.pickup.stairs || load.dropoff.stairs) && !c.services.includes('stairs')) return false;
+  // Known values remain constraints. Null does not become a fabricated estimate.
+  if (load.items.reduce((sum, i) => sum + (i.weight_kg ?? 0) * i.quantity, 0) > c.payload_kg) return false;
+  for (const item of load.items) {
+    const [l,w,h] = [item.length_cm,item.width_cm,item.height_cm];
+    const orientations = item.upright ? [[l,w,h],[w,l,h]] : [[l,w,h],[w,l,h],[l,h,w],[h,l,w],[w,h,l],[h,w,l]];
+    const within = (value: number | null, limit: number) => value === null ||
+      (Number.isFinite(value) && value > 0 && value <= limit);
+    if (!orientations.some(([x,y,z]) => within(x,c.length_cm) && within(y,c.width_cm) &&
+      within(z,c.height_cm) && within(y,c.opening_width_cm) && within(z,c.opening_height_cm))) return false;
+    if (item.weight_kg !== null && (!Number.isFinite(item.weight_kg) || item.weight_kg <= 0)) return false;
+  }
+  const measured = load.items.filter(i => i.length_cm !== null && i.width_cm !== null && i.height_cm !== null);
+  return fitsKnownGeometry(measured, c);
+}
+function isCompletePhotoItem(item: CargoItem): boolean {
+  if (!item.photos.length || item.identification_confirmed !== true) return false;
+  const assessment = classifyPhotoIntake({ category: item.category,
+    customerConfirmed: true, specialItem: item.special_handling !== false });
+  if (assessment.status === 'standard') return true;
+  // Customer-provided dimensions constrain eligibility; they are never AI measurements.
+  // A special item also needs explicit handling details for the driver's decision.
+  return assessment.status === 'special' &&
+    [item.length_cm, item.width_cm, item.height_cm].every(n => n !== null && Number.isFinite(n) && n > 0) &&
+    typeof item.handling_notes === 'string' && item.handling_notes.trim().length > 0;
+}
+function recommendPhoto(load: BookingLoad, rules: BookingRules) {
+  const reasons: ReviewReason[] = [];
+  const policy = rules?.photo_intake;
+  if (!policy || policy.enabled !== true || typeof policy.version !== 'string' || !policy.version.trim() ||
+    !policy.category_vehicle_categories || typeof policy.category_vehicle_categories !== 'object') reasons.push('photo_policy_unconfigured');
+  if (!rules?.approved || !rules.version || !Array.isArray(rules.capacities) || !rules.capacities.some(validCapacity) ||
+    !(rules.bulky_item_cm > 0)) reasons.push('capacity_unconfigured');
+  if (load.timing_mode !== 'immediate' && !load.requested_at) reasons.push('requested_time_missing');
+  for (const item of load.items) {
+    if (item.identification_confirmed !== true) reasons.push('object_confirmation_required');
+    if (!item.photos.length) reasons.push('photo_required');
+    if (item.identification_confirmed === true && item.photos.length && !isCompletePhotoItem(item)) reasons.push('special_details_required');
+    const mapped = policy?.category_vehicle_categories?.[item.category];
+    if (!Array.isArray(mapped) || !mapped.length || mapped.some(x => typeof x !== 'string' ||
+      !['pickup_truck','cargo_van','cube_truck'].includes(normalizeVehicleCategory(x)))) reasons.push('photo_category_unconfigured');
+  }
+  const compatible = reasons.length ? [] : rules.capacities.filter(c => eligibleForPhotoReview(load,c) &&
+    load.items.every(i => policy!.category_vehicle_categories[i.category].some(x => normalizeVehicleCategory(x) === normalizeVehicleCategory(c.category))))
+    .sort((a,b) => a.rank-b.rank || a.category.localeCompare(b.category));
+  if (!reasons.length && !compatible.length) reasons.push('no_eligible_photo_vehicle');
+  const selected = compatible[0];
+  return { status: selected ? 'ready' as const : 'review_required' as const, reasons: [...new Set(reasons)],
+    compatible_categories: compatible.map(c => c.category),
+    snapshot: selected ? { load, rules_version: rules.version, category: selected.category, capacity_version: selected.version,
+      vehicle_assessment: 'driver_photo_review', photo_policy_version: policy!.version } as BookingSnapshot : null };
+}
+/** Shared by dispatch and assignment; legacy snapshots retain strict measured fit. */
+export function eligibleForBookingSnapshot(snapshot: BookingSnapshot, capacity: Capacity): boolean {
+  if (normalizeVehicleCategory(snapshot.category) !== normalizeVehicleCategory(capacity.category)) return false;
+  if (snapshot.vehicle_assessment === undefined) return snapshot.load.intake_mode === undefined && fitsVehicle(snapshot.load,capacity);
+  if (snapshot.vehicle_assessment !== 'driver_photo_review' || typeof snapshot.photo_policy_version !== 'string' || !snapshot.photo_policy_version.trim()) return false;
+  return eligibleForPhotoReview(snapshot.load,capacity);
+}
+
+/** Keep the quote category selected by the server for photo-assisted loads. */
+export function selectBookingVehicle(snapshot: BookingSnapshot, rules: BookingRules,
+  compatibleCategories: string[], requestedCategory?: string): BookingSnapshot {
+  if (!requestedCategory) return snapshot;
+  if (snapshot.vehicle_assessment === 'driver_photo_review') {
+    if (requestedCategory !== snapshot.category) throw failedPrecondition('Le véhicule est sélectionné par Movi-K pour cette demande.');
+    return snapshot;
+  }
+  const alternative = rules.capacities.find(c => c.category === requestedCategory && compatibleCategories.includes(c.category));
+  if (!alternative) throw failedPrecondition('Cette catégorie ne convient pas au chargement.');
+  return {...snapshot,category:alternative.category,capacity_version:alternative.version};
 }

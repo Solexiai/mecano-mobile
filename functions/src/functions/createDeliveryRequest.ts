@@ -67,7 +67,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   const retryId = request.data?.quoteId;
   if (typeof retryId === 'string' && retryId && !retryId.includes('/')) {
     const prior = (await db.doc(`delivery_quotes/${retryId}`).get()).data();
-    if (prior?.customer_id === ctx.uid && prior.is_consumed && prior.pricing_snapshot?.booking && prior.mission_id) {
+    if (prior?.customer_id === ctx.uid && prior.is_consumed && (prior.pricing_snapshot?.booking || prior.pricing_snapshot?.pre_assignment) && prior.mission_id) {
       const existing = (await db.doc(`delivery_requests/${prior.mission_id}`).get()).data();
       if (existing?.customer_id === ctx.uid && existing.active_quote_id === retryId) return { missionId: prior.mission_id, internalTest: existing.internal_test_authorized === true };
     }
@@ -196,7 +196,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     if (quote.customer_id !== ctx.uid) {
       throw permissionDenied("Ce devis n'appartient pas à l'utilisateur courant.");
     }
-    if (quote.is_consumed && quote.pricing_snapshot?.booking && quote.mission_id) {
+    if (quote.is_consumed && (quote.pricing_snapshot?.booking || quote.pricing_snapshot?.pre_assignment) && quote.mission_id) {
       const existing = await tx.get(db.doc(`delivery_requests/${quote.mission_id}`));
       if (existing.data()?.customer_id !== ctx.uid || existing.data()?.active_quote_id !== input.quoteId) throw failedPrecondition('Réservation incohérente.');
       resolvedMissionId = quote.mission_id;
@@ -218,6 +218,17 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       throw failedPrecondition(
         "Ce devis historique ne peut pas créer une nouvelle mission. Recalculez un devis sécurisé."
       );
+    }
+    const preAssignment = lockedQuote.pricingSnapshot?.pre_assignment;
+    // A price-only quote must not silently enter the legacy commercial booking path.
+    // The existing server-authorized internal-test/manual-assignment path is preserved.
+    if (preAssignment && !isInternalTest) throw failedPrecondition('Votre prix est calculé. La réservation doit être validée séparément avant toute opération commerciale.');
+    if (preAssignment) {
+      if (JSON.stringify(normalizeLoad(input.booking)) !== JSON.stringify(preAssignment.load)) throw failedPrecondition('La livraison ne correspond plus au devis.');
+      const quotedContacts = normalizeContacts(input.contacts);
+      input.customerDisplayName = quotedContacts.pickup_name;
+      input.description = preAssignment.load.items.map(i => i.quantity + ' × ' + i.label).join('; ');
+      input.itemCategoryKey = preAssignment.load.items[0].category;
     }
     const booking = lockedQuote.pricingSnapshot?.booking;
     let contacts = null;
@@ -364,6 +375,16 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       proof_of_delivery_url: null,
     });
 
+    if (preAssignment && isInternalTest) {
+      // Internal/manual test data only; never fabricate commercial consent or a verified vehicle.
+      tx.set(missionRef.collection('private').doc('booking'), {
+        contacts: normalizeContacts(input.contacts), internal_test: true,
+      });
+      for (const photo of preAssignment.load.items.flatMap(i => i.photos)) {
+        const draftId = photo.split('/')[2];
+        tx.set(db.doc('booking_photo_grants/' + ctx.uid + '_' + draftId), { mission_id: missionRef.id, customer_id: ctx.uid });
+      }
+    }
     if (booking && contacts && policy) {
       for (const photo of booking.load.items.flatMap(i => i.photos)) {
         // Grant is created only by the official mission transaction; paths
