@@ -5023,3 +5023,7 @@ Le propriétaire demande puis confirme la suppression du supplément de 10 CAD p
 
 ### 2026-10-19 — Bloc admin À traiter (validation locale)
 Ajout des quatre files cliquables et compteurs serveur distincts. Correction du comptage des litiges terminés et du rafraîchissement setState/Future ; navigation disponible même si les statistiques échouent. 32 tests Flutter distincts et 3 tests serveur simulés réussis, analyse/build Web/TypeScript/lint/diff check validés. Preuves et limites : docs/audit/ADMIN_ACTION_CENTER_20261019.md. Non déployé ; aucun ancien blocage fermé et aucun décompte historique révisé.
+
+
+### 2026-10-19 — Publication autorisée du bloc admin À traiter
+Suite à « oui tu peux déployer », source 506f95eb061336ec780d5d28d7699aad23c08fc1 publiée : Vercel dpl_9qHi2fjrsUVCnSnCCLmRqs1mYq2J et getAdminDashboardMetrics révision getadmindashboardmetrics-00002-lat ACTIVE. À 19:01 UTC, les deux domaines servent le nouveau bundle contrôlé par SHA256 ; /fr/admin HTTP 200 et appel fonction sans authentification HTTP 401. Preuves : docs/audit/ADMIN_ACTION_CENTER_20261019.md et artifacts/admin-action-center-20261019/web-promote-result.json. Affichage administrateur connecté non validé en production. Aucun push, merge ou transaction réelle ; aucun ancien blocage fermé ni décompte historique révisé.
