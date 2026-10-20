@@ -2,7 +2,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'booking_photo_preparation.dart';
-export 'booking_photo_preparation.dart' show BookingPhotoFormatException;
+export 'booking_photo_preparation.dart'
+    show BookingPhotoFormatException, BookingPhotoFailure;
 
 typedef BookingPhotoUploader =
     Future<String?> Function({
@@ -19,11 +20,14 @@ Future<BookingPhotoUploader?> selectBookingPhotoUpload() async {
   final file = await ImagePicker().pickImage(
     source: ImageSource.gallery,
     maxWidth: kIsWeb ? null : 1600,
-    imageQuality: kIsWeb ? 100 : 82,
+    // Leave web input untouched until its original size and signature are checked.
+    // Quality 100 re-encodes at full resolution and can inflate a valid photo
+    // beyond the input limit before our bounded JPEG preparation runs.
+    imageQuality: kIsWeb ? null : 82,
   );
   if (file == null) return null;
   if (await file.length() > maxBookingPhotoInputBytes) {
-    throw BookingPhotoFormatException();
+    throw const BookingPhotoFormatException(BookingPhotoFailure.inputTooLarge);
   }
   final bytes = await prepareBookingPhotoBytes(await file.readAsBytes());
   return ({

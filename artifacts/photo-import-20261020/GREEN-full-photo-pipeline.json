@@ -1,0 +1,14 @@
+[
+  {
+    "sourceBytes": 7956158,
+    "mode": "select-photo",
+    "output": "{\"ok\":true,\"uploadInvoked\":false}",
+    "errors": []
+  },
+  {
+    "sourceBytes": 7956158,
+    "mode": "select-raw",
+    "output": "{\"picker\":{\"name\":\"scaled_received.jpg\",\"mime\":\"image/jpeg\",\"size\":26679875},\"input\":{\"bytes\":26679875,\"magicMime\":\"image/jpeg\"},\"prepareError\":\"Instance of 'minified:bI'\",\"prepareStack\":\"\\n    at Object.b (http://127.0.0.1:54289/main.dart.js:1350:19)\\n    at http://127.0.0.1:54289/main.dart.js:4582:30\\n    at p5.a (http://127.0.0.1:54289/main.dart.js:2561:63)\\n    at p5.$2 (http://127.0.0.1:54289/main.dart.js:8828:14)\\n    at Object.v (http://127.0.0.1:54289/main.dart.js:2547:10)\\n    at Object.zL (http://127.0.0.1:54289/main.dart.js:4608:10)\\n    at Object.iU (http://127.0.0.1:54289/main.dart.js:4577:10)\\n    at http://127.0.0.1:54289/main.dart.js:12541:14\\n    at p5.a (http://127.0.0.1:54289/main.dart.js:2561:63)\\n    at p5.$2 (http://127.0.0.1:54289/main.dart.js:8828:14)\",\"directEncoder\":{\"bytes\":686044,\"mime\":\"image/jpeg\"}}",
+    "errors": []
+  }
+]

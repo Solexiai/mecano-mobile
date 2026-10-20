@@ -1,0 +1,238 @@
+[
+  {
+    "mobile": false,
+    "kind": "received-jpeg",
+    "sourceBytes": 303982,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "large-jpeg",
+    "sourceBytes": 7956158,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "png",
+    "sourceBytes": 264694,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "webp",
+    "sourceBytes": 55530,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "unsupported",
+    "sourceBytes": 6,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "unsupportedFormat",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4583:20\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at Object.v (http://127.0.0.1:54369/main.dart.js:2547:10)\n    at Object.zL (http://127.0.0.1:54369/main.dart.js:4608:10)\n    at Object.iU (http://127.0.0.1:54369/main.dart.js:4577:10)\n    at http://127.0.0.1:54369/main.dart.js:4627:14\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "oversize",
+    "sourceBytes": 20971521,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "inputTooLarge",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4621:30\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at oK.$1 (http://127.0.0.1:54369/main.dart.js:8822:21)\n    at ok.lv (http://127.0.0.1:54369/main.dart.js:9760:31)\n    at ok.bi (http://127.0.0.1:54369/main.dart.js:9763:13)\n    at nR.$0 (http://127.0.0.1:54369/main.dart.js:9266:11)\n    at Object.cC (http://127.0.0.1:54369/main.dart.js:2691:39)\n    at l.aA (http://127.0.0.1:54369/main.dart.js:9177:3)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "corrupt",
+    "sourceBytes": 6,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "processingFailed",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4601:14\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at oL.$2 (http://127.0.0.1:54369/main.dart.js:8825:16)\n    at ok.ls (http://127.0.0.1:54369/main.dart.js:9764:33)\n    at ok.fN (http://127.0.0.1:54369/main.dart.js:9767:13)\n    at be.kL (http://127.0.0.1:54369/main.dart.js:9110:17)\n    at nQ.$0 (http://127.0.0.1:54369/main.dart.js:9279:36)\n    at Object.cC (http://127.0.0.1:54369/main.dart.js:2691:76)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": false,
+    "kind": "cancel",
+    "sourceBytes": 0,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "received-jpeg",
+    "sourceBytes": 303982,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "large-jpeg",
+    "sourceBytes": 7956158,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "png",
+    "sourceBytes": 264694,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "webp",
+    "sourceBytes": 55530,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": true,
+      "uploadInvoked": false
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "unsupported",
+    "sourceBytes": 6,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "unsupportedFormat",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4583:20\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at Object.v (http://127.0.0.1:54369/main.dart.js:2547:10)\n    at Object.zL (http://127.0.0.1:54369/main.dart.js:4608:10)\n    at Object.iU (http://127.0.0.1:54369/main.dart.js:4577:10)\n    at http://127.0.0.1:54369/main.dart.js:4627:14\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "oversize",
+    "sourceBytes": 20971521,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "inputTooLarge",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4621:30\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at oK.$1 (http://127.0.0.1:54369/main.dart.js:8822:21)\n    at ok.lv (http://127.0.0.1:54369/main.dart.js:9760:31)\n    at ok.bi (http://127.0.0.1:54369/main.dart.js:9763:13)\n    at nR.$0 (http://127.0.0.1:54369/main.dart.js:9266:11)\n    at Object.cC (http://127.0.0.1:54369/main.dart.js:2691:39)\n    at l.aA (http://127.0.0.1:54369/main.dart.js:9177:3)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "corrupt",
+    "sourceBytes": 6,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "error": "Instance of 'minified:bp'",
+      "reason": "processingFailed",
+      "stack": "\n    at Object.b (http://127.0.0.1:54369/main.dart.js:1350:19)\n    at http://127.0.0.1:54369/main.dart.js:4601:14\n    at p5.a (http://127.0.0.1:54369/main.dart.js:2561:63)\n    at p5.$2 (http://127.0.0.1:54369/main.dart.js:8828:14)\n    at oL.$2 (http://127.0.0.1:54369/main.dart.js:8825:16)\n    at ok.ls (http://127.0.0.1:54369/main.dart.js:9764:33)\n    at ok.fN (http://127.0.0.1:54369/main.dart.js:9767:13)\n    at be.kL (http://127.0.0.1:54369/main.dart.js:9110:17)\n    at nQ.$0 (http://127.0.0.1:54369/main.dart.js:9279:36)\n    at Object.cC (http://127.0.0.1:54369/main.dart.js:2691:76)"
+    },
+    "passed": true
+  },
+  {
+    "mobile": true,
+    "kind": "cancel",
+    "sourceBytes": 0,
+    "attributes": {
+      "accept": "image/*",
+      "capture": null
+    },
+    "actual": {
+      "ok": false,
+      "uploadInvoked": false
+    },
+    "passed": true
+  }
+]

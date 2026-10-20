@@ -1,0 +1,40 @@
+00:00 +0: loading C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart
+00:00 +0: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: input size and unsupported format have distinct reasons
+00:00 +1: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: decoder failure is not reported as an unsupported format
+00:00 +2: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: encoded output limit remains enforced with its own reason
+00:00 +3: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +4: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +5: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +6: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +7: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +8: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +9: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +10: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:00 +11: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error unsupportedFormat preserves request and permits retry
+00:05 +12: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_picker_order_test.dart: local picker precedes remote save (save failure: false)
+00:06 +13: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error inputTooLarge preserves request and permits retry
+00:06 +14: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_picker_order_test.dart: local picker precedes remote save (save failure: true)
+00:07 +15: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error processingFailed preserves request and permits retry
+00:08 +16: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_picker_order_test.dart: picker permission error releases button for retry
+00:09 +17: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_errors_test.dart: photo error outputTooLarge preserves request and permits retry
+00:10 +18: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_label_test.dart: empty photo item label is an actionable part of the button
+00:11 +19: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_replacement_test.dart: remove and replace first photo preserves other slots and item data
+00:15 +20: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_photo_analysis_failure_test.dart: AI failure retains previews and permits another object and reload
+00:19 +21: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=false
+00:20 +22: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: closed booking permits details and summary without quote signed=true
+00:21 +23: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: technical configuration error is distinct and draft remains usable
+00:22 +24: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: payment disabled prevents setup and confirmation with ready card and unchanged quote
+00:22 +25: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: quote refusal preserves reason and enables draft preparation
+00:23 +26: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(375.0, 812.0) fr
+00:24 +27: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(375.0, 812.0) en
+00:24 +28: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(375.0, 812.0) es
+00:25 +29: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) fr
+00:26 +30: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) en
+00:26 +31: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(430.0, 932.0) es
+00:27 +32: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) fr
+00:27 +33: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) en
+00:28 +34: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(768.0, 1024.0) es
+00:28 +35: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) fr
+00:28 +36: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) en
+00:29 +37: C:/Users/Utilisateur/movik-admin-action-center-20261019/test/customer/booking_preparation_test.dart: preparation layout Size(1440.0, 900.0) es
+00:29 +38: All tests passed!

@@ -449,14 +449,31 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     });
     try {
       await action();
-    } on BookingPhotoFormatException {
+    } on BookingPhotoFormatException catch (e) {
       if (mounted && epoch == _epoch) {
         setState(() {
-          _message = tr(
-            'Choisissez une image JPG, PNG ou WebP de 20 Mo maximum. Si le format est HEIC, exportez-la en JPG.',
-            'Choose a JPG, PNG or WebP image up to 20 MB. Export HEIC images as JPG.',
-            'Elige una imagen JPG, PNG o WebP de hasta 20 MB. Exporta HEIC a JPG.',
-          );
+          _message = switch (e.reason) {
+            BookingPhotoFailure.unsupportedFormat => tr(
+              'Ce format de photo n’est pas pris en charge. Choisissez une image JPG, PNG ou WebP. Pour une photo HEIC, utilisez une copie JPG.',
+              'This photo format is not supported. Choose a JPG, PNG or WebP image. For an HEIC photo, use a JPG copy.',
+              'Este formato de foto no es compatible. Elige una imagen JPG, PNG o WebP. Para una foto HEIC, usa una copia JPG.',
+            ),
+            BookingPhotoFailure.inputTooLarge => tr(
+              'Cette photo dépasse 20 Mo. Choisissez une version plus légère.',
+              'This photo exceeds 20 MB. Choose a smaller version.',
+              'Esta foto supera los 20 MB. Elige una versión más ligera.',
+            ),
+            BookingPhotoFailure.processingFailed => tr(
+              'Le navigateur n’a pas pu préparer cette photo. Réessayez avec une version de résolution plus basse ou une autre photo. Votre demande est conservée.',
+              'The browser could not prepare this photo. Try a lower-resolution version or another photo. Your request has been kept.',
+              'El navegador no pudo preparar esta foto. Prueba una versión de menor resolución u otra foto. Tu solicitud se conserva.',
+            ),
+            BookingPhotoFailure.outputTooLarge => tr(
+              'Cette photo reste trop volumineuse après préparation. Choisissez une version plus légère.',
+              'This photo is still too large after preparation. Choose a smaller version.',
+              'Esta foto sigue siendo demasiado grande después de prepararla. Elige una versión más ligera.',
+            ),
+          };
         });
       }
     } on FirebaseFunctionsException catch (e) {

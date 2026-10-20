@@ -1,0 +1,14 @@
+[
+  {
+    "sourceBytes": 7956158,
+    "mode": "select-photo",
+    "output": "{\"ok\":false,\"error\":\"Instance of 'minified:c6'\",\"stack\":\"\\n    at Object.b (http://127.0.0.1:54238/main.dart.js:1350:19)\\n    at http://127.0.0.1:54238/main.dart.js:4616:30\\n    at p4.a (http://127.0.0.1:54238/main.dart.js:2561:63)\\n    at p4.$2 (http://127.0.0.1:54238/main.dart.js:8823:14)\\n    at oJ.$1 (http://127.0.0.1:54238/main.dart.js:8817:21)\\n    at oj.lv (http://127.0.0.1:54238/main.dart.js:9755:31)\\n    at oj.bi (http://127.0.0.1:54238/main.dart.js:9758:13)\\n    at nQ.$0 (http://127.0.0.1:54238/main.dart.js:9261:11)\\n    at Object.cC (http://127.0.0.1:54238/main.dart.js:2691:39)\\n    at l.aA (http://127.0.0.1:54238/main.dart.js:9172:3)\"}",
+    "errors": []
+  },
+  {
+    "sourceBytes": 7956158,
+    "mode": "select-raw",
+    "output": "{\"picker\":{\"name\":\"scaled_received.jpg\",\"mime\":\"image/jpeg\",\"size\":26679875},\"input\":{\"bytes\":26679875,\"magicMime\":\"image/jpeg\"},\"prepareError\":\"Instance of 'minified:c6'\",\"prepareStack\":\"\\n    at Object.b (http://127.0.0.1:54238/main.dart.js:1350:19)\\n    at http://127.0.0.1:54238/main.dart.js:4582:39\\n    at p4.a (http://127.0.0.1:54238/main.dart.js:2561:63)\\n    at p4.$2 (http://127.0.0.1:54238/main.dart.js:8823:14)\\n    at Object.v (http://127.0.0.1:54238/main.dart.js:2547:10)\\n    at Object.zK (http://127.0.0.1:54238/main.dart.js:4605:10)\\n    at Object.iT (http://127.0.0.1:54238/main.dart.js:4577:10)\\n    at http://127.0.0.1:54238/main.dart.js:12534:14\\n    at p4.a (http://127.0.0.1:54238/main.dart.js:2561:63)\\n    at p4.$2 (http://127.0.0.1:54238/main.dart.js:8823:14)\",\"directEncoder\":{\"bytes\":686044,\"mime\":\"image/jpeg\"}}",
+    "errors": []
+  }
+]

@@ -6,7 +6,19 @@ import 'booking_photo_encoder_stub.dart'
 const maxBookingPhotoInputBytes = 20 * 1024 * 1024;
 const maxBookingPhotoStoredBytes = 5 * 1024 * 1024;
 
-class BookingPhotoFormatException implements Exception {}
+enum BookingPhotoFailure {
+  unsupportedFormat,
+  inputTooLarge,
+  processingFailed,
+  outputTooLarge,
+}
+
+class BookingPhotoFormatException implements Exception {
+  const BookingPhotoFormatException([
+    this.reason = BookingPhotoFailure.unsupportedFormat,
+  ]);
+  final BookingPhotoFailure reason;
+}
 
 typedef BookingPhotoEncoder =
     Future<Uint8List> Function(Uint8List bytes, String mimeType);
@@ -38,17 +50,30 @@ Future<Uint8List> prepareBookingPhotoBytes(
   BookingPhotoEncoder? encode,
 }) async {
   final mime = bookingPhotoMime(bytes);
-  if (bytes.length > maxBookingPhotoInputBytes || mime == null) {
-    throw BookingPhotoFormatException();
+  if (bytes.length > maxBookingPhotoInputBytes) {
+    throw const BookingPhotoFormatException(BookingPhotoFailure.inputTooLarge);
+  }
+  if (mime == null) {
+    throw const BookingPhotoFormatException();
   }
   try {
     final result = await (encode ?? encoder.encodeBookingPhoto)(bytes, mime);
-    if (result.length > maxBookingPhotoStoredBytes ||
-        bookingPhotoMime(result) != 'image/jpeg') {
-      throw BookingPhotoFormatException();
+    if (result.length > maxBookingPhotoStoredBytes) {
+      throw const BookingPhotoFormatException(
+        BookingPhotoFailure.outputTooLarge,
+      );
+    }
+    if (bookingPhotoMime(result) != 'image/jpeg') {
+      throw const BookingPhotoFormatException(
+        BookingPhotoFailure.processingFailed,
+      );
     }
     return result;
+  } on BookingPhotoFormatException {
+    rethrow;
   } catch (_) {
-    throw BookingPhotoFormatException();
+    throw const BookingPhotoFormatException(
+      BookingPhotoFailure.processingFailed,
+    );
   }
 }
