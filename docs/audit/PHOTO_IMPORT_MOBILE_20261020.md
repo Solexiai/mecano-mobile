@@ -45,3 +45,17 @@ Pas d'appareil Android ou iPhone physique connecté : caméra, photothèque, per
 Incident mobile non clos avant confirmation sur le téléphone du client. P1-BOOKING-CONFIG-01 reste ouvert ; test cartographique 1.3L bloqué/reporté ; aucun ancien décompte modifié.
 
 Publication du même correctif photo préparée dans la continuité de l'autorisation « Pouse sur movi-k et donne moi le lien ». Aucune fusion, aucun push Git ni transaction réelle. Les identifiants de publication et la vérification des deux domaines seront consignés après succès.
+
+## Publication vérifiée — 2026-10-20T23:34:19.104Z
+
+- Source : 0b087ba2cd0fa18516b10c94561bcc89ef0c8c6b.
+- Vercel : dpl_HpJFQ8XLbFtGktXV62HEHK6782wT.
+- Déploiement : https://mecano-mobile-o04jt4sm5-solexis-projects-4c019079.vercel.app.
+- Identifiant public : photo-import-mobile-v2.
+- SHA256 du bundle : 2434e5e6a5c72112c4ff3685f79a44115cb7facd3f1bc0a4e3020761a67b7659.
+- movi-k.com et www.movi-k.com : métadonnées et empreinte du bundle relues identiques, route /fr/livraison/demande HTTP 200.
+- Build production de lib/main.dart réussi avec les paramètres existants ; sonde de diagnostic exclue du paquet. Différence applicative depuis la précédente publication : uniquement les trois fichiers photo cités plus haut.
+- Aucun déploiement Firebase, aucune modification financière/opérationnelle, aucun push Git, aucune fusion ni transaction réelle.
+- Les vérifications publiques prouvent la version servie, pas une prise de photo sur iPhone/Android physique. Incident non clos.
+
+Prochaine action unique : rouvrir https://movi-k.com/fr/livraison/demande?version=photo-import-mobile-v2 dans un nouvel onglet et sélectionner la photo originale sur le téléphone.
