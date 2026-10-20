@@ -80,11 +80,14 @@ class PhotoBookingItem extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Row(
             children: [
-              addPhoto(),
-              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  tr('Ajouter une photo', 'Add a photo', 'Añadir una foto'),
+                child: OutlinedButton.icon(
+                  key: ValueKey('photo-add-${item['id']}'),
+                  onPressed: onAddPhoto,
+                  icon: const Icon(Icons.add, size: 28),
+                  label: Text(
+                    tr('Ajouter une photo', 'Add a photo', 'Añadir una foto'),
+                  ),
                 ),
               ),
               IconButton(
@@ -129,10 +132,29 @@ class PhotoBookingItem extends StatelessWidget {
               runSpacing: 8,
               children: [
                 for (final p in photos)
-                  BookingPhoto(
+                  Column(
                     key: ValueKey(p),
-                    path: p as String,
-                    loader: photoLoader,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      BookingPhoto(path: p as String, loader: photoLoader),
+                      IconButton(
+                        key: ValueKey('photo-remove-$p'),
+                        tooltip: tr(
+                          'Retirer cette photo',
+                          'Remove this photo',
+                          'Quitar esta foto',
+                        ),
+                        onPressed: analysisBusy
+                            ? null
+                            : () {
+                                photos.remove(p);
+                                item.remove('photo_size_hint');
+                                item['identification_confirmed'] = false;
+                                onChanged();
+                              },
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
                   ),
                 if (photos.length < 3) addPhoto(),
               ],

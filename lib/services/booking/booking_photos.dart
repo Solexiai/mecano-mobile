@@ -11,12 +11,11 @@ typedef BookingPhotoUploader =
       required String itemId,
       required int slot,
     });
-Future<String?> uploadBookingPhoto({
-  required String uid,
-  required String draftId,
-  required String itemId,
-  required int slot,
-}) async {
+
+/// Open the native picker directly from the user's gesture, before network I/O.
+/// No capture attribute on web: the browser offers camera/library as supported.
+/// The returned upload action must only run after draft ownership is saved.
+Future<BookingPhotoUploader?> selectBookingPhotoUpload() async {
   final file = await ImagePicker().pickImage(
     source: ImageSource.gallery,
     maxWidth: kIsWeb ? null : 1600,
@@ -27,9 +26,28 @@ Future<String?> uploadBookingPhoto({
     throw BookingPhotoFormatException();
   }
   final bytes = await prepareBookingPhotoBytes(await file.readAsBytes());
-  final path = 'booking_photos/$uid/$draftId/$itemId/$slot.jpg';
-  await FirebaseStorage.instance
-      .ref(path)
-      .putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
-  return path;
+  return ({
+    required String uid,
+    required String draftId,
+    required String itemId,
+    required int slot,
+  }) async {
+    final path = 'booking_photos/$uid/$draftId/$itemId/$slot.jpg';
+    await FirebaseStorage.instance
+        .ref(path)
+        .putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+    return path;
+  };
+}
+
+Future<String?> uploadBookingPhoto({
+  required String uid,
+  required String draftId,
+  required String itemId,
+  required int slot,
+}) async {
+  final upload = await selectBookingPhotoUpload();
+  return upload == null
+      ? null
+      : upload(uid: uid, draftId: draftId, itemId: itemId, slot: slot);
 }

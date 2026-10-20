@@ -836,20 +836,38 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       return;
     }
     final uid = _uid!, draftId = _draft.id, epoch = _epoch;
+    final photos = item['photos'] as List? ?? <String>[];
+    if (photos.length >= 3) return;
+    // Safari requires the picker to remain tied to the user's gesture.
+    // Select locally first; saving/ownership checks still precede the upload.
+    final upload = widget.photoUploader ?? await selectBookingPhotoUpload();
+    if (upload == null ||
+        !mounted ||
+        epoch != _epoch ||
+        _uid != uid ||
+        draftId != _draft.id ||
+        !_draft.items.contains(item)) {
+      return;
+    }
     await _save();
     if (_saveError != null ||
         !mounted ||
         epoch != _epoch ||
-        draftId != _draft.id) {
+        _uid != uid ||
+        draftId != _draft.id ||
+        !_draft.items.contains(item)) {
       return;
     }
-    final photos = item['photos'] as List? ?? <String>[];
-    if (photos.length >= 3) return;
-    final path = await (widget.photoUploader ?? uploadBookingPhoto)(
+    final path = await upload(
       uid: uid,
       draftId: draftId,
       itemId: item['id'] as String,
-      slot: photos.length,
+      // Removing an earlier photo must not overwrite a retained slot.
+      slot: Iterable<int>.generate(3).firstWhere(
+        (slot) => !photos.contains(
+          'booking_photos/$uid/$draftId/${item['id']}/$slot.jpg',
+        ),
+      ),
     );
     if (path == null ||
         !mounted ||
