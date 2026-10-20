@@ -5052,3 +5052,7 @@ Branche feat/customer-loading-help-20261019, base 0e3579207bde0bcdadb43ee7b8b690
 
 ### 2026-10-20 — Publication de la refonte aide au chargement
 Source f11e24342b1b721a41eb1143fa4e47d821faf61e publiée après autorisation de Daniel. Déploiement dpl_7Uthx9F6xcSwZVP5Kwm6KGjWLRex vérifié sur les deux domaines ; quatre fonctions ACTIVE et refus anonyme 401. Rapport : CUSTOMER_LOADING_HELP_20261019.md, section publication. Erreur initiale Google code 13 conservée, relance ciblée réussie. Aucun bogue antérieur fermé, aucun changement de décompte, aucune transaction réelle.
+
+
+### 2026-10-20 — Agenda chauffeur : premier bloc en développement
+Branche feat/driver-agenda-20261020. Lecture des missions attribuées et sauvegarde sécurisée des disponibilités ajoutées localement. Rapport : DRIVER_AGENDA_20261020.md. Validation : 23 tests unitaires serveur, 3 tests Firestore Emulator agenda, 11 tests existants d'acceptation avec fournisseur de paiement fictif, 21 tests Flutter. Le dispatch ne consulte pas encore ces plages ; le verrou commercial pre_assignment est conservé. La durée totale d'occupation doit être définie avant raccordement et protection contre deux missions qui se chevauchent. Aucun déploiement ni fermeture de fiche ; décompte antérieur inchangé.
