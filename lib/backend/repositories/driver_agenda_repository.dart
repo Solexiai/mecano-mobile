@@ -19,11 +19,15 @@ class AgendaInterval {
 
 class DriverAgenda {
   const DriverAgenda({
+    this.recurrence,
+    this.dispatchConnected = false,
     this.revision = 0,
     this.configured = false,
     this.windows = const [],
     this.blocked = const [],
   });
+  final Map<String, dynamic>? recurrence;
+  final bool dispatchConnected;
   final int revision;
   final bool configured;
   final List<AgendaInterval> windows;
@@ -34,6 +38,10 @@ class DriverAgenda {
         .map((v) => AgendaInterval.fromJson(v as Map))
         .toList();
     return DriverAgenda(
+      recurrence: agenda['recurrence'] is Map
+          ? Map<String, dynamic>.from(agenda['recurrence'] as Map)
+          : null,
+      dispatchConnected: value['dispatch_connected'] == true,
       revision: value['revision'] as int,
       configured: value['configured'] == true,
       windows: slots('windows'),
@@ -61,6 +69,7 @@ class FirebaseDriverAgendaRepository implements DriverAgendaRepository {
     await _api.call('saveDriverAgenda', {
       'revision': agenda.revision,
       'agenda': {
+        'recurrence': agenda.recurrence,
         'windows': agenda.windows.map((s) => s.toJson()).toList(),
         'blocked': agenda.blocked.map((s) => s.toJson()).toList(),
       },
@@ -98,6 +107,8 @@ DriverAgendaRepository driverAgendaRepository(String uid) =>
 
 /// Requested time is not silently upgraded to a confirmed appointment.
 DateTime? agendaMissionStart(DeliveryMission mission) {
+  final scheduled = mission.scheduling?['start'];
+  if (scheduled is String) return DateTime.tryParse(scheduled)?.toLocal();
   final raw = mission.bookingSnapshot?['load'];
   if (raw is Map && raw['requested_at'] is String) {
     return DateTime.tryParse(raw['requested_at'] as String)?.toLocal();

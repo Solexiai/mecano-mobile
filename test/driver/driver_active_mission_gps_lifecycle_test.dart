@@ -328,6 +328,34 @@ void _registerTests() {
 
   String btn(String key) => AppStrings.t(key, 'fr');
 
+  offlineWidgetTest('future scheduled mission does not request or report GPS', (
+    tester,
+  ) async {
+    final base = _buildMission(status: MissionStatus.assigned);
+    final start = DateTime.now().add(const Duration(days: 1));
+    final future = DeliveryMission.fromJson(base.id, {
+      ...base.toJson(),
+      'schedule_state': 'reserved',
+      'payment_status': 'authorized',
+      'scheduling': {
+        'start': start.toIso8601String(),
+        'end': start.add(const Duration(hours: 2)).toIso8601String(),
+        'pickup_at': start.toIso8601String(),
+        'policy_version': 'TEST',
+      },
+    });
+    final repo = _FakeMissionRepository(future);
+    BackendLocator.missionRepositoryOverride = repo;
+    addTearDown(repo.dispose);
+    await tester.pumpWidget(_buildTestApp(auth));
+    await tester.pumpAndSettle();
+    expect(find.text('Mission programmée'), findsOneWidget);
+    expect(fakeLocationRepo.reportCallCount, 0);
+    expect(fakeGeolocator.checkPermissionCallCount, 0);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+  });
+
   group('H-2 — Lifecycle GPS : CAS 1 (mission active -> start)', () {
     offlineWidgetTest(
       'mission assigned (statut de partage) : 1 rapport de position immédiat, permission vérifiée une seule fois',

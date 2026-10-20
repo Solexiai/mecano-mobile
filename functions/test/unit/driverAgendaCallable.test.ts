@@ -1,10 +1,11 @@
 jest.mock('../../src/lib/admin', () => {
   const current = { revision: 2, windows: [], blocked: [] };
-  const tx = { get: jest.fn(async (path: string) => ({
-    exists: true, data: () => path.startsWith('driver_profiles/') ? {} : current,
+  const reference=(path:string):any=>({path,get:async()=>({exists:false,data:()=>undefined}),collection:()=>({where:()=>({query:true})})});
+  const tx = { get: jest.fn(async (ref: any) => ref.query?{docs:[]}:({
+    exists: true, data: () => ref.path.startsWith('driver_profiles/') ? {} : current,
   })), set: jest.fn() };
-  return { db: { doc: jest.fn((p: string) => p), runTransaction: jest.fn(async f => f(tx)) },
-    admin: { firestore: { FieldValue: { serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP') } } },
+  return { db: { doc: jest.fn(reference), runTransaction: jest.fn(async f => f(tx)) },
+    admin: { firestore: { FieldValue: { serverTimestamp: jest.fn(() => 'SERVER_TIMESTAMP'),delete:jest.fn(()=>null) } } },
     __tx: tx, __current: current };
 });
 import { saveDriverAgenda } from '../../src/functions/driverAgenda';
@@ -22,9 +23,9 @@ test('rejects customer role',async()=>{
 });
 test('cannot target another driver; server uses authenticated identity and server time',async()=>{
  const result=await saveDriverAgenda.run(request({driver_id:'victim', revision:2,agenda:{windows:[],blocked:[]}}));
- expect(mocked.__tx.set).toHaveBeenCalledWith('driver_agendas/driver-test',expect.objectContaining({
+ expect(mocked.__tx.set).toHaveBeenCalledWith(expect.objectContaining({path:'driver_agendas/driver-test'}),expect.objectContaining({
    driver_id:'driver-test',revision:3,updated_at:'SERVER_TIMESTAMP',
- }));
+ }),{merge:true});
  expect(result.dispatch_connected).toBe(false);
  expect(result.external_sync_connected).toBe(false);
 });

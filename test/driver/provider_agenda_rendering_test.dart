@@ -8,6 +8,9 @@ import 'package:movik_connect/backend/repositories/driver_agenda_repository.dart
 import 'package:movik_connect/screens/dashboard/provider/tabs/provider_calendar_tab.dart';
 import '../customer/loading_help_test.dart' show captureTheme;
 import 'provider_agenda_test.dart' as fixtures;
+import 'driver_agenda_advanced_test.dart' show CalendarApiFake;
+import 'package:movik_connect/widgets/driver_recurrence_editor.dart';
+import 'package:movik_connect/widgets/driver_calendars_panel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,11 +68,89 @@ void main() {
         final img = await layer.toImage(Offset.zero & size);
         final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
         await File(
-          'artifacts/driver-agenda-20261020/agenda-${size.width.toInt()}.png',
+          'artifacts/driver-agenda-complete-20261020/agenda-${size.width.toInt()}.png',
         ).writeAsBytes(bytes!.buffer.asUint8List());
         img.dispose();
       });
     });
+  }
+
+  for (final size in [
+    const Size(375, 1000),
+    const Size(768, 1000),
+    const Size(1440, 1000),
+  ]) {
+    for (final spec in [('fr', 1.0), ('fr', 2.0), ('en', 2.0), ('es', 2.0)]) {
+      final locale = spec.$1, scale = spec.$2;
+      testWidgets(
+        'expanded availability and calendars ${size.width} $locale scale $scale',
+        (t) async {
+          t.view.physicalSize = size;
+          t.view.devicePixelRatio = 1;
+          addTearDown(t.view.resetPhysicalSize);
+          addTearDown(t.view.resetDevicePixelRatio);
+          await t.pumpWidget(
+            MaterialApp(
+              theme: captureTheme(),
+              home: MediaQuery(
+                data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                child: Scaffold(
+                  body: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        DriverRecurrenceEditor(
+                          value: {
+                            'time_zone': 'America/Toronto',
+                            'weekly': [
+                              {
+                                'day': 1,
+                                'start_minute': 480,
+                                'end_minute': 1020,
+                              },
+                            ],
+                            'exceptions': [],
+                          },
+                          locale: locale,
+                          onChanged: (_) {},
+                        ),
+                        DriverCalendarsPanel(
+                          api: CalendarApiFake(),
+                          locale: locale,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await t.pumpAndSettle();
+          await t.tap(find.byType(ExpansionTile).first);
+          await t.pumpAndSettle();
+          await t.ensureVisible(find.byType(ExpansionTile).last);
+          await t.tap(find.byType(ExpansionTile).last);
+          await t.pumpAndSettle();
+          await t.drag(
+            find.byType(SingleChildScrollView).first,
+            const Offset(0, -200),
+          );
+          await t.pumpAndSettle();
+          expect(t.takeException(), isNull);
+          if (locale == 'fr' && scale == 1) {
+            final layer =
+                t.binding.renderViews.first.debugLayer! as OffsetLayer;
+            await t.runAsync(() async {
+              final img = await layer.toImage(Offset.zero & size);
+              final data = await img.toByteData(format: ui.ImageByteFormat.png);
+              await File(
+                'artifacts/driver-agenda-complete-20261020/settings-${size.width.toInt()}.png',
+              ).writeAsBytes(data!.buffer.asUint8List());
+              img.dispose();
+            });
+          }
+        },
+      );
+    }
   }
   for (final locale in ['fr', 'en', 'es']) {
     testWidgets('200 percent text mobile $locale', (t) async {

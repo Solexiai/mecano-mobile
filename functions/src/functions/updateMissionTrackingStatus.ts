@@ -18,6 +18,7 @@
 // completeDelivery() (financier), non par cette fonction.
 // -----------------------------------------------------------------------------
 
+import {requireCompatibleVehicle} from '../lib/bookingServer';
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
@@ -89,7 +90,31 @@ export const updateMissionTrackingStatus = onCall<UpdateMissionTrackingStatusReq
       }
 
       await requireMissionProgressPermission(tx, ctx.uid);
+      let startScheduled = false;
+      if(mission.scheduling && targetStatus===MissionStatuses.DRIVER_TO_PICKUP){
+        const profile=(await tx.get(db.doc('driver_profiles/'+ctx.uid))).data();
+        if(profile?.documents_all_valid!==true)throw failedPrecondition('Documents chauffeur à mettre à jour.');
+        if(mission.assignment_mode!=='internal_test'&&!['authorized','captured'].includes(mission.payment_status))throw failedPrecondition('La validation de paiement doit être terminée avant le départ.');
+        await requireCompatibleVehicle(ctx.uid,mission.booking_snapshot,tx,mission.assigned_vehicle_id);
+        const nowMs=Date.now();
+        if(Date.parse(mission.scheduling.start)>nowMs||Date.parse(mission.scheduling.end)<=nowMs)throw failedPrecondition('Le début doit se situer dans le créneau réservé.');
+        const locationRef=db.doc('driver_locations/'+ctx.uid);
+        const [location,agenda]=await Promise.all([tx.get(locationRef),tx.get(db.doc('driver_agendas/'+ctx.uid))]);
+        const active=location.data()?.active_delivery_id;
+        if(active&&active!==missionId){
+          const other=await tx.get(db.doc('delivery_requests/'+active));
+          if(other.exists&&!['completed','cancelled','payment_failed','refunded','disputed'].includes(other.data()!.status))throw failedPrecondition('Terminez la mission en cours avant de démarrer celle-ci.');
+        }
+        if(!agenda.exists)throw failedPrecondition('Agenda indisponible.');
+        startScheduled=true;
+      }
       const now = admin.firestore.Timestamp.now();
+      if(startScheduled){
+        tx.set(db.doc('driver_agendas/'+ctx.uid),{lock_version:admin.firestore.FieldValue.increment(1)},{merge:true});
+        tx.set(db.doc('driver_locations/'+ctx.uid),{active_delivery_id:missionId},{merge:true});
+        tx.update(db.doc('driver_profiles/'+ctx.uid),{online_status:'on_mission'});
+        tx.update(missionRef,{schedule_state:'in_progress'});
+      }
       const timestampField = TIMESTAMP_FIELD_BY_STATUS[targetStatus]!;
       tx.update(missionRef, { status: targetStatus, [timestampField]: now });
 

@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import '../../../../widgets/driver_slot_confirmation.dart';
 import '../../../../services/booking/booking_api.dart';
-import '../../../../backend/repositories/mission_repository.dart';
 import '../../../../widgets/booking_load_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -73,87 +77,164 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       _accepting.add(mission.id);
       _acceptErrors.remove(mission.id);
     });
+    final key = 'movik_accept_${driverId}_${mission.id}';
     try {
-      AcceptMissionResult result;
-      if (mission.bookingSnapshot != null) {
-        final response =
-            await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
-              'getBookingVehicleForAcceptance',
-              {'missionId': mission.id},
-            );
-        final vehicle = response['vehicle'] as Map?;
-        if (!mounted) return;
-        final locale = context.read<LocaleProvider>().locale;
-        String tr(String fr, String en, String es) => locale == 'en'
-            ? en
-            : locale == 'es'
-            ? es
-            : fr;
-        if (vehicle == null) throw StateError('No compatible vehicle');
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(
-              tr(
-                'Confirmer le véhicule utilisé',
-                'Confirm the vehicle you will use',
-                'Confirmar el vehículo que usarás',
-              ),
-            ),
-            content: Text('${vehicle['label']}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(tr('Retour', 'Back', 'Volver')),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: Text(
-                  tr(
-                    'J’utilise ce véhicule',
-                    'I will use this vehicle',
-                    'Usaré este vehículo',
-                  ),
+      final api = widget.bookingApi ?? FirebaseBookingApi(driverId);
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(key);
+      Map<String, dynamic>? payload = saved == null
+          ? null
+          : Map<String, dynamic>.from(jsonDecode(saved) as Map);
+      if (payload == null) {
+        String? vehicleId;
+        if (mission.bookingSnapshot != null) {
+          final response = await api.call('getBookingVehicleForAcceptance', {
+            'missionId': mission.id,
+          });
+          final vehicle = response['vehicle'] as Map?;
+          if (vehicle == null) throw StateError('No compatible vehicle');
+          if (!mounted) return;
+          final locale = context.read<LocaleProvider>().locale;
+          String tr(String fr, String en, String es) => locale == 'en'
+              ? en
+              : locale == 'es'
+              ? es
+              : fr;
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(
+                tr(
+                  'Confirmer le véhicule utilisé',
+                  'Confirm your vehicle',
+                  'Confirmar el vehículo',
                 ),
               ),
-            ],
-          ),
-        );
-        if (confirmed != true) {
-          if (mounted) setState(() => _accepting.remove(mission.id));
-          return;
+              content: Text('${vehicle['label']}'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(tr('Retour', 'Back', 'Volver')),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(
+                    tr(
+                      'J’utilise ce véhicule',
+                      'Use this vehicle',
+                      'Usar este vehículo',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true) return;
+          vehicleId = vehicle['id'] as String;
         }
-        await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
-          'acceptDelivery',
-          {'missionId': mission.id, 'vehicleId': vehicle['id']},
-        );
-        result = const AcceptMissionResult(success: true);
-      } else {
-        result = await BackendLocator.missionRepository.acceptMission(
-          missionId: mission.id,
-          driverId: driverId,
-        );
+        final preparation = await api.call('prepareDriverMissionAcceptance', {
+          'missionId': mission.id,
+        });
+        if (!mounted) return;
+        final locale = context.read<LocaleProvider>().locale;
+        Map<String, dynamic>? reservation;
+        if (preparation['enabled'] == true) {
+          reservation = await confirmDriverSlot(
+            context,
+            locale: locale,
+            preparation: preparation,
+          );
+          if (reservation == null) return;
+          if (preparation['calendars_connected'] == true) {
+            await api.call('refreshDriverCalendars', {
+              'start': reservation['start'],
+              'end': reservation['end'],
+            });
+          }
+        } else {
+          String tr(String fr, String en, String es) => locale == 'en'
+              ? en
+              : locale == 'es'
+              ? es
+              : fr;
+          final minor = preparation['driver_offer_minor'] as num?;
+          if (minor == null) throw StateError('Official compensation missing');
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: Text(
+                tr(
+                  'Accepter cette mission ?',
+                  'Accept this mission?',
+                  '¿Aceptar esta misión?',
+                ),
+              ),
+              content: Text(
+                '${tr('Rémunération', 'Compensation', 'Remuneración')} : ${(minor / 100).toStringAsFixed(2)} CAD',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(tr('Retour', 'Back', 'Volver')),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text(tr('Accepter', 'Accept', 'Aceptar')),
+                ),
+              ],
+            ),
+          );
+          if (confirmed != true) return;
+        }
+        payload = {
+          'missionId': mission.id,
+          if (vehicleId != null) 'vehicleId': vehicleId,
+          'expectedDriverOfferMinor': preparation['driver_offer_minor'],
+          if (reservation != null) 'reservation': reservation,
+          if (reservation != null) 'acceptanceRequestId': const Uuid().v4(),
+        };
+        if (reservation != null) {
+          await prefs.setString(key, jsonEncode(payload));
+        }
       }
+      if (!mounted ||
+          context.read<FirebaseAuthProvider>().effectiveUid != driverId) {
+        return;
+      }
+      final result = await api.call('acceptDelivery', payload);
       if (!mounted) return;
-      setState(() {
-        _accepting.remove(mission.id);
-        if (!result.success) {
-          _acceptErrors[mission.id] = result.errorCode ?? 'unknown_error';
-        }
-      });
-      // Acceptation réussie : le chauffeur est redirigé directement vers
-      // l'écran Mission Active (source de vérité temps réel
-      // `watchMission()`), sans jamais décider localement du statut.
-      if (result.success && mounted) {
+      if (result['success'] != true) {
+        setState(
+          () => _acceptErrors[mission.id] = result['pending'] == true
+              ? 'acceptance_pending'
+              : result['errorCode'] as String? ?? 'unknown_error',
+        );
+        return;
+      }
+      await prefs.remove(key);
+      if (mounted) {
         final locale = context.read<LocaleProvider>().locale;
         context.push('/$locale/provider/mission/${mission.id}');
       }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _accepting.remove(mission.id);
-        _acceptErrors[mission.id] = 'unknown_error';
-      });
+    } catch (error) {
+      if (error is FirebaseFunctionsException &&
+          ['invalid-argument', 'failed-precondition'].contains(error.code)) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      }
+      if (mounted) {
+        setState(
+          () => _acceptErrors[mission.id] =
+              error is FirebaseFunctionsException &&
+                  isKillSwitchException(
+                    CloudFunctionException(error.code, error.message ?? ''),
+                  )
+              ? kKillSwitchErrorCode
+              : 'unknown_error',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _accepting.remove(mission.id));
     }
   }
 
@@ -448,7 +529,9 @@ class _JobCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${mission.driverOfferAmount.toStringAsFixed(0)}\$',
+                mission.driverOfferAmount > 0
+                    ? '${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
+                    : tr('Voir l’offre', 'View offer', 'Ver oferta'),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
@@ -479,15 +562,33 @@ class _JobCard extends StatelessWidget {
               text:
                   '${t('driver_jobs_distance')} : ${mission.distanceKm!.toStringAsFixed(1)} km',
             ),
+          if (mission.bookingSnapshot?['load']?['requested_at'] is String)
+            _InfoRow(
+              icon: Icons.event,
+              text:
+                  '${tr('Ramassage prévu', 'Requested pickup', 'Recogida prevista')} : ${DateTime.parse(mission.bookingSnapshot!['load']['requested_at'] as String).toLocal()}',
+            ),
+          if (mission.offerExpiresAt != null)
+            _InfoRow(
+              icon: Icons.timer_outlined,
+              text:
+                  '${tr('Offre valable jusqu’à', 'Offer expires at', 'Oferta válida hasta')} : ${mission.offerExpiresAt!.toLocal()}',
+            ),
           if (mission.estimatedDurationMinutes != null)
             _InfoRow(
               icon: Icons.schedule,
-              text: '${mission.estimatedDurationMinutes!.round()} min',
+              text:
+                  '${tr('Trajet seul, durée complète à confirmer', 'Driving only, full duration to confirm', 'Solo trayecto, duración completa por confirmar')} : ${mission.estimatedDurationMinutes!.round()} min',
             ),
           _InfoRow(
             icon: Icons.attach_money,
-            text:
-                '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$',
+            text: mission.driverOfferAmount > 0
+                ? '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
+                : tr(
+                    'Rémunération officielle présentée avant acceptation.',
+                    'Official compensation shown before acceptance.',
+                    'Remuneración oficial antes de aceptar.',
+                  ),
           ),
           if (mission.bookingSnapshot != null)
             BookingLoadSummary(
@@ -510,7 +611,13 @@ class _JobCard extends StatelessWidget {
               // FirebaseMissionRepository.acceptMission() pour le mapping
               // errorCode == kKillSwitchErrorCode.
               child: Text(
-                errorCode == 'offer_decline_failed'
+                errorCode == 'acceptance_pending'
+                    ? tr(
+                        'Attribution enregistrée, validation en cours. Réessayez pour consulter son résultat.',
+                        'Assignment saved, validation pending. Retry to check its result.',
+                        'Asignación guardada, validación pendiente. Reintenta para consultar el resultado.',
+                      )
+                    : errorCode == 'offer_decline_failed'
                     ? tr(
                         'Le refus n’a pas été enregistré. Réessayez.',
                         'Your decline was not saved. Please retry.',

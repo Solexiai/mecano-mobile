@@ -1472,15 +1472,27 @@ class AppStrings {
       'en': 'Your driver has arrived at the destination.',
       'es': 'Su conductor ha llegado al destino.',
     },
+    'notif_mission_update_title': {
+      'fr': 'Mise à jour de votre mission',
+      'en': 'Mission update',
+      'es': 'Actualización de misión',
+    },
+    'notif_mission_update_body': {
+      'fr': 'Consultez votre espace Movi-K pour connaître son état.',
+      'en': 'Check your Movi-K dashboard for its current status.',
+      'es': 'Consulta tu espacio Movi-K para ver su estado.',
+    },
     'notif_completed_title': {
       'fr': 'Livraison complétée',
       'en': 'Delivery completed',
       'es': 'Entrega completada',
     },
     'notif_completed_body': {
-      'fr': 'Votre livraison est complétée. Évaluez votre chauffeur sur 5 étoiles.',
+      'fr':
+          'Votre livraison est complétée. Évaluez votre chauffeur sur 5 étoiles.',
       'en': 'Your delivery is completed. Rate your driver out of 5 stars.',
-      'es': 'Su entrega está completada. Evalúe a su conductor sobre 5 estrellas.',
+      'es':
+          'Su entrega está completada. Evalúe a su conductor sobre 5 estrellas.',
     },
     'notif_cancelled_title': {
       'fr': 'Mission annulée',

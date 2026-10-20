@@ -29,6 +29,8 @@ import '../../widgets/booking_load_summary.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/scheduled_mission_panel.dart';
+import '../../services/booking/booking_api.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -412,6 +414,24 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
           );
         }
 
+        if (['reserved', 'ready_to_start'].contains(mission.scheduleState) &&
+            mission.status == MissionStatus.assigned &&
+            mission.scheduling != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _locationReporter.stop();
+            _lastSyncedGpsStatus = null;
+          });
+          return ScheduledMissionPanel(
+            mission: mission,
+            locale: context.read<LocaleProvider>().locale,
+            isDriver: true,
+            api: FirebaseBookingApi(uid),
+            onStart: () => repo.updateTrackingStatus(
+              missionId: mission.id,
+              targetStatus: MissionStatus.driverToPickup,
+            ),
+          );
+        }
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _syncGpsSharingIfStatusChanged(mission.status),
         );

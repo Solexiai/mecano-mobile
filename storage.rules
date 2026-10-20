@@ -89,7 +89,8 @@ service firebase.storage {
       let mission = firestore.get(/databases/(default)/documents/delivery_requests/$(grant.mission_id)).data;
       return grant.customer_id == customerId && mission.customer_id == customerId && (mission.driver_id == uid() || (isDriver() &&
         firestore.get(/databases/(default)/documents/driver_profiles/$(uid())).data.status == 'approved' &&
-        mission.status in ['searching_driver', 'offered']));
+        mission.status in ['searching_driver', 'offered'] &&
+        uid() in mission.offered_driver_ids && mission.offered_until > request.time));
     }
     match /booking_photos/{customerId}/{draftId}/{itemId}/{fileName} {
       allow read: if isSignedIn() && (uid() == customerId || isAnalystOrAbove() || canReadBookingPhotos(customerId, draftId));

@@ -1,6 +1,7 @@
 jest.mock('../../src/lib/pushNotifications', () => ({
   sendDeliveryOfferPush: jest.fn(async () => ({ attempted: 0, sent: 0 })),
 }));
+import {acceptDelivery} from '../../src/functions/acceptDelivery';
 import { admin, db } from '../../src/lib/admin';
 import { calculateDeliveryQuote } from '../../src/functions/calculateDeliveryQuote';
 import { createDeliveryRequest } from '../../src/functions/createDeliveryRequest';
@@ -42,8 +43,9 @@ const confirm = (quoteId: string, booking: unknown) => request({
   stops, itemCategoryKey: 'boxes', description: 'Test box', requiredVehicleCategory: 'cargo_van',
   customerDisplayName: 'Synthetic customer',
 });
+let fake:FakePaymentProvider;
 beforeEach(async () => {
-  setPaymentProviderForTesting(new FakePaymentProvider());
+  fake=new FakePaymentProvider();setPaymentProviderForTesting(fake);
   jest.clearAllMocks();
   await seedDefaultRuntimeFlagsEnabled();
   const pricing = buildPricingConfig({ pricing_version: 'TIMING-TEST' });
@@ -69,6 +71,7 @@ afterEach(async () => {
     'system_config/booking_policy', 'system_config/booking_capacity', 'system_config/service_zones',
     'payment_profiles/' + uid, 'driver_profiles/' + driver, 'driver_vehicles/timing_vehicle',
     'booking_attempts/' + uid + '_timing-immediate', 'booking_attempts/' + uid + '_timing-scheduled',
+    'driver_agendas/'+driver,'driver_locations/'+driver,'driver_calendar_busy/'+driver,'system_config/driver_scheduling',
     'users/' + uid, 'users/' + driver]) await db.recursiveDelete(db.doc(path));
   for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers']) {
     const field = collection === 'delivery_offers' ? 'driver_id' : 'customer_id';
@@ -113,4 +116,31 @@ test('timing choice alone does not change the financial result', async () => {
   const b = (await db.doc('delivery_quotes/' + scheduled.quoteId).get()).data()!;
   expect(a.customer_total_minor).toBe(b.customer_total_minor);
   expect(a.pricing_snapshot.breakdown).toEqual(b.pricing_snapshot.breakdown);
+});
+
+test.each(['immediate','scheduled'] as const)('%s complete local quote -> dispatch -> acceptance -> agenda keeps identical official cents',async mode=>{
+  await db.doc('system_config/driver_scheduling').set({enabled:true,approved:true,duration_confirmation_approved:true,version:'SCHED-TIMING-TEST',max_advance_minutes:1440});
+  await db.doc('driver_profiles/'+driver).update({base_location_verified:true,base_lat:45.5,base_lng:-73.6,verified_base_lat:45.5,verified_base_lng:-73.6,service_radius_km:40});
+  await db.doc('driver_agendas/'+driver).set({revision:0,windows:[{start:new Date(Date.now()-3600000).toISOString(),end:new Date(Date.now()+86400000).toISOString()}],blocked:[]});
+  const booking={...load(mode),requested_at:mode==='scheduled'?new Date(Date.now()+3600000).toISOString():null};
+  const quoteResult=await calculateDeliveryQuote.run(request({booking,stops}));
+  const created=await createDeliveryRequest.run(confirm(quoteResult.quoteId,booking));
+  const ref=db.doc('delivery_requests/'+created.missionId),mission=(await ref.get()).data()!;
+  await onMissionCreatedDispatch.run({data:{data:()=>mission},params:{missionId:created.missionId}} as any);
+  const pickup=booking.requested_at??new Date().toISOString();
+  const end=new Date(Date.parse(pickup)+(Math.ceil(mission.estimated_duration_minutes)+45)*60000).toISOString();
+  const accepted=await acceptDelivery.run({data:{missionId:created.missionId,vehicleId:'timing_vehicle',acceptanceRequestId:'timing-'+created.missionId,
+    reservation:{start:pickup,pickup_at:pickup,end,policy_version:'SCHED-TIMING-TEST',full_duration_confirmed:true}},
+    auth:{uid:driver,token:{roles:['driver']}},rawRequest:{},acceptsStreaming:false} as any);
+  expect(accepted.success).toBe(true);
+  const after=(await ref.get()).data()!,quote=(await db.doc('delivery_quotes/'+quoteResult.quoteId).get()).data()!;
+  const snapshot=(await db.doc('financial_snapshots/'+accepted.snapshotId).get()).data()!;
+  expect(after.customer_total_minor).toBe(quote.customer_total_minor);
+  expect(snapshot.customer_total_minor).toBe(quote.customer_total_minor);
+  expect(fake.createdPaymentParams).toHaveLength(1);
+  expect(fake.createdPaymentParams[0].amountMinor).toBe(quote.customer_total_minor);
+  expect((await db.doc('driver_agendas/'+driver+'/reservations/'+created.missionId).get()).data()!.active).toBe(true);
+  expect(after.duration_confirmation.driver_id).toBe(driver);
+  expect(after.duration_confirmation.confirmed_at.toMillis()).toBeGreaterThan(0);
+  await db.recursiveDelete(db.doc('calendar_sync_jobs/'+created.missionId));
 });

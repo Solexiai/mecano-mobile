@@ -1,3 +1,4 @@
+import {readSchedulingPolicy,assertNoScheduledCommitments} from '../lib/driverScheduling';
 import { requireCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // acceptDelivery — Cloud Function callable (driver). 🔒 CŒUR DE L'ATOMICITÉ.
@@ -130,6 +131,8 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       throw notFound(`driver_profiles/${driverId} introuvable.`);
     }
 
+    if(await readSchedulingPolicy(tx))throw failedPrecondition('La planification active exige une offre acceptée par le chauffeur avec confirmation de son créneau complet.');
+    await assertNoScheduledCommitments(tx,driverId);
     const mission = missionSnap.data()!;
     if (mission.pricing_snapshot?.pre_assignment &&
         (!isInternalTest || mission.internal_test_authorized !== true || mission.assignment_mode !== MissionAssignmentModes.INTERNAL_TEST)) {

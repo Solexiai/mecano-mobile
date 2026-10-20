@@ -114,7 +114,8 @@ service cloud.firestore {
       // (driver_display_name) copiée dans sa propre mission.
 
       allow create: if isSignedIn() && uid() == driverId && isDriver() &&
-        request.resource.data.status == 'registration_incomplete';
+        request.resource.data.status == 'registration_incomplete' &&
+        !request.resource.data.keys().hasAny(['base_location_verified','verified_base_lat','verified_base_lng','base_location_reviewed_at','base_location_reviewed_by']);
 
       // Le chauffeur peut modifier SES champs déclaratifs uniquement.
       // Tous les champs sensibles doivent rester strictement inchangés.
@@ -135,6 +136,7 @@ service cloud.firestore {
       // égale de chaque côté (get(...) == get(...)) donc toujours sûre.
       allow update: if isSignedIn() && uid() == driverId && isDriver() &&
         request.resource.data.status == resource.data.status &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['base_location_verified','verified_base_lat','verified_base_lng','base_location_reviewed_at','base_location_reviewed_by']) &&
         request.resource.data.get('approved_at', null) == resource.data.get('approved_at', null) &&
         request.resource.data.get('approved_by_user_id', null) == resource.data.get('approved_by_user_id', null) &&
         request.resource.data.get('rejection_reason', null) == resource.data.get('rejection_reason', null) &&
@@ -295,7 +297,9 @@ service cloud.firestore {
         // catégorie/zone (le filtrage précis se fait côté requête + index,
         // la règle vérifie seulement que la mission est bien "ouverte").
         (isDriver() && isApprovedDriver(uid()) &&
-         resource.data.status in ['searching_driver', 'offered'])
+         resource.data.status in ['searching_driver', 'offered'] &&
+         resource.data.get('offered_driver_ids', []).hasAny([uid()]) &&
+         resource.data.get('offered_until', request.time) > request.time)
       );
 
       // Création directe désactivée : la création DOIT passer par la Cloud
@@ -319,6 +323,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         resource.data.customer_id == uid() &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'scheduling', 'schedule_state', 'acceptance_request_id', 'duration_confirmation', 'dispatch_candidate_cursor', 'acceptance_fingerprint', 'dispatch_round', 'dispatch_state', 'dispatch_next_attempt_at', 'dispatch_candidates_limited', 'offered_driver_ids', 'offered_until', 'requested_at',
           'booking_snapshot', 'assigned_vehicle_id', 'assigned_capacity_version', 'requested_time_status',
           'assignment_mode',
           'internal_test_authorized',

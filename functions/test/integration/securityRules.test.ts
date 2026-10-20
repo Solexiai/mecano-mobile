@@ -21,7 +21,7 @@
 // ---------------------------------------------------------------------------
 
 import { assertFails, assertSucceeds, RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where, serverTimestamp } from "firebase/firestore";
 import { createTestEnv } from "./setup";
 
 let testEnv: RulesTestEnvironment;
@@ -944,13 +944,14 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
     );
   });
 
-  it("un chauffeur approuvé peut voir les missions OUVERTES (searching_driver/offered) même sans y être assigné", async () => {
+  it("un chauffeur approuvé peut voir une mission ouverte uniquement pendant son offre", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "driver_profiles/driver_888"), {
         uid: "driver_888",
         status: "approved",
       });
       await setDoc(doc(ctx.firestore(), "delivery_requests/mission_013"), {
+        offered_driver_ids:['driver_888'],offered_until:new Date(Date.now()+60000),
         customer_id: "customer_001",
         driver_id: null,
         status: "searching_driver",
@@ -2873,7 +2874,7 @@ describe("Security Rules — notation des missions de test interne", () => {
       rater_id: "rating_customer_001",
       rater_role: "customer",
       stars: 5,
-      created_at: new Date(),
+      created_at: serverTimestamp(),
     };
   }
 
@@ -2940,5 +2941,39 @@ describe('Booking privacy and verified vehicle capabilities', () => {
     });
     for(const user of ['owner','assigned'])await assertSucceeds(getDoc(doc(testEnv.authenticatedContext(user,{role:user==='owner'?'customer':'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
     await assertFails(getDoc(doc(testEnv.authenticatedContext('unassigned',{role:'driver'}).firestore(),'delivery_requests/booking_private/private/booking')));
+  });
+});
+
+describe('Driver scheduling authority and private calendars',()=>{
+  test.each(['driver_agendas/driver_secret','driver_calendar_busy/driver_secret','driver_calendar_connections/driver_secret/providers/google','calendar_oauth_states/opaque','calendar_oauth_claims/opaque','calendar_sync_jobs/mission'])('clients cannot read or write server-owned %s',async path=>{
+    const client=testEnv.authenticatedContext('driver_secret',{role:'driver'});
+    await assertFails(getDoc(doc(client.firestore(),path)));await assertFails(setDoc(doc(client.firestore(),path),{test:true}));
+  });
+  test('driver cannot self-verify base on profile creation or update',async()=>{
+    const client=testEnv.authenticatedContext('base_driver',{role:'driver'});
+    await assertFails(setDoc(doc(client.firestore(),'driver_profiles/base_driver'),{status:'registration_incomplete',base_location_verified:true}));
+    await testEnv.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),'driver_profiles/base_driver'),{status:'approved'}));
+    await assertFails(updateDoc(doc(client.firestore(),'driver_profiles/base_driver'),{base_location_verified:true}));
+  });
+  test.each(['scheduling','schedule_state','acceptance_request_id','acceptance_fingerprint','offered_driver_ids','offered_until','dispatch_round','requested_at'])('customer cannot forge %s',async field=>{
+    await testEnv.withSecurityRulesDisabled(c=>setDoc(doc(c.firestore(),'delivery_requests/schedule_private'),{customer_id:'owner',driver_id:null,status:'searching_driver',driver_offer_amount:0,customer_total:10,payment_status:'pending',pricing_version:'test'}));
+    const client=testEnv.authenticatedContext('owner',{role:'customer'});
+    await assertFails(updateDoc(doc(client.firestore(),'delivery_requests/schedule_private'),{[field]:'forged'}));
+  });
+  test('approved driver without a live targeted offer cannot read customer mission',async()=>{
+    await testEnv.withSecurityRulesDisabled(async c=>{
+      await setDoc(doc(c.firestore(),'driver_profiles/outside'),{status:'approved'});
+      await setDoc(doc(c.firestore(),'delivery_requests/private_offer'),{customer_id:'owner',driver_id:null,status:'offered',offered_driver_ids:['different'],offered_until:new Date(Date.now()+60000)});
+    });
+    const client=testEnv.authenticatedContext('outside',{role:'driver'});
+    await assertFails(getDoc(doc(client.firestore(),'delivery_requests/private_offer')));
+  });
+  test('expired targeted offer does not grant access to customer mission',async()=>{
+    await testEnv.withSecurityRulesDisabled(async c=>{
+      await setDoc(doc(c.firestore(),'driver_profiles/outside'),{status:'approved'});
+      await setDoc(doc(c.firestore(),'delivery_requests/private_offer'),{customer_id:'owner',driver_id:null,status:'offered',offered_driver_ids:['outside'],offered_until:new Date(0)});
+    });
+    const client=testEnv.authenticatedContext('outside',{role:'driver'});
+    await assertFails(getDoc(doc(client.firestore(),'delivery_requests/private_offer')));
   });
 });

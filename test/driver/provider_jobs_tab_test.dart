@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 // ---------------------------------------------------------------------------
 // Test widget — ProviderJobsTab (Phase 7, Bloc C, item 3).
 //
@@ -18,6 +19,7 @@
 // ---------------------------------------------------------------------------
 
 import 'dart:async';
+import 'package:movik_connect/services/booking/booking_api.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -187,7 +189,11 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
     routes: [
       GoRoute(
         path: '/fr/provider/jobs',
-        builder: (context, state) => const Scaffold(body: ProviderJobsTab()),
+        builder: (context, state) => Scaffold(
+          body: ProviderJobsTab(
+            bookingApi: _OfferApi(BackendLocator.missionRepository),
+          ),
+        ),
       ),
       GoRoute(
         path: '/fr/provider/mission/:missionId',
@@ -204,11 +210,46 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
   );
 }
 
+class _OfferApi implements BookingApi {
+  static Object? acceptError;
+  _OfferApi(this.repo);
+  final MissionRepository repo;
+  @override
+  Future<Map<String, dynamic>?> profile() async => null;
+  @override
+  Future<Map<String, dynamic>> call(
+    String name, [
+    Map<String, dynamic> data = const {},
+  ]) async {
+    if (name == 'prepareDriverMissionAcceptance') {
+      return {'enabled': false, 'driver_offer_minor': 8000};
+    }
+    if (name == 'acceptDelivery') {
+      if (acceptError != null) throw acceptError!;
+      final result = await repo.acceptMission(
+        missionId: data['missionId'] as String,
+        driverId: _driverId,
+      );
+      return {'success': result.success, 'errorCode': result.errorCode};
+    }
+    throw StateError('Unexpected simulated call: $name');
+  }
+}
+
+Future<void> _confirmDisplayedOffer(WidgetTester tester) async {
+  for (var i = 0; i < 20 && find.byType(AlertDialog).evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  await tester.tap(find.widgetWithText(FilledButton, 'Accepter'));
+  await tester.pump();
+}
+
 void main() {
   late _FakeMissionRepository fakeRepo;
   late FirebaseAuthProvider auth;
 
   setUp(() {
+    _OfferApi.acceptError = null;
     SharedPreferences.setMockInitialValues({});
     fakeRepo = _FakeMissionRepository([_buildAvailableMission()]);
     BackendLocator.missionRepositoryOverride = fakeRepo;
@@ -223,6 +264,31 @@ void main() {
   });
 
   testWidgets(
+    'kill switch refusal remains distinct from another driver winning',
+    (tester) async {
+      _OfferApi.acceptError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'service_temporarily_unavailable',
+      );
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      await _confirmDisplayedOffer(tester);
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AppStrings.t('service_temporarily_unavailable', 'fr')),
+        findsOneWidget,
+      );
+      expect(find.text('MISSION_STUB'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'chauffeur admissible voit la mission disponible avec son offre',
     (tester) async {
       await tester.pumpWidget(_buildTestApp(auth));
@@ -232,7 +298,7 @@ void main() {
         find.text(AppStrings.t('driver_jobs_title', 'fr')),
         findsOneWidget,
       );
-      expect(find.text('80\$'), findsOneWidget);
+      expect(find.text('80.00 CAD'), findsOneWidget);
       expect(
         find.widgetWithText(
           ElevatedButton,
@@ -261,7 +327,7 @@ void main() {
         ),
         findsNothing,
       );
-      expect(find.text('80\$'), findsNothing);
+      expect(find.text('80.00 CAD'), findsNothing);
     },
   );
 
@@ -286,6 +352,7 @@ void main() {
           AppStrings.t('driver_jobs_accept', 'fr'),
         ),
       );
+      await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
 
       expect(fakeRepo.acceptMissionCallCount, 1);
@@ -309,6 +376,7 @@ void main() {
           AppStrings.t('driver_jobs_accept', 'fr'),
         ),
       );
+      await _confirmDisplayedOffer(tester);
       await tester.pump(); // un seul frame : la requête est encore "en vol"
 
       expect(
@@ -341,6 +409,7 @@ void main() {
         AppStrings.t('driver_jobs_accept', 'fr'),
       );
       await tester.tap(buttonFinder);
+      await _confirmDisplayedOffer(tester);
       await tester.pump();
       // Deuxième tap immédiat : le bouton est déjà désactivé (onPressed:
       // null pendant `isAccepting`), donc `tester.tap()` ne déclenche rien
@@ -379,6 +448,7 @@ void main() {
           AppStrings.t('driver_jobs_accept', 'fr'),
         ),
       );
+      await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
 
       expect(
@@ -418,6 +488,7 @@ void main() {
           AppStrings.t('driver_jobs_accept', 'fr'),
         ),
       );
+      await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -445,6 +516,7 @@ void main() {
           AppStrings.t('driver_jobs_accept', 'fr'),
         ),
       );
+      await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
@@ -521,7 +593,7 @@ void main() {
             ),
             findsOneWidget,
           );
-          expect(find.text('95\$'), findsOneWidget);
+          expect(find.text('95.00 CAD'), findsOneWidget);
 
           // RÈGLE OVERFLOW : jamais masqué.
           expect(tester.takeException(), isNull);

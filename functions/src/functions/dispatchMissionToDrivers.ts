@@ -1,3 +1,4 @@
+import {dispatchScheduledMission} from '../lib/scheduledDispatch';
 import { findCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // dispatchMissionToDrivers — déclenchée automatiquement (Firestore trigger)
@@ -36,6 +37,8 @@ const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affin
 const MAX_CANDIDATE_DRIVERS = 15;
 
 async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): Promise<void> {
+  if((mission as unknown as Record<string,unknown>).assignment_mode==='internal_test')return;
+  if(await dispatchScheduledMission(missionId))return;
   // Price-first requests await explicit operational/manual assignment.
   // In particular, an internal test must never broadcast real driver offers.
   const snapshot = 'pricing_snapshot' in mission ? mission.pricing_snapshot : undefined;
@@ -161,6 +164,7 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
     }
     tx.update(db.collection("delivery_requests").doc(missionId), {
       status: MissionStatuses.OFFERED,
+      offered_driver_ids:eligible.map(d=>d.id),offered_until:expiresAt,
     });
     return true;
   });

@@ -13,18 +13,21 @@ import * as fs from "fs";
 import * as path from "path";
 import { initializeTestEnvironment, RulesTestEnvironment } from "@firebase/rules-unit-testing";
 
-export const PROJECT_ID = "demo-movik-test";
+export const PROJECT_ID = process.env.GCLOUD_PROJECT ?? "demo-movik-test";
+if(!PROJECT_ID.startsWith("demo-"))throw new Error("Integration tests require a demo project");
 
 export async function createTestEnv(): Promise<RulesTestEnvironment> {
   const rulesPath = path.resolve(__dirname, "../../../firestore.rules");
   const rules = fs.readFileSync(rulesPath, "utf8");
 
+  const match=/^127\.0\.0\.1:(\d+)$/.exec(process.env.FIRESTORE_EMULATOR_HOST??'127.0.0.1:8080');
+  if(!match)throw new Error('Local Firestore emulator required');
   return initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
       rules,
       host: "127.0.0.1",
-      port: 8080,
+      port: Number(match[1]),
     },
   });
 }
@@ -40,17 +43,20 @@ export async function createTestEnvWithStorage(): Promise<RulesTestEnvironment> 
   const storageRulesPath = path.resolve(__dirname, "../../../storage.rules");
   const storageRules = fs.readFileSync(storageRulesPath, "utf8");
 
+  const firestoreHost=/^127\.0\.0\.1:(\d+)$/.exec(process.env.FIRESTORE_EMULATOR_HOST??'127.0.0.1:8080');
+  const storageHost=/^127\.0\.0\.1:(\d+)$/.exec(process.env.FIREBASE_STORAGE_EMULATOR_HOST??'127.0.0.1:9199');
+  if(!firestoreHost||!storageHost)throw new Error('Loopback emulators required');
   return initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
       rules: firestoreRules,
       host: "127.0.0.1",
-      port: 8080,
+      port: Number(firestoreHost[1]),
     },
     storage: {
       rules: storageRules,
       host: "127.0.0.1",
-      port: 9199,
+      port: Number(storageHost[1]),
     },
   });
 }

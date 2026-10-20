@@ -354,9 +354,14 @@ describe('Booking photos',()=>{
   await assertFails(uploadBytes(ref(owner.storage(),path.replace('0.jpg','3.jpg')),smallImage,{contentType:'image/jpeg'}));
   await testEnv.withSecurityRulesDisabled(async ctx=>{
    await setDoc(doc(ctx.firestore(),'booking_photo_grants/photo_customer_draft-photo-test'),{mission_id:'photo_mission',customer_id:'photo_customer'});
-   await setDoc(doc(ctx.firestore(),'delivery_requests/photo_mission'),{customer_id:'photo_customer',driver_id:null,status:'searching_driver'});
+   await setDoc(doc(ctx.firestore(),'delivery_requests/photo_mission'),{customer_id:'photo_customer',driver_id:null,status:'searching_driver',offered_driver_ids:['photo_driver'],offered_until:new Date(Date.now()+60000)});
   });
   await assertSucceeds(getBytes(ref(driver.storage(),path)));
+  const nonCandidate=testEnv.authenticatedContext('photo_other_driver',{role:'driver'});
+  await testEnv.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'driver_profiles/photo_other_driver'),{status:'approved'});});
+  await assertFails(getBytes(ref(nonCandidate.storage(),path)));
+  await testEnv.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'delivery_requests/photo_mission'),{offered_until:new Date(0)},{merge:true});});
+  await assertFails(getBytes(ref(driver.storage(),path)));
   // A coincident draft ID in another account must not share this grant.
   const otherPath=path.replace('photo_customer','photo_other');
   await testEnv.withSecurityRulesDisabled(async ctx=>{

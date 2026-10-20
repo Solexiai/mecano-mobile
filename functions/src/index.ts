@@ -94,3 +94,12 @@ export { getBookingVehicleForAcceptance, requestBookingReview, getBookingQuote, 
 export { startBookingCardSetup, getBookingCardStatus } from './functions/bookingCardSetup';
 
 export { getDriverAgenda, saveDriverAgenda } from './functions/driverAgenda';
+
+export {declineDeliveryOffer,adjustDriverMissionSlot,onMissionScheduleChanged,maintainDriverOffers,retryDriverSearch} from './functions/driverScheduleLifecycle';
+
+export {getDriverCalendars,startDriverCalendarConnection,calendarOAuthCallback,finishDriverCalendarConnection,listDriverCalendars,selectDriverCalendars,disconnectDriverCalendar,refreshDriverCalendars,prepareDriverMissionAcceptance} from './functions/driverCalendars';
+export {maintainDriverCalendars,retryDriverCalendarSync,exportDriverCalendar} from './functions/calendarSync';
+
+export {previewDriverAvailability} from './functions/driverAgendaPreview';
+
+export {verifyDriverServiceBase} from './functions/verifyDriverServiceBase';

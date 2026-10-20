@@ -1,3 +1,5 @@
+import { readSchedulingPolicy, assertNoScheduledCommitments, confirmedSlot, prepareReservation, locationInDriverZone, missionRequestedAt } from '../lib/driverScheduling';
+import { createHash } from 'crypto';
 import { requireCompatibleVehicle } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // acceptDelivery — Cloud Function callable (driver). 🔒 CŒUR DE L'ATOMICITÉ.
@@ -44,6 +46,8 @@ import { supportsVehicleCategory } from "../lib/vehicleCategory";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
+  reservation?: unknown;
+  acceptanceRequestId?: string;
   vehicleId?: string;
   expectedDriverOfferMinor?: number;
 }
@@ -117,6 +121,47 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
 
     const mission = missionSnap.data()!;
+    const schedulingPolicy = await readSchedulingPolicy(tx);
+    const fingerprint = createHash('sha256').update(JSON.stringify({
+      reservation:request.data.reservation??null,vehicle:request.data.vehicleId??null,
+      expected:request.data.expectedDriverOfferMinor??null,
+    })).digest('hex');
+    if (schedulingPolicy && (typeof request.data.acceptanceRequestId !== 'string' ||
+        !/^[a-zA-Z0-9_-]{16,100}$/.test(request.data.acceptanceRequestId))) {
+      throw invalidArgument('Identifiant de confirmation requis.');
+    }
+    if (typeof request.data.acceptanceRequestId==='string' && mission.driver_id === driverId &&
+        mission.acceptance_request_id === request.data.acceptanceRequestId) {
+      if(mission.acceptance_fingerprint!==fingerprint)throw failedPrecondition('Cette confirmation a déjà été utilisée avec un autre créneau.');
+      if(!['assigned','driver_to_pickup','arrived_at_pickup','picked_up','in_transit','arrived_at_dropoff'].includes(mission.status))throw failedPrecondition('Cette mission n’est plus active.');
+      return {replayed:true,paymentStatus:mission.payment_status,paymentId:mission.active_payment_id,missionId,driverOfferAmount:mission.driver_offer_amount,snapshotId:mission.active_financial_snapshot_id,
+        customerId:mission.customer_id as string,customerTotal:mission.customer_total,
+        applicationFee:0,quoteId:mission.active_quote_id as string,
+        internalTest:isAuthorizedInternalTestMission(mission)};
+    }
+    if(!schedulingPolicy)await assertNoScheduledCommitments(tx,driverId);
+    const reservedSlot = schedulingPolicy ? confirmedSlot(request.data.reservation, mission, schedulingPolicy) : null;
+    if(!schedulingPolicy && request.data.reservation)throw failedPrecondition('La planification n’est pas encore autorisée.');
+    const agendaReservation = reservedSlot ? await prepareReservation(tx,driverId,missionId,reservedSlot) : null;
+    const allOffers = schedulingPolicy ? await tx.get(db.collection('delivery_offers').where('mission_id','==',missionId)) : null;
+    if(schedulingPolicy && !allOffers!.docs.some(d=>d.data().driver_id===driverId&&d.data().status==='pending'&&d.data().expires_at?.toMillis()>Date.now())){
+      throw failedPrecondition('Cette offre est indisponible ou expirée.');
+    }
+    if(schedulingPolicy){
+      if(driverSnap.data()!.online_status!=='online')throw failedPrecondition('Passez en ligne avant d’accepter une offre.');
+      const [zones,location] = await Promise.all([tx.get(db.doc('system_config/service_zones')),tx.get(db.doc('driver_locations/'+driverId))]);
+      if(!locationInDriverZone(driverSnap.data()!,location.data(),mission.pickup_address,zones.data() as any))throw failedPrecondition('La mission est hors de votre zone admissible.');
+    }
+    const writeSchedule = () => {
+      if(!reservedSlot)return;
+      agendaReservation!.write();
+      tx.update(missionRef,{scheduling:reservedSlot,duration_confirmation:{driver_id:driverId,confirmed_at:admin.firestore.FieldValue.serverTimestamp(),policy_version:reservedSlot.policy_version},schedule_state:missionRequestedAt(mission)?'reserved':'ready_to_start',
+        acceptance_request_id:request.data.acceptanceRequestId,acceptance_fingerprint:fingerprint});
+      for(const offer of allOffers!.docs) {
+        if(offer.data().status==='pending')tx.update(offer.ref,{status:offer.data().driver_id===driverId?'accepted':'expired',closed_at:admin.firestore.Timestamp.now()});
+      }
+    };
+    const activateTracking = !reservedSlot || !missionRequestedAt(mission);
     if (mission.pricing_snapshot?.pre_assignment &&
         (mission.internal_test_authorized !== true || !isAuthorizedInternalTestMission(mission))) {
       throw failedPrecondition('Ce devis ne permet pas une acceptation commerciale avant validation opérationnelle.');
@@ -164,6 +209,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     const isInternalTest = isAuthorizedInternalTestMission(mission);
     if (isInternalTest) {
       const now = admin.firestore.Timestamp.now();
+      writeSchedule();
       tx.update(missionRef, {
         ...assignedVehicle,
       driver_id: driverId,
@@ -176,8 +222,8 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
         internal_test_assigned_at: now,
         active_financial_snapshot_id: null,
       });
-      tx.update(driverRef, { online_status: "on_mission" });
-      tx.set(
+      if(activateTracking) tx.update(driverRef, { online_status: "on_mission" });
+      if(activateTracking) tx.set(
         db.collection("driver_locations").doc(driverId),
         { active_delivery_id: missionId },
         { merge: true }
@@ -259,6 +305,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
 
     // ---- Écriture atomique : mission + driver_profile + snapshot pending ----
+    writeSchedule();
     tx.update(missionRef, {
       ...assignedVehicle,
       driver_id: driverId,
@@ -274,13 +321,13 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       internal_test_assigned_at: null,
     });
 
-    tx.update(driverRef, { online_status: "on_mission" });
+    if(activateTracking) tx.update(driverRef, { online_status: "on_mission" });
 
     // Active le tracking GPS temps réel pour cette mission (Phase 5) :
     // recordTrackingPoint() lit ce champ pour savoir sur quelle mission
     // rattacher l'historique, et firestore.rules l'utilise pour autoriser
     // le client à lire la position du chauffeur pendant SA mission active.
-    tx.set(
+    if(activateTracking) tx.set(
       db.collection("driver_locations").doc(driverId),
       { active_delivery_id: missionId },
       { merge: true }
@@ -372,6 +419,11 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     };
   }
 
+  if('replayed' in result && result.replayed){
+    const success=[PaymentStatuses.AUTHORIZED,PaymentStatuses.CAPTURED].includes(result.paymentStatus);
+    return {success,pending:!success,errorCode:success?null:'acceptance_pending',missionId:result.missionId,
+      driverOfferAmount:result.driverOfferAmount,snapshotId:result.snapshotId,paymentId:result.paymentId??null};
+  }
   // ---- PHASE 6, point 1/5 : sécurisation RÉELLE du paiement -----------------
   // Exécuté APRÈS le commit de la transaction ci-dessus (jamais À L'INTÉRIEUR
   // — voir paymentOrchestration.ts pour la justification : un appel Stripe

@@ -1,4 +1,9 @@
+import '../../../../widgets/driver_availability_preview.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../services/booking/booking_api.dart';
+import '../../../../widgets/driver_recurrence_editor.dart';
+import '../../../../widgets/driver_calendars_panel.dart';
 import 'package:provider/provider.dart';
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../backend/repositories/driver_agenda_repository.dart';
@@ -9,15 +14,23 @@ import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 
 class ProviderCalendarTab extends StatefulWidget {
-  const ProviderCalendarTab({super.key, this.repository, this.locale});
+  const ProviderCalendarTab({
+    super.key,
+    this.repository,
+    this.locale,
+    this.bookingApi,
+  });
   final DriverAgendaRepository? repository;
   final String? locale;
+  final BookingApi? bookingApi;
   @override
   State<ProviderCalendarTab> createState() => _ProviderCalendarTabState();
 }
 
 class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
   DateTime _selected = DateTime.now();
+  String _view = 'month';
+  BookingApi? _calendarApi;
   DriverAgendaRepository? _repository;
   String? _uid;
   Stream<List<DeliveryMission>>? _missions;
@@ -40,6 +53,9 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
         : context.watch<FirebaseAuthProvider>().effectiveUid;
     if (_repository == null || _uid != uid) {
       _uid = uid;
+      _calendarApi =
+          widget.bookingApi ??
+          (uid != null && uid != 'injected' ? FirebaseBookingApi(uid) : null);
       _repository =
           widget.repository ??
           (uid == null
@@ -118,6 +134,8 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
       _agenda = DriverAgenda(
         revision: a.revision,
         configured: a.configured,
+        recurrence: a.recurrence,
+        dispatchConnected: a.dispatchConnected,
         windows: blocked ? a.windows : slots,
         blocked: blocked ? slots : a.blocked,
       );
@@ -231,6 +249,88 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
     );
   }
 
+  DateTime get _periodStart => _view == 'month'
+      ? DateTime(_selected.year, _selected.month)
+      : _view == 'week'
+      ? DateTime(
+          _selected.year,
+          _selected.month,
+          _selected.day - (_selected.weekday - 1),
+        )
+      : DateTime(_selected.year, _selected.month, _selected.day);
+  DateTime get _periodEnd => _view == 'month'
+      ? DateTime(_selected.year, _selected.month + 1)
+      : DateTime(
+          _periodStart.year,
+          _periodStart.month,
+          _periodStart.day + (_view == 'week' ? 7 : 1),
+        );
+  void _move(int direction) => setState(
+    () => _selected = _view == 'month'
+        ? DateTime(_selected.year, _selected.month + direction)
+        : DateTime(
+            _selected.year,
+            _selected.month,
+            _selected.day + direction * (_view == 'week' ? 7 : 1),
+          ),
+  );
+  bool _intersects(DateTime start, DateTime end) =>
+      start.isBefore(_periodEnd) && end.isAfter(_periodStart);
+  Widget _dateGrid(List<DeliveryMission> missions) => LayoutBuilder(
+    builder: (context, c) {
+      final first = DateTime(_selected.year, _selected.month);
+      final count = DateTime(_selected.year, _selected.month + 1, 0).day;
+      return Wrap(
+        children: [
+          for (final name
+              in (_locale == 'en'
+                  ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                  : _locale == 'es'
+                  ? ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+                  : ['L', 'M', 'M', 'J', 'V', 'S', 'D']))
+            SizedBox(
+              width: c.maxWidth / 7,
+              height: 28,
+              child: Center(
+                child: Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          for (int i = 0; i < first.weekday - 1; i++)
+            SizedBox(width: c.maxWidth / 7, height: 48),
+          for (int d = 1; d <= count; d++)
+            SizedBox(
+              width: c.maxWidth / 7,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  padding: const EdgeInsets.all(2),
+                ),
+                onPressed: () => setState(() {
+                  _selected = DateTime(_selected.year, _selected.month, d);
+                  _view = 'day';
+                }),
+                child: Column(
+                  children: [
+                    Text(
+                      '$d',
+                      semanticsLabel: _date(
+                        DateTime(_selected.year, _selected.month, d),
+                      ),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    if (missions.any((m) => agendaMissionStart(m)?.day == d))
+                      const Icon(Icons.local_shipping, size: 14),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  );
   String _month() {
     const fr = [
       'Janvier',
@@ -311,7 +411,36 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
             Text(
               '${tr('Statut', 'Status', 'Estado')} : ${AppStrings.t(m.status.key, _locale)}',
             ),
-            if (m.bookingSnapshot?['load'] is Map &&
+            if (m.scheduling?['end'] is String)
+              Text(
+                '${tr('Fin prévue', 'Planned end', 'Fin previsto')} : ${_date(DateTime.parse(m.scheduling!['end'] as String).toLocal())}',
+              ),
+            if (m.pickupAddress != null)
+              Text(
+                '${tr('Ramassage', 'Pickup', 'Recogida')} : ${m.pickupAddress!.line1}, ${m.pickupAddress!.city}',
+              ),
+            if (m.dropoffAddress != null)
+              Text(
+                '${tr('Livraison', 'Delivery', 'Entrega')} : ${m.dropoffAddress!.line1}, ${m.dropoffAddress!.city}',
+              ),
+            Text(AppStrings.t(m.requiredVehicleCategory.key, _locale)),
+            if (m.hasAssignedDriver)
+              Text(
+                '${tr('Rémunération enregistrée', 'Recorded compensation', 'Remuneración registrada')} : ${m.driverOfferAmount.toStringAsFixed(2)} CAD',
+              ),
+            TextButton(
+              onPressed: () =>
+                  context.push('/$_locale/provider/mission/${m.id}'),
+              child: Text(
+                tr(
+                  'Détails et suivi',
+                  'Details and tracking',
+                  'Detalles y seguimiento',
+                ),
+              ),
+            ),
+            if (m.scheduling == null &&
+                m.bookingSnapshot?['load'] is Map &&
                 (m.bookingSnapshot!['load'] as Map)['requested_at'] != null)
               Text(
                 tr(
@@ -338,29 +467,55 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
             tr('Mon agenda', 'My calendar', 'Mi calendario'),
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
           ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final v in [
+                ('day', tr('Jour', 'Day', 'Día')),
+                ('week', tr('Semaine', 'Week', 'Semana')),
+                ('month', tr('Mois', 'Month', 'Mes')),
+              ])
+                ChoiceChip(
+                  label: Text(v.$2),
+                  selected: _view == v.$1,
+                  onSelected: (_) => setState(() => _view = v.$1),
+                ),
+              TextButton(
+                onPressed: () => setState(() => _selected = DateTime.now()),
+                child: Text(tr('Aujourd’hui', 'Today', 'Hoy')),
+              ),
+            ],
+          ),
           Row(
             children: [
               IconButton(
-                tooltip: tr('Mois précédent', 'Previous month', 'Mes anterior'),
-                onPressed: () => setState(
-                  () =>
-                      _selected = DateTime(_selected.year, _selected.month - 1),
-                ),
+                tooltip: _view == 'month'
+                    ? tr('Mois précédent', 'Previous month', 'Mes anterior')
+                    : _view == 'week'
+                    ? tr(
+                        'Semaine précédente',
+                        'Previous week',
+                        'Semana anterior',
+                      )
+                    : tr('Jour précédent', 'Previous day', 'Día anterior'),
+                onPressed: () => _move(-1),
                 icon: const Icon(Icons.chevron_left),
               ),
               Expanded(
                 child: Text(
-                  _month(),
+                  _view == 'month' ? _month() : _date(_periodStart),
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
               IconButton(
-                tooltip: tr('Mois suivant', 'Next month', 'Mes siguiente'),
-                onPressed: () => setState(
-                  () =>
-                      _selected = DateTime(_selected.year, _selected.month + 1),
-                ),
+                tooltip: _view == 'month'
+                    ? tr('Mois suivant', 'Next month', 'Mes siguiente')
+                    : _view == 'week'
+                    ? tr('Semaine suivante', 'Next week', 'Semana siguiente')
+                    : tr('Jour suivant', 'Next day', 'Día siguiente'),
+                onPressed: () => _move(1),
                 icon: const Icon(Icons.chevron_right),
               ),
             ],
@@ -389,28 +544,54 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
               final missions =
                   snapshot.data!.where((m) {
                     final d = agendaMissionStart(m);
+                    final end = DateTime.tryParse(
+                      m.scheduling?['end'] as String? ?? '',
+                    )?.toLocal();
                     return d == null ||
-                        (d.year == _selected.year &&
-                            d.month == _selected.month);
+                        _intersects(
+                          d,
+                          end ?? d.add(const Duration(minutes: 1)),
+                        );
                   }).toList()..sort(
                     (a, b) => (agendaMissionStart(a) ?? DateTime(2100))
                         .compareTo(agendaMissionStart(b) ?? DateTime(2100)),
                   );
-              if (missions.isEmpty) {
+              if (missions.isEmpty && _view != 'month') {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(
                     tr(
-                      'Aucune mission attribuée pour ce mois.',
-                      'No assigned missions this month.',
-                      'No hay misiones asignadas este mes.',
+                      'Aucune mission attribuée pour cette période.',
+                      'No assigned missions in this period.',
+                      'No hay misiones asignadas en este período.',
                     ),
                   ),
                 );
               }
-              return Column(children: missions.map(_mission).toList());
+              return Column(
+                children: [
+                  if (_view == 'month') _dateGrid(missions),
+                  if (missions.isEmpty)
+                    Text(
+                      tr(
+                        'Aucune mission attribuée pour ce mois.',
+                        'No assigned missions this month.',
+                        'No hay misiones asignadas este mes.',
+                      ),
+                    ),
+                  ...missions.map(_mission),
+                ],
+              );
             },
           ),
+          if (_calendarApi != null && _agenda != null)
+            DriverAvailabilityPreview(
+              api: _calendarApi!,
+              agenda: _agenda!,
+              from: _periodStart,
+              to: _periodEnd,
+              locale: _locale,
+            ),
           const Divider(height: 32),
           Container(
             padding: const EdgeInsets.all(12),
@@ -419,11 +600,17 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              tr(
-                'Préparation des disponibilités : vos plages peuvent être enregistrées, mais ne filtrent pas encore les offres. Aucun calendrier externe n’est connecté.',
-                'Availability preparation: your periods can be saved, but do not yet filter offers. No external calendar is connected.',
-                'Preparación de disponibilidad: puedes guardar períodos, pero todavía no filtran ofertas. No hay calendario externo conectado.',
-              ),
+              _agenda?.dispatchConnected == true
+                  ? tr(
+                      'Vos disponibilités sont contrôlées avant l’attribution. Un calendrier externe doit être à jour pour accepter.',
+                      'Availability is checked before assignment. Connected calendars must be up to date to accept.',
+                      'Se comprueba la disponibilidad antes de asignar. Los calendarios conectados deben estar actualizados para aceptar.',
+                    )
+                  : tr(
+                      'Préparation des disponibilités : vos plages peuvent être enregistrées, mais ne filtrent pas encore les offres. Les connexions externes se gèrent ci-dessous.',
+                      'Availability preparation: your periods can be saved, but do not yet filter offers. External connections are managed below.',
+                      'Preparación de disponibilidad: puedes guardar períodos, pero todavía no filtran ofertas. Las conexiones externas se gestionan abajo.',
+                    ),
             ),
           ),
           const SizedBox(height: 16),
@@ -437,6 +624,29 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
                   'No hay disponibilidad declarada.',
                 ),
               ),
+            Text(
+              tr('Mes disponibilités', 'My availability', 'Mi disponibilidad'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            DriverRecurrenceEditor(
+              value: _agenda!.recurrence,
+              locale: _locale,
+              enabled: !_saving,
+              onChanged: (value) {
+                final a = _agenda!;
+                setState(() {
+                  _agenda = DriverAgenda(
+                    revision: a.revision,
+                    configured: a.configured,
+                    windows: a.windows,
+                    blocked: a.blocked,
+                    recurrence: value,
+                    dispatchConnected: a.dispatchConnected,
+                  );
+                  _dirty = true;
+                });
+              },
+            ),
             _slots(false),
             const SizedBox(height: 16),
             _slots(true),
@@ -468,6 +678,8 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
               ],
             ),
           ],
+          if (_calendarApi != null)
+            DriverCalendarsPanel(api: _calendarApi!, locale: _locale),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Semantics(

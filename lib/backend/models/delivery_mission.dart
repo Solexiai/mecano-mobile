@@ -29,6 +29,11 @@ MissionAddress? _parseAddress(dynamic raw) {
 
 class DeliveryMission {
   final Map<String, dynamic>? bookingSnapshot;
+  final Map<String, dynamic>? scheduling;
+  final String? scheduleState;
+  final String? dispatchState;
+  final String? paymentStatus;
+  final DateTime? offerExpiresAt;
   final String id;
   final String customerId;
   final String? customerDisplayName;
@@ -72,6 +77,11 @@ class DeliveryMission {
 
   const DeliveryMission({
     this.bookingSnapshot,
+    this.scheduling,
+    this.scheduleState,
+    this.dispatchState,
+    this.paymentStatus,
+    this.offerExpiresAt,
     required this.id,
     required this.customerId,
     this.customerDisplayName,
@@ -110,6 +120,11 @@ class DeliveryMission {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'scheduling': scheduling,
+    'schedule_state': scheduleState,
+    'dispatch_state': dispatchState,
+    'payment_status': paymentStatus,
+    'offered_until': offerExpiresAt?.toIso8601String(),
     'customer_id': customerId,
     'customer_display_name': customerDisplayName,
     'item_category_key': itemCategoryKey,
@@ -144,6 +159,13 @@ class DeliveryMission {
       bookingSnapshot: json['booking_snapshot'] is Map
           ? Map<String, dynamic>.from(json['booking_snapshot'] as Map)
           : null,
+      scheduling: json['scheduling'] is Map
+          ? Map<String, dynamic>.from(json['scheduling'] as Map)
+          : null,
+      scheduleState: json['schedule_state'] as String?,
+      dispatchState: json['dispatch_state'] as String?,
+      paymentStatus: json['payment_status'] as String?,
+      offerExpiresAt: parseFirestoreDate(json['offered_until']),
       id: id,
       customerId: json['customer_id'] as String? ?? '',
       customerDisplayName: json['customer_display_name'] as String?,

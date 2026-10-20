@@ -23,6 +23,9 @@ import '../../widgets/booking_load_summary.dart';
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import '../../widgets/scheduled_mission_panel.dart';
+import '../../widgets/driver_search_status.dart';
+import '../../services/booking/booking_api.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -182,6 +185,25 @@ class CustomerTrackingScreen extends StatelessWidget {
               return _CompletedMissionView(mission: mission, t: t);
             }
 
+            if ([
+                  'reserved',
+                  'ready_to_start',
+                ].contains(mission.scheduleState) &&
+                mission.status == MissionStatus.assigned &&
+                mission.scheduling != null &&
+                mission.hasAssignedDriver) {
+              return ScheduledMissionPanel(mission: mission, locale: locale);
+            }
+            if (mission.status.isOpenForAcceptance &&
+                mission.dispatchState != null &&
+                !mission.hasAssignedDriver) {
+              return DriverSearchStatus(
+                missionId: mission.id,
+                state: mission.dispatchState!,
+                locale: locale,
+                api: FirebaseBookingApi(auth.effectiveUid!),
+              );
+            }
             final hasDriver = mission.driverId?.trim().isNotEmpty ?? false;
             if (!hasDriver || !_trackableStatuses.contains(mission.status)) {
               final String message;
