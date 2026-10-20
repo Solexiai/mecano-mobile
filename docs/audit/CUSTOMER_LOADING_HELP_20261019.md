@@ -75,3 +75,20 @@ Les anciennes attentes de tests ont été alignées avec le retrait du panneau f
 Aucun déploiement, push, fusion, changement Firebase ni transaction réelle. Les essais réseau et financiers sont simulés. Le tactile est vérifié par événements de test, pas sur un téléphone physique ; aucune validation avec lecteur d’écran réel n’est revendiquée. Les captures et tests de sémantique fournissent une validation locale.
 Aucune nouvelle décision tarifaire nécessaire pour cette refonte. Les protections et prérequis commerciaux antérieurs demeurent hors périmètre.
 Prochaine action : validation visuelle par Daniel des captures avant toute autorisation de publication.
+
+
+## Publication autorisée du 20 octobre 2026
+
+Daniel a autorisé la publication par « pousse le ». Vérification publique : 2026-10-20T13:10:57.249Z.
+
+- Source : f11e24342b1b721a41eb1143fa4e47d821faf61e ; branche feat/customer-loading-help-20261019.
+- Vercel : dpl_7Uthx9F6xcSwZVP5Kwm6KGjWLRex ; version customer-loading-help-v1.
+- movi-k.com et www.movi-k.com : HTTP 200, route /fr/livraison/demande HTTP 200, source et SHA256 du bundle vérifiés : 85140e103beb656f43430abc0c4a6ebe4ee83a3bb054116684b69ffbb1455282.
+- Fonctions actives : calculateDeliveryQuote (calculatedeliveryquote-00008-nol), createDeliveryRequest (createdeliveryrequest-00009-lup), reviewDeliveryLoad (reviewdeliveryload-00003-yug), requestBookingReview (requestbookingreview-00003-qiz). Requêtes non authentifiées refusées HTTP 401.
+- Premier déploiement partiel : trois fonctions réussies ; calculateDeliveryQuote refusé par Google avec erreur interne code 13 avant compilation. Relance ciblée réussie ; preuve initiale conservée.
+- Compilation Web de production, lint serveur intégral et compilation TypeScript réussis pendant la publication. Les 96 scénarios Flutter et 68 tests serveur simulés précédents ne sont pas recomptés comme tests de production.
+- Aucun paiement, aucune mission réelle, aucun changement de tarifs, de flags ou de règles Firestore ; aucun push Git ni fusion. Les contrôles publics prouvent la livraison du bundle, pas un parcours transactionnel complet.
+- Preuves : artifacts/customer-help-release-20261020/{release-before,web-package,ready-for-promotion,web-promote-result}.json et journaux de publication.
+- Maintenance distincte : le CLI Firebase avertit de la fin de déploiement du runtime Node.js 20 au 30 octobre 2026 ; mise à niveau hors périmètre de cette publication.
+
+Cette publication remplace le statut local « aucun déploiement » ci-dessus ; les limites fonctionnelles et commerciales antérieures restent ouvertes.

@@ -5048,3 +5048,7 @@ Validation locale antérieure : 38 tests Flutter et 54 tests serveur simulés ; 
 
 ### Refonte aide et accès client — 19 octobre 2026 — validation locale
 Branche feat/customer-loading-help-20261019, base 0e3579207bde0bcdadb43ee7b8b6908de728a97d. Aide Movi-K tarifée séparée de l’aide humaine sur place ; choix sans présélection, accès confirmés, détails indépendants et résumé explicite. Reproduction initiale puis correction : 96 scénarios Flutter distincts validés dans leurs dernières exécutions, 68 tests serveur simulés ; analyse intégrale et build Web réussis. Voir CUSTOMER_LOADING_HELP_20261019.md et artifacts/customer-loading-help-20261019/. Aucun déploiement, transaction, push ni fusion. Aucun ancien incident fermé et aucun décompte historique réécrit. Les protections tarifaires, de réservation et de paiement restent en place.
+
+
+### 2026-10-20 — Publication de la refonte aide au chargement
+Source f11e24342b1b721a41eb1143fa4e47d821faf61e publiée après autorisation de Daniel. Déploiement dpl_7Uthx9F6xcSwZVP5Kwm6KGjWLRex vérifié sur les deux domaines ; quatre fonctions ACTIVE et refus anonyme 401. Rapport : CUSTOMER_LOADING_HELP_20261019.md, section publication. Erreur initiale Google code 13 conservée, relance ciblée réussie. Aucun bogue antérieur fermé, aucun changement de décompte, aucune transaction réelle.
