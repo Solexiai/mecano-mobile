@@ -88,3 +88,23 @@ test('Google deleted tombstone uses deterministic replacement and recovers lost 
     mock.mockResolvedValueOnce(response({}, 410)).mockResolvedValueOnce(response({}, 409)).mockResolvedValueOnce(response({}, 410)).mockResolvedValueOnce(response({}, 409)).mockResolvedValueOnce(response({}));
     expect(await writeEvent('google', 'test', 'owned', 'deleted-mission', slot, key)).toBe(key + 'a1');
 });
+
+
+test('optional OAuth secrets do not block deployment of unrelated agenda functions', () => {
+    const params = require('firebase-functions/params') as { declaredParams: { name: string }[] };
+    const { calendarSecrets } = require('../../src/lib/calendarProviders');
+    const names = ['CALENDAR_TOKEN_ENCRYPTION_KEY', 'GOOGLE_CALENDAR_CLIENT_SECRET', 'MICROSOFT_CALENDAR_CLIENT_SECRET'];
+    expect(params.declaredParams.filter(p => names.includes(p.name))).toEqual([]);
+    const { maintainDriverCalendars } = require('../../src/functions/calendarSync');
+    expect(maintainDriverCalendars.__endpoint.secretEnvironmentVariables.map((s: { key: string }) => s.key)).toEqual(names);
+    expect(calendarSecrets).toEqual(names);
+});
+
+test.each(['CALENDAR_TOKEN_KEY', 'GOOGLE_CALENDAR_SECRET', 'MICROSOFT_CALENDAR_SECRET'])('missing calendar secret fails closed at runtime: %s', exported => {
+    const providers = require('../../src/lib/calendarProviders');
+    const names: Record<string, string> = { CALENDAR_TOKEN_KEY: 'CALENDAR_TOKEN_ENCRYPTION_KEY', GOOGLE_CALENDAR_SECRET: 'GOOGLE_CALENDAR_CLIENT_SECRET', MICROSOFT_CALENDAR_SECRET: 'MICROSOFT_CALENDAR_CLIENT_SECRET' };
+    const name = names[exported], saved = process.env[name];
+    delete process.env[name];
+    try { expect(() => providers[exported].value()).toThrow(); }
+    finally { if (saved === undefined) delete process.env[name]; else process.env[name] = saved; }
+});

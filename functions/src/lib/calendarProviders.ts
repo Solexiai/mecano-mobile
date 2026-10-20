@@ -1,11 +1,19 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
-import { defineSecret } from 'firebase-functions/params';
 import { failedPrecondition } from './errors';
 export type CalendarProvider = 'google' | 'microsoft';
-export const CALENDAR_TOKEN_KEY = defineSecret('CALENDAR_TOKEN_ENCRYPTION_KEY');
-export const GOOGLE_CALENDAR_SECRET = defineSecret('GOOGLE_CALENDAR_CLIENT_SECRET');
-export const MICROSOFT_CALENDAR_SECRET = defineSecret('MICROSOFT_CALENDAR_CLIENT_SECRET');
-export const calendarSecrets = [CALENDAR_TOKEN_KEY, GOOGLE_CALENDAR_SECRET, MICROSOFT_CALENDAR_SECRET];
+// Bind Secret Manager names only to OAuth endpoints. Registering global secret
+// parameters would block deployment of the independent agenda before OAuth setup.
+export const calendarSecrets = ['CALENDAR_TOKEN_ENCRYPTION_KEY', 'GOOGLE_CALENDAR_CLIENT_SECRET', 'MICROSOFT_CALENDAR_CLIENT_SECRET'];
+function calendarSecret(name: string) {
+    return { value(): string {
+        const value = process.env[name];
+        if (!value || !value.trim()) throw failedPrecondition('Connexion de calendrier non configurée.');
+        return value;
+    } };
+}
+export const CALENDAR_TOKEN_KEY = calendarSecret(calendarSecrets[0]);
+export const GOOGLE_CALENDAR_SECRET = calendarSecret(calendarSecrets[1]);
+export const MICROSOFT_CALENDAR_SECRET = calendarSecret(calendarSecrets[2]);
 export interface CalendarConfig {
     enabled: boolean;
     privacy_approved: boolean;
