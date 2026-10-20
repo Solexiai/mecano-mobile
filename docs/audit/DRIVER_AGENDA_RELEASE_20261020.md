@@ -4,7 +4,7 @@ Ce document prépare le lot. **Il n’autorise ni n’effectue aucun déploiemen
 Rapport : DRIVER_AGENDA_COMPLETE_20261020.md. Sources conservées sur feat/driver-agenda-20261020, à partir de 37d0859.
 
 ## Décisions avant activation
-La proposition de confirmation de durée, l’horizon de réservation compatible avec l’autorisation de paiement actuelle, la confidentialité/conservation et l’ouverture opérationnelle doivent être approuvés séparément.
+La confirmation de la période complète par le chauffeur est approuvée par Daniel le 20 octobre 2026 à 12:56 Toronto (DRIVER_DURATION_APPROVAL_20261020.md). L’horizon de réservation compatible avec l’autorisation de paiement actuelle, la confidentialité/conservation et l’ouverture opérationnelle restent à approuver séparément.
 Le devis ne consulte pas le nouvel agenda. Le verrou commercial pre_assignment est maintenu ; la revue de son ouverture doit être coordonnée avec les travaux existants sans fusion automatique.
 
 ## Configuration nouvelle, laissée absente ou désactivée
@@ -13,12 +13,12 @@ Exemple de revue uniquement ; ce n’est pas une configuration opérationnelle �
 {
   "enabled": false,
   "approved": false,
-  "duration_confirmation_approved": false,
+  "duration_confirmation_approved": true,
   "version": "MOVIK-SCHEDULING-PROPOSAL-20261020-001",
   "max_advance_minutes": null
 }
 ```
-Document concerné : system_config/driver_scheduling.
+Document concerné : system_config/driver_scheduling. Seule l'approbation de durée est acquise ; la version complète de planification reste une proposition. Cet exemple documentaire n'a pas été appliqué à Firebase.
 La valeur nulle doit être remplacée seulement après décision commerciale. Si enabled=true avec une approbation/version/horizon manquants, le serveur refuse l’opération. Une désactivation conserve la protection des réservations déjà créées.
 
 system_config/calendar_oauth attend : enabled, privacy_approved, google_client_id, microsoft_client_id, callback_url et return_url.

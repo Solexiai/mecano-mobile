@@ -1,6 +1,7 @@
 # Movi-K — Agenda, disponibilités et calendriers — 20 octobre 2026
 
 ## Verdict
+Mise à jour du 20 octobre 2026 à 12:56 Toronto : Daniel approuve la confirmation de la période complète par le chauffeur. Source et portée : DRIVER_DURATION_APPROVAL_20261020.md. Aucun déploiement ni activation autorisés par cette approbation.
 Version locale préparée pour validation. **Aucune publication ni activation commerciale.**
 Les fonctions d’agenda, de recherche et d’attribution ont été raccordées au dépôt existant.
 Google et Microsoft sont implémentés et testés avec des réponses contrôlées ; aucune connexion réelle n’est attestée.
@@ -83,7 +84,7 @@ Cette validation technique ne constitue pas une validation juridique de la polit
 | Offre chauffeur | Oui | Local, push interceptés | Non | Aucun envoi réel autorisé |
 | Premier acceptant | Oui | Transactions concurrentes | Non | Aucun contrat réel autorisé |
 | Anti-double réservation | Oui | Concurrence, pauses, ancien actif | Non | Garanties internes, pas atomicité Google/Firestore |
-| Durée totale | Schéma/contrôles/UI | Local | Non | Approbation produit et horizon commercial |
+| Durée totale | Schéma/contrôles/UI, règle approuvée le 20 octobre | Local | Non | Horizon commercial restant à approuver |
 | Événement automatique | Oui | API simulées, reprise/idempotence | Non | Connexion consentie et test fournisseur |
 | Annulation | Réconciliation ajoutée | Local, finance existante préservée | Non | Règles commerciales existantes inchangées |
 | Synchronisation externe | Oui | Erreurs/reprise/révocation simulées | Non | Validation fournisseur et politique de conservation |
@@ -128,7 +129,7 @@ Les mocks des fournisseurs, données de capacité, règles commerciales et adres
 - Incident de preuve déclaré : la première exécution du test historique a écrasé les deux images agenda-375.png/agenda-1440.png du répertoire ancien non suivi. Les autres preuves ont été conservées. Le chemin de sortie est corrigé ; les images « avant » sont explicitement des reconstitutions et ne sont pas présentées comme les fichiers historiques originaux.
 
 ## Ce qui exige encore une décision ou une action externe
-1. **Règle produit** : approuver la confirmation par le chauffeur de la durée totale, chargement/déchargement et contraintes d’accès compris. Cette proposition reste désactivée.
+1. **Règle produit approuvée** le 20 octobre 2026 à 12:56 Toronto : confirmation avant acceptation de toute la période nécessaire au chargement, au trajet et au déchargement. Source : DRIVER_DURATION_APPROVAL_20261020.md. Aucune activation effectuée.
 2. **Horizon commercial** : préciser jusqu’à combien de temps à l’avance une mission peut être acceptée, en cohérence avec le cycle d’autorisation bancaire actuel. Aucun nombre arbitraire n’a été fixé en production.
 3. **Ouverture opérationnelle** : lever séparément les prérequis déjà existants, notamment le verrou pre_assignment et l’admissibilité réelle des véhicules. Aucun raccordement automatique aux autres worktrees.
 4. **Google/Microsoft** : configurer les applications, secrets, redirect URI et accès de test ; obtenir le consentement personnel des propriétaires puis tester connexion, renouvellement, déconnexion, créations/modifications/suppressions réelles.
@@ -140,10 +141,10 @@ La recherche est bornée et observe une disponibilité récente, sans garantir q
 
 ## État Git et prochaine action
 Branche : feat/driver-agenda-20261020. HEAD de reprise : 37d0859aafbed981023950d4df6a2f25de36e8ff.
-Un commit local ciblé est prévu pour les sources et ce rapport ; son résultat exact sera conservé dans artifacts/driver-agenda-complete-20261020/commit-result.json.
+Le lot de 54 fichiers a été sauvegardé dans le commit local a8674e3d4e628851f9cdf9a882282e108ccb02c7 ; résultat dans artifacts/driver-agenda-complete-20261020/commit-result.json. Cette approbation documentaire ultérieure est sauvegardée séparément.
 Les répertoires d’artefacts préexistants restent non suivis. Aucune publication. Le lot de publication est décrit dans DRIVER_AGENDA_RELEASE_20261020.md.
 Le manifeste source et les empreintes sont conservés dans artifacts/driver-agenda-complete-20261020/source-manifest.json.
-Prochaine action unique du propriétaire : **valider la règle de confirmation de durée totale par le chauffeur**. Cette approbation ne sera pas assimilée à une autorisation de publication ni de connexion de comptes.
+La confirmation de durée totale est approuvée. Prochaine décision commerciale : **l'horizon maximal de réservation**, à rendre compatible avec le cycle de paiement existant. L'approbation de durée ne vaut ni autorisation de publication ni consentement de connexion de comptes.
 
 ## Références techniques officielles consultées
 - Google OAuth : https://developers.google.com/identity/protocols/oauth2/web-server
