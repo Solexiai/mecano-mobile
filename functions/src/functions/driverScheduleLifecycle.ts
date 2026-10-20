@@ -3,7 +3,7 @@ import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, admin } from '../lib/admin';
 import { requireSignedIn, requireAnyRole, isAdminOrAbove } from '../lib/auth';
-import { PlatformRoles } from '../lib/types';
+import { OPEN_FOR_ACCEPTANCE_STATUSES, PlatformRoles } from '../lib/types';
 import { invalidArgument, permissionDenied, failedPrecondition, notFound } from '../lib/errors';
 import { readSchedulingPolicy, confirmedSlot, prepareReservation, terminalScheduleStatuses, missionRequestedAt } from '../lib/driverScheduling';
 import { dispatchScheduledMission } from '../lib/scheduledDispatch';
@@ -13,19 +13,37 @@ function id(v: unknown): string {
         throw invalidArgument('Identifiant invalide.');
     return v;
 }
-export const declineDeliveryOffer = onCall(async (request) => {
-    const ctx = requireSignedIn(request);
-    requireAnyRole(ctx, [PlatformRoles.DRIVER]);
-    const missionId = id(request.data?.missionId);
-    await db.runTransaction(async (tx) => {
-        const offers = await tx.get(db.collection('delivery_offers').where('mission_id', '==', missionId).where('driver_id', '==', ctx.uid));
-        if (offers.empty)
-            throw permissionDenied('Cette offre ne vous est pas destinée.');
-        for (const offer of offers.docs)
-            if (offer.data().status === 'pending')
-                tx.update(offer.ref, { status: 'declined', closed_at: admin.firestore.Timestamp.now() });
+export const declineDeliveryOffer = onCall(async request => {
+  const ctx = requireSignedIn(request);
+  requireAnyRole(ctx, [PlatformRoles.DRIVER]);
+  const missionId = request.data?.missionId;
+  if (typeof missionId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(missionId)) {
+    throw invalidArgument('Mission invalide.');
+  }
+  return db.runTransaction(async tx => {
+    const [missionSnap, driverSnap, offers] = await Promise.all([
+      tx.get(db.doc('delivery_requests/' + missionId)),
+      tx.get(db.doc('driver_profiles/' + ctx.uid)),
+      tx.get(db.collection('delivery_offers').where('mission_id','==',missionId).where('driver_id','==',ctx.uid)),
+    ]);
+    const driver = driverSnap.data(), mission = missionSnap.data();
+    if (driver?.status !== 'approved' || driver.documents_all_valid !== true || offers.empty) {
+      throw permissionDenied('Offre inaccessible.');
+    }
+    if (offers.docs.every(doc => doc.data().status === 'declined')) return {declined:true};
+    if (!mission || mission.driver_id || !OPEN_FOR_ACCEPTANCE_STATUSES.includes(mission.status)) {
+      throw failedPrecondition('Cette demande n’est plus disponible.');
+    }
+    const now = admin.firestore.Timestamp.now();
+    const pending = offers.docs.filter(doc => {
+      const offer = doc.data();
+      return offer.status === 'pending' && typeof offer.expires_at?.toMillis === 'function' &&
+        offer.expires_at.toMillis() > now.toMillis();
     });
-    return { success: true, declined: true };
+    if (!pending.length) throw failedPrecondition('Cette offre a expiré.');
+    for (const offer of pending) tx.update(offer.ref,{status:'declined',declined_at:now});
+    return {declined:true};
+  });
 });
 /** Changes the driver's occupied interval; pickup time stays locked.
  * A different customer appointment must use the existing revised request/quote flow. */

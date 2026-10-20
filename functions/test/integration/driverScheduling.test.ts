@@ -208,3 +208,15 @@ test('enabled but unapproved policy fails closed rather than reverting to legacy
  await expect(acceptDelivery.run(req(uid,{missionId:m1}))).rejects.toMatchObject({code:'failed-precondition'});
  expect(fake.createdPaymentParams).toHaveLength(0);
 });
+
+test.each(['suspended', 'documents_invalid', 'expired', 'assigned'])('refusal preserves published protection: %s', async (scenario) => {
+    if (scenario === 'suspended') await db.doc('driver_profiles/' + uid).update({ status: 'suspended' });
+    if (scenario === 'documents_invalid') await db.doc('driver_profiles/' + uid).update({ documents_all_valid: false });
+    if (scenario === 'expired') await db.doc('delivery_offers/' + m1 + '_' + uid).update({ expires_at: admin.firestore.Timestamp.fromMillis(0) });
+    if (scenario === 'assigned') await db.doc('delivery_requests/' + m1).update({ status: 'assigned', driver_id: uid2 });
+    await expect(declineDeliveryOffer.run(req(uid, { missionId: m1 }))).rejects.toMatchObject({
+        code: ['suspended', 'documents_invalid'].includes(scenario) ? 'permission-denied' : 'failed-precondition',
+    });
+    expect((await db.doc('delivery_offers/' + m1 + '_' + uid).get()).data()!.status).toBe('pending');
+    expect(fake.createdPaymentParams).toHaveLength(0);
+});
