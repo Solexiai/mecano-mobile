@@ -1,6 +1,6 @@
 # Lot de publication à autoriser — agenda chauffeur — 20 octobre 2026
 
-Ce document prépare le lot. **Il n’autorise ni n’effectue aucun déploiement.**
+Ce document préparait le lot. **Daniel a ensuite autorisé sa publication le 20 octobre 2026 à 13:00 Toronto.** Le résultat effectif, les 19 fonctions publiées et les 8 fonctions de calendrier exclues sont documentés dans DRIVER_AGENDA_PRODUCTION_20261020.md. Aucune activation commerciale.
 Rapport : DRIVER_AGENDA_COMPLETE_20261020.md. Sources conservées sur feat/driver-agenda-20261020, à partir de 37d0859.
 
 ## Décisions avant activation
@@ -47,7 +47,7 @@ La révocation Microsoft doit aussi être effectuée dans les autorisations du c
 ## Lot serveur
 Fonctions existantes modifiées :
 - acceptDelivery, adminAssignDelivery.
-- onMissionCreatedDispatch.
+- onMissionCreatedDispatch, onMissionReopenedDispatch, onDriverBecameAvailableDispatch.
 - getDriverAgenda, saveDriverAgenda.
 - updateMissionTrackingStatus.
 

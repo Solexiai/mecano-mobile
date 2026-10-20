@@ -2,7 +2,7 @@
 
 ## Verdict
 Mise à jour du 20 octobre 2026 à 12:56 Toronto : Daniel approuve la confirmation de la période complète par le chauffeur. Source et portée : DRIVER_DURATION_APPROVAL_20261020.md. Aucun déploiement ni activation autorisés par cette approbation.
-Version locale préparée pour validation. **Aucune publication ni activation commerciale.**
+Qualification locale initiale terminée. **Publication contrôlée autorisée puis réalisée le 20 octobre 2026, sans activation commerciale.** Résultat et limites actualisés : DRIVER_AGENDA_PRODUCTION_20261020.md. Les validations locales décrites ci-dessous restent distinctes des contrôles réels de publication.
 Les fonctions d’agenda, de recherche et d’attribution ont été raccordées au dépôt existant.
 Google et Microsoft sont implémentés et testés avec des réponses contrôlées ; aucune connexion réelle n’est attestée.
 Les réservations réelles restent bloquées par les approbations et protections décrites ci-dessous.
