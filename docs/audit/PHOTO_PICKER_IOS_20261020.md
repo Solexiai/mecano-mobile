@@ -76,3 +76,7 @@ Preuves : artifacts/photo-picker-20261020/.
 Modifications locales non commitées ; branche et HEAD conservés, index vide. Les quatre modifications suivies préexistantes et les anciens dossiers artifacts sont préservés. Aucun push, merge, déploiement ni transaction réelle.
 Aucun incident historique fermé ; P1-BOOKING-CONFIG-01 reste ouvert et le contrôle cartographique 1.3L reste reporté.
 Prochaine action : valider ce correctif sur un iPhone réel via une version de test autorisée, avant toute demande de publication en production.
+
+
+### Publication autorisée — 2026-10-20T22:58:01.590Z
+Daniel autorise « Pouse sur movi-k et donne moi le lien ». Correctif Web publié : 526c39dca93d1fbb61dbe460ccf8ff18383020c4 ; Vercel dpl_7vxoKNbq5BoYQD686c4JDUPFWXjk ; https://mecano-mobile-717lpzu69-solexis-projects-4c019079.vercel.app. Les deux domaines servent photo-picker-v1, SHA256 0a8a4b9aee368f1e3d7c2f0f9f1078f631c252be9d38b10c847b85580c7d13c7. Route /fr/livraison/demande HTTP 200. Build production réussi avec les paramètres existants, déploiement préparé puis empreinte contrôlée avant promotion. Aucun backend, règle Firebase, paiement ou activation opérationnelle modifié. Aucun push Git ni merge. Les 54 tests locaux antérieurs sont réutilisés, non comptés comme de nouveaux tests. Validation native iPhone/caméra/photothèque toujours à effectuer : incident non clos.
