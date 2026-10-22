@@ -103,7 +103,9 @@ test('authorized internal request and manual admin assignment preserve exact quo
   expect(writes.some(p => p.startsWith('payments/') || p.startsWith('financial_snapshots/'))).toBe(false);
   expect(createAndAuthorizeMissionPayment).not.toHaveBeenCalled();
 });
-test('ordinary customer cannot use internal-test capability or create a price-only commercial mission', async () => {
+// Since 2026-10-22 an ordinary customer CAN book a price-first request, but only
+// with published booking terms accepted (see integration/priceFirstDriverJudgement).
+test('ordinary customer cannot book a price-first request without published, accepted terms', async () => {
   const q = await quote();
   (isRuntimeFlagEnabled as jest.Mock).mockResolvedValue(true);
   store.set('payment_profiles/' + uid, { default_payment_method_id: 'SYNTHETIC_PM' });

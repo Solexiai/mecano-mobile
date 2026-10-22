@@ -45,7 +45,7 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
-import { supportsVehicleCategory } from "../lib/vehicleCategory";
+import { driverServesMissionCategory, supportsVehicleCategory } from "../lib/vehicleCategory";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
@@ -134,7 +134,10 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     if(await readSchedulingPolicy(tx))throw failedPrecondition('La planification active exige une offre acceptée par le chauffeur avec confirmation de son créneau complet.');
     await assertNoScheduledCommitments(tx,driverId);
     const mission = missionSnap.data()!;
-    if (mission.pricing_snapshot?.pre_assignment &&
+    // Commercial price-first bookings (driver-judgement booking_snapshot,
+    // 2026-10-22) follow the normal booking path; price-only requests stay
+    // limited to authorized internal tests.
+    if (mission.pricing_snapshot?.pre_assignment && !mission.booking_snapshot &&
         (!isInternalTest || mission.internal_test_authorized !== true || mission.assignment_mode !== MissionAssignmentModes.INTERNAL_TEST)) {
       throw failedPrecondition('Ce devis attend une validation opérationnelle. Seule une affectation de test interne autorisée est permise, sans paiement.');
     }
@@ -155,10 +158,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
           supportsVehicleCategory(driver.accepted_vehicle_categories, category))
       : undefined;
     if (
-      !internalPriceCategory && !supportsVehicleCategory(
-        driver.accepted_vehicle_categories,
-        mission.required_vehicle_category
-      )
+      !internalPriceCategory && !driverServesMissionCategory(driver.accepted_vehicle_categories, mission)
     ) {
       throw permissionDenied("Catégorie de véhicule non acceptée par ce chauffeur.");
     }

@@ -54,3 +54,27 @@ export function supportsVehicleCategory(
     (accepted) => normalizeVehicleCategory(accepted) === required
   );
 }
+
+/**
+ * Category gate shared by dispatch and acceptance. A driver-judgement mission
+ * (price before assignment, 2026-10-22) accepts any of its eligible pilot
+ * categories; every other mission keeps its single required category.
+ */
+export function driverServesMissionCategory(
+  acceptedCategories: unknown,
+  mission: { required_vehicle_category?: unknown; booking_snapshot?: unknown }
+): boolean {
+  const accepted = Array.isArray(acceptedCategories)
+    ? acceptedCategories.filter((c): c is string => typeof c === "string")
+    : [];
+  const snapshot = mission.booking_snapshot as
+    | { vehicle_assessment?: unknown; eligible_categories?: unknown }
+    | undefined;
+  if (snapshot?.vehicle_assessment === "driver_judgement" && Array.isArray(snapshot.eligible_categories)) {
+    return snapshot.eligible_categories.some(
+      (category) => typeof category === "string" && supportsVehicleCategory(accepted, category)
+    );
+  }
+  return typeof mission.required_vehicle_category === "string" &&
+    supportsVehicleCategory(accepted, mission.required_vehicle_category);
+}

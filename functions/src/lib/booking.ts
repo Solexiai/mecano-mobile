@@ -41,8 +41,25 @@ export interface BookingRules {
 }
 export interface BookingSnapshot {
   load: BookingLoad; rules_version: string; category: string; capacity_version: string;
-  vehicle_assessment?: 'driver_photo_review';
+  /**
+   * 'driver_photo_review': eligible vehicles come from verified capacities.
+   * 'driver_judgement' (owner decision 2026-10-22): no vehicle measurement;
+   * the driver sees the photos/description and confirms the load fits one of
+   * `eligible_categories` before accepting.
+   */
+  vehicle_assessment?: 'driver_photo_review' | 'driver_judgement';
   photo_policy_version?: string;
+  eligible_categories?: string[];
+}
+
+export const DRIVER_JUDGEMENT = 'driver_judgement' as const;
+
+/** True when the driver, not a measured capacity, decides whether the load fits. */
+export function isDriverJudgement(snapshot: unknown): snapshot is BookingSnapshot {
+  return !!snapshot && typeof snapshot === 'object' &&
+    (snapshot as BookingSnapshot).vehicle_assessment === DRIVER_JUDGEMENT &&
+    Array.isArray((snapshot as BookingSnapshot).eligible_categories) &&
+    (snapshot as BookingSnapshot).eligible_categories!.length > 0;
 }
 export type ReviewReason = 'dimensions_unknown' | 'weight_unknown' | 'approximate_measurements' |
   'capacity_unconfigured' | 'no_verified_fit' | 'requested_time_missing' |

@@ -1,7 +1,7 @@
 import { parseBookingPolicy } from './bookingContract';
 import { db } from './admin';
 import { validateBookingPhotos } from './bookingPhotoValidation';
-import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, normalizeLoad, recommend } from './booking';
+import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, isDriverJudgement, normalizeLoad, recommend } from './booking';
 import { failedPrecondition, invalidArgument } from './errors';
 import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
 import { normalizeVehicleCategory } from './vehicleCategory';
@@ -41,6 +41,19 @@ export async function findCompatibleVehicle(driverId: string, snapshot: BookingS
   tx?: FirebaseFirestore.Transaction, selectedId?: string): Promise<{ vehicle_id: string; capacity_version: string } | null> {
   const q = db.collection('driver_vehicles').where('driver_id','==',driverId).limit(20);
   const vehicles = tx ? await tx.get(q) : await q.get();
+  if (isDriverJudgement(snapshot)) {
+    // No measured capacity: any vehicle of the driver in an eligible pilot
+    // category. The driver confirms the fit (acceptDelivery: fitConfirmed).
+    const eligible = snapshot.eligible_categories!.map(normalizeVehicleCategory);
+    for (const doc of vehicles.docs) {
+      if (selectedId && doc.id !== selectedId) continue;
+      const category = doc.data().category;
+      if (typeof category === 'string' && eligible.includes(normalizeVehicleCategory(category))) {
+        return { vehicle_id: doc.id, capacity_version: 'driver_judgement' };
+      }
+    }
+    return null;
+  }
   for (const doc of vehicles.docs) {
     if (selectedId && doc.id !== selectedId) continue;
     const v = doc.data(); const capacity = v.verified_capacity as Capacity;

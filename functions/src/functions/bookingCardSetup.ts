@@ -24,7 +24,9 @@ export const startBookingCardSetup = onCall(options, async request => {
   const quote = (await db.doc(`delivery_quotes/${id}`).get()).data();
   if (!quote || quote.customer_id !== ctx.uid) throw permissionDenied('Devis inaccessible.');
   const locked = resolveLockedQuote(id, quote);
-  if (!locked.pricingSnapshot?.booking || quote.is_consumed || quote.status === 'cancelled' || quote.expires_at.toMillis() <= Date.now()) throw failedPrecondition('Recalculez le devis avant d’enregistrer votre carte.');
+  // Price-before-assignment quotes are commercial bookings judged by drivers
+  // (owner decision 2026-10-22); the card is only authorized at acceptance.
+  if (!(locked.pricingSnapshot?.booking || locked.pricingSnapshot?.pre_assignment) || quote.is_consumed || quote.status === 'cancelled' || quote.expires_at.toMillis() <= Date.now()) throw failedPrecondition('Recalculez le devis avant d’enregistrer votre carte.');
   const provider = getPaymentProvider();
   const profileRef = db.doc(`payment_profiles/${ctx.uid}`);
   let profile = (await profileRef.get()).data();

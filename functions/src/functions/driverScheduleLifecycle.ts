@@ -114,7 +114,7 @@ export async function sweepDriverOffers(): Promise<void> {
         let retry = false;
         await db.runTransaction(async (tx) => {
             const m = (await tx.get(doc.ref)).data();
-            if (!m || m.driver_id || m.assignment_mode === 'internal_test' || m.pricing_snapshot?.pre_assignment ||
+            if (!m || m.driver_id || m.assignment_mode === 'internal_test' || (m.pricing_snapshot?.pre_assignment && !m.booking_snapshot) ||
                 !['offered', 'searching_driver'].includes(m.status))
                 return;
             const offers = await tx.get(db.collection('delivery_offers').where('mission_id', '==', doc.id));

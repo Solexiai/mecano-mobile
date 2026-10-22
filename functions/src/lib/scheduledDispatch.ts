@@ -1,7 +1,7 @@
 import { db, admin } from './admin';
 import { findCompatibleVehicle } from './bookingServer';
 import { readSchedulingPolicy, missionRequestedAt, locationInDriverZone, prepareReservation } from './driverScheduling';
-import { supportsVehicleCategory } from './vehicleCategory';
+import { driverServesMissionCategory } from './vehicleCategory';
 import { isRuntimeFlagEnabled, RuntimeFlagKeys } from './runtimeFlags';
 import { sendDeliveryOfferPush } from './pushNotifications';
 /** Return false only when the existing dispatch path remains applicable. */
@@ -13,7 +13,7 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
         !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS)))
         return true;
     const ref = db.doc('delivery_requests/' + missionId), m = (await ref.get()).data();
-    if (!m || m.driver_id || m.status !== 'searching_driver' || m.assignment_mode === 'internal_test' || m.pricing_snapshot?.pre_assignment)
+    if (!m || m.driver_id || m.status !== 'searching_driver' || m.assignment_mode === 'internal_test' || (m.pricing_snapshot?.pre_assignment && !m.booking_snapshot))
         return true;
     const now = Date.now(), requested = missionRequestedAt(m), start = requested ? Date.parse(requested) : now;
     const route = m.estimated_duration_minutes;
@@ -32,7 +32,7 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
         const current = (await tx.get(ref)).data();
         const p = await readSchedulingPolicy(tx);
         if (!p || p.version !== policy.version || !current || current.driver_id || current.status !== 'searching_driver' ||
-            current.assignment_mode === 'internal_test' || current.pricing_snapshot?.pre_assignment)
+            current.assignment_mode === 'internal_test' || (current.pricing_snapshot?.pre_assignment && !current.booking_snapshot))
             return [];
         if (missionRequestedAt(current) !== requested || current.estimated_duration_minutes !== route)
             return [];
@@ -50,7 +50,7 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
             const [profile, location] = await Promise.all([tx.get(db.doc('driver_profiles/' + uid)), tx.get(db.doc('driver_locations/' + uid))]);
             const d = profile.data();
             if (!d || d.status !== 'approved' || d.documents_all_valid !== true || d.online_status !== 'online' ||
-                !supportsVehicleCategory(d.accepted_vehicle_categories ?? [], current.required_vehicle_category) ||
+                !driverServesMissionCategory(d.accepted_vehicle_categories ?? [], current) ||
                 !locationInDriverZone(d, location.data(), current.pickup_address, zones as never))
                 continue;
             if (current.booking_snapshot && !(await findCompatibleVehicle(uid, current.booking_snapshot, tx)))

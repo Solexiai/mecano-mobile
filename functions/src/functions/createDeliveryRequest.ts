@@ -1,6 +1,7 @@
 import { BookingConsent, parseBookingPolicy, requireBookingConsent } from '../lib/bookingContract';
 import { normalizeLoad } from "../lib/booking";
 import { normalizeContacts } from "../lib/bookingServer";
+import { driverJudgementSnapshot } from "../lib/quoteBeforeAssignment";
 // -----------------------------------------------------------------------------
 // createDeliveryRequest — Cloud Function callable (customer).
 //
@@ -221,17 +222,20 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       );
     }
     const preAssignment = lockedQuote.pricingSnapshot?.pre_assignment;
-    // A price-only quote must not silently enter the legacy commercial booking path.
-    // The existing server-authorized internal-test/manual-assignment path is preserved.
-    if (preAssignment && !isInternalTest) throw failedPrecondition('Votre prix est calculé. La réservation doit être validée séparément avant toute opération commerciale.');
-    if (preAssignment) {
+    // Owner decision 2026-10-22: a price-before-assignment quote becomes a
+    // commercial booking judged by drivers (no measured vehicle capacity).
+    // It goes through the SAME booking safeguards below (verified e-mail,
+    // current terms consent, contacts, photo grants, idempotent attempt).
+    // Internal test accounts keep their manual-assignment path unchanged.
+    if (preAssignment && isInternalTest) {
       if (JSON.stringify(normalizeLoad(input.booking)) !== JSON.stringify(preAssignment.load)) throw failedPrecondition('La livraison ne correspond plus au devis.');
       const quotedContacts = normalizeContacts(input.contacts);
       input.customerDisplayName = quotedContacts.pickup_name;
       input.description = preAssignment.load.items.map(i => i.quantity + ' × ' + i.label).join('; ');
       input.itemCategoryKey = preAssignment.load.items[0].category;
     }
-    const booking = lockedQuote.pricingSnapshot?.booking;
+    const booking = lockedQuote.pricingSnapshot?.booking ??
+      (preAssignment && !isInternalTest ? driverJudgementSnapshot(preAssignment) : undefined);
     let policy = null;
     let contacts = null;
     let attemptRef: FirebaseFirestore.DocumentReference | null = null;

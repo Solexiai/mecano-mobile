@@ -1,7 +1,7 @@
 // Owner decision 2026-10-19: compute the official price BEFORE assigning a driver.
 // This context is NOT a booking/capacity certificate. Historical snapshots are unchanged.
 import { HttpsError } from 'firebase-functions/v2/https';
-import { BookingLoad, normalizeLoad } from './booking';
+import { BookingLoad, BookingSnapshot, DRIVER_JUDGEMENT, normalizeLoad } from './booking';
 import { validateBookingPhotos } from './bookingPhotoValidation';
 import { invalidArgument } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
@@ -75,4 +75,20 @@ export function preparePriceBeforeAssignment(load: BookingLoad, config: PricingV
     noElevator: (load.pickup.stairs && !load.pickup.elevator) || (load.dropoff.stairs && !load.dropoff.elevator),
     needsSecondHandler: load.handlers === 2, needsSpecialEquipment: load.equipment.length > 0,
   } };
+}
+
+/**
+ * Commercial booking from a price-before-assignment quote (owner decision
+ * 2026-10-22): the mission carries the locked load and the pilot categories;
+ * drivers judge the fit themselves. No capacity certificate is implied.
+ */
+export function driverJudgementSnapshot(pre: PreAssignmentQuote): BookingSnapshot {
+  return {
+    load: pre.load,
+    rules_version: 'driver_judgement_v1',
+    category: pre.tariff_rule_category,
+    capacity_version: DRIVER_JUDGEMENT,
+    vehicle_assessment: DRIVER_JUDGEMENT,
+    eligible_categories: [...pre.tariff_categories],
+  };
 }

@@ -30,7 +30,7 @@ import {
   startFinancialOperationTimer,
 } from "../lib/observability";
 import { sendDeliveryOfferPush } from "../lib/pushNotifications";
-import { supportsVehicleCategory } from "../lib/vehicleCategory";
+import { driverServesMissionCategory } from "../lib/vehicleCategory";
 
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
@@ -39,10 +39,13 @@ const MAX_CANDIDATE_DRIVERS = 15;
 async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): Promise<void> {
   if((mission as unknown as Record<string,unknown>).assignment_mode==='internal_test')return;
   if(await dispatchScheduledMission(missionId))return;
-  // Price-first requests await explicit operational/manual assignment.
-  // In particular, an internal test must never broadcast real driver offers.
+  // Price-only requests (no booking snapshot) await explicit manual
+  // assignment, and an internal test never broadcasts real driver offers.
+  // Commercial price-first bookings carry a driver-judgement booking_snapshot
+  // (owner decision 2026-10-22) and are dispatched like any booking.
   const snapshot = 'pricing_snapshot' in mission ? mission.pricing_snapshot : undefined;
-  if (snapshot && typeof snapshot === 'object' && 'pre_assignment' in snapshot && snapshot.pre_assignment) return;
+  if (snapshot && typeof snapshot === 'object' && 'pre_assignment' in snapshot && snapshot.pre_assignment &&
+      !mission.booking_snapshot) return;
   // 🔒 Phase 7, Bloc Y (Y-1/Y-2) — un correlation_id + timer couvrent tout
   // le cycle de dispatch (recherche -> succès|aucun candidat), pour rendre
   // "dispatch échoué" (aucun chauffeur trouvé) observable/alertable côté
@@ -75,7 +78,7 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
       const categories = Array.isArray(driver.accepted_vehicle_categories)
         ? (driver.accepted_vehicle_categories as string[])
         : [];
-      if (!supportsVehicleCategory(categories, mission.required_vehicle_category)) return false;
+      if (!driverServesMissionCategory(categories, mission)) return false;
 
       // La dernière position GPS est prioritaire. Avant le premier partage
       // GPS, l'adresse de base validée pendant l'onboarding sert de repli :

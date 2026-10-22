@@ -42,7 +42,8 @@ import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
-import { supportsVehicleCategory } from "../lib/vehicleCategory";
+import { driverServesMissionCategory } from "../lib/vehicleCategory";
+import { isDriverJudgement } from "../lib/booking";
 
 export interface AcceptDeliveryRequest {
   missionId: string;
@@ -50,6 +51,8 @@ export interface AcceptDeliveryRequest {
   acceptanceRequestId?: string;
   vehicleId?: string;
   expectedDriverOfferMinor?: number;
+  /** Driver-judgement bookings: the driver confirms the load fits the vehicle. */
+  fitConfirmed?: boolean;
 }
 
 function isAuthorizedInternalTestMission(mission: Record<string, unknown>): boolean {
@@ -162,12 +165,20 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       }
     };
     const activateTracking = !reservedSlot || !missionRequestedAt(mission);
-    if (mission.pricing_snapshot?.pre_assignment &&
+    // A price-only request (no booking snapshot) stays manual/internal. A
+    // commercial price-first booking carries a driver-judgement snapshot.
+    if (mission.pricing_snapshot?.pre_assignment && !mission.booking_snapshot &&
         (mission.internal_test_authorized !== true || !isAuthorizedInternalTestMission(mission))) {
       throw failedPrecondition('Ce devis ne permet pas une acceptation commerciale avant validation opérationnelle.');
     }
     const driver = driverSnap.data() as DriverProfileDoc;
-    if (request.data.expectedDriverOfferMinor !== undefined) {
+    // SEC-S4 (2026-10-22): for bookings (all current commercial requests),
+    // only a driver holding a live offer for this mission may accept it.
+    // Previously this was only checked when the optional
+    // expectedDriverOfferMinor was sent. Legacy quote-only missions are
+    // unchanged.
+    if ((mission.booking_snapshot && !isAuthorizedInternalTestMission(mission)) ||
+        request.data.expectedDriverOfferMinor !== undefined) {
       const offers = await tx.get(db.collection('delivery_offers')
         .where('mission_id', '==', missionId).where('driver_id', '==', driverId));
       if (!offers.docs.some(d => d.data().status === 'pending' &&
@@ -176,6 +187,9 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       }
     }
     if (mission.booking_snapshot && (typeof request.data.vehicleId !== 'string' || !request.data.vehicleId)) throw failedPrecondition('Confirmez le véhicule utilisé pour cette livraison.');
+    if (isDriverJudgement(mission.booking_snapshot) && request.data.fitConfirmed !== true) {
+      throw failedPrecondition('Confirmez que le chargement entre dans votre véhicule.');
+    }
     const assignedVehicle = await requireCompatibleVehicle(driverId, mission.booking_snapshot, tx, request.data.vehicleId);
 
     // ---- Vérifications d'éligibilité chauffeur ----
@@ -185,12 +199,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     if (!driver.documents_all_valid) {
       throw failedPrecondition("Documents chauffeur invalides ou expirés.");
     }
-    if (
-      !supportsVehicleCategory(
-        driver.accepted_vehicle_categories,
-        mission.required_vehicle_category
-      )
-    ) {
+    if (!driverServesMissionCategory(driver.accepted_vehicle_categories, mission)) {
       throw permissionDenied("Catégorie de véhicule non acceptée par ce chauffeur.");
     }
 
