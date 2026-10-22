@@ -29,11 +29,11 @@ abstract final class HomeCopy {
     },
     'intro': {
       'fr':
-          'Meubles, électroménagers, boîtes, achats Marketplace et petits déménagements : décrivez votre projet et votre trajet pour préparer un devis.',
+          'Meubles, électroménagers, boîtes, achats Marketplace et petits déménagements : décrivez votre projet et votre trajet pour obtenir votre prix.',
       'en':
-          'Furniture, appliances, boxes, Marketplace purchases and small moves: describe your project and route to prepare a quote.',
+          'Furniture, appliances, boxes, Marketplace purchases and small moves: describe your project and route to get your price.',
       'es':
-          'Muebles, electrodomésticos, cajas, compras de Marketplace y pequeñas mudanzas: describe tu proyecto y el trayecto para preparar un presupuesto.',
+          'Muebles, electrodomésticos, cajas, compras de Marketplace y pequeñas mudanzas: describe tu proyecto y el trayecto para obtener tu precio.',
     },
     'quote': {
       'fr': 'Obtenir mon prix',
@@ -42,11 +42,11 @@ abstract final class HomeCopy {
     },
     'quote_note': {
       'fr':
-          'Préparez votre demande sans compte. Une connexion est requise seulement pour calculer le devis officiel.',
+          'Préparez votre demande sans compte. Une connexion est requise seulement pour calculer le prix officiel.',
       'en':
-          'Prepare your request without an account. Sign-in is required only when requesting the official quote.',
+          'Prepare your request without an account. Sign-in is required only when requesting the official price.',
       'es':
-          'Prepara tu solicitud sin cuenta. Solo debes iniciar sesión al solicitar el presupuesto oficial.',
+          'Prepara tu solicitud sin cuenta. Solo debes iniciar sesión al solicitar el precio oficial.',
     },
     'pilot': {
       'fr': 'Version pilote · disponibilité à confirmer dans votre secteur',
@@ -76,11 +76,11 @@ abstract final class HomeCopy {
     },
     'item_note': {
       'fr':
-          'Renseignez les mesures de chaque objet emballé, le poids et les accès. Une mesure inconnue ou approximative nécessite une vérification avant le devis.',
+          'Renseignez les mesures de chaque objet emballé, le poids et les accès. Une mesure inconnue ou approximative nécessite une vérification avant le calcul du prix.',
       'en':
-          'Enter measurements for each packaged item, weight and access details. Unknown or approximate measurements require a review before the quote.',
+          'Enter measurements for each packaged item, weight and access details. Unknown or approximate measurements require a review before the price is calculated.',
       'es':
-          'Indica las medidas de cada objeto embalado, el peso y los accesos. Las medidas desconocidas o aproximadas requieren revisión antes del presupuesto.',
+          'Indica las medidas de cada objeto embalado, el peso y los accesos. Las medidas desconocidas o aproximadas requieren revisión antes de calcular el precio.',
     },
     'steps_title': {
       'fr': 'De votre demande à la livraison',
@@ -101,9 +101,9 @@ abstract final class HomeCopy {
           'Indica los objetos, las medidas, las direcciones, los accesos y la fecha deseada.',
     },
     'step2': {
-      'fr': 'Consultez votre devis',
-      'en': 'Review your quote',
-      'es': 'Consulta el presupuesto',
+      'fr': 'Consultez votre prix',
+      'en': 'Review your price',
+      'es': 'Consulta el precio',
     },
     'step2_body': {
       'fr':
@@ -144,9 +144,9 @@ abstract final class HomeCopy {
       'es': 'La información útil, cuando la necesitas',
     },
     'trust1': {
-      'fr': 'Un devis avant de décider',
-      'en': 'A quote before you decide',
-      'es': 'Un presupuesto antes de decidir',
+      'fr': 'Un prix avant de décider',
+      'en': 'A price before you decide',
+      'es': 'Un precio antes de decidir',
     },
     'trust1_body': {
       'fr':
@@ -189,11 +189,11 @@ abstract final class HomeCopy {
     },
     'coverage_body': {
       'fr':
-          'La prise en charge dépend des chauffeurs disponibles, de leur rayon d’action et du véhicule requis. Une demande ou un devis ne garantit pas encore un chauffeur.',
+          'La prise en charge dépend des chauffeurs disponibles, de leur rayon d’action et du véhicule requis. Une demande ou un prix ne garantit pas encore un chauffeur.',
       'en':
-          'Pickup depends on available drivers, their service areas and the required vehicle. A request or quote does not yet guarantee a driver.',
+          'Pickup depends on available drivers, their service areas and the required vehicle. A request or price does not yet guarantee a driver.',
       'es':
-          'La recogida depende de los conductores disponibles, su radio de servicio y el vehículo necesario. Una solicitud o presupuesto aún no garantiza un conductor.',
+          'La recogida depende de los conductores disponibles, su radio de servicio y el vehículo necesario. Una solicitud o un precio aún no garantiza un conductor.',
     },
     'faq_title': {
       'fr': 'Avant de faire votre demande',
@@ -207,11 +207,11 @@ abstract final class HomeCopy {
     },
     'faq_price_body': {
       'fr':
-          'Commencez sans compte : décrivez vos objets et leurs mesures, les adresses et l’aide nécessaire. Movi‑K vérifie les véhicules compatibles. La connexion est demandée pour le devis officiel, présenté avant confirmation.',
+          'Commencez sans compte : décrivez vos objets et leurs mesures, les adresses et l’aide nécessaire. Movi‑K vérifie les véhicules compatibles. La connexion est demandée pour le prix officiel, présenté avant confirmation.',
       'en':
-          'Start without an account: describe your items and measurements, addresses and required help. Movi‑K checks compatible vehicles. Sign-in is required for the official quote, shown before confirmation.',
+          'Start without an account: describe your items and measurements, addresses and required help. Movi‑K checks compatible vehicles. Sign-in is required for the official price, shown before confirmation.',
       'es':
-          'Empieza sin cuenta: describe los objetos y sus medidas, las direcciones y la ayuda necesaria. Movi‑K verifica vehículos compatibles. Debes iniciar sesión para el presupuesto oficial, presentado antes de confirmar.',
+          'Empieza sin cuenta: describe los objetos y sus medidas, las direcciones y la ayuda necesaria. Movi‑K verifica vehículos compatibles. Debes iniciar sesión para el precio oficial, presentado antes de confirmar.',
     },
     'faq_help': {
       'fr': 'Qui aide à charger et à décharger ?',
@@ -276,9 +276,9 @@ abstract final class HomeCopy {
       'es': '¿Tienes algo que transportar?',
     },
     'final_body': {
-      'fr': 'Décrivez votre livraison et consultez votre devis.',
-      'en': 'Describe your delivery and review your quote.',
-      'es': 'Describe la entrega y consulta el presupuesto.',
+      'fr': 'Décrivez votre livraison et consultez votre prix.',
+      'en': 'Describe your delivery and review your price.',
+      'es': 'Describe la entrega y consulta el precio.',
     },
     'account': {'fr': 'Mon espace', 'en': 'My account', 'es': 'Mi cuenta'},
     'resume': {
@@ -314,9 +314,9 @@ abstract final class HomeCopy {
           'Prelanzamiento · la disponibilidad debe confirmarse antes de cualquier entrega',
     },
     'quote_card_title': {
-      'fr': 'Préparez votre demande de devis',
-      'en': 'Prepare your quote request',
-      'es': 'Prepara tu solicitud de presupuesto',
+      'fr': 'Préparez votre demande',
+      'en': 'Prepare your request',
+      'es': 'Prepara tu solicitud',
     },
     'quote_card_1': {
       'fr': 'Décrivez ce que vous voulez faire livrer',
@@ -344,9 +344,9 @@ abstract final class HomeCopy {
       'es': 'Facebook Marketplace, Kijiji, etc.',
     },
     'reassurance_quote': {
-      'fr': 'Devis transparent',
-      'en': 'Transparent quote',
-      'es': 'Presupuesto transparente',
+      'fr': 'Prix transparent',
+      'en': 'Transparent price',
+      'es': 'Precio transparente',
     },
     'reassurance_quote_body': {
       'fr': 'Prix et ventilation avant confirmation',

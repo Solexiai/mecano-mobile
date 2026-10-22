@@ -68,9 +68,9 @@ class AboutScreen extends StatelessWidget {
         Icons.visibility_outlined,
         _tr(fr: 'Transparent', en: 'Transparent', es: 'Transparente'),
         _tr(
-          fr: 'Devis et progression de la mission présentés clairement.',
-          en: 'Quotes and mission progress are presented clearly.',
-          es: 'El presupuesto y el progreso de la misión se presentan claramente.',
+          fr: 'Prix et progression de la mission présentés clairement.',
+          en: 'Prices and mission progress are presented clearly.',
+          es: 'El precio y el progreso de la misión se presentan claramente.',
         ),
       ),
       (

@@ -86,7 +86,7 @@ void main() {
         api: a,
         photoIntakeEnabled: true,
       );
-      await tapBooking(tester, 'Calculer mon devis officiel');
+      await tapBooking(tester, 'Calculer mon prix officiel');
       await tapBooking(tester, 'Continuer vers mes coordonnées');
       await tapBooking(tester, 'Consulter le résumé');
       await tapBooking(tester, 'Créer la demande de test — sans paiement');
@@ -143,7 +143,7 @@ void main() {
         api: a,
         photoIntakeEnabled: true,
       );
-      await tapBooking(tester, 'Calculer mon devis officiel');
+      await tapBooking(tester, 'Calculer mon prix officiel');
       expect(a.calls.where((n) => n == 'calculateDeliveryQuote').length, 1);
       expect(a.calls, isNot(contains('reviewDeliveryLoad')));
       expect(a.calls, isNot(contains('startBookingCardSetup')));
@@ -153,7 +153,7 @@ void main() {
       expect((request['booking'] as Map)['items'][0]['weight'], isNull);
       expect(storage.saved!.quote!['customerTotal'], 123.45);
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
-      expect(find.text('Chauffeur à affecter après le devis'), findsOneWidget);
+      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       expect(find.textContaining('Véhicule recommandé'), findsNothing);
       expect(
         find.textContaining('La réservation est indisponible'),
@@ -174,7 +174,7 @@ void main() {
       api: a,
       photoIntakeEnabled: true,
     );
-    await tapBooking(tester, 'Calculer mon devis officiel');
+    await tapBooking(tester, 'Calculer mon prix officiel');
     expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
     expect(a.calls, isNot(contains('reviewDeliveryLoad')));
     await disposeBooking(tester);
@@ -190,7 +190,7 @@ void main() {
         api: a,
         photoIntakeEnabled: true,
       );
-      await tapBooking(tester, 'Calculer mon devis officiel');
+      await tapBooking(tester, 'Calculer mon prix officiel');
       await disposeBooking(tester);
       await pumpBooking(
         tester,
@@ -200,7 +200,7 @@ void main() {
       );
       expect(a.calls, contains('getBookingQuote'));
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
-      expect(find.text('Chauffeur à affecter après le devis'), findsOneWidget);
+      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       await disposeBooking(tester);
     },
   );
@@ -215,14 +215,14 @@ void main() {
         api: a,
         photoIntakeEnabled: true,
       );
-      await tapBooking(tester, 'Calculer mon devis officiel');
+      await tapBooking(tester, 'Calculer mon prix officiel');
       expect(
         find.textContaining('La grille tarifaire nécessite'),
         findsOneWidget,
       );
       expect(find.textContaining('capacités vérifiées'), findsNothing);
       expect(storage.saved!.quote, isNull);
-      expect(find.text('Réessayer le devis'), findsOneWidget);
+      expect(find.text('Réessayer le calcul du prix'), findsOneWidget);
       await disposeBooking(tester);
     },
   );
@@ -241,10 +241,10 @@ void main() {
         photoIntakeEnabled: true,
       );
       final label = locale == 'fr'
-          ? 'Calculer mon devis officiel'
+          ? 'Calculer mon prix officiel'
           : locale == 'en'
-          ? 'Calculate my official quote'
-          : 'Calcular mi presupuesto oficial';
+          ? 'Calculate my official price'
+          : 'Calcular mi precio oficial';
       await tapBooking(tester, label);
       expect(tester.takeException(), isNull);
       expect(a.calls.where((n) => n == 'calculateDeliveryQuote').length, 1);

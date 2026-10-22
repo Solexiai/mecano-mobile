@@ -123,9 +123,9 @@ void main() {
           }
           for (final claim in [
             tr([
-              'aucun chauffeur n’est garanti au moment du devis',
-              'no driver is guaranteed at quote time',
-              'ningún conductor está garantizado al cotizar',
+              'aucun chauffeur n’est garanti au moment du calcul du prix',
+              'no driver is guaranteed when the price is calculated',
+              'ningún conductor está garantizado al calcular el precio',
             ]),
             tr([
               'il ne constitue pas un créneau confirmé',

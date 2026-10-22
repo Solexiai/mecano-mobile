@@ -181,7 +181,7 @@ void main() {
         storage: MemoryBookingStorage(testDraft(step: 1)),
         api: api,
       );
-      await tapBooking(t, 'Calculer mon devis officiel');
+      await tapBooking(t, 'Calculer mon prix officiel');
       expect(
         find.textContaining('Complétez les trois dimensions'),
         findsOneWidget,

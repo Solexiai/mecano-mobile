@@ -23,14 +23,14 @@ class FaqScreen extends StatelessWidget {
     final items = <(String, String)>[
       (
         tr(
-          'Comment obtenir un devis ?',
-          'How do I get a quote?',
-          '¿Cómo obtengo un presupuesto?',
+          'Comment obtenir un prix ?',
+          'How do I get a price?',
+          '¿Cómo obtengo un precio?',
         ),
         tr(
-          'Décrivez vos objets, leurs dimensions et leur poids, puis sélectionnez les adresses et l’aide nécessaire. Movi‑K vérifie les catégories de véhicule compatibles et calcule le devis officiel après connexion. Vous consultez le prix et sa ventilation avant confirmation. Les renseignements incomplets peuvent nécessiter une vérification.',
-          'Describe your items, dimensions and weight, then select addresses and required assistance. Movi‑K checks compatible vehicle categories and calculates the official quote after sign-in. You review the price and breakdown before confirming. Incomplete details may require a review.',
-          'Describe los objetos, sus dimensiones y peso, y selecciona las direcciones y la ayuda necesaria. Movi‑K verifica las categorías de vehículo compatibles y calcula el presupuesto oficial tras iniciar sesión. Revisas el precio y el desglose antes de confirmar. Los datos incompletos pueden requerir revisión.',
+          'Décrivez vos objets, leurs dimensions et leur poids, puis sélectionnez les adresses et l’aide nécessaire. Movi‑K vérifie les catégories de véhicule compatibles et calcule le prix officiel après connexion. Vous consultez ce prix et sa ventilation avant confirmation. Les renseignements incomplets peuvent nécessiter une vérification.',
+          'Describe your items, dimensions and weight, then select addresses and required assistance. Movi‑K checks compatible vehicle categories and calculates the official price after sign-in. You review the price and breakdown before confirming. Incomplete details may require a review.',
+          'Describe los objetos, sus dimensiones y peso, y selecciona las direcciones y la ayuda necesaria. Movi‑K verifica las categorías de vehículo compatibles y calcula el precio oficial tras iniciar sesión. Revisas el precio y el desglose antes de confirmar. Los datos incompletos pueden requerir revisión.',
         ),
       ),
       (
@@ -40,9 +40,9 @@ class FaqScreen extends StatelessWidget {
           '¿Puedo empezar sin una cuenta?',
         ),
         tr(
-          'Oui. Vous pouvez préparer la demande avant de vous connecter. Une connexion est requise lorsque vous demandez le devis officiel. Les informations déjà saisies sont conservées localement pour reprendre le parcours après la connexion.',
-          'Yes. You can prepare the request before signing in. Sign-in is required when you request the official quote. Information already entered is kept locally so you can resume after signing in.',
-          'Sí. Puedes preparar la solicitud antes de iniciar sesión. Debes iniciar sesión al solicitar el presupuesto oficial. Los datos ya ingresados se conservan localmente para continuar después.',
+          'Oui. Vous pouvez préparer la demande avant de vous connecter. Une connexion est requise lorsque vous demandez le prix officiel. Les informations déjà saisies sont conservées localement pour reprendre le parcours après la connexion.',
+          'Yes. You can prepare the request before signing in. Sign-in is required when you request the official price. Information already entered is kept locally so you can resume after signing in.',
+          'Sí. Puedes preparar la solicitud antes de iniciar sesión. Debes iniciar sesión al solicitar el precio oficial. Los datos ya ingresados se conservan localmente para continuar después.',
         ),
       ),
       (
@@ -52,9 +52,9 @@ class FaqScreen extends StatelessWidget {
           '¿Elijo al conductor?',
         ),
         tr(
-          'Non. Après confirmation d’une demande admissible, Movi‑K recherche un chauffeur disponible et admissible. L’attribution dépend de la disponibilité réelle et aucun chauffeur n’est garanti au moment du devis.',
-          'No. After an eligible request is confirmed, Movi‑K looks for an available, eligible driver. Assignment depends on actual availability and no driver is guaranteed at quote time.',
-          'No. Después de confirmar una solicitud admisible, Movi‑K busca un conductor disponible y apto. La asignación depende de la disponibilidad real y ningún conductor está garantizado al cotizar.',
+          'Non. Après confirmation d’une demande admissible, Movi‑K recherche un chauffeur disponible et admissible. L’attribution dépend de la disponibilité réelle et aucun chauffeur n’est garanti au moment du calcul du prix.',
+          'No. After an eligible request is confirmed, Movi‑K looks for an available, eligible driver. Assignment depends on actual availability and no driver is guaranteed when the price is calculated.',
+          'No. Después de confirmar una solicitud admisible, Movi‑K busca un conductor disponible y apto. La asignación depende de la disponibilidad real y ningún conductor está garantizado al calcular el precio.',
         ),
       ),
       (
@@ -180,9 +180,9 @@ class FaqScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         tr(
-                          'Pré-lancement à Granby et dans les environs : une demande ou un devis ne garantit pas encore qu’un chauffeur sera disponible.',
-                          'Pre-launch in Granby and surrounding areas: a request or quote does not yet guarantee driver availability.',
-                          'Prelanzamiento en Granby y alrededores: una solicitud o presupuesto aún no garantiza la disponibilidad de un conductor.',
+                          'Pré-lancement à Granby et dans les environs : une demande ou un prix ne garantit pas encore qu’un chauffeur sera disponible.',
+                          'Pre-launch in Granby and surrounding areas: a request or price does not yet guarantee driver availability.',
+                          'Prelanzamiento en Granby y alrededores: una solicitud o un precio aún no garantiza la disponibilidad de un conductor.',
                         ),
                         style: const TextStyle(
                           color: AppColors.textSecondary,

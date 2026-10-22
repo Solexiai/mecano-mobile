@@ -616,7 +616,7 @@ class _Category extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: 'Commencer un devis pour $title',
+    label: 'Obtenir un prix pour $title',
     child: InkWell(
       key: Key('home-category-$categoryKey'),
       onTap: onTap,
