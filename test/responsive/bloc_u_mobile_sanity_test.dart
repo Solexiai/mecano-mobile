@@ -77,6 +77,7 @@ import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart
 import 'package:movik_connect/screens/driver/driver_active_mission_screen.dart';
 import 'package:movik_connect/screens/driver/driver_onboarding_screen.dart';
 import 'package:movik_connect/screens/notifications/notifications_screen.dart';
+import 'package:movik_connect/widgets/address_autocomplete_field.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes réutilisés (aucun nouveau seam créé) — voir en-tête pour provenance.
@@ -460,7 +461,10 @@ void _registerTests() {
           await tester.tap(sofa);
           await tester.pumpAndSettle();
           final fields = find.byType(TextField);
-          expect(fields.evaluate().length, greaterThanOrEqualTo(8));
+          // Since 2026-10-19 each address is one autocomplete field (no more
+          // 4 two-column rows); every text field must stay reachable.
+          expect(find.byType(AddressAutocompleteField), findsNWidgets(2));
+          expect(fields, findsWidgets);
           for (var i = 0; i < fields.evaluate().length; i++) {
             await tester.ensureVisible(fields.at(i));
             await tester.pump();
