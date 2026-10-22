@@ -539,7 +539,7 @@ void main() {
       );
       expect(
         find.text(
-          AppStrings.t('driver_onboarding_error_generic_prefix', 'fr'),
+          AppStrings.t('driver_onboarding_error_step_documents', 'fr'),
         ),
         findsOneWidget,
       );

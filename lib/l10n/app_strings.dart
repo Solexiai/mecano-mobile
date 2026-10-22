@@ -2228,6 +2228,38 @@ class AppStrings {
       'en': 'Invalid session after sign-up.',
       'es': 'Sesión inválida después del registro.',
     },
+    'driver_onboarding_error_step_profile': {
+      'fr':
+          "Votre profil n'a pas pu être enregistré. Vos informations sont conservées : réessayez dans un instant.",
+      'en':
+          'Your profile could not be saved. Your details are kept: please try again in a moment.',
+      'es':
+          'No se pudo guardar su perfil. Sus datos se conservan: inténtelo de nuevo en un momento.',
+    },
+    'driver_onboarding_error_step_vehicle': {
+      'fr':
+          "Votre véhicule n'a pas pu être enregistré. Vérifiez ses informations puis réessayez.",
+      'en':
+          'Your vehicle could not be saved. Check its details and try again.',
+      'es':
+          'No se pudo guardar su vehículo. Verifique sus datos e inténtelo de nuevo.',
+    },
+    'driver_onboarding_error_step_documents': {
+      'fr':
+          "L'envoi de vos documents a échoué. Vérifiez votre connexion et la taille des photos, puis réessayez.",
+      'en':
+          'Uploading your documents failed. Check your connection and photo size, then try again.',
+      'es':
+          'Falló el envío de sus documentos. Verifique su conexión y el tamaño de las fotos e inténtelo de nuevo.',
+    },
+    'driver_onboarding_error_step_review': {
+      'fr':
+          "Votre dossier est enregistré, mais sa soumission pour vérification a échoué. Réessayez.",
+      'en':
+          'Your application is saved, but submitting it for review failed. Please try again.',
+      'es':
+          'Su solicitud está guardada, pero no se pudo enviar a revisión. Inténtelo de nuevo.',
+    },
     'driver_onboarding_error_generic_prefix': {
       'fr': "L'inscription a échoué :",
       'en': 'Sign-up failed:',

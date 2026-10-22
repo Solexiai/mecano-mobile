@@ -37,12 +37,21 @@ export const submitDriverForReview = onCall(async (request) => {
 
   const driverRef = db.collection("driver_profiles").doc(ctx.uid);
 
+  let alreadyPending = false;
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(driverRef);
     if (!snap.exists) {
       throw notFound("driver_profiles introuvable — complétez d'abord votre profil.");
     }
     const data = snap.data()!;
+
+    // Idempotent : un chauffeur déjà en attente qui renvoie son formulaire
+    // (ex. après une erreur réseau à l'étape documents) ne doit pas recevoir
+    // une erreur. Aucun champ n'est réécrit.
+    if (data.status === DriverStatuses.PENDING_REVIEW) {
+      alreadyPending = true;
+      return;
+    }
 
     if (!ALLOWED_PREVIOUS_STATUSES.includes(data.status)) {
       throw failedPrecondition(
@@ -65,5 +74,5 @@ export const submitDriverForReview = onCall(async (request) => {
     });
   });
 
-  return { success: true, status: DriverStatuses.PENDING_REVIEW };
+  return { success: true, status: DriverStatuses.PENDING_REVIEW, alreadyPending };
 });
