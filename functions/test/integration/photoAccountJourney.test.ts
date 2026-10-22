@@ -24,6 +24,7 @@ import {buildPricingConfig} from '../unit/fixtures';
 import {seedDefaultRuntimeFlagsEnabled} from '../testUtils/runtimeFlagsFixture';
 import {FakePaymentProvider,buildFakePaymentProfile} from '../testUtils/fakePaymentProvider';
 import {setPaymentProviderForTesting} from '../../src/payment/paymentProviderFactory';
+import { TEST_SCHEDULED_PICKUP } from '../testUtils/bookingTimeFixture';
 
 const project='demo-movik-test',customer='account_journey_customer',driver='account_journey_driver',stranger='account_journey_stranger';
 const vehicle='account_journey_vehicle',draftId='account-journey-draft';
@@ -61,7 +62,7 @@ async function request(actor:Actor,data:unknown):Promise<any>{
  return {data,auth:{uid:decoded.uid,token:decoded},rawRequest:{},acceptsStreaming:false};
 }
 function load(mode:'immediate'|'scheduled'){
- return {draft_id:draftId,intake_mode:'photo_assisted',timing_mode:mode,requested_at:mode==='scheduled'?'2099-01-01T12:00:00Z':null,pickup:access,dropoff:access,handlers:1,equipment:[],items:[{id:'item',category:'sofa',label:'Synthetic sofa',quantity:1,length:null,width:null,height:null,weight:null,dimension_unit:'cm',weight_unit:'kg',approximate:false,upright:true,photos:[photo],identification_confirmed:true,special_handling:false}]};
+ return {draft_id:draftId,intake_mode:'photo_assisted',timing_mode:mode,requested_at:mode==='scheduled'?TEST_SCHEDULED_PICKUP:null,pickup:access,dropoff:access,handlers:1,equipment:[],items:[{id:'item',category:'sofa',label:'Synthetic sofa',quantity:1,length:null,width:null,height:null,weight:null,dimension_unit:'cm',weight_unit:'kg',approximate:false,upright:true,photos:[photo],identification_confirmed:true,special_handling:false}]};
 }
 beforeEach(async()=>{
  if(process.env.GCLOUD_PROJECT!==project||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8080'||process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099'||process.env.FIREBASE_STORAGE_EMULATOR_HOST!=='127.0.0.1:9199')throw Error('Account test isolation required');

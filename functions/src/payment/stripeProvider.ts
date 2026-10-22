@@ -180,7 +180,12 @@ export class StripeProvider extends PaymentProvider {
     try {
       const intent = await this.stripe.paymentIntents.capture(
         params.providerPaymentIntentId,
-        { amount_to_capture: params.amountToCaptureMinor },
+        {
+          amount_to_capture: params.amountToCaptureMinor,
+          ...(params.applicationFeeMinor !== undefined
+            ? { application_fee_amount: params.applicationFeeMinor }
+            : {}),
+        },
         { idempotencyKey: params.idempotencyKey }
       );
       const charge = intent.latest_charge;

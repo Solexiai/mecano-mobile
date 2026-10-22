@@ -26,6 +26,8 @@ Widget shell({
   required PlatformRole role,
   Map<String, dynamic> data = const {},
   Future<void> Function(Map<String, dynamic>)? submit,
+  MissionStatus status = MissionStatus.inTransit,
+  Future<void> Function(Map<String, dynamic>)? chargeTravelFee,
 }) => MultiProvider(
   providers: [
     ChangeNotifierProvider(create: (_) => LocaleProvider()),
@@ -38,9 +40,10 @@ Widget shell({
   child: MaterialApp(
     home: Scaffold(
       body: AdminMissionFailureReview(
-        mission: mission(MissionStatus.inTransit),
+        mission: mission(status),
         reviewStream: Stream.value(data),
         submit: submit,
+        chargeTravelFee: chargeTravelFee,
       ),
     ),
   ),
@@ -169,6 +172,43 @@ void main() {
         find.text('Échec de livraison confirmé par l’administration'),
         findsOneWidget,
       );
+    },
+  );
+  testWidgets(
+    'travel fee: offered only after a confirmed failure, before pickup',
+    (tester) async {
+      const confirmed = {'confirmed': true, 'revision': 1, 'reason': 'Client absent'};
+      await tester.pumpWidget(shell(role: PlatformRole.admin, data: confirmed));
+      await tester.pumpAndSettle();
+      // In transit: the goods were picked up, no travel fee.
+      expect(find.byKey(const Key('travel-fee-open')), findsNothing);
+
+      await tester.pumpWidget(
+        shell(role: PlatformRole.admin, status: MissionStatus.arrivedAtPickup),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('travel-fee-open')), findsNothing);
+
+      final payloads = <Map<String, dynamic>>[];
+      await tester.pumpWidget(
+        shell(
+          role: PlatformRole.admin,
+          data: confirmed,
+          status: MissionStatus.arrivedAtPickup,
+          chargeTravelFee: (p) async => payloads.add(p),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('travel-fee-open')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('30,00 \$'), findsWidgets);
+      await tester.tap(find.byKey(const Key('travel-fee-submit')));
+      await tester.pumpAndSettle();
+      expect(payloads.single, {
+        'missionId': 'm',
+        'expectedStatus': 'arrived_at_pickup',
+        'reason': 'Client absent',
+      });
     },
   );
   for (final locale in ['fr', 'en', 'es']) {

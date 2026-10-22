@@ -49,6 +49,7 @@ import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
 import { cancelMissionPaymentAuthorization } from "../payment/paymentOrchestration";
+import { chargeMissionFee } from "../payment/missionFeeOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
@@ -93,7 +94,13 @@ export const onMissionEndedClearTracking = onDocumentUpdated(
     // pour 'cancelled' (mission jamais menée à terme AVANT capture).
     if (after.status === MissionStatuses.CANCELLED) {
       const paymentId = (after.active_payment_id as string | null | undefined) ?? null;
-      if (paymentId) {
+      // Mission fees (2026-10-22): a late cancellation or wasted trip is
+      // collected by a partial capture of the same hold, which also releases
+      // the remainder. Never release the hold first.
+      const fee = (after as Record<string, any>).cancellation_fee;
+      if (fee?.status === "pending" || fee?.status === "capturing") {
+        await chargeMissionFee(missionId);
+      } else if (paymentId) {
         await cancelMissionPaymentAuthorization(missionId, paymentId);
       }
     }

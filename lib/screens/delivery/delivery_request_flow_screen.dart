@@ -1471,7 +1471,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       context: context,
       initialDate: now,
       firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
+      lastDate: now.add(_maxBookingAdvance),
       builder: _pickerLocale,
     );
     if (date == null || !mounted) return;
@@ -1481,16 +1481,30 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       builder: _pickerLocale,
     );
     if (time == null || !mounted) return;
-    _draft.data['timing_mode'] = 'scheduled';
-    _draft.data['requested_at'] = DateTime(
+    final requested = DateTime(
       date.year,
       date.month,
       date.day,
       time.hour,
       time.minute,
-    ).toUtc().toIso8601String();
+    );
+    if (requested.isAfter(DateTime.now().add(_maxBookingAdvance))) {
+      setState(() => _message = _tooFarMessage);
+      return;
+    }
+    _draft.data['timing_mode'] = 'scheduled';
+    _draft.data['requested_at'] = requested.toUtc().toIso8601String();
     _changed();
   }
+
+  // Same limit as the server (MAX_BOOKING_ADVANCE_MS): the card hold placed
+  // when a driver accepts must still be valid at delivery.
+  static const _maxBookingAdvance = Duration(days: 4);
+  String get _tooFarMessage => tr(
+    'Choisissez une date dans les 4 prochains jours.',
+    'Choose a date within the next 4 days.',
+    'Elige una fecha dentro de los próximos 4 días.',
+  );
 
   // Presentation only: never round stored dimensions or quote payloads.
   String? _dimensionText(dynamic value) {
@@ -1885,6 +1899,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'Choose a future date and time.',
       'Elige una fecha y hora futuras.',
     ),
+    'requested_time_too_far' => _tooFarMessage,
     _ => tr(
       'Aucun chargement compatible n’est validé. Une vérification est nécessaire.',
       'No compatible loading plan is verified. A review is needed.',
@@ -1932,6 +1947,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'weight_unknown',
           'outside_service_area',
           'requested_time_past',
+          'requested_time_too_far',
           'requested_time_missing',
         }.contains(reason),
       ))

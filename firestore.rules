@@ -339,7 +339,10 @@ service cloud.firestore {
           'pickup_address',
           'dropoff_address',
           'driver_offer_amount',
-          'payment_status'
+          'payment_status',
+          // Mission fees (2026-10-22): decided and collected by Cloud Functions only.
+          'cancellation_fee',
+          'cancelled_by'
         ]) && (
         (resource.data.driver_id == null &&
          request.resource.data.driver_id == resource.data.driver_id &&
@@ -355,9 +358,13 @@ service cloud.firestore {
         // annuler libérait l'autorisation de carte alors que le chauffeur
         // avait déjà transporté l'objet. 'delivered' n'était pas non plus
         // exclu. Liste blanche explicite plutôt que liste noire.
+        // Frais d'annulation (2026-10-22) : une fois qu'un chauffeur a
+        // accepté (assigned, driver_to_pickup, arrived_at_pickup), le client
+        // annule UNIQUEMENT via la Cloud Function cancelDeliveryRequest, qui
+        // affiche et applique les frais d'annulation tardive. L'écriture
+        // directe reste permise avant toute acceptation (toujours gratuite).
         (request.resource.data.status == 'cancelled' &&
          resource.data.status in ['draft', 'quoted', 'searching_driver', 'offered',
-                                  'assigned', 'driver_to_pickup', 'arrived_at_pickup',
                                   'payment_failed'] &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&

@@ -131,3 +131,9 @@ test('a request outside the Granby 40 km default zone is refused at price time',
   await expect(calculateDeliveryQuote.run(call({ quotePurpose: 'price_before_assignment', booking: load(), stops: montreal })))
     .rejects.toMatchObject({ code: 'failed-precondition', details: { quote_reason: 'outside_service_area' } });
 });
+
+test('a pickup more than 4 days ahead is refused at price time', async () => {
+  const far = { ...load(), timing_mode: 'scheduled', requested_at: new Date(Date.now() + 5 * 24 * 3600000).toISOString() };
+  await expect(calculateDeliveryQuote.run(call({ quotePurpose: 'price_before_assignment', booking: far, stops })))
+    .rejects.toMatchObject({ code: 'failed-precondition', details: { quote_reason: 'requested_time_too_far' } });
+});

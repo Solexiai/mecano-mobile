@@ -16,6 +16,7 @@ import { buildPricingConfig } from '../unit/fixtures';
 import { seedDefaultRuntimeFlagsEnabled } from '../testUtils/runtimeFlagsFixture';
 import { FakePaymentProvider,buildFakePaymentProfile } from '../testUtils/fakePaymentProvider';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
+import { TEST_SCHEDULED_PICKUP } from '../testUtils/bookingTimeFixture';
 const customer='photo_journey_customer',driver='photo_journey_driver',vehicle='photo_journey_vehicle',draftId='photo-journey-draft';
 const photo='booking_photos/'+customer+'/'+draftId+'/item/0.jpg';
 const access={floor:0,stairs:false,elevator:false,help:false};
@@ -23,7 +24,7 @@ const capacity={category:'cargo_van',rank:1,version:'PHOTO-JOURNEY-TEST',verifie
 const stops=[{type:'pickup',address:{line1:'Synthetic pickup',city:'Test',postal_code:'T0T0T0',lat:45.4,lng:-72.7}},{type:'dropoff',address:{line1:'Synthetic delivery',city:'Test',postal_code:'T0T0T0',lat:45.41,lng:-72.71}}];
 const contacts={pickup_name:'Synthetic Sender',pickup_phone:'+15145550100',dropoff_name:'Synthetic Recipient',dropoff_phone:'+15145550101',instructions:''};
 const call=(data:any,uid=customer)=>({data,auth:{uid,token:{email_verified:true,roles:uid===customer?['customer']:['driver']}},rawRequest:{},acceptsStreaming:false} as any);
-function booking(special=false,mode:'immediate'|'scheduled'='immediate'):any{return {draft_id:draftId,intake_mode:'photo_assisted',timing_mode:mode,requested_at:mode==='scheduled'?'2099-01-01T12:00:00Z':null,pickup:access,dropoff:access,handlers:1,equipment:[],items:[{id:'item',category:special?'materials':'sofa',label:special?'Synthetic materials':'Synthetic sofa',quantity:1,length:special?120:null,width:special?40:null,height:special?30:null,weight:null,dimension_unit:'cm',weight_unit:'kg',approximate:special,upright:true,photos:[photo],identification_confirmed:true,special_handling:special,...(special?{handling_notes:'Bundled; ground floor access.'}:{})}]};}
+function booking(special=false,mode:'immediate'|'scheduled'='immediate'):any{return {draft_id:draftId,intake_mode:'photo_assisted',timing_mode:mode,requested_at:mode==='scheduled'?TEST_SCHEDULED_PICKUP:null,pickup:access,dropoff:access,handlers:1,equipment:[],items:[{id:'item',category:special?'materials':'sofa',label:special?'Synthetic materials':'Synthetic sofa',quantity:1,length:special?120:null,width:special?40:null,height:special?30:null,weight:null,dimension_unit:'cm',weight_unit:'kg',approximate:special,upright:true,photos:[photo],identification_confirmed:true,special_handling:special,...(special?{handling_notes:'Bundled; ground floor access.'}:{})}]};}
 let provider:FakePaymentProvider,storage:jest.SpyInstance,stored:Set<string>;
 beforeEach(async()=>{
  jest.clearAllMocks();provider=new FakePaymentProvider();setPaymentProviderForTesting(provider);stored=new Set([photo]);

@@ -887,7 +887,7 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
     await assertSucceeds(updateDoc(missionRef, { description: "Modification non financière" }));
   });
 
-  it("le client PEUT annuler sa propre mission NON assignée, mais ne peut PAS modifier driver_id/status une fois assignée", async () => {
+  it("le client ne peut PAS modifier driver_id/status ni annuler directement une fois la mission assignée", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "delivery_requests/mission_011"), {
         customer_id: "customer_001",
@@ -912,9 +912,11 @@ describe("Security Rules — delivery_requests/{missionId} : assignation protég
       })
     );
 
-    // L'annulation formelle, elle, doit réussir (status -> cancelled,
-    // driver_id/driver_offer_amount/customer_total/pricing_version inchangés).
-    await assertSucceeds(
+    // Frais d'annulation (2026-10-22) : une fois un chauffeur assigné,
+    // l'annulation passe UNIQUEMENT par la Cloud Function
+    // cancelDeliveryRequest (frais affichés et appliqués), jamais par une
+    // écriture directe.
+    await assertFails(
       updateDoc(doc(customer.firestore(), "delivery_requests/mission_011"), {
         status: "cancelled",
         cancellation_reason: "changement de plan",
@@ -2843,10 +2845,30 @@ describe("Security Rules — delivery_requests/{missionId} : BUG-V-01 (états te
     );
   });
 
-  it("[non-régression] un client PEUT toujours annuler une mission encore active ('assigned')", async () => {
-    await seed("bugv01_assigned", "assigned", "bugv01_customer_001");
+  it("[non-régression] un client PEUT toujours annuler directement une mission sans chauffeur ('searching_driver')", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/bugv01_assigned"), {
+        customer_id: "bugv01_customer_001",
+        driver_id: null,
+        status: "searching_driver",
+        driver_offer_amount: 85,
+        customer_total: 100,
+        pricing_version: "V1",
+      });
+    });
     const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
     await assertSucceeds(
+      updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_assigned"), {
+        status: "cancelled",
+        cancellation_reason: "changement de plan",
+      })
+    );
+  });
+
+  it("une mission 'assigned' s'annule seulement via cancelDeliveryRequest (frais d'annulation)", async () => {
+    await seed("bugv01_assigned", "assigned", "bugv01_customer_001");
+    const customer = testEnv.authenticatedContext("bugv01_customer_001", { role: "customer" });
+    await assertFails(
       updateDoc(doc(customer.firestore(), "delivery_requests/bugv01_assigned"), {
         status: "cancelled",
         cancellation_reason: "changement de plan",

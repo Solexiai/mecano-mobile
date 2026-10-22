@@ -23,6 +23,16 @@ bool canReviewMissionFailure(DeliveryMission mission) =>
       MissionStatus.refunded,
     }.contains(mission.status);
 
+/// Travel fee (2026-10-22): only after a confirmed failure, before pickup.
+bool canChargeTravelFee(DeliveryMission mission) =>
+    !mission.isInternalTest &&
+    mission.driverId != null &&
+    const {
+      MissionStatus.assigned,
+      MissionStatus.driverToPickup,
+      MissionStatus.arrivedAtPickup,
+    }.contains(mission.status);
+
 String _copy(String locale, String fr, String en, String es) =>
     switch (locale) {
       'fr' => fr,
@@ -36,10 +46,12 @@ class AdminMissionFailureReview extends StatefulWidget {
     required this.mission,
     this.reviewStream,
     this.submit,
+    this.chargeTravelFee,
   });
   final DeliveryMission mission;
   final Stream<Map<String, dynamic>>? reviewStream;
   final Future<void> Function(Map<String, dynamic>)? submit;
+  final Future<void> Function(Map<String, dynamic>)? chargeTravelFee;
   @override
   State<AdminMissionFailureReview> createState() =>
       _AdminMissionFailureReviewState();
@@ -124,6 +136,71 @@ class _AdminMissionFailureReviewState extends State<AdminMissionFailureReview> {
       if (mounted) {
         setState(() => _busy = false);
       }
+    }
+  }
+
+  Future<void> _travelFee(String reason, String locale) async {
+    String c(String fr, String en, String es) => _copy(locale, fr, en, es);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          c(
+            'Facturer les frais de déplacement ?',
+            'Charge the travel fee?',
+            '¿Cobrar el cargo por desplazamiento?',
+          ),
+        ),
+        content: Text(
+          c(
+            'La mission sera annulée et 30,00 \$ seront débités de la carte du client (25 \$ pour le chauffeur, 5 \$ de frais d’administration). Le reste du blocage est libéré.',
+            'The job will be cancelled and \$30.00 charged to the customer’s card (\$25 for the driver, \$5 administration fee). The rest of the hold is released.',
+            'El servicio se cancelará y se cobrarán 30,00 \$ a la tarjeta del cliente (25 \$ para el conductor, 5 \$ de gastos de administración). El resto de la retención se libera.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(c('Retour', 'Back', 'Volver')),
+          ),
+          FilledButton(
+            key: const Key('travel-fee-submit'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(c('Facturer 30,00 \$', 'Charge \$30.00', 'Cobrar 30,00 \$')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final payload = <String, dynamic>{
+        'missionId': widget.mission.id,
+        'expectedStatus': widget.mission.status.firestoreValue,
+        'reason': reason,
+      };
+      if (widget.chargeTravelFee != null) {
+        await widget.chargeTravelFee!(payload);
+      } else {
+        await FirebaseFunctions.instance
+            .httpsCallable('chargeWastedTripFee')
+            .call(payload);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _error = c(
+            'Frais non facturés. Actualisez la mission ; sans blocage de carte actif, traitez le cas manuellement.',
+            'Fee not charged. Refresh the job; without an active card hold, handle the case manually.',
+            'Cargo no cobrado. Actualice el servicio; sin retención activa, trate el caso manualmente.',
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -213,6 +290,24 @@ class _AdminMissionFailureReviewState extends State<AdminMissionFailureReview> {
                           'Confirm an uncompleted delivery',
                           'Confirmar una entrega no realizada',
                         ),
+                ),
+              ),
+            if (canEdit && confirmed && canChargeTravelFee(widget.mission))
+              FilledButton.tonalIcon(
+                key: const Key('travel-fee-open'),
+                onPressed: _busy || !fresh
+                    ? null
+                    : () => _travelFee(
+                        data['reason'] as String? ?? 'Échec confirmé',
+                        locale,
+                      ),
+                icon: const Icon(Icons.receipt_long_outlined),
+                label: Text(
+                  c(
+                    'Client responsable : facturer les frais de déplacement',
+                    'Customer responsible: charge the travel fee',
+                    'Cliente responsable: cobrar el desplazamiento',
+                  ),
                 ),
               ),
           ],

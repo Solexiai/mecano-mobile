@@ -1,7 +1,7 @@
 import { parseBookingPolicy } from './bookingContract';
 import { db } from './admin';
 import { validateBookingPhotos } from './bookingPhotoValidation';
-import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, isDriverJudgement, normalizeLoad, recommend } from './booking';
+import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, isDriverJudgement, normalizeLoad, recommend, requestedTimeReason } from './booking';
 import { failedPrecondition, invalidArgument } from './errors';
 import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
 import { normalizeVehicleCategory } from './vehicleCategory';
@@ -25,7 +25,7 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   const zones = await getServiceZonesConfig({ fallbackToLaunchZone: true });
   const zoneReason = !zones.enabled || !zones.zones.length ? 'service_area_unconfigured' :
     stops.some(s => !isWithinServiceZones(s.address.lat,s.address.lng,zones)) ? 'outside_service_area' : null;
-  const timeReason = load.requested_at && Date.parse(load.requested_at) <= Date.now() ? 'requested_time_past' : null;
+  const timeReason = requestedTimeReason(load.requested_at);
   const reasons = [...review.reasons, ...(zoneReason ? [zoneReason] : []), ...(timeReason ? [timeReason] : [])];
   return { review: { ...review, status: reasons.length ? 'review_required' : 'ready', reasons, snapshot: reasons.length ? null : review.snapshot }, rules };
 }

@@ -20,7 +20,7 @@ async function seedMission(id: string, status: string): Promise<void> {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), `delivery_requests/${id}`), {
       customer_id: CUSTOMER,
-      driver_id: status === "searching_driver" ? null : "driver_x",
+      driver_id: status === "searching_driver" || status === "offered" ? null : "driver_x",
       status,
       driver_offer_amount: 85,
       customer_total: 100,
@@ -35,10 +35,18 @@ const cancel = (id: string) => updateDoc(doc(customer().firestore(), `delivery_r
 });
 
 describe("SEC-S1 — customer cancellation only before pickup", () => {
-  it.each(["searching_driver", "assigned", "driver_to_pickup", "arrived_at_pickup"])(
-    "cancel allowed from %s", async (status) => {
+  it.each(["searching_driver", "offered"])(
+    "direct cancel allowed from %s (no driver yet, always free)", async (status) => {
       await seedMission(`m_${status}`, status);
       await assertSucceeds(cancel(`m_${status}`));
+    });
+
+  // Fees (2026-10-22): after a driver accepted, only cancelDeliveryRequest
+  // may cancel, so the late-cancellation fee is shown and applied.
+  it.each(["assigned", "driver_to_pickup", "arrived_at_pickup"])(
+    "direct cancel refused from %s (must use cancelDeliveryRequest)", async (status) => {
+      await seedMission(`m_${status}`, status);
+      await assertFails(cancel(`m_${status}`));
     });
 
   it.each(["picked_up", "in_transit", "arrived_at_dropoff", "delivered", "completed", "cancelled", "disputed", "refunded"])(

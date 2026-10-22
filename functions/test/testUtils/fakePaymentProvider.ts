@@ -83,6 +83,8 @@ function nextId(prefix: string): string {
 
 export class FakePaymentProvider extends PaymentProvider {
   readonly createdPaymentParams: CreatePaymentParams[] = [];
+  readonly capturedPaymentParams: CapturePaymentParams[] = [];
+  cancelledAuthorizationCount = 0;
   // 🔒 Phase 8B (item f, isolation d'environnement) — le FakePaymentProvider
   // ne manipule JAMAIS de fonds réels : toujours "test" par convention (voir
   // src/payment/paymentProvider.ts, doc du champ `environment`). Jamais
@@ -129,6 +131,7 @@ export class FakePaymentProvider extends PaymentProvider {
   }
 
   async capturePayment(params: CapturePaymentParams): Promise<CapturePaymentResult> {
+    this.capturedPaymentParams.push(params);
     if (this.options.forceCaptureFailure) {
       return {
         success: false,
@@ -150,6 +153,7 @@ export class FakePaymentProvider extends PaymentProvider {
   async cancelAuthorization(
     _params: CancelAuthorizationParams
   ): Promise<CancelAuthorizationResult> {
+    this.cancelledAuthorizationCount++;
     return { success: true, status: "canceled" };
   }
 

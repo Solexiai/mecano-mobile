@@ -117,12 +117,17 @@ export async function computeMissionFinancialBalance(
   let customerServiceFeeMinor = 0;
   let driverEarnedMinor = 0;
   const snapshotIds: string[] = [];
+  // A mission fee (late cancellation / wasted trip, see missionFees.ts) means
+  // the delivery never happened: its quote snapshot was never confirmed and is
+  // not earned. Only the fee snapshot then describes the mission's economics.
+  const feeSnapshots = snapshotsQuery.docs.filter((d) => d.data().snapshot_kind === "mission_fee");
+  const countedSnapshots = feeSnapshots.length > 0 ? feeSnapshots : snapshotsQuery.docs;
   // 🔒 BLOC N (Firestore/Indexes) — driver_id du/des snapshot(s) de cette
   // mission, utilisé ci-dessous pour BORNER la recherche du payout PAID
   // (voir commentaire sur payoutsQuery). En pratique une mission a un seul
   // chauffeur assigné donc un seul driver_id possible parmi les snapshots.
   let snapshotsDriverId: string | null = null;
-  for (const doc of snapshotsQuery.docs) {
+  for (const doc of countedSnapshots) {
     const s = doc.data();
     platformCommissionMinor = addMinor(
       platformCommissionMinor,

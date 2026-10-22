@@ -13,6 +13,7 @@ import { buildPricingConfig } from '../unit/fixtures';
 import { seedDefaultRuntimeFlagsEnabled } from '../testUtils/runtimeFlagsFixture';
 import { buildFakePaymentProfile, FakePaymentProvider } from '../testUtils/fakePaymentProvider';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
+import { TEST_SCHEDULED_PICKUP } from '../testUtils/bookingTimeFixture';
 
 // All data synthetic. Real callable and dispatch handlers, Firestore emulator.
 // No Functions emulator, Eventarc delivery, FCM, Stripe or Routes requests.
@@ -34,7 +35,7 @@ function load(mode: 'immediate' | 'scheduled') { return {
     width: 20, height: 20, weight: 5, dimension_unit: 'cm', weight_unit: 'kg',
     approximate: false, upright: true, photos: [] }],
   pickup: access, dropoff: access, handlers: 1, equipment: [],
-  timing_mode: mode, requested_at: mode === 'immediate' ? null : '2099-01-01T12:00:00Z',
+  timing_mode: mode, requested_at: mode === 'immediate' ? null : TEST_SCHEDULED_PICKUP,
 }; }
 const request = (data: unknown) => ({ data, auth: { uid, token: {
   email: 'test@example.invalid', email_verified: true, roles: ['customer'] } },

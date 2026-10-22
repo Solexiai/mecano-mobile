@@ -80,6 +80,12 @@ export interface AuthorizePaymentResult {
 export interface CapturePaymentParams {
   providerPaymentIntentId: string;
   amountToCaptureMinor: number; // peut être <= montant autorisé (capture partielle)
+  /**
+   * Optional Movi-K share for a PARTIAL capture of a destination charge (mission
+   * fees, see lib/missionFees.ts). Omitted for a normal capture, which keeps the
+   * application fee fixed when the payment was created.
+   */
+  applicationFeeMinor?: number;
   idempotencyKey: string;
 }
 export interface CapturePaymentResult {

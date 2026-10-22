@@ -61,6 +61,9 @@ class DeliveryMission {
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+  // Late cancellation / travel fee (2026-10-22), written by Cloud Functions
+  // only: kind, status, total_minor, driver_minor, platform_minor.
+  final Map<String, dynamic>? cancellationFee;
   // Preuve de livraison (Phase 5, partie 3) — dénormalisée sur le document
   // mission par completeDelivery(). Null pour toute mission pas encore
   // (ou jamais) complétée, ou complétée avant l'introduction de ce champ.
@@ -105,6 +108,7 @@ class DeliveryMission {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.cancellationFee,
     this.proofOfDeliveryUrl,
     this.pickupAddress,
     this.dropoffAddress,
@@ -192,6 +196,9 @@ class DeliveryMission {
       completedAt: parseFirestoreDate(json['completed_at']),
       cancelledAt: parseFirestoreDate(json['cancelled_at']),
       cancellationReason: json['cancellation_reason'] as String?,
+      cancellationFee: json['cancellation_fee'] is Map
+          ? Map<String, dynamic>.from(json['cancellation_fee'] as Map)
+          : null,
       proofOfDeliveryUrl: json['proof_of_delivery_url'] as String?,
       pickupAddress: _parseAddress(json['pickup_address']),
       dropoffAddress: _parseAddress(json['dropoff_address']),

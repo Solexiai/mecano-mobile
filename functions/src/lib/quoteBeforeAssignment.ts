@@ -1,7 +1,7 @@
 // Owner decision 2026-10-19: compute the official price BEFORE assigning a driver.
 // This context is NOT a booking/capacity certificate. Historical snapshots are unchanged.
 import { HttpsError } from 'firebase-functions/v2/https';
-import { BookingLoad, BookingSnapshot, DRIVER_JUDGEMENT, normalizeLoad } from './booking';
+import { BookingLoad, BookingSnapshot, DRIVER_JUDGEMENT, normalizeLoad, requestedTimeReason } from './booking';
 import { validateBookingPhotos } from './bookingPhotoValidation';
 import { invalidArgument } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
@@ -48,7 +48,8 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
   if (!zones.enabled || !zones.zones.length) refuse('service_area_unconfigured');
   if (stops.some(s => !isWithinServiceZones(s.address.lat, s.address.lng, zones))) refuse('outside_service_area');
   if (load.timing_mode !== 'immediate' && !load.requested_at) refuse('requested_time_missing');
-  if (load.requested_at && Date.parse(load.requested_at) <= Date.now()) refuse('requested_time_past');
+  const timeReason = requestedTimeReason(load.requested_at);
+  if (timeReason) refuse(timeReason);
   return load;
 }
 

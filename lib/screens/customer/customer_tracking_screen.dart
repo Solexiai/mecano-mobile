@@ -1,4 +1,5 @@
 import '../../widgets/booking_load_summary.dart';
+import '../../widgets/cancel_mission_button.dart';
 // ---------------------------------------------------------------------------
 // CustomerTrackingScreen — suivi GPS temps réel du chauffeur pour UNE
 // mission active (Phase 5), ET consultation post-livraison (Phase 5,
@@ -185,6 +186,25 @@ class CustomerTrackingScreen extends StatelessWidget {
               return _CompletedMissionView(mission: mission, t: t);
             }
 
+            // Before pickup, the customer can cancel (fee policy 2026-10-22:
+            // the server shows the exact fee, if any, before confirming).
+            Widget withCancellation(Widget view) =>
+                customerCancellableStatuses.contains(mission.status)
+                ? Column(
+                    children: [
+                      Expanded(child: view),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        child: CancelMissionButton(
+                          missionId: mission.id,
+                          locale: locale,
+                          api: FirebaseBookingApi(auth.effectiveUid!),
+                        ),
+                      ),
+                    ],
+                  )
+                : view;
+
             if ([
                   'reserved',
                   'ready_to_start',
@@ -192,16 +212,20 @@ class CustomerTrackingScreen extends StatelessWidget {
                 mission.status == MissionStatus.assigned &&
                 mission.scheduling != null &&
                 mission.hasAssignedDriver) {
-              return ScheduledMissionPanel(mission: mission, locale: locale);
+              return withCancellation(
+                ScheduledMissionPanel(mission: mission, locale: locale),
+              );
             }
             if (mission.status.isOpenForAcceptance &&
                 mission.dispatchState != null &&
                 !mission.hasAssignedDriver) {
-              return DriverSearchStatus(
-                missionId: mission.id,
-                state: mission.dispatchState!,
-                locale: locale,
-                api: FirebaseBookingApi(auth.effectiveUid!),
+              return withCancellation(
+                DriverSearchStatus(
+                  missionId: mission.id,
+                  state: mission.dispatchState!,
+                  locale: locale,
+                  api: FirebaseBookingApi(auth.effectiveUid!),
+                ),
               );
             }
             final hasDriver = mission.driverId?.trim().isNotEmpty ?? false;
@@ -220,14 +244,12 @@ class CustomerTrackingScreen extends StatelessWidget {
               } else {
                 message = t(mission.status.key);
               }
-              return _MissionStatusView(
-                mission: mission,
-                t: t,
-                message: message,
+              return withCancellation(
+                _MissionStatusView(mission: mission, t: t, message: message),
               );
             }
 
-            return SingleChildScrollView(
+            return withCancellation(SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -313,7 +335,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                   ],
                 ],
               ),
-            );
+            ));
           },
         ),
       ),
@@ -371,6 +393,14 @@ class _MissionStatusView extends StatelessWidget {
         _MissionReference(mission: mission, t: t),
         const SizedBox(height: 24),
         Text(message, key: const ValueKey('tracking-mission-state')),
+        if (cancellationFeeSummary(
+              mission.cancellationFee,
+              context.read<LocaleProvider>().locale,
+            )
+            case final fee?) ...[
+          const SizedBox(height: 8),
+          Text(fee, key: const ValueKey('tracking-cancellation-fee')),
+        ],
       ],
     ),
   );
