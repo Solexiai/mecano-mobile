@@ -54,8 +54,13 @@ export interface BookingSnapshot {
 
 export const DRIVER_JUDGEMENT = 'driver_judgement' as const;
 
+export type DriverJudgementSnapshot = BookingSnapshot & {
+  vehicle_assessment: 'driver_judgement';
+  eligible_categories: string[];
+};
+
 /** True when the driver, not a measured capacity, decides whether the load fits. */
-export function isDriverJudgement(snapshot: unknown): snapshot is BookingSnapshot {
+export function isDriverJudgement(snapshot: unknown): snapshot is DriverJudgementSnapshot {
   return !!snapshot && typeof snapshot === 'object' &&
     (snapshot as BookingSnapshot).vehicle_assessment === DRIVER_JUDGEMENT &&
     Array.isArray((snapshot as BookingSnapshot).eligible_categories) &&

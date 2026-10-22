@@ -44,7 +44,7 @@ export async function findCompatibleVehicle(driverId: string, snapshot: BookingS
   if (isDriverJudgement(snapshot)) {
     // No measured capacity: any vehicle of the driver in an eligible pilot
     // category. The driver confirms the fit (acceptDelivery: fitConfirmed).
-    const eligible = snapshot.eligible_categories!.map(normalizeVehicleCategory);
+    const eligible = snapshot.eligible_categories.map(normalizeVehicleCategory);
     for (const doc of vehicles.docs) {
       if (selectedId && doc.id !== selectedId) continue;
       const category = doc.data().category;
