@@ -44,7 +44,7 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
       typeof a.line1 !== 'string' || !a.line1.trim() || a.line1.length > 300 ||
       typeof a.city !== 'string' || !a.city.trim() || typeof a.postal_code !== 'string' || !a.postal_code.trim()) throw invalidArgument('Sélectionnez deux adresses complètes.');
   }
-  const zones = await getServiceZonesConfig();
+  const zones = await getServiceZonesConfig({ fallbackToLaunchZone: true });
   if (!zones.enabled || !zones.zones.length) refuse('service_area_unconfigured');
   if (stops.some(s => !isWithinServiceZones(s.address.lat, s.address.lng, zones))) refuse('outside_service_area');
   if (load.timing_mode !== 'immediate' && !load.requested_at) refuse('requested_time_missing');

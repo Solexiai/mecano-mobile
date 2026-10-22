@@ -22,7 +22,7 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
       typeof a.line1 !== 'string' || !a.line1.trim() || a.line1.length>300 || typeof a.city !== 'string' || !a.city.trim() ||
       typeof a.postal_code !== 'string' || !a.postal_code.trim()) throw invalidArgument('Sélectionnez deux adresses complètes, avec ville et code postal.');
   }
-  const zones = await getServiceZonesConfig();
+  const zones = await getServiceZonesConfig({ fallbackToLaunchZone: true });
   const zoneReason = !zones.enabled || !zones.zones.length ? 'service_area_unconfigured' :
     stops.some(s => !isWithinServiceZones(s.address.lat,s.address.lng,zones)) ? 'outside_service_area' : null;
   const timeReason = load.requested_at && Date.parse(load.requested_at) <= Date.now() ? 'requested_time_past' : null;

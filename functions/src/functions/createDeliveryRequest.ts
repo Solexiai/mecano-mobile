@@ -148,8 +148,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     }
   }
 
-  // Zone de service (configurable; Granby 40 km par défaut si le document
-  // est absent — voir lib/serviceZones.ts). Vérifie pickup ET dropoff.
+  // Zone de service (configurable, voir lib/serviceZones.ts). Vérifie pickup
+  // ET dropoff. Les devis « prix » et « réservation » ont déjà validé la zone
+  // de lancement (Granby 40 km par défaut) et figent ces adresses.
   const serviceZonesConfig = await getServiceZonesConfig();
   if (serviceZonesConfig.enabled) {
     const pickupStop = input.stops[0];

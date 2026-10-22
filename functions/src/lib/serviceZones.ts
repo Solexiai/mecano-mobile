@@ -23,9 +23,12 @@ export interface ServiceZonesConfig {
 const CONFIG_DOC_PATH = "system_config/service_zones";
 
 /**
- * Owner decision 2026-10-22: launch zone is Granby with a 40 km radius.
- * Used only when `system_config/service_zones` does not exist, so a document
- * written by an admin always takes precedence (including `enabled: false`).
+ * Owner decision 2026-10-22: launch zone is Granby with a 40 km radius (same
+ * values as config/service_zones.granby-pilot.json). Used by the price and
+ * booking paths only when `system_config/service_zones` does not exist, so a
+ * document written by an admin always takes precedence (including
+ * `enabled: false`). Without it, those paths refused every request with
+ * `service_area_unconfigured`.
  */
 export const DEFAULT_SERVICE_ZONES: ServiceZonesConfig = Object.freeze({
   enabled: true,
@@ -38,10 +41,15 @@ export const DEFAULT_SERVICE_ZONES: ServiceZonesConfig = Object.freeze({
   })],
 }) as ServiceZonesConfig;
 
-export async function getServiceZonesConfig(): Promise<ServiceZonesConfig> {
+export async function getServiceZonesConfig(
+  options: { fallbackToLaunchZone?: boolean } = {}
+): Promise<ServiceZonesConfig> {
   const snap = await db.doc(CONFIG_DOC_PATH).get();
   if (!snap.exists) {
-    return { enabled: DEFAULT_SERVICE_ZONES.enabled, zones: [...DEFAULT_SERVICE_ZONES.zones] };
+    // Legacy callers keep their historical "no document = no restriction".
+    return options.fallbackToLaunchZone
+      ? { enabled: DEFAULT_SERVICE_ZONES.enabled, zones: [...DEFAULT_SERVICE_ZONES.zones] }
+      : { enabled: false, zones: [] };
   }
   const data = snap.data() as Partial<ServiceZonesConfig> | undefined;
   return {
