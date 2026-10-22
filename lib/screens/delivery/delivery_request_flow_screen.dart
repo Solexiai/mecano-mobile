@@ -374,9 +374,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   String get _reservationUnavailable => tr(
-    'La réservation est indisponible pour le moment. Vous pouvez préparer votre demande dans cet onglet, sans paiement ni réservation confirmée.',
-    'Booking is currently unavailable. You can prepare your request in this tab, without payment or a confirmed booking.',
-    'La reserva no está disponible por el momento. Puedes preparar tu solicitud en esta pestaña, sin pago ni reserva confirmada.',
+    'La réservation et le paiement ne sont pas encore ouverts. Vous pouvez continuer à préparer votre demande et obtenir votre prix : elle reste enregistrée.',
+    'Booking and payment are not open yet. You can keep preparing your request and get your price; it stays saved.',
+    'La reserva y el pago aún no están abiertos. Puedes seguir preparando tu solicitud y obtener tu precio; queda guardada.',
   );
 
   void _changed({bool quote = true}) {
@@ -2480,16 +2480,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           _run(_quote);
         },
       ),
-    if (_policy == null)
-      _note(
-        tr(
-          'Les conditions de réservation et d’annulation doivent être publiées et validées par Movi-K. Votre brouillon est conservé.',
-          'Booking and cancellation terms must be published and approved by Movi-K. Your draft is saved.',
-          'Movi-K debe publicar y aprobar las condiciones de reserva y cancelación. Tu borrador se conserva.',
-        ),
-        warning: true,
-      )
-    else ...[
+    // Without approved terms, the single availability banner above already
+    // explains that booking is not open; do not repeat it here.
+    if (_policy != null) ...[
       BookingTermsSection(
         contract: BookingContract(_policy!),
         locale: widget.locale,

@@ -101,7 +101,7 @@ void main() {
         findsNothing,
       );
       expect(
-        find.textContaining('La réservation est indisponible'),
+        find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
         findsNothing,
       );
       await tapBooking(t, 'Continuer à préparer ma demande');

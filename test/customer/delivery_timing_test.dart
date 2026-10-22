@@ -124,7 +124,7 @@ void main() => offlineTests(() {
       expect(api.calls, isNot(contains('calculateDeliveryQuote')));
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(
-        find.textContaining('La réservation est indisponible'),
+        find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
         findsWidgets,
       );
       await disposeBooking(t);
