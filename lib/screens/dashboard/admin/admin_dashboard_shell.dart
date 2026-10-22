@@ -269,6 +269,14 @@ class _DashboardBody extends StatelessWidget {
                 badge: metrics?.openDisputes ?? 0,
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
+              _ActionCard(
+                icon: Icons.science_outlined,
+                title: isFrench ? 'Pilote privé' : 'Private pilot',
+                subtitle: isFrench
+                    ? 'Testeurs autorisés et conditions d’essai.'
+                    : 'Authorized testers and trial terms.',
+                onTap: () => context.go('/$locale/admin/pilote'),
+              ),
             ],
           ),
         ),

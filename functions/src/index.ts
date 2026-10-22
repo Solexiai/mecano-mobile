@@ -78,6 +78,8 @@ export { setUserRole } from "./functions/setUserRole";
 export { deleteDriverProfile } from "./functions/deleteDriverProfile";
 export { reviewMissionFailure } from "./functions/reviewMissionFailure";
 export { chargeWastedTripFee } from "./functions/chargeWastedTripFee";
+// Private pilot: testers list and trial booking terms (2026-10-22).
+export { adminPilotSetup } from "./functions/adminPilotSetup";
 // Customer cancellation with the 2026-10-22 fee policy (lib/missionFees.ts).
 export { cancelDeliveryRequest } from "./functions/cancelDeliveryRequest";
 export { getAdminDriverActivity } from "./functions/getAdminDriverActivity";
