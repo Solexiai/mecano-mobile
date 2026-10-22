@@ -9,7 +9,12 @@ jest.mock('../../src/lib/serviceZones', () => ({ getServiceZonesConfig: jest.fn(
 jest.mock('../../src/lib/routingRateLimit', () => ({ consumeRoutingBudget: jest.fn(async () => {}) }));
 jest.mock('../../src/functions/calculateRoute', () => ({ calculateAuthoritativeRoute: jest.fn(async () => ({ distanceKm: 12, estimatedDurationMinutes: 25, isApproximate: false })), setRouteFetcherForTesting: jest.fn() }));
 jest.mock('../../src/lib/taxEngine', () => ({ ...jest.requireActual('../../src/lib/taxEngine'), resolveAndFreezeTaxSnapshot: jest.fn(async () => null) }));
-jest.mock('../../src/lib/runtimeFlags', () => ({ ...jest.requireActual('../../src/lib/runtimeFlags'), isRuntimeFlagEnabled: jest.fn(async () => false) }));
+jest.mock('../../src/lib/runtimeFlags', () => {
+  const isRuntimeFlagEnabled = jest.fn(async (_key: string) => false);
+  // Per-user checks (private pilot) follow the same mocked switches; nobody is a pilot here.
+  return { ...jest.requireActual('../../src/lib/runtimeFlags'), isRuntimeFlagEnabled,
+    isRuntimeFlagEnabledFor: jest.fn((key: string) => isRuntimeFlagEnabled(key)), isPilotUser: jest.fn(async () => false) };
+});
 jest.mock('../../src/payment/paymentOrchestration', () => ({ createAndAuthorizeMissionPayment: jest.fn(async () => { throw new Error('PAYMENT_MUST_NOT_RUN'); }) }));
 jest.mock('../../src/lib/audit', () => ({ writeAuditLogInTransaction: jest.fn() }));
 import { db } from '../../src/lib/admin';

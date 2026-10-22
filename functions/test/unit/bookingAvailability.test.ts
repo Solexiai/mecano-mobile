@@ -2,13 +2,17 @@ jest.mock('../../src/lib/bookingServer', () => ({ getBookingPolicy: jest.fn() })
 jest.mock('../../src/lib/runtimeFlags', () => ({
   RuntimeFlagKeys: { ACCEPT_NEW_DELIVERY_REQUESTS: 'booking', PAYMENTS_ENABLED: 'payment' },
   resolveRuntimeFlag: jest.fn(),
+  isPilotUser: jest.fn(),
 }));
 import { getPublicBookingConfiguration } from '../../src/lib/bookingAvailability';
 import { getBookingPolicy } from '../../src/lib/bookingServer';
-import { resolveRuntimeFlag } from '../../src/lib/runtimeFlags';
+import { isPilotUser, resolveRuntimeFlag } from '../../src/lib/runtimeFlags';
 
 describe('read-only booking availability', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    (isPilotUser as jest.Mock).mockResolvedValue(false);
+  });
   test.each([[true,true],[false,true],[true,false],[false,false]])(
     'independent booking=%s payment=%s', async (booking, payment) => {
       (getBookingPolicy as jest.Mock).mockResolvedValue({ approved: true, version: 'TEST' });
@@ -21,6 +25,15 @@ describe('read-only booking availability', () => {
       });
       expect(resolveRuntimeFlag).toHaveBeenCalledTimes(2);
     });
+  test('a pilot account sees booking and payment open while the switches stay closed', async () => {
+    (getBookingPolicy as jest.Mock).mockResolvedValue({ approved: true, version: 'TEST' });
+    (resolveRuntimeFlag as jest.Mock).mockResolvedValue({ enabled: false, reason: 'document_found_valid' });
+    (isPilotUser as jest.Mock).mockImplementation(async (uid) => uid === 'pilot');
+    expect((await getPublicBookingConfiguration('pilot')).availability)
+      .toEqual({ booking_enabled: true, payment_enabled: true, technical_error: false });
+    expect((await getPublicBookingConfiguration('other')).availability)
+      .toEqual({ booking_enabled: false, payment_enabled: false, technical_error: false });
+  });
   test('missing policy is not a transport error', async () => {
     (getBookingPolicy as jest.Mock).mockResolvedValue(null);
     (resolveRuntimeFlag as jest.Mock).mockResolvedValue({ enabled: false, reason: 'document_missing' });
