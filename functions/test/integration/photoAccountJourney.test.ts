@@ -18,7 +18,7 @@ import {onMissionCreatedDispatch} from '../../src/functions/dispatchMissionToDri
 import {approveDriver} from '../../src/functions/approveDriver';
 import {reviewDriverVehicle,vehicleIdentity} from '../../src/functions/reviewDriverVehicle';
 import {acceptDelivery} from '../../src/functions/acceptDelivery';
-import {declineDeliveryOffer} from '../../src/functions/declineDeliveryOffer';
+import {declineDeliveryOffer} from '../../src/functions/driverScheduleLifecycle';
 import {encodeGeohash} from '../../src/lib/geohash';
 import {buildPricingConfig} from '../unit/fixtures';
 import {seedDefaultRuntimeFlagsEnabled} from '../testUtils/runtimeFlagsFixture';
