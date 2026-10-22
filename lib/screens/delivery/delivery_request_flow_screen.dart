@@ -86,18 +86,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _policy != null &&
       _bookingEnabled;
   bool get _assignmentPending => _draft.quote?['assignmentPending'] == true;
+  // Since 2026-10-22 a price-first quote (assignmentPending) is a real
+  // booking: drivers judge the fit, the card is only authorized when one
+  // accepts. It follows the same terms/card/confirmation steps.
   bool get _canPay =>
       _canBook &&
-      !_assignmentPending &&
       _paymentEnabled &&
       _policy!['setup_enabled'] == true;
-  String get _configurationNotice => _assignmentPending
-      ? tr(
-          'Votre prix est calculé. Le chauffeur sera affecté séparément. Aucune réservation ni aucun paiement n’est confirmé.',
-          'Your price is calculated. The driver will be assigned separately. No booking or payment is confirmed.',
-          'Tu precio está calculado. El conductor se asignará por separado. No se confirma ninguna reserva ni pago.',
-        )
-      : _configurationError
+  String get _configurationNotice => _configurationError
       ? tr(
           'Impossible de vérifier la disponibilité du service. Vous pouvez continuer votre brouillon, sans réservation ni paiement.',
           'Service availability could not be checked. You can continue your draft without booking or payment.',
@@ -2035,9 +2031,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         if (_assignmentPending)
           _note(
             tr(
-              'Votre prix est calculé. Le chauffeur sera affecté séparément ; aucune réservation ni aucun paiement n’est confirmé à cette étape.',
-              'Your price is calculated. A driver will be assigned separately; no booking or payment is confirmed at this step.',
-              'Tu precio está calculado. El conductor se asignará por separado; en este paso no se confirma ninguna reserva ni pago.',
+              'Votre prix est calculé. Après votre confirmation, la demande est envoyée aux chauffeurs de la région : un chauffeur qui a vu vos photos et confirmé que l’objet entre dans son véhicule accepte la livraison. Votre carte n’est autorisée qu’à ce moment.',
+              'Your price is calculated. After you confirm, the request is sent to drivers in the area: a driver who has seen your photos and confirmed the item fits their vehicle accepts the delivery. Your card is only authorized at that point.',
+              'Tu precio está calculado. Tras tu confirmación, la solicitud se envía a los conductores de la zona: un conductor que vio tus fotos y confirmó que el objeto cabe en su vehículo acepta la entrega. Tu tarjeta solo se autoriza en ese momento.',
             ),
           )
         else if (_photoMode)

@@ -377,4 +377,33 @@ void main() {
       expect(visibleText(t), contains('test_mission'));
     },
   );
+  testWidgets(
+    'price-first quote (driver judges the fit) can be confirmed like any booking',
+    (t) async {
+      // Owner decision 2026-10-22: no vehicle measurement; the request is a
+      // real booking and drivers confirm the fit before accepting.
+      final draft = testDraft(step: 3, quote: true);
+      draft.data['quote'] = {
+        ...draft.quote!,
+        'booking': null,
+        'assignmentPending': true,
+      };
+      final (_, a) = await start(
+        t,
+        card: true,
+        storage: MemoryBookingStorage(draft),
+      );
+      final button = confirmation('fr');
+      expect(t.widget<FilledButton>(button).onPressed, isNotNull);
+      await t.ensureVisible(button);
+      await t.pumpAndSettle();
+      await t.tap(button);
+      await t.pumpAndSettle();
+      expect(a.calls.where((x) => x == 'createDeliveryRequest').length, 1);
+      final payload = a.payloads[a.calls.indexOf('createDeliveryRequest')];
+      expect(payload['booking'], isNotNull);
+      expect(payload['consent'], isNotNull);
+      expect(payload.containsKey('customerTotal'), isFalse);
+    },
+  );
 }
