@@ -15,7 +15,9 @@ import 'package:movik_connect/screens/dashboard/provider/tabs/provider_jobs_tab.
 import '../helpers/booking_test_harness.dart';
 
 class PhotoOffers extends Fake implements MissionRepository {
-  final mission = DeliveryMission(
+  PhotoOffers({this.assessment = 'driver_photo_review'});
+  final String assessment;
+  late final mission = DeliveryMission(
     id: 'photo_mission',
     customerId: 'synthetic_customer',
     itemCategoryKey: 'cat_furniture',
@@ -27,7 +29,7 @@ class PhotoOffers extends Fake implements MissionRepository {
     driverOfferAmount: 0,
     customerTotal: 123.45,
     bookingSnapshot: {
-      'vehicle_assessment': 'driver_photo_review',
+      'vehicle_assessment': assessment,
       'load': {
         'items': [
           {
@@ -70,12 +72,14 @@ class DriverPhotoApi extends TestBookingApi {
     if (name == 'getBookingVehicleForAcceptance') {
       return {
         'vehicle': {'id': 'synthetic_vehicle', 'label': 'Fourgon fictif'},
-        if (!missingTerms)
-          'offerTerms': {
-            'amountMinor': 8065,
-            'currency': 'CAD',
-            'pricingVersion': 'SIMULATED',
-          },
+      };
+    }
+    // Agenda acceptance flow: the official earnings come from the
+    // preparation step (no agenda policy => simple confirmation dialog).
+    if (name == 'prepareDriverMissionAcceptance') {
+      return {
+        'enabled': false,
+        if (!missingTerms) 'driver_offer_minor': 8065,
       };
     }
     if (name == 'acceptDelivery') return {'success': true};
@@ -94,9 +98,12 @@ void main() {
     DriverPhotoApi api, {
     String locale = 'fr',
     double scale = 1,
+    String assessment = 'driver_photo_review',
   }) async {
     SharedPreferences.setMockInitialValues({});
-    BackendLocator.missionRepositoryOverride = PhotoOffers();
+    BackendLocator.missionRepositoryOverride = PhotoOffers(
+      assessment: assessment,
+    );
     final auth = BookingTestAuth()..debugForceUid = 'synthetic_driver';
     final locales = LocaleProvider();
     await locales.setLocale(locale);
@@ -153,8 +160,11 @@ void main() {
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
     expect(find.text('Fourgon fictif'), findsOneWidget);
-    expect(find.textContaining('80.65 CAD'), findsOneWidget);
     await t.tap(find.text('J’utilise ce véhicule'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('80.65 CAD'), findsOneWidget);
+    expect(api.calls, isNot(contains('acceptDelivery')));
+    await t.tap(find.widgetWithText(FilledButton, 'Accepter'));
     await t.pumpAndSettle();
     expect(api.calls.where((x) => x == 'acceptDelivery'), hasLength(1));
     expect(api.payloads.last, {
@@ -175,10 +185,41 @@ void main() {
     await t.tap(accept);
     await t.pump();
     await t.pump(const Duration(milliseconds: 300));
-    expect(find.byType(AlertDialog), findsNothing);
+    await t.tap(find.text('J’utilise ce véhicule'));
+    await t.pumpAndSettle();
+    expect(find.text('Accepter cette mission ?'), findsNothing);
     expect(api.calls, isNot(contains('acceptDelivery')));
     await disposeBooking(t);
   });
+  testWidgets(
+    'price-first booking: driver declares the load fits before accepting',
+    (t) async {
+      final api = DriverPhotoApi();
+      await pump(t, api, assessment: 'driver_judgement');
+      expect(find.textContaining('À vous de juger'), findsOneWidget);
+      final accept = find.byType(ElevatedButton).last;
+      await t.ensureVisible(accept);
+      await t.tap(accept);
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
+      expect(
+        find.textContaining('le chargement entre dans ce véhicule'),
+        findsOneWidget,
+      );
+      await t.tap(find.text('J’utilise ce véhicule'));
+      await t.pumpAndSettle();
+      await t.tap(find.widgetWithText(FilledButton, 'Accepter'));
+      await t.pumpAndSettle();
+      expect(api.payloads.last, {
+        'missionId': 'photo_mission',
+        'vehicleId': 'synthetic_vehicle',
+        'fitConfirmed': true,
+        'expectedDriverOfferMinor': 8065,
+      });
+      expect(t.takeException(), isNull);
+      await disposeBooking(t);
+    },
+  );
   testWidgets(
     'driver decline waits for server and prevents repeated requests',
     (t) async {
@@ -255,7 +296,7 @@ void main() {
         await t.tap(accept);
         await t.pump();
         await t.pump(const Duration(milliseconds: 300));
-        expect(find.textContaining('80.65 CAD'), findsOneWidget);
+        expect(find.text('Fourgon fictif'), findsOneWidget);
         expect(t.takeException(), isNull);
         final back = find.widgetWithText(
           TextButton,
