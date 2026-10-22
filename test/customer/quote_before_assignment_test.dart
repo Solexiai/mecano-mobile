@@ -156,7 +156,7 @@ void main() {
       expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       expect(find.textContaining('Véhicule recommandé'), findsNothing);
       expect(
-        find.textContaining('La réservation est indisponible'),
+        find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
         findsNothing,
       );
       await tapBooking(tester, 'Continuer vers mes coordonnées');
