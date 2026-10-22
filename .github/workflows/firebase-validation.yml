@@ -42,7 +42,20 @@ jobs:
         run: npm run lint && npm run build
       - name: Unit tests (no cloud credentials)
         working-directory: functions
-        run: npm run test:unit -- --runInBand
+        shell: bash
+        run: |
+          set +e
+          npm run test:unit -- --runInBand 2>&1 | tee unit-tests.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then bash ../scripts/ci_annotate_jest.sh unit-tests.log "Unit"; fi
+          exit "$result"
       - name: Integration tests (demo project and emulators only)
+        if: ${{ !cancelled() }}
         working-directory: functions
-        run: npm run test:integration
+        shell: bash
+        run: |
+          set +e
+          npm run test:integration 2>&1 | tee integration-tests.log
+          result=${PIPESTATUS[0]}
+          if [ "$result" -ne 0 ]; then bash ../scripts/ci_annotate_jest.sh integration-tests.log "Integration"; fi
+          exit "$result"
