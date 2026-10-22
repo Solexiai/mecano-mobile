@@ -431,7 +431,11 @@ service cloud.firestore {
     // "customer promotion") — voir docs/FIRESTORE_ARCHITECTURE.md addendum.
     // -------------------------------------------------------------------
     match /promo_codes/{code} {
-      allow read: if isSignedIn(); // le client peut vérifier l'existence/validité d'un code
+      // SEC-S5 (2026-10-22) : lecture d'UN code connu seulement (get), jamais
+      // la liste complète. Le prix réel est toujours résolu côté serveur
+      // (calculateDeliveryQuote); la liste exposait tous les codes actifs.
+      allow get: if isSignedIn();
+      allow list: if isAnalystOrAbove();
       allow write: if false; // 🔒 Cloud Functions only / admin console (hors scope étape 11).
     }
 
@@ -520,8 +524,16 @@ service cloud.firestore {
 
     // refunds/{id} — remboursements (points 19-20).
     match /refunds/{refundId} {
+      // SEC-S6 (2026-10-22) : l'app client interroge les remboursements par
+      // mission_id (mission_finance_section.dart). Une règle fondée
+      // uniquement sur payment_id ne peut pas être prouvée par cette
+      // requête et la refusait toujours. La lecture par paiement reste
+      // permise; la lecture par mission vérifie la propriété de la mission.
       allow read: if isSignedIn() && (
         isAnalystOrAbove() ||
+        (resource.data.get('mission_id', null) != null &&
+         exists(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)) &&
+         get(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)).data.customer_id == uid()) ||
         (exists(/databases/$(database)/documents/payments/$(resource.data.payment_id)) &&
          get(/databases/$(database)/documents/payments/$(resource.data.payment_id)).data.customer_id == uid())
       );

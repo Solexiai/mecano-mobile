@@ -3,7 +3,7 @@
 //   S2: driver_profiles writes are restricted to declarative fields; payout
 //       (Stripe) and verification fields are Cloud-Functions-only.
 import { assertFails, assertSucceeds, RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { createTestEnv } from "./setup";
 
 let env: RulesTestEnvironment;
@@ -153,5 +153,43 @@ describe("SEC-S3 — verified vehicles are locked for the driver", () => {
   it("unverified vehicle: driver can still correct details", async () => {
     await seedVehicle(false);
     await assertSucceeds(updateDoc(vehicleRef(), { plate: "XYZ789", category: "cargo_van" }));
+  });
+});
+
+describe("SEC-S5 — promo codes cannot be enumerated", () => {
+  it("a known code can be read, the full list cannot", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "promo_codes/GRANBY10"), { code: "GRANBY10", is_active: true });
+    });
+    await assertSucceeds(getDoc(doc(customer().firestore(), "promo_codes/GRANBY10")));
+    await assertFails(getDocs(collection(customer().firestore(), "promo_codes")));
+    const analyst = env.authenticatedContext("s5_analyst", { role: "analyst", roles: ["analyst"] });
+    await assertSucceeds(getDocs(collection(analyst.firestore(), "promo_codes")));
+  });
+});
+
+describe("SEC-S6 — app finance queries are allowed for their owners", () => {
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, "delivery_requests/s6_mission"), { customer_id: CUSTOMER, driver_id: DRIVER, status: "completed" });
+      await setDoc(doc(db, "payments/s6_payment"), { customer_id: CUSTOMER, mission_id: "s6_mission" });
+      await setDoc(doc(db, "refunds/s6_refund"), { payment_id: "s6_payment", mission_id: "s6_mission", amount: 10 });
+      await setDoc(doc(db, "transaction_ledger/s6_driver"), { mission_id: "s6_mission", party: "driver", amount: 85 });
+      await setDoc(doc(db, "transaction_ledger/s6_customer"), { mission_id: "s6_mission", party: "customer", amount: 100 });
+    });
+  });
+
+  it("customer can list refunds of their mission by mission_id; a stranger cannot", async () => {
+    await assertSucceeds(getDocs(query(collection(customer().firestore(), "refunds"), where("mission_id", "==", "s6_mission"))));
+    const stranger = env.authenticatedContext("s6_stranger", { role: "customer", roles: ["customer"] });
+    await assertFails(getDocs(query(collection(stranger.firestore(), "refunds"), where("mission_id", "==", "s6_mission"))));
+  });
+
+  it("driver can list their ledger entries with the party filter used by the app", async () => {
+    await assertSucceeds(getDocs(query(collection(driver().firestore(), "transaction_ledger"),
+      where("mission_id", "==", "s6_mission"), where("party", "==", "driver"))));
+    await assertFails(getDocs(query(collection(driver().firestore(), "transaction_ledger"),
+      where("mission_id", "==", "s6_mission"), where("party", "==", "customer"))));
   });
 });

@@ -190,8 +190,12 @@ class FirebaseFinanceRepository implements FinanceRepository {
           // par mission_id (index existant) puis on filtre party=='driver' en
           // mémoire — cohérent avec la règle de sécurité déjà en place.
           for (final missionId in missionIds) {
+            // Le filtre `party` est requis pour que la requête soit
+            // autorisée par la règle transaction_ledger (qui s'appuie sur
+            // party + mission_id) : sans lui, Firestore refusait la requête.
             final ledgerSnap = await _ledger
                 .where('mission_id', isEqualTo: missionId)
+                .where('party', isEqualTo: LedgerParty.driver.firestoreValue)
                 .get();
             for (final d in ledgerSnap.docs) {
               final data = d.data();
