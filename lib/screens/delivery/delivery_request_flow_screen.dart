@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 
 import '../../services/delivery_request_draft.dart';
 
@@ -452,9 +453,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (mounted && epoch == _epoch) {
         setState(() {
           _message = tr(
-            'Choisissez une image JPG, PNG ou WebP de 20 Mo maximum. Si le format est HEIC, exportez-la en JPG.',
-            'Choose a JPG, PNG or WebP image up to 20 MB. Export HEIC images as JPG.',
-            'Elige una imagen JPG, PNG o WebP de hasta 20 MB. Exporta HEIC a JPG.',
+            'Cette image n’a pas pu être lue. Choisissez une photo (JPG, PNG, WebP ou HEIC) de 20 Mo maximum.',
+            'This image could not be read. Choose a photo (JPG, PNG, WebP or HEIC) up to 20 MB.',
+            'No se pudo leer esta imagen. Elige una foto (JPG, PNG, WebP o HEIC) de hasta 20 MB.',
           );
         });
       }
@@ -472,6 +473,30 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                   'This action did not complete. Your details are saved. Please retry.',
                   'La operación no se completó. Tus datos se conservaron. Inténtalo de nuevo.',
                 );
+        });
+      }
+    } on FirebaseException catch (e) {
+      // Storage (photo upload) errors: say what actually happened instead of
+      // the generic technical message.
+      if (mounted && epoch == _epoch) {
+        setState(() {
+          _message = switch (e.code) {
+            'unauthorized' || 'unauthenticated' => tr(
+              'La photo a été refusée par le serveur. Rechargez la page, reconnectez-vous et réessayez.',
+              'The photo was refused by the server. Reload the page, sign in again and retry.',
+              'El servidor rechazó la foto. Recarga la página, vuelve a iniciar sesión e inténtalo de nuevo.',
+            ),
+            'retry-limit-exceeded' || 'canceled' => tr(
+              'L’envoi de la photo a été interrompu. Vérifiez votre connexion et réessayez.',
+              'The photo upload was interrupted. Check your connection and retry.',
+              'Se interrumpió el envío de la foto. Verifica tu conexión e inténtalo de nuevo.',
+            ),
+            _ => tr(
+              'Cette opération n’a pas abouti. Vos données sont conservées. Réessayez.',
+              'This action did not complete. Your details are saved. Please retry.',
+              'La operación no se completó. Tus datos se conservaron. Inténtalo de nuevo.',
+            ),
+          };
         });
       }
     } catch (_) {
@@ -820,6 +845,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       return;
     }
     final uid = _uid!, draftId = _draft.id, epoch = _epoch;
+    final photos = item['photos'] as List? ?? <String>[];
+    if (photos.length >= 3) return;
+    // iOS Safari: the picker must open before any network await, otherwise
+    // the file dialog is silently blocked. Pick first, then save the draft
+    // (storage.rules need the saved draft), then upload.
+    final picked = widget.photoUploader == null
+        ? await pickBookingPhoto()
+        : null;
+    if (widget.photoUploader == null && picked == null) return;
     await _save();
     if (_saveError != null ||
         !mounted ||
@@ -827,9 +861,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         draftId != _draft.id) {
       return;
     }
-    final photos = item['photos'] as List? ?? <String>[];
-    if (photos.length >= 3) return;
-    final path = await (widget.photoUploader ?? uploadBookingPhoto)(
+    final uploader =
+        widget.photoUploader ??
+        ({
+          required String uid,
+          required String draftId,
+          required String itemId,
+          required int slot,
+        }) => storeBookingPhoto(
+          picked!,
+          uid: uid,
+          draftId: draftId,
+          itemId: itemId,
+          slot: slot,
+        );
+    final path = await uploader(
       uid: uid,
       draftId: draftId,
       itemId: item['id'] as String,
@@ -1660,9 +1706,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               icon: const Icon(Icons.add_a_photo_outlined),
               label: Text(
                 tr(
-                  'Ajouter une photo JPEG (facultatif)',
-                  'Add a JPEG photo (optional)',
-                  'Añadir foto JPEG (opcional)',
+                  'Ajouter une photo (facultatif)',
+                  'Add a photo (optional)',
+                  'Añadir una foto (opcional)',
                 ),
               ),
               onPressed: (item['photos'] as List? ?? []).length >= 3
@@ -1672,16 +1718,20 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                         await _login();
                         return;
                       }
+                      // Picker first (iOS Safari user-gesture rule).
+                      final picked = await pickBookingPhoto();
+                      if (picked == null) return;
                       await _save();
-                      if (_saveError != null) return;
+                      if (_saveError != null || !mounted) return;
                       final photos = item['photos'] as List? ?? <String>[];
-                      final path = await uploadBookingPhoto(
+                      final path = await storeBookingPhoto(
+                        picked,
                         uid: _uid!,
                         draftId: _draft.id,
                         itemId: item['id'] as String,
                         slot: photos.length,
                       );
-                      if (path != null && mounted) {
+                      if (mounted) {
                         photos.add(path);
                         item['photos'] = photos;
                         _changed();
