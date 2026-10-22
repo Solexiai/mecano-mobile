@@ -1,3 +1,4 @@
+import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications', () => ({
   sendDeliveryOfferPush: jest.fn(async () => ({ attempted: 0, sent: 0 })),
 }));
@@ -39,7 +40,7 @@ const request = (data: unknown) => ({ data, auth: { uid, token: {
   email: 'test@example.invalid', email_verified: true, roles: ['customer'] } },
   rawRequest: {}, acceptsStreaming: false } as any);
 const confirm = (quoteId: string, booking: unknown) => request({
-  quoteId, booking, contacts, consent: { terms_version: 'TIMING-TEST', accepted: true, marketing: false },
+  quoteId, booking, contacts, consent: testBookingConsent('TIMING-TEST'),
   stops, itemCategoryKey: 'boxes', description: 'Test box', requiredVehicleCategory: 'cargo_van',
   customerDisplayName: 'Synthetic customer',
 });
@@ -51,9 +52,7 @@ beforeEach(async () => {
   const pricing = buildPricingConfig({ pricing_version: 'TIMING-TEST' });
   await db.doc('pricing_configs/active').set({ active_pricing_version: pricing.pricing_version });
   await db.doc('pricing_versions/TIMING-TEST').set(pricing);
-  await db.doc('system_config/booking_policy').set({ approved: true, version: 'TIMING-TEST',
-    terms_url: 'https://example.invalid/terms', privacy_url: 'https://example.invalid/privacy',
-    cancellation_text: { fr: 'TEST ONLY' }, payment_text: { fr: 'TEST ONLY' }, setup_enabled: false });
+  await db.doc('system_config/booking_policy').set(testBookingPolicy('TIMING-TEST'));
   await db.doc('system_config/booking_capacity').set({ approved: true, version: 'TIMING-TEST',
     capacities: [capacity], heavy_item_kg: 50, bulky_item_cm: 150, require_booking_details: true });
   await db.doc('system_config/service_zones').set({ enabled: true,

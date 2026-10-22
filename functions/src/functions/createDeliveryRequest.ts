@@ -1,5 +1,6 @@
+import { BookingConsent, parseBookingPolicy, requireBookingConsent } from '../lib/bookingContract';
 import { normalizeLoad } from "../lib/booking";
-import { getBookingPolicy, normalizeContacts } from "../lib/bookingServer";
+import { normalizeContacts } from "../lib/bookingServer";
 // -----------------------------------------------------------------------------
 // createDeliveryRequest — Cloud Function callable (customer).
 //
@@ -48,7 +49,7 @@ export interface CreateDeliveryRequestRequest {
   quoteId: string;
   booking?: unknown;
   contacts?: unknown;
-  consent?: { terms_version: string; accepted: boolean; marketing: boolean };
+  consent?: BookingConsent;
   itemCategoryKey: string;
   description: string;
   requiredVehicleCategory: string;
@@ -183,7 +184,6 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
 
   const missionRef = db.collection("delivery_requests").doc();
-  const policy = await getBookingPolicy();
   let resolvedMissionId = missionRef.id;
 
   await db.runTransaction(async (tx) => {
@@ -231,6 +231,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       input.itemCategoryKey = preAssignment.load.items[0].category;
     }
     const booking = lockedQuote.pricingSnapshot?.booking;
+    let policy = null;
     let contacts = null;
     let attemptRef: FirebaseFirestore.DocumentReference | null = null;
     if (booking) {
@@ -246,8 +247,8 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
     if (booking) {
       if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel avant de confirmer.');
       if (!input.booking || JSON.stringify(normalizeLoad(input.booking)) !== JSON.stringify(booking.load)) throw failedPrecondition('La livraison a changé. Recalculez le devis.');
-      const currentPolicy = (await tx.get(db.doc('system_config/booking_policy'))).data();
-      if (!policy || currentPolicy?.approved !== true || currentPolicy.version !== policy.version || input.consent?.accepted !== true || input.consent.terms_version !== policy.version) throw failedPrecondition('Les conditions de réservation doivent être disponibles et acceptées dans leur version actuelle.');
+      policy = parseBookingPolicy((await tx.get(db.doc('system_config/booking_policy'))).data());
+      requireBookingConsent(policy, input.consent);
       contacts = normalizeContacts(input.contacts);
       for (const draftId of new Set(booking.load.items.flatMap(i => i.photos).map(p => p.split('/')[2]))) {
         const grant = (await tx.get(db.doc(`booking_photo_grants/${ctx.uid}_${draftId}`))).data();
@@ -394,9 +395,18 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       }
       tx.set(missionRef.collection('private').doc('booking'), {
         contacts, customer_email: ctx.email ?? null,
-        consent: { terms_version: policy.version, accepted_at: now, accepted_by: ctx.uid,
-          marketing: input.consent?.marketing === true, terms_url: policy.terms_url,
-          privacy_url: policy.privacy_url, cancellation_text: policy.cancellation_text, payment_text: policy.payment_text },
+        consent: {
+          terms_version: policy.version, accepted: true, accepted_at: now, accepted_by: ctx.uid,
+          booking_terms_version: policy.documents.booking.version,
+          general_terms_version: policy.documents.terms.version,
+          privacy_presented_version: policy.documents.privacy.version,
+          contract_hash: policy.contract_hash, locale: input.consent!.locale,
+          // Presentation of privacy information is not blanket data consent.
+          presented_languages: Object.fromEntries(Object.entries(policy.documents).map(([key, doc]) =>
+            [key, doc.content[input.consent!.locale] ? input.consent!.locale : 'fr'])),
+        },
+        contract_snapshot: policy,
+        marketing_preference: { opt_in: input.consent?.marketing === true, recorded_at: now },
       });
       tx.set(db.doc(`users/${ctx.uid}`), { booking_contacts: contacts }, { merge: true });
     }

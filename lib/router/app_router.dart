@@ -1,3 +1,4 @@
+import '../screens/delivery/booking_receipt_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -315,6 +316,13 @@ class AppRouter {
             // Suivi GPS temps réel du chauffeur (Phase 5) — route dédiée
             // côté client, paramétrée par missionId, symétrique de
             // `fournisseur/mission/:missionId` côté chauffeur.
+            GoRoute(
+              path: 'livraison/conditions/:missionId',
+              builder: (c, s) => BookingReceiptScreen(
+                locale: loc,
+                missionId: s.pathParameters['missionId']!,
+              ),
+            ),
             GoRoute(
               path: 'livraison/suivi/:missionId',
               builder: (c, s) => CustomerTrackingScreen(

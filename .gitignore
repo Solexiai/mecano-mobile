@@ -47,7 +47,5 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-
-# Local deployment credentials and public build parameters are never committed.
-.vercel/
-functions/.env*
+.vercel
+.env*

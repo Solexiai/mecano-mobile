@@ -1,3 +1,4 @@
+import { requireBookingConsent } from '../lib/bookingContract';
 import { onCall } from 'firebase-functions/v2/https';
 import { admin, authAdmin, db } from '../lib/admin';
 import { requireSignedIn } from '../lib/auth';
@@ -17,7 +18,8 @@ function quoteId(value: unknown): string {
 export const startBookingCardSetup = onCall(options, async request => {
   const ctx = requireSignedIn(request); const id = quoteId(request.data.quoteId);
   const policy = await getBookingPolicy();
-  if (!policy?.setup_enabled || request.data.termsVersion !== policy.version || request.data.accepted !== true) throw failedPrecondition('Acceptez les conditions applicables avant l’enregistrement de la carte.');
+  requireBookingConsent(policy, request.data.consent);
+  if (!policy.setup_enabled) throw failedPrecondition('Acceptez les conditions applicables avant l’enregistrement de la carte.');
   if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel.');
   const quote = (await db.doc(`delivery_quotes/${id}`).get()).data();
   if (!quote || quote.customer_id !== ctx.uid) throw permissionDenied('Devis inaccessible.');

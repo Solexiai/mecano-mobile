@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "zones": [
+    {
+      "name": "Granby et environs — rayon de 40 km",
+      "type": "circle",
+      "center_lat": 45.39856,
+      "center_lng": -72.72225,
+      "radius_km": 40
+    }
+  ]
+}

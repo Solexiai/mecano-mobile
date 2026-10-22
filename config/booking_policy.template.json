@@ -1,9 +1,47 @@
 {
   "approved": false,
+  "schema_version": 2,
   "version": "REQUIRES_APPROVAL",
-  "terms_url": null,
-  "privacy_url": null,
-  "cancellation_text": { "fr": "", "en": "", "es": "" },
-  "payment_text": { "fr": "", "en": "", "es": "" },
-  "setup_enabled": false
+  "approval_reference": "",
+  "setup_enabled": false,
+  "payment_cycle": "setup_then_authorize_on_acceptance_capture_on_completion",
+  "payment_text": {
+    "fr": "",
+    "en": "",
+    "es": ""
+  },
+  "cancellation_text": {
+    "fr": "",
+    "en": "",
+    "es": ""
+  },
+  "documents": {
+    "booking": {
+      "version": "REQUIRES_APPROVAL",
+      "url": null,
+      "content": {
+        "fr": "",
+        "en": "",
+        "es": ""
+      }
+    },
+    "terms": {
+      "version": "REQUIRES_APPROVAL",
+      "url": null,
+      "content": {
+        "fr": "",
+        "en": "",
+        "es": ""
+      }
+    },
+    "privacy": {
+      "version": "REQUIRES_APPROVAL",
+      "url": null,
+      "content": {
+        "fr": "",
+        "en": "",
+        "es": ""
+      }
+    }
+  }
 }

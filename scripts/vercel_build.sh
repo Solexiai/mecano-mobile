@@ -27,6 +27,17 @@
 
 set -euo pipefail
 
+# Reject masked or malformed Places values before any build work.
+node "$(dirname "${BASH_SOURCE[0]}")/validate_web_environment.cjs"
+
+# Photo intake is opt-in for private previews; server allowlist is still required.
+ENABLE_PHOTO_INTAKE="${ENABLE_PHOTO_INTAKE:-false}"
+case "${ENABLE_PHOTO_INTAKE}" in
+  true|false) ;;
+  *) echo "ENABLE_PHOTO_INTAKE must be true or false." >&2; exit 1 ;;
+esac
+
+
 # --- Configuration (version pinnée, PAS de "stable" flottant) --------------
 FLUTTER_VERSION="3.47.1"
 FLUTTER_REPO_URL="https://github.com/flutter/flutter.git"
@@ -99,7 +110,8 @@ fi
 echo "[5/5] flutter build web --release (dart-defines sensibles masqués)"
 "${FLUTTER_BIN}" build web --release \
   --dart-define=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY}" \
-  --dart-define=FCM_WEB_VAPID_KEY="${FCM_WEB_VAPID_KEY}"
+  --dart-define=FCM_WEB_VAPID_KEY="${FCM_WEB_VAPID_KEY}" \
+  --dart-define=ENABLE_PHOTO_INTAKE="${ENABLE_PHOTO_INTAKE}"
 
 echo "=============================================================="
 echo "Build terminé. Sortie attendue : build/web/index.html"

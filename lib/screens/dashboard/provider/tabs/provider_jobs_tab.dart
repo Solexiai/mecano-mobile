@@ -647,7 +647,7 @@ class _JobCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text(t('driver_jobs_accepting')),
+                        Flexible(child: Text(t('driver_jobs_accepting'))),
                       ],
                     )
                   : Text(t('driver_jobs_accept')),

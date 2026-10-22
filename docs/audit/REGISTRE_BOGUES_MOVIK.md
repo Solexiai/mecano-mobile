@@ -1,4 +1,4 @@
-﻿# REGISTRE MAÎTRE DES BOGUES MOVI-K
+# REGISTRE MAÎTRE DES BOGUES MOVI-K
 
 Date de consolidation : 9 octobre 2026, America/Toronto. Dernière mise à jour : réservation immédiate/programmée et prérequis de mise en service, 14 octobre 2026. Correctif local non déployé.
 Branche : fix/gps-client-history-scope-20261009 ; base 77c3c61534d1300ddc0eab5585f78b9662a69537.
@@ -10,7 +10,7 @@ Une correction non testée reste CORRIGÉ — NON VALIDÉ. BLOQUÉ/REPORTÉ est 
 
 ## Périmètre et décompte
 
-Anomalies/prérequis actifs non fermés : **P0 0, P1 1, P2 2** ; 31 fiches conservées, dont 28 fermées dans leurs périmètres historiques. P1-BOOKING-CONFIG-01 reste bloqué par les configurations opérationnelles absentes ; P2-BOOKING-TIMING-01 est corrigé et testé localement, non fermé et non déployé. Ce décompte ne constitue pas une autorisation de lancement. Les anciennes clôtures, limites, P3 et prérequis restent conservés ci-dessous.
+Anomalies/prérequis actifs non fermés : **P0 0, P1 3, P2 3** ; 34 fiches conservées, dont 28 fermées dans leurs périmètres historiques. P1-BOOKING-CONFIG-01 reste bloqué par les configurations opérationnelles absentes ; P2-BOOKING-TIMING-01 est corrigé et testé localement, non fermé et non déployé. Ce décompte ne constitue pas une autorisation de lancement. Les anciennes clôtures, limites, P3 et prérequis restent conservés ci-dessous.
 Les correctifs historiques Phase7 importés en annexe conservent leur état rapporté : ils ne sont ni nouvellement fermés ni arbitrairement réouverts. Leur correspondance actuelle/test de fermeture doit être réconciliée avant annoncer P0/P1=0 global. BUG-004 P0 historique est rapporté corrigé/testé ; aucun P0 actif nouvellement confirmé. Pas de garantie d'exhaustivité des conversations/fichiers inaccessibles ou de production.
 
 Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième compteur) ; P2-G-01 observation simulée reliée à P2-FORM-001 (pas doublon du compte), contexte Material du harnais distinct de Chrome. Les deux listes sans limit restent un seul GAP-M-06. BUG-003 conserve ses occurrences client/chauffeur/mécanicien. Les identifiants de scénarios sans bug ne deviennent pas des anomalies.
@@ -19,6 +19,7 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 
 | ID | Priorité | Nature | Statut | Problème |
 |---|---|---|---|---|
+| P2-QUOTE-RECOVERY-01 | P2 | Reprise du devis photo | VALIDÉ LOCAL — NON FERMÉ — NON DÉPLOYÉ | Confirmation accessible à Mon prix, refus regroupés et relance de la revue serveur ; prérequis cloud toujours absents. |
 | P1-M-01 | P1 | Bug de requête, correctif testé | FERMÉ — PÉRIMÈTRE SIMULÉ VALIDÉ — NON DÉPLOYÉ | Historique GPS sans filtre serveur de mission ; refus attendu pour client ordinaire. |
 | R-K-03-A | P1 | Défauts corrigés et testés en émulateur | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Autorité GPS et refus missions terminales/profils non approuvés uniquement ; fermeture approuvée en H. |
 | R-K-03-B | P1 | Défauts d’atomicité et de nettoyage GPS corrigés et testés localement | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Rapport GPS, fin/compensation/nettoyage tardif de A ne libèrent plus l’assignation B dans les scénarios locaux validés. |
@@ -48,10 +49,13 @@ Alias : R-K-02 = P1-M-01 ; R-K-03 parent des sous-cas A/B/C (pas quatrième comp
 | GAP-S-04 | P2 | Suspension ordinaire / urgente | FERMÉ — PÉRIMÈTRE LOCAL/ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Suspension ordinaire conserve les missions déjà assignées sous contrôle, urgente refuse transitions et GPS ; escalation admin, audit, réactivation et préservation hors ligne testés. |
 | P1-WEBHOOK-01 | P1 | Concurrence de webhooks Stripe corrigée localement | FERMÉ — PÉRIMÈTRE CONCURRENCE ÉMULATEUR VALIDÉ — NON DÉPLOYÉ | Verrou transactionnel temporaire par event.id, attente/503 retryable sur traitement en cours ; une seule écriture d'audit lors des doublons simultanés forcés ; reprises après échec testées ; crash physique non certifié. |
 
-| P1-BOOKING-CONFIG-01 | P1 | Prérequis de mise en service, pas un défaut de calcul | BLOQUÉ — CONFIGURATION MÉTIER REQUISE | Réservations/acceptations désactivées ; politique, capacités et zone absentes ; aucune capacité véhicule vérifiée. |
+| P1-BOOKING-CONFIG-01 | P1 | Prérequis de mise en service, pas un défaut de calcul | BLOQUÉ — CONFIGURATION MÉTIER REQUISE | Réservations/acceptations désactivées ; politique et capacités absentes ; zone Granby 40 km présente ; aucune capacité véhicule vérifiée enregistrée. |
 | P2-BOOKING-TIMING-01 | P2 | Choix immédiat absent, corrigé et testé localement | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Choix explicite dès maintenant/programmée, conservation du brouillon et devis invalidé lors du changement ; aucun horaire ni tarif inventé. |
 
 | P2-AUTH-LOGOUT-01 | P2 | Retour accueil apres deconnexion publique | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Navigation apres signOut et erreur localisee si echec. |
+
+| P1-DISPATCH-RETRY-01 | P1 | Rejeu/concurrence du dispatch | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Un ancien événement dupliquait les offres ou réouvrait une mission ; garde transactionnelle ajoutée. |
+| P1-DRIVER-OFFER-TERMS-01 | P1 | Rémunération avant acceptation photo | VALIDÉ LOCALEMENT — NON FERMÉ — NON DÉPLOYÉ | Montant serveur présenté avant confirmation ; changement du montant ou retrait de l’offre refusé avant attribution. |
 
 ## Fiches actives
 
@@ -5016,6 +5020,25 @@ Chrome réel local et movi-k.com : coordonnées saisies, résumé sans prix ni r
 Preuves : artifacts/draft-preparation-20261016-1910/CHECKPOINT_PREPARATION_20261016.md et journaux/captures. La préparation est débloquée, mais le devis officiel et l'ouverture commerciale restent soumis à la configuration autoritative; aucune fermeture globale P1-BOOKING-CONFIG-01. 31 fiches conservées, P0 0 / P1 1 / P2 2; 1.3L toujours bloqué/reporté. Sauvegarde Git locale ciblée autorisée, aucun push ni merge.
 
 
+### 2026-10-16, 19:56 UTC — Reprise et qualification des prérequis devis
+Lecture directe : booking_capacity et booking_policy toujours absents, quatre flags false, zone Granby 40 km et pointeur MOVIK-PILOT-20261016-001 présents. Huit véhicules, aucune capacité vérifiée enregistrée. Manifestes publics identiques au checkpoint (bundle non rehaché ici). Trace statique : recommendPhoto bloque sur politique/mapping/profils de capacité et seuils avant calculateDeliveryQuote; les véhicules réels sont contrôlés séparément à l'assignation. Poids inconnu produit actuellement isHeavyItem=false; cette logique ne constitue pas une approbation commerciale du traitement du supplément lourd.
+126 tests serveur simulés réexécutés, 126 réussis / 0 échoué / 0 ignoré, garde réseau loopback. Aucun code produit changé, aucune écriture cloud, aucun devis connecté, paiement, mission, push, merge, commit ou déploiement. Travaux préexistants préservés. Aucun défaut technique nouveau démontré; décision commerciale et configurations restent nécessaires. P1-BOOKING-CONFIG-01 ouvert, 1.3L bloqué/reporté, aucune fermeture. Preuves : artifacts/quote-resume-20261016-2000/CHECKPOINT_REPRISE_DEVIS_20261016.md et JSON associés.
+
+
+## Addendum du 16 octobre 2026 — parcours photo / offre chauffeur
+
+Branche actuelle feature/photo-assisted-booking-20261015, HEAD 75a6803246db3f7e8e610b3900e46c49b2fd228b, index vide. Deux nouvelles fiches ouvertes : P1-DISPATCH-RETRY-01 et P1-DRIVER-OFFER-TERMS-01. Décompte : 33 fiches, 28 fermées historiquement, P0 0 / P1 3 / P2 2 non fermées. Aucune fermeture nouvelle.
+
+- Dispatch : 8 échecs initiaux reproduits en émulateur (doublons, événements concurrents/tardifs, mission absente). Transaction relisant le statut courant et l’absence de chauffeur avant offres/notifications/statut. Push après commit seulement ; livraison push sous crash non certifiée.
+- Rémunération : 3 échecs serveur initiaux, 2 Flutter ; affichage initial à zéro et absence de confirmation du montant. Calcul existant extrait sans changement dans driverOfferCompensation ; prévisualisation transactionnelle en lecture seule, affichage FR/EN/ES, montant attendu revérifié à l’acceptation. Offre retirée après aperçu : échec supplémentaire reproduit puis corrigé. La nouvelle garde de confirmation concerne les appels fournissant expectedDriverOfferMinor ; les anciens clients conservent leur contrat.
+- Résultats finaux distincts : 449 tests unitaires serveur, 93 tests d’intégration en émulateur, 49 tests Flutter réussis ; aucun échec ni ignoré. Ne pas additionner les exécutions intermédiaires recouvrantes ni les 201 tests historiques. TypeScript, lint source, Flutter analyze intégral, format Dart et build Web local réussis. Échecs initiaux/intermédiaires conservés.
+- Intégrité en cents vérifiée entre devis, mission, snapshot et FakePaymentProvider ; aucune preuve Stripe réelle revendiquée. Moteur tarifaire, taxes, money, quoteIntegrity et sources payment inchangés par rapport à l’entrée de cette intervention. La logique de rémunération déplacée est textuellement identique hors espaces.
+- P1-BOOKING-CONFIG-01 reste BLOQUÉ : politique/capacités photo absentes, règle lourd avec poids inconnu à décider, capacités physiques réelles à vérifier, flags fermés. La zone Granby et la grille approuvée existent. Archives des fonctions publiées examinées : les dépendances booking/bookingServer de createDeliveryRequest, dispatch et acceptDelivery restent antérieures au contrat photo ; publication coordonnée à préparer après approbation, jamais effectuée ici.
+- Test cartographique autonome 1.3L toujours BLOQUÉ ET REPORTÉ. Aucun push, merge, commit, déploiement, écriture cloud, notification réelle, mission ou paiement réel. Changements antérieurs conservés.
+
+Preuve détaillée et commandes : artifacts/journey-completion-20261016-2005/CHECKPOINT_PARCOURS_20261016.md ; summary.json, integration-final/integration.json, unit.json, flutter-verified-v4.jsonl, journaux de compilation/analyse et published-comparison.json. Lectures de configuration : artifacts/quote-resume-20261016-2000/current-state.json.
+
+
 ## Décision du 17 octobre 2026 — retrait de l’option objet lourd
 
 Le propriétaire demande puis confirme la suppression du supplément de 10 CAD pour les nouveaux devis et autorise le push Git. Correction locale validée : nouveaux devis neutralisent le flag lourd, seuil tarifaire lourd retiré des prérequis ; autres frais et contrôles physiques préservés. Devis historiques, versions tarifaires stockées et moteur historique inchangés. Aucune nouvelle confirmation client « lourd » ajoutée. Décision commerciale antérieure sur poids inconnu résolue par suppression du supplément. Les autres prérequis restent bloquants ; aucune fermeture. Voir docs/audit/RETRAIT_OPTION_LOURD_20261017.md pour preuves et portée du commit. Aucun déploiement ni paiement réel.
@@ -5097,3 +5120,34 @@ Le sélecteur Web réglé à qualité 100 réencodait à pleine résolution avan
 
 ### 2026-10-20T23:34:19.104Z — Publication du correctif photo mobile
 Poursuite du correctif photo autorisé par « Pouse sur movi-k et donne moi le lien », après le nouveau signalement. Source 0b087ba2cd0fa18516b10c94561bcc89ef0c8c6b, Vercel dpl_HpJFQ8XLbFtGktXV62HEHK6782wT, identifiant photo-import-mobile-v2. Deux domaines contrôlés : bundle SHA256 2434e5e6a5c72112c4ff3685f79a44115cb7facd3f1bc0a4e3020761a67b7659, route HTTP 200. Build production réussi ; 38 tests Flutter et 16 cas Chrome réels réutilisés, non additionnés aux exécutions précédentes. Rapport PHOTO_IMPORT_MOBILE_20261020.md. Aucun backend, paiement, push Git ou merge. Validation sur téléphone physique encore à obtenir : incident non clos ; décompte historique et P1-BOOKING-CONFIG-01 inchangés.
+## 17 octobre 2026 — reprise du devis photo
+P2-QUOTE-RECOVERY-01 : absence de confirmation directement à Mon prix, messages redondants et relance de disponibilité sans relance de la revue. Reproduction valide : 1 test réussi, 11 échecs. Correction locale : confirmation/catégorie modifiables à Mon prix, appel bloqué avant confirmation, vraie relance reviewDeliveryLoad après confirmation, erreurs regroupées FR/EN/ES, retour aux détails et préparation du brouillon préservés. Aucun contournement serveur.
+Validation : 73 scénarios Flutter distincts réussis (72 en régression, suite ciblée finale 13 remplaçant ses 12 scénarios précédents), zéro échec final/ignoré ; analyze intégral, format, build Web local et diff check réussis. Erreurs initiales du harnais et sélecteur Chrome conservées, non comptées comme défauts produit.
+Chrome public reproduit le refus. Chrome sur build local, avec revue serveur réelle : confirmation conservée, object_confirmation_required disparaît, restent photo_policy_unconfigured / capacity_unconfigured / photo_category_unconfigured ; HTTP 200, review_required, aucun snapshot. Brouillon conservé après coordonnées/rafraîchissement ; captures desktop/tablette/mobile. Aucun devis officiel obtenu, aucune validation financière réelle.
+Lecture cloud : booking_capacity et booking_policy absents ; quatre flags fermés ; grille MOVIK-PILOT-20261016-001 et zone Granby 40 km présentes ; huit véhicules, aucune capacité vérifiée enregistrée au contrat actuel. Les profils de référence pour le devis sont distincts de la vérification physique de chaque véhicule avant assignation. Aucun seuil ou mapping inventé.
+Production inchangée : bundle 00401a108c56873c5fd69019ea2251e6720f336eee8f2c26b3145033ae2af464, draft-preparation-unblocked-v1. Retrait lourd déjà poussé sous 10179e0, non déployé. Aucun nouveau commit/push/merge/déploiement ici. Données de test temporaires nettoyées ; aucune configuration métier, mission, paiement ou offre réelle écrite.
+34 fiches conservées, 28 fermées historiquement ; P0 0 / P1 3 / P2 3. Aucune fermeture. P1-BOOKING-CONFIG-01 reste bloqué ; 1.3L BLOQUÉ ET REPORTÉ.
+Preuves : artifacts/quote-recovery-20261017-1355/CHECKPOINT_DEVIS_20261017.md, CONFIGURATIONS_REQUISES.md, test-summary.json, current-state.json, versions.json, public-signed-result.json et local-v2-signed-result.json.
+
+## 18 octobre 2026 — conditions contractuelles avant confirmation (local)
+
+P1-BOOKING-CONFIG-01 reste BLOQUÉ. Lecture cloud réelle à 14:23:39 UTC : booking_policy absent et quatre flags opérationnels false. Aucune écriture cloud. Grille approuvée MOVIK-PILOT-20261016-001 et retrait lourd conservés ; aucun texte d'annulation, montant ou délai inventé.
+
+Cause technique reproduite : accepted=true avec la seule version de politique pouvait créer la demande sans identifier les versions des trois documents ni leur contenu. Reproduction émulateur initiale : 1 réussi / 1 échec attendu. Correction : contrat complet/versionné/haché, relecture transactionnelle, contrôle serveur de l'acceptation et de toutes les versions ; archivage intégral avec date serveur/client/réservation. Confidentialité présentée et marketing distingués de l'acceptation contractuelle. Configuration incomplète toujours fermée.
+
+UI locale : conditions visibles au récapitulatif, services/options officiels dépliés, documents consultables sans perdre le brouillon, acceptation invalide après changement de conditions/devis/langue. Bouton décrit une demande sans chauffeur assigné ni prélèvement à ce clic. Récapitulatif historique propriétaire, téléchargeable/imprimable sur Web ; anciennes réservations sans archive signalées sans substitution des conditions actuelles. Changement entre deux reçus : défaut de cache reproduit puis corrigé, test dédié réussi.
+
+Validation distincte finale : 181 tests Flutter, 45 tests d'intégration sur émulateurs et 14 unitaires serveur réussis ; aucun échec final ni ignoré. Les exécutions recouvrantes ne sont pas additionnées. Erreurs initiales/intermédiaires conservées, y compris harnais réseau/photo, focus/sémantique et fixtures de langue. Analyse Flutter intégrale sans anomalie, TypeScript/lint source/format Dart/diff check/build Web local réussis. Comparaison à l'entrée : aucune modification supplémentaire des 13 sources financières protégées inspectées.
+
+Captures Flutter des vrais widgets avec services et textes de test ; Chrome réel limité au rendu et à l'impression PDF du récapitulatif synthétique, sans requête externe. Aucun Stripe réel/Sandbox, parcours public nouvellement déployé, lecteur d'écran physique ni transaction réelle validés. L'intégrité en cents est vérifiée avec FakePaymentProvider, jamais présentée comme preuve Stripe.
+
+Documents et décisions : docs/BOOKING_TERMS.md ; config/booking_policy.template.json reste approved=false, textes vides, URL null. Approbation commerciale des trois documents et des règles paiement/annulation encore nécessaire. Migration legacy require_booking_details=true à vérifier avant ouverture ; aucun drapeau modifié. Prérequis devis/capacité indépendants inchangés.
+
+Branche dédiée feature/booking-terms-20261018, HEAD 10179e0e181c6373d3173177b5a0fa297da87b17, index vide. Changements préexistants et autres worktrees préservés. Aucun commit, push, merge, déploiement ou transaction dans cette intervention.
+34 fiches conservées, 28 fermées historiquement ; P0 0 / P1 3 / P2 3. Aucune fermeture. 1.3L reste BLOQUÉ ET REPORTÉ.
+Preuves : artifacts/booking-terms-20261018-1430/CHECKPOINT_CONDITIONS_20261018.md, final-tests.json, git-final.json, source-final.json et captures.
+
+## 19 octobre 2026 — effectif mobilisable à l'inscription chauffeur
+Demande produit de Daniel : choix de 1 à 5 personnes, chauffeur compris, à la place de l'interrupteur d'aide. Nombre maximal déclaratif, disponibilité variable selon réservation/agenda explicitée ; aucun ajout au formulaire client. Champ max_loading_team_size conservé dans le profil et le repository ; anciens profils sans effectif restent inconnus. Aucun tarif, calcul financier, règle serveur ou matching modifié.
+Test initial échoué puis 19 tests locaux réussis / 0 échec / 0 ignoré ; FR/EN/ES, mobile 200 %, desktop, inscription simulée, sérialisation et compatibilité historique. Analyse Flutter complète et diff check réussis. Aucune preuve de production ni écriture cloud ; aucun commit/push/merge/déploiement. Aucune fermeture de fiche ; P1-BOOKING-CONFIG-01 et 1.3L restent dans leurs états antérieurs.
+Preuves : artifacts/driver-loading-team-20261019/CHECKPOINT_EQUIPE_CHAUFFEUR.md et results.json. Changements locaux préexistants conservés.

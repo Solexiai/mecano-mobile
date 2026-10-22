@@ -9,6 +9,7 @@
 // -----------------------------------------------------------------------------
 
 // ---- Onboarding / documents chauffeur ----
+export { reviewDriverVehicle } from './functions/reviewDriverVehicle';
 export { approveDriver } from "./functions/approveDriver";
 export { rejectDriver } from "./functions/rejectDriver";
 export { validateDriverDocument } from "./functions/validateDriverDocument";
@@ -103,3 +104,8 @@ export {maintainDriverCalendars,retryDriverCalendarSync,exportDriverCalendar} fr
 export {previewDriverAvailability} from './functions/driverAgendaPreview';
 
 export {verifyDriverServiceBase} from './functions/verifyDriverServiceBase';
+
+// Photo suggestions only; disabled without explicit server configuration.
+export { analyzeBookingPhoto } from './functions/analyzeBookingPhoto';
+
+export { getBookingReceipt } from './functions/bookingReceipt';

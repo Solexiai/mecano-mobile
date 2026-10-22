@@ -1,3 +1,4 @@
+import { parseBookingPolicy } from './bookingContract';
 import { db } from './admin';
 import { validateBookingPhotos } from './bookingPhotoValidation';
 import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, normalizeLoad, recommend } from './booking';
@@ -29,17 +30,9 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   return { review: { ...review, status: reasons.length ? 'review_required' : 'ready', reasons, snapshot: reasons.length ? null : review.snapshot }, rules };
 }
 
-export interface BookingPolicy {
-  approved: boolean; version: string; terms_url: string; privacy_url: string;
-  cancellation_text: Record<string, string>; payment_text: Record<string,string>;
-  setup_enabled: boolean;
-}
-export async function getBookingPolicy(): Promise<BookingPolicy | null> {
-  const p = (await db.doc('system_config/booking_policy').get()).data() as BookingPolicy | undefined;
-  const url = (x: unknown) => typeof x === 'string' && /^https:\/\/[^\s]+$/.test(x);
-  if (!p?.approved || !p.version || !url(p.terms_url) || !url(p.privacy_url) ||
-    !p.cancellation_text?.fr?.trim() || !p.payment_text?.fr?.trim()) return null;
-  return p;
+export { BookingPolicy } from './bookingContract';
+export async function getBookingPolicy() {
+  return parseBookingPolicy((await db.doc('system_config/booking_policy').get()).data());
 }
 
 /** Reads vehicle documents INSIDE assignment transactions. Verified capacity is

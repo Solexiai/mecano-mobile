@@ -2151,9 +2151,9 @@ class AppStrings {
       'es': 'Tipos de artículos aceptados',
     },
     'driver_onboarding_loading_assistance': {
-      'fr': 'Aide au chargement disponible',
-      'en': 'Loading assistance available',
-      'es': 'Ayuda de carga disponible',
+      'fr': 'Je suis disponible pour aider au chargement et au déchargement',
+      'en': 'I’m available to help load and unload items',
+      'es': 'Estoy disponible para ayudar a cargar y descargar objetos',
     },
     'driver_onboarding_hourly_rate': {
       'fr': 'Tarif horaire (\$)',

@@ -1,3 +1,4 @@
+import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 import { startBookingCardSetup, getBookingCardStatus } from '../../src/functions/bookingCardSetup';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
 import { FakePaymentProvider } from '../testUtils/fakePaymentProvider';
@@ -21,11 +22,11 @@ const capacity={category:'cargo_van',rank:1,version:'TEST-ONLY',verified:true,le
 const snapshot={load:normalizeLoad(load),rules_version:'TEST-ONLY',category:'cargo_van',capacity_version:'TEST-ONLY'};
 const stops=[{type:'pickup',address:{line1:'Test pickup',city:'Test city',postal_code:'T0T0T0',lat:45.5,lng:-73.6}},{type:'dropoff',address:{line1:'Test dropoff',city:'Test city',postal_code:'T0T0T0',lat:45.6,lng:-73.7}}];
 const contacts={pickup_name:'Test pickup',pickup_phone:'+15145550100',dropoff_name:'Test recipient',dropoff_phone:'+15145550101',instructions:''};
-const input={quoteId:id,booking:load,contacts,consent:{terms_version:'TEST-ONLY',accepted:true,marketing:false},requiredVehicleCategory:'cargo_van',stops,itemCategoryKey:'forged',description:'forged',customerDisplayName:'Test'};
+const input={quoteId:id,booking:load,contacts,consent:testBookingConsent('TEST-ONLY'),requiredVehicleCategory:'cargo_van',stops,itemCategoryKey:'forged',description:'forged',customerDisplayName:'Test'};
 beforeEach(async()=>{
  process.env.APP_PUBLIC_BASE_URL='https://booking-test.example.invalid';
  await seedDefaultRuntimeFlagsEnabled();
- await db.doc('system_config/booking_policy').set({approved:true,version:'TEST-ONLY',terms_url:'https://example.invalid/terms',privacy_url:'https://example.invalid/privacy',cancellation_text:{fr:'TEST ONLY'},payment_text:{fr:'TEST ONLY'},setup_enabled:true});
+ await db.doc('system_config/booking_policy').set(testBookingPolicy('TEST-ONLY'));
  await db.doc('system_config/booking_capacity').set({approved:true,version:'TEST-ONLY',capacities:[capacity],heavy_item_kg:50,bulky_item_cm:150,require_booking_details:true});
  await db.doc('system_config/service_zones').set({enabled:true,zones:[{name:'TEST ONLY',min_lat:45,max_lat:46,min_lng:-74,max_lng:-73}]});
  await db.doc(`payment_profiles/${uid}`).set(buildFakePaymentProfile(uid));
@@ -97,7 +98,7 @@ test('hosted setup retry reuses its session; interrupted authentication never ma
  const pending={id:'cs_test_booking',url:'https://checkout.stripe.com/test',complete:false,customerId:profile.provider_customer_id,paymentMethodId:null,livemode:false,quoteId:id,userId:uid};
  const create=jest.spyOn(provider,'createCardSetup').mockResolvedValue(pending);
  const retrieve=jest.spyOn(provider,'getCardSetup').mockResolvedValue(pending);
- const params={quoteId:id,termsVersion:'TEST-ONLY',accepted:true,locale:'fr'};
+ const params={quoteId:id,consent:testBookingConsent(),locale:'fr'};
  expect((await startBookingCardSetup.run(request(params))).ready).toBe(false);
  await startBookingCardSetup.run(request(params));expect(create).toHaveBeenCalledTimes(1);
  expect((await getBookingCardStatus.run(request({quoteId:id}))).ready).toBe(false);

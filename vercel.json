@@ -4,8 +4,7 @@
     "deploymentEnabled": {
       "fix/quote-mission-payment-integrity": false,
       "feat/phase8-readiness": false,
-      "feat/homepage-clarity": false,
-      "fix/quote-before-driver-release-20261019": false
+      "feat/homepage-clarity": false
     }
   },
   "buildCommand": "bash scripts/vercel_build.sh",
