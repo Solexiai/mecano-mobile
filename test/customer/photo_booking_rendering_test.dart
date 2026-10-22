@@ -184,10 +184,19 @@ void main() {
       expect(draft.quote, isNotNull);
     },
   );
-  testWidgets('special item shows details without promising an ordinary quote', (
+  testWidgets('removed special-item panel preserves recorded constraints', (
     tester,
   ) async {
-    final value = item()..['special_handling'] = true;
+    final value = item()
+      ..['special_handling'] = true
+      ..['length'] = 120
+      ..['width'] = 60
+      ..['height'] = 90
+      ..['weight'] = 25
+      ..['handling_notes'] = 'Fixture: fragile'
+      ..['approximate'] = true
+      ..['upright'] = true;
+    final before = Map<String, dynamic>.from(value);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -206,17 +215,19 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Précisions sur l’objet'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('photo-test-item-length')),
-      findsOneWidget,
-    );
+    expect(find.text('Précisions sur l’objet'), findsNothing);
+    expect(find.byKey(const ValueKey('photo-test-item-length')), findsNothing);
     expect(
       find.text(
         'Pour cet objet, précisez les dimensions et la manutention. Le poids peut rester inconnu.',
       ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('photo-confirm-test-item')),
       findsOneWidget,
     );
+    expect(value, equals(before));
     expect(tester.takeException(), isNull);
   });
 }
