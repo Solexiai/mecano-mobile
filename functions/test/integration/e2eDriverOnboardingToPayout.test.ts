@@ -307,6 +307,10 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       driverSnap = await db.collection("driver_profiles").doc(DRIVER_ID).get();
       expect(driverSnap.data()!.status).toBe(DriverStatuses.PENDING_REVIEW);
 
+      // Resoumission (ex. retry après une erreur réseau) : idempotente.
+      const resubmit = await submitDriverForReview.run(buildRequest(DRIVER_ID, undefined, ["driver"]));
+      expect(resubmit).toMatchObject({ success: true, status: DriverStatuses.PENDING_REVIEW, alreadyPending: true });
+
       // ---- 5. Analyste approuve le chauffeur ----
       const approveResult = await approveDriver.run(
         buildRequest<ApproveDriverRequest>(ANALYST_ID, { driverId: DRIVER_ID }, ["analyst"])

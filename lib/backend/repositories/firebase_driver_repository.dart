@@ -92,42 +92,39 @@ class FirebaseDriverRepository implements DriverRepository {
     }
   }
 
+  /// Champs que le chauffeur déclare lui-même. Doit rester identique à
+  /// `driverDeclaredFields()` dans firestore.rules (SEC-S2) : tout autre
+  /// champ (statut, vérifications, adresse vérifiée, compte Stripe…) est
+  /// réservé aux Cloud Functions.
+  static Map<String, dynamic> declaredOnboardingFields(DriverProfileV2 p) {
+    final json = p.toJson();
+    const keys = [
+      'full_name',
+      'city',
+      'phone',
+      'base_address_formatted',
+      'base_address_line1',
+      'base_region',
+      'base_postal_code',
+      'base_country',
+      'base_place_id',
+      'base_lat',
+      'base_lng',
+      'spoken_languages',
+      'loading_assistance_available',
+      'service_radius_km',
+      'accepted_vehicle_categories',
+      'accepted_item_category_keys',
+      'max_loading_team_size',
+    ];
+    return {
+      for (final k in keys)
+        if (json.containsKey(k)) k: json[k],
+    };
+  }
+
   @override
   Future<void> submitDriverOnboarding(DriverProfileV2 profile) async {
-    final safeStatus =
-        (profile.status == DriverStatus.approved ||
-            profile.status == DriverStatus.rejected ||
-            profile.status == DriverStatus.suspended)
-        ? DriverStatus.registrationIncomplete
-        : profile.status;
-
-    // Conserver tous les champs déclaratifs du nouveau wizard tout en
-    // réinitialisant les champs sensibles à leurs valeurs sûres. L'ancienne
-    // version reconstruisait le modèle en perdant notamment téléphone,
-    // adresse structurée, langues et disponibilité d'aide au chargement.
-    final safeProfile = DriverProfileV2(
-      uid: profile.uid,
-      fullName: profile.fullName,
-      city: profile.city,
-      phone: profile.phone,
-      baseAddressFormatted: profile.baseAddressFormatted,
-      baseAddressLine1: profile.baseAddressLine1,
-      baseRegion: profile.baseRegion,
-      basePostalCode: profile.basePostalCode,
-      baseCountry: profile.baseCountry,
-      basePlaceId: profile.basePlaceId,
-      baseLat: profile.baseLat,
-      baseLng: profile.baseLng,
-      spokenLanguages: profile.spokenLanguages,
-      loadingAssistanceAvailable: profile.loadingAssistanceAvailable,
-      maxLoadingTeamSize: profile.maxLoadingTeamSize,
-      status: safeStatus,
-      serviceRadiusKm: profile.serviceRadiusKm,
-      acceptedVehicleCategories: profile.acceptedVehicleCategories,
-      acceptedItemCategoryKeys: profile.acceptedItemCategoryKeys,
-      createdAt: profile.createdAt,
-    );
-
     try {
       await _functions.httpsCallable('registerAsDriver').call();
 
@@ -136,9 +133,25 @@ class FirebaseDriverRepository implements DriverRepository {
         await currentUser.getIdTokenResult(true);
       }
 
-      await _driverProfiles
-          .doc(profile.uid)
-          .set(safeProfile.toJson(), SetOptions(merge: true));
+      // Création : statut initial + champs déclarés. Resoumission : SEULEMENT
+      // les champs déclarés. L'ancienne version réécrivait tout le profil
+      // (statut, approved_at, compte Stripe à null…) : les règles refusaient
+      // donc toute resoumission, et sans elles le compte de versement Stripe
+      // du chauffeur aurait été effacé.
+      final ref = _driverProfiles.doc(profile.uid);
+      final declared = declaredOnboardingFields(profile);
+      final existing = await ref.get();
+      if (existing.exists) {
+        await ref.update(declared);
+      } else {
+        await ref.set({
+          ...declared,
+          'uid': profile.uid,
+          'status': DriverStatus.registrationIncomplete.firestoreValue,
+          'online_status': DriverOnlineStatus.offline.firestoreValue,
+          'created_at': profile.createdAt.toIso8601String(),
+        });
+      }
     } on FirebaseFunctionsException catch (e) {
       throw BackendNotConfiguredException(
         'submitDriverOnboarding: registerAsDriver a échoué (${e.code}): ${e.message}',

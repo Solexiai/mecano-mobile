@@ -87,6 +87,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   bool _agreedTerms = false;
   bool _pickingDocument = false;
   bool _submitting = false;
+  // Stable across retries: a failed later step (documents, review) must not
+  // create a second vehicle on the next attempt.
+  String? _vehicleId;
   bool _submitted = false;
   bool _authSeeded = false;
   String? _submitError;
@@ -871,7 +874,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         _modelController.text.trim(),
       ].where((part) => part.isNotEmpty).join(' ');
       final vehicle = DriverVehicle(
-        id: const Uuid().v4(),
+        id: _vehicleId ??= const Uuid().v4(),
         driverId: uid,
         category: category,
         makeModel: makeModel,
