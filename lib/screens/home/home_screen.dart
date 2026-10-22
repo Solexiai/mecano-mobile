@@ -98,40 +98,40 @@ class _Hero extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // The quote card sits under the CTA buttons so the left
+                  // column does not leave an empty area beside the card.
                   Expanded(
                     flex: 5,
-                    child: _HeroCopy(quote: quote, driver: driver),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HeroCopy(quote: quote, driver: driver),
+                        const SizedBox(height: 24),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 430),
+                          child: _QuoteCard(onTap: quote),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(width: 32),
                   Expanded(
                     flex: 6,
-                    child: Column(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(28),
-                          child: AspectRatio(
-                            aspectRatio: 524 / 350,
-                            child: Image.asset(
-                              _heroAsset(locale),
-                              fit: BoxFit.cover,
-                              alignment: Alignment.centerRight,
-                              filterQuality: FilterQuality.high,
-                              semanticLabel: HomeCopy.text(
-                                'hero_scene_label',
-                                locale,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Align(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: AspectRatio(
+                        aspectRatio: 524 / 350,
+                        child: Image.asset(
+                          _heroAsset(locale),
+                          fit: BoxFit.cover,
                           alignment: Alignment.centerRight,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 430),
-                            child: _QuoteCard(onTap: quote),
+                          filterQuality: FilterQuality.high,
+                          semanticLabel: HomeCopy.text(
+                            'hero_scene_label',
+                            locale,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -242,14 +242,14 @@ class _HeroCopy extends StatelessWidget {
   }
 }
 
+/// Mobile hero scene and quote card. The desktop hero (width >= 980) is laid
+/// out directly in [_Hero] with Row/Column and no Positioned (P1-HOME-001).
 class _HeroRight extends StatelessWidget {
   final VoidCallback quote;
   const _HeroRight({required this.quote});
 
   @override
   Widget build(BuildContext context) {
-    final desktop = MediaQuery.sizeOf(context).width >= 980;
-
     final locale = context.watch<LocaleProvider>().locale;
     final scene = Semantics(
       image: true,
@@ -268,26 +268,11 @@ class _HeroRight extends StatelessWidget {
       ),
     );
 
-    if (!desktop) {
-      return Column(
-        children: [
-          scene,
-          const SizedBox(height: 14),
-          _QuoteCard(onTap: quote),
-        ],
-      );
-    }
-
-    return Stack(
-      clipBehavior: Clip.none,
+    return Column(
       children: [
         scene,
-        Positioned(
-          left: 70,
-          right: 14,
-          bottom: -42,
-          child: _QuoteCard(onTap: quote),
-        ),
+        const SizedBox(height: 14),
+        _QuoteCard(onTap: quote),
       ],
     );
   }
