@@ -59,11 +59,74 @@ class _FakeImagePicker extends ImagePickerPlatform {
   int calls = 0;
 
   static final Uint8List _png = Uint8List.fromList(const [
-    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
-    0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0, 181, 28, 12, 2, 0,
-    0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 100, 248, 15, 0, 1, 5,
-    1, 1, 39, 24, 227, 102, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66,
-    96, 130,
+    137,
+    80,
+    78,
+    71,
+    13,
+    10,
+    26,
+    10,
+    0,
+    0,
+    0,
+    13,
+    73,
+    72,
+    68,
+    82,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    8,
+    4,
+    0,
+    0,
+    0,
+    181,
+    28,
+    12,
+    2,
+    0,
+    0,
+    0,
+    11,
+    73,
+    68,
+    65,
+    84,
+    120,
+    218,
+    99,
+    100,
+    248,
+    15,
+    0,
+    1,
+    5,
+    1,
+    1,
+    39,
+    24,
+    227,
+    102,
+    0,
+    0,
+    0,
+    0,
+    73,
+    69,
+    78,
+    68,
+    174,
+    66,
+    96,
+    130,
   ]);
 
   @override
@@ -98,16 +161,6 @@ class _FakeDriverDocumentUploadRepository
 }
 
 class _FakeDriverRepository implements DriverRepository {
-  // Interface compatibility with the already published vehicle repository.
-  @override
-  Future<void> reviewDriverVehicle({
-    required DriverVehicle vehicle,
-    required bool approve,
-    Map<String, dynamic>? capacity,
-    DateTime? validUntil,
-    required String note,
-  }) => throw UnimplementedError();
-
   DriverProfileV2? profile;
 
   // Volontairement NON-broadcast (single-subscription) — voir en-tête.
@@ -171,10 +224,12 @@ class _FakeDriverRepository implements DriverRepository {
     lastOnlineValue = online;
     final current = profile;
     if (current != null) {
-      advanceTo(_withOnlineStatus(
-        current,
-        online ? DriverOnlineStatus.online : DriverOnlineStatus.offline,
-      ));
+      advanceTo(
+        _withOnlineStatus(
+          current,
+          online ? DriverOnlineStatus.online : DriverOnlineStatus.offline,
+        ),
+      );
     }
   }
 
@@ -194,33 +249,55 @@ class _FakeDriverRepository implements DriverRepository {
   Future<void> submitDriverDocument(DriverDocument document) async {
     submittedDocuments.add(document);
   }
+
   @override
-  Future<void> submitDriverOnboarding(DriverProfileV2 profile) => throw UnimplementedError();
-  @override
-  Future<void> submitDriverVehicle(DriverVehicle vehicle) => throw UnimplementedError();
-  @override
-  Stream<List<DriverProfileV2>> watchPendingReviewDrivers() => throw UnimplementedError();
-  @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status, {int limit = 50}) =>
+  Future<void> submitDriverOnboarding(DriverProfileV2 profile) =>
       throw UnimplementedError();
+  @override
+  Future<void> submitDriverVehicle(DriverVehicle vehicle) =>
+      throw UnimplementedError();
+  @override
+  Stream<List<DriverProfileV2>> watchPendingReviewDrivers() =>
+      throw UnimplementedError();
+  @override
+  Stream<List<DriverProfileV2>> watchDriversByStatus(
+    DriverStatus? status, {
+    int limit = 50,
+  }) => throw UnimplementedError();
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) => throw UnimplementedError();
+
   @override
   Future<void> approveDriver(String driverId) => throw UnimplementedError();
   @override
-  Future<void> rejectDriver(String driverId, String reason) => throw UnimplementedError();
+  Future<void> rejectDriver(String driverId, String reason) =>
+      throw UnimplementedError();
   @override
   Future<void> requestDriverDocuments(String driverId, String reason) =>
       throw UnimplementedError();
   @override
-  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) => throw UnimplementedError();
+  Future<void> suspendDriver(
+    String driverId,
+    String reason, {
+    String suspensionMode = 'urgent',
+  }) => throw UnimplementedError();
   @override
   Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
   @override
-  Future<void> addDriverInternalNote(String driverId, String text) => throw UnimplementedError();
+  Future<void> addDriverInternalNote(String driverId, String text) =>
+      throw UnimplementedError();
   @override
   Stream<List<DriverInternalNote>> watchDriverInternalNotes(String driverId) =>
       throw UnimplementedError();
   @override
-  Future<void> logDriverReviewOpened(String driverId) => throw UnimplementedError();
+  Future<void> logDriverReviewOpened(String driverId) =>
+      throw UnimplementedError();
   @override
   Future<DriverStripeAccountResult> createOrRetrieveDriverStripeAccount() =>
       throw UnimplementedError();
@@ -255,7 +332,10 @@ DriverProfileV2 _withStatus(DriverProfileV2 p, DriverStatus status) {
   );
 }
 
-DriverProfileV2 _withOnlineStatus(DriverProfileV2 p, DriverOnlineStatus onlineStatus) {
+DriverProfileV2 _withOnlineStatus(
+  DriverProfileV2 p,
+  DriverOnlineStatus onlineStatus,
+) {
   return DriverProfileV2(
     uid: p.uid,
     fullName: p.fullName,
@@ -335,7 +415,9 @@ Finder _outlinedButtonWithText(String text) {
 /// Idem pour retrouver N'IMPORTE QUEL `ElevatedButton` visible (utilisé
 /// pour localiser le bouton en état `busy`, une fois son texte remplacé
 /// par un spinner).
-final Finder _anyElevatedButton = find.byWidgetPredicate((w) => w is ElevatedButton);
+final Finder _anyElevatedButton = find.byWidgetPredicate(
+  (w) => w is ElevatedButton,
+);
 
 Widget _buildTestApp(FirebaseAuthProvider auth) {
   final router = GoRouter(
@@ -347,7 +429,8 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
       ),
       GoRoute(
         path: '/fr/devenir-chauffeur/inscription',
-        builder: (context, state) => const Scaffold(body: Text('REGISTRATION_STUB')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('REGISTRATION_STUB')),
       ),
       GoRoute(
         path: '/fr',
@@ -390,7 +473,10 @@ void main() {
     BackendLocator.driverDocumentUploadRepositoryOverride = null;
   });
 
-  Future<void> pumpWithStatus(WidgetTester tester, DriverProfileV2 profile) async {
+  Future<void> pumpWithStatus(
+    WidgetTester tester,
+    DriverProfileV2 profile,
+  ) async {
     fakeRepo = _FakeDriverRepository(profile);
     BackendLocator.driverRepositoryOverride = fakeRepo;
     await tester.pumpWidget(_buildTestApp(auth));
@@ -398,7 +484,6 @@ void main() {
   }
 
   String t(String key) => AppStrings.t(key, 'fr');
-
 
   Future<void> selectReplacementDocument(
     WidgetTester tester,
@@ -408,10 +493,9 @@ void main() {
     await tester.ensureVisible(label);
     await tester.pump();
 
-    final row = find.ancestor(
-      of: label,
-      matching: find.byType(Container),
-    ).first;
+    final row = find
+        .ancestor(of: label, matching: find.byType(Container))
+        .first;
 
     final button = find.descendant(
       of: row,
@@ -424,9 +508,7 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 600));
 
-    final camera = find.text(
-      t('driver_onboarding_document_source_camera'),
-    );
+    final camera = find.text(t('driver_onboarding_document_source_camera'));
     expect(camera, findsOneWidget);
     await tester.ensureVisible(camera);
     await tester.pump(const Duration(milliseconds: 100));
@@ -436,90 +518,148 @@ void main() {
   }
 
   group('registrationIncomplete', () {
-    testWidgets('affiche le statut, le message et le CTA "compléter inscription" uniquement',
-        (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.registrationIncomplete));
+    testWidgets(
+      'affiche le statut, le message et le CTA "compléter inscription" uniquement',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.registrationIncomplete),
+        );
 
-      expect(find.text(t('driver_status_registration_incomplete')), findsOneWidget);
-      expect(find.text(t('driver_status_registration_incomplete_message')), findsOneWidget);
-      expect(_elevatedButtonWithText(t('driver_status_complete_registration')),
-          findsOneWidget);
+        expect(
+          find.text(t('driver_status_registration_incomplete')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(t('driver_status_registration_incomplete_message')),
+          findsOneWidget,
+        );
+        expect(
+          _elevatedButtonWithText(t('driver_status_complete_registration')),
+          findsOneWidget,
+        );
 
-      // Aucune action interdite à ce statut.
-      expect(_outlinedButtonWithText(t('driver_status_refresh')), findsNothing);
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-      expect(find.byType(Switch), findsNothing);
+        // Aucune action interdite à ce statut.
+        expect(
+          _outlinedButtonWithText(t('driver_status_refresh')),
+          findsNothing,
+        );
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+        expect(find.byType(Switch), findsNothing);
 
-      // Aucun appel repository tant qu'aucune action n'a été déclenchée.
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+        // Aucun appel repository tant qu'aucune action n'a été déclenchée.
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
 
-    testWidgets('tap sur le CTA navigue vers l\'inscription SANS appeler le repository',
-        (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.registrationIncomplete));
+    testWidgets(
+      'tap sur le CTA navigue vers l\'inscription SANS appeler le repository',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.registrationIncomplete),
+        );
 
-      await tester.tap(_elevatedButtonWithText(t('driver_status_complete_registration')));
-      await tester.pumpAndSettle();
+        await tester.tap(
+          _elevatedButtonWithText(t('driver_status_complete_registration')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('REGISTRATION_STUB'), findsOneWidget);
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+        expect(find.text('REGISTRATION_STUB'), findsOneWidget);
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
   });
 
   group('pendingReview', () {
-    testWidgets('affiche le statut, le message et le CTA "rafraîchir" uniquement', (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.pendingReview));
+    testWidgets(
+      'affiche le statut, le message et le CTA "rafraîchir" uniquement',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.pendingReview),
+        );
 
-      expect(find.text(t('driver_status_pending_review')), findsOneWidget);
-      expect(find.text(t('driver_status_pending_message')), findsOneWidget);
-      expect(_outlinedButtonWithText(t('driver_status_refresh')), findsOneWidget);
+        expect(find.text(t('driver_status_pending_review')), findsOneWidget);
+        expect(find.text(t('driver_status_pending_message')), findsOneWidget);
+        expect(
+          _outlinedButtonWithText(t('driver_status_refresh')),
+          findsOneWidget,
+        );
 
-      // Aucune action interdite : pas de resoumission, pas de switch online,
-      // pas de CTA d'inscription à ce statut.
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-      expect(find.byType(Switch), findsNothing);
-      expect(
+        // Aucune action interdite : pas de resoumission, pas de switch online,
+        // pas de CTA d'inscription à ce statut.
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+        expect(find.byType(Switch), findsNothing);
+        expect(
           _elevatedButtonWithText(t('driver_status_complete_registration')),
-          findsNothing);
+          findsNothing,
+        );
 
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
 
-    testWidgets('tap sur "rafraîchir" ne déclenche AUCUN appel repository (relecture locale uniquement)',
-        (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.pendingReview));
+    testWidgets(
+      'tap sur "rafraîchir" ne déclenche AUCUN appel repository (relecture locale uniquement)',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.pendingReview),
+        );
 
-      await tester.tap(_outlinedButtonWithText(t('driver_status_refresh')));
-      await tester.pumpAndSettle();
+        await tester.tap(_outlinedButtonWithText(t('driver_status_refresh')));
+        await tester.pumpAndSettle();
 
-      // Le bouton "rafraîchir" ne fait que forcer un rebuild local
-      // (setState(() {})) — le flux temps réel est déjà branché sur
-      // watchDriverProfile ; il ne doit jamais appeler submitForReview ni
-      // aucune autre action d'écriture.
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-      expect(find.text(t('driver_status_pending_review')), findsOneWidget);
-    });
+        // Le bouton "rafraîchir" ne fait que forcer un rebuild local
+        // (setState(() {})) — le flux temps réel est déjà branché sur
+        // watchDriverProfile ; il ne doit jamais appeler submitForReview ni
+        // aucune autre action d'écriture.
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+        expect(find.text(t('driver_status_pending_review')), findsOneWidget);
+      },
+    );
   });
 
   group('documentsRequired', () {
-    testWidgets('affiche le motif serveur et le CTA "resoumettre" uniquement', (tester) async {
+    testWidgets('affiche le motif serveur et le CTA "resoumettre" uniquement', (
+      tester,
+    ) async {
       await pumpWithStatus(
         tester,
         _buildProfile(
           status: DriverStatus.documentsRequired,
-          documentsRequiredReason: 'Permis de conduire illisible, merci de le re-téléverser.',
+          documentsRequiredReason:
+              'Permis de conduire illisible, merci de le re-téléverser.',
         ),
       );
 
-      expect(find.text(t('driver_status_documents_required')), findsNWidgets(2));
-      expect(find.text(t('driver_status_documents_required_message')), findsNWidgets(2));
-      expect(find.text('Permis de conduire illisible, merci de le re-téléverser.'),
-          findsOneWidget);
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsOneWidget);
+      expect(
+        find.text(t('driver_status_documents_required')),
+        findsNWidgets(2),
+      );
+      expect(
+        find.text(t('driver_status_documents_required_message')),
+        findsNWidgets(2),
+      );
+      expect(
+        find.text('Permis de conduire illisible, merci de le re-téléverser.'),
+        findsOneWidget,
+      );
+      expect(
+        _elevatedButtonWithText(t('driver_status_resubmit')),
+        findsOneWidget,
+      );
 
       expect(find.byType(Switch), findsNothing);
       expect(_outlinedButtonWithText(t('driver_status_refresh')), findsNothing);
@@ -527,183 +667,224 @@ void main() {
       expect(fakeRepo.submitForReviewCallCount, 0);
     });
 
-    testWidgets('sans motif serveur (reason vide/null) : aucun encart motif affiché',
-        (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.documentsRequired));
+    testWidgets(
+      'sans motif serveur (reason vide/null) : aucun encart motif affiché',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.documentsRequired),
+        );
 
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsOneWidget);
-      // Pas de `_ReasonBox` : on vérifie simplement l'absence de tout texte
-      // de motif résiduel d'un autre scénario.
-      expect(find.textContaining('illisible'), findsNothing);
-    });
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsOneWidget,
+        );
+        // Pas de `_ReasonBox` : on vérifie simplement l'absence de tout texte
+        // de motif résiduel d'un autre scénario.
+        expect(find.textContaining('illisible'), findsNothing);
+      },
+    );
 
-    testWidgets('tap "resoumettre" -> submitForReview() appelé exactement 1 fois -> transition pendingReview',
-        (tester) async {
-      await pumpWithStatus(
-        tester,
-        _buildProfile(
-          status: DriverStatus.documentsRequired,
-          documentsRequiredReason: 'Assurance manquante.',
-        ),
-      );
+    testWidgets(
+      'tap "resoumettre" -> submitForReview() appelé exactement 1 fois -> transition pendingReview',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.documentsRequired,
+            documentsRequiredReason: 'Assurance manquante.',
+          ),
+        );
 
-      await selectReplacementDocument(
-        tester,
-        DriverDocumentType.driversLicence,
-      );
+        await selectReplacementDocument(
+          tester,
+          DriverDocumentType.driversLicence,
+        );
 
-      final resubmitButton =
-          _elevatedButtonWithText(t('driver_status_resubmit'));
-      await tester.ensureVisible(resubmitButton);
-      await tester.pump();
+        final resubmitButton = _elevatedButtonWithText(
+          t('driver_status_resubmit'),
+        );
+        await tester.ensureVisible(resubmitButton);
+        await tester.pump();
 
-      expect(
-        tester.widget<ElevatedButton>(resubmitButton).onPressed,
-        isNotNull,
-      );
+        expect(
+          tester.widget<ElevatedButton>(resubmitButton).onPressed,
+          isNotNull,
+        );
 
-      await tester.tap(resubmitButton);
-      await tester.pumpAndSettle();
+        await tester.tap(resubmitButton);
+        await tester.pumpAndSettle();
 
-      expect(uploadRepo.calls, 1);
-      expect(fakeRepo.submittedDocuments.length, 1);
-      expect(fakeRepo.submitForReviewCallCount, 1);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-      // Le repository fake fait avancer le profil -> l'écran doit refléter
-      // le nouveau statut pendingReview en temps réel.
-      expect(find.text(t('driver_status_pending_review')), findsOneWidget);
-    });
+        expect(uploadRepo.calls, 1);
+        expect(fakeRepo.submittedDocuments.length, 1);
+        expect(fakeRepo.submitForReviewCallCount, 1);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+        // Le repository fake fait avancer le profil -> l'écran doit refléter
+        // le nouveau statut pendingReview en temps réel.
+        expect(find.text(t('driver_status_pending_review')), findsOneWidget);
+      },
+    );
 
-    testWidgets('double-tap rapide sur "resoumettre" ne déclenche submitForReview qu\'une seule fois',
-        (tester) async {
-      await pumpWithStatus(
-        tester,
-        _buildProfile(
-          status: DriverStatus.documentsRequired,
-          documentsRequiredReason: 'Photo du véhicule manquante.',
-        ),
-      );
-      await selectReplacementDocument(
-        tester,
-        DriverDocumentType.vehiclePhoto,
-      );
+    testWidgets(
+      'double-tap rapide sur "resoumettre" ne déclenche submitForReview qu\'une seule fois',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.documentsRequired,
+            documentsRequiredReason: 'Photo du véhicule manquante.',
+          ),
+        );
+        await selectReplacementDocument(
+          tester,
+          DriverDocumentType.vehiclePhoto,
+        );
 
-      fakeRepo.pendingSubmitForReviewCompleter = Completer<void>();
+        fakeRepo.pendingSubmitForReviewCompleter = Completer<void>();
 
-      final resubmitButton =
-          _elevatedButtonWithText(t('driver_status_resubmit'));
-      await tester.ensureVisible(resubmitButton);
-      await tester.pump();
+        final resubmitButton = _elevatedButtonWithText(
+          t('driver_status_resubmit'),
+        );
+        await tester.ensureVisible(resubmitButton);
+        await tester.pump();
 
-      expect(
-        tester.widget<ElevatedButton>(resubmitButton).onPressed,
-        isNotNull,
-      );
+        expect(
+          tester.widget<ElevatedButton>(resubmitButton).onPressed,
+          isNotNull,
+        );
 
-      await tester.tap(resubmitButton);
-      await tester.pump(); // laisse `_runAction` positionner `busy = true`.
+        await tester.tap(resubmitButton);
+        await tester.pump(); // laisse `_runAction` positionner `busy = true`.
 
-      // Le libellé texte est remplacé par un spinner pendant `busy` -> il
-      // faut retrouver le bouton par type, pas par texte (même contrainte
-      // que `driver_active_mission_status_gaps_test.dart`).
-      final busyButton = _anyElevatedButton;
-      expect(tester.widget<ElevatedButton>(busyButton).onPressed, isNull);
-      await tester.tap(busyButton, warnIfMissed: false);
-      await tester.pump();
+        // Le libellé texte est remplacé par un spinner pendant `busy` -> il
+        // faut retrouver le bouton par type, pas par texte (même contrainte
+        // que `driver_active_mission_status_gaps_test.dart`).
+        final busyButton = _anyElevatedButton;
+        expect(tester.widget<ElevatedButton>(busyButton).onPressed, isNull);
+        await tester.tap(busyButton, warnIfMissed: false);
+        await tester.pump();
 
-      expect(fakeRepo.submitForReviewCallCount, 1);
+        expect(fakeRepo.submitForReviewCallCount, 1);
 
-      fakeRepo.pendingSubmitForReviewCompleter!.complete();
-      await tester.pumpAndSettle();
-      expect(fakeRepo.submitForReviewCallCount, 1);
-    });
+        fakeRepo.pendingSubmitForReviewCompleter!.complete();
+        await tester.pumpAndSettle();
+        expect(fakeRepo.submitForReviewCallCount, 1);
+      },
+    );
 
-    testWidgets('erreur backend sur submitForReview() -> message d\'erreur affiché, statut inchangé',
-        (tester) async {
-      await pumpWithStatus(
-        tester,
-        _buildProfile(
-          status: DriverStatus.documentsRequired,
-          documentsRequiredReason: 'Document expiré.',
-        ),
-      );
-      fakeRepo.submitForReviewError = Exception('PERMISSION_DENIED: dossier verrouillé côté serveur');
+    testWidgets(
+      'erreur backend sur submitForReview() -> message d\'erreur affiché, statut inchangé',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.documentsRequired,
+            documentsRequiredReason: 'Document expiré.',
+          ),
+        );
+        fakeRepo.submitForReviewError = Exception(
+          'PERMISSION_DENIED: dossier verrouillé côté serveur',
+        );
 
-      await selectReplacementDocument(
-        tester,
-        DriverDocumentType.insurance,
-      );
+        await selectReplacementDocument(tester, DriverDocumentType.insurance);
 
-      final resubmitButton =
-          _elevatedButtonWithText(t('driver_status_resubmit'));
-      await tester.ensureVisible(resubmitButton);
-      await tester.pump();
+        final resubmitButton = _elevatedButtonWithText(
+          t('driver_status_resubmit'),
+        );
+        await tester.ensureVisible(resubmitButton);
+        await tester.pump();
 
-      expect(
-        tester.widget<ElevatedButton>(resubmitButton).onPressed,
-        isNotNull,
-      );
+        expect(
+          tester.widget<ElevatedButton>(resubmitButton).onPressed,
+          isNotNull,
+        );
 
-      await tester.tap(resubmitButton);
-      await tester.pumpAndSettle();
+        await tester.tap(resubmitButton);
+        await tester.pumpAndSettle();
 
-      expect(uploadRepo.calls, 1);
-      expect(fakeRepo.submittedDocuments.length, 1);
-      expect(fakeRepo.submitForReviewCallCount, 1);
-      // Le profil n'a PAS avancé (l'erreur a été levée avant `advanceTo`).
-      expect(find.text(t('driver_status_documents_required')), findsNWidgets(2));
-      expect(find.text(t('admin_action_error')), findsOneWidget);
-    });
+        expect(uploadRepo.calls, 1);
+        expect(fakeRepo.submittedDocuments.length, 1);
+        expect(fakeRepo.submitForReviewCallCount, 1);
+        // Le profil n'a PAS avancé (l'erreur a été levée avant `advanceTo`).
+        expect(
+          find.text(t('driver_status_documents_required')),
+          findsNWidgets(2),
+        );
+        expect(find.text(t('admin_action_error')), findsOneWidget);
+      },
+    );
   });
 
   group('approved', () {
-    testWidgets('hors-ligne par défaut : switch visible, label offline, aucune autre action',
-        (tester) async {
-      await pumpWithStatus(
-        tester,
-        _buildProfile(status: DriverStatus.approved, onlineStatus: DriverOnlineStatus.offline),
-      );
+    testWidgets(
+      'hors-ligne par défaut : switch visible, label offline, aucune autre action',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.approved,
+            onlineStatus: DriverOnlineStatus.offline,
+          ),
+        );
 
-      expect(find.text(t('driver_status_approved')), findsOneWidget);
-      expect(find.text(t('driver_status_approved_message')), findsOneWidget);
-      expect(find.text(t('driver_status_offline_label')), findsOneWidget);
-      final switchFinder = find.byType(Switch);
-      expect(switchFinder, findsOneWidget);
-      expect(tester.widget<Switch>(switchFinder).value, isFalse);
+        expect(find.text(t('driver_status_approved')), findsOneWidget);
+        expect(find.text(t('driver_status_approved_message')), findsOneWidget);
+        expect(find.text(t('driver_status_offline_label')), findsOneWidget);
+        final switchFinder = find.byType(Switch);
+        expect(switchFinder, findsOneWidget);
+        expect(tester.widget<Switch>(switchFinder).value, isFalse);
 
-      // Ne doit JAMAIS proposer resoumission/inscription/refresh à ce statut.
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-      expect(
+        // Ne doit JAMAIS proposer resoumission/inscription/refresh à ce statut.
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+        expect(
           _elevatedButtonWithText(t('driver_status_complete_registration')),
-          findsNothing);
-      expect(_outlinedButtonWithText(t('driver_status_refresh')), findsNothing);
+          findsNothing,
+        );
+        expect(
+          _outlinedButtonWithText(t('driver_status_refresh')),
+          findsNothing,
+        );
 
-      // CRITIQUE : `approved` ne doit JAMAIS passer online automatiquement
-      // (règle explicite du fichier source, point 13 du cahier des
-      // charges) — aucun appel repository au premier rendu.
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+        // CRITIQUE : `approved` ne doit JAMAIS passer online automatiquement
+        // (règle explicite du fichier source, point 13 du cahier des
+        // charges) — aucun appel repository au premier rendu.
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
 
-    testWidgets('bascule online -> setDriverOnlineStatus(uid, true) appelé exactement 1 fois',
-        (tester) async {
+    testWidgets(
+      'bascule online -> setDriverOnlineStatus(uid, true) appelé exactement 1 fois',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.approved,
+            onlineStatus: DriverOnlineStatus.offline,
+          ),
+        );
+
+        await tester.tap(find.byType(Switch));
+        await tester.pumpAndSettle();
+
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 1);
+        expect(fakeRepo.lastOnlineValue, isTrue);
+        expect(find.text(t('driver_status_online_label')), findsOneWidget);
+        expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      },
+    );
+
+    testWidgets('déjà online : switch positionné true, label online', (
+      tester,
+    ) async {
       await pumpWithStatus(
         tester,
-        _buildProfile(status: DriverStatus.approved, onlineStatus: DriverOnlineStatus.offline),
-      );
-
-      await tester.tap(find.byType(Switch));
-      await tester.pumpAndSettle();
-
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 1);
-      expect(fakeRepo.lastOnlineValue, isTrue);
-      expect(find.text(t('driver_status_online_label')), findsOneWidget);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
-    });
-
-    testWidgets('déjà online : switch positionné true, label online', (tester) async {
-      await pumpWithStatus(
-        tester,
-        _buildProfile(status: DriverStatus.approved, onlineStatus: DriverOnlineStatus.online),
+        _buildProfile(
+          status: DriverStatus.approved,
+          onlineStatus: DriverOnlineStatus.online,
+        ),
       );
 
       expect(find.text(t('driver_status_online_label')), findsOneWidget);
@@ -713,30 +894,47 @@ void main() {
   });
 
   group('rejected', () {
-    testWidgets('affiche le motif de refus et le CTA "retour accueil" uniquement', (tester) async {
+    testWidgets(
+      'affiche le motif de refus et le CTA "retour accueil" uniquement',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.rejected,
+            rejectionReason: 'Documents d\'identité non conformes.',
+          ),
+        );
+
+        expect(find.text(t('driver_status_rejected')), findsOneWidget);
+        expect(find.text(t('driver_status_rejected_message')), findsOneWidget);
+        expect(
+          find.text('Documents d\'identité non conformes.'),
+          findsOneWidget,
+        );
+        expect(
+          _outlinedButtonWithText(t('driver_status_go_home')),
+          findsOneWidget,
+        );
+
+        // Aucune action interdite : pas de resoumission, pas de switch online.
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+        expect(find.byType(Switch), findsNothing);
+
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
+
+    testWidgets('tap "retour accueil" navigue SANS appeler le repository', (
+      tester,
+    ) async {
       await pumpWithStatus(
         tester,
-        _buildProfile(
-          status: DriverStatus.rejected,
-          rejectionReason: 'Documents d\'identité non conformes.',
-        ),
+        _buildProfile(status: DriverStatus.rejected),
       );
-
-      expect(find.text(t('driver_status_rejected')), findsOneWidget);
-      expect(find.text(t('driver_status_rejected_message')), findsOneWidget);
-      expect(find.text('Documents d\'identité non conformes.'), findsOneWidget);
-      expect(_outlinedButtonWithText(t('driver_status_go_home')), findsOneWidget);
-
-      // Aucune action interdite : pas de resoumission, pas de switch online.
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-      expect(find.byType(Switch), findsNothing);
-
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
-
-    testWidgets('tap "retour accueil" navigue SANS appeler le repository', (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.rejected));
 
       await tester.tap(_outlinedButtonWithText(t('driver_status_go_home')));
       await tester.pumpAndSettle();
@@ -748,99 +946,146 @@ void main() {
   });
 
   group('suspended', () {
-    testWidgets('ordinary suspension keeps dashboard access without an online switch', (tester) async {
-      await pumpWithStatus(tester, _buildProfile(
-        status: DriverStatus.suspended,
-        suspensionMode: 'ordinary',
-      ));
-      expect(_elevatedButtonWithText(t('driver_status_go_to_dashboard')), findsOneWidget);
-      expect(find.byType(Switch), findsNothing);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+    testWidgets(
+      'ordinary suspension keeps dashboard access without an online switch',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.suspended,
+            suspensionMode: 'ordinary',
+          ),
+        );
+        expect(
+          _elevatedButtonWithText(t('driver_status_go_to_dashboard')),
+          findsOneWidget,
+        );
+        expect(find.byType(Switch), findsNothing);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
 
-    testWidgets('urgent suspension does not offer dashboard access', (tester) async {
-      await pumpWithStatus(tester, _buildProfile(
-        status: DriverStatus.suspended,
-        suspensionMode: 'urgent',
-      ));
-      expect(_elevatedButtonWithText(t('driver_status_go_to_dashboard')), findsNothing);
-      expect(find.byType(Switch), findsNothing);
-    });
-
-    testWidgets('affiche le motif de suspension et le CTA "retour accueil" uniquement, sans switch',
-        (tester) async {
+    testWidgets('urgent suspension does not offer dashboard access', (
+      tester,
+    ) async {
       await pumpWithStatus(
         tester,
-        _buildProfile(
-          status: DriverStatus.suspended,
-          suspensionReason: 'Plusieurs signalements clients non résolus.',
-        ),
+        _buildProfile(status: DriverStatus.suspended, suspensionMode: 'urgent'),
       );
-
-      expect(find.text(t('driver_status_suspended')), findsOneWidget);
-      expect(find.text(t('driver_status_suspended_message')), findsOneWidget);
-      expect(find.text('Plusieurs signalements clients non résolus.'), findsOneWidget);
-      expect(_outlinedButtonWithText(t('driver_status_go_home')), findsOneWidget);
-
-      // CRITIQUE : un chauffeur suspendu ne doit JAMAIS pouvoir se
-      // remettre online (aucun switch, aucune action de mise en ligne).
+      expect(
+        _elevatedButtonWithText(t('driver_status_go_to_dashboard')),
+        findsNothing,
+      );
       expect(find.byType(Switch), findsNothing);
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
     });
+
+    testWidgets(
+      'affiche le motif de suspension et le CTA "retour accueil" uniquement, sans switch',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(
+            status: DriverStatus.suspended,
+            suspensionReason: 'Plusieurs signalements clients non résolus.',
+          ),
+        );
+
+        expect(find.text(t('driver_status_suspended')), findsOneWidget);
+        expect(find.text(t('driver_status_suspended_message')), findsOneWidget);
+        expect(
+          find.text('Plusieurs signalements clients non résolus.'),
+          findsOneWidget,
+        );
+        expect(
+          _outlinedButtonWithText(t('driver_status_go_home')),
+          findsOneWidget,
+        );
+
+        // CRITIQUE : un chauffeur suspendu ne doit JAMAIS pouvoir se
+        // remettre online (aucun switch, aucune action de mise en ligne).
+        expect(find.byType(Switch), findsNothing);
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
   });
 
   group('inactive', () {
-    testWidgets('affiche le message inactif et le CTA "retour accueil" uniquement, sans switch',
-        (tester) async {
-      await pumpWithStatus(tester, _buildProfile(status: DriverStatus.inactive));
+    testWidgets(
+      'affiche le message inactif et le CTA "retour accueil" uniquement, sans switch',
+      (tester) async {
+        await pumpWithStatus(
+          tester,
+          _buildProfile(status: DriverStatus.inactive),
+        );
 
-      expect(find.text(t('driver_status_inactive')), findsOneWidget);
-      expect(find.text(t('driver_status_inactive_message')), findsOneWidget);
-      expect(_outlinedButtonWithText(t('driver_status_go_home')), findsOneWidget);
+        expect(find.text(t('driver_status_inactive')), findsOneWidget);
+        expect(find.text(t('driver_status_inactive_message')), findsOneWidget);
+        expect(
+          _outlinedButtonWithText(t('driver_status_go_home')),
+          findsOneWidget,
+        );
 
-      expect(find.byType(Switch), findsNothing);
-      expect(_elevatedButtonWithText(t('driver_status_resubmit')), findsNothing);
-      expect(
+        expect(find.byType(Switch), findsNothing);
+        expect(
+          _elevatedButtonWithText(t('driver_status_resubmit')),
+          findsNothing,
+        );
+        expect(
           _elevatedButtonWithText(t('driver_status_complete_registration')),
-          findsNothing);
+          findsNothing,
+        );
 
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-      expect(fakeRepo.submitForReviewCallCount, 0);
-    });
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+        expect(fakeRepo.submitForReviewCallCount, 0);
+      },
+    );
   });
 
   group('cas transverses', () {
-    testWidgets('profil null (getDriverProfile côté flux -> null) : carte erreur "aucun profil" + CTA inscription',
-        (tester) async {
-      fakeRepo = _FakeDriverRepository(null);
-      BackendLocator.driverRepositoryOverride = fakeRepo;
-      await tester.pumpWidget(_buildTestApp(auth));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'profil null (getDriverProfile côté flux -> null) : carte erreur "aucun profil" + CTA inscription',
+      (tester) async {
+        fakeRepo = _FakeDriverRepository(null);
+        BackendLocator.driverRepositoryOverride = fakeRepo;
+        await tester.pumpWidget(_buildTestApp(auth));
+        await tester.pumpAndSettle();
 
-      expect(find.text(t('driver_status_no_profile')), findsOneWidget);
-      expect(_elevatedButtonWithText(t('driver_status_complete_registration')),
-          findsOneWidget);
+        expect(find.text(t('driver_status_no_profile')), findsOneWidget);
+        expect(
+          _elevatedButtonWithText(t('driver_status_complete_registration')),
+          findsOneWidget,
+        );
 
-      await tester.tap(_elevatedButtonWithText(t('driver_status_complete_registration')));
-      await tester.pumpAndSettle();
-      expect(find.text('REGISTRATION_STUB'), findsOneWidget);
-    });
+        await tester.tap(
+          _elevatedButtonWithText(t('driver_status_complete_registration')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('REGISTRATION_STUB'), findsOneWidget);
+      },
+    );
 
-    testWidgets('utilisateur non connecté : redirection vers /connexion sans toucher au repository',
-        (tester) async {
-      auth.debugForceSignedIn = false;
-      auth.debugForceUid = null;
+    testWidgets(
+      'utilisateur non connecté : redirection vers /connexion sans toucher au repository',
+      (tester) async {
+        auth.debugForceSignedIn = false;
+        auth.debugForceUid = null;
 
-      fakeRepo = _FakeDriverRepository(_buildProfile(status: DriverStatus.approved));
-      BackendLocator.driverRepositoryOverride = fakeRepo;
-      await tester.pumpWidget(_buildTestApp(auth));
-      await tester.pumpAndSettle();
+        fakeRepo = _FakeDriverRepository(
+          _buildProfile(status: DriverStatus.approved),
+        );
+        BackendLocator.driverRepositoryOverride = fakeRepo;
+        await tester.pumpWidget(_buildTestApp(auth));
+        await tester.pumpAndSettle();
 
-      expect(find.text('LOGIN_STUB'), findsOneWidget);
-      expect(fakeRepo.submitForReviewCallCount, 0);
-      expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
-    });
+        expect(find.text('LOGIN_STUB'), findsOneWidget);
+        expect(fakeRepo.submitForReviewCallCount, 0);
+        expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
+      },
+    );
   });
 }

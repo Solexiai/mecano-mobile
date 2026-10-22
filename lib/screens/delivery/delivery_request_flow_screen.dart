@@ -1,3 +1,5 @@
+import '../../services/booking/booking_contract.dart';
+import '../../widgets/booking_terms_section.dart';
 import '../../finance/presentation/money_format.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -159,7 +161,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _loaded &&
         _draft.quote != null &&
         _uid != null) {
-      _refreshCard();
+      _loadConfiguration(_epoch).then((_) => _refreshCard());
     }
   }
 
@@ -342,13 +344,24 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       }
       if (config['policy'] is Map) {
         final value = Map<String, dynamic>.from(config['policy'] as Map);
-        if (value['approved'] == true) policy = value;
+        if (BookingContract.from(value) != null) policy = value;
       }
     } catch (_) {
       error = true;
     }
     if (!mounted || epoch != _epoch) return;
     setState(() {
+      if (_draft.data['accepted'] == true &&
+          (_draft.data['accepted_contract_hash'] != policy?['contract_hash'] ||
+              _draft.data['accepted_quote_id'] != _draft.quote?['quoteId'] ||
+              _draft.data['accepted_locale'] != widget.locale)) {
+        _draft.data['accepted'] = false;
+        _message = tr(
+          'Consultez les conditions actuelles et acceptez-les avant de confirmer.',
+          'Review and accept the current terms before confirming.',
+          'Consulta y acepta las condiciones actuales antes de confirmar.',
+        );
+      }
       _policy = policy;
       _configurationChecked = true;
       _internalTestAllowed = internalTest;
@@ -625,6 +638,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _setupCard() async {
+    await _loadConfiguration(_epoch);
+    if (!mounted) return;
     if (!_canPay || !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
       return;
     }
@@ -634,8 +649,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     final result = await _api.call('startBookingCardSetup', {
       'quoteId': _draft.quote!['quoteId'],
       'locale': widget.locale,
-      'accepted': _draft.data['accepted'],
-      'termsVersion': _policy!['version'],
+      'consent': _currentConsent,
     });
     if (!mounted || epoch != _epoch) return;
     if (result['ready'] == true) {
@@ -692,6 +706,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _confirm() async {
+    await _loadConfiguration(_epoch);
+    if (!mounted) return;
     if (!_canPay ||
         !_cardReady ||
         !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
@@ -704,11 +720,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'quoteId': q['quoteId'],
       'booking': _draft.load,
       'contacts': _draft.contacts,
-      'consent': {
-        'terms_version': _policy!['version'],
-        'accepted': _draft.data['accepted'],
-        'marketing': _draft.data['marketing'],
-      },
+      'consent': _currentConsent,
       'stops': _draft.stops,
       'requiredVehicleCategory': q['vehicleCategory'],
       'description': '',
@@ -1053,6 +1065,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     ),
                     () => context.go(
                       '/${widget.locale}/livraison/suivi/${_draft.data['missionId']}',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.push(
+                      '/${widget.locale}/livraison/conditions/${_draft.data['missionId']}',
+                    ),
+                    child: Text(
+                      tr(
+                        'Récapitulatif et conditions à conserver',
+                        'Save booking summary and terms',
+                        'Guardar resumen y condiciones',
+                      ),
                     ),
                   ),
                   TextButton(
@@ -1975,7 +1999,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             }
           }),
         ),
-      if (_draft.quote != null) ...[..._quoteSummary(), _quoteLoadSummary()],
+      if (_draft.quote != null) ...[
+        ..._quoteSummary(),
+        _quoteLoadSummary(collapsible: false),
+      ],
       if (!_draft.quoteValid)
         _button(
           _review != null && _review!['status'] != 'ready'
@@ -2457,7 +2484,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ],
     ),
-    if (_draft.quote != null) ...[_quoteLoadSummary(), ..._quoteSummary()],
+    if (_draft.quote != null) ...[
+      _quoteLoadSummary(collapsible: false),
+      ..._quoteSummary(),
+    ],
     if (!_draft.quoteValid)
       _button(
         tr(
@@ -2480,50 +2510,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         warning: true,
       )
     else ...[
-      _heading(
-        tr(
-          'Conditions de réservation',
-          'Booking terms',
-          'Condiciones de reserva',
-        ),
-      ),
-      _note(_policyText('cancellation_text')),
-      _note(_policyText('payment_text')),
-      Wrap(
-        spacing: 12,
-        children: [
-          TextButton(
-            onPressed: () =>
-                launchUrl(Uri.parse(_policy!['terms_url'] as String)),
-            child: Text(
-              tr(
-                'Conditions générales',
-                'Terms of service',
-                'Condiciones generales',
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () =>
-                launchUrl(Uri.parse(_policy!['privacy_url'] as String)),
-            child: Text(tr('Confidentialité', 'Privacy', 'Privacidad')),
-          ),
-        ],
-      ),
-      CheckboxListTile(
-        contentPadding: EdgeInsets.zero,
-        value: _draft.data['accepted'] == true,
-        title: Text(
-          tr(
-            'J’accepte les conditions et la politique d’annulation affichées.',
-            'I accept the displayed terms and cancellation policy.',
-            'Acepto las condiciones y política de cancelación mostradas.',
-          ),
-        ),
-        onChanged: (v) {
-          _draft.data['accepted'] = v;
-          _changed(quote: false);
+      BookingTermsSection(
+        contract: BookingContract(_policy!),
+        locale: widget.locale,
+        accepted: _acceptanceCurrent,
+        beforeOpen: () async {
+          await _save();
         },
+        onChanged: _busy
+            ? null
+            : (value) {
+                _draft.data['accepted'] = value == true;
+                _draft.data['accepted_contract_hash'] =
+                    _policy!['contract_hash'];
+                _draft.data['accepted_quote_id'] = _draft.quote?['quoteId'];
+                _draft.data['accepted_locale'] = widget.locale;
+                _changed(quote: false);
+              },
       ),
       CheckboxListTile(
         contentPadding: EdgeInsets.zero,
@@ -2593,6 +2596,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ),
     ],
+    _note(
+      tr(
+        'Le bouton envoie votre demande de livraison au prix affiché. Aucun chauffeur ni créneau n’est confirmé à cette étape. Il ne déclenche pas le prélèvement.',
+        'The button submits your delivery request at the displayed price. No driver or time slot is confirmed at this stage. It does not trigger the charge.',
+        'El botón envía tu solicitud de entrega al precio mostrado. Aún no se confirma conductor ni horario. No inicia el cobro.',
+      ),
+    ),
     _button(
       tr(
         'Confirmer ma demande de livraison',
@@ -2603,18 +2613,26 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       icon: Icons.check,
     ),
   ];
-  Widget _quoteLoadSummary() => BookingLoadSummary(
+  Widget _quoteLoadSummary({bool collapsible = true}) => BookingLoadSummary(
+    collapsible: collapsible,
     snapshot: Map<String, dynamic>.from(_draft.quote!['booking'] as Map? ?? {}),
     locale: widget.locale,
     photoLoader: widget.photoLoader,
   );
   bool _readyToConfirm(FirebaseAuthProvider auth) =>
       _canPay &&
-      _draft.data['accepted'] == true &&
+      _acceptanceCurrent &&
       _draft.quoteValid &&
       auth.user?.emailVerified == true;
-  String _policyText(String key) {
-    final map = Map<String, dynamic>.from(_policy![key] as Map);
-    return map[widget.locale] as String? ?? map['fr'] as String;
-  }
+  bool get _acceptanceCurrent =>
+      _draft.data['accepted'] == true &&
+      _policy != null &&
+      _draft.data['accepted_contract_hash'] == _policy!['contract_hash'] &&
+      _draft.data['accepted_quote_id'] == _draft.quote?['quoteId'] &&
+      _draft.data['accepted_locale'] == widget.locale;
+  Map<String, dynamic> get _currentConsent => BookingContract(_policy!).consent(
+    widget.locale,
+    accepted: _acceptanceCurrent,
+    marketing: _draft.data['marketing'] == true,
+  );
 }

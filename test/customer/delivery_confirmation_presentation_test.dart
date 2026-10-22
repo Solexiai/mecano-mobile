@@ -112,6 +112,7 @@ Future<(MemoryBookingStorage, ConfirmationApi)> start(
   final a = api ?? ConfirmationApi();
   a.cardReady = card;
   final s = storage ?? MemoryBookingStorage(testDraft(step: 3, quote: true));
+  s.saved!.data['accepted_locale'] = locale;
   // The draft and fake server share the same quote, including its expiry.
   a.quote = Map<String, dynamic>.from(s.saved!.quote!);
   await pumpBooking(t, storage: s, api: a, locale: locale);

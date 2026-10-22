@@ -28,6 +28,10 @@ class DriverProfileV2 {
   final List<String> spokenLanguages;
   final bool loadingAssistanceAvailable;
 
+  // Declared maximum including the driver; not a confirmed mission crew.
+  // Null for legacy profiles: never infer a headcount from the old boolean.
+  final int? maxLoadingTeamSize;
+
   final DriverStatus status;
   final double serviceRadiusKm;
   final List<VehicleCategory> acceptedVehicleCategories;
@@ -72,6 +76,7 @@ class DriverProfileV2 {
     this.baseLng,
     this.spokenLanguages = const [],
     this.loadingAssistanceAvailable = false,
+    this.maxLoadingTeamSize,
     required this.status,
     required this.serviceRadiusKm,
     required this.acceptedVehicleCategories,
@@ -126,6 +131,8 @@ class DriverProfileV2 {
     'base_lng': baseLng,
     'spoken_languages': spokenLanguages,
     'loading_assistance_available': loadingAssistanceAvailable,
+    if (maxLoadingTeamSize != null)
+      'max_loading_team_size': _validatedTeamSize(maxLoadingTeamSize!),
     'status': status.firestoreValue,
     'service_radius_km': serviceRadiusKm,
     'accepted_vehicle_categories': acceptedVehicleCategories
@@ -153,6 +160,20 @@ class DriverProfileV2 {
     'stripe_charges_enabled': stripeChargesEnabled,
     'stripe_payouts_enabled': stripePayoutsEnabled,
   };
+
+  static int _validatedTeamSize(int size) {
+    if (size < 1 || size > 5) {
+      throw ArgumentError.value(
+        size,
+        'maxLoadingTeamSize',
+        'Expected 1 to 5 people including the driver',
+      );
+    }
+    return size;
+  }
+
+  static int? _parseTeamSize(Object? raw) =>
+      raw is int && raw >= 1 && raw <= 5 ? raw : null;
 
   static DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
@@ -189,6 +210,7 @@ class DriverProfileV2 {
           (json['spoken_languages'] as List?)?.cast<String>() ?? const [],
       loadingAssistanceAvailable:
           json['loading_assistance_available'] as bool? ?? false,
+      maxLoadingTeamSize: _parseTeamSize(json['max_loading_team_size']),
       status: DriverStatusX.fromFirestoreValue(json['status'] as String?),
       serviceRadiusKm: (json['service_radius_km'] as num? ?? 0).toDouble(),
       acceptedVehicleCategories:

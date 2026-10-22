@@ -82,7 +82,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
               {'missionId': mission.id},
             );
         final vehicle = response['vehicle'] as Map?;
-        if (!mounted) return;
+        if (!mounted ||
+            context.read<FirebaseAuthProvider>().effectiveUid != driverId) {
+          return;
+        }
         final locale = context.read<LocaleProvider>().locale;
         String tr(String fr, String en, String es) => locale == 'en'
             ? en
@@ -90,6 +93,14 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
             ? es
             : fr;
         if (vehicle == null) throw StateError('No compatible vehicle');
+        final terms = response['offerTerms'] as Map?;
+        final amountMinor = terms?['amountMinor'];
+        if (amountMinor is! int ||
+            amountMinor < 0 ||
+            terms?['currency'] != 'CAD') {
+          throw StateError('Remuneration unavailable');
+        }
+        final offerText = '${(amountMinor / 100).toStringAsFixed(2)} CAD';
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
@@ -100,7 +111,27 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                 'Confirmar el vehículo que usarás',
               ),
             ),
-            content: Text('${vehicle['label']}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${vehicle['label']}'),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${tr('Rémunération', 'Your earnings', 'Tu remuneración')} : $offerText',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tr(
+                      'Commission applicable déduite. Pourboires éventuels en supplément.',
+                      'Applicable commission deducted. Any tips are additional.',
+                      'Comisión aplicable descontada. Las propinas se suman aparte.',
+                    ),
+                  ),
+                ],
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -123,10 +154,20 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           if (mounted) setState(() => _accepting.remove(mission.id));
           return;
         }
-        await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
-          'acceptDelivery',
-          {'missionId': mission.id, 'vehicleId': vehicle['id']},
-        );
+        if (!mounted ||
+            context.read<FirebaseAuthProvider>().effectiveUid != driverId) {
+          return;
+        }
+        final accepted =
+            await (widget.bookingApi ?? FirebaseBookingApi(driverId))
+                .call('acceptDelivery', {
+                  'missionId': mission.id,
+                  'vehicleId': vehicle['id'],
+                  'expectedDriverOfferMinor': amountMinor,
+                });
+        if (accepted['success'] != true) {
+          throw StateError('Acceptance not confirmed');
+        }
         result = const AcceptMissionResult(success: true);
       } else {
         result = await BackendLocator.missionRepository.acceptMission(
@@ -447,14 +488,15 @@ class _JobCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              Text(
-                '${mission.driverOfferAmount.toStringAsFixed(0)}\$',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                  fontSize: 16,
+              if (mission.bookingSnapshot == null)
+                Text(
+                  '${mission.driverOfferAmount.toStringAsFixed(0)}\$',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    fontSize: 16,
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -486,8 +528,13 @@ class _JobCard extends StatelessWidget {
             ),
           _InfoRow(
             icon: Icons.attach_money,
-            text:
-                '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$',
+            text: mission.bookingSnapshot != null
+                ? tr(
+                    'Consultez votre rémunération avant de confirmer.',
+                    'Review your earnings before confirming.',
+                    'Consulta tu remuneración antes de confirmar.',
+                  )
+                : '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)}\$',
           ),
           if (mission.bookingSnapshot != null)
             BookingLoadSummary(
@@ -540,7 +587,7 @@ class _JobCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text(t('driver_jobs_accepting')),
+                        Flexible(child: Text(t('driver_jobs_accepting'))),
                       ],
                     )
                   : Text(t('driver_jobs_accept')),

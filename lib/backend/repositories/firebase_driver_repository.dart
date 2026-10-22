@@ -120,6 +120,7 @@ class FirebaseDriverRepository implements DriverRepository {
       baseLng: profile.baseLng,
       spokenLanguages: profile.spokenLanguages,
       loadingAssistanceAvailable: profile.loadingAssistanceAvailable,
+      maxLoadingTeamSize: profile.maxLoadingTeamSize,
       status: safeStatus,
       serviceRadiusKm: profile.serviceRadiusKm,
       acceptedVehicleCategories: profile.acceptedVehicleCategories,

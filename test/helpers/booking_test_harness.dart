@@ -129,9 +129,46 @@ BookingDraft testDraft({int step = 0, bool quote = false}) {
   if (quote) {
     d.data['quote'] = testQuote();
     d.data['accepted'] = true;
+    d.data['accepted_contract_hash'] = 'TEST-HASH-TEST';
+    d.data['accepted_quote_id'] = 'test_quote';
+    d.data['accepted_locale'] = 'fr';
   }
   return d;
 }
+
+Map<String, dynamic> testBookingPolicy({String version = 'TEST'}) => {
+  'approved': true,
+  'schema_version': 2,
+  'version': version,
+  'contract_hash': 'TEST-HASH-$version',
+  'approval_reference': 'SIMULATION ONLY',
+  'terms_url': 'https://example.invalid/terms',
+  'privacy_url': 'https://example.invalid/privacy',
+  'booking_terms_url': 'https://example.invalid/booking',
+  'payment_text': {
+    'fr': 'TEST: paiement',
+    'en': 'TEST: payment',
+    'es': 'TEST: pago',
+  },
+  'cancellation_text': {
+    'fr': 'TEST: politique',
+    'en': 'TEST: cancellation',
+    'es': 'TEST: cancelación',
+  },
+  'setup_enabled': true,
+  'documents': {
+    for (final key in ['booking', 'terms', 'privacy'])
+      key: {
+        'version': '$version-$key',
+        'url': 'https://example.invalid/$key',
+        'content': {
+          'fr': 'SIMULATION $key $version — texte intégral fictif.',
+          'en': 'SIMULATION $key $version — fictional full text.',
+          'es': 'SIMULACIÓN $key $version — texto completo ficticio.',
+        },
+      },
+  },
+};
 
 class TestBookingApi implements BookingApi {
   final List<String> calls = [];
@@ -140,6 +177,7 @@ class TestBookingApi implements BookingApi {
   Duration delay = Duration.zero;
   bool cardReady = true;
   bool configurationAvailable = true;
+  Map<String, dynamic> policy = testBookingPolicy();
   List<String> reasons = [];
   Map<String, dynamic> quote = testQuote();
   @override
@@ -160,15 +198,7 @@ class TestBookingApi implements BookingApi {
             'payment_enabled': true,
             'technical_error': false,
           },
-          'policy': {
-            'approved': true,
-            'version': 'TEST',
-            'terms_url': 'https://example.invalid/terms',
-            'privacy_url': 'https://example.invalid/privacy',
-            'cancellation_text': {'fr': 'TEST: politique'},
-            'payment_text': {'fr': 'TEST: paiement'},
-            'setup_enabled': true,
-          },
+          'policy': policy,
         };
       case 'getBookingDraft':
         return {'draft': null};
@@ -200,6 +230,7 @@ Future<void> pumpBooking(
   required TestBookingApi api,
   BookingTestAuth? auth,
   String locale = 'fr',
+  ThemeData? theme,
   bool photoIntakeEnabled = false,
   BookingPhotoUploader? photoUploader,
   BookingPhotoLoader? photoLoader,
@@ -232,7 +263,7 @@ Future<void> pumpBooking(
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
         ChangeNotifierProvider<FirebaseAuthProvider>.value(value: provider),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(routerConfig: router, theme: theme),
     ),
   );
   await tester.pumpAndSettle();

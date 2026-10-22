@@ -305,12 +305,28 @@ class _MissionReference extends StatelessWidget {
   const _MissionReference({required this.mission, required this.t});
 
   @override
-  Widget build(BuildContext context) => Text(
-    mission.id.trim().isEmpty
-        ? t('tracking_reference_unavailable')
-        : '${t('tracking_reference')} : ${mission.id}',
-    key: const ValueKey('tracking-mission-reference'),
-    style: const TextStyle(fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        mission.id.trim().isEmpty
+            ? t('tracking_reference_unavailable')
+            : '${t('tracking_reference')} : ${mission.id}',
+        key: const ValueKey('tracking-mission-reference'),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      if (mission.bookingSnapshot != null)
+        TextButton(
+          onPressed: () => context.push(
+            '/${context.read<LocaleProvider>().locale}/livraison/conditions/${mission.id}',
+          ),
+          child: Text(switch (context.read<LocaleProvider>().locale) {
+            'en' => 'Booking summary and original terms',
+            'es' => 'Resumen y condiciones originales',
+            _ => 'Récapitulatif et conditions d’origine',
+          }),
+        ),
+    ],
   );
 }
 
