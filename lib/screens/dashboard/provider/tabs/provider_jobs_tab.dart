@@ -87,6 +87,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           : Map<String, dynamic>.from(jsonDecode(saved) as Map);
       if (payload == null) {
         String? vehicleId;
+        // Price-first bookings (2026-10-22): the driver judges the fit.
+        final driverJudgement =
+            mission.bookingSnapshot?['vehicle_assessment'] == 'driver_judgement';
+        var fitConfirmed = false;
         if (mission.bookingSnapshot != null) {
           final response = await api.call('getBookingVehicleForAcceptance', {
             'missionId': mission.id,
@@ -110,7 +114,23 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                   'Confirmar el vehículo',
                 ),
               ),
-              content: Text('${vehicle['label']}'),
+              content: driverJudgement
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${vehicle['label']}'),
+                        const SizedBox(height: 12),
+                        Text(
+                          tr(
+                            'En confirmant, vous déclarez avoir vu les photos et la description, et que le chargement entre dans ce véhicule.',
+                            'By confirming, you declare that you have seen the photos and description and that the load fits this vehicle.',
+                            'Al confirmar, declaras que viste las fotos y la descripción y que la carga cabe en este vehículo.',
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text('${vehicle['label']}'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
@@ -131,6 +151,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           );
           if (confirmed != true) return;
           vehicleId = vehicle['id'] as String;
+          fitConfirmed = driverJudgement;
         }
         final preparation = await api.call('prepareDriverMissionAcceptance', {
           'missionId': mission.id,
@@ -189,6 +210,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
         payload = {
           'missionId': mission.id,
           if (vehicleId != null) 'vehicleId': vehicleId,
+          if (fitConfirmed) 'fitConfirmed': true,
           'expectedDriverOfferMinor': preparation['driver_offer_minor'],
           if (reservation != null) 'reservation': reservation,
           if (reservation != null) 'acceptanceRequestId': const Uuid().v4(),

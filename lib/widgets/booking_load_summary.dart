@@ -26,7 +26,22 @@ class BookingLoadSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final load = Map<String, dynamic>.from(snapshot['load'] as Map? ?? {});
+    final photoAssessment = const {
+      'driver_photo_review',
+      'driver_judgement',
+    }.contains(snapshot['vehicle_assessment']);
     final children = <Widget>[
+      if (snapshot['vehicle_assessment'] == 'driver_judgement')
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            tr(
+              'À vous de juger : vérifiez sur les photos et la description que le chargement entre dans votre véhicule. Les dimensions et le poids peuvent être inconnus.',
+              'Your call: check the photos and description to make sure the load fits your vehicle. Dimensions and weight may be unknown.',
+              'Tú decides: revisa las fotos y la descripción para confirmar que la carga cabe en tu vehículo. Las dimensiones y el peso pueden ser desconocidos.',
+            ),
+          ),
+        ),
       if (snapshot['vehicle_assessment'] == 'driver_photo_review')
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -48,7 +63,7 @@ class BookingLoadSummary extends StatelessWidget {
                 Text(
                   '${i['quantity']} × ${i['label']} · ${i['length_cm'] ?? '?'} × ${i['width_cm'] ?? '?'} × ${i['height_cm'] ?? '?'} cm · ${i['weight_kg'] ?? '?'} kg',
                 ),
-                if (snapshot['vehicle_assessment'] == 'driver_photo_review' &&
+                if (photoAssessment &&
                     [
                       i['length_cm'],
                       i['width_cm'],
@@ -61,7 +76,7 @@ class BookingLoadSummary extends StatelessWidget {
                       'Dimensiones no indicadas',
                     ),
                   ),
-                if (snapshot['vehicle_assessment'] == 'driver_photo_review' &&
+                if (photoAssessment &&
                     i['weight_kg'] == null)
                   Text(
                     tr(
