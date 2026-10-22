@@ -10,9 +10,6 @@ module.exports = {
   // nécessitent l'Émulateur Firestore/Auth démarré au préalable (voir package.json
   // script `test:integration`).
   testTimeout: 30000,
-  // In GitHub Actions, failures are also emitted as annotations (readable via
-  // the Checks API when raw logs cannot be downloaded). Locally unchanged.
-  reporters: process.env.GITHUB_ACTIONS === "true"
-    ? ["default", ["github-actions", { silent: false }], "summary"]
-    : ["default"],
+  // CI failure annotations come from scripts/ci_annotate_jest.sh (suites
+  // first); GitHub keeps only 10 annotations per step.
 };

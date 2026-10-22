@@ -65,8 +65,10 @@ function load(mode:'immediate'|'scheduled'){
 }
 beforeEach(async()=>{
  if(process.env.GCLOUD_PROJECT!==project||process.env.FIRESTORE_EMULATOR_HOST!=='127.0.0.1:8080'||process.env.FIREBASE_AUTH_EMULATOR_HOST!=='127.0.0.1:9099'||process.env.FIREBASE_STORAGE_EMULATOR_HOST!=='127.0.0.1:9199')throw Error('Account test isolation required');
- if(!process.env.MOVIK_TEST_JPEG)throw Error('Local synthetic JPEG fixture required');
- bytes=new Uint8Array(readFileSync(process.env.MOVIK_TEST_JPEG));
+ // A local JPEG may be supplied; otherwise a tiny synthetic 1x1 JPEG is used
+ // (CI). Never a real customer photo.
+ bytes=process.env.MOVIK_TEST_JPEG ? new Uint8Array(readFileSync(process.env.MOVIK_TEST_JPEG)) :
+  new Uint8Array(Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=','base64'));
  expect([...bytes.slice(0,3)]).toEqual([255,216,255]);
  jest.clearAllMocks();provider=new FakePaymentProvider();setPaymentProviderForTesting(provider);
  (analyzeWithOpenAi as jest.Mock).mockResolvedValue({category:'sofa',label:'Synthetic sofa',confidence:'high',special_handling:false,reason:'ordinary'});

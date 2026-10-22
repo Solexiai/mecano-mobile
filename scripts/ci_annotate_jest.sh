@@ -4,10 +4,11 @@
 # downloadable; annotations are readable through the Checks API.
 log="$1"; label="${2:-Jest}"
 [ -f "$log" ] || exit 0
-grep -E '^FAIL ' "$log" | sort -u | head -n 20 | while IFS= read -r line; do
-  echo "::error title=${label} suite failed::${line}"
-done
-grep -E '^[[:space:]]+● ' "$log" | grep -v '● Console' | sed -E 's/^[[:space:]]+//' | sort -u | head -n 30 | while IFS= read -r line; do
+# One annotation listing every failing suite (single line, GitHub-safe).
+suites="$(grep -E '^FAIL ' "$log" | sed -E 's/^FAIL +//; s/ \(.*$//' | sort -u | tr '\n' ' ')"
+[ -n "$suites" ] && echo "::error title=${label} failing suites::${suites}"
+
+grep -E '^[[:space:]]+● ' "$log" | grep -v '● Console' | sed -E 's/^[[:space:]]+//' | sort -u | head -n 8 | while IFS= read -r line; do
   echo "::error title=${label} test failed::${line}"
 done
 # Error blocks only (skip "● Console" noise), ANSI colours stripped.

@@ -24,7 +24,7 @@ beforeEach(async () => {
         await db.recursiveDelete(db.doc(path));
     await db.doc('driver_agendas/' + uid).set({ revision: 0, windows: [], blocked: [] });
     await db.doc('system_config/calendar_oauth').set({ enabled: true, privacy_approved: true, google_client_id: 'test', microsoft_client_id: 'test',
-        callback_url: 'https://us-central1-demo-movik-agenda.cloudfunctions.net/calendarOAuthCallback', return_url: 'https://www.movi-k.com/fr/provider/dashboard' });
+        callback_url: 'https://us-central1-' + (process.env.GCLOUD_PROJECT ?? 'demo-movik-agenda') + '.cloudfunctions.net/calendarOAuthCallback', return_url: 'https://www.movi-k.com/fr/provider/dashboard' });
 });
 afterEach(async () => {
     global.fetch = original;
