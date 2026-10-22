@@ -113,58 +113,43 @@ service cloud.firestore {
       // chauffeur : il voit uniquement la vue dénormalisée
       // (driver_display_name) copiée dans sa propre mission.
 
-      allow create: if isSignedIn() && uid() == driverId && isDriver() &&
-        request.resource.data.status == 'registration_incomplete';
+      // SEC-S2 (2026-10-22) — LISTE BLANCHE. Le chauffeur n'écrit que ses
+      // champs DÉCLARATIFS. Tout le reste (statut, vérifications, compte
+      // Stripe de versement, notes, compteurs, suspension…) est réservé aux
+      // Cloud Functions. Avant ce correctif, l'update comparait une liste
+      // de champs protégés : les champs Stripe (stripe_connected_account_id,
+      // stripe_payouts_enabled…) n'y figuraient pas, si bien qu'un chauffeur
+      // pouvait rediriger ses propres versements; et la création ne
+      // vérifiait que `status`, permettant de s'auto-déclarer
+      // documents_all_valid / identity_verified.
+      function driverDeclaredFields() {
+        return ['full_name', 'city', 'phone',
+                'base_address_formatted', 'base_address_line1', 'base_region',
+                'base_postal_code', 'base_country', 'base_place_id',
+                'base_lat', 'base_lng',
+                'spoken_languages', 'loading_assistance_available',
+                'service_radius_km', 'accepted_vehicle_categories',
+                'accepted_item_category_keys'];
+      }
 
-      // Le chauffeur peut modifier SES champs déclaratifs uniquement.
-      // Tous les champs sensibles doivent rester strictement inchangés.
-      //
-      // 🔒 CORRECTIF (audit Phase 2, E2E réel movik-connect-prod) : ces
-      // champs sont écrits progressivement par différentes Cloud Functions
-      // (approveDriver n'écrit jamais documents_required_*/suspended_*/
-      // reactivated_*, requestDriverDocuments n'écrit jamais suspended_*,
-      // etc.) — un chauffeur qui n'a jamais transité par un statut donné
-      // n'a donc AUCUNE de ces clés présentes dans son document Firestore
-      // (absent, pas `null`). Accéder à un champ absent via la notation
-      // pointée (`resource.data.X`) lève une ERREUR D'ÉVALUATION dans les
-      // Security Rules (pas juste `false`), ce qui refusait silencieusement
-      // TOUTE mise à jour légitime (ex: chauffeur approuvé tentant de passer
-      // `online_status` à `online`) dès qu'un seul de ces champs optionnels
-      // manquait. `resource.data.get(path, default)` tolère l'absence de
-      // clé et retourne `default` au lieu de lever une erreur — comparaison
-      // égale de chaque côté (get(...) == get(...)) donc toujours sûre.
-      allow update: if isSignedIn() && uid() == driverId && isDriver() &&
-        request.resource.data.status == resource.data.status &&
-        request.resource.data.get('approved_at', null) == resource.data.get('approved_at', null) &&
-        request.resource.data.get('approved_by_user_id', null) == resource.data.get('approved_by_user_id', null) &&
-        request.resource.data.get('rejection_reason', null) == resource.data.get('rejection_reason', null) &&
-        request.resource.data.get('identity_verified', null) == resource.data.get('identity_verified', null) &&
-        request.resource.data.get('vehicle_verified', null) == resource.data.get('vehicle_verified', null) &&
-        request.resource.data.get('rating', null) == resource.data.get('rating', null) &&
-        request.resource.data.get('completed_missions', null) == resource.data.get('completed_missions', null) &&
-        request.resource.data.get('documents_all_valid', null) == resource.data.get('documents_all_valid', null) &&
-        request.resource.data.get('current_geohash', null) == resource.data.get('current_geohash', null) &&
-        // Champs écrits exclusivement par requestDriverDocuments() /
-        // suspendDriver() / reactivateDriver() (Phase 2 — portail analyste) :
-        // même protection que les champs historiques ci-dessus.
-        request.resource.data.get('documents_required_reason', null) == resource.data.get('documents_required_reason', null) &&
-        request.resource.data.get('documents_required_at', null) == resource.data.get('documents_required_at', null) &&
-        request.resource.data.get('documents_required_by_user_id', null) == resource.data.get('documents_required_by_user_id', null) &&
-        request.resource.data.get('suspended_at', null) == resource.data.get('suspended_at', null) &&
-        request.resource.data.get('suspended_by_user_id', null) == resource.data.get('suspended_by_user_id', null) &&
-        request.resource.data.get('suspension_reason', null) == resource.data.get('suspension_reason', null) &&
-        // SEC-GAP-S04: the suspension level is an administrative privilege,
-        // never a driver-editable declaration. Support legacy profiles where
-        // the optional field is absent, without allowing insertion, removal
-        // or escalation/downgrade via direct client writes.
-        request.resource.data.get('suspension_mode', null) == resource.data.get('suspension_mode', null) &&
-        request.resource.data.get('reactivated_at', null) == resource.data.get('reactivated_at', null) &&
-        request.resource.data.get('reactivated_by_user_id', null) == resource.data.get('reactivated_by_user_id', null) &&
-        // online_status ne peut être changé par le chauffeur lui-même QUE
-        // s'il est déjà approuvé (empêche un chauffeur non approuvé de se
-        // déclarer "online" et d'apparaître dans le dispatch).
-        (request.resource.data.get('online_status', null) == resource.data.get('online_status', null) ||
-         resource.data.status == 'approved');
+      allow create: if isSignedIn() && uid() == driverId && isDriver() &&
+        request.resource.data.status == 'registration_incomplete' &&
+        request.resource.data.get('uid', driverId) == driverId &&
+        request.resource.data.get('online_status', 'offline') == 'offline' &&
+        request.resource.data.keys().hasOnly(
+          driverDeclaredFields().concat(['uid', 'status', 'online_status', 'created_at']));
+
+      allow update: if isSignedIn() && uid() == driverId && isDriver() && (
+        // Champs déclaratifs (formulaire d'inscription / profil).
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(driverDeclaredFields()) ||
+        // Disponibilité : passer « online » exige d'être approuvé (empêche un
+        // non-approuvé d'entrer dans le dispatch); se mettre « offline » est
+        // toujours permis (déconnexion, suspension).
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['online_status']) &&
+         (request.resource.data.online_status == 'offline' ||
+          (request.resource.data.online_status == 'online' && resource.data.status == 'approved')))
+      );
 
       // 🔒 Les champs sensibles (status, approved_at, approved_by_user_id,
       // rejection_reason, identity_verified, vehicle_verified, rating,
@@ -218,8 +203,12 @@ service cloud.firestore {
         request.resource.data.is_verified == false &&
         !request.resource.data.keys().hasAny(['verified_capacity', 'capacity_valid_until']);
 
+      // SEC-S3 (2026-10-22) : un véhicule VÉRIFIÉ est verrouillé pour le
+      // chauffeur (catégorie, charge, plaque…). Un changement de véhicule
+      // passe par un nouveau véhicule, à revérifier.
       allow update: if isSignedIn() && (
         (resource.data.driver_id == uid() &&
+         resource.data.is_verified == false &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.is_verified == resource.data.is_verified &&
          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified_capacity', 'capacity_valid_until'])) ||
@@ -352,8 +341,15 @@ service cloud.firestore {
          request.resource.data.pricing_version == resource.data.pricing_version) ||
         // Annulation : seul le champ status -> 'cancelled' + cancellation_reason,
         // et UNIQUEMENT depuis un statut ACTUEL non terminal.
+        // SEC-S1 (2026-10-22) : annulation client UNIQUEMENT avant le
+        // ramassage. Une fois l'objet pris en charge (picked_up et après),
+        // annuler libérait l'autorisation de carte alors que le chauffeur
+        // avait déjà transporté l'objet. 'delivered' n'était pas non plus
+        // exclu. Liste blanche explicite plutôt que liste noire.
         (request.resource.data.status == 'cancelled' &&
-         !(resource.data.status in ['completed', 'cancelled', 'disputed', 'refunded']) &&
+         resource.data.status in ['draft', 'quoted', 'searching_driver', 'offered',
+                                  'assigned', 'driver_to_pickup', 'arrived_at_pickup',
+                                  'payment_failed'] &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
          request.resource.data.customer_total == resource.data.customer_total &&
