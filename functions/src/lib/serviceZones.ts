@@ -21,9 +21,28 @@ export interface ServiceZonesConfig {
   zones: (ServiceZoneRect | ServiceZoneCircle)[];
 }
 const CONFIG_DOC_PATH = "system_config/service_zones";
+
+/**
+ * Owner decision 2026-10-22: launch zone is Granby with a 40 km radius.
+ * Used only when `system_config/service_zones` does not exist, so a document
+ * written by an admin always takes precedence (including `enabled: false`).
+ */
+export const DEFAULT_SERVICE_ZONES: ServiceZonesConfig = Object.freeze({
+  enabled: true,
+  zones: [Object.freeze({
+    name: "Granby",
+    type: "circle" as const,
+    center_lat: 45.39856,
+    center_lng: -72.72225,
+    radius_km: 40,
+  })],
+}) as ServiceZonesConfig;
+
 export async function getServiceZonesConfig(): Promise<ServiceZonesConfig> {
   const snap = await db.doc(CONFIG_DOC_PATH).get();
-  if (!snap.exists) return { enabled: false, zones: [] };
+  if (!snap.exists) {
+    return { enabled: DEFAULT_SERVICE_ZONES.enabled, zones: [...DEFAULT_SERVICE_ZONES.zones] };
+  }
   const data = snap.data() as Partial<ServiceZonesConfig> | undefined;
   return {
     enabled: data?.enabled === true,
