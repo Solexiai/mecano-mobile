@@ -119,6 +119,17 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
   return (router, auth);
 }
 
+// Booking step chips are numbered ("1. Ma livraison"); other chips on the
+// step (timing choice) are not part of the step navigation.
+Iterable<ChoiceChip> selectedStepChips(WidgetTester tester) => tester
+    .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+    .where(
+      (chip) =>
+          chip.selected &&
+          chip.label is Text &&
+          RegExp(r'^\d\. ').hasMatch((chip.label as Text).data ?? ''),
+    );
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   tearDownAll(() {
@@ -208,9 +219,7 @@ void main() {
       router.routeInformationProvider.value.uri.path,
       '/fr/livraison/demande',
     );
-    final selected = tester
-        .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-        .where((chip) => chip.selected);
+    final selected = selectedStepChips(tester);
     expect(selected, hasLength(1));
     expect((selected.single.label as Text).data, '1. Ma livraison');
     expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
@@ -254,9 +263,7 @@ void main() {
         '/fr/livraison/demande?category=cat_furniture',
       );
 
-      final selected = tester
-          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-          .where((chip) => chip.selected);
+      final selected = selectedStepChips(tester);
       expect(selected, hasLength(1));
       expect((selected.single.label as Text).data, '1. Ma livraison');
       expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
@@ -298,12 +305,12 @@ void main() {
       final (router, _) = await mountHome(tester);
       router.go('/fr/contact');
       await tester.pumpAndSettle();
+      // No in-app form: the page shows the official address and opens the
+      // visitor's own email app (contact page since 2026-10-19).
       expect(find.byType(TextFormField), findsNothing);
       expect(find.textContaining('support@movi-k.demo'), findsNothing);
-      expect(
-        find.textContaining('n’envoie actuellement aucun message'),
-        findsOneWidget,
-      );
+      expect(find.text('info@movi-k.com'), findsWidgets);
+      expect(find.text('Ouvrir mon courriel'), findsOneWidget);
     },
   );
   test('return intent is local, allowlisted and sanitizes category', () {
@@ -345,10 +352,9 @@ void main() {
         router.routeInformationProvider.value.uri.toString(),
         '/en/livraison/demande?category=cat_furniture',
       );
-      final selected = tester
-          .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-          .where((chip) => chip.selected);
+      final selected = selectedStepChips(tester);
       expect(selected, hasLength(1));
+      expect((selected.single.label as Text).data, '1. My delivery');
       expect(tester.takeException(), isNull);
     },
   );

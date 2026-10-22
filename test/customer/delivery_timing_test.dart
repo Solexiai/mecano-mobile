@@ -114,19 +114,22 @@ void main() => offlineTests(() {
     },
   );
   offlineWidgetTest(
-    'unavailable reservation never sends immediate request or quote',
+    'unavailable reservation prices an immediate request but never sends it',
     (t) async {
       final storage = MemoryBookingStorage(testDraft()),
           api = TestBookingApi()..configurationAvailable = false;
       await pumpBooking(t, storage: storage, api: api);
       await tapBooking(t, 'Dès maintenant');
       await tapBooking(t, 'Voir mon prix');
-      expect(api.calls, isNot(contains('calculateDeliveryQuote')));
-      expect(api.calls, isNot(contains('createDeliveryRequest')));
+      // The official price does not require open booking (see
+      // booking_quote_without_policy_test.dart); the request itself does.
+      final quoteCall = api.calls.indexOf('calculateDeliveryQuote');
+      expect(quoteCall, isNonNegative);
       expect(
-        find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
-        findsWidgets,
+        (api.payloads[quoteCall]['booking'] as Map)['timing_mode'],
+        'immediate',
       );
+      expect(api.calls, isNot(contains('createDeliveryRequest')));
       await disposeBooking(t);
     },
   );

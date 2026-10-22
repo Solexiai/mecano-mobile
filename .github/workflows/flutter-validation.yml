@@ -107,9 +107,6 @@ jobs:
       - name: Report failure details (first 9 tests)
         if: ${{ failure() && hashFiles('flutter-tests.log') != '' }}
         shell: bash
-        env:
-          # Temporary triage focus on the remaining failing test files.
-          DETAIL_FOCUS: 'photo_offer_journey_test|home_screen_test|app_strings_structural_test|bloc_u_mobile_sanity_test|delivery_timing_test'
         run: |
           # Short, bounded excerpt per failing test (large annotations are dropped).
           # Flutter prints the exception block *before* the "[E]" line, so keep
@@ -118,7 +115,7 @@ jobs:
                function flush() { print cur "\t" body }
                /^[0-9]+:[0-9]+ \+[0-9]+/ { if (cur != "") flush(); cur = ""; if ($0 ~ /\[E\]$/) { cur = $0; body = prev } prev = ""; n = 0; next }
                keep($0) && n < 22 { line = substr($0, 1, 160); gsub(/%/, "%25", line); prev = prev line "%0A"; if (cur != "") body = body line "%0A"; n++ }
-               END { if (cur != "") flush() }' flutter-tests.log | grep -E "${DETAIL_FOCUS:-.}" | head -n 9 | while IFS=$'\t' read -r name body; do
+               END { if (cur != "") flush() }' flutter-tests.log | head -n 9 | while IFS=$'\t' read -r name body; do
             short="$(printf '%s' "$name" | sed -E 's/^[0-9:]+ \+[0-9]+( ~[0-9]+)? -[0-9]+: //; s#^/home/runner/work/[^/]+/[^/]+/##' | cut -c1-150)"
             echo "::error title=Detail ${short}::${body:0:2500}"
           done

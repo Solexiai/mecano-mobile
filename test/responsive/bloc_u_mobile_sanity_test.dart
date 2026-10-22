@@ -455,8 +455,9 @@ void _registerTests() {
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
 
-          await tester.ensureVisible(find.text('Canapé').first);
-          await tester.tap(find.text('Canapé').first);
+          final sofa = find.text('Divan / sofa / sectionnel').first;
+          await tester.ensureVisible(sofa);
+          await tester.tap(sofa);
           await tester.pumpAndSettle();
           final fields = find.byType(TextField);
           expect(fields.evaluate().length, greaterThanOrEqualTo(8));
