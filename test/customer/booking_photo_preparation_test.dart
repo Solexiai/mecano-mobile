@@ -59,6 +59,29 @@ void main() {
     );
     expect(calls, 0);
   });
+  test('iPhone HEIC is detected and handed to the encoder as image/heic', () async {
+    // ....ftypheic
+    final heic = Uint8List.fromList(
+      [0, 0, 0, 24, ...'ftyp'.codeUnits, ...'heic'.codeUnits, 0, 0],
+    );
+    expect(bookingPhotoMime(heic), 'image/heic');
+    String? observed;
+    final result = await prepareBookingPhotoBytes(
+      heic,
+      encode: (b, m) async {
+        observed = m;
+        return jpeg;
+      },
+    );
+    expect(observed, 'image/heic');
+    expect(result, jpeg);
+  });
+  test('non-image ISO-BMFF (mp4) is not treated as a photo', () {
+    final mp4 = Uint8List.fromList(
+      [0, 0, 0, 24, ...'ftyp'.codeUnits, ...'isom'.codeUnits, 0, 0],
+    );
+    expect(bookingPhotoMime(mp4), isNull);
+  });
   test('unsupported SVG is not decoded', () async {
     await expectLater(
       prepareBookingPhotoBytes(Uint8List.fromList('<svg/>'.codeUnits)),

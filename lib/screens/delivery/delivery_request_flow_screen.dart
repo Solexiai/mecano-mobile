@@ -1735,9 +1735,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               icon: const Icon(Icons.add_a_photo_outlined),
               label: Text(
                 tr(
-                  'Ajouter une photo JPEG (facultatif)',
-                  'Add a JPEG photo (optional)',
-                  'Añadir foto JPEG (opcional)',
+                  'Ajouter une photo (facultatif)',
+                  'Add a photo (optional)',
+                  'Añadir una foto (opcional)',
                 ),
               ),
               onPressed: (item['photos'] as List? ?? []).length >= 3
@@ -1747,10 +1747,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                         await _login();
                         return;
                       }
+                      // Picker first (iOS Safari user-gesture rule), then save.
+                      final upload = await selectBookingPhotoUpload();
+                      if (upload == null) return;
                       await _save();
-                      if (_saveError != null) return;
+                      if (_saveError != null || !mounted) return;
                       final photos = item['photos'] as List? ?? <String>[];
-                      final path = await uploadBookingPhoto(
+                      final path = await upload(
                         uid: _uid!,
                         draftId: _draft.id,
                         itemId: item['id'] as String,

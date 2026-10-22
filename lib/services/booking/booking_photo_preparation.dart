@@ -42,6 +42,23 @@ String? bookingPhotoMime(Uint8List b) {
       String.fromCharCodes(b.sublist(8, 12)) == 'WEBP') {
     return 'image/webp';
   }
+  // ISO-BMFF "ftyp" box: iPhone HEIC/HEIF photos. Decoded by the browser
+  // (Safari on iOS/macOS) and re-encoded to JPEG; other browsers fail cleanly.
+  if (b.length >= 12 && String.fromCharCodes(b.sublist(4, 8)) == 'ftyp') {
+    final brand = String.fromCharCodes(b.sublist(8, 12));
+    if (const {
+      'heic',
+      'heix',
+      'hevc',
+      'hevx',
+      'heim',
+      'heis',
+      'mif1',
+      'msf1',
+    }.contains(brand)) {
+      return 'image/heic';
+    }
+  }
   return null;
 }
 
