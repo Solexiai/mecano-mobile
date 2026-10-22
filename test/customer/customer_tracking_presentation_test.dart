@@ -119,7 +119,9 @@ Future<Harness> start(
   BackendLocator.locationRepositoryOverride = locations;
   final auth = BookingTestAuth(), language = LocaleProvider();
   final api = TestBookingApi(),
-      storage = MemoryBookingStorage(testDraft(step: 3, quote: true));
+      storage = MemoryBookingStorage(
+        testDraft(step: 3, quote: true)..data['accepted_locale'] = locale,
+      );
   final router = GoRouter(
     initialLocation: booking
         ? '/$locale/livraison/demande'

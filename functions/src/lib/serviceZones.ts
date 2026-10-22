@@ -1,31 +1,5 @@
-// -----------------------------------------------------------------------------
-// serviceZones — validation CONFIGURABLE de la zone de service Movi-K.
-//
-// MOVI-K — CORRECTION UX LIVRAISON (adresses réelles + autocomplete +
-// géocodage), section "ZONE DE SERVICE" : prépare la capacité de refuser un
-// pickup/dropoff hors zone, SANS jamais hardcoder de ville (ex: Terrebonne,
-// Granby) dans le code. La configuration vit dans Firestore
-// (`system_config/service_zones`), modifiable sans redéploiement :
-//
-//   system_config/service_zones = {
-//     enabled: boolean,           // false par défaut => aucune restriction
-//     zones: [                     // liste de rectangles lat/lng (simple,
-//       {                          // suffisant pour un MVP ; remplaçable
-//         name: string,            // plus tard par des polygones réels sans
-//         min_lat: number,         // changer l'appelant (isWithinServiceZones
-//         max_lat: number,         // reste le seul point d'entrée).
-//         min_lng: number,
-//         max_lng: number,
-//       },
-//     ],
-//   }
-//
-// Comportement fail-open TANT QUE non configuré (`enabled` absent/false ou
-// aucune zone définie) : AUCUNE régression pour les déploiements existants
-// qui n'ont pas encore défini de zone. Une fois `enabled: true` avec au
-// moins une zone, toute coordonnée hors de TOUTES les zones est rejetée.
-// -----------------------------------------------------------------------------
-
+// Configurable service areas. Legacy rectangles remain supported.
+// Circle radius is geographic distance, never a routing/pricing distance.
 import { db } from "./admin";
 
 export interface ServiceZoneRect {
@@ -35,39 +9,53 @@ export interface ServiceZoneRect {
   min_lng: number;
   max_lng: number;
 }
-
+export interface ServiceZoneCircle {
+  name: string;
+  type: "circle";
+  center_lat: number;
+  center_lng: number;
+  radius_km: number;
+}
 export interface ServiceZonesConfig {
   enabled: boolean;
-  zones: ServiceZoneRect[];
+  zones: (ServiceZoneRect | ServiceZoneCircle)[];
 }
-
 const CONFIG_DOC_PATH = "system_config/service_zones";
-
 export async function getServiceZonesConfig(): Promise<ServiceZonesConfig> {
   const snap = await db.doc(CONFIG_DOC_PATH).get();
-  if (!snap.exists) {
-    return { enabled: false, zones: [] };
-  }
+  if (!snap.exists) return { enabled: false, zones: [] };
   const data = snap.data() as Partial<ServiceZonesConfig> | undefined;
   return {
     enabled: data?.enabled === true,
-    zones: Array.isArray(data?.zones) ? (data!.zones as ServiceZoneRect[]) : [],
+    zones: Array.isArray(data?.zones) ? data.zones : [],
   };
 }
-
-/**
- * Retourne `true` si (lat, lng) est acceptable :
- *  - la validation est désactivée (`enabled: false` ou aucune zone) => true
- *    (comportement historique inchangé, aucune régression) ;
- *  - OU la coordonnée tombe dans AU MOINS une zone configurée.
- */
+function coordinatesValid(lat: number, lng: number): boolean {
+  return Number.isFinite(lat) && Number.isFinite(lng) &&
+    Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
 export function isWithinServiceZones(
   lat: number,
   lng: number,
   config: ServiceZonesConfig
 ): boolean {
+  // Preserve legacy behavior. Booking additionally requires a configured zone.
   if (!config.enabled || config.zones.length === 0) return true;
-  return config.zones.some(
-    (z) => lat >= z.min_lat && lat <= z.max_lat && lng >= z.min_lng && lng <= z.max_lng
-  );
+  if (!coordinatesValid(lat, lng)) return false;
+  return config.zones.some((z) => {
+    if (!z || typeof z !== "object") return false;
+    if ("type" in z) {
+      if (z.type !== "circle" || !coordinatesValid(z.center_lat, z.center_lng) ||
+          !Number.isFinite(z.radius_km) || z.radius_km <= 0) return false;
+      const radians = Math.PI / 180;
+      const a = Math.sin((lat - z.center_lat) * radians / 2) ** 2 +
+        Math.cos(lat * radians) * Math.cos(z.center_lat * radians) *
+        Math.sin((lng - z.center_lng) * radians / 2) ** 2;
+      const distanceKm = 6371.0088 * 2 * Math.asin(Math.sqrt(Math.min(1, Math.max(0, a))));
+      return distanceKm <= z.radius_km;
+    }
+    return coordinatesValid(z.min_lat, z.min_lng) &&
+      coordinatesValid(z.max_lat, z.max_lng) &&
+      lat >= z.min_lat && lat <= z.max_lat && lng >= z.min_lng && lng <= z.max_lng;
+  });
 }

@@ -58,6 +58,14 @@ abstract class DriverRepository {
 
   Future<List<DriverVehicle>> getDriverVehicles(String driverId);
 
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  });
+
   /// Enregistre les métadonnées d'un document après upload réussi dans
   /// Firebase Storage (le fichier binaire est géré séparément par le
   /// service de Storage, pas par ce repository).
@@ -228,6 +236,19 @@ class NotConfiguredDriverRepository implements DriverRepository {
     DriverStatus? status, {
     int limit = 50,
   }) => Stream.value(const []);
+
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) {
+    throw BackendNotConfiguredException(
+      'reviewDriverVehicle: Firebase Functions non configuré.',
+    );
+  }
 
   @override
   Future<void> approveDriver(String driverId) {

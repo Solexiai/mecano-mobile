@@ -3,13 +3,19 @@ import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { normalizeLoad } from '../lib/booking';
 import { admin, db } from '../lib/admin';
-import { requireSignedIn } from '../lib/auth';
+import { requireSignedIn, isSuperAdmin, isInternalDemoCustomer } from '../lib/auth';
 import { resolveLockedQuote } from '../lib/quoteIntegrity';
-import { permissionDenied } from '../lib/errors';
+import { permissionDenied, failedPrecondition } from '../lib/errors';
+import { readDriverOfferCompensation } from '../lib/driverOfferCompensation';
+import { toMinorUnits } from '../lib/money';
 import { invalidArgument } from '../lib/errors';
 import { findCompatibleVehicle, reviewBooking } from '../lib/bookingServer';
 
-export const getBookingConfiguration = onCall(async () => getPublicBookingConfiguration());
+export const getBookingConfiguration = onCall(async request => {
+  const configuration = await getPublicBookingConfiguration();
+  const ctx = request.auth ? requireSignedIn(request) : null;
+  return { ...configuration, internal_test_request: !!ctx && (isSuperAdmin(ctx) || isInternalDemoCustomer(ctx)) };
+});
 export const reviewDeliveryLoad = onCall(async request => {
   const { uid } = requireSignedIn(request);
   return (await reviewBooking(request.data.load, request.data.stops, uid)).review;
@@ -91,7 +97,15 @@ export const getBookingQuote = onCall(async request => {
   const q = (await db.doc(`delivery_quotes/${id}`).get()).data();
   if (!q || q.customer_id !== uid) throw permissionDenied('Devis inaccessible.');
   const locked = resolveLockedQuote(id, q);
-  if (!locked.pricingSnapshot?.booking || q.status === 'cancelled') throw invalidArgument('Devis indisponible.');
+  if (q.status === 'cancelled') throw invalidArgument('Devis indisponible.');
+  if (locked.pricingSnapshot?.pre_assignment) {
+    return { quoteId: id, customerTotal: locked.customerTotalMinor / 100,
+      vehicleCategory: locked.pricingSnapshot.vehicle_category, booking: null, assignmentPending: true,
+      breakdown: locked.pricingResult, distanceKm: locked.pricingSnapshot.distance_km,
+      estimatedDurationMinutes: locked.pricingSnapshot.estimated_duration_minutes,
+      expiresAtMillis: q.expires_at.toMillis(), missionId: q.mission_id ?? null };
+  }
+  if (!locked.pricingSnapshot?.booking) throw invalidArgument('Devis indisponible.');
   const attempt = (await db.doc(`booking_attempts/${uid}_${locked.pricingSnapshot.booking.load.draft_id}`).get()).data();
   return { quoteId: id, customerTotal: locked.customerTotalMinor / 100,
     vehicleCategory: locked.pricingSnapshot.booking.category, booking: locked.pricingSnapshot.booking,
@@ -122,14 +136,41 @@ export const requestBookingReview = onCall(async request => {
 });
 
 export const getBookingVehicleForAcceptance = onCall(async request => {
-  const { uid } = requireSignedIn(request);const id=request.data.missionId;
-  if(typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw invalidArgument('Mission invalide.');
-  const driver=(await db.doc(`driver_profiles/${uid}`).get()).data();
-  if(driver?.status!=='approved' || driver.documents_all_valid!==true) throw permissionDenied('Chauffeur non admissible.');
-  const mission=(await db.doc(`delivery_requests/${id}`).get()).data();
-  if(!mission?.booking_snapshot || !['searching_driver','offered'].includes(mission.status)) throw invalidArgument('Mission indisponible.');
-  const vehicle=await findCompatibleVehicle(uid,mission.booking_snapshot);
-  if(!vehicle)return {vehicle:null};
-  const data=(await db.doc(`driver_vehicles/${vehicle.vehicle_id}`).get()).data()!;
-  return {vehicle:{id:vehicle.vehicle_id,label:`${data.make_model ?? ''} · ${data.plate ?? vehicle.vehicle_id}`}};
+  const { uid } = requireSignedIn(request);
+  const id = request.data?.missionId;
+  if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) throw invalidArgument('Mission invalide.');
+  return db.runTransaction(async tx => {
+    const driver = (await tx.get(db.doc('driver_profiles/' + uid))).data();
+    if (driver?.status !== 'approved' || driver.documents_all_valid !== true) throw permissionDenied('Chauffeur non admissible.');
+    const mission = (await tx.get(db.doc('delivery_requests/' + id))).data();
+    if (!mission?.booking_snapshot || mission.driver_id ||
+        !['searching_driver', 'offered'].includes(mission.status)) throw failedPrecondition('Mission indisponible.');
+    const offers = await tx.get(db.collection('delivery_offers').where('mission_id', '==', id).where('driver_id', '==', uid));
+    if (!offers.docs.some(d => d.data().status === 'pending' &&
+        typeof d.data().expires_at?.toMillis === 'function' && d.data().expires_at.toMillis() > Date.now())) {
+      throw failedPrecondition('Cette offre est indisponible ou expirée.');
+    }
+    const vehicle = await findCompatibleVehicle(uid, mission.booking_snapshot, tx);
+    if (!vehicle) return { vehicle: null, offerTerms: null };
+    const data = (await tx.get(db.doc('driver_vehicles/' + vehicle.vehicle_id))).data()!;
+    let amountMinor = 0;
+    if (!(mission.assignment_mode === 'internal_test' && mission.internal_test_authorized !== false &&
+          (mission.internal_test_authorized === true || mission.internal_test_authorized === undefined))) {
+      if (typeof mission.active_quote_id !== 'string' || !mission.active_quote_id) throw failedPrecondition('Devis officiel absent.');
+      const quote = (await tx.get(db.doc('delivery_quotes/' + mission.active_quote_id))).data();
+      if (!quote || quote.customer_id !== mission.customer_id || quote.mission_id !== id ||
+          quote.is_consumed !== true || quote.status === 'cancelled' || quote.cancelled_at) throw failedPrecondition('Devis officiel invalide.');
+      const locked = resolveLockedQuote(mission.active_quote_id, quote);
+      if (mission.pricing_version !== locked.pricingVersion ||
+          toMinorUnits(mission.customer_total) !== locked.customerTotalMinor ||
+          (mission.customer_total_minor !== undefined && mission.customer_total_minor !== locked.customerTotalMinor) ||
+          (locked.integrityHash && mission.quote_integrity_hash !== locked.integrityHash)) throw failedPrecondition('Mission et devis incohérents.');
+      const { compensation } = await readDriverOfferCompensation(tx, uid, locked);
+      amountMinor = toMinorUnits(compensation.driverOfferAmount);
+    }
+    return {
+      vehicle: { id: vehicle.vehicle_id, label: String(data.make_model ?? '') + ' · ' + String(data.plate ?? vehicle.vehicle_id) },
+      offerTerms: { amountMinor, currency: 'CAD', pricingVersion: mission.pricing_version },
+    };
+  });
 });

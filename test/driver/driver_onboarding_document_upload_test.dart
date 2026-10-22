@@ -58,11 +58,74 @@ class _FakeImagePicker extends ImagePickerPlatform {
   int calls = 0;
 
   static final Uint8List _png = Uint8List.fromList(const [
-    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
-    0, 0, 0, 1, 0, 0, 0, 1, 8, 4, 0, 0, 0, 181, 28, 12, 2, 0,
-    0, 0, 11, 73, 68, 65, 84, 120, 218, 99, 100, 248, 15, 0, 1, 5,
-    1, 1, 39, 24, 227, 102, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66,
-    96, 130,
+    137,
+    80,
+    78,
+    71,
+    13,
+    10,
+    26,
+    10,
+    0,
+    0,
+    0,
+    13,
+    73,
+    72,
+    68,
+    82,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    1,
+    8,
+    4,
+    0,
+    0,
+    0,
+    181,
+    28,
+    12,
+    2,
+    0,
+    0,
+    0,
+    11,
+    73,
+    68,
+    65,
+    84,
+    120,
+    218,
+    99,
+    100,
+    248,
+    15,
+    0,
+    1,
+    5,
+    1,
+    1,
+    39,
+    24,
+    227,
+    102,
+    0,
+    0,
+    0,
+    0,
+    73,
+    69,
+    78,
+    68,
+    174,
+    66,
+    96,
+    130,
   ]);
 
   @override
@@ -145,8 +208,19 @@ class _DriverRepo implements DriverRepository {
   Stream<List<DriverProfileV2>> watchPendingReviewDrivers() =>
       throw UnimplementedError();
   @override
-  Stream<List<DriverProfileV2>> watchDriversByStatus(DriverStatus? status, {int limit = 50}) =>
-      throw UnimplementedError();
+  Stream<List<DriverProfileV2>> watchDriversByStatus(
+    DriverStatus? status, {
+    int limit = 50,
+  }) => throw UnimplementedError();
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) => throw UnimplementedError();
+
   @override
   Future<void> approveDriver(String driverId) => throw UnimplementedError();
   @override
@@ -156,11 +230,13 @@ class _DriverRepo implements DriverRepository {
   Future<void> requestDriverDocuments(String driverId, String reason) =>
       throw UnimplementedError();
   @override
-  Future<void> suspendDriver(String driverId, String reason, {String suspensionMode = 'urgent'}) =>
-      throw UnimplementedError();
+  Future<void> suspendDriver(
+    String driverId,
+    String reason, {
+    String suspensionMode = 'urgent',
+  }) => throw UnimplementedError();
   @override
-  Future<void> reactivateDriver(String driverId) =>
-      throw UnimplementedError();
+  Future<void> reactivateDriver(String driverId) => throw UnimplementedError();
   @override
   Future<void> addDriverInternalNote(String driverId, String text) =>
       throw UnimplementedError();
@@ -178,13 +254,18 @@ class _DriverRepo implements DriverRepository {
       throw UnimplementedError();
 }
 
-Widget _app(FirebaseAuthProvider auth) {
+Widget _app(
+  FirebaseAuthProvider auth, {
+  String locale = 'fr',
+  int initialStep = 0,
+}) {
   final router = GoRouter(
     initialLocation: '/fr/devenir-chauffeur/inscription',
     routes: [
       GoRoute(
         path: '/fr/devenir-chauffeur/inscription',
-        builder: (_, __) => const DriverOnboardingScreen(locale: 'fr'),
+        builder: (_, __) =>
+            DriverOnboardingScreen(locale: locale, initialStep: initialStep),
       ),
       GoRoute(
         path: '/fr/devenir-chauffeur/statut',
@@ -207,10 +288,9 @@ Future<void> _tapPicker(WidgetTester tester, String label) async {
   await tester.ensureVisible(labelFinder);
   await tester.pump();
 
-  final row = find.ancestor(
-    of: labelFinder,
-    matching: find.byType(Container),
-  ).first;
+  final row = find
+      .ancestor(of: labelFinder, matching: find.byType(Container))
+      .first;
 
   final button = find.descendant(
     of: row,
@@ -256,8 +336,9 @@ Future<void> _completeContactStep(WidgetTester tester) async {
   await tester.enterText(fields.at(2), '100 Rue Principale');
   await tester.pump(const Duration(milliseconds: 400));
   await tester.pumpAndSettle();
-  final addressSuggestion =
-      find.text('100 Rue Principale, Terrebonne, QC J6W 1A1, Canada');
+  final addressSuggestion = find.text(
+    '100 Rue Principale, Terrebonne, QC J6W 1A1, Canada',
+  );
   await tester.ensureVisible(addressSuggestion);
   await tester.pumpAndSettle();
   await tester.tap(addressSuggestion);
@@ -266,8 +347,7 @@ Future<void> _completeContactStep(WidgetTester tester) async {
 }
 
 Future<void> _completeVehicleStep(WidgetTester tester) async {
-  final pickupTruck =
-      find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr'));
+  final pickupTruck = find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr'));
   await tester.ensureVisible(pickupTruck);
   await tester.pump();
   await tester.tap(pickupTruck);
@@ -298,12 +378,16 @@ Future<void> _completeVehicleStep(WidgetTester tester) async {
   await _next(tester);
 }
 
-Future<void> _goToDocuments(WidgetTester tester) async {
+Future<void> _goToDocuments(WidgetTester tester, {int teamSize = 1}) async {
   await _completeContactStep(tester);
   await _completeVehicleStep(tester);
+  final team = find.byKey(ValueKey('driver-loading-team-$teamSize'));
+  await tester.ensureVisible(team);
+  await tester.pumpAndSettle();
+  await tester.tap(team);
+  await tester.pumpAndSettle();
 
-  final furniture =
-      find.text(AppStrings.t('cat_furniture', 'fr'));
+  final furniture = find.text(AppStrings.t('cat_furniture', 'fr'));
   await tester.ensureVisible(furniture);
   await tester.pump();
   await tester.tap(furniture);
@@ -336,6 +420,73 @@ void main() {
     BackendLocator.driverDocumentUploadRepositoryOverride = null;
   });
 
+  for (final locale in ['fr', 'en', 'es']) {
+    for (final width in [375.0, 1440.0]) {
+      testWidgets('loading team choices $locale $width', (tester) async {
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = width == 375
+            ? 2
+            : 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+          tester.platformDispatcher.clearTextScaleFactorTestValue();
+        });
+        await tester.pumpWidget(_app(auth, locale: locale, initialStep: 2));
+        await tester.pumpAndSettle();
+        expect(find.byType(RadioListTile<int>), findsNWidgets(5));
+        expect(
+          tester
+              .widget<RadioGroup<int>>(find.byType(RadioGroup<int>))
+              .groupValue,
+          1,
+        );
+        for (final size in [5, 2, 4, 3, 1]) {
+          final option = find.byKey(ValueKey('driver-loading-team-$size'));
+          await tester.ensureVisible(option);
+          await tester.pumpAndSettle();
+          await tester.tap(option);
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<RadioGroup<int>>(find.byType(RadioGroup<int>))
+                .groupValue,
+            size,
+          );
+          expect(
+            find.text(DriverOnboardingCopy.text(locale, 'loading_team_$size')),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        }
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      });
+    }
+  }
+
+  testWidgets('pilot vehicle choices are pickup, cargo van and cube only', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(auth));
+    await tester.pumpAndSettle();
+    await _completeContactStep(tester);
+    expect(find.byType(ChoiceChip), findsNWidgets(3));
+    for (final category in [
+      VehicleCategory.pickupTruck,
+      VehicleCategory.cargoVan,
+      VehicleCategory.cubeTruck,
+    ]) {
+      expect(find.text(AppStrings.t(category.key, 'fr')), findsOneWidget);
+    }
+    expect(
+      find.text(AppStrings.t(VehicleCategory.car.key, 'fr')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'vehicle step requires make, model, payload and all three verification photos',
     (tester) async {
@@ -343,8 +494,9 @@ void main() {
       await tester.pumpAndSettle();
       await _completeContactStep(tester);
 
-      final pickupTruck =
-          find.text(AppStrings.t('vehicle_cat_pickup_truck', 'fr'));
+      final pickupTruck = find.text(
+        AppStrings.t('vehicle_cat_pickup_truck', 'fr'),
+      );
       await tester.ensureVisible(pickupTruck);
       await tester.pump();
       await tester.tap(pickupTruck);
@@ -390,7 +542,7 @@ void main() {
       BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
       await tester.pumpWidget(_app(auth));
       await tester.pumpAndSettle();
-      await _goToDocuments(tester);
+      await _goToDocuments(tester, teamSize: 5);
 
       expect(
         find.text(
@@ -469,6 +621,9 @@ void main() {
       expect(driverRepo.onboardingCalls, 1);
       expect(driverRepo.vehicleCalls, 1);
       expect(driverRepo.submitReviewCalls, 1);
+      expect(driverRepo.profile?.maxLoadingTeamSize, 5);
+      expect(driverRepo.profile?.toJson()['max_loading_team_size'], 5);
+      expect(driverRepo.profile?.loadingAssistanceAvailable, isTrue);
       expect(driverRepo.profile?.phone, '5145551234');
       expect(driverRepo.profile?.baseAddressFormatted, contains('Terrebonne'));
       expect(driverRepo.profile?.baseLat, 45.70);
@@ -482,57 +637,54 @@ void main() {
     },
   );
 
-  testWidgets(
-    'storage failure never advances the driver to pending review',
-    (tester) async {
-      final uploadRepo = _UploadRepo(fail: true);
-      BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
-      await tester.pumpWidget(_app(auth));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
-      await _goToDocuments(tester);
+  testWidgets('storage failure never advances the driver to pending review', (
+    tester,
+  ) async {
+    final uploadRepo = _UploadRepo(fail: true);
+    BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
+    await tester.pumpWidget(_app(auth));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await _goToDocuments(tester);
 
-      await _tapPicker(
-        tester,
-        AppStrings.t('driver_onboarding_upload_license', 'fr'),
-      );
-      await _tapPicker(
-        tester,
-        DriverOnboardingCopy.text('fr', 'vehicle_registration'),
-      );
-      await _tapPicker(
-        tester,
-        AppStrings.t('driver_onboarding_upload_insurance', 'fr'),
-      );
-      await _tapPicker(
-        tester,
-        DriverOnboardingCopy.text('fr', 'identity_document'),
-      );
-      await tester.tap(find.byType(CheckboxListTile).at(0));
-      await tester.pump();
-      await tester.tap(find.byType(CheckboxListTile).at(1));
-      await tester.pump();
+    await _tapPicker(
+      tester,
+      AppStrings.t('driver_onboarding_upload_license', 'fr'),
+    );
+    await _tapPicker(
+      tester,
+      DriverOnboardingCopy.text('fr', 'vehicle_registration'),
+    );
+    await _tapPicker(
+      tester,
+      AppStrings.t('driver_onboarding_upload_insurance', 'fr'),
+    );
+    await _tapPicker(
+      tester,
+      DriverOnboardingCopy.text('fr', 'identity_document'),
+    );
+    await tester.tap(find.byType(CheckboxListTile).at(0));
+    await tester.pump();
+    await tester.tap(find.byType(CheckboxListTile).at(1));
+    await tester.pump();
 
-      final submit = find.widgetWithText(
-        ElevatedButton,
-        AppStrings.t('driver_onboarding_submit', 'fr'),
-      );
-      await tester.ensureVisible(submit);
-      await tester.tap(submit);
-      await tester.pumpAndSettle();
+    final submit = find.widgetWithText(
+      ElevatedButton,
+      AppStrings.t('driver_onboarding_submit', 'fr'),
+    );
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
 
-      expect(uploadRepo.calls, greaterThanOrEqualTo(1));
-      expect(driverRepo.submitReviewCalls, 0);
-      expect(
-        find.text(AppStrings.t('driver_pending_verification', 'fr')),
-        findsNothing,
-      );
-      expect(
-        find.text(
-          AppStrings.t('driver_onboarding_error_generic_prefix', 'fr'),
-        ),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(uploadRepo.calls, greaterThanOrEqualTo(1));
+    expect(driverRepo.submitReviewCalls, 0);
+    expect(
+      find.text(AppStrings.t('driver_pending_verification', 'fr')),
+      findsNothing,
+    );
+    expect(
+      find.text(AppStrings.t('driver_onboarding_error_generic_prefix', 'fr')),
+      findsOneWidget,
+    );
+  });
 }

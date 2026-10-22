@@ -146,7 +146,27 @@ void main() {
           'es': 'Dirección de recogida',
         }[locale],
       );
-      expect(find.byType(ChoiceChip), findsNWidgets(4));
+      final stepLabels = {
+        'fr': [
+          'Ma livraison',
+          'Mon prix',
+          'Mes coordonnées',
+          'Confirmation et paiement',
+        ],
+        'en': [
+          'My delivery',
+          'My price',
+          'My details',
+          'Confirmation and payment',
+        ],
+        'es': ['Mi entrega', 'Mi precio', 'Mis datos', 'Confirmación y pago'],
+      }[locale]!;
+      for (var i = 0; i < stepLabels.length; i++) {
+        expect(
+          find.widgetWithText(ChoiceChip, '${i + 1}. ${stepLabels[i]}'),
+          findsOneWidget,
+        );
+      }
       await disposeBooking(t);
     });
   }

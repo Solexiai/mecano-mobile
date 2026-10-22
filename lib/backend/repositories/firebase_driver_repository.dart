@@ -120,6 +120,7 @@ class FirebaseDriverRepository implements DriverRepository {
       baseLng: profile.baseLng,
       spokenLanguages: profile.spokenLanguages,
       loadingAssistanceAvailable: profile.loadingAssistanceAvailable,
+      maxLoadingTeamSize: profile.maxLoadingTeamSize,
       status: safeStatus,
       serviceRadiusKm: profile.serviceRadiusKm,
       acceptedVehicleCategories: profile.acceptedVehicleCategories,
@@ -225,6 +226,26 @@ class FirebaseDriverRepository implements DriverRepository {
             fetchedCount: snap.docs.length,
           ),
         );
+  }
+
+  @override
+  Future<void> reviewDriverVehicle({
+    required DriverVehicle vehicle,
+    required bool approve,
+    Map<String, dynamic>? capacity,
+    DateTime? validUntil,
+    required String note,
+  }) async {
+    await _functions.httpsCallable('reviewDriverVehicle').call({
+      'driverId': vehicle.driverId,
+      'vehicleId': vehicle.id,
+      'action': approve ? 'approve' : 'revoke',
+      'expectedIdentity': vehicle.verificationIdentity,
+      if (capacity != null) 'capacity': capacity,
+      if (validUntil != null)
+        'validUntil': validUntil.toUtc().toIso8601String(),
+      'verificationNote': note,
+    });
   }
 
   @override

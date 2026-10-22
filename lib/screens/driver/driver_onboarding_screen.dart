@@ -64,7 +64,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   double _radiusKm = 25;
   final Set<String> _languages = {'fr'};
   final Set<String> _acceptedItemKeys = {};
-  bool _loadingAssistance = false;
+  int _maxLoadingTeamSize = 1;
 
   Uint8List? _vehiclePhotoBytes;
   String? _vehiclePhotoName;
@@ -161,7 +161,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 920),
                 child: StepProgressForm(
-                  initialStep: widget.initialStep,                  stepTitles: [
+                  initialStep: widget.initialStep,
+                  stepTitles: [
                     _copy('step_contact'),
                     _copy('step_vehicle'),
                     _copy('step_services'),
@@ -209,10 +210,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     }
   }
 
-  Widget _contactStep(
-    FirebaseAuthProvider auth,
-    String Function(String) t,
-  ) {
+  Widget _contactStep(FirebaseAuthProvider auth, String Function(String) t) {
     return StepFormCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,17 +347,21 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: VehicleCategory.values
-                .where((category) => category != VehicleCategory.other)
-                .map(
-                  (category) => ChoiceChip(
-                    label: Text(t(category.key)),
-                    selected: _vehicleCategory == category,
-                    onSelected: (_) =>
-                        setState(() => _vehicleCategory = category),
-                  ),
-                )
-                .toList(),
+            children:
+                const [
+                      VehicleCategory.pickupTruck,
+                      VehicleCategory.cargoVan,
+                      VehicleCategory.cubeTruck,
+                    ]
+                    .map(
+                      (category) => ChoiceChip(
+                        label: Text(t(category.key)),
+                        selected: _vehicleCategory == category,
+                        onSelected: (_) =>
+                            setState(() => _vehicleCategory = category),
+                      ),
+                    )
+                    .toList(),
           ),
           const SizedBox(height: 22),
           LayoutBuilder(
@@ -537,8 +539,10 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
@@ -588,17 +592,32 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             }).toList(),
           ),
           const SizedBox(height: 18),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: const Icon(Icons.fitness_center_outlined),
-            title: Text(
-              t('driver_onboarding_loading_assistance'),
-              style: const TextStyle(fontWeight: FontWeight.w600),
+          Text(
+            _copy('loading_team_title'),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          Text(_copy('loading_team_help')),
+          const SizedBox(height: 8),
+          RadioGroup<int>(
+            groupValue: _maxLoadingTeamSize,
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _maxLoadingTeamSize = value);
+              }
+            },
+            child: Column(
+              children: [
+                for (var size = 1; size <= 5; size++)
+                  RadioListTile<int>(
+                    key: ValueKey('driver-loading-team-$size'),
+                    contentPadding: EdgeInsets.zero,
+                    value: size,
+                    activeColor: AppColors.primary,
+                    title: Text(_copy('loading_team_$size')),
+                  ),
+              ],
             ),
-            value: _loadingAssistance,
-            activeThumbColor: AppColors.primary,
-            onChanged: (value) =>
-                setState(() => _loadingAssistance = value),
           ),
           const SizedBox(height: 18),
           _InfoPanel(
@@ -707,8 +726,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               t('driver_onboarding_consent_terms'),
               style: const TextStyle(fontSize: 13.5),
             ),
-            onChanged: (value) =>
-                setState(() => _agreedTerms = value ?? false),
+            onChanged: (value) => setState(() => _agreedTerms = value ?? false),
           ),
           const SizedBox(height: 10),
           _RequiredHint(text: _copy('field_required')),
@@ -719,7 +737,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
 
   bool _canProceed(int step, FirebaseAuthProvider auth) {
     if (step == 0) {
-      final accountReady = auth.isSignedIn ||
+      final accountReady =
+          auth.isSignedIn ||
           (_isEmailValid(_emailController.text) &&
               _passwordController.text.trim().length >= 6);
       return _nameController.text.trim().isNotEmpty &&
@@ -736,7 +755,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       final payload = double.tryParse(
         _payloadController.text.trim().replaceAll(',', '.'),
       );
-      return _vehicleCategory != null &&
+      return const [
+            VehicleCategory.pickupTruck,
+            VehicleCategory.cargoVan,
+            VehicleCategory.cubeTruck,
+          ].contains(_vehicleCategory) &&
           _makeController.text.trim().isNotEmpty &&
           _modelController.text.trim().isNotEmpty &&
           year != null &&
@@ -776,8 +799,8 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     final t = context.read<LocaleProvider>().t;
     if (!backendStatus.isConfigured) {
       setState(
-        () => _submitError =
-            t('driver_onboarding_error_backend_not_configured'),
+        () =>
+            _submitError = t('driver_onboarding_error_backend_not_configured'),
       );
       return;
     }
@@ -828,7 +851,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         baseLat: address.lat,
         baseLng: address.lng,
         spokenLanguages: languages,
-        loadingAssistanceAvailable: _loadingAssistance,
+        // The driver participates, including when no additional helper is available.
+        loadingAssistanceAvailable: true,
+        maxLoadingTeamSize: _maxLoadingTeamSize,
         status: DriverStatus.registrationIncomplete,
         serviceRadiusKm: _radiusKm,
         acceptedVehicleCategories: [category],
@@ -900,8 +925,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               ListTile(
                 leading: const Icon(Icons.camera_alt_outlined),
                 title: Text(t('driver_onboarding_document_source_camera')),
-                onTap: () =>
-                    Navigator.of(sheetContext).pop(ImageSource.camera),
+                onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
@@ -926,8 +950,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(
-        () => _submitError =
-            t('driver_onboarding_error_document_pick_failed'),
+        () => _submitError = t('driver_onboarding_error_document_pick_failed'),
       );
     } finally {
       if (mounted) setState(() => _pickingDocument = false);
@@ -1143,10 +1166,7 @@ class _PlainStepIntro extends StatelessWidget {
         const SizedBox(height: 5),
         Text(
           subtitle,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            height: 1.45,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, height: 1.45),
         ),
       ],
     );
@@ -1269,7 +1289,10 @@ class _InfoPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   body,
@@ -1321,7 +1344,11 @@ class _AddressSummary extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.success,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
             ],
@@ -1430,80 +1457,78 @@ class _DocumentPickerRow extends StatelessWidget {
     final accent = hasFile ? AppColors.success : AppColors.primary;
 
     Widget info() => Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                hasFile ? Icons.check_circle : icon,
-                color: accent,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            hasFile ? Icons.check_circle : icon,
+            color: accent,
+            size: 20,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 7,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 4,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      if (isRequired)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            DriverOnboardingCopy.text(
-                              localeProvider.locale,
-                              'required_badge',
-                            ),
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
                   Text(
-                    hasFile
-                        ? fileName!
-                        : t('driver_onboarding_document_none_selected'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: hasFile
-                          ? AppColors.success
-                          : AppColors.textSecondary,
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
                     ),
                   ),
+                  if (isRequired)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        DriverOnboardingCopy.text(
+                          localeProvider.locale,
+                          'required_badge',
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ),
-          ],
-        );
+              const SizedBox(height: 3),
+              Text(
+                hasFile
+                    ? fileName!
+                    : t('driver_onboarding_document_none_selected'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: hasFile ? AppColors.success : AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
 
     Widget action({bool expand = false}) {
       final button = OutlinedButton(

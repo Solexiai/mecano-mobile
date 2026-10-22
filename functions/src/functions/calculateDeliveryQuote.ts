@@ -1,5 +1,7 @@
+import { PreAssignmentQuote, preparePriceBeforeAssignment, validatePriceBeforeAssignment } from '../lib/quoteBeforeAssignment';
+import type { BookingLoad } from '../lib/booking';
 import { reviewBooking } from "../lib/bookingServer";
-import { bookingHandling } from "../lib/booking";
+import { bookingHandling, selectBookingVehicle } from "../lib/booking";
 // -----------------------------------------------------------------------------
 // calculateDeliveryQuote — Cloud Function callable (customer).
 //
@@ -54,6 +56,7 @@ export interface QuoteStopInput {
 
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
+  quotePurpose?: 'price_before_assignment';
   booking?: unknown;
   requestedVehicleCategory?: string;
   /** Coordonnées officielles utilisées par le serveur pour calculer l'itinéraire. */
@@ -111,15 +114,16 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const input = request.data;
 
   let booking;
-  if (input.booking) {
+  let priceLoad: BookingLoad | undefined;
+  let preAssignment: PreAssignmentQuote | undefined;
+  if (input.quotePurpose !== undefined && input.quotePurpose !== 'price_before_assignment') throw invalidArgument('Type de devis invalide.');
+  if (input.quotePurpose === 'price_before_assignment') {
+    priceLoad = await validatePriceBeforeAssignment(input.booking, input.stops, ctx.uid);
+  } else if (input.booking) {
     const checked = await reviewBooking(input.booking, input.stops, ctx.uid);
     if (!checked.review.snapshot) throw failedPrecondition(`Demande à préciser : ${checked.review.reasons.join(', ')}`);
     booking = checked.review.snapshot;
-    if (input.requestedVehicleCategory) {
-      const alternative = checked.rules.capacities.find(c => c.category === input.requestedVehicleCategory && checked.review.compatible_categories.includes(c.category));
-      if (!alternative) throw failedPrecondition('Cette catégorie ne convient pas au chargement.');
-      booking = { ...booking, category: alternative.category, capacity_version: alternative.version };
-    }
+    booking = selectBookingVehicle(booking, checked.rules, checked.review.compatible_categories, input.requestedVehicleCategory);
     input.vehicleCategory = booking.category;
     input.handling = bookingHandling(booking.load, checked.rules);
     input.totalWaitingMinutes = 0;
@@ -131,7 +135,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   // Owner-approved retirement (2026-10-17): new quotes never charge the heavy-item option.
   // Keep historical pricing versions and locked quotes unchanged.
   input.handling = { ...input.handling, isHeavyItem: false };
-  if (!input.vehicleCategory) throw invalidArgument("vehicleCategory est requis.");
+  if (!input.vehicleCategory && !priceLoad) throw invalidArgument("vehicleCategory est requis.");
   if (!Array.isArray(input.stops) || input.stops.length < 2) {
     throw invalidArgument("Au moins 2 arrêts géocodés sont requis pour calculer le devis.");
   }
@@ -196,6 +200,15 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const config = versionSnap.data() as PricingVersionDoc;
   if (!config.is_active) {
     throw failedPrecondition("La pricing_version active pointée n'est plus marquée is_active.");
+  }
+
+  if (priceLoad) {
+    const prepared = preparePriceBeforeAssignment(priceLoad, config);
+    preAssignment = prepared.context;
+    input.vehicleCategory = prepared.vehicleCategory;
+    input.handling = prepared.handling;
+    input.totalWaitingMinutes = 0;
+    input.applicableSurchargeIds = [];
   }
 
   // Compatibilité historique : Flutter envoie maintenant les catégories
@@ -281,6 +294,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   };
   const pricingSnapshot: LockedQuotePricingSnapshot = {
     ...(booking ? { booking } : {}),
+    ...(preAssignment ? { pre_assignment: preAssignment } : {}),
     schema_version: LOCKED_QUOTE_SCHEMA_VERSION,
     currency: DEFAULT_CURRENCY,
     pricing_version: lockedPricingResult.pricingVersion,
@@ -344,6 +358,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   return {
     vehicleCategory: input.vehicleCategory,
     booking: booking ?? null,
+    ...(preAssignment ? { assignmentPending: true } : {}),
     quoteId: quoteRef.id,
     pricingVersion: lockedPricingResult.pricingVersion,
     customerTotal: lockedPricingResult.customerTotal,

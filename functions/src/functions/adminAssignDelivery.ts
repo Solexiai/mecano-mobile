@@ -131,6 +131,10 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     }
 
     const mission = missionSnap.data()!;
+    if (mission.pricing_snapshot?.pre_assignment &&
+        (!isInternalTest || mission.internal_test_authorized !== true || mission.assignment_mode !== MissionAssignmentModes.INTERNAL_TEST)) {
+      throw failedPrecondition('Ce devis attend une validation opérationnelle. Seule une affectation de test interne autorisée est permise, sans paiement.');
+    }
     const driver = driverSnap.data() as DriverProfileDoc;
     const assignedVehicle = await requireCompatibleVehicle(driverId, mission.booking_snapshot, tx);
 
@@ -141,8 +145,14 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
     if (!driver.documents_all_valid) {
       throw failedPrecondition("Documents chauffeur invalides ou expirés.");
     }
+    // The pricing basis of a uniform tariff is not a preselected truck.
+    // Resolve a driver's supported pilot category only now, in an authorized internal assignment.
+    const internalPriceCategory = isInternalTest && mission.pricing_snapshot?.pre_assignment
+      ? mission.pricing_snapshot.pre_assignment.tariff_categories.find((category: string) =>
+          supportsVehicleCategory(driver.accepted_vehicle_categories, category))
+      : undefined;
     if (
-      !supportsVehicleCategory(
+      !internalPriceCategory && !supportsVehicleCategory(
         driver.accepted_vehicle_categories,
         mission.required_vehicle_category
       )
@@ -181,6 +191,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
       // parcours terrain complet, mais ne crée aucun contrat financier.
       tx.update(missionRef, {
         ...assignedVehicle,
+        ...(internalPriceCategory ? { required_vehicle_category: internalPriceCategory } : {}),
       driver_id: driverId,
         driver_display_name: driver.full_name,
         status: MissionStatuses.ASSIGNED,

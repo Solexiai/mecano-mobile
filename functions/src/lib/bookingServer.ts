@@ -1,5 +1,7 @@
+import { parseBookingPolicy } from './bookingContract';
 import { db } from './admin';
-import { BookingLoad, BookingRules, BookingSnapshot, Capacity, fitsVehicle, normalizeLoad, recommend } from './booking';
+import { validateBookingPhotos } from './bookingPhotoValidation';
+import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, normalizeLoad, recommend } from './booking';
 import { failedPrecondition, invalidArgument } from './errors';
 import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
 import { normalizeVehicleCategory } from './vehicleCategory';
@@ -10,6 +12,7 @@ export async function getBookingRules(): Promise<BookingRules> {
 export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   const load = normalizeLoad(raw);
   if (load.items.some(i => i.photos.some(p => !p.startsWith(`booking_photos/${uid}/${load.draft_id}/`) || p.includes('..')))) throw invalidArgument('Photo inaccessible.');
+  await validateBookingPhotos(load, uid);
   const rules = await getBookingRules();
   const review = recommend(load, rules);
   if (!Array.isArray(stops) || stops.length !== 2) throw invalidArgument('Une adresse de ramassage et une adresse de livraison sont requises.');
@@ -27,17 +30,9 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   return { review: { ...review, status: reasons.length ? 'review_required' : 'ready', reasons, snapshot: reasons.length ? null : review.snapshot }, rules };
 }
 
-export interface BookingPolicy {
-  approved: boolean; version: string; terms_url: string; privacy_url: string;
-  cancellation_text: Record<string, string>; payment_text: Record<string,string>;
-  setup_enabled: boolean;
-}
-export async function getBookingPolicy(): Promise<BookingPolicy | null> {
-  const p = (await db.doc('system_config/booking_policy').get()).data() as BookingPolicy | undefined;
-  const url = (x: unknown) => typeof x === 'string' && /^https:\/\/[^\s]+$/.test(x);
-  if (!p?.approved || !p.version || !url(p.terms_url) || !url(p.privacy_url) ||
-    !p.cancellation_text?.fr?.trim() || !p.payment_text?.fr?.trim()) return null;
-  return p;
+export { BookingPolicy } from './bookingContract';
+export async function getBookingPolicy() {
+  return parseBookingPolicy((await db.doc('system_config/booking_policy').get()).data());
 }
 
 /** Reads vehicle documents INSIDE assignment transactions. Verified capacity is
@@ -51,7 +46,7 @@ export async function findCompatibleVehicle(driverId: string, snapshot: BookingS
     const v = doc.data(); const capacity = v.verified_capacity as Capacity;
     if (v.is_verified !== true || !capacity || normalizeVehicleCategory(capacity.category) !== normalizeVehicleCategory(snapshot.category)) continue;
     if (!v.capacity_valid_until || typeof v.capacity_valid_until.toMillis !== 'function' || v.capacity_valid_until.toMillis() <= Date.now()) continue;
-    if (fitsVehicle(snapshot.load, capacity)) return { vehicle_id: doc.id, capacity_version: capacity.version };
+    if (eligibleForBookingSnapshot(snapshot, capacity)) return { vehicle_id: doc.id, capacity_version: capacity.version };
   }
   return null;
 }

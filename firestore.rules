@@ -216,13 +216,14 @@ service cloud.firestore {
       allow create: if isSignedIn() && isDriver() &&
         request.resource.data.driver_id == uid() &&
         request.resource.data.is_verified == false &&
-        !request.resource.data.keys().hasAny(['verified_capacity', 'capacity_valid_until']);
+        !request.resource.data.keys().hasAny(['verified_capacity', 'capacity_valid_until', 'verified_identity', 'capacity_reviewed_at', 'capacity_reviewed_by', 'capacity_review_note']);
 
       allow update: if isSignedIn() && (
         (resource.data.driver_id == uid() &&
          request.resource.data.driver_id == resource.data.driver_id &&
          request.resource.data.is_verified == resource.data.is_verified &&
-         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified_capacity', 'capacity_valid_until'])) ||
+         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified_capacity', 'capacity_valid_until', 'verified_identity', 'capacity_reviewed_at', 'capacity_reviewed_by', 'capacity_review_note']) &&
+         (resource.data.is_verified != true || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['category', 'make_model', 'year', 'plate', 'max_payload_kg']))) ||
         isAnalystOrAbove()
       );
 

@@ -26,22 +26,14 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
+import { readDriverOfferCompensation } from "../lib/driverOfferCompensation";
 import {
-  calculateDriverCompensation,
-  resolveCommission,
-} from "../lib/pricingEngine";
-import {
-  CommissionConfigDoc,
   DriverProfileDoc,
   DriverStatuses,
-  FoundingDriverProgramDoc,
-  FoundingDriverQualificationDoc,
-  FoundingDriverStatuses,
   MissionAssignmentModes,
   MissionStatuses,
   PaymentStatuses,
   OPEN_FOR_ACCEPTANCE_STATUSES,
-  PricingVersionDoc,
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
@@ -53,6 +45,7 @@ import { supportsVehicleCategory } from "../lib/vehicleCategory";
 export interface AcceptDeliveryRequest {
   missionId: string;
   vehicleId?: string;
+  expectedDriverOfferMinor?: number;
 }
 
 function isAuthorizedInternalTestMission(mission: Record<string, unknown>): boolean {
@@ -81,6 +74,10 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     throw invalidArgument("missionId est requis.");
   }
 
+  if (request.data.expectedDriverOfferMinor !== undefined &&
+      (!Number.isSafeInteger(request.data.expectedDriverOfferMinor) || request.data.expectedDriverOfferMinor < 0)) {
+    throw invalidArgument("Rémunération confirmée invalide.");
+  }
   const missionRef = db.collection("delivery_requests").doc(missionId);
   const driverRef = db.collection("driver_profiles").doc(driverId);
 
@@ -120,7 +117,19 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
 
     const mission = missionSnap.data()!;
+    if (mission.pricing_snapshot?.pre_assignment &&
+        (mission.internal_test_authorized !== true || !isAuthorizedInternalTestMission(mission))) {
+      throw failedPrecondition('Ce devis ne permet pas une acceptation commerciale avant validation opérationnelle.');
+    }
     const driver = driverSnap.data() as DriverProfileDoc;
+    if (request.data.expectedDriverOfferMinor !== undefined) {
+      const offers = await tx.get(db.collection('delivery_offers')
+        .where('mission_id', '==', missionId).where('driver_id', '==', driverId));
+      if (!offers.docs.some(d => d.data().status === 'pending' &&
+          typeof d.data().expires_at?.toMillis === 'function' && d.data().expires_at.toMillis() > Date.now())) {
+        throw failedPrecondition('Cette offre est indisponible ou expirée.');
+      }
+    }
     if (mission.booking_snapshot && (typeof request.data.vehicleId !== 'string' || !request.data.vehicleId)) throw failedPrecondition('Confirmez le véhicule utilisé pour cette livraison.');
     const assignedVehicle = await requireCompatibleVehicle(driverId, mission.booking_snapshot, tx, request.data.vehicleId);
 
@@ -240,111 +249,14 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     // La grille est relue uniquement pour les règles de commission chauffeur.
     // Le prix client, les taxes, promotions, manutention, arrêts et majorations
     // proviennent intégralement du devis figé ci-dessus et ne sont jamais recalculés.
-    const versionSnap = await tx.get(
-      db.collection("pricing_versions").doc(lockedQuote.pricingVersion)
-    );
-    if (!versionSnap.exists) {
-      throw failedPrecondition(`pricing_versions/${mission.pricing_version} introuvable.`);
-    }
-    const pricingConfig = versionSnap.data() as PricingVersionDoc;
-    const pricingResult = lockedQuote.pricingResult;
+    const { pricingConfig, pricingResult, now, resolved, compensation } =
+      await readDriverOfferCompensation(tx, driverId, lockedQuote);
     const taxSnapshot =
       lockedQuote.pricingSnapshot?.tax_snapshot ?? quote.tax_snapshot ?? null;
-
-    // ---- Résolution de commission : Founding Driver > promo > standard ----
-    // 🔒 BLOC O — CORRECTIF : on ne suppose JAMAIS un `programId` fixe
-    // ("default" était une hypothèse ad-hoc jamais bootstrapée ailleurs dans
-    // le projet — voir qualifyFoundingDriver.ts, qui accepte n'importe quel
-    // `programId` fourni par l'admin). On cherche la qualification RÉELLE du
-    // chauffeur via une requête collection-group sur `qualifications`
-    // (indexée par `driver_id`, voir firestore.indexes.json), puis on charge
-    // le VRAI programme référencé par `qualification.program_id`. L'absence
-    // de qualification est un cas NORMAL (grande majorité des chauffeurs),
-    // jamais une erreur.
-    const qualQuerySnap = await tx.get(
-      db.collectionGroup("qualifications").where("driver_id", "==", driverId).limit(1)
-    );
-    const promoSnap = await tx.get(
-      db.collection("driver_promotions").where("driver_id", "==", driverId).limit(1)
-    );
-
-    let foundingQualificationForResolver: { status: string; promotionalPeriodEndsAtMillis: number } | null =
-      null;
-    let foundingProgramForResolver: { promotionalCommissionRate: number; preferredCommissionRate: number } | null =
-      null;
-
-    if (!qualQuerySnap.empty) {
-      const qual = qualQuerySnap.docs[0].data() as FoundingDriverQualificationDoc;
-      foundingQualificationForResolver = {
-        status: qual.status,
-        promotionalPeriodEndsAtMillis: qual.promotional_period_ends_at.toMillis(),
-      };
-
-      if (qual.status === FoundingDriverStatuses.QUALIFIED) {
-        // 🔒 Une qualification 'qualified' DOIT référencer un programme réel
-        // et cohérent — jamais un taux Founding inventé localement. Toute
-        // incohérence (program_id manquant, programme introuvable, programme
-        // désactivé, taux manquants/invalides) est une CORRUPTION DE
-        // CONFIGURATION : on refuse explicitement le calcul (failed-precondition)
-        // plutôt que de retomber silencieusement sur le taux standard (perte
-        // injustifiée pour un chauffeur légitimement Founding) ou d'inventer
-        // un taux local (remise commerciale silencieuse non auditée).
-        if (!qual.program_id) {
-          throw failedPrecondition(
-            `Qualification Founding Driver de ${driverId} incohérente : program_id manquant.`
-          );
-        }
-        const programSnap = await tx.get(
-          db.collection("founding_driver_programs").doc(qual.program_id)
-        );
-        if (!programSnap.exists) {
-          throw failedPrecondition(
-            `founding_driver_programs/${qual.program_id} introuvable (référencé par la qualification de ${driverId}).`
-          );
-        }
-        const program = programSnap.data() as FoundingDriverProgramDoc;
-        if (program.is_active === false) {
-          throw failedPrecondition(
-            `founding_driver_programs/${qual.program_id} est désactivé — configuration Founding Driver incohérente pour ${driverId}.`
-          );
-        }
-        if (
-          typeof program.promotional_commission_rate !== "number" ||
-          typeof program.preferred_commission_rate !== "number"
-        ) {
-          throw failedPrecondition(
-            `founding_driver_programs/${qual.program_id} : taux de commission manquants ou invalides.`
-          );
-        }
-        foundingProgramForResolver = {
-          promotionalCommissionRate: program.promotional_commission_rate,
-          preferredCommissionRate: program.preferred_commission_rate,
-        };
-      }
+    if (request.data.expectedDriverOfferMinor !== undefined &&
+        request.data.expectedDriverOfferMinor !== toMinorUnits(compensation.driverOfferAmount)) {
+      throw failedPrecondition('La rémunération a changé. Consultez de nouveau les conditions avant de confirmer.');
     }
-
-    const now = admin.firestore.Timestamp.now();
-    const resolved = resolveCommission({
-      nowMillis: now.toMillis(),
-      foundingQualification: foundingQualificationForResolver,
-      foundingProgram: foundingProgramForResolver,
-      activePromotion:
-        !promoSnap.empty && promoSnap.docs[0].data().is_active
-          ? {
-              promotionalCommissionRate: promoSnap.docs[0].data().promotional_commission_rate,
-              startsAtMillis: promoSnap.docs[0].data().starts_at.toMillis(),
-              endsAtMillis: promoSnap.docs[0].data().ends_at.toMillis(),
-              isActive: promoSnap.docs[0].data().is_active,
-            }
-          : null,
-      standardRate: (pricingConfig.commission as CommissionConfigDoc).standard_commission_rate,
-    });
-
-    const compensation = calculateDriverCompensation({
-      pricingResult,
-      resolvedCommission: resolved,
-      commissionConfig: pricingConfig.commission,
-    });
 
     // ---- Écriture atomique : mission + driver_profile + snapshot pending ----
     tx.update(missionRef, {

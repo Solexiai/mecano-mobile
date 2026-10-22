@@ -5,7 +5,7 @@ import '../helpers/booking_test_harness.dart';
 void main() {
   for (final signed in [false, true]) {
     testWidgets(
-      'unavailable booking keeps the draft and offers retry, signed=$signed',
+      'booking closure does not mask price action and draft survives refresh, signed=$signed',
       (tester) async {
         final draft = testDraft(step: 1);
         final storage = MemoryBookingStorage(draft);
@@ -19,7 +19,7 @@ void main() {
 
         expect(
           find.textContaining('La réservation est indisponible'),
-          findsOneWidget,
+          findsNothing,
         );
         expect(
           find.text(
@@ -35,7 +35,14 @@ void main() {
         expect(api.calls, isNot(contains('createDeliveryRequest')));
 
         api.configurationAvailable = true;
-        await tapBooking(tester, 'Vérifier à nouveau la disponibilité');
+        expect(find.text('Vérifier à nouveau la disponibilité'), findsNothing);
+        await disposeBooking(tester);
+        await pumpBooking(
+          tester,
+          storage: storage,
+          api: api,
+          auth: BookingTestAuth(signed: signed),
+        );
         expect(
           find.textContaining('La réservation est indisponible'),
           findsNothing,
