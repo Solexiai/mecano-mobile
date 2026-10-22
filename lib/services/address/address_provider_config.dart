@@ -34,9 +34,10 @@ class AddressProviderConfig {
   /// Centralisé ici plutôt que dispersé dans plusieurs endroits, afin
   /// qu'ajouter le futur domaine officiel Movi-K soit un seul changement.
   static const List<String> allowedWebDomains = [
+    'https://movi-k.com/*',
+    'https://www.movi-k.com/*',
     'https://mecano-mobile-delta.vercel.app/*',
-    // TODO : ajouter ici le futur domaine officiel Movi-K une fois connu
-    // (ex: 'https://movi-k.com/*'), puis mettre à jour la restriction de
-    // clé correspondante dans Google Cloud Console.
+    // La restriction réelle se règle dans Google Cloud Console : movi-k.com
+    // doit y figurer, sinon l'autocomplétion d'adresse échoue sur le site.
   ];
 }

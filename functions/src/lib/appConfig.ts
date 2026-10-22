@@ -33,8 +33,12 @@ import { defineInt, defineString } from "firebase-functions/params";
  * de l'audit Bloc 8B LIVE (2026-09-02). À surcharger via la configuration
  * Firebase si/quand un domaine public final différent est branché.
  */
+// 2026-10-22 : le domaine public officiel est https://movi-k.com (en ligne,
+// servi par Vercel). L'ancien domaine Vercel restait la valeur par défaut :
+// les retours Stripe (Connect, enregistrement de carte) renvoyaient donc le
+// client/chauffeur hors du domaine officiel.
 export const APP_PUBLIC_BASE_URL = defineString("APP_PUBLIC_BASE_URL", {
-  default: "https://mecano-mobile-delta.vercel.app",
+  default: "https://movi-k.com",
 });
 
 /**
