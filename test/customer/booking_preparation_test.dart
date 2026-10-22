@@ -101,7 +101,7 @@ void main() {
         findsNothing,
       );
       expect(
-        find.textContaining('La réservation est indisponible'),
+        find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
         findsNothing,
       );
       await tapBooking(t, 'Continuer à préparer ma demande');
@@ -155,9 +155,9 @@ void main() {
       storage: MemoryBookingStorage(testDraft(step: 1)),
       api: api,
     );
-    await tapBooking(t, 'Calculer mon devis officiel');
+    await tapBooking(t, 'Calculer mon prix officiel');
     expect(
-      find.textContaining('Le devis en ligne est momentanément indisponible.'),
+      find.textContaining('Le calcul du prix en ligne est momentanément indisponible.'),
       findsOneWidget,
     );
     expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));

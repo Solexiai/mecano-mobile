@@ -82,9 +82,9 @@ class HowItWorksScreen extends StatelessWidget {
               _InfoCard(
                 icon: Icons.login_outlined,
                 title: tr(
-                  'Connexion au moment du devis officiel',
-                  'Sign in when requesting the official quote',
-                  'Inicio de sesión al solicitar el presupuesto oficial',
+                  'Connexion au moment de calculer le prix officiel',
+                  'Sign in when requesting the official price',
+                  'Inicio de sesión al solicitar el precio oficial',
                 ),
                 body: h('quote_note'),
               ),

@@ -18,13 +18,13 @@ void main() {
         );
 
         expect(
-          find.textContaining('La réservation est indisponible'),
+          find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
           findsNothing,
         );
         expect(
           find.text(
             signed
-                ? 'Calculer mon devis officiel'
+                ? 'Calculer mon prix officiel'
                 : 'Se connecter et obtenir mon prix',
           ),
           findsOneWidget,
@@ -44,13 +44,13 @@ void main() {
           auth: BookingTestAuth(signed: signed),
         );
         expect(
-          find.textContaining('La réservation est indisponible'),
+          find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
           findsNothing,
         );
         expect(
           find.text(
             signed
-                ? 'Calculer mon devis officiel'
+                ? 'Calculer mon prix officiel'
                 : 'Se connecter et obtenir mon prix',
           ),
           findsOneWidget,
