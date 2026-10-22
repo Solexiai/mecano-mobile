@@ -27,6 +27,20 @@ Future<void> loadLocalMaterialFonts() async {
   await icons.load();
 }
 
+// Evidence captures go to unversioned folders: create them on demand so a
+// clean checkout (CI) does not fail on a missing directory.
+Future<void> writeTestArtifact(String path, List<int> bytes) async {
+  final file = File(path);
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(bytes);
+}
+
+void writeTestArtifactSync(String path, String contents) {
+  final file = File(path);
+  file.parent.createSync(recursive: true);
+  file.writeAsStringSync(contents);
+}
+
 // Optional real widget raster capture, not a Chrome screenshot.
 Future<void> capturePublicViewport(
   WidgetTester tester,

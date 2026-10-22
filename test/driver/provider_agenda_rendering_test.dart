@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/public_render_test_helpers.dart';
 import 'package:movik_connect/backend/repositories/driver_agenda_repository.dart';
 import 'package:movik_connect/screens/dashboard/provider/tabs/provider_calendar_tab.dart';
 import '../customer/loading_help_test.dart' show captureTheme;
@@ -67,9 +68,10 @@ void main() {
       await t.runAsync(() async {
         final img = await layer.toImage(Offset.zero & size);
         final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-        await File(
+        await writeTestArtifact(
           'artifacts/driver-agenda-complete-20261020/agenda-${size.width.toInt()}.png',
-        ).writeAsBytes(bytes!.buffer.asUint8List());
+          bytes!.buffer.asUint8List(),
+        );
         img.dispose();
       });
     });
@@ -142,9 +144,10 @@ void main() {
             await t.runAsync(() async {
               final img = await layer.toImage(Offset.zero & size);
               final data = await img.toByteData(format: ui.ImageByteFormat.png);
-              await File(
+              await writeTestArtifact(
                 'artifacts/driver-agenda-complete-20261020/settings-${size.width.toInt()}.png',
-              ).writeAsBytes(data!.buffer.asUint8List());
+                data!.buffer.asUint8List(),
+              );
               img.dispose();
             });
           }

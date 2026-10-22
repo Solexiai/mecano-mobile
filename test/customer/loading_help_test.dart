@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../helpers/public_render_test_helpers.dart';
 import 'package:movik_connect/services/booking/booking_draft.dart';
 import '../helpers/booking_test_harness.dart';
 
@@ -81,9 +82,10 @@ void main() {
           'CAPTURE_PHASE',
           defaultValue: 'after',
         );
-        await File(
+        await writeTestArtifact(
           'artifacts/customer-loading-help-20261019/$phase-${size.width.toInt()}.png',
-        ).writeAsBytes(bytes!.buffer.asUint8List());
+          bytes!.buffer.asUint8List(),
+        );
         image.dispose();
       });
       expect(t.takeException(), isNull);

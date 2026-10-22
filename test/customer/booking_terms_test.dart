@@ -1,7 +1,6 @@
 import 'package:movik_connect/core/app_theme.dart';
 import 'package:movik_connect/widgets/booking_terms_section.dart';
 import '../helpers/public_render_test_helpers.dart';
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -238,9 +237,10 @@ void main() {
             final bytes = await (await boundary.toImage(
               pixelRatio: 1,
             )).toByteData(format: ui.ImageByteFormat.png);
-            await File(
+            await writeTestArtifact(
               'artifacts/booking-terms-20261018-1430/terms-${layout.$1.toInt()}.png',
-            ).writeAsBytes(bytes!.buffer.asUint8List());
+              bytes!.buffer.asUint8List(),
+            );
           });
         }
         if (locale == 'fr' && layout.$3 == 1) {
@@ -255,9 +255,10 @@ void main() {
           await t.runAsync(() async {
             final img = await boundary.toImage(pixelRatio: 1);
             final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-            await File(
+            await writeTestArtifact(
               'artifacts/booking-terms-20261018-1430/terms-information-${layout.$1.toInt()}.png',
-            ).writeAsBytes(bytes!.buffer.asUint8List());
+              bytes!.buffer.asUint8List(),
+            );
             img.dispose();
           });
         }
@@ -287,9 +288,10 @@ void main() {
       expect(html, isNot(contains('<script>')));
       expect(html, contains('&lt;script&gt;'));
       expect(html, contains('@media print'));
-      File(
+      writeTestArtifactSync(
         'artifacts/booking-terms-20261018-1430/receipt-preview.html',
-      ).writeAsStringSync(html);
+        html,
+      );
     },
   );
 }

@@ -137,7 +137,6 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => bytes,
       );
-      await tapBooking(t, 'Dimensions et précautions (facultatif)');
       final f = find.byKey(const ValueKey('photo-analyze-test-item'));
       await t.ensureVisible(f);
       await t.tap(f);
