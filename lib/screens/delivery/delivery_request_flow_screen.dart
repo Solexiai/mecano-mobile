@@ -374,9 +374,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _review = null;
         if (hadQuote) {
           _message = tr(
-            'La livraison a changé : un nouveau devis est requis.',
-            'Your delivery changed. Request a new quote.',
-            'La entrega cambió. Solicita un nuevo presupuesto.',
+            'La livraison a changé : un nouveau prix doit être calculé.',
+            'Your delivery changed. A new price must be calculated.',
+            'La entrega cambió. Se debe calcular un nuevo precio.',
           );
         }
       }
@@ -561,16 +561,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     final messages = <String>[
       if (serviceUnavailable)
         tr(
-          'Le devis en ligne est momentanément indisponible. Votre brouillon est conservé ; aucun prix ni réservation n’est confirmé.',
-          'Online quotes are temporarily unavailable. Your draft is saved; no price or booking is confirmed.',
-          'El presupuesto en línea no está disponible por el momento. Tu borrador está guardado; no se confirma precio ni reserva.',
+          'Le calcul du prix en ligne est momentanément indisponible. Votre brouillon est conservé ; aucun prix ni réservation n’est confirmé.',
+          'Online pricing is temporarily unavailable. Your draft is saved; no price or booking is confirmed.',
+          'El cálculo del precio en línea no está disponible por el momento. Tu borrador está guardado; no se confirma precio ni reserva.',
         ),
       ...actionable,
       if (!serviceUnavailable && actionable.isEmpty)
         tr(
-          'Le devis ne peut pas encore être calculé. Votre brouillon est conservé.',
-          'The quote cannot be calculated yet. Your draft is saved.',
-          'El presupuesto aún no se puede calcular. Tu borrador está guardado.',
+          'Le prix ne peut pas encore être calculé. Votre brouillon est conservé.',
+          'The price cannot be calculated yet. Your draft is saved.',
+          'El precio aún no se puede calcular. Tu borrador está guardado.',
         ),
     ];
     return _note(messages.join('\n\n'), warning: true);
@@ -1876,9 +1876,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'Confirma la categoría y el objeto fotografiado.',
     ),
     'special_details_required' => tr(
-      'Cet objet nécessite des précisions avant le devis.',
-      'This item needs more details before a quote.',
-      'Este objeto necesita más detalles antes del presupuesto.',
+      'Cet objet nécessite des précisions avant le calcul du prix.',
+      'This item needs more details before a price can be calculated.',
+      'Este objeto necesita más detalles antes de calcular el precio.',
     ),
     'no_eligible_photo_vehicle' => tr(
       'Aucun véhicule configuré ne répond aux informations fournies.',
@@ -1901,9 +1901,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'Las medidas aproximadas deben verificarse antes de reservar.',
     ),
     'pricing_category_required' => tr(
-      'La grille tarifaire nécessite une règle de prix par catégorie. Movi-K doit la configurer avant ce devis.',
-      'The tariff needs a category pricing rule. Movi-K must configure it before this quote.',
-      'La tarifa requiere una regla de precio por categoría. Movi-K debe configurarla antes del presupuesto.',
+      'La grille tarifaire nécessite une règle de prix par catégorie. Movi-K doit la configurer avant de calculer ce prix.',
+      'The tariff needs a category pricing rule. Movi-K must configure it before this price can be calculated.',
+      'La tarifa requiere una regla de precio por categoría. Movi-K debe configurarla antes de calcular el precio.',
     ),
     'pricing_handling_required' => tr(
       'Une condition tarifaire de manutention doit être précisée par Movi-K. Aucun supplément n’a été inventé.',
@@ -1946,9 +1946,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     if (_uid == null) ...[
       _note(
         tr(
-          'Connectez-vous pour obtenir le devis officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',
-          'Sign in for your official quote. Your delivery details will resume automatically. A provisional price is not a booking.',
-          'Inicia sesión para obtener el presupuesto oficial. Tu entrega se retomará automáticamente. Un precio provisional no es una reserva.',
+          'Connectez-vous pour obtenir le prix officiel. Votre livraison sera reprise automatiquement. Aucun prix provisoire ne constitue une réservation.',
+          'Sign in for your official price. Your delivery details will resume automatically. A provisional price is not a booking.',
+          'Inicia sesión para obtener el precio oficial. Tu entrega se retomará automáticamente. Un precio provisional no es una reserva.',
         ),
       ),
       _button(
@@ -2030,14 +2030,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _button(
           _review != null && _review!['status'] != 'ready'
               ? tr(
-                  'Réessayer le devis',
-                  'Retry quote',
-                  'Reintentar presupuesto',
+                  'Réessayer le calcul du prix',
+                  'Retry price calculation',
+                  'Reintentar el cálculo del precio',
                 )
               : tr(
-                  'Calculer mon devis officiel',
-                  'Calculate my official quote',
-                  'Calcular mi presupuesto oficial',
+                  'Calculer mon prix officiel',
+                  'Calculate my official price',
+                  'Calcular mi precio oficial',
                 ),
           _photoConfirmationNeeded ? null : () => _run(_quote),
         ),
@@ -2197,9 +2197,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               if (quote['assignmentPending'] == true)
                 Text(
                   tr(
-                    'Chauffeur à affecter après le devis',
-                    'Driver assignment follows the quote',
-                    'El conductor se asigna después del presupuesto',
+                    'Chauffeur à affecter après le calcul du prix',
+                    'Driver assignment follows the price calculation',
+                    'El conductor se asigna después del cálculo del precio',
                   ),
                 )
               else
@@ -2222,9 +2222,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (!_draft.quoteValid)
         _note(
           tr(
-            'Ce devis a expiré. Recalculez-le avant de confirmer.',
-            'This quote has expired. Recalculate before confirming.',
-            'Este presupuesto expiró. Recálculalo antes de confirmar.',
+            'Ce prix a expiré. Recalculez-le avant de confirmer.',
+            'This price has expired. Recalculate before confirming.',
+            'Este precio expiró. Recálculalo antes de confirmar.',
           ),
           warning: true,
         ),
@@ -2453,9 +2453,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     if (_draft.quote == null)
       _note(
         tr(
-          'Prix non disponible : un devis officiel sera nécessaire avant toute confirmation.',
-          'Price unavailable: an official quote is required before confirmation.',
-          'Precio no disponible: se necesita un presupuesto oficial antes de confirmar.',
+          'Prix non disponible : le prix officiel doit être calculé avant toute confirmation.',
+          'Price unavailable: the official price must be calculated before confirmation.',
+          'Precio no disponible: el precio oficial debe calcularse antes de confirmar.',
         ),
       ),
     Text('${_pickup.text}\n↓\n${_dropoff.text}'),

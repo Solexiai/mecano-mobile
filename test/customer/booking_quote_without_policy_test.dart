@@ -45,14 +45,14 @@ void main() {
         details: {'quote_reason': 'service_area_unconfigured'},
       );
     await pumpBooking(t, storage: store, api: api);
-    await tapBooking(t, 'Calculer mon devis officiel');
+    await tapBooking(t, 'Calculer mon prix officiel');
     expect(api.calls, isNot(contains('reviewDeliveryLoad')));
     expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
     expect(api.calls, isNot(contains('createDeliveryRequest')));
     expect(store.saved!.quote, isNull);
     expect(store.saved!.items, draft.items);
     expect(
-      find.textContaining('Le devis en ligne est momentanément indisponible.'),
+      find.textContaining('Le calcul du prix en ligne est momentanément indisponible.'),
       findsOneWidget,
     );
     expect(

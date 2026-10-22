@@ -24,7 +24,7 @@ void main() {
         expect(
           find.text(
             signed
-                ? 'Calculer mon devis officiel'
+                ? 'Calculer mon prix officiel'
                 : 'Se connecter et obtenir mon prix',
           ),
           findsOneWidget,
@@ -50,7 +50,7 @@ void main() {
         expect(
           find.text(
             signed
-                ? 'Calculer mon devis officiel'
+                ? 'Calculer mon prix officiel'
                 : 'Se connecter et obtenir mon prix',
           ),
           findsOneWidget,

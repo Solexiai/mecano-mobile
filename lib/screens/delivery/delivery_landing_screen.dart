@@ -160,14 +160,14 @@ class DeliveryLandingScreen extends StatelessWidget {
                   _StatusNotice(
                     icon: Icons.calculate_outlined,
                     title: tr(
-                      'Devis calculé par Movi‑K',
-                      'Quote calculated by Movi‑K',
-                      'Presupuesto calculado por Movi‑K',
+                      'Prix calculé par Movi‑K',
+                      'Price calculated by Movi‑K',
+                      'Precio calculado por Movi‑K',
                     ),
                     body: tr(
-                      'Le devis officiel est calculé côté serveur et sa ventilation est affichée avant confirmation.',
-                      'The official quote is calculated on the server and its breakdown is shown before confirmation.',
-                      'El presupuesto oficial se calcula en el servidor y su desglose se muestra antes de confirmar.',
+                      'Le prix officiel est calculé côté serveur et sa ventilation est affichée avant confirmation.',
+                      'The official price is calculated on the server and its breakdown is shown before confirmation.',
+                      'El precio oficial se calcula en el servidor y su desglose se muestra antes de confirmar.',
                     ),
                   ),
                   const SizedBox(height: 32),

@@ -86,7 +86,7 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => photoBytes,
       );
-      await tapBooking(t, 'Calculer mon devis officiel');
+      await tapBooking(t, 'Calculer mon prix officiel');
       final payload =
           api.payloads[api.calls.lastIndexOf(
                 'calculateDeliveryQuote',
@@ -117,10 +117,10 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => photoBytes,
       );
-      await tapBooking(t, 'Calculer mon devis officiel');
+      await tapBooking(t, 'Calculer mon prix officiel');
       expect(
         find.textContaining(
-          'Le devis en ligne est momentanément indisponible.',
+          'Le calcul du prix en ligne est momentanément indisponible.',
         ),
         findsNothing,
       );
@@ -137,7 +137,7 @@ void main() {
       expect(api.calls, isNot(contains('reviewDeliveryLoad')));
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(storage.saved!.quote!['customerTotal'], 123.45);
-      expect(find.text('Chauffeur à affecter après le devis'), findsOneWidget);
+      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       expect(t.takeException(), isNull);
       await disposeBooking(t);
     },
@@ -155,11 +155,11 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => photoBytes,
       );
-      await tapBooking(t, 'Calculer mon devis officiel');
+      await tapBooking(t, 'Calculer mon prix officiel');
       expect(storage.saved!.quote, isNull);
       expect(storage.saved!.items.first['category'], 'sofa');
       api.quoteError = null;
-      await tapBooking(t, 'Calculer mon devis officiel');
+      await tapBooking(t, 'Calculer mon prix officiel');
       expect(storage.saved!.quote, isNotNull);
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(t.takeException(), isNull);
@@ -191,9 +191,9 @@ void main() {
         await t.tap(confirm);
         await t.pumpAndSettle();
         final calculate = {
-          'fr': 'Calculer mon devis officiel',
-          'en': 'Calculate my official quote',
-          'es': 'Calcular mi presupuesto oficial',
+          'fr': 'Calculer mon prix officiel',
+          'en': 'Calculate my official price',
+          'es': 'Calcular mi precio oficial',
         }[locale]!;
         await tapBooking(t, calculate);
         expect(storage.saved!.quote!['customerTotal'], 123.45);

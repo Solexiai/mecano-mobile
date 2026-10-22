@@ -14,11 +14,11 @@ void main() {
           );
         final store = MemoryBookingStorage(testDraft(step: 1));
         await pumpBooking(t, storage: store, api: api);
-        await tapBooking(t, 'Calculer mon devis officiel');
+        await tapBooking(t, 'Calculer mon prix officiel');
         expect(find.textContaining('SECRET_STACK_TRACE'), findsNothing);
         expect(store.saved!.items.first['label'], 'Canapé de test');
         api.quoteError = null;
-        await tapBooking(t, 'Calculer mon devis officiel');
+        await tapBooking(t, 'Calculer mon prix officiel');
         expect(find.text('123,45\u00a0\$ CA'), findsOneWidget);
         await disposeBooking(t);
       },
@@ -46,7 +46,7 @@ void main() {
     api.quote['expiresAtMillis'] = 1;
     final store = MemoryBookingStorage(testDraft(step: 3, quote: true));
     await pumpBooking(t, storage: store, api: api);
-    expect(find.textContaining('Ce devis a expiré'), findsOneWidget);
+    expect(find.textContaining('Ce prix a expiré'), findsOneWidget);
     expect(store.saved!.items, isNotEmpty);
     await disposeBooking(t);
   });

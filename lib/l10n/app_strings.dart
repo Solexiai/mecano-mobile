@@ -616,9 +616,9 @@ class AppStrings {
       'es': 'Borrador',
     },
     'mission_status_quoted': {
-      'fr': 'Devis généré',
-      'en': 'Quoted',
-      'es': 'Cotizado',
+      'fr': 'Prix calculé',
+      'en': 'Price calculated',
+      'es': 'Precio calculado',
     },
     'mission_status_searchingdriver': {
       'fr': 'Recherche d\'un chauffeur…',
@@ -714,9 +714,9 @@ class AppStrings {
       'es': 'Vehículo requerido',
     },
     'delivery_step_quote_title': {
-      'fr': 'Devis',
-      'en': 'Quote',
-      'es': 'Cotización',
+      'fr': 'Prix',
+      'en': 'Price',
+      'es': 'Precio',
     },
     // ---------- Adresse réelle + autocomplete + géocodage ----------
     // (MOVI-K — CORRECTION UX LIVRAISON) : remplace les anciens champs
@@ -754,24 +754,24 @@ class AppStrings {
       'es': 'Tipo de vehículo requerido',
     },
     'delivery_get_quote': {
-      'fr': 'Obtenir un devis',
-      'en': 'Get a quote',
-      'es': 'Obtener una cotización',
+      'fr': 'Obtenir un prix',
+      'en': 'Get a price',
+      'es': 'Obtener un precio',
     },
     'delivery_getting_quote': {
-      'fr': 'Calcul du devis en cours…',
-      'en': 'Calculating quote…',
-      'es': 'Calculando cotización…',
+      'fr': 'Calcul du prix en cours…',
+      'en': 'Calculating price…',
+      'es': 'Calculando el precio…',
     },
     'delivery_quote_error': {
-      'fr': 'Impossible de calculer le devis. Réessayez.',
-      'en': 'Unable to calculate the quote. Please try again.',
-      'es': 'No se pudo calcular la cotización. Inténtalo de nuevo.',
+      'fr': 'Impossible de calculer le prix. Réessayez.',
+      'en': 'Unable to calculate the price. Please try again.',
+      'es': 'No se pudo calcular el precio. Inténtalo de nuevo.',
     },
     'delivery_quote_total': {
-      'fr': 'Total estimé (devis officiel)',
-      'en': 'Estimated total (official quote)',
-      'es': 'Total estimado (cotización oficial)',
+      'fr': 'Total estimé (prix officiel)',
+      'en': 'Estimated total (official price)',
+      'es': 'Total estimado (precio oficial)',
     },
     'delivery_quote_distance_note': {
       'fr': 'Distance et durée calculées selon un itinéraire routier réel.',
@@ -780,10 +780,10 @@ class AppStrings {
           'Distancia y duración calculadas según una ruta real por carretera.',
     },
     'delivery_quote_expires_note': {
-      'fr': 'Ce devis expire après un court délai — confirmez rapidement.',
-      'en': 'This quote expires after a short delay — confirm quickly.',
+      'fr': 'Ce prix expire après un court délai — confirmez rapidement.',
+      'en': 'This price expires after a short delay — confirm quickly.',
       'es':
-          'Esta cotización expira después de un breve plazo — confirma rápidamente.',
+          'Este precio expira después de un breve plazo — confirma rápidamente.',
     },
     'delivery_confirm_and_create': {
       'fr': 'Confirmer et créer la mission',
