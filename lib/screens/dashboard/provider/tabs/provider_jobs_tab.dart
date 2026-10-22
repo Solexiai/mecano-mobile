@@ -543,6 +543,7 @@ class _JobCard extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 3,
                 child: Text(
                   mission.itemCategoryKey.isEmpty
                       ? t('delivery_item_category')
@@ -550,14 +551,20 @@ class _JobCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              Text(
-                mission.driverOfferAmount > 0
-                    ? '${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
-                    : tr('Voir l’offre', 'View offer', 'Ver oferta'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                  fontSize: 16,
+              const SizedBox(width: 8),
+              // Flexible: large text sizes on narrow phones must wrap, not overflow.
+              Flexible(
+                flex: 2,
+                child: Text(
+                  mission.driverOfferAmount > 0
+                      ? '${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
+                      : tr('Voir l’offre', 'View offer', 'Ver oferta'),
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],

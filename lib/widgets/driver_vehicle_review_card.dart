@@ -18,15 +18,15 @@ class DriverVehicleReviewCard extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    String t(String key) => VehicleReviewCopy.text(locale, key);
+    String copy(String key) => VehicleReviewCopy.text(locale, key);
     final until = vehicle.capacityValidUntil;
     final verified =
         vehicle.isVerified && vehicle.verifiedCapacity != null && until != null;
     final status = !verified
-        ? t('pending')
+        ? copy('pending')
         : until.isAfter(DateTime.now())
-        ? '${t('valid')} ${MaterialLocalizations.of(context).formatMediumDate(until.toLocal())}'
-        : t('expired');
+        ? '${copy('valid')} ${MaterialLocalizations.of(context).formatMediumDate(until.toLocal())}'
+        : copy('expired');
     return Card(
       key: ValueKey('review-vehicle-${vehicle.id}'),
       child: Padding(
@@ -59,7 +59,7 @@ class DriverVehicleReviewCard extends StatelessWidget {
                 );
                 if (changed == true) onReviewed();
               },
-              child: Text(t('review')),
+              child: Text(copy('review')),
             ),
           ],
         ),
@@ -98,7 +98,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
   int handlers = 1;
   bool confirmed = false, busy = false;
   String? error;
-  String t(String key) => VehicleReviewCopy.text(widget.locale, key);
+  String copy(String key) => VehicleReviewCopy.text(widget.locale, key);
   @override
   void initState() {
     super.initState();
@@ -130,7 +130,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
     if (busy) return;
     if (approve && (!confirmed || !form.currentState!.validate())) return;
     if (note.text.trim().isEmpty) {
-      setState(() => error = t('required'));
+      setState(() => error = copy('required'));
       return;
     }
     setState(() {
@@ -157,7 +157,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
     } catch (e) {
       if (mounted) {
         setState(
-          () => error = t(
+          () => error = copy(
             e is FirebaseFunctionsException && e.code == 'permission-denied'
                 ? 'access'
                 : 'error',
@@ -182,7 +182,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
     insetPadding: const EdgeInsets.all(12),
-    title: Text(t('title')),
+    title: Text(copy('title')),
     content: SizedBox(
       width: 560,
       child: SingleChildScrollView(
@@ -193,16 +193,16 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${widget.vehicle.makeModel} · ${widget.vehicle.plate}'),
-              Text(t('help')),
+              Text(copy('help')),
               if (widget.vehicle.category == VehicleCategory.pickupTruck)
-                Text(t('open_bed')),
+                Text(copy('open_bed')),
               for (final k in fields)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(t(k)),
+                      Text(copy(k)),
                       TextFormField(
                         key: ValueKey('capacity-$k'),
                         controller: values[k],
@@ -212,7 +212,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                         ),
                         decoration: InputDecoration(
                           errorMaxLines: 4,
-                          semanticCounterText: t(k),
+                          semanticCounterText: copy(k),
                         ),
                         validator: (value) {
                           final n = double.tryParse(
@@ -220,14 +220,14 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                           );
                           return n != null && n.isFinite && n > 0
                               ? null
-                              : t('positive');
+                              : copy('positive');
                         },
                       ),
                     ],
                   ),
                 ),
               const SizedBox(height: 12),
-              Text(t('handlers')),
+              Text(copy('handlers')),
               Wrap(
                 spacing: 8,
                 children: [
@@ -244,7 +244,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
               for (final k in ['handling', 'stairs'])
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(t(k)),
+                  title: Text(copy(k)),
                   value: services.contains(k),
                   onChanged: busy
                       ? null
@@ -257,7 +257,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                 children: [
                   for (final k in ['dolly', 'straps', 'liftgate'])
                     FilterChip(
-                      label: Text(t(k)),
+                      label: Text(copy(k)),
                       selected: equipment.contains(k),
                       onSelected: busy
                           ? null
@@ -268,7 +268,7 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(t('until')),
+              Text(copy('until')),
               TextFormField(
                 key: const ValueKey('capacity-valid-until'),
                 controller: until,
@@ -279,10 +279,10 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                 ),
                 validator: (_) => expiry()?.isAfter(DateTime.now()) == true
                     ? null
-                    : t('date_error'),
+                    : copy('date_error'),
               ),
               const SizedBox(height: 12),
-              Text(t('note')),
+              Text(copy('note')),
               TextFormField(
                 key: const ValueKey('capacity-note'),
                 controller: note,
@@ -291,12 +291,12 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
                 maxLines: 3,
                 decoration: const InputDecoration(errorMaxLines: 4),
                 validator: (v) =>
-                    v?.trim().isNotEmpty == true ? null : t('required'),
+                    v?.trim().isNotEmpty == true ? null : copy('required'),
               ),
               CheckboxListTile(
                 key: const ValueKey('capacity-confirmation'),
                 contentPadding: EdgeInsets.zero,
-                title: Text(t('confirmed')),
+                title: Text(copy('confirmed')),
                 value: confirmed,
                 onChanged: busy
                     ? null
@@ -317,17 +317,17 @@ class _DriverVehicleReviewDialogState extends State<DriverVehicleReviewDialog> {
     actions: [
       TextButton(
         onPressed: busy ? null : () => Navigator.of(context).pop(false),
-        child: Text(t('cancel')),
+        child: Text(copy('cancel')),
       ),
       if (widget.vehicle.isVerified)
         TextButton(
           onPressed: busy ? null : () => submit(false),
-          child: Text(t('revoke')),
+          child: Text(copy('revoke')),
         ),
       FilledButton(
         key: const ValueKey('capacity-approve'),
         onPressed: busy || !confirmed ? null : () => submit(true),
-        child: Text(t('approve')),
+        child: Text(copy('approve')),
       ),
     ],
   );

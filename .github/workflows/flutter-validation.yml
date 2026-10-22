@@ -108,8 +108,8 @@ jobs:
         if: ${{ failure() && hashFiles('flutter-tests.log') != '' }}
         shell: bash
         env:
-          # Temporary triage focus on tests that do not fail on the agenda baseline.
-          DETAIL_FOCUS: 'booking_terms_test|photo_analysis_flow_test|photo_offer_journey_test'
+          # Temporary triage focus on the remaining failing test files.
+          DETAIL_FOCUS: 'photo_offer_journey_test|home_screen_test|app_strings_structural_test|bloc_u_mobile_sanity_test|delivery_timing_test'
         run: |
           # Short, bounded excerpt per failing test (large annotations are dropped).
           # Flutter prints the exception block *before* the "[E]" line, so keep

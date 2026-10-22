@@ -161,7 +161,9 @@ void main() {
     await t.pump(const Duration(milliseconds: 300));
     expect(find.text('Fourgon fictif'), findsOneWidget);
     await t.tap(find.text('J’utilise ce véhicule'));
-    await t.pumpAndSettle();
+    // The accept spinner keeps running under the second dialog.
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('80.65 CAD'), findsOneWidget);
     expect(api.calls, isNot(contains('acceptDelivery')));
     await t.tap(find.widgetWithText(FilledButton, 'Accepter'));
@@ -207,7 +209,8 @@ void main() {
         findsOneWidget,
       );
       await t.tap(find.text('J’utilise ce véhicule'));
-      await t.pumpAndSettle();
+      await t.pump();
+      await t.pump(const Duration(milliseconds: 300));
       await t.tap(find.widgetWithText(FilledButton, 'Accepter'));
       await t.pumpAndSettle();
       expect(api.payloads.last, {
