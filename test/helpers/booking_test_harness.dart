@@ -200,6 +200,7 @@ Future<void> pumpBooking(
   required TestBookingApi api,
   BookingTestAuth? auth,
   String locale = 'fr',
+  ThemeData? theme,
   bool photoIntakeEnabled = false,
   BookingPhotoUploader? photoUploader,
   BookingPhotoLoader? photoLoader,
@@ -232,7 +233,7 @@ Future<void> pumpBooking(
         ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
         ChangeNotifierProvider<FirebaseAuthProvider>.value(value: provider),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(routerConfig: router, theme: theme),
     ),
   );
   await tester.pumpAndSettle();
