@@ -18,7 +18,7 @@ import { isInternalDemoCustomer, isSuperAdmin, requireSignedIn } from "../lib/au
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
-import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
+import { RuntimeFlagKeys, isRuntimeFlagEnabledFor, killSwitchRefusal } from "../lib/runtimeFlags";
 import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMajorUnits } from "../lib/money";
@@ -85,7 +85,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // serveur-autoritaire.
   if (
     !isInternalTest &&
-    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS))
+    !(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS, ctx.uid))
   ) {
     throw killSwitchRefusal();
   }

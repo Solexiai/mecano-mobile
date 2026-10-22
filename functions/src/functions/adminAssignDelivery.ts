@@ -46,7 +46,7 @@ import {
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { driverServesMissionCategory, supportsVehicleCategory } from "../lib/vehicleCategory";
-import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
+import { RuntimeFlagKeys, isRuntimeFlagEnabledFor, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
 
@@ -80,7 +80,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
   // normalement (aucun autre point du code ne consulte ce flag). Vérifié
   // AVANT toute lecture Firestore pour qu'un client modifié ne puisse
   // jamais contourner ce contrôle serveur-autoritaire.
-  if (!isInternalTest && !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))) {
+  if (!isInternalTest && !(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE, driverId))) {
     throw killSwitchRefusal();
   }
 
@@ -106,7 +106,7 @@ export const adminAssignDelivery = onCall<AdminAssignDeliveryRequest>(
   // un échec définitif de paiement : ce statut terminal était donc une
   // sémantique incorrecte pour ce cas précis (voir X-8, section "IMPORTANT —
   // TESTER LA SÉMANTIQUE de failMissionPayment()").
-  if (!isInternalTest && !(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))) {
+  if (!isInternalTest && !(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.PAYMENTS_ENABLED, driverId))) {
     throw killSwitchRefusal();
   }
 

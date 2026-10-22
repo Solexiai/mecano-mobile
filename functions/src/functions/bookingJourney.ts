@@ -12,8 +12,8 @@ import { invalidArgument } from '../lib/errors';
 import { findCompatibleVehicle, reviewBooking } from '../lib/bookingServer';
 
 export const getBookingConfiguration = onCall(async request => {
-  const configuration = await getPublicBookingConfiguration();
   const ctx = request.auth ? requireSignedIn(request) : null;
+  const configuration = await getPublicBookingConfiguration(ctx?.uid);
   return { ...configuration, internal_test_request: !!ctx && (isSuperAdmin(ctx) || isInternalDemoCustomer(ctx)) };
 });
 export const reviewDeliveryLoad = onCall(async request => {

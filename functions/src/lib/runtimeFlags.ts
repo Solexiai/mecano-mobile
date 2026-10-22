@@ -206,6 +206,35 @@ export async function isRuntimeFlagEnabled(key: RuntimeFlagKey): Promise<boolean
 }
 
 // -----------------------------------------------------------------------------
+// Pilote privé (décision de Daniel, 2026-10-22). Les 4 interrupteurs restent
+// fermés pour le public ; les comptes listés dans
+// `system_config/pilot_access` = { enabled: true, user_ids: [uid, ...] }
+// (testeurs, puis clients et chauffeurs du pilote de Granby) bénéficient des
+// 4 opérations. Document lisible par les admins seulement, jamais écrit par
+// un client (firestore.rules : system_config). FAIL CLOSED : document absent,
+// invalide ou illisible = personne n'est pilote.
+// -----------------------------------------------------------------------------
+export const PILOT_ACCESS_DOC_ID = "pilot_access";
+
+export async function isPilotUser(uid: string | null | undefined): Promise<boolean> {
+  if (typeof uid !== "string" || !uid) return false;
+  try {
+    const data = (await db.collection(RUNTIME_FLAGS_COLLECTION).doc(PILOT_ACCESS_DOC_ID).get()).data();
+    return data?.enabled === true && Array.isArray(data.user_ids) && data.user_ids.includes(uid);
+  } catch {
+    return false;
+  }
+}
+
+/** Interrupteur ouvert pour tous, ou pour ce compte pilote. */
+export async function isRuntimeFlagEnabledFor(
+  key: RuntimeFlagKey,
+  uid: string | null | undefined
+): Promise<boolean> {
+  return (await isRuntimeFlagEnabled(key)) || (await isPilotUser(uid));
+}
+
+// -----------------------------------------------------------------------------
 // Erreur structurée (X-10) — utilisée par CHAQUE Cloud Function qui refuse une
 // opération à cause d'un kill switch. N'expose JAMAIS : le nom du document
 // Firestore, la valeur brute du flag, la raison technique (`reason`), ni

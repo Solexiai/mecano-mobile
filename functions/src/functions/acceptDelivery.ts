@@ -39,7 +39,7 @@ import {
 } from "../lib/types";
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
-import { RuntimeFlagKeys, isRuntimeFlagEnabled, killSwitchRefusal } from "../lib/runtimeFlags";
+import { RuntimeFlagKeys, isRuntimeFlagEnabledFor, killSwitchRefusal } from "../lib/runtimeFlags";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
 import { driverServesMissionCategory } from "../lib/vehicleCategory";
@@ -101,13 +101,13 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
 
   if (
     !isInternalTestPreflight &&
-    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE))
+    !(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE, driverId))
   ) {
     throw killSwitchRefusal();
   }
   if (
     !isInternalTestPreflight &&
-    !(await isRuntimeFlagEnabled(RuntimeFlagKeys.PAYMENTS_ENABLED))
+    !(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.PAYMENTS_ENABLED, driverId))
   ) {
     throw killSwitchRefusal();
   }

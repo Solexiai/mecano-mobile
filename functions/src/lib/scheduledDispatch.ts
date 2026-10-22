@@ -2,17 +2,20 @@ import { db, admin } from './admin';
 import { findCompatibleVehicle } from './bookingServer';
 import { readSchedulingPolicy, missionRequestedAt, locationInDriverZone, prepareReservation } from './driverScheduling';
 import { driverServesMissionCategory } from './vehicleCategory';
-import { isRuntimeFlagEnabled, RuntimeFlagKeys } from './runtimeFlags';
+import { isPilotUser, isRuntimeFlagEnabled, RuntimeFlagKeys } from './runtimeFlags';
 import { sendDeliveryOfferPush } from './pushNotifications';
 /** Return false only when the existing dispatch path remains applicable. */
 export async function dispatchScheduledMission(missionId: string): Promise<boolean> {
     const policy = await readSchedulingPolicy();
     if (!policy)
         return false;
-    if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE)) ||
-        !(await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS)))
-        return true;
+    const open = (await isRuntimeFlagEnabled(RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE)) &&
+        (await isRuntimeFlagEnabled(RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS));
     const ref = db.doc('delivery_requests/' + missionId), m = (await ref.get()).data();
+    // Private pilot (2026-10-22): a pilot customer's request is dispatched
+    // while the public switches stay closed.
+    if (!open && !(await isPilotUser(m?.customer_id)))
+        return true;
     if (!m || m.driver_id || m.status !== 'searching_driver' || m.assignment_mode === 'internal_test' || (m.pricing_snapshot?.pre_assignment && !m.booking_snapshot))
         return true;
     const now = Date.now(), requested = missionRequestedAt(m), start = requested ? Date.parse(requested) : now;

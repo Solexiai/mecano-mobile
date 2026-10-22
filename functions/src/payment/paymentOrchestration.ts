@@ -58,7 +58,7 @@ import {
   resolveCorrelationId,
   startFinancialOperationTimer,
 } from "../lib/observability";
-import { RuntimeFlagKeys, isRuntimeFlagEnabled } from "../lib/runtimeFlags";
+import { RuntimeFlagKeys, isRuntimeFlagEnabledFor } from "../lib/runtimeFlags";
 import {
   assertStripeReferenceEnvironmentConsistencyOrLog,
   STRIPE_ENVIRONMENT_MISMATCH_ERROR_CODE,
@@ -1027,7 +1027,10 @@ export async function submitDriverPayout(payoutId: string): Promise<SubmitDriver
   // soit nécessaire. N'affecte JAMAIS `reverseDriverPayout()` (compensation
   // comptable sur un versement déjà PAID) ni la réconciliation — ces chemins
   // n'appellent pas cette fonction.
-  if (!(await isRuntimeFlagEnabled(RuntimeFlagKeys.DRIVER_PAYOUTS_ENABLED))) {
+  // Private pilot (2026-10-22): a pilot driver's payout goes through while
+  // the public switch stays closed.
+  const payoutDriverId = (await db.collection("driver_payouts").doc(payoutId).get()).data()?.driver_id;
+  if (!(await isRuntimeFlagEnabledFor(RuntimeFlagKeys.DRIVER_PAYOUTS_ENABLED, payoutDriverId))) {
     logFinancialFailure(
       "submit_driver_payout",
       operationStartedAt,
