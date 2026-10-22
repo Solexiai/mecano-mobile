@@ -26,7 +26,9 @@
 
 import type { CallableRequest, Request } from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
-import { doc, updateDoc } from "firebase/firestore";
+// Since 2026-10-22 an assigned mission is cancelled server-side
+// (cancelDeliveryRequest, free when no fee applies); the cancellation is
+// simulated with the same server-side status write.
 import { onMissionEndedClearTracking } from "../../src/functions/onMissionEndedClearTracking";
 import { onPaymentAuthorizedAfterMissionCancel } from "../../src/functions/onPaymentAuthorizedAfterMissionCancel";
 import { PaymentStatuses } from "../../src/lib/types";
@@ -39,6 +41,7 @@ import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderF
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled, seedRuntimeFlags } from "../testUtils/runtimeFlagsFixture";
 import { seedOfficialLegacyQuote } from "../testUtils/officialQuoteFixture";
+import { cancelDeliveryRequest } from "../../src/functions/cancelDeliveryRequest";
 
 const CUSTOMER_ID = "concurrency_customer_001";
 
@@ -210,11 +213,13 @@ describe("GAP-S-02 deterministic authorization cancellation race diagnostic", ()
       expect(preparedPayment.status).toBe(PaymentStatuses.AUTHORIZATION_PENDING);
       expect(preparedPayment.provider_payment_intent_id).toBeTruthy();
       expect(preparedPayment.amount_requested_minor).toBeGreaterThan(0);
-      const customer = testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" });
-      await updateDoc(doc(customer.firestore(), "delivery_requests", MISSION_ID), {
-        status: "cancelled",
-        cancellation_reason: "diagnostic-concurrent-cancel",
-      });
+      // Real customer path while the authorization is still pending: no
+      // active hold, so no fee can apply and the cancellation is free.
+      const cancelled = await cancelDeliveryRequest.run({
+        data: { missionId: MISSION_ID },
+        auth: { uid: CUSTOMER_ID, token: { role: "customer", roles: ["customer"] } },
+      } as any);
+      expect(cancelled).toMatchObject({ cancelled: true, feeMinor: 0 });
       const after = (await missionRef.get()).data()!;
       expect(after.status).toBe("cancelled");
 
@@ -252,11 +257,7 @@ describe("GAP-S-02 deterministic authorization cancellation race diagnostic", ()
     const missionRef = db.collection("delivery_requests").doc(MISSION_ID);
     const testEnv = await createTestEnv();
     try {
-      await updateDoc(
-        doc(testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" }).firestore(),
-          "delivery_requests", MISSION_ID),
-        { status: "cancelled", cancellation_reason: "after-authorization" }
-      );
+      await db.collection("delivery_requests").doc(MISSION_ID).update({ status: "cancelled", cancellation_reason: "after-authorization" });
       const before = { status: PaymentStatuses.AUTHORIZATION_PENDING };
       const after = (await db.collection("payments").doc(paymentId).get()).data()!;
       expect(after.status).toBe(PaymentStatuses.AUTHORIZED);
@@ -284,11 +285,7 @@ describe("GAP-S-02 deterministic authorization cancellation race diagnostic", ()
     const paymentId = accepted.paymentId!;
     const testEnv = await createTestEnv();
     try {
-      await updateDoc(
-        doc(testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" }).firestore(),
-          "delivery_requests", MISSION_ID),
-        { status: "cancelled", cancellation_reason: "provider-retry-test" }
-      );
+      await db.collection("delivery_requests").doc(MISSION_ID).update({ status: "cancelled", cancellation_reason: "provider-retry-test" });
       const after = (await db.collection("payments").doc(paymentId).get()).data()!;
       const event = {
         params: { paymentId },
@@ -330,11 +327,7 @@ describe("GAP-S-02 deterministic authorization cancellation race diagnostic", ()
       pending = acceptDelivery.run(buildDriverRequest(DRIVER_A_ID));
       await atAuthorization;
       const missionRef = db.collection("delivery_requests").doc(MISSION_ID);
-      await updateDoc(
-        doc(testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" }).firestore(),
-          "delivery_requests", MISSION_ID),
-        { status: "cancelled", cancellation_reason: "declined-during-cancel" }
-      );
+      await db.collection("delivery_requests").doc(MISSION_ID).update({ status: "cancelled", cancellation_reason: "declined-during-cancel" });
       const after = (await missionRef.get()).data()!;
       expect(after.status).toBe("cancelled");
       resume();

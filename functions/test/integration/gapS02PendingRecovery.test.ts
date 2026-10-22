@@ -26,7 +26,9 @@
 
 import type { CallableRequest, Request } from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
-import { doc, updateDoc } from "firebase/firestore";
+// Since 2026-10-22 an assigned mission is cancelled server-side
+// (cancelDeliveryRequest, free when no fee applies); the cancellation is
+// simulated with the same server-side status write.
 import { onMissionEndedClearTracking } from "../../src/functions/onMissionEndedClearTracking";
 import { onPaymentAuthorizedAfterMissionCancel } from "../../src/functions/onPaymentAuthorizedAfterMissionCancel";
 import { PaymentStatuses } from "../../src/lib/types";
@@ -206,11 +208,7 @@ describe("GAP-S-02: orphaned payment authorization recovery", () => {
     });
     const testEnv = await createTestEnv();
     try {
-      await updateDoc(
-        doc(testEnv.authenticatedContext(CUSTOMER_ID, { role: "customer" }).firestore(),
-          "delivery_requests", MISSION_ID),
-        { status: "cancelled", cancellation_reason: "interrupted-authorize-recovery" },
-      );
+      await db.collection("delivery_requests").doc(MISSION_ID).update({ status: "cancelled", cancellation_reason: "interrupted-authorize-recovery" });
     } finally {
       await testEnv.cleanup();
     }
