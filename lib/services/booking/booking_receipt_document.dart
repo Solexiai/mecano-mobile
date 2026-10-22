@@ -26,8 +26,8 @@ String bookingReceiptText(Map<String, dynamic> r, String locale) {
       'Movi-K — Resumen de solicitud',
     ),
     '${tr('Référence', 'Reference', 'Referencia')}: ${r['missionId']}',
-    '${tr('Devis', 'Quote', 'Presupuesto')}: ${r['quoteId']}',
-    '${tr('Total du devis accepté', 'Accepted quote total', 'Total del presupuesto aceptado')}: ${money((r['customerTotalMinor'] as num) / 100)}',
+    '${tr('Référence du prix', 'Price reference', 'Referencia del precio')}: ${r['quoteId']}',
+    '${tr('Prix total accepté', 'Accepted total price', 'Precio total aceptado')}: ${money((r['customerTotalMinor'] as num) / 100)}',
     tr(
       'Ce récapitulatif ne constitue pas une preuve de paiement. Consultez le suivi pour le statut actuel.',
       'This summary is not proof of payment. Check tracking for the current status.',

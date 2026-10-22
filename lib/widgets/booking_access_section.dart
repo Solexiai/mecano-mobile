@@ -168,9 +168,9 @@ class BookingAccessSection extends StatelessWidget {
                     Text(
                       value
                           ? tr(
-                              'À inclure dans mon devis.',
-                              'Include in my quote.',
-                              'Incluir en mi presupuesto.',
+                              'À inclure dans mon prix.',
+                              'Include in my price.',
+                              'Incluir en mi precio.',
                             )
                           : pickup
                           ? tr(
@@ -336,9 +336,9 @@ class BookingAccessSection extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 tr(
-                  'Le coût de l’aide sera indiqué dans votre devis avant confirmation.',
-                  'The cost of help will appear in your quote before confirmation.',
-                  'El coste de la ayuda aparecerá en el presupuesto antes de confirmar.',
+                  'Le coût de l’aide sera inclus dans votre prix avant confirmation.',
+                  'The cost of help will be included in your price before confirmation.',
+                  'El coste de la ayuda se incluirá en tu precio antes de confirmar.',
                 ),
                 style: const TextStyle(color: AppColors.primary),
               ),

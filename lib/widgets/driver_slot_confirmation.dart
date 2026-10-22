@@ -39,8 +39,8 @@ Future<Map<String, dynamic>?> confirmDriverSlot(
               children: [
                 Text(
                   tr(
-                    'Incluez le chargement, le trajet, le déchargement et les contraintes d’accès. Le devis du client reste inchangé.',
-                    'Include loading, driving, unloading and access constraints. The customer’s quote remains unchanged.',
+                    'Incluez le chargement, le trajet, le déchargement et les contraintes d’accès. Le prix du client reste inchangé.',
+                    'Include loading, driving, unloading and access constraints. The customer’s price remains unchanged.',
                     'Incluye carga, trayecto, descarga y restricciones de acceso. El precio del cliente no cambia.',
                   ),
                 ),
