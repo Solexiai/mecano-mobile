@@ -70,9 +70,11 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   Stream<DriverProfileV2?> _ensureDriverProfileStream(String driverId) {
     if (_cachedDriverId != driverId || _driverProfileStream == null) {
       _cachedDriverId = driverId;
-      _driverProfileStream = BackendLocator.driverRepository.watchDriverProfile(
-        driverId,
-      );
+      // Broadcast: the AppBar switch and the payout reminder both listen
+      // (2026-10-23); a single-subscription stream refuses a second listener.
+      _driverProfileStream = BackendLocator.driverRepository
+          .watchDriverProfile(driverId)
+          .asBroadcastStream();
     }
     return _driverProfileStream!;
   }
