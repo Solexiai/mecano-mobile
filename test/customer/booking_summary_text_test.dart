@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/widgets/booking_help_text.dart';
+import 'package:movik_connect/widgets/booking_load_summary.dart';
 import '../helpers/booking_test_harness.dart';
 
 void main() {
@@ -62,5 +63,16 @@ void main() {
     expect(find.byKey(const ValueKey('booking-email-verification')), findsOneWidget);
     expect(find.text('Renvoyer le courriel'), findsOneWidget);
     await disposeBooking(t);
+  });
+
+  testWidgets('the requested date is written dd/mm/yyyy, never with English month names', (t) async {
+    final local = DateTime(2026, 10, 23, 14, 0);
+    await t.pumpWidget(MaterialApp(home: Scaffold(body: BookingLoadSummary(
+      locale: 'fr',
+      collapsible: false,
+      snapshot: {'load': {'requested_at': local.toUtc().toIso8601String(), 'timing_mode': 'scheduled'}},
+    ))));
+    expect(find.text('Date demandée (à confirmer) : 23/10/2026 · 14:00'), findsOneWidget);
+    expect(find.textContaining('October'), findsNothing);
   });
 }

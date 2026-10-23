@@ -403,8 +403,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                         widget.t(
                           _streamErrorKey(historySnap.error, history: true),
                         ),
+                        // Neutral information, not an alarm (2026-10-23).
                         style: const TextStyle(
-                          color: AppColors.error,
+                          color: AppColors.textSecondary,
                           fontSize: 12,
                         ),
                       ),

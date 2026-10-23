@@ -19,22 +19,22 @@ late DateTime clock;
 const rawMessage = 'SIMULATED_INTERNAL_DETAIL_DO_NOT_DISPLAY';
 const messages = {
   'fr': [
-    'Accès à la position refusé.',
-    'Les données de suivi sont momentanément indisponibles.',
-    'Accès au trajet refusé.',
-    'Le trajet est momentanément indisponible.',
+    'La position du chauffeur s’affichera dès qu’il sera en route.',
+    'Position GPS pas encore reçue. Elle s’affichera dès que l’appareil du chauffeur la partagera.',
+    'Le trajet s’affichera dès que le chauffeur sera en route.',
+    'Le trajet s’affichera dès que des positions seront reçues.',
   ],
   'en': [
-    'Access to the position was denied.',
-    'Tracking data is temporarily unavailable.',
-    'Access to the route was denied.',
-    'The route is temporarily unavailable.',
+    'The driver’s position will appear once they are on the way.',
+    'No GPS position received yet. It will appear as soon as the driver’s device shares it.',
+    'The route will appear once the driver is on the way.',
+    'The route will appear as soon as positions are received.',
   ],
   'es': [
-    'Acceso a la posición denegado.',
-    'Los datos de seguimiento no están disponibles temporalmente.',
-    'Acceso al trayecto denegado.',
-    'El trayecto no está disponible temporalmente.',
+    'La posición del conductor aparecerá cuando esté en camino.',
+    'Aún no se recibe la posición GPS. Aparecerá en cuanto el dispositivo del conductor la comparta.',
+    'El trayecto aparecerá cuando el conductor esté en camino.',
+    'El trayecto aparecerá en cuanto se reciban posiciones.',
   ],
 };
 FirebaseException failure(String code, {String plugin = 'cloud_firestore'}) =>

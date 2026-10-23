@@ -24,6 +24,14 @@ class BookingLoadSummary extends StatelessWidget {
       : locale == 'es'
       ? es
       : fr;
+  /// "23/10/2026 · 14:00" — same day/month/year convention as the tracking
+  /// map. The app does not configure the Material localization delegates,
+  /// so MaterialLocalizations would print English month names (2026-10-23).
+  static String _dateLabel(DateTime d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.day)}/${two(d.month)}/${d.year} · ${two(d.hour)}:${two(d.minute)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final load = Map<String, dynamic>.from(snapshot['load'] as Map? ?? {});
@@ -215,18 +223,8 @@ class BookingLoadSummary extends StatelessWidget {
         )
       else if (load['requested_at'] is String &&
           DateTime.tryParse(load['requested_at'] as String) != null)
-        Builder(
-          builder: (context) {
-            final date = DateTime.parse(load['requested_at'] as String).toLocal();
-            final labels = MaterialLocalizations.of(context);
-            final time = labels.formatTimeOfDay(
-              TimeOfDay.fromDateTime(date),
-              alwaysUse24HourFormat: true,
-            );
-            return Text(
-              '${tr('Date demandée (à confirmer)', 'Requested date (to be confirmed)', 'Fecha solicitada (por confirmar)')} : ${labels.formatFullDate(date)} · $time',
-            );
-          },
+        Text(
+          '${tr('Date demandée (à confirmer)', 'Requested date (to be confirmed)', 'Fecha solicitada (por confirmar)')} : ${_dateLabel(DateTime.parse(load['requested_at'] as String).toLocal())}',
         ),
     ];
     if (!collapsible) {
