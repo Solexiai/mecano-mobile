@@ -1,5 +1,5 @@
 import '../../widgets/booking_access_section.dart';
-import '../../widgets/booking_help_text.dart';
+import '../../widgets/booking_simple_steps.dart';
 import '../../services/booking/booking_contract.dart';
 import '../../widgets/booking_terms_section.dart';
 import '../../finance/presentation/money_format.dart';
@@ -601,11 +601,17 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ].every((key) => accessAnswersComplete(_draft.data[key] as Map))) {
       setState(() {
         _message = tr(
-          'Précisez l’aide et les accès au ramassage et à la livraison pour obtenir votre prix. Votre brouillon est conservé.',
-          'Complete help and access details at pickup and delivery to get your price. Your draft is saved.',
-          'Completa la ayuda y los accesos de recogida y entrega para obtener tu precio. Tu borrador está guardado.',
+          'Répondez aux questions sur les escaliers et l’aide pour obtenir votre prix. Votre brouillon est conservé.',
+          'Answer the stairs and help questions to get your price. Your draft is saved.',
+          'Responde las preguntas sobre escaleras y ayuda para obtener tu precio. Tu borrador está guardado.',
         );
         _draft.step = 0;
+        final stairsMissing = ['pickup_access', 'dropoff_access'].any(
+          (key) => !((_draft.data[key] as Map)['confirmed_fields'] as List? ??
+                  const [])
+              .contains('stairs'),
+        );
+        _draft.part = stairsMissing ? 1 : 2;
       });
       await _save();
       return;
@@ -1082,13 +1088,61 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       label: Text(text),
     ),
   );
-  void _step(int step) {
+  void _step(int step, {int? part}) {
     setState(() {
       _draft.step = step;
+      if (part != null) _draft.part = part;
       _message = null;
     });
     _changed(quote: false);
   }
+
+  /// Screens of step 0, one question each (2026-10-23).
+  void _part(int part) => _step(0, part: part);
+
+  /// Shown as "Étape N sur 7": 4 delivery questions, then price, details
+  /// and confirmation.
+  int get _screenNumber => _draft.step == 0 ? _draft.part + 1 : _draft.step + 4;
+  static const _screenCount = 7;
+
+  /// The screen's main action: a full-width button. When it is disabled, the
+  /// reason is written right under it.
+  Widget _next(String text, VoidCallback? tap, {String? why, Key? key}) =>
+      Padding(
+        padding: const EdgeInsets.only(top: 20, bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              key: key,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: _busy ? null : tap,
+              child: Text(text),
+            ),
+            if (tap == null && why != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                why,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Color(0xff9a4a0b),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+  String get _nextLabel => tr('Suivant', 'Next', 'Siguiente');
 
   @override
   Widget build(BuildContext context) {
@@ -1109,15 +1163,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     'Plan your delivery',
                     'Organiza tu entrega',
                   ),
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  tr(
-                    'Ajoutez votre objet, les deux adresses, puis consultez votre prix.',
-                    'Add your item and both addresses, then see your price.',
-                    'Añade tu objeto y ambas direcciones, y consulta tu precio.',
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 if (!_loaded)
                   const Padding(
@@ -1191,22 +1237,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 ] else ...[
                   if (_draft.step >= 2 && _configurationChecked && !_canPay)
                     _note(_configurationNotice, warning: true),
-                  const SizedBox(height: 24),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: List.generate(
-                      4,
-                      (i) => ChoiceChip(
-                        label: Text('${i + 1}. ${_titles[i]}'),
-                        selected: _draft.step == i,
-                        onSelected: _busy || i > _draft.step
-                            ? null
-                            : (_) => _step(i),
-                      ),
-                    ),
+                  const SizedBox(height: 16),
+                  BookingStepHeader(
+                    current: _screenNumber,
+                    total: _screenCount,
+                    locale: widget.locale,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
                     _uid == null
                         ? tr(
@@ -1245,17 +1282,26 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_draft.step == 0) ..._emailVerification(auth),
-                        if (_draft.step == 0) ..._delivery(),
+                        if (_draft.step == 0 && _draft.part == 0)
+                          ..._emailVerification(auth),
+                        if (_draft.step == 0) ..._deliveryPart(),
                         if (_draft.step == 1) ..._price(),
                         if (_draft.step == 2) ..._details(auth),
                         if (_draft.step == 3) ..._confirmation(auth),
                       ],
                     ),
                   ),
-                  if (_draft.step > 0)
+                  if (_draft.step > 0 || _draft.part > 0)
                     TextButton.icon(
-                      onPressed: _busy ? null : () => _step(_draft.step - 1),
+                      key: const ValueKey('booking-back'),
+                      onPressed: _busy
+                          ? null
+                          : () => _draft.step == 0
+                                ? _part(_draft.part - 1)
+                                : _step(
+                                    _draft.step - 1,
+                                    part: _draft.step == 1 ? 3 : null,
+                                  ),
                       icon: const Icon(Icons.arrow_back),
                       label: Text(tr('Retour', 'Back', 'Volver')),
                     ),
@@ -1268,208 +1314,368 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     );
   }
 
-  List<Widget> _delivery() => [
-    _heading(
-      tr(
-        'Que souhaitez-vous transporter ?',
-        'What are you moving?',
-        '¿Qué quieres transportar?',
-      ),
-    ),
+  List<Widget> _deliveryPart() => switch (_draft.part) {
+    0 => _itemsPart(),
+    1 => _wherePart(),
+    2 => _helpPart(),
+    _ => _whenPart(),
+  };
 
-    if ((widget.photoIntakeEnabled || _photoMode) &&
-        (!_photoMode || _draft.items.isEmpty))
-      _photoItemAction(),
-    if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
-      _note(
-        '${tr('Catégorie sélectionnée', 'Selected category', 'Categoría seleccionada')} : '
-        '${AppStrings.t(_draft.data['category'] as String, widget.locale)}',
-      ),
-    if (!_photoMode)
-      ExpansionTile(
-        key: const ValueKey('manual-item-catalog'),
-        initiallyExpanded: !widget.photoIntakeEnabled,
-        tilePadding: EdgeInsets.zero,
-        title: Text(
-          tr(
-            'Ou choisir un objet sans photo',
-            'Or choose an item without a photo',
-            'O elige un objeto sin foto',
-          ),
-        ),
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _catalog
-                .map(
-                  (e) => OutlinedButton.icon(
-                    onPressed: _draft.items.length >= 20
-                        ? null
-                        : () => _addItem(e.$1),
-                    icon: Icon(e.$3),
-                    label: Text(e.$2),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    ..._draft.items.map(
-      (item) => _item(Map<String, dynamic>.from(item as Map)),
-    ),
-    if (_photoMode && _draft.items.isNotEmpty) _photoItemAction(another: true),
-    _heading(
-      tr('Ramassage et livraison', 'Pickup and delivery', 'Recogida y entrega'),
-    ),
-    ..._address(
-      'pickup',
-      _pickup,
-      tr('Adresse de ramassage', 'Pickup address', 'Dirección de recogida'),
-    ),
-    ..._address(
-      'dropoff',
-      _dropoff,
-      tr('Adresse de livraison', 'Delivery address', 'Dirección de entrega'),
-    ),
-    _heading(
-      tr(
-        'Quand souhaitez-vous la livraison ?',
-        'When would you like delivery?',
-        '¿Cuándo quieres la entrega?',
-      ),
-    ),
-    Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        ChoiceChip(
-          key: const ValueKey('timing-immediate'),
-          label: Text(
-            tr('Dès maintenant', 'As soon as possible', 'Lo antes posible'),
-          ),
-          selected: _draft.isImmediate,
-          onSelected: (selected) {
-            if (!selected || _draft.isImmediate) return;
-            _draft.data['timing_mode'] = 'immediate';
-            _draft.data['requested_at'] = null;
-            _changed();
-          },
-        ),
-        ChoiceChip(
-          key: const ValueKey('timing-scheduled'),
-          label: Text(tr('Programmée', 'Scheduled', 'Programada')),
-          selected: !_draft.isImmediate,
-          onSelected: (selected) {
-            if (!selected || !_draft.isImmediate) return;
-            _draft.data['timing_mode'] = 'scheduled';
-            _changed();
-          },
-        ),
-      ],
-    ),
-    if (!_draft.isImmediate)
-      OutlinedButton.icon(
-        icon: const Icon(Icons.schedule),
-        onPressed: () => _chooseTime(),
-        label: _draft.data['requested_at'] == null
-            ? Text(
-                tr(
-                  'Choisir une date et une heure',
-                  'Choose date and time',
-                  'Elegir fecha y hora',
-                ),
+  /// Screen 1: what is moved. A photo of each item when photo intake is on.
+  List<Widget> _itemsPart() {
+    final photo = widget.photoIntakeEnabled || _photoMode;
+    return [
+      BookingQuestion(
+        photo
+            ? tr(
+                'Prenez une photo de chaque article',
+                'Take a photo of each item',
+                'Toma una foto de cada artículo',
               )
-            : _localizedTime(_draft.data['requested_at'] as String),
+            : tr(
+                'Qu’est-ce qu’on transporte ?',
+                'What are we moving?',
+                '¿Qué transportamos?',
+              ),
+        hint: photo
+            ? tr(
+                'On reconnaît l’article. Vous vérifiez, c’est tout. Pas de mesures à prendre pour un objet ordinaire.',
+                'We recognize the item. You check it, that’s all. No measuring for an ordinary item.',
+                'Reconocemos el artículo. Tú lo verificas, nada más. No hace falta medir un objeto común.',
+              )
+            : null,
       ),
-    _note(
-      _draft.isImmediate
-          ? tr(
-              'La recherche commence après votre confirmation. La prise en charge dépend de l’acceptation et de la disponibilité d’un chauffeur.',
-              'The search starts after you confirm. Pickup depends on driver acceptance and availability.',
-              'La búsqueda comienza después de tu confirmación. La recogida depende de la aceptación y disponibilidad de un conductor.',
-            )
-          : tr(
-              'La date et l’heure expriment votre souhait. Elles dépendent de l’acceptation et de la disponibilité du chauffeur.',
-              'Date and time are your preference. They depend on driver acceptance and availability.',
-              'La fecha y hora expresan tu preferencia y dependen de la aceptación y disponibilidad del conductor.',
-            ),
-    ),
-    ExpansionTile(
-      key: const ValueKey('booking-help-options'),
-      tilePadding: EdgeInsets.zero,
-      title: Text(
-        tr('Aide et équipement', 'Help and equipment', 'Ayuda y equipo'),
-      ),
-      subtitle: Text(helpAndEquipmentLine(_draft.data, widget.locale)),
-      children: [
-        DropdownButtonFormField<int>(
-          initialValue: (_draft.data['handlers'] as num).toInt(),
-          decoration: InputDecoration(
-            labelText: tr(
-              'Nombre de manutentionnaires requis',
-              'Required handlers',
-              'Personas necesarias para cargar',
+      if (photo && (!_photoMode || _draft.items.isEmpty)) _photoItemAction(),
+      if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
+        _note(
+          '${tr('Catégorie sélectionnée', 'Selected category', 'Categoría seleccionada')} : '
+          '${AppStrings.t(_draft.data['category'] as String, widget.locale)}',
+        ),
+      if (!_photoMode)
+        ExpansionTile(
+          key: const ValueKey('manual-item-catalog'),
+          initiallyExpanded: !widget.photoIntakeEnabled,
+          tilePadding: EdgeInsets.zero,
+          title: Text(
+            tr(
+              'Ou choisir un objet sans photo',
+              'Or choose an item without a photo',
+              'O elige un objeto sin foto',
             ),
           ),
-          items: [
-            1,
-            2,
-          ].map((n) => DropdownMenuItem(value: n, child: Text('$n'))).toList(),
-          onChanged: (n) {
-            _draft.data['handlers'] = n;
-            _changed();
-          },
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children:
-              [
-                    ('dolly', tr('Diable', 'Dolly', 'Carretilla')),
-                    ('straps', tr('Sangles', 'Straps', 'Correas')),
-                    (
-                      'liftgate',
-                      tr('Hayon élévateur', 'Liftgate', 'Plataforma elevadora'),
-                    ),
-                  ]
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _catalog
                   .map(
-                    (e) => FilterChip(
-                      label: Text(e.$2),
-                      selected: (_draft.data['equipment'] as List).contains(
-                        e.$1,
+                    (e) => OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
                       ),
-                      onSelected: (v) {
-                        final list = _draft.data['equipment'] as List;
-                        v ? list.add(e.$1) : list.remove(e.$1);
-                        _changed();
-                      },
+                      onPressed: _draft.items.length >= 20
+                          ? null
+                          : () => _addItem(e.$1),
+                      icon: Icon(e.$3),
+                      label: Text(e.$2),
                     ),
                   )
                   .toList(),
+            ),
+          ],
         ),
-      ],
-    ),
-    _button(
-      tr('Voir mon prix', 'See my price', 'Ver mi precio'),
-      _draft.items.isEmpty ||
-              !_addressesValid ||
-              (!_draft.isImmediate && _draft.data['requested_at'] == null)
-          ? null
-          : () {
-              _step(1);
-              if (_uid != null) _run(_quote);
-            },
-    ),
-    if (!_addressesValid)
-      Text(
-        tr(
-          'Sélectionnez deux adresses dans les suggestions, avec ville et code postal.',
-          'Select both addresses from suggestions, including city and postal code.',
-          'Selecciona ambas direcciones en las sugerencias, con ciudad y código postal.',
+      ..._draft.items.map(
+        (item) => _item(Map<String, dynamic>.from(item as Map)),
+      ),
+      if (_photoMode && _draft.items.isNotEmpty)
+        _photoItemAction(another: true),
+      _next(
+        _nextLabel,
+        _draft.items.isEmpty ? null : () => _part(1),
+        key: const ValueKey('booking-next-items'),
+        why: tr(
+          'Ajoutez au moins un article.',
+          'Add at least one item.',
+          'Añade al menos un artículo.',
         ),
       ),
-  ];
+    ];
+  }
+
+  /// Screen 2: both addresses, and the stairs question when it matters.
+  List<Widget> _wherePart() {
+    final ask = stairsQuestionNeeded(_draft.items);
+    final answered =
+        !ask ||
+        (stairsAnswer(_draft.data, 'pickup') != null &&
+            stairsAnswer(_draft.data, 'dropoff') != null);
+    return [
+      BookingQuestion(
+        tr(
+          'On le prend où, on le livre où ?',
+          'Where do we pick it up and deliver it?',
+          '¿Dónde lo recogemos y dónde lo entregamos?',
+        ),
+      ),
+      ..._address(
+        'pickup',
+        _pickup,
+        tr('On le prend ici', 'We pick it up here', 'Lo recogemos aquí'),
+        ask,
+      ),
+      const SizedBox(height: 12),
+      ..._address(
+        'dropoff',
+        _dropoff,
+        tr('On le livre ici', 'We deliver it here', 'Lo entregamos aquí'),
+        ask,
+      ),
+      if (ask)
+        Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Text(
+            tr(
+              'On vous pose la question parce que vous avez un meuble ou un électroménager. Pour des boîtes seulement, elle n’apparaît pas.',
+              'We ask because you have furniture or an appliance. For boxes only, this question does not appear.',
+              'Lo preguntamos porque tienes un mueble o un electrodoméstico. Para cajas solamente, la pregunta no aparece.',
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      _next(
+        _nextLabel,
+        _addressesValid && answered
+            ? () {
+                if (!ask) {
+                  // Boxes only: no stairs question and no stairs fee.
+                  for (final key in ['pickup', 'dropoff']) {
+                    applyStairsAnswer(_draft.data, key, 'no');
+                    _draft.data.remove('${key}_stairs_answer');
+                  }
+                }
+                // The common answer is preselected; the customer can change it.
+                if (helpChoice(_draft.data) == null) {
+                  applyHelpChoice(_draft.data, 'customer_helps');
+                }
+                _changed();
+                _part(2);
+              }
+            : null,
+        key: const ValueKey('booking-next-where'),
+        why: !_addressesValid
+            ? tr(
+                'Choisissez les deux adresses dans les suggestions.',
+                'Choose both addresses from the suggestions.',
+                'Elige ambas direcciones en las sugerencias.',
+              )
+            : tr(
+                'Répondez à la question sur les escaliers pour chaque adresse.',
+                'Answer the stairs question for each address.',
+                'Responde la pregunta sobre escaleras para cada dirección.',
+              ),
+      ),
+    ];
+  }
+
+  /// Screen 3: who carries.
+  List<Widget> _helpPart() {
+    final choice = helpChoice(_draft.data);
+    void pick(String value) {
+      applyHelpChoice(_draft.data, value);
+      _changed();
+    }
+
+    return [
+      BookingQuestion(
+        tr(
+          'Pouvez-vous aider à porter ?',
+          'Can you help carry?',
+          '¿Puedes ayudar a cargar?',
+        ),
+      ),
+      BookingBigChoice(
+        key: const ValueKey('help-choice-customer_helps'),
+        title: tr(
+          'Oui, je donne un coup de main',
+          'Yes, I can lend a hand',
+          'Sí, puedo echar una mano',
+        ),
+        subtitle: tr(
+          'Un chauffeur vient. Vous l’aidez à porter les objets lourds.',
+          'One driver comes. You help carry the heavy items.',
+          'Viene un conductor. Tú ayudas a cargar los objetos pesados.',
+        ),
+        selected: choice == 'customer_helps',
+        onTap: () => pick('customer_helps'),
+      ),
+      BookingBigChoice(
+        key: const ValueKey('help-choice-two_movers'),
+        title: tr('Non, je ne peux pas', 'No, I can’t', 'No, no puedo'),
+        subtitle: tr(
+          'Deux personnes viennent et s’occupent de tout.',
+          'Two people come and handle everything.',
+          'Vienen dos personas y se encargan de todo.',
+        ),
+        selected: choice == 'two_movers',
+        onTap: () => pick('two_movers'),
+      ),
+      Text(
+        tr(
+          'Le prix s’ajuste à votre choix.',
+          'The price adjusts to your choice.',
+          'El precio se ajusta a tu elección.',
+        ),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      _next(
+        _nextLabel,
+        choice == null ? null : () => _part(3),
+        key: const ValueKey('booking-next-help'),
+        why: tr(
+          'Choisissez une réponse.',
+          'Choose an answer.',
+          'Elige una respuesta.',
+        ),
+      ),
+    ];
+  }
+
+  /// Screen 4: when. As soon as possible, or a day and a fixed hour.
+  List<Widget> _whenPart() {
+    final now = DateTime.now();
+    final days = bookingSlotDays(now);
+    final dayKey = _draft.data['slot_day'] as String?;
+    final day = slotDayFromKey(dayKey);
+    final hour = (_draft.data['slot_hour'] as num?)?.toInt();
+    final scheduled =
+        !_draft.isImmediate &&
+        (_draft.data['timing_mode'] == 'scheduled' ||
+            _draft.data['requested_at'] != null);
+    void applySlot() {
+      final d = slotDayFromKey(_draft.data['slot_day'] as String?);
+      final h = (_draft.data['slot_hour'] as num?)?.toInt();
+      _draft.data['timing_mode'] = 'scheduled';
+      _draft.data['requested_at'] =
+          d != null && h != null && slotOpen(d, h, DateTime.now())
+          ? DateTime(d.year, d.month, d.day, h).toUtc().toIso8601String()
+          : null;
+      _changed();
+    }
+
+    final ready =
+        _draft.items.isNotEmpty &&
+        _addressesValid &&
+        (_draft.isImmediate || _draft.data['requested_at'] != null);
+    return [
+      BookingQuestion(tr('Quand ?', 'When?', '¿Cuándo?')),
+      BookingBigChoice(
+        key: const ValueKey('timing-immediate'),
+        icon: Icons.bolt,
+        title: tr('Dès que possible', 'As soon as possible', 'Lo antes posible'),
+        subtitle: tr(
+          'On cherche un chauffeur dès votre confirmation.',
+          'We look for a driver as soon as you confirm.',
+          'Buscamos un conductor en cuanto confirmes.',
+        ),
+        selected: _draft.isImmediate,
+        onTap: () {
+          if (_draft.isImmediate) return;
+          _draft.data['timing_mode'] = 'immediate';
+          _draft.data['requested_at'] = null;
+          _changed();
+        },
+      ),
+      BookingBigChoice(
+        key: const ValueKey('timing-scheduled'),
+        icon: Icons.calendar_today_outlined,
+        title: tr(
+          'Choisir un jour et une heure',
+          'Choose a day and time',
+          'Elegir un día y una hora',
+        ),
+        selected: scheduled,
+        onTap: () {
+          if (scheduled) return;
+          _draft.data['timing_mode'] = 'scheduled';
+          _changed();
+        },
+      ),
+      if (scheduled) ...[
+        Text(
+          tr('Le jour', 'Day', 'Día'),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        BookingPills(
+          keyPrefix: 'slot-day',
+          selected: dayKey,
+          options: [
+            for (final d in days)
+              (slotDayKey(d), slotDayLabel(d, now, widget.locale)),
+          ],
+          onSelected: (key) {
+            _draft.data['slot_day'] = key;
+            final d = slotDayFromKey(key);
+            final h = (_draft.data['slot_hour'] as num?)?.toInt();
+            if (d != null && h != null && !slotOpen(d, h, DateTime.now())) {
+              _draft.data['slot_hour'] = null;
+            }
+            applySlot();
+          },
+        ),
+        if (day != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            tr('L’heure', 'Time', 'Hora'),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          BookingPills(
+            keyPrefix: 'slot-hour',
+            selected: hour?.toString(),
+            options: [
+              for (final h in bookingSlotHours)
+                if (slotOpen(day, h, now))
+                  ('$h', slotHourLabel(h, widget.locale)),
+            ],
+            onSelected: (value) {
+              _draft.data['slot_hour'] = int.parse(value);
+              applySlot();
+            },
+          ),
+        ],
+        if (_draft.data['requested_at'] != null) ...[
+          const SizedBox(height: 12),
+          _localizedTime(
+            _draft.data['requested_at'] as String,
+            prefix: tr('Votre choix', 'Your choice', 'Tu elección'),
+          ),
+        ],
+      ],
+      _note(
+        tr(
+          'L’heure est votre souhait. Elle est confirmée quand un chauffeur accepte.',
+          'The time is your preference. It is confirmed when a driver accepts.',
+          'La hora es tu preferencia. Se confirma cuando un conductor acepta.',
+        ),
+      ),
+      _next(
+        tr('Voir mon prix', 'See my price', 'Ver mi precio'),
+        ready
+            ? () {
+                _step(1);
+                if (_uid != null) _run(_quote);
+              }
+            : null,
+        key: const ValueKey('booking-see-price'),
+        why: tr(
+          'Choisissez « Dès que possible », ou un jour et une heure.',
+          'Choose “As soon as possible”, or a day and a time.',
+          'Elige «Lo antes posible», o un día y una hora.',
+        ),
+      ),
+    ];
+  }
   // Display only: preserve the instant and the existing local timezone.
   Widget _localizedTime(String? iso, {String prefix = ''}) {
     final heading = prefix.isEmpty ? '' : '$prefix : ';
@@ -1501,49 +1707,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     );
   }
 
-  Widget _pickerLocale(BuildContext context, Widget? child) =>
-      Localizations.override(
-        context: context,
-        locale: Locale(widget.locale),
-        delegates: GlobalMaterialLocalizations.delegates,
-        child: child!,
-      );
-
-  Future<void> _chooseTime() async {
-    final now = DateTime.now();
-    final date = await showDatePicker(
-      context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: now.add(_maxBookingAdvance),
-      builder: _pickerLocale,
-    );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-      builder: _pickerLocale,
-    );
-    if (time == null || !mounted) return;
-    final requested = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-    if (requested.isAfter(DateTime.now().add(_maxBookingAdvance))) {
-      setState(() => _message = _tooFarMessage);
-      return;
-    }
-    _draft.data['timing_mode'] = 'scheduled';
-    _draft.data['requested_at'] = requested.toUtc().toIso8601String();
-    _changed();
-  }
-
-  // Same limit as the server (MAX_BOOKING_ADVANCE_MS): the card hold placed
-  // when a driver accepts must still be valid at delivery.
-  static const _maxBookingAdvance = Duration(days: 4);
   String get _tooFarMessage => tr(
     'Choisissez une date dans les 4 prochains jours.',
     'Choose a date within the next 4 days.',
@@ -1830,10 +1993,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     String key,
     TextEditingController controller,
     String label,
+    bool askStairs,
   ) {
-    final access = _draft.data['${key}_access'] as Map;
     return [
-      const SizedBox(height: 18),
+      const SizedBox(height: 8),
       AddressAutocompleteField(
         key: ValueKey('$key-${_draft.id}'),
         controller: controller,
@@ -1857,13 +2020,17 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           _changed();
         },
       ),
-      BookingAccessSection(
-        key: ValueKey('access-$key-${_draft.id}'),
-        access: access,
-        pickup: key == 'pickup',
-        locale: widget.locale,
-        onChanged: _changed,
-      ),
+      if (askStairs)
+        BookingStairsQuestion(
+          key: ValueKey('stairs-$key-${_draft.id}'),
+          prefix: key,
+          answer: stairsAnswer(_draft.data, key),
+          locale: widget.locale,
+          onAnswer: (answer) {
+            applyStairsAnswer(_draft.data, key, answer);
+            _changed();
+          },
+        ),
     ];
   }
 
@@ -2001,7 +2168,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             'Complete my delivery details',
             'Completar los datos de mi entrega',
           ),
-          () => _step(0),
+          // Open the screen that holds the missing answer.
+          () => _step(
+            0,
+            part: _reviewReasons.contains('outside_service_area')
+                ? 1
+                : _reviewReasons.any((r) => r.startsWith('requested_time'))
+                ? 3
+                : 0,
+          ),
         ),
       if (_review?['status'] == 'review_required' &&
           !_reviewReasons.any(_serviceReviewReasons.contains) &&
@@ -2122,7 +2297,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ],
       TextButton(
-        onPressed: () => _step(0),
+        onPressed: () => _step(0, part: 0),
         child: Text(
           tr(
             'Modifier ma livraison',
@@ -2517,7 +2692,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       spacing: 8,
       children: [
         TextButton(
-          onPressed: () => _step(0),
+          onPressed: () => _step(0, part: 0),
           child: Text(
             tr('Modifier la livraison', 'Edit delivery', 'Modificar entrega'),
           ),

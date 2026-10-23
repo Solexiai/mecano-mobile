@@ -60,6 +60,13 @@ class BookingDraft {
     data['step'] = value;
   }
 
+  /// Screen inside step 0, one question per screen (2026-10-23):
+  /// 0 items, 1 addresses and stairs, 2 help, 3 time.
+  int get part => ((data['part'] as num?)?.toInt() ?? 0).clamp(0, 3);
+  set part(int value) {
+    data['part'] = value;
+  }
+
   List<dynamic> get items => data['items'] as List<dynamic>;
   Map<String, dynamic> get contacts =>
       Map<String, dynamic>.from(data['contacts'] as Map);
