@@ -540,6 +540,11 @@ export interface PaymentDoc {
   currency: string; // 'CAD'
   amount_authorized_minor: number;
   amount_requested_minor?: number;
+  // Delivery price to capture at completion. The card hold (amount_requested /
+  // amount_authorized) can be higher: at least the 30 $ late-cancellation /
+  // travel fee, so that fee can always be collected (owner decision
+  // 2026-10-23). Absent on older payments: capture the authorized amount.
+  service_amount_minor?: number;
   amount_captured_minor: number;
   amount_refunded_minor: number;
   application_fee_minor: number; // commission Movi-K + frais de service, en cents

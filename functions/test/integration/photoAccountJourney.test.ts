@@ -25,6 +25,7 @@ import {seedDefaultRuntimeFlagsEnabled} from '../testUtils/runtimeFlagsFixture';
 import {FakePaymentProvider,buildFakePaymentProfile} from '../testUtils/fakePaymentProvider';
 import {setPaymentProviderForTesting} from '../../src/payment/paymentProviderFactory';
 import { TEST_SCHEDULED_PICKUP } from '../testUtils/bookingTimeFixture';
+import { cardHoldMinor } from '../../src/lib/missionFees';
 
 const project='demo-movik-test',customer='account_journey_customer',driver='account_journey_driver',stranger='account_journey_stranger';
 const vehicle='account_journey_vehicle',draftId='account-journey-draft';
@@ -153,7 +154,7 @@ test.each([
  expect(visible.customer_total_minor).toBe(official.customer_total_minor);
  expect(snapshot.customer_total_minor).toBe(official.customer_total_minor);
  expect(provider.createdPaymentParams).toHaveLength(1);
- expect(provider.createdPaymentParams[0].amountMinor).toBe(official.customer_total_minor);
+ expect(provider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(official.customer_total_minor));
  expect((await mref.get()).data()?.booking_snapshot.load.items[0].weight_kg).toBeNull();
  evidence('assignment-visible-to-client',{missionId:created.missionId,vehicleId:vehicle,amountMinor:official.customer_total_minor,provider:'FAKE',externalPayment:false});
 });

@@ -14,6 +14,7 @@ import { seedDefaultRuntimeFlagsEnabled } from '../testUtils/runtimeFlagsFixture
 import { buildFakePaymentProfile, FakePaymentProvider } from '../testUtils/fakePaymentProvider';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
 import { TEST_SCHEDULED_PICKUP } from '../testUtils/bookingTimeFixture';
+import { cardHoldMinor } from '../../src/lib/missionFees';
 
 // All data synthetic. Real callable and dispatch handlers, Firestore emulator.
 // No Functions emulator, Eventarc delivery, FCM, Stripe or Routes requests.
@@ -138,7 +139,7 @@ test.each(['immediate','scheduled'] as const)('%s complete local quote -> dispat
   expect(after.customer_total_minor).toBe(quote.customer_total_minor);
   expect(snapshot.customer_total_minor).toBe(quote.customer_total_minor);
   expect(fake.createdPaymentParams).toHaveLength(1);
-  expect(fake.createdPaymentParams[0].amountMinor).toBe(quote.customer_total_minor);
+  expect(fake.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor));
   expect((await db.doc('driver_agendas/'+driver+'/reservations/'+created.missionId).get()).data()!.active).toBe(true);
   expect(after.duration_confirmation.driver_id).toBe(driver);
   expect(after.duration_confirmation.confirmed_at.toMillis()).toBeGreaterThan(0);

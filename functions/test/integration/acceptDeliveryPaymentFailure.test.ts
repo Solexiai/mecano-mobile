@@ -23,6 +23,7 @@ import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { cardHoldMinor } from "../../src/lib/missionFees";
 
 const CUSTOMER_ID = "payfail_customer_001";
 const DRIVER_ID = "payfail_driver_001";
@@ -270,10 +271,12 @@ describe("Phase 7 — Bloc B (MIS-C-04) : paiement refusé à l'acceptation", ()
     const expectedMinor = quoteSnap.data()!.customer_total_minor;
     expect(secondMissionSnap.data()!.customer_total_minor).toBe(expectedMinor);
     expect(snapshotSnap.data()!.customer_total_minor).toBe(expectedMinor);
-    expect(paymentSnap.data()!.amount_requested_minor).toBe(expectedMinor);
-    expect(paymentSnap.data()!.amount_authorized_minor).toBe(expectedMinor);
+    // Card hold: the price, at least the 30 $ fee (2026-10-23); only the price is captured.
+    expect(paymentSnap.data()!.service_amount_minor).toBe(expectedMinor);
+    expect(paymentSnap.data()!.amount_requested_minor).toBe(cardHoldMinor(expectedMinor));
+    expect(paymentSnap.data()!.amount_authorized_minor).toBe(cardHoldMinor(expectedMinor));
     expect(successProvider.createdPaymentParams).toHaveLength(1);
-    expect(successProvider.createdPaymentParams[0].amountMinor).toBe(expectedMinor);
+    expect(successProvider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(expectedMinor));
 
     // Cleanup de la première mission (échouée), non couverte par le
     // `missionId` unique du afterEach (qui ne nettoie que la seconde).

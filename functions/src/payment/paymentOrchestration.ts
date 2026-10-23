@@ -65,6 +65,7 @@ import {
   StripeEnvironment,
 } from "../lib/stripeEnvironment";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
+import { cardHoldMinor } from "../lib/missionFees";
 
 // 🔒 Phase 8B (item f, isolation d'environnement Stripe) — CHAQUE fonction
 // ci-dessous qui RÉUTILISE une référence Stripe déjà stockée (au lieu d'en
@@ -169,6 +170,9 @@ export async function createAndAuthorizeMissionPayment(
   // devis officiel et du snapshot financier. L'appelant ne peut plus fournir
   // un montant Stripe indépendant.
   let amountMinor = 0;
+  // Card hold: the price, or the 30 $ fee when the price is lower (see
+  // missionFees.cardHoldMinor). Only the price is captured at completion.
+  let holdMinor = 0;
   let applicationFeeMinor = 0;
   let quoteIntegrityHash: string | null = null;
 
@@ -273,6 +277,7 @@ export async function createAndAuthorizeMissionPayment(
       throw failedPrecondition("Autorisation refusée : frais de plateforme invalides.");
     }
     quoteIntegrityHash = lockedQuote.integrityHash;
+    holdMinor = cardHoldMinor(amountMinor);
 
     const now = admin.firestore.Timestamp.now();
     // 🔒 Le document est créé DIRECTEMENT en AUTHORIZATION_PENDING (et non
@@ -289,7 +294,8 @@ export async function createAndAuthorizeMissionPayment(
       quote_id: quoteId,
       financial_snapshot_id: financialSnapshotId,
       quote_integrity_hash: quoteIntegrityHash,
-      amount_requested_minor: amountMinor,
+      amount_requested_minor: holdMinor,
+      service_amount_minor: amountMinor,
       customer_id: customerId,
       driver_id: driverId,
       status: PaymentStatuses.AUTHORIZATION_PENDING,
@@ -335,7 +341,7 @@ export async function createAndAuthorizeMissionPayment(
     const created = await provider.createPayment({
       providerCustomerId: paymentProfile.provider_customer_id,
       providerPaymentMethodId: paymentProfile.default_payment_method_id,
-      amountMinor,
+      amountMinor: holdMinor,
       currency: DEFAULT_CURRENCY,
       connectedAccountId,
       applicationFeeMinor,
@@ -420,7 +426,7 @@ export async function createAndAuthorizeMissionPayment(
       const now = admin.firestore.Timestamp.now();
       tx.update(payRef, {
         status: PaymentStatuses.AUTHORIZED,
-        amount_authorized_minor: amountMinor,
+        amount_authorized_minor: holdMinor,
         provider_payment_intent_id: created.providerPaymentIntentId,
         authorized_at: now,
         updated_at: now,
@@ -463,7 +469,7 @@ export async function createAndAuthorizeMissionPayment(
       action: "payment_authorized",
       sourceFunction: "createAndAuthorizeMissionPayment",
       targetId: paymentId,
-      metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor },
+      metadata: { missionId, providerPaymentIntentId: created.providerPaymentIntentId, amountMinor, holdMinor },
     });
     logFinancialSuccess(
       "authorize_payment",
@@ -641,7 +647,13 @@ export async function captureMissionPayment(
 
       return {
         providerPaymentIntentId: payment.provider_payment_intent_id!,
-        amountToCaptureMinor: payment.amount_authorized_minor,
+        // Only the delivery price: the rest of a 30 $ minimum hold is
+        // released by Stripe with the partial capture.
+        amountToCaptureMinor: Number.isSafeInteger(payment.service_amount_minor) &&
+          (payment.service_amount_minor as number) > 0 &&
+          (payment.service_amount_minor as number) <= payment.amount_authorized_minor
+          ? (payment.service_amount_minor as number)
+          : payment.amount_authorized_minor,
         idempotencyKey: key,
         storedEnvironment: payment.stripe_environment ?? null,
       };

@@ -16,10 +16,15 @@
 // driver accepted (destination charge: the Movi-K share is the Stripe
 // application fee, the rest is transferred to the driver's connected
 // account). No new card authorization is ever created for a fee.
+//
+// Owner decision 2026-10-23: the fee is always the full 30 $, even when the
+// delivery costs less. The card hold is therefore at least 30 $
+// (cardHoldMinor); at completion only the delivery price is captured and the
+// rest of the hold is released.
 // -----------------------------------------------------------------------------
 
 export const MISSION_FEE_POLICY = Object.freeze({
-  version: "MOVIK-FEES-20261022-001",
+  version: "MOVIK-FEES-20261023-001",
   total_minor: 3000,
   driver_minor: 2500,
   platform_minor: 500,
@@ -43,6 +48,12 @@ export interface MissionFeeAmounts {
   total_minor: number;
   driver_minor: number;
   platform_minor: number;
+}
+
+/** Card hold placed at driver acceptance: the price, never less than the fee. */
+export function cardHoldMinor(priceMinor: number): number {
+  if (!Number.isSafeInteger(priceMinor) || priceMinor <= 0) return priceMinor;
+  return Math.max(priceMinor, MISSION_FEE_POLICY.total_minor);
 }
 
 /**

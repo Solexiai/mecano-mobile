@@ -14,6 +14,7 @@ import { cancelDeliveryRequest } from '../../src/functions/cancelDeliveryRequest
 import { chargeWastedTripFee } from '../../src/functions/chargeWastedTripFee';
 import { onMissionEndedClearTracking } from '../../src/functions/onMissionEndedClearTracking';
 import { missionFeeSnapshotId } from '../../src/payment/missionFeeOrchestration';
+import { captureMissionPayment } from '../../src/payment/paymentOrchestration';
 import { computeMissionFinancialBalance } from '../../src/lib/missionFinancialBalance';
 import { encodeGeohash } from '../../src/lib/geohash';
 import { buildPricingConfig } from '../unit/fixtures';
@@ -192,4 +193,33 @@ test('a refused fee capture is recorded for follow-up and never retried silently
   expect(mission.cancellation_fee.status).toBe('failed');
   expect((await db.doc('payments/' + mission.active_payment_id).get()).data()!.status).toBe('failed');
   expect((await db.doc('financial_snapshots/' + missionFeeSnapshotId(id)).get()).exists).toBe(false);
+});
+
+test('owner decision 2026-10-23: a delivery under 30 $ holds 30 $, captures only its price at completion, and a late fee is still the full 30 $', async () => {
+  // Cheap synthetic pricing so the delivery costs less than the 30 $ fee.
+  const pricing = (await db.doc('pricing_versions/FEE-TEST').get()).data()!;
+  await db.doc('pricing_versions/FEE-TEST').set({
+    ...pricing,
+    vehicle_rules: pricing.vehicle_rules.map((r: any) => ({ ...r, base_fare: 5, rate_per_km: 1, rate_per_minute: 0, minimum_charge: 10 })),
+    handling_fees: { ...pricing.handling_fees, heavy_item_fee: 0, bulky_item_fee: 0 },
+  });
+  const id = await bookAndAccept(null);
+  const mission = (await missionRef(id).get()).data()!;
+  const priceMinor = mission.customer_total_minor as number;
+  expect(priceMinor).toBeGreaterThan(0);
+  expect(priceMinor).toBeLessThan(3000);
+  expect(provider.createdPaymentParams.at(-1)!.amountMinor).toBe(3000);
+  const paymentId = mission.active_payment_id as string;
+  expect((await db.doc('payments/' + paymentId).get()).data()).toMatchObject({
+    status: 'authorized', amount_requested_minor: 3000, amount_authorized_minor: 3000, service_amount_minor: priceMinor });
+
+  // The late cancellation fee is the full 30 $ (25 $ driver + 5 $ Movi-K).
+  const preview = await cancelDeliveryRequest.run(asCustomer({ missionId: id, dryRun: true }));
+  expect(preview).toMatchObject({ feeMinor: 3000, feeKind: 'late_cancellation', cancelled: false });
+
+  // A completed delivery captures only its price; Stripe releases the rest.
+  const outcome = await captureMissionPayment(id, paymentId);
+  expect(outcome.success).toBe(true);
+  expect(provider.capturedPaymentParams.at(-1)).toMatchObject({ amountToCaptureMinor: priceMinor });
+  expect((await db.doc('payments/' + paymentId).get()).data()).toMatchObject({ status: 'captured', amount_captured_minor: priceMinor });
 });

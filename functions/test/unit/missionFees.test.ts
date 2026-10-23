@@ -1,4 +1,4 @@
-import { isLateCancellation, MISSION_FEE_POLICY, missionFeeAmounts } from '../../src/lib/missionFees';
+import { cardHoldMinor, isLateCancellation, MISSION_FEE_POLICY, missionFeeAmounts } from '../../src/lib/missionFees';
 
 const now = Date.parse('2026-10-22T12:00:00Z');
 const hours = (h: number) => new Date(now + h * 3600000).toISOString();
@@ -13,6 +13,14 @@ test('owner amounts: 30 $ charged = 25 $ driver + 5 $ Movi-K', () => {
   // Never more than the card hold; same 25/5 split.
   expect(missionFeeAmounts(1200)).toEqual({ total_minor: 1200, driver_minor: 1000, platform_minor: 200 });
   expect(missionFeeAmounts(0)).toEqual({ total_minor: 0, driver_minor: 0, platform_minor: 0 });
+});
+
+test('owner decision 2026-10-23: the card hold is never below the 30 $ fee', () => {
+  expect(cardHoldMinor(2500)).toBe(3000);
+  expect(cardHoldMinor(3000)).toBe(3000);
+  expect(cardHoldMinor(12345)).toBe(12345);
+  // With a 30 $ minimum hold, a 25 $ delivery still carries the full fee.
+  expect(missionFeeAmounts(cardHoldMinor(2500))).toEqual({ total_minor: 3000, driver_minor: 2500, platform_minor: 500 });
 });
 
 test('free before a driver accepts', () => {
