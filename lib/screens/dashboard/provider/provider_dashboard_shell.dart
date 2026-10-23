@@ -51,6 +51,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
   // de re-souscrire inutilement à Firestore. Mémoïsé par `driverId`.
   String? _cachedDriverId;
   Stream<DriverProfileV2?>? _driverProfileStream;
+  DriverProfileV2? _lastProfile;
 
   @override
   void initState() {
@@ -72,8 +73,12 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
       _cachedDriverId = driverId;
       // Broadcast: the AppBar switch and the payout reminder both listen
       // (2026-10-23); a single-subscription stream refuses a second listener.
+      // The last value is kept so a listener added later (layout change)
+      // starts from it instead of an empty state.
+      _lastProfile = null;
       _driverProfileStream = BackendLocator.driverRepository
           .watchDriverProfile(driverId)
+          .map((p) => _lastProfile = p)
           .asBroadcastStream();
     }
     return _driverProfileStream!;
@@ -242,6 +247,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
         actions: [
           StreamBuilder<DriverProfileV2?>(
             stream: _ensureDriverProfileStream(driverId),
+            initialData: _lastProfile,
             builder: (context, snap) {
               final profile = snap.data;
               final online = profile?.onlineStatus == DriverOnlineStatus.online;
@@ -338,6 +344,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
               children: [
                 StreamBuilder<DriverProfileV2?>(
                   stream: _ensureDriverProfileStream(driverId),
+                  initialData: _lastProfile,
                   builder: (context, snap) => _PayoutSetupBanner(
                     profile: snap.data,
                     t: t,
