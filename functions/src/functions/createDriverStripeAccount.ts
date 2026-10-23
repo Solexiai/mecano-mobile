@@ -5,15 +5,17 @@
 // renvoie le lien d'onboarding hébergé Stripe. Idempotent : si le chauffeur
 // a déjà un `stripe_connected_account_id`, le renvoie sans en recréer un
 // second (évite un compte fantôme orphelin chez Stripe).
+// 2026-10-23 : réservé aux chauffeurs approuvés ; un compte existant non
+// terminé reçoit un NOUVEAU lien d'inscription à chaque appel.
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
 import { admin, authAdmin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
-import { internal, permissionDenied } from "../lib/errors";
+import { failedPrecondition, internal, permissionDenied } from "../lib/errors";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
-import { DriverProfileDoc, PlatformRoles } from "../lib/types";
+import { DriverProfileDoc, DriverStatuses, PlatformRoles } from "../lib/types";
 
 export const createDriverStripeAccount = onCall(
   { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
@@ -25,16 +27,31 @@ export const createDriverStripeAccount = onCall(
 
     const driverRef = db.collection("driver_profiles").doc(ctx.uid);
     const driverSnap = await driverRef.get();
-    if (driverSnap.exists) {
-      const driver = driverSnap.data() as DriverProfileDoc;
-      if (driver.stripe_connected_account_id) {
-        return {
-          success: true,
-          connectedAccountId: driver.stripe_connected_account_id,
-          onboardingUrl: driver.stripe_onboarding_url ?? null,
-          alreadyExisted: true,
-        };
+    const driver = driverSnap.exists ? (driverSnap.data() as DriverProfileDoc) : null;
+    // 2026-10-23: payouts are set up only after Movi-K approved the file
+    // (previously only the screen hid the button).
+    if (!driver || driver.status !== DriverStatuses.APPROVED) {
+      throw failedPrecondition("Votre dossier chauffeur doit d'abord être approuvé par Movi-K.");
+    }
+    if (driver.stripe_connected_account_id) {
+      const accountId = driver.stripe_connected_account_id;
+      if (driver.stripe_charges_enabled === true && driver.stripe_payouts_enabled === true) {
+        return { success: true, connectedAccountId: accountId, onboardingUrl: null, alreadyExisted: true, active: true };
       }
+      // Stripe onboarding links expire after a few minutes and work once:
+      // never hand back the stored one, always make a fresh link so a driver
+      // who stopped halfway can resume (2026-10-23).
+      const provider = getPaymentProvider();
+      let freshUrl: string | null;
+      try {
+        freshUrl = await provider.createDriverOnboardingLink(accountId);
+      } catch (err) {
+        throw internal(`Impossible de créer le lien d'inscription Stripe: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      if (freshUrl) {
+        await driverRef.set({ stripe_onboarding_url: freshUrl, updated_at: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      }
+      return { success: !!freshUrl, connectedAccountId: accountId, onboardingUrl: freshUrl, alreadyExisted: true, active: false };
     }
 
     const userRecord = await authAdmin.getUser(ctx.uid).catch(() => null);
@@ -68,6 +85,7 @@ export const createDriverStripeAccount = onCall(
       connectedAccountId: created.connectedAccountId,
       onboardingUrl: created.onboardingUrl,
       alreadyExisted: false,
+      active: false,
     };
   }
 );

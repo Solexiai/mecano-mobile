@@ -3362,6 +3362,27 @@ class AppStrings {
     // ci-dessus, pour l'AppBar de ProviderDashboardShell (espace limité,
     // affichées à côté du Switch en ligne/hors ligne — voir
     // provider_dashboard_shell.dart).
+    'driver_payout_setup_banner': {
+      'fr':
+          'Votre dossier est approuvé. Configurez vos versements pour être payé : inscrivez-vous auprès de Stripe (identité et compte bancaire). Movi-K ne voit jamais ces informations.',
+      'en':
+          'Your file is approved. Set up your payouts to get paid: register with Stripe (identity and bank account). Movi-K never sees this information.',
+      'es':
+          'Tu expediente está aprobado. Configura tus pagos para cobrar: regístrate en Stripe (identidad y cuenta bancaria). Movi-K nunca ve esta información.',
+    },
+    'driver_payout_setup_banner_pending': {
+      'fr':
+          'Terminez votre inscription Stripe pour recevoir vos gains. Vous pouvez la reprendre là où vous l’avez laissée.',
+      'en':
+          'Finish your Stripe registration to receive your earnings. You can resume where you left off.',
+      'es':
+          'Termina tu registro en Stripe para recibir tus ganancias. Puedes retomarlo donde lo dejaste.',
+    },
+    'driver_payout_setup_action': {
+      'fr': 'Configurer mes versements',
+      'en': 'Set up my payouts',
+      'es': 'Configurar mis pagos',
+    },
     'driver_status_online_label_short': {
       'fr': 'Disponible',
       'en': 'Available',

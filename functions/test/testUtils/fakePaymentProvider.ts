@@ -178,8 +178,14 @@ export class FakePaymentProvider extends PaymentProvider {
   ): Promise<CreateDriverAccountResult> {
     return {
       connectedAccountId: `fake_acct_${params.driverId}`,
-      onboardingUrl: null,
+      onboardingUrl: await this.createDriverOnboardingLink(`fake_acct_${params.driverId}`),
     };
+  }
+
+  onboardingLinkCount = 0;
+  async createDriverOnboardingLink(connectedAccountId: string): Promise<string | null> {
+    this.onboardingLinkCount++;
+    return `https://connect.stripe.com/setup/e/${connectedAccountId}/fake-${this.onboardingLinkCount}`;
   }
 
   async createDriverPayout(

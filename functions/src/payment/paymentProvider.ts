@@ -286,6 +286,11 @@ export abstract class PaymentProvider {
     params: CreateDriverAccountParams
   ): Promise<CreateDriverAccountResult>;
 
+  /** New hosted onboarding link for an existing connected account. Stripe
+   *  links expire after a few minutes and work once, so a stored link can
+   *  never be reused (2026-10-23). Null when the provider cannot make one. */
+  abstract createDriverOnboardingLink(connectedAccountId: string): Promise<string | null>;
+
   abstract createDriverPayout(
     params: CreateDriverPayoutParams
   ): Promise<CreateDriverPayoutResult>;
@@ -357,6 +362,9 @@ export class NotConfiguredPaymentProvider extends PaymentProvider {
     throw new PaymentProviderNotConfiguredError();
   }
   async createDriverAccount(): Promise<CreateDriverAccountResult> {
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async createDriverOnboardingLink(): Promise<string | null> {
     throw new PaymentProviderNotConfiguredError();
   }
   async createDriverPayout(): Promise<CreateDriverPayoutResult> {

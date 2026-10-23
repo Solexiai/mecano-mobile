@@ -346,6 +346,11 @@ export class StripeProvider extends PaymentProvider {
       metadata: { movik_driver_id: params.driverId },
     });
 
+    return { connectedAccountId: account.id, onboardingUrl: await this.createDriverOnboardingLink(account.id) };
+  }
+
+  // Fresh hosted onboarding link (links expire and work once).
+  async createDriverOnboardingLink(connectedAccountId: string): Promise<string | null> {
     let onboardingUrl: string | null = null;
     try {
       // GAP 8B LIVE FERMÉ (voir docs/PAYMENT_ARCHITECTURE.md §10.7) : ces
@@ -356,7 +361,7 @@ export class StripeProvider extends PaymentProvider {
       // les routes Flutter dédiées `chauffeur/onboarding/complete|refresh`
       // (voir lib/router/app_router.dart + driver_stripe_onboarding_return_screen.dart).
       const accountLink = await this.stripe.accountLinks.create({
-        account: account.id,
+        account: connectedAccountId,
         refresh_url: getDriverStripeRefreshUrl(),
         return_url: getDriverStripeReturnUrl(),
         type: "account_onboarding",
@@ -365,8 +370,7 @@ export class StripeProvider extends PaymentProvider {
     } catch {
       onboardingUrl = null;
     }
-
-    return { connectedAccountId: account.id, onboardingUrl };
+    return onboardingUrl;
   }
 
   // ---- 9. createDriverPayout ----

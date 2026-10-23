@@ -330,7 +330,21 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
             const VerticalDivider(width: 1),
           ],
           Expanded(
-            child: IndexedStack(index: _index, children: tabs),
+            // Stable structure (banner slot always present) so showing or
+            // hiding the reminder never rebuilds the retained tabs.
+            child: Column(
+              children: [
+                StreamBuilder<DriverProfileV2?>(
+                  stream: _ensureDriverProfileStream(driverId),
+                  builder: (context, snap) => _PayoutSetupBanner(
+                    profile: snap.data,
+                    t: t,
+                    onOpen: () => _selectTab(3),
+                  ),
+                ),
+                Expanded(child: IndexedStack(index: _index, children: tabs)),
+              ],
+            ),
           ),
         ],
       ),
@@ -346,6 +360,61 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
                   )
                   .toList(),
             ),
+    );
+  }
+}
+
+/// Reminder shown on every tab once Movi-K approved the driver, until the
+/// Stripe Connect setup is finished (2026-10-23). The setup itself lives in
+/// the Profile tab (ProviderStripeConnectSection).
+class _PayoutSetupBanner extends StatelessWidget {
+  const _PayoutSetupBanner({
+    required this.profile,
+    required this.t,
+    required this.onOpen,
+  });
+  final DriverProfileV2? profile;
+  final String Function(String) t;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = profile;
+    if (p == null ||
+        p.status != DriverStatus.approved ||
+        (p.stripeChargesEnabled && p.stripePayoutsEnabled)) {
+      return const SizedBox.shrink();
+    }
+    final pending = (p.stripeConnectedAccountId ?? '').isNotEmpty;
+    return Container(
+      key: const ValueKey('driver-payout-setup-banner'),
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xfffff1dd),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            t(
+              pending
+                  ? 'driver_payout_setup_banner_pending'
+                  : 'driver_payout_setup_banner',
+            ),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('driver-payout-setup-open'),
+            onPressed: onOpen,
+            icon: const Icon(Icons.account_balance_outlined, size: 18),
+            label: Text(t('driver_payout_setup_action')),
+          ),
+        ],
+      ),
     );
   }
 }
