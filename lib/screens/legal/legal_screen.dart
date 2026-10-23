@@ -1,17 +1,96 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../../services/booking/booking_contract.dart';
+import '../../widgets/booking_terms_section.dart';
 
 import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 
+/// Loads the published booking policy (system_config/booking_policy, served
+/// to everyone by getBookingConfiguration). Null when none is published.
+typedef LegalPolicyLoader = Future<Map<String, dynamic>?> Function();
+
+Future<Map<String, dynamic>?> _firebasePolicyLoader() async {
+  final result = await FirebaseFunctions.instance
+      .httpsCallable('getBookingConfiguration')
+      .call(<String, dynamic>{});
+  final data = result.data;
+  if (data is! Map || data['policy'] is! Map) return null;
+  return Map<String, dynamic>.from(data['policy'] as Map);
+}
+
+/// Public page type -> document of the published booking policy.
+const _publishedDocumentFor = {
+  'terms': 'terms',
+  'cancellation': 'booking',
+  'privacy': 'privacy',
+};
+
 /// Parameterized legal page. `type` selects which legal document to render:
 /// privacy, terms, provider-agreement, cancellation, dispute, accessibility, cookies.
-class LegalScreen extends StatelessWidget {
+///
+/// 2026-10-23: terms, cancellation and privacy show the SAME text the customer
+/// accepts when booking (the published policy), so there is one version
+/// everywhere. The hand-written text below is only a fallback when no policy
+/// is published or it cannot be loaded.
+class LegalScreen extends StatefulWidget {
   final String locale;
   final String type;
-  const LegalScreen({super.key, required this.locale, required this.type});
+  final LegalPolicyLoader? policyLoader;
+  const LegalScreen({
+    super.key,
+    required this.locale,
+    required this.type,
+    this.policyLoader,
+  });
+
+  @override
+  State<LegalScreen> createState() => _LegalScreenState();
+}
+
+class _LegalScreenState extends State<LegalScreen> {
+  String get locale => widget.locale;
+  String get type => widget.type;
+  BookingContract? _published;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant LegalScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Called before build: plain field writes, no setState needed.
+    if (oldWidget.type != widget.type) _load();
+  }
+
+  Future<void> _load() async {
+    // Plain field writes: _load also runs from initState/didUpdateWidget,
+    // where setState is not allowed; the first build reads them.
+    _published = null;
+    _loading = _publishedDocumentFor.containsKey(type);
+    if (!_loading) return;
+    BookingContract? contract;
+    try {
+      contract = BookingContract.from(
+        await (widget.policyLoader ?? _firebasePolicyLoader)(),
+      );
+    } catch (_) {
+      contract = null; // Fallback text below; never a blank page.
+    }
+    if (!mounted) return;
+    setState(() {
+      _published = contract;
+      _loading = false;
+    });
+  }
 
   String _tr({required String fr, required String en, required String es}) {
     switch (locale) {
@@ -431,10 +510,66 @@ class LegalScreen extends StatelessWidget {
     }
   }
 
+  Widget _publishedPage(BuildContext context, bool isDesktop, String key) {
+    final contract = _published!;
+    final doc = contract.document(key);
+    final trial = contract.data['trial'] == true;
+    return AppShell(
+      locale: locale,
+      child: ResponsivePadding(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: isDesktop ? 64 : 40),
+          child: Column(
+            key: const ValueKey('legal-published'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionTitle(title: bookingTermsLabel(locale, key)),
+              const SizedBox(height: 8),
+              Text(
+                '${_tr(fr: 'Version', en: 'Version', es: 'Versión')} ${doc['version']}'
+                '${trial ? _tr(fr: ' — version d’essai', en: ' — trial version', es: ' — versión de prueba') : ''}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12.5,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              if (!(doc['content'] as Map).containsKey(locale))
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Document en français / French document / Documento en francés',
+                  ),
+                ),
+              const SizedBox(height: 24),
+              SelectableText(
+                contract.localized(doc['content'], locale),
+                style: const TextStyle(height: 1.6, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
     final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final publishedKey = _publishedDocumentFor[type];
+    if (publishedKey != null && _published != null) {
+      return _publishedPage(context, isDesktop, publishedKey);
+    }
+    if (publishedKey != null && _loading) {
+      return AppShell(
+        locale: locale,
+        child: const Padding(
+          padding: EdgeInsets.all(64),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
     final content = _content();
 
     return AppShell(
