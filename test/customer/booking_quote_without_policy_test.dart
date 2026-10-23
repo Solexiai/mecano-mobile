@@ -8,7 +8,6 @@ void main() {
     t,
   ) async {
     final draft = testDraft();
-    final originalLoad = draft.load;
     final originalStops = draft.stops;
     final store = MemoryBookingStorage(draft);
     final api = TestBookingApi()..configurationAvailable = false;
@@ -16,7 +15,10 @@ void main() {
     await goToBookingPrice(t);
     expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
     final index = api.calls.indexOf('calculateDeliveryQuote');
-    expect(api.payloads[index]['booking'], originalLoad);
+    // The walk through the one-question screens fills stairs and help; the
+    // server receives exactly the saved answers.
+    expect(api.payloads[index]['booking'], store.saved!.load);
+    expect(store.saved!.data['help_choice'], 'customer_helps');
     expect(api.payloads[index]['stops'], originalStops);
     expect(store.saved!.quote, api.quote);
     expect(store.saved!.quote!['customerTotal'], 123.45);
