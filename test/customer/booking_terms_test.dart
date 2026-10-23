@@ -102,7 +102,7 @@ void main() {
     },
   );
   testWidgets(
-    'expired quote disables confirmation and renewal clears previous acceptance',
+    'expired quote: confirming recalculates it; a changed total clears acceptance and stops',
     (t) async {
       final d = testDraft(step: 3, quote: true);
       final api = TestBookingApi();
@@ -114,19 +114,85 @@ void main() {
       };
       final storage = MemoryBookingStorage(d);
       await pumpBooking(t, storage: storage, api: api);
-      expect(t.widget<FilledButton>(confirm).onPressed, isNull);
+      // 2026-10-23: an expired price no longer greys out the button.
+      expect(t.widget<FilledButton>(confirm).onPressed, isNotNull);
       api.quote = {
         ...testQuote(),
         'quoteId': 'NEW-QUOTE',
         'customerTotal': 140.0,
       };
-      await tapBooking(t, 'Recalculer mon prix');
+      await tapBooking(t, 'Confirmer ma demande de livraison');
+      expect(api.calls, contains('calculateDeliveryQuote'));
       expect(storage.saved!.quote!['quoteId'], 'NEW-QUOTE');
       expect(storage.saved!.data['accepted'], false);
+      expect(find.textContaining('Le prix a été recalculé'), findsOneWidget);
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       await disposeBooking(t);
     },
   );
+  testWidgets(
+    'expired quote with the same total: acceptance kept and the request is confirmed in one tap',
+    (t) async {
+      final d = testDraft(step: 3, quote: true);
+      final api = TestBookingApi();
+      api.quote = {
+        ...d.quote!,
+        'expiresAtMillis': DateTime.now()
+            .subtract(const Duration(minutes: 1))
+            .millisecondsSinceEpoch,
+      };
+      final storage = MemoryBookingStorage(d);
+      await pumpBooking(t, storage: storage, api: api);
+      api.quote = {...testQuote(), 'quoteId': 'SAME-PRICE-QUOTE'};
+      await tapBooking(t, 'Confirmer ma demande de livraison');
+      expect(api.calls, contains('calculateDeliveryQuote'));
+      expect(api.calls, contains('createDeliveryRequest'));
+      final created = api.payloads[api.calls.indexOf('createDeliveryRequest')];
+      expect(created['quoteId'], 'SAME-PRICE-QUOTE');
+      await disposeBooking(t);
+    },
+  );
+  testWidgets(
+    'recalculating on the confirmation step keeps the step and the acceptance when the price is unchanged',
+    (t) async {
+      final d = testDraft(step: 3, quote: true);
+      final api = TestBookingApi();
+      api.quote = {
+        ...d.quote!,
+        'expiresAtMillis': DateTime.now()
+            .subtract(const Duration(minutes: 1))
+            .millisecondsSinceEpoch,
+      };
+      final storage = MemoryBookingStorage(d);
+      await pumpBooking(t, storage: storage, api: api);
+      api.quote = {...testQuote(), 'quoteId': 'RENEWED'};
+      await tapBooking(t, 'Recalculer mon prix');
+      expect(storage.saved!.quote!['quoteId'], 'RENEWED');
+      expect(storage.saved!.data['accepted'], true);
+      expect(storage.saved!.data['accepted_quote_id'], 'RENEWED');
+      expect(storage.saved!.step, 3);
+      await disposeBooking(t);
+    },
+  );
+  testWidgets('the reason a confirmation is blocked is shown next to the button', (
+    t,
+  ) async {
+    final d = testDraft(step: 3, quote: true)..data['accepted'] = false;
+    final api = TestBookingApi();
+    await pumpBooking(t, storage: MemoryBookingStorage(d), api: api);
+    expect(t.widget<FilledButton>(confirm).onPressed, isNull);
+    final blockers = find.byKey(const ValueKey('booking-confirm-blockers'));
+    expect(blockers, findsOneWidget);
+    expect(
+      find.descendant(
+        of: blockers,
+        matching: find.textContaining('lire les conditions et cocher'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('booking-terms-read-invite')), findsOneWidget);
+    await disposeBooking(t);
+  });
   testWidgets('restored boolean without accepted version is rejected', (
     t,
   ) async {

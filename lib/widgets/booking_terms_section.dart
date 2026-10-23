@@ -118,7 +118,7 @@ class BookingTermsSection extends StatelessWidget {
       : locale == 'es'
       ? es
       : fr;
-  Widget _link(BuildContext context, String key) => TextButton(
+  Widget _link(BuildContext context, String key) => OutlinedButton.icon(
     key: ValueKey('booking-document-$key'),
     onPressed: () async {
       await beforeOpen();
@@ -126,7 +126,10 @@ class BookingTermsSection extends StatelessWidget {
         await showBookingDocument(context, contract, key, locale);
       }
     },
-    child: Text(bookingTermsLabel(locale, key)),
+    icon: const Icon(Icons.description_outlined, size: 18),
+    label: Text(
+      '${tr('Lire', 'Read', 'Leer')} : ${bookingTermsLabel(locale, key)}',
+    ),
   );
   @override
   Widget build(BuildContext context) => Card(
@@ -162,8 +165,19 @@ class BookingTermsSection extends StatelessWidget {
               'Liberar una autorización cancela un importe retenido. Un reembolso corresponde a un importe ya cobrado. Las condiciones aplicables figuran arriba.',
             ),
           ),
+          const SizedBox(height: 12),
+          Text(
+            tr(
+              'Avant d’accepter, vous pouvez lire les conditions et règlements au complet : le paiement, l’annulation, les frais de 30 \$, la responsabilité et vos droits.',
+              'Before accepting, you can read the full terms and rules: payment, cancellation, the 30 \$ fees, liability and your rights.',
+              'Antes de aceptar, puedes leer las condiciones y reglas completas: pago, cancelación, los cargos de 30 \$, responsabilidad y tus derechos.',
+            ),
+            key: const ValueKey('booking-terms-read-invite'),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
             children: [_link(context, 'booking'), _link(context, 'terms')],
           ),
           CheckboxListTile(

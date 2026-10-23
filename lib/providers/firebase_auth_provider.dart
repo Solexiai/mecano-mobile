@@ -266,6 +266,13 @@ class FirebaseAuthProvider extends ChangeNotifier {
             password: password,
           );
       await cred.user?.updateDisplayName(fullName.trim());
+      // 2026-10-23: the verification email leaves at sign-up, so the
+      // customer is not stopped at step 3 of a booking. Never blocks sign-up:
+      // the booking flow offers "Renvoyer le courriel" if this fails.
+      try {
+        await fb.FirebaseAuth.instance.setLanguageCode('fr');
+        await cred.user?.sendEmailVerification();
+      } catch (_) {}
 
       await FirebaseFirestore.instance
           .collection('users')

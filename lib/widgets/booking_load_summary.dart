@@ -1,4 +1,5 @@
 import 'booking_access_section.dart';
+import 'booking_help_text.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -202,9 +203,8 @@ class BookingLoadSummary extends StatelessWidget {
             );
           },
         ),
-      Text(
-        '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')}: ${load['handlers']} · ${tr('Équipement', 'Equipment', 'Equipo')}: ${(load['equipment'] as List? ?? []).join(', ')}',
-      ),
+      if (load['handlers'] != null || load['equipment'] != null)
+        Text(helpAndEquipmentLine(load, locale)),
       if (load['timing_mode'] == 'immediate')
         Text(
           tr(
@@ -213,9 +213,20 @@ class BookingLoadSummary extends StatelessWidget {
             'Lo antes posible — según la disponibilidad del conductor',
           ),
         )
-      else if (load['requested_at'] != null)
-        Text(
-          '${tr('Date demandée (à confirmer)', 'Requested date (to be confirmed)', 'Fecha solicitada (por confirmar)')}: ${DateTime.tryParse(load['requested_at'] as String)?.toLocal()}',
+      else if (load['requested_at'] is String &&
+          DateTime.tryParse(load['requested_at'] as String) != null)
+        Builder(
+          builder: (context) {
+            final date = DateTime.parse(load['requested_at'] as String).toLocal();
+            final labels = MaterialLocalizations.of(context);
+            final time = labels.formatTimeOfDay(
+              TimeOfDay.fromDateTime(date),
+              alwaysUse24HourFormat: true,
+            );
+            return Text(
+              '${tr('Date demandée (à confirmer)', 'Requested date (to be confirmed)', 'Fecha solicitada (por confirmar)')} : ${labels.formatFullDate(date)} · $time',
+            );
+          },
         ),
     ];
     if (!collapsible) {

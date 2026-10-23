@@ -1,4 +1,5 @@
 import '../../widgets/booking_access_section.dart';
+import '../../widgets/booking_help_text.dart';
 import '../../services/booking/booking_contract.dart';
 import '../../widgets/booking_terms_section.dart';
 import '../../finance/presentation/money_format.dart';
@@ -635,13 +636,54 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       rethrow;
     }
     if (!mounted || epoch != _epoch || revision != _draft.revision) return;
+    // A recalculated price with the same total keeps the terms acceptance:
+    // the customer already accepted these terms at this price (2026-10-23).
+    // A different total always requires a new acceptance.
+    final previous = _draft.quote;
+    final keepAcceptance =
+        _acceptanceCurrent &&
+        previous != null &&
+        previous['customerTotal'] == quote['customerTotal'];
     setState(() {
       _review = null;
       _draft.data['quote'] = quote;
-      _draft.data['accepted'] = false;
+      if (keepAcceptance) {
+        _draft.data['accepted_quote_id'] = quote['quoteId'];
+      } else {
+        _draft.data['accepted'] = false;
+      }
     });
     await _save();
     await _refreshCard();
+  }
+
+  String _moneyText(dynamic n) => formatMajorAmount(
+    n is num ? n : null,
+    locale: widget.locale,
+    currencySymbol: tr(r'$ CA', r'CA$', r'CA$'),
+  );
+
+  /// An expired price is recalculated automatically (2026-10-23). Returns
+  /// true when the price is valid and unchanged; when the total changed, the
+  /// customer sees the new price and must accept again before continuing.
+  Future<bool> _ensureFreshQuote() async {
+    if (_draft.quoteValid) return true;
+    final before = _draft.quote?['customerTotal'];
+    await _quote();
+    if (!mounted) return false;
+    final after = _draft.quote;
+    if (after == null || !_draft.quoteValid) return false;
+    if (after['customerTotal'] != before) {
+      setState(() {
+        _message = tr(
+          'Le prix a été recalculé : ${_moneyText(after['customerTotal'])} au lieu de ${_moneyText(before)}. Vérifiez le nouveau prix et acceptez de nouveau les conditions.',
+          'The price was recalculated: ${_moneyText(after['customerTotal'])} instead of ${_moneyText(before)}. Check the new price and accept the terms again.',
+          'El precio se recalculó: ${_moneyText(after['customerTotal'])} en lugar de ${_moneyText(before)}. Revisa el nuevo precio y acepta de nuevo las condiciones.',
+        );
+      });
+      return false;
+    }
+    return true;
   }
 
   Future<void> _refreshCard() async {
@@ -669,6 +711,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Future<void> _setupCard() async {
     await _loadConfiguration(_epoch);
     if (!mounted) return;
+    if (!await _ensureFreshQuote() || !mounted) return;
     if (!_canPay || !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
       return;
     }
@@ -737,6 +780,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Future<void> _confirm() async {
     await _loadConfiguration(_epoch);
     if (!mounted) return;
+    if (!await _ensureFreshQuote() || !mounted) return;
     if (!_canPay ||
         !_cardReady ||
         !_readyToConfirm(context.read<FirebaseAuthProvider>())) {
@@ -1019,7 +1063,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     padding: const EdgeInsets.only(top: 20, bottom: 12),
     child: Text(text, style: Theme.of(context).textTheme.titleLarge),
   );
-  Widget _note(String text, {bool warning = false}) => Container(
+  Widget _note(String text, {bool warning = false, Key? key}) => Container(
+    key: key,
     width: double.infinity,
     margin: const EdgeInsets.symmetric(vertical: 8),
     padding: const EdgeInsets.all(14),
@@ -1200,6 +1245,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (_draft.step == 0) ..._emailVerification(auth),
                         if (_draft.step == 0) ..._delivery(),
                         if (_draft.step == 1) ..._price(),
                         if (_draft.step == 2) ..._details(auth),
@@ -1355,9 +1401,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       title: Text(
         tr('Aide et équipement', 'Help and equipment', 'Ayuda y equipo'),
       ),
-      subtitle: Text(
-        '${_draft.data['handlers']} · ${tr('personne(s) pour la manutention', 'handler(s)', 'persona(s) para cargar')}',
-      ),
+      subtitle: Text(helpAndEquipmentLine(_draft.data, widget.locale)),
       children: [
         DropdownButtonFormField<int>(
           initialValue: (_draft.data['handlers'] as num).toInt(),
@@ -2191,9 +2235,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (!_draft.quoteValid)
         _note(
           tr(
-            'Ce prix a expiré. Recalculez-le avant de confirmer.',
-            'This price has expired. Recalculate before confirming.',
-            'Este precio expiró. Recálculalo antes de confirmar.',
+            'Ce prix a expiré : il est recalculé automatiquement. S’il ne change pas, vous continuez sans rien refaire ; s’il change, vous verrez le nouveau montant avant de confirmer.',
+            'This price has expired: it is recalculated automatically. If it does not change, you continue without redoing anything; if it changes, you will see the new amount before confirming.',
+            'Este precio expiró: se recalcula automáticamente. Si no cambia, continúas sin rehacer nada; si cambia, verás el nuevo monto antes de confirmar.',
           ),
           warning: true,
         ),
@@ -2215,17 +2259,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     'Al menos 8 dígitos. Se permiten espacios, paréntesis y guiones. Máximo 25 caracteres, o 26 con + al inicio.',
   );
 
-  List<Widget> _details(FirebaseAuthProvider auth) => [
-    _heading(_titles[2]),
-    Text(auth.effectiveEmail ?? ''),
+  /// Email verification reminder, shown from step 1 so the customer is not
+  /// stopped at step 3 after filling the whole request (2026-10-23). The
+  /// verification email itself is sent at sign-up.
+  List<Widget> _emailVerification(FirebaseAuthProvider auth) => [
     if (_uid != null && auth.user?.emailVerified != true) ...[
-      _note(
-        tr(
-          'Vérifiez votre adresse courriel pour réserver.',
-          'Verify your email address to book.',
-          'Verifica tu correo electrónico para reservar.',
+      Container(
+        key: const ValueKey('booking-email-verification'),
+        child: _note(
+          tr(
+            'Vérifiez votre adresse courriel pour pouvoir réserver. Nous avons envoyé un lien à ${auth.effectiveEmail ?? 'votre adresse'} (regardez aussi dans les courriels indésirables ou promotions). Cliquez sur le lien, puis sur « J’ai vérifié mon courriel ». Vous pouvez déjà préparer votre demande et obtenir votre prix.',
+            'Verify your email address to be able to book. We sent a link to ${auth.effectiveEmail ?? 'your address'} (also check spam or promotions). Click the link, then “I verified my email”. You can already prepare your request and get your price.',
+            'Verifica tu correo para poder reservar. Enviamos un enlace a ${auth.effectiveEmail ?? 'tu dirección'} (revisa también spam o promociones). Haz clic en el enlace y luego en «Ya verifiqué mi correo». Ya puedes preparar tu solicitud y obtener tu precio.',
+          ),
+          warning: true,
         ),
-        warning: true,
       ),
       Wrap(
         spacing: 12,
@@ -2244,7 +2292,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               }
             }),
             child: Text(
-              tr('Envoyer le courriel', 'Send email', 'Enviar correo'),
+              tr(
+                'Renvoyer le courriel',
+                'Resend the email',
+                'Reenviar el correo',
+              ),
             ),
           ),
           TextButton(
@@ -2263,6 +2315,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ],
       ),
     ],
+  ];
+
+  List<Widget> _details(FirebaseAuthProvider auth) => [
+    _heading(_titles[2]),
+    Text(auth.effectiveEmail ?? ''),
+    ..._emailVerification(auth),
     Text(
       tr(
         'Les noms et téléphones des deux contacts sont obligatoires.',
@@ -2487,10 +2545,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'Recalculate my price',
           'Recalcular mi precio',
         ),
-        () {
-          _step(1);
-          _run(_quote);
-        },
+        // Stay on this step: same price keeps the card and the acceptance.
+        () => _run(() async {
+          await _ensureFreshQuote();
+        }),
       ),
     // Without approved terms, the single availability banner above already
     // explains that booking is not open; do not repeat it here.
@@ -2536,6 +2594,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'La preparación del método de pago es distinta de la autorización y del pago final. Consulta las condiciones de pago mostradas.',
       ),
     ),
+    if (_draft.quote?['customerTotal'] is num &&
+        (_draft.quote!['customerTotal'] as num) < 30)
+      _note(
+        tr(
+          'Votre prix est inférieur à 30 \$ : quand un chauffeur accepte, 30 \$ sont bloqués sur votre carte pour garantir les frais d’annulation ou de déplacement. À la fin de la livraison, seul votre prix est prélevé et le reste est libéré.',
+          'Your price is below 30 \$: when a driver accepts, 30 \$ is held on your card to cover cancellation or travel fees. At the end of the delivery, only your price is charged and the rest is released.',
+          'Tu precio es inferior a 30 \$: cuando un conductor acepta, se retienen 30 \$ en tu tarjeta para cubrir los cargos de cancelación o desplazamiento. Al final de la entrega, solo se cobra tu precio y el resto se libera.',
+        ),
+        key: const ValueKey('booking-minimum-hold'),
+      ),
     if (auth.user?.emailVerified != true)
       _note(
         tr(
@@ -2588,6 +2656,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'El botón envía tu solicitud de entrega al precio mostrado. Aún no se confirma conductor ni horario. No inicia el cobro.',
       ),
     ),
+    if (_confirmBlockers(auth).isNotEmpty)
+      Container(
+        key: const ValueKey('booking-confirm-blockers'),
+        child: _note(
+          '${tr('Pour confirmer, il reste à :', 'To confirm, you still need to:', 'Para confirmar, falta:')}\n${_confirmBlockers(auth).map((b) => '• $b').join('\n')}',
+          warning: true,
+        ),
+      ),
     _button(
       tr(
         'Confirmer ma demande de livraison',
@@ -2600,14 +2676,70 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   ];
   Widget _quoteLoadSummary({bool collapsible = true}) => BookingLoadSummary(
     collapsible: collapsible,
-    snapshot: Map<String, dynamic>.from(_draft.quote!['booking'] as Map? ?? {}),
+    snapshot: _quoteSnapshot,
     locale: widget.locale,
     photoLoader: widget.photoLoader,
   );
+
+  /// A price calculated before driver assignment carries no server booking
+  /// snapshot (booking: null). The summary then shows the customer's own
+  /// answers — access, help, handlers and equipment — instead of
+  /// "à préciser" and "null" (2026-10-23). Items and the requested time are
+  /// already listed above the summary, so they are not repeated.
+  Map<String, dynamic> get _quoteSnapshot {
+    final booking = _draft.quote?['booking'];
+    if (booking is Map && booking['load'] is Map) {
+      return Map<String, dynamic>.from(booking);
+    }
+    return {
+      'load': {
+        'pickup': _draft.data['pickup_access'],
+        'dropoff': _draft.data['dropoff_access'],
+        'handlers': _draft.data['handlers'],
+        'equipment': _draft.data['equipment'],
+      },
+    };
+  }
+  /// Why the confirm button is disabled, shown right above it (2026-10-23).
+  List<String> _confirmBlockers(FirebaseAuthProvider auth) => [
+    if (!_canPay)
+      tr(
+        'attendre l’ouverture de la réservation pour votre compte.',
+        'wait until booking opens for your account.',
+        'esperar a que la reserva se abra para tu cuenta.',
+      ),
+    if (_draft.quote == null)
+      tr(
+        'calculer votre prix (étape 2).',
+        'calculate your price (step 2).',
+        'calcular tu precio (paso 2).',
+      ),
+    if (auth.user?.emailVerified != true)
+      tr(
+        'vérifier votre adresse courriel (étape 3).',
+        'verify your email address (step 3).',
+        'verificar tu correo (paso 3).',
+      ),
+    if (_policy != null && !_acceptanceCurrent)
+      tr(
+        'lire les conditions et cocher « J’accepte… » ci-dessus.',
+        'read the terms and tick “I accept…” above.',
+        'leer las condiciones y marcar «Acepto…» arriba.',
+      ),
+    if (!_cardReady)
+      tr(
+        'enregistrer votre carte avec Stripe (bouton ci-dessus).',
+        'save your card with Stripe (button above).',
+        'guardar tu tarjeta con Stripe (botón arriba).',
+      ),
+  ];
+
+  // An expired price does not block the buttons: _setupCard and _confirm
+  // recalculate it first (_ensureFreshQuote) and stop if the total changed.
   bool _readyToConfirm(FirebaseAuthProvider auth) =>
       _canPay &&
       _acceptanceCurrent &&
-      _draft.quoteValid &&
+      _draft.quote != null &&
       auth.user?.emailVerified == true;
   bool get _acceptanceCurrent =>
       _draft.data['accepted'] == true &&
