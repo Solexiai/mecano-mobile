@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:movik_connect/services/booking/booking_draft.dart';
+import 'package:movik_connect/widgets/booking_simple_steps.dart';
 import '../helpers/booking_test_harness.dart';
 import '../helpers/gps_offline_transport.dart';
 
+// Since 2026-10-23 the time is chosen with day buttons and fixed hours
+// (screen 4 of 7) instead of the Material date and time pickers.
 Future<(MemoryBookingStorage, TestBookingApi)> startDate(
   WidgetTester t,
   String locale,
 ) async {
-  final storage = MemoryBookingStorage(testDraft()), api = TestBookingApi();
+  final storage = MemoryBookingStorage(testDraft(part: 3)),
+      api = TestBookingApi();
   t.view.physicalSize = const Size(430, 932);
   t.view.devicePixelRatio = 1;
   addTearDown(() async {
@@ -23,66 +25,33 @@ Future<(MemoryBookingStorage, TestBookingApi)> startDate(
   return (storage, api);
 }
 
-Future<void> openDate(WidgetTester t) async {
-  final button = find.widgetWithIcon(OutlinedButton, Icons.schedule);
-  await t.ensureVisible(button);
-  await t.pumpAndSettle();
-  await t.tap(button);
-  await t.pumpAndSettle();
-}
-
 void main() => offlineTests(() {
   for (final locale in ['fr', 'en', 'es']) {
-    offlineWidgetTest('Q1 date picker language $locale', (t) async {
+    offlineWidgetTest('Q1 day and hour buttons are localized $locale', (
+      t,
+    ) async {
       final pair = await startDate(t, locale);
-      final before = BookingDraft.fromJson(
-        pair.$1.saved!.data,
-      ).data['requested_at'];
-      await openDate(t);
-      final ctx = t.element(find.byType(DatePickerDialog));
-      expect(Localizations.localeOf(ctx).languageCode, locale);
-      final expected = await GlobalMaterialLocalizations.delegate.load(
-        Locale(locale),
+      expect(
+        find.text({'fr': 'Demain', 'en': 'Tomorrow', 'es': 'Mañana'}[locale]!),
+        findsOneWidget,
       );
-      final actual = MaterialLocalizations.of(ctx);
-      expect(actual.cancelButtonLabel, expected.cancelButtonLabel);
-      await t.tap(find.text(actual.cancelButtonLabel));
-      await t.pumpAndSettle();
-      expect(pair.$1.saved!.data['requested_at'], before);
+      final tomorrow = DateTime.now().add(const Duration(days: 1));
+      await tapBookingKeyIfShown(
+        t,
+        'slot-day-${slotDayKey(DateTime(tomorrow.year, tomorrow.month, tomorrow.day))}',
+      );
+      expect(
+        find.text({'fr': '9 h', 'en': '9:00', 'es': '9 h'}[locale]!),
+        findsOneWidget,
+      );
       expect(pair.$2.calls, isNot(contains('createDeliveryRequest')));
     });
-    offlineWidgetTest(
-      'Q1 time picker language and cancel preserves instant $locale',
-      (t) async {
-        final pair = await startDate(t, locale);
-        final before = pair.$1.saved!.data['requested_at'];
-        await openDate(t);
-        final labels = MaterialLocalizations.of(
-          t.element(find.byType(DatePickerDialog)),
-        );
-        await t.tap(find.text(labels.okButtonLabel));
-        await t.pumpAndSettle();
-        final ctx = t.element(find.byType(TimePickerDialog));
-        expect(Localizations.localeOf(ctx).languageCode, locale);
-        final expected = await GlobalMaterialLocalizations.delegate.load(
-          Locale(locale),
-        );
-        final actual = MaterialLocalizations.of(ctx);
-        expect(actual.cancelButtonLabel, expected.cancelButtonLabel);
-        await t.tap(find.text(actual.cancelButtonLabel));
-        await t.pumpAndSettle();
-        expect(pair.$1.saved!.data['requested_at'], before);
-      },
-    );
     offlineWidgetTest('Q1 selected date summary is localized $locale', (
       t,
     ) async {
       final pair = await startDate(t, locale);
-      final button = find.widgetWithIcon(OutlinedButton, Icons.schedule);
       final labels = t
-          .widgetList<Text>(
-            find.descendant(of: button, matching: find.byType(Text)),
-          )
+          .widgetList<Text>(find.byType(Text))
           .map((w) => w.data ?? '')
           .join(' ');
       expect(

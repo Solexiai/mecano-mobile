@@ -11,7 +11,7 @@ void main() {
       await pumpBooking(t, storage: store, api: TestBookingApi());
       final fields = t.widgetList<TextFormField>(find.byType(TextFormField));
       expect(fields.any((f) => f.initialValue == '+15145550100'), true);
-      expect(find.text('3. Mes coordonnées'), findsOneWidget);
+      expect(find.text('Étape 6 sur 7'), findsOneWidget);
       await disposeBooking(t);
     },
   );

@@ -269,7 +269,7 @@ void main() {
       expect(store.saved!.step, 2);
       await enter(t, 'pickup_phone', '+33 1 23 45 67 89');
       await enter(t, 'instructions', 'Instructions fictives conservées');
-      await tapBooking(t, '2. Mon prix');
+      await tapBookingKeyIfShown(t, 'booking-back');
       expect(store.saved!.step, 1);
       await tapBooking(t, 'Continuer vers mes coordonnées');
       expect(valueOf(t, 'pickup_phone'), '+33 1 23 45 67 89');
