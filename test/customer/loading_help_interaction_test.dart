@@ -15,115 +15,80 @@ void main() {
     await t.pumpAndSettle();
   }
 
-  testWidgets(
-    'independent choices, conditional lifting answer, draft save and reload',
-    (t) async {
-      final d = testDraft(quote: true);
-      for (final k in ['pickup_access', 'dropoff_access']) {
-        d.data[k]['help'] = null;
-        d.data[k]['onsite_help'] = null;
-      }
-      final storage = MemoryBookingStorage(d);
-      await pumpBooking(t, storage: storage, api: TestBookingApi());
-      expect(
-        find.text('Quelqu’un sur place pourra-t-il aider à soulever ?'),
-        findsNothing,
-      );
-      await tapKey(t, 'pickup-help-true');
-      expect(
-        find.text('Quelqu’un sur place pourra-t-il aider à soulever ?'),
-        findsOneWidget,
-      );
-      await tapKey(t, 'pickup-onsite_help-no');
-      await tapKey(t, 'dropoff-help-false');
-      expect(storage.saved!.data['pickup_access']['help'], true);
-      expect(storage.saved!.data['dropoff_access']['help'], false);
-      expect(storage.saved!.data['pickup_access']['onsite_help'], 'no');
-      expect(storage.saved!.quote, isNull);
-      expect(storage.saved!.data['accepted'], false);
-      await disposeBooking(t);
-      await pumpBooking(t, storage: storage, api: TestBookingApi());
-      expect(
-        t
-            .widget<ChoiceChip>(
-              find.byKey(const ValueKey('pickup-onsite_help-no')),
-            )
-            .selected,
-        true,
-      );
-      expect(storage.saved!.data['dropoff_access']['help'], false);
-      await disposeBooking(t);
-    },
-  );
-  testWidgets(
-    'quote receives distinct service and onsite answers; back retains them',
-    (t) async {
-      final d = testDraft();
-      d.data['pickup_access']['help'] = false;
-      d.data['pickup_access']['onsite_help'] = null;
-      d.data['dropoff_access']['onsite_help'] = 'yes';
-      final storage = MemoryBookingStorage(d), api = TestBookingApi();
-      await pumpBooking(t, storage: storage, api: api);
-      await tapBooking(t, 'Voir mon prix');
-      final payload =
-          api.payloads[api.calls.lastIndexOf(
-                'calculateDeliveryQuote',
-              )]['booking']
-              as Map;
-      expect(payload['pickup']['help'], false);
-      expect(payload['dropoff']['help'], true);
-      expect(payload['dropoff']['onsite_help'], 'yes');
-      expect(payload['handlers'], 1);
-      expect(storage.saved!.quote!['customerTotal'], 123.45);
-      await tapBooking(t, 'Retour');
-      expect(storage.saved!.data['pickup_access']['help'], false);
-      await disposeBooking(t);
-    },
-  );
-  testWidgets('unanswered help cannot produce a quote and keeps draft', (
+  // Since 2026-10-23 the booking asks one simple help question (screen 3 of
+  // 7) instead of per-address help, interior and lifting questions.
+  testWidgets('help choice fills both addresses; quote and back keep it', (
     t,
   ) async {
-    final d = testDraft();
+    final d = testDraft(quote: true)..part = 2;
+    final storage = MemoryBookingStorage(d), api = TestBookingApi();
+    await pumpBooking(t, storage: storage, api: api);
+    await tapKey(t, 'help-choice-two_movers');
+    expect(storage.saved!.data['handlers'], 2);
+    expect(storage.saved!.data['pickup_access']['onsite_help'], 'no');
+    expect(storage.saved!.data['dropoff_access']['help'], true);
+    expect(storage.saved!.quote, isNull);
+    expect(storage.saved!.data['accepted'], false);
+    await tapKey(t, 'booking-next-help');
+    await tapKey(t, 'booking-see-price');
+    final payload =
+        api.payloads[api.calls.lastIndexOf('calculateDeliveryQuote')]['booking']
+            as Map;
+    expect(payload['handlers'], 2);
+    expect(payload['pickup']['help'], true);
+    expect(payload['dropoff']['onsite_help'], 'no');
+    expect(storage.saved!.quote!['customerTotal'], 123.45);
+    await tapKey(t, 'booking-back');
+    await tapKey(t, 'booking-back');
+    expect(storage.saved!.data['help_choice'], 'two_movers');
+    await disposeBooking(t);
+    await pumpBooking(t, storage: storage, api: TestBookingApi());
+    expect(find.text('Pouvez-vous aider à porter ?'), findsOneWidget);
+    expect(storage.saved!.data['handlers'], 2);
+    await disposeBooking(t);
+  });
+  testWidgets('unanswered help cannot go further and keeps the draft', (
+    t,
+  ) async {
+    final d = testDraft()..part = 2;
+    final api = TestBookingApi(), storage = MemoryBookingStorage(d);
+    await pumpBooking(t, storage: storage, api: api);
+    final next = t.widget<FilledButton>(
+      find.byKey(const ValueKey('booking-next-help')),
+    );
+    expect(next.onPressed, isNull);
+    expect(find.text('Choisissez une réponse.'), findsOneWidget);
+    expect(api.calls, isNot(contains('calculateDeliveryQuote')));
+    expect(storage.saved!.items, isNotEmpty);
+    await disposeBooking(t);
+  });
+  testWidgets('a draft without help answers is sent back to the question', (
+    t,
+  ) async {
+    final d = testDraft()..part = 3;
     d.data['pickup_access']['help'] = null;
     final api = TestBookingApi(), storage = MemoryBookingStorage(d);
     await pumpBooking(t, storage: storage, api: api);
-    await tapBooking(t, 'Voir mon prix');
+    await tapKey(t, 'booking-see-price');
     expect(api.calls, isNot(contains('calculateDeliveryQuote')));
-    expect(storage.saved!.items, isNotEmpty);
     expect(storage.saved!.step, 0);
+    expect(storage.saved!.part, 2);
     await disposeBooking(t);
   });
-  testWidgets(
-    'interior contradiction needs clarification without selecting paid help',
-    (t) async {
-      final d = testDraft();
-      d.data['pickup_access']['help'] = false;
-      final api = TestBookingApi(), storage = MemoryBookingStorage(d);
-      await pumpBooking(t, storage: storage, api: api);
-      await tapKey(t, 'pickup-inside-true');
-      await tapBooking(t, 'Voir mon prix');
-      expect(api.calls, isNot(contains('calculateDeliveryQuote')));
-      expect(storage.saved!.data['pickup_access']['help'], false);
-      await tapKey(t, 'pickup-customer-inside');
-      await tapBooking(t, 'Voir mon prix');
-      expect(api.calls, contains('calculateDeliveryQuote'));
-      expect(storage.saved!.data['pickup_access']['help'], false);
-      await disposeBooking(t);
-    },
-  );
-  testWidgets('stairs and elevator coexist and closing panel keeps answers', (
-    t,
-  ) async {
-    final storage = MemoryBookingStorage(testDraft());
+  testWidgets('stairs answer survives a reload', (t) async {
+    final d = testDraft()..part = 1;
+    final storage = MemoryBookingStorage(d);
     await pumpBooking(t, storage: storage, api: TestBookingApi());
-    await tapBooking(t, 'Accès au ramassage');
-    await tapKey(t, 'pickup-stairs-true');
-    await tapKey(t, 'pickup-elevator-true');
-    await tapBooking(t, 'Accès au ramassage');
+    await tapKey(t, 'pickup-stairs-yes');
     expect(storage.saved!.data['pickup_access']['stairs'], true);
-    expect(storage.saved!.data['pickup_access']['elevator'], true);
+    expect(storage.saved!.data['pickup_access']['floor'], 1);
+    await disposeBooking(t);
+    await pumpBooking(t, storage: storage, api: TestBookingApi());
     expect(
-      find.text('Rez-de-chaussée · Escaliers · Ascenseur'),
+      find.byWidgetPredicate(
+        (w) =>
+            w is FilledButton && w.key == const ValueKey('pickup-stairs-yes'),
+      ),
       findsOneWidget,
     );
     await disposeBooking(t);

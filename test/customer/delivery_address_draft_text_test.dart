@@ -44,7 +44,7 @@ void main() {
             t.view.physicalSize = const Size(375, 812);
             t.view.devicePixelRatio = 1;
             final key = index == 0 ? 'pickup' : 'dropoff';
-            final d = testDraft()..data[key] = null;
+            final d = testDraft(part: 1)..data[key] = null;
             final store = MemoryBookingStorage(d);
             final api = TestBookingApi();
             await pumpBooking(t, storage: store, api: api, locale: locale);
@@ -59,14 +59,9 @@ void main() {
             await pumpBooking(t, storage: store, api: api, locale: locale);
             expect(addressText(t, index), typed);
             expect(provider.searchCallCount, searches);
-            final next = {
-              'fr': 'Voir mon prix',
-              'en': 'See my price',
-              'es': 'Ver mi precio',
-            }[locale]!;
             expect(
               t
-                  .widget<FilledButton>(find.widgetWithText(FilledButton, next))
+                  .widget<FilledButton>(find.byKey(const ValueKey('booking-next-where')))
                   .onPressed,
               isNull,
             );
@@ -81,7 +76,7 @@ void main() {
       'Q3 edit resolved address invalidates quote and restores latest text',
       (t) async {
         cleanup(t);
-        final store = MemoryBookingStorage(testDraft(quote: true));
+        final store = MemoryBookingStorage(testDraft(part: 1, quote: true));
         final api = TestBookingApi();
         await pumpBooking(t, storage: store, api: api);
         await typeAddress(t, 0, 'Brouillon A');
@@ -99,7 +94,7 @@ void main() {
       t,
     ) async {
       cleanup(t);
-      final store = MemoryBookingStorage(testDraft()..data['pickup'] = null);
+      final store = MemoryBookingStorage(testDraft(part: 1)..data['pickup'] = null);
       final api = TestBookingApi();
       await pumpBooking(t, storage: store, api: api);
       await typeAddress(t, 0, 'Texte temporaire');
@@ -114,7 +109,7 @@ void main() {
       'Q3 legacy resolved address wins over obsolete raw text',
       (t) async {
         cleanup(t);
-        final d = testDraft()..data['pickup_text'] = 'Ancien brouillon';
+        final d = testDraft(part: 1)..data['pickup_text'] = 'Ancien brouillon';
         final store = MemoryBookingStorage(d);
         await pumpBooking(t, storage: store, api: TestBookingApi());
         expect(addressText(t, 0), d.data['pickup']['formatted_address']);
@@ -127,7 +122,7 @@ void main() {
       (t) async {
         cleanup(t);
         provider.emptySuggestions = false;
-        final store = MemoryBookingStorage(testDraft()..data['pickup'] = null);
+        final store = MemoryBookingStorage(testDraft(part: 1)..data['pickup'] = null);
         final api = TestBookingApi();
         await pumpBooking(t, storage: store, api: api);
         await typeAndSelectAddress(t, 0, 'Lieu fictif');
@@ -149,7 +144,7 @@ void main() {
       'Q3 draft sync carries raw text but quote stops remain unresolved',
       (t) async {
         cleanup(t);
-        final d = testDraft()
+        final d = testDraft(part: 1)
           ..data['pickup'] = null
           ..data['dropoff'] = null;
         final store = MemoryBookingStorage(d), api = TestBookingApi();
@@ -181,7 +176,7 @@ void main() {
             await store.clear(uid);
           }
         });
-        final d = testDraft()
+        final d = testDraft(part: 1)
           ..data['pickup'] = null
           ..data['pickup_text'] = 'Invité fictif';
         await store.save(d, null);

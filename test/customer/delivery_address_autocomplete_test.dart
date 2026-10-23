@@ -16,7 +16,7 @@ void main() {
   testWidgets('No editable latitude or longitude fields', (t) async {
     await pumpBooking(
       t,
-      storage: MemoryBookingStorage(testDraft()),
+      storage: MemoryBookingStorage(testDraft()..part = 1),
       api: TestBookingApi(),
     );
     expect(find.textContaining('Latitude'), findsNothing);
@@ -27,12 +27,12 @@ void main() {
   testWidgets(
     'Both real selections preserve independent coordinates, city and postal code in server quote',
     (t) async {
-      final store = MemoryBookingStorage(testDraft());
+      final store = MemoryBookingStorage(testDraft()..part = 1);
       final api = TestBookingApi();
       await pumpBooking(t, storage: store, api: api);
       await typeAndSelectAddress(t, 0, '123 test pickup');
       await typeAndSelectAddress(t, 1, '456 test dropoff');
-      await tapBooking(t, 'Voir mon prix');
+      await goToBookingPrice(t);
       final index = api.calls.indexOf('calculateDeliveryQuote');
       expect(index, greaterThanOrEqualTo(0));
       final stops = api.payloads[index]['stops'] as List;
@@ -51,7 +51,7 @@ void main() {
   testWidgets(
     'Editing a restored address immediately invalidates it and the quote',
     (t) async {
-      final store = MemoryBookingStorage(testDraft(quote: true));
+      final store = MemoryBookingStorage(testDraft(quote: true)..part = 1);
       await pumpBooking(t, storage: store, api: TestBookingApi());
       final field = find.descendant(
         of: find.byType(AddressAutocompleteField).first,
@@ -65,7 +65,7 @@ void main() {
       expect(
         t
             .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Voir mon prix'),
+              find.byKey(const ValueKey('booking-next-where')),
             )
             .onPressed,
         isNull,
@@ -74,7 +74,9 @@ void main() {
     },
   );
   testWidgets('Unresolved destination cannot advance', (t) async {
-    final d = testDraft()..data['dropoff'] = null;
+    final d = testDraft()
+      ..part = 1
+      ..data['dropoff'] = null;
     await pumpBooking(
       t,
       storage: MemoryBookingStorage(d),
@@ -83,7 +85,7 @@ void main() {
     expect(
       t
           .widget<FilledButton>(
-            find.widgetWithText(FilledButton, 'Voir mon prix'),
+            find.byKey(const ValueKey('booking-next-where')),
           )
           .onPressed,
       isNull,
@@ -97,7 +99,11 @@ void main() {
         provider.searchUnavailable = failure == 'search';
         provider.resolveUnavailable = failure == 'resolve';
         provider.emptySuggestions = failure == 'empty';
-        final store = MemoryBookingStorage(testDraft()..data['pickup'] = null);
+        final store = MemoryBookingStorage(
+          testDraft()
+            ..part = 1
+            ..data['pickup'] = null,
+        );
         final api = TestBookingApi();
         await pumpBooking(t, storage: store, api: api);
         final f = find.descendant(
@@ -127,12 +133,12 @@ void main() {
     );
   }
   for (final locale in ['fr', 'en', 'es']) {
-    testWidgets('Address labels and four steps are translated in $locale', (
+    testWidgets('Address labels and the step header are translated in $locale', (
       t,
     ) async {
       await pumpBooking(
         t,
-        storage: MemoryBookingStorage(testDraft()),
+        storage: MemoryBookingStorage(testDraft()..part = 1),
         api: TestBookingApi(),
         locale: locale,
       );
@@ -142,28 +148,21 @@ void main() {
       expect(
         fields.first.label,
         {
-          'fr': 'Adresse de ramassage',
-          'en': 'Pickup address',
-          'es': 'Dirección de recogida',
+          'fr': 'On le prend ici',
+          'en': 'We pick it up here',
+          'es': 'Lo recogemos aquí',
         }[locale],
       );
-      for (final title in {
-        'fr': [
-          'Ma livraison',
-          'Mon prix',
-          'Mes coordonnées',
-          'Confirmation et paiement',
-        ],
-        'en': [
-          'My delivery',
-          'My price',
-          'My details',
-          'Confirmation and payment',
-        ],
-        'es': ['Mi entrega', 'Mi precio', 'Mis datos', 'Confirmación y pago'],
-      }[locale]!) {
-        expect(find.textContaining(title), findsWidgets);
-      }
+      expect(
+        find.text(
+          {
+            'fr': 'Étape 2 sur 7',
+            'en': 'Step 2 of 7',
+            'es': 'Paso 2 de 7',
+          }[locale]!,
+        ),
+        findsOneWidget,
+      );
       await disposeBooking(t);
     });
   }

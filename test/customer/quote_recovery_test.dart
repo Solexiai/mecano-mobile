@@ -39,7 +39,7 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => photoBytes,
       );
-      await tapBooking(t, 'Voir mon prix');
+      await goToBookingPrice(t);
       expect(storage.saved!.step, 1);
       expect(
         find.byKey(const ValueKey('photo-confirm-test-item')),

@@ -119,16 +119,8 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
   return (router, auth);
 }
 
-// Booking step chips are numbered ("1. Ma livraison"); other chips on the
-// step (timing choice) are not part of the step navigation.
-Iterable<ChoiceChip> selectedStepChips(WidgetTester tester) => tester
-    .widgetList<ChoiceChip>(find.byType(ChoiceChip))
-    .where(
-      (chip) =>
-          chip.selected &&
-          chip.label is Text &&
-          RegExp(r'^\d\. ').hasMatch((chip.label as Text).data ?? ''),
-    );
+// The booking opens on its first screen: "Étape 1 sur 7" (2026-10-23).
+Finder firstBookingScreen() => find.text('Étape 1 sur 7');
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -219,9 +211,7 @@ void main() {
       router.routeInformationProvider.value.uri.path,
       '/fr/livraison/demande',
     );
-    final selected = selectedStepChips(tester);
-    expect(selected, hasLength(1));
-    expect((selected.single.label as Text).data, '1. Ma livraison');
+    expect(firstBookingScreen(), findsOneWidget);
     expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
     expect(
       tester
@@ -263,9 +253,7 @@ void main() {
         '/fr/livraison/demande?category=cat_furniture',
       );
 
-      final selected = selectedStepChips(tester);
-      expect(selected, hasLength(1));
-      expect((selected.single.label as Text).data, '1. Ma livraison');
+      expect(firstBookingScreen(), findsOneWidget);
       expect(find.text('Catégorie sélectionnée : Meubles'), findsOneWidget);
 
       final restoredDescriptions = tester
@@ -352,9 +340,7 @@ void main() {
         router.routeInformationProvider.value.uri.toString(),
         '/en/livraison/demande?category=cat_furniture',
       );
-      final selected = selectedStepChips(tester);
-      expect(selected, hasLength(1));
-      expect((selected.single.label as Text).data, '1. My delivery');
+      expect(find.text('Step 1 of 7'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

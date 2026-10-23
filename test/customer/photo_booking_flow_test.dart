@@ -77,7 +77,7 @@ void main() {
       await tester.ensureVisible(confirm);
       await tester.tap(confirm);
       await tester.pumpAndSettle();
-      await tapBooking(tester, 'Voir mon prix');
+      await goToBookingPrice(tester);
       final index = api.calls.lastIndexOf('calculateDeliveryQuote');
       expect(index, greaterThanOrEqualTo(0));
       final booking = api.payloads[index]['booking'] as Map;

@@ -93,7 +93,7 @@ void main() {
       await t.ensureVisible(confirm);
       await t.tap(confirm);
       await t.pumpAndSettle();
-      await tapBooking(t, 'Voir mon prix');
+      await goToBookingPrice(t);
       expect(s.saved!.quote!['customerTotal'], 123.45);
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(t.takeException(), isNull);

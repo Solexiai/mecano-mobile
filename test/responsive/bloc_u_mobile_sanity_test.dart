@@ -460,6 +460,11 @@ void _registerTests() {
           await tester.ensureVisible(sofa);
           await tester.tap(sofa);
           await tester.pumpAndSettle();
+          // One question per screen since 2026-10-23: addresses come next.
+          final next = find.byKey(const ValueKey('booking-next-items'));
+          await tester.ensureVisible(next);
+          await tester.tap(next);
+          await tester.pumpAndSettle();
           final fields = find.byType(TextField);
           // Since 2026-10-19 each address is one autocomplete field (no more
           // 4 two-column rows); every text field must stay reachable.
@@ -470,7 +475,7 @@ void _registerTests() {
             await tester.pump();
             expect(tester.takeException(), isNull);
           }
-          await tester.ensureVisible(find.text('Voir mon prix'));
+          await tester.ensureVisible(find.text('Suivant'));
           expect(tester.takeException(), isNull);
         },
       );

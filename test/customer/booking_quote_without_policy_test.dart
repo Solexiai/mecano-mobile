@@ -13,7 +13,7 @@ void main() {
     final store = MemoryBookingStorage(draft);
     final api = TestBookingApi()..configurationAvailable = false;
     await pumpBooking(t, storage: store, api: api);
-    await tapBooking(t, 'Voir mon prix');
+    await goToBookingPrice(t);
     expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
     final index = api.calls.indexOf('calculateDeliveryQuote');
     expect(api.payloads[index]['booking'], originalLoad);

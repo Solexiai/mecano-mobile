@@ -82,9 +82,10 @@ Map<String, dynamic> testQuote() => {
     },
   },
 };
-BookingDraft testDraft({int step = 0, bool quote = false}) {
+BookingDraft testDraft({int step = 0, int part = 0, bool quote = false}) {
   final d = BookingDraft(category: 'cat_furniture');
   d.step = step;
+  d.part = part;
   d.items.add({
     'id': 'test-item',
     'category': 'sofa',
@@ -287,6 +288,39 @@ Future<void> tapBooking(WidgetTester t, String label) async {
   await t.pumpAndSettle();
   await t.tap(f);
   await t.pumpAndSettle();
+}
+
+/// Taps the widget with [key] when it is on screen; returns whether it was.
+Future<bool> tapBookingKeyIfShown(WidgetTester t, String key) async {
+  final f = find.byKey(ValueKey(key));
+  if (f.evaluate().isEmpty) return false;
+  await t.ensureVisible(f.first);
+  await t.pumpAndSettle();
+  await t.tap(f.first);
+  await t.pumpAndSettle();
+  return true;
+}
+
+/// The delivery details are one question per screen since 2026-10-23
+/// (items, addresses + stairs, help, time). From any of these screens, walk
+/// to the price with the draft's answers; unanswered stairs become "Non".
+Future<void> goToBookingPrice(WidgetTester t) async {
+  await tapBookingKeyIfShown(t, 'booking-next-items');
+  for (final key in ['pickup', 'dropoff']) {
+    // The selected answer is the filled button.
+    bool selected(String a) => find
+        .byWidgetPredicate(
+          (w) => w is FilledButton && w.key == ValueKey('$key-stairs-$a'),
+        )
+        .evaluate()
+        .isNotEmpty;
+    if (!['no', 'yes', 'unknown'].any(selected)) {
+      await tapBookingKeyIfShown(t, '$key-stairs-no');
+    }
+  }
+  await tapBookingKeyIfShown(t, 'booking-next-where');
+  await tapBookingKeyIfShown(t, 'booking-next-help');
+  await tapBookingKeyIfShown(t, 'booking-see-price');
 }
 
 Future<void> disposeBooking(WidgetTester t) async {

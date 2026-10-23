@@ -146,7 +146,7 @@ void main() {
         final store = MemoryBookingStorage(d), api = TestBookingApi();
         await pumpBooking(t, storage: store, api: api);
         await changeUnit(t, 'in');
-        await tapBooking(t, 'Voir mon prix');
+        await goToBookingPrice(t);
         final i = api.calls.indexOf('calculateDeliveryQuote');
         expect(i, greaterThanOrEqualTo(0));
         expect(

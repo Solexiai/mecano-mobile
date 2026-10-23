@@ -45,15 +45,16 @@ void main() {
       expect(d.data[key]['stairs'], isNull);
     }
   });
-  testWidgets('help choices are outside collapsed access panels', (t) async {
+  testWidgets('help is one question on its own screen', (t) async {
     await pumpBooking(
       t,
-      storage: MemoryBookingStorage(testDraft()),
+      storage: MemoryBookingStorage(testDraft()..part = 2),
       api: TestBookingApi(),
     );
-    expect(find.text('Besoin d’aide pour charger ?'), findsOneWidget);
-    expect(find.text('Besoin d’aide pour décharger ?'), findsOneWidget);
-    expect(find.text('Accès et aide sur place'), findsNothing);
+    expect(find.text('Pouvez-vous aider à porter ?'), findsOneWidget);
+    expect(find.text('Oui, je donne un coup de main'), findsOneWidget);
+    expect(find.text('Non, je ne peux pas'), findsOneWidget);
+    expect(find.text('Besoin d’aide pour charger ?'), findsNothing);
     await disposeBooking(t);
   });
   for (final size in [const Size(375, 812), const Size(1440, 1000)]) {
@@ -62,7 +63,7 @@ void main() {
       t.view.devicePixelRatio = 1;
       addTearDown(t.view.resetPhysicalSize);
       addTearDown(t.view.resetDevicePixelRatio);
-      final draft = testDraft();
+      final draft = testDraft()..part = 1;
       for (final key in ['pickup_access', 'dropoff_access']) {
         draft.data[key] = BookingDraft().data[key];
       }
@@ -72,7 +73,7 @@ void main() {
         api: TestBookingApi(),
         theme: captureTheme(),
       );
-      await t.ensureVisible(find.text('Ramassage et livraison'));
+      await t.ensureVisible(find.text('On le prend où, on le livre où ?'));
       await t.pumpAndSettle();
       final layer = t.binding.renderViews.first.debugLayer! as OffsetLayer;
       await t.runAsync(() async {

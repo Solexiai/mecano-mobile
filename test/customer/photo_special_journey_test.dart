@@ -60,7 +60,7 @@ void main() {
         storage.saved!.items.single['handling_notes'],
         'Pièces attachées, accès au sol.',
       );
-      await tapBooking(t, 'Voir mon prix');
+      await goToBookingPrice(t);
       expect(storage.saved!.quote!['customerTotal'], 123.45);
       await tapBooking(t, 'Continuer vers mes coordonnées');
       await tapBooking(t, 'Vérifier et confirmer');
