@@ -8,7 +8,7 @@
 //   - suspendDriver            (admin/super_admin)
 //   - reactivateDriver         (admin/super_admin)
 //   - requestDriverDocuments   (analyst/admin/super_admin)
-//   - updatePricingConfiguration (admin/super_admin)
+//   - updatePricingConfiguration (super_admin UNIQUEMENT depuis le 24 octobre 2026)
 //   - applyDriverPromotion     (admin/super_admin)
 //   - qualifyFoundingDriver / revokeFoundingDriverStatus (admin/super_admin)
 //   - createFinancialSnapshot  (admin/super_admin)
@@ -720,41 +720,63 @@ describe("Bloc D — validateDriverDocument / rejectDriver : gap de couverture '
   });
 });
 
-describe("Bloc D — updatePricingConfiguration (admin/super_admin — config sensible)", () => {
+function pricingDraft(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  const rule = (category: string) => ({
+    category, base_fare: 20, rate_per_km: 1.5, rate_per_minute: 0.3, minimum_charge: 25,
+  });
+  const { pricing_version: _pv, is_active: _ia, effective_from: _ef, tax_rate: _tr, tip_policy: _tp, ...rest } =
+    buildPricingConfig({ pricing_version: NEW_PRICING_VERSION });
+  return {
+    ...rest,
+    vehicle_rules: [rule("pickup_truck"), rule("cargo_van"), rule("cube_truck")],
+    mission_fee_policy: { total_minor: 3000, driver_minor: 2500, platform_minor: 500 },
+    ...overrides,
+  };
+}
+
+describe("Bloc D — updatePricingConfiguration (super_admin — grille de tarifs)", () => {
   afterEach(cleanupAll);
 
-  it("admin peut créer une nouvelle pricing_version immuable et mettre à jour le pointeur actif", async () => {
-    const config = buildPricingConfig({ pricing_version: NEW_PRICING_VERSION });
-    // Retirer les champs gérés par la fonction elle-même (pricing_version/is_active/effective_from).
-    const { pricing_version: _pv, is_active: _ia, effective_from: _ef, ...rest } = config;
+  it("super admin publie une nouvelle pricing_version immuable ; taxes recopiées de la version active", async () => {
+    await seedPricing();
+    await db.collection("pricing_versions").doc(PRICING_VERSION).update({ tax_rate: 0.14975 });
 
     const result = await updatePricingConfiguration.run(
       buildRequest<UpdatePricingConfigurationRequest>(
-        ADMIN_ID,
-        { newPricingVersion: NEW_PRICING_VERSION, config: rest },
-        ["admin"]
+        SUPER_ADMIN_ID,
+        {
+          newPricingVersion: NEW_PRICING_VERSION,
+          basedOnPricingVersion: PRICING_VERSION,
+          config: pricingDraft({ tax_rate: 0 }),
+          changeNote: "Test grille",
+        },
+        ["super_admin"]
       )
     );
     expect(result.success).toBe(true);
+    expect(result.previousPricingVersion).toBe(PRICING_VERSION);
 
     const versionSnap = await db.collection("pricing_versions").doc(NEW_PRICING_VERSION).get();
     expect(versionSnap.exists).toBe(true);
     expect(versionSnap.data()!.is_active).toBe(true);
+    expect(versionSnap.data()!.tax_rate).toBe(0.14975); // jamais modifiées par la grille
+    expect(versionSnap.data()!.previous_pricing_version).toBe(PRICING_VERSION);
+    expect(versionSnap.data()!.mission_fee_policy).toEqual({
+      total_minor: 3000, driver_minor: 2500, platform_minor: 500, version: NEW_PRICING_VERSION,
+    });
 
     const activeSnap = await db.collection("pricing_configs").doc("active").get();
     expect(activeSnap.data()!.active_pricing_version).toBe(NEW_PRICING_VERSION);
   });
 
-  it("refuse (permission-denied) updatePricingConfiguration pour analyst — config financière sensible réservée admin+", async () => {
-    const config = buildPricingConfig({ pricing_version: NEW_PRICING_VERSION });
-    const { pricing_version: _pv, is_active: _ia, effective_from: _ef, ...rest } = config;
-
+  it("refuse (permission-denied) pour un admin — tarifs réservés au super admin", async () => {
+    await seedPricing();
     await expect(
       updatePricingConfiguration.run(
         buildRequest<UpdatePricingConfigurationRequest>(
-          ANALYST_ID,
-          { newPricingVersion: NEW_PRICING_VERSION, config: rest },
-          ["analyst"]
+          ADMIN_ID,
+          { newPricingVersion: NEW_PRICING_VERSION, basedOnPricingVersion: PRICING_VERSION, config: pricingDraft() },
+          ["admin"]
         )
       )
     ).rejects.toMatchObject({ code: "permission-denied" });
@@ -763,21 +785,91 @@ describe("Bloc D — updatePricingConfiguration (admin/super_admin — config se
     expect(versionSnap.exists).toBe(false); // aucun effet de bord
   });
 
-  it("refuse (failed-precondition) écraser une pricing_version existante (immutabilité)", async () => {
-    await seedPricing();
-
-    const config = buildPricingConfig({ pricing_version: PRICING_VERSION });
-    const { pricing_version: _pv, is_active: _ia, effective_from: _ef, ...rest } = config;
-
+  it("refuse (permission-denied) pour un analyste", async () => {
     await expect(
       updatePricingConfiguration.run(
         buildRequest<UpdatePricingConfigurationRequest>(
-          ADMIN_ID,
-          { newPricingVersion: PRICING_VERSION, config: rest },
-          ["admin"]
+          ANALYST_ID,
+          { newPricingVersion: NEW_PRICING_VERSION, config: pricingDraft() },
+          ["analyst"]
+        )
+      )
+    ).rejects.toMatchObject({ code: "permission-denied" });
+  });
+
+  it("refuse (failed-precondition) écraser une pricing_version existante (immutabilité)", async () => {
+    await seedPricing();
+    await expect(
+      updatePricingConfiguration.run(
+        buildRequest<UpdatePricingConfigurationRequest>(
+          SUPER_ADMIN_ID,
+          { newPricingVersion: PRICING_VERSION, basedOnPricingVersion: PRICING_VERSION, config: pricingDraft() },
+          ["super_admin"]
         )
       )
     ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("refuse (invalid-argument) une grille incohérente (commission de 150 %)", async () => {
+    await seedPricing();
+    await expect(
+      updatePricingConfiguration.run(
+        buildRequest<UpdatePricingConfigurationRequest>(
+          SUPER_ADMIN_ID,
+          {
+            newPricingVersion: NEW_PRICING_VERSION,
+            basedOnPricingVersion: PRICING_VERSION,
+            config: pricingDraft({
+              commission: { standard_commission_rate: 1.5, minimum_platform_commission: 0, maximum_effective_commission_rate: 1 },
+            }),
+          },
+          ["super_admin"]
+        )
+      )
+    ).rejects.toMatchObject({ code: "invalid-argument" });
+    const versionSnap = await db.collection("pricing_versions").doc(NEW_PRICING_VERSION).get();
+    expect(versionSnap.exists).toBe(false);
+  });
+
+  it("refuse (aborted) quand la grille a changé depuis son ouverture", async () => {
+    await seedPricing();
+    await expect(
+      updatePricingConfiguration.run(
+        buildRequest<UpdatePricingConfigurationRequest>(
+          SUPER_ADMIN_ID,
+          { newPricingVersion: NEW_PRICING_VERSION, basedOnPricingVersion: "OLDER-VERSION", config: pricingDraft() },
+          ["super_admin"]
+        )
+      )
+    ).rejects.toMatchObject({ code: "aborted" });
+  });
+
+  it("exige la mise à jour du texte d'annulation quand les frais changent", async () => {
+    await seedPricing();
+    const changedFee = { mission_fee_policy: { total_minor: 4000, driver_minor: 3200, platform_minor: 800 } };
+    await expect(
+      updatePricingConfiguration.run(
+        buildRequest<UpdatePricingConfigurationRequest>(
+          SUPER_ADMIN_ID,
+          { newPricingVersion: NEW_PRICING_VERSION, basedOnPricingVersion: PRICING_VERSION, config: pricingDraft(changedFee) },
+          ["super_admin"]
+        )
+      )
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+
+    const result = await updatePricingConfiguration.run(
+      buildRequest<UpdatePricingConfigurationRequest>(
+        SUPER_ADMIN_ID,
+        {
+          newPricingVersion: NEW_PRICING_VERSION,
+          basedOnPricingVersion: PRICING_VERSION,
+          config: pricingDraft(changedFee),
+          feeTextUpdated: true,
+        },
+        ["super_admin"]
+      )
+    );
+    expect(result.feeChanged).toBe(true);
   });
 });
 

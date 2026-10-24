@@ -23,6 +23,7 @@ import 'tabs/admin_finance_ledger_tab.dart';
 import 'tabs/admin_finance_reconciliation_tab.dart';
 import 'tabs/admin_finance_taxes_tab.dart';
 import 'tabs/admin_finance_payout_policy_tab.dart';
+import 'tabs/admin_finance_pricing_tab.dart';
 
 class _FinanceSection {
   final IconData icon;
@@ -37,7 +38,7 @@ class _FinanceSection {
 
 // Ordre par famille : transactions clients (paiements, remboursements,
 // litiges), puis chauffeurs (versements, politique de versement), puis
-// comptabilité (registre, réconciliation, taxes).
+// comptabilité (registre, réconciliation, taxes), puis réglages (tarifs).
 final List<_FinanceSection> _kSections = [
   _FinanceSection(
     icon: Icons.payment_outlined,
@@ -78,6 +79,12 @@ final List<_FinanceSection> _kSections = [
     icon: Icons.percent_outlined,
     titleKey: 'admin_finance_tab_taxes',
     builder: () => const AdminFinanceTaxesTab(),
+  ),
+  // Réglages : la grille de tarifs (prix client, part Movi-K, frais).
+  _FinanceSection(
+    icon: Icons.tune_outlined,
+    titleKey: 'admin_finance_tab_pricing',
+    builder: () => const AdminFinancePricingTab(),
   ),
 ];
 

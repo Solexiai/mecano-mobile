@@ -65,7 +65,7 @@ import {
   StripeEnvironment,
 } from "../lib/stripeEnvironment";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
-import { cardHoldMinor } from "../lib/missionFees";
+import { cardHoldMinor, MissionFeePolicy, missionFeePolicyFrom } from "../lib/missionFees";
 
 // 🔒 Phase 8B (item f, isolation d'environnement Stripe) — CHAQUE fonction
 // ci-dessous qui RÉUTILISE une référence Stripe déjà stockée (au lieu d'en
@@ -173,6 +173,8 @@ export async function createAndAuthorizeMissionPayment(
   // Card hold: the price, or the 30 $ fee when the price is lower (see
   // missionFees.cardHoldMinor). Only the price is captured at completion.
   let holdMinor = 0;
+  // Fee amounts frozen on this payment (see missionFees.MissionFeePolicy).
+  let feePolicy: MissionFeePolicy | null = null;
   let applicationFeeMinor = 0;
   let quoteIntegrityHash: string | null = null;
 
@@ -277,7 +279,16 @@ export async function createAndAuthorizeMissionPayment(
       throw failedPrecondition("Autorisation refusée : frais de plateforme invalides.");
     }
     quoteIntegrityHash = lockedQuote.integrityHash;
-    holdMinor = cardHoldMinor(amountMinor);
+    // Fee amounts of the quote's own pricing version (admin pricing grid),
+    // frozen on the payment: a later grid change never alters this booking.
+    const quotePricingSnap = await tx.get(
+      db.collection("pricing_versions").doc(lockedQuote.pricingVersion)
+    );
+    feePolicy = missionFeePolicyFrom(
+      quotePricingSnap.data()?.mission_fee_policy,
+      lockedQuote.pricingVersion
+    );
+    holdMinor = cardHoldMinor(amountMinor, feePolicy);
 
     const now = admin.firestore.Timestamp.now();
     // 🔒 Le document est créé DIRECTEMENT en AUTHORIZATION_PENDING (et non
@@ -296,6 +307,7 @@ export async function createAndAuthorizeMissionPayment(
       quote_integrity_hash: quoteIntegrityHash,
       amount_requested_minor: holdMinor,
       service_amount_minor: amountMinor,
+      ...(feePolicy ? { mission_fee_policy: feePolicy } : {}),
       customer_id: customerId,
       driver_id: driverId,
       status: PaymentStatuses.AUTHORIZATION_PENDING,

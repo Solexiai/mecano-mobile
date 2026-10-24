@@ -21,6 +21,7 @@ import '../../finance/models/dispute_info.dart';
 import '../../finance/models/reconciliation_report.dart';
 import '../../finance/models/tax_configuration.dart';
 import '../../finance/models/payout_policy_configuration.dart';
+import '../../finance/models/pricing_grid_admin.dart';
 import '../../models/enums.dart';
 
 abstract class FinanceRepository {
@@ -101,6 +102,32 @@ abstract class FinanceRepository {
   Stream<List<PaymentInfo>> watchPayments({
     PaymentStatus? status,
     int limit = 50,
+  });
+
+  /// Grille de tarifs admin — version active (`pricing_configs/active` ->
+  /// `pricing_versions/{v}`), ou `null` s'il n'y en a pas.
+  Future<AdminPricingVersionInfo?> adminGetActivePricingVersion();
+
+  /// Grille de tarifs admin — dernières versions publiées, la plus récente
+  /// d'abord.
+  Future<List<AdminPricingVersionInfo>> adminListPricingVersions({
+    int limit = 15,
+  });
+
+  /// Simulateur (`previewPricingConfiguration`, lecture seule).
+  Future<PricingPreviewResult> adminPreviewPricing({
+    required Map<String, dynamic> config,
+    required List<Map<String, dynamic>> scenarios,
+    String? vehicleCategory,
+  });
+
+  /// Publication (`updatePricingConfiguration`, super admin). Retourne
+  /// l'identifiant de la nouvelle version.
+  Future<String> adminPublishPricing({
+    required Map<String, dynamic> config,
+    required String? basedOnVersion,
+    required bool feeTextUpdated,
+    String? changeNote,
   });
 
   /// Courriels des clients (`users/{id}.email`) pour l'affichage admin des
@@ -295,6 +322,34 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
   @override
   Future<Map<String, String>> adminGetUserEmails(Set<String> userIds) async =>
       const {};
+
+  @override
+  Future<AdminPricingVersionInfo?> adminGetActivePricingVersion() async =>
+      null;
+
+  @override
+  Future<List<AdminPricingVersionInfo>> adminListPricingVersions({
+    int limit = 15,
+  }) async => const [];
+
+  @override
+  Future<PricingPreviewResult> adminPreviewPricing({
+    required Map<String, dynamic> config,
+    required List<Map<String, dynamic>> scenarios,
+    String? vehicleCategory,
+  }) async => throw UnsupportedError(
+    'Backend non configuré : adminPreviewPricing indisponible.',
+  );
+
+  @override
+  Future<String> adminPublishPricing({
+    required Map<String, dynamic> config,
+    required String? basedOnVersion,
+    required bool feeTextUpdated,
+    String? changeNote,
+  }) async => throw UnsupportedError(
+    'Backend non configuré : adminPublishPricing indisponible.',
+  );
 
   @override
   Stream<List<RefundInfo>> watchRefunds({

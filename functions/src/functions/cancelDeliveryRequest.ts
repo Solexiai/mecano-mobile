@@ -23,7 +23,9 @@ import { failedPrecondition, invalidArgument, notFound, permissionDenied } from 
 import {
   CUSTOMER_CANCELLABLE_STATUSES,
   isLateCancellation,
-  MISSION_FEE_POLICY,
+  DEFAULT_MISSION_FEE_POLICY,
+  MissionFeePolicy,
+  missionFeePolicyFrom,
   missionFeeAmounts,
   MissionFeeAmounts,
 } from "../lib/missionFees";
@@ -65,13 +67,16 @@ export const cancelDeliveryRequest = onCall(async (request) => {
 
     const now = admin.firestore.Timestamp.now();
     let amounts: MissionFeeAmounts = missionFeeAmounts(0);
+    let policy: MissionFeePolicy = DEFAULT_MISSION_FEE_POLICY;
     let paymentId: string | null = null;
     if (isLateCancellation(mission, now.toMillis()) && typeof mission.active_payment_id === "string") {
       const paySnap = await tx.get(db.collection("payments").doc(mission.active_payment_id));
       const payment = paySnap.data();
       // Only an active card hold can carry a fee; otherwise nothing can be collected.
       if (payment?.status === PaymentStatuses.AUTHORIZED && payment.mission_id === input.missionId) {
-        amounts = missionFeeAmounts(payment.amount_authorized_minor as number);
+        // Amounts frozen on the card hold when the driver accepted.
+        policy = missionFeePolicyFrom(payment.mission_fee_policy);
+        amounts = missionFeeAmounts(payment.amount_authorized_minor as number, policy);
         paymentId = paySnap.id;
       }
     }
@@ -79,7 +84,7 @@ export const cancelDeliveryRequest = onCall(async (request) => {
 
     if (input.dryRun) {
       return { missionId: input.missionId, feeMinor, feeKind: feeMinor > 0 ? "late_cancellation" : null,
-        policyVersion: MISSION_FEE_POLICY.version, cancelled: false };
+        policyVersion: policy.version, cancelled: false };
     }
     if (feeMinor > 0 && input.acceptedFeeMinor !== feeMinor) {
       throw new HttpsError("failed-precondition", "Les frais d'annulation doivent être confirmés.",
@@ -97,7 +102,7 @@ export const cancelDeliveryRequest = onCall(async (request) => {
             status: "pending",
             ...amounts,
             payment_id: paymentId,
-            policy_version: MISSION_FEE_POLICY.version,
+            policy_version: policy.version,
             decided_at: now,
             decided_by: ctx.uid,
             updated_at: now,
@@ -110,9 +115,9 @@ export const cancelDeliveryRequest = onCall(async (request) => {
       action: feeMinor > 0 ? "mission_cancelled_with_fee" : "mission_cancelled",
       sourceFunction: "cancelDeliveryRequest",
       targetId: input.missionId,
-      metadata: { previousStatus: mission.status, feeMinor, policyVersion: MISSION_FEE_POLICY.version },
+      metadata: { previousStatus: mission.status, feeMinor, policyVersion: policy.version },
     });
     return { missionId: input.missionId, feeMinor, feeKind: feeMinor > 0 ? "late_cancellation" : null,
-      policyVersion: MISSION_FEE_POLICY.version, cancelled: true };
+      policyVersion: policy.version, cancelled: true };
   });
 });

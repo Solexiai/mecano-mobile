@@ -70,6 +70,14 @@ class PaymentInfo {
   /// Compte Stripe Connect du chauffeur, si le versement passe par Connect.
   final String? connectedAccountId;
 
+  /// Frais d'annulation / de déplacement figés sur ce blocage de carte
+  /// (`mission_fee_policy`, cents). `null` sur les paiements antérieurs au
+  /// 24 octobre 2026 : les montants par défaut (30 $ = 25 $ + 5 $)
+  /// s'appliquent alors.
+  final int? missionFeeTotalMinor;
+  final int? missionFeeDriverMinor;
+  final int? missionFeePlatformMinor;
+
   final String provider; // 'stripe'
   final String? providerCustomerId;
   final String? providerPaymentMethodId;
@@ -108,6 +116,9 @@ class PaymentInfo {
     this.feeKind,
     this.stripeEnvironment,
     this.connectedAccountId,
+    this.missionFeeTotalMinor,
+    this.missionFeeDriverMinor,
+    this.missionFeePlatformMinor,
     required this.provider,
     this.providerCustomerId,
     this.providerPaymentMethodId,
@@ -153,6 +164,9 @@ class PaymentInfo {
         feeKind: feeKind,
         stripeEnvironment: stripeEnvironment,
         connectedAccountId: connectedAccountId,
+        missionFeeTotalMinor: missionFeeTotalMinor,
+        missionFeeDriverMinor: missionFeeDriverMinor,
+        missionFeePlatformMinor: missionFeePlatformMinor,
         provider: provider,
         providerCustomerId: providerCustomerId,
         providerPaymentMethodId: providerPaymentMethodId,
@@ -186,6 +200,12 @@ class PaymentInfo {
         'fee_kind': feeKind,
         'stripe_environment': stripeEnvironment,
         'connected_account_id': connectedAccountId,
+        if (missionFeeTotalMinor != null)
+          'mission_fee_policy': {
+            'total_minor': missionFeeTotalMinor,
+            'driver_minor': missionFeeDriverMinor,
+            'platform_minor': missionFeePlatformMinor,
+          },
         'provider': provider,
         'provider_customer_id': providerCustomerId,
         'provider_payment_method_id': providerPaymentMethodId,
@@ -207,6 +227,9 @@ class PaymentInfo {
   /// retombent sur `PaymentStatus.pending` (voir `PaymentStatusX.fromFirestoreValue`)
   /// pour ne JAMAIS planter sur une ancienne mission ou un champ manquant.
   factory PaymentInfo.fromJson(Map<String, dynamic> json) {
+    final feePolicy = json['mission_fee_policy'];
+    int? feeMinor(String key) =>
+        feePolicy is Map ? (feePolicy[key] as num?)?.toInt() : null;
     return PaymentInfo(
       paymentId: json['payment_id'] as String? ?? '',
       missionId: json['mission_id'] as String? ?? '',
@@ -223,6 +246,9 @@ class PaymentInfo {
       feeKind: json['fee_kind'] as String?,
       stripeEnvironment: json['stripe_environment'] as String?,
       connectedAccountId: json['connected_account_id'] as String?,
+      missionFeeTotalMinor: feeMinor('total_minor'),
+      missionFeeDriverMinor: feeMinor('driver_minor'),
+      missionFeePlatformMinor: feeMinor('platform_minor'),
       provider: json['provider'] as String? ?? 'stripe',
       providerCustomerId: json['provider_customer_id'] as String?,
       providerPaymentMethodId: json['provider_payment_method_id'] as String?,

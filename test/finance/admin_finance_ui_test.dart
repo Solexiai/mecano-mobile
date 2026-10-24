@@ -58,18 +58,19 @@ const List<String> _kTabLabelsFr = [
   'Réconciliation',
   'Taxes',
   'Politique de versement',
+  'Tarifs',
 ];
 
 void main() {
   group('AdminFinanceShell — structure et navigation par onglets', () {
-    testWidgets('affiche les 8 onglets (TabBar mobile, largeur < 900)', (
+    testWidgets('affiche les 9 onglets (TabBar mobile, largeur < 900)', (
       tester,
     ) async {
       await tester.pumpWidget(_wrap(const AdminFinanceShell()));
       await tester.pumpAndSettle();
 
       expect(find.byType(TabBar), findsOneWidget);
-      expect(find.byType(Tab), findsNWidgets(8));
+      expect(find.byType(Tab), findsNWidgets(9));
       for (final label in _kTabLabelsFr) {
         expect(find.text(label), findsWidgets);
       }

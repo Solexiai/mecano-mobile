@@ -3943,6 +3943,396 @@ class AppStrings {
       'en': 'Stripe environment',
       'es': 'Entorno de Stripe',
     },
+    'admin_finance_tab_pricing': {
+      'fr': 'Tarifs',
+      'en': 'Pricing',
+      'es': 'Tarifas',
+    },
+    'admin_pricing_active_version': {
+      'fr': 'Version active : {version} · depuis le {date}',
+      'en': 'Active version: {version} · since {date}',
+      'es': 'Versión activa: {version} · desde el {date}',
+    },
+    'admin_pricing_no_active_hint': {
+      'fr': 'Aucune grille de tarifs active n\'a été trouvée.',
+      'en': 'No active pricing grid was found.',
+      'es': 'No se encontró ninguna tabla de tarifas activa.',
+    },
+    'admin_pricing_read_only': {
+      'fr': 'Lecture et simulation seulement : la publication des tarifs est réservée au super admin.',
+      'en': 'View and simulate only: publishing prices is reserved for the super admin.',
+      'es': 'Solo lectura y simulación: publicar tarifas está reservado al superadministrador.',
+    },
+    'admin_pricing_section_trip': {
+      'fr': 'Prix de la course',
+      'en': 'Trip price',
+      'es': 'Precio del trayecto',
+    },
+    'admin_pricing_section_trip_note': {
+      'fr': 'Appliqué aux pick-up, fourgons et camions cube. Le chauffeur juge lui-même si le chargement entre dans son véhicule.',
+      'en': 'Applies to pickups, cargo vans and cube trucks. Drivers judge for themselves whether the load fits.',
+      'es': 'Se aplica a camionetas pick-up, furgonetas y camiones de caja. El conductor decide si la carga cabe.',
+    },
+    'admin_pricing_base_fare': {
+      'fr': 'Prix de base (\$)',
+      'en': 'Base fare (\$)',
+      'es': 'Tarifa base (\$)',
+    },
+    'admin_pricing_rate_per_km': {
+      'fr': 'Par km (\$)',
+      'en': 'Per km (\$)',
+      'es': 'Por km (\$)',
+    },
+    'admin_pricing_rate_per_minute': {
+      'fr': 'Par minute (\$)',
+      'en': 'Per minute (\$)',
+      'es': 'Por minuto (\$)',
+    },
+    'admin_pricing_minimum_charge': {
+      'fr': 'Prix minimum (\$)',
+      'en': 'Minimum price (\$)',
+      'es': 'Precio mínimo (\$)',
+    },
+    'admin_pricing_section_handling': {
+      'fr': 'Manutention et arrêts',
+      'en': 'Handling and stops',
+      'es': 'Manipulación y paradas',
+    },
+    'admin_pricing_loading': {
+      'fr': 'Aide au ramassage (\$)',
+      'en': 'Help at pickup (\$)',
+      'es': 'Ayuda en la recogida (\$)',
+    },
+    'admin_pricing_unloading': {
+      'fr': 'Aide à la livraison (\$)',
+      'en': 'Help at drop-off (\$)',
+      'es': 'Ayuda en la entrega (\$)',
+    },
+    'admin_pricing_stairs': {
+      'fr': 'Escaliers (\$)',
+      'en': 'Stairs (\$)',
+      'es': 'Escaleras (\$)',
+    },
+    'admin_pricing_no_elevator': {
+      'fr': 'Sans ascenseur (\$)',
+      'en': 'No elevator (\$)',
+      'es': 'Sin ascensor (\$)',
+    },
+    'admin_pricing_second_handler': {
+      'fr': 'Deuxième personne (\$)',
+      'en': 'Second person (\$)',
+      'es': 'Segunda persona (\$)',
+    },
+    'admin_pricing_special_equipment': {
+      'fr': 'Équipement spécial (\$)',
+      'en': 'Special equipment (\$)',
+      'es': 'Equipo especial (\$)',
+    },
+    'admin_pricing_stop': {
+      'fr': 'Arrêt supplémentaire (\$)',
+      'en': 'Extra stop (\$)',
+      'es': 'Parada adicional (\$)',
+    },
+    'admin_pricing_section_movik': {
+      'fr': 'Part de Movi-K',
+      'en': 'Movi-K\'s share',
+      'es': 'Parte de Movi-K',
+    },
+    'admin_pricing_section_movik_note': {
+      'fr': 'Frais de service : ajoutés au prix payé par le client. Commission : retenue sur la part du chauffeur, avec un minimum en \$ et un maximum en %.',
+      'en': 'Service fee: added to the price the customer pays. Commission: taken from the driver\'s share, with a \$ minimum and a % maximum.',
+      'es': 'Cargo por servicio: se suma al precio que paga el cliente. Comisión: se descuenta de la parte del conductor, con un mínimo en \$ y un máximo en %.',
+    },
+    'admin_pricing_service_rate': {
+      'fr': 'Frais de service client (%)',
+      'en': 'Customer service fee (%)',
+      'es': 'Cargo por servicio al cliente (%)',
+    },
+    'admin_pricing_service_min': {
+      'fr': 'Frais de service minimum (\$)',
+      'en': 'Minimum service fee (\$)',
+      'es': 'Cargo por servicio mínimo (\$)',
+    },
+    'admin_pricing_commission_rate': {
+      'fr': 'Commission sur le chauffeur (%)',
+      'en': 'Commission on the driver (%)',
+      'es': 'Comisión sobre el conductor (%)',
+    },
+    'admin_pricing_commission_min': {
+      'fr': 'Commission minimum (\$)',
+      'en': 'Minimum commission (\$)',
+      'es': 'Comisión mínima (\$)',
+    },
+    'admin_pricing_commission_max': {
+      'fr': 'Commission maximum (%)',
+      'en': 'Maximum commission (%)',
+      'es': 'Comisión máxima (%)',
+    },
+    'admin_pricing_section_fees': {
+      'fr': 'Frais d\'annulation tardive et de déplacement inutile',
+      'en': 'Late cancellation and wasted trip fee',
+      'es': 'Cargo por cancelación tardía y viaje inútil',
+    },
+    'admin_pricing_fee_total': {
+      'fr': 'Montant pour le client (\$)',
+      'en': 'Amount for the customer (\$)',
+      'es': 'Importe para el cliente (\$)',
+    },
+    'admin_pricing_fee_driver': {
+      'fr': 'Part du chauffeur (\$)',
+      'en': 'Driver\'s share (\$)',
+      'es': 'Parte del conductor (\$)',
+    },
+    'admin_pricing_fee_platform': {
+      'fr': 'Part Movi-K : {amount}',
+      'en': 'Movi-K share: {amount}',
+      'es': 'Parte de Movi-K: {amount}',
+    },
+    'admin_pricing_fee_note': {
+      'fr': 'Le blocage de carte couvre toujours au moins ce montant. Les réservations déjà acceptées gardent leurs frais.',
+      'en': 'The card hold always covers at least this amount. Bookings already accepted keep their fee.',
+      'es': 'La retención de la tarjeta cubre siempre al menos este importe. Las reservas ya aceptadas conservan su cargo.',
+    },
+    'admin_pricing_section_quote': {
+      'fr': 'Validité du prix',
+      'en': 'Price validity',
+      'es': 'Validez del precio',
+    },
+    'admin_pricing_quote_validity': {
+      'fr': 'Minutes avant expiration',
+      'en': 'Minutes before expiry',
+      'es': 'Minutos antes de expirar',
+    },
+    'admin_pricing_section_locked': {
+      'fr': 'Non modifiable ici',
+      'en': 'Not editable here',
+      'es': 'No editable aquí',
+    },
+    'admin_pricing_locked_taxes': {
+      'fr': 'Taxes : gérées dans Centre financier > Taxes, jamais par cette grille.',
+      'en': 'Taxes: managed in Finance center > Taxes, never by this grid.',
+      'es': 'Impuestos: se gestionan en Centro financiero > Impuestos, nunca en esta tabla.',
+    },
+    'admin_pricing_locked_items': {
+      'fr': 'Objet lourd (retiré) et objet encombrant (0 \$) : le parcours de réservation ne les applique pas.',
+      'en': 'Heavy item (retired) and bulky item (\$0): the booking flow does not apply them.',
+      'es': 'Objeto pesado (retirado) y objeto voluminoso (0 \$): el proceso de reserva no los aplica.',
+    },
+    'admin_pricing_locked_unused': {
+      'fr': 'Attente et suppléments (soir, urgence…) : non appliqués par le parcours « prix avant chauffeur ».',
+      'en': 'Waiting time and surcharges (evening, urgency…): not applied by the price-before-driver flow.',
+      'es': 'Espera y recargos (noche, urgencia…): no se aplican en el proceso de precio antes del conductor.',
+    },
+    'admin_pricing_reset': {
+      'fr': 'Annuler mes modifications',
+      'en': 'Discard my changes',
+      'es': 'Descartar mis cambios',
+    },
+    'admin_pricing_section_simulator': {
+      'fr': 'Simulateur',
+      'en': 'Simulator',
+      'es': 'Simulador',
+    },
+    'admin_pricing_simulator_note': {
+      'fr': 'Compare les tarifs actifs et vos nouveaux tarifs sur quelques courses types, avec le calcul officiel du serveur (taxes comprises, sans code promo). Rien n\'est publié.',
+      'en': 'Compares the active prices with your new prices on a few sample trips, using the server\'s official calculation (taxes included, no promo code). Nothing is published.',
+      'es': 'Compara las tarifas activas con sus nuevas tarifas en algunos trayectos tipo, con el cálculo oficial del servidor (impuestos incluidos, sin código promocional). No se publica nada.',
+    },
+    'admin_pricing_scenario_short': {
+      'fr': 'Courte · 5 km, 15 min',
+      'en': 'Short · 5 km, 15 min',
+      'es': 'Corto · 5 km, 15 min',
+    },
+    'admin_pricing_scenario_medium': {
+      'fr': 'Moyenne · 15 km, 30 min, escaliers',
+      'en': 'Medium · 15 km, 30 min, stairs',
+      'es': 'Medio · 15 km, 30 min, escaleras',
+    },
+    'admin_pricing_scenario_long': {
+      'fr': 'Longue · 40 km, 60 min, 2 personnes',
+      'en': 'Long · 40 km, 60 min, 2 people',
+      'es': 'Largo · 40 km, 60 min, 2 personas',
+    },
+    'admin_pricing_scenario_custom': {
+      'fr': 'Personnalisée',
+      'en': 'Custom',
+      'es': 'Personalizado',
+    },
+    'admin_pricing_custom_km': {
+      'fr': 'Course personnalisée : km',
+      'en': 'Custom trip: km',
+      'es': 'Trayecto personalizado: km',
+    },
+    'admin_pricing_custom_min': {
+      'fr': 'Course personnalisée : minutes',
+      'en': 'Custom trip: minutes',
+      'es': 'Trayecto personalizado: minutos',
+    },
+    'admin_pricing_custom_stairs': {
+      'fr': 'Escaliers',
+      'en': 'Stairs',
+      'es': 'Escaleras',
+    },
+    'admin_pricing_custom_two': {
+      'fr': '2 personnes',
+      'en': '2 people',
+      'es': '2 personas',
+    },
+    'admin_pricing_simulate': {
+      'fr': 'Simuler',
+      'en': 'Simulate',
+      'es': 'Simular',
+    },
+    'admin_pricing_simulating': {
+      'fr': 'Simulation…',
+      'en': 'Simulating…',
+      'es': 'Simulando…',
+    },
+    'admin_pricing_col_trip': {
+      'fr': 'Course',
+      'en': 'Trip',
+      'es': 'Trayecto',
+    },
+    'admin_pricing_col_customer': {
+      'fr': 'Prix client',
+      'en': 'Customer price',
+      'es': 'Precio cliente',
+    },
+    'admin_pricing_col_movik': {
+      'fr': 'Movi-K',
+      'en': 'Movi-K',
+      'es': 'Movi-K',
+    },
+    'admin_pricing_col_driver': {
+      'fr': 'Chauffeur (avant taxes)',
+      'en': 'Driver (before taxes)',
+      'es': 'Conductor (antes de impuestos)',
+    },
+    'admin_pricing_col_hold': {
+      'fr': 'Blocage carte',
+      'en': 'Card hold',
+      'es': 'Retención tarjeta',
+    },
+    'admin_pricing_errors_title': {
+      'fr': 'À corriger avant de publier :',
+      'en': 'Fix before publishing:',
+      'es': 'Corregir antes de publicar:',
+    },
+    'admin_pricing_section_publish': {
+      'fr': 'Publier',
+      'en': 'Publish',
+      'es': 'Publicar',
+    },
+    'admin_pricing_note': {
+      'fr': 'Note (facultative) : pourquoi ce changement ?',
+      'en': 'Note (optional): why this change?',
+      'es': 'Nota (opcional): ¿por qué este cambio?',
+    },
+    'admin_pricing_fee_text_ack': {
+      'fr': 'J\'ai mis à jour le texte d\'annulation des conditions de réservation avec ces nouveaux frais.',
+      'en': 'I updated the cancellation text of the booking terms with this new fee.',
+      'es': 'Actualicé el texto de cancelación de las condiciones de reserva con este nuevo cargo.',
+    },
+    'admin_pricing_publish': {
+      'fr': 'Publier les nouveaux tarifs',
+      'en': 'Publish the new prices',
+      'es': 'Publicar las nuevas tarifas',
+    },
+    'admin_pricing_publishing': {
+      'fr': 'Publication…',
+      'en': 'Publishing…',
+      'es': 'Publicando…',
+    },
+    'admin_pricing_why_no_changes': {
+      'fr': 'Aucun changement par rapport aux tarifs actifs.',
+      'en': 'No change from the active prices.',
+      'es': 'Ningún cambio respecto a las tarifas activas.',
+    },
+    'admin_pricing_why_simulate': {
+      'fr': 'Simulez d\'abord ces valeurs.',
+      'en': 'Simulate these values first.',
+      'es': 'Simule primero estos valores.',
+    },
+    'admin_pricing_why_errors': {
+      'fr': 'Corrigez les erreurs du simulateur.',
+      'en': 'Fix the simulator errors.',
+      'es': 'Corrija los errores del simulador.',
+    },
+    'admin_pricing_why_fee_text': {
+      'fr': 'Confirmez la mise à jour du texte d\'annulation.',
+      'en': 'Confirm the cancellation text was updated.',
+      'es': 'Confirme que se actualizó el texto de cancelación.',
+    },
+    'admin_pricing_why_super_admin': {
+      'fr': 'Réservé au super admin.',
+      'en': 'Super admin only.',
+      'es': 'Solo para el superadministrador.',
+    },
+    'admin_pricing_confirm_title': {
+      'fr': 'Publier les nouveaux tarifs ?',
+      'en': 'Publish the new prices?',
+      'es': '¿Publicar las nuevas tarifas?',
+    },
+    'admin_pricing_confirm_body': {
+      'fr': 'Ils s\'appliquent aux prix calculés à partir de maintenant. Les réservations existantes gardent leur prix et leurs frais.',
+      'en': 'They apply to prices calculated from now on. Existing bookings keep their price and fees.',
+      'es': 'Se aplican a los precios calculados a partir de ahora. Las reservas existentes conservan su precio y sus cargos.',
+    },
+    'admin_pricing_cancel': {
+      'fr': 'Annuler',
+      'en': 'Cancel',
+      'es': 'Cancelar',
+    },
+    'admin_pricing_confirm': {
+      'fr': 'Publier',
+      'en': 'Publish',
+      'es': 'Publicar',
+    },
+    'admin_pricing_published': {
+      'fr': 'Tarifs publiés : {version}',
+      'en': 'Prices published: {version}',
+      'es': 'Tarifas publicadas: {version}',
+    },
+    'admin_pricing_error_stale': {
+      'fr': 'Les tarifs ont changé depuis l\'ouverture de la page. Rechargez avant de publier.',
+      'en': 'Prices changed since this page was opened. Reload before publishing.',
+      'es': 'Las tarifas cambiaron desde que se abrió la página. Recargue antes de publicar.',
+    },
+    'admin_pricing_error_generic': {
+      'fr': 'Publication refusée : {message}',
+      'en': 'Publishing refused: {message}',
+      'es': 'Publicación rechazada: {message}',
+    },
+    'admin_pricing_section_history': {
+      'fr': 'Historique',
+      'en': 'History',
+      'es': 'Historial',
+    },
+    'admin_pricing_history_active': {
+      'fr': 'Active',
+      'en': 'Active',
+      'es': 'Activa',
+    },
+    'admin_pricing_history_resume': {
+      'fr': 'Reprendre ces valeurs',
+      'en': 'Use these values',
+      'es': 'Usar estos valores',
+    },
+    'admin_pricing_history_note': {
+      'fr': 'Note : {note}',
+      'en': 'Note: {note}',
+      'es': 'Nota: {note}',
+    },
+    'admin_pricing_history_loaded': {
+      'fr': 'Valeurs de {version} chargées dans la grille. Simulez puis publiez pour les remettre en place.',
+      'en': 'Values of {version} loaded into the grid. Simulate, then publish to restore them.',
+      'es': 'Valores de {version} cargados en la tabla. Simule y publique para restaurarlos.',
+    },
+    'admin_pricing_invalid_number': {
+      'fr': 'Nombre invalide',
+      'en': 'Invalid number',
+      'es': 'Número no válido',
+    },
     'admin_payment_detail_title': {
       'fr': 'Détail du paiement',
       'en': 'Payment detail',

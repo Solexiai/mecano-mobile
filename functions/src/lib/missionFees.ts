@@ -50,18 +50,91 @@ export interface MissionFeeAmounts {
   platform_minor: number;
 }
 
+/**
+ * Fee amounts in force for one card hold. Since 2026-10-24 the amounts can be
+ * set in the admin pricing grid (`pricing_versions/{v}.mission_fee_policy`).
+ * They are FROZEN on the payment when the hold is placed
+ * (`payments/{id}.mission_fee_policy`), so a later change never alters a
+ * booking already accepted. Payments created before that carry nothing and
+ * use the 2026-10-23 defaults (30 $ = 25 $ driver + 5 $ Movi-K).
+ */
+export interface MissionFeePolicy {
+  version: string;
+  total_minor: number;
+  driver_minor: number;
+  platform_minor: number;
+}
+
+export const DEFAULT_MISSION_FEE_POLICY: MissionFeePolicy = Object.freeze({
+  version: MISSION_FEE_POLICY.version,
+  total_minor: MISSION_FEE_POLICY.total_minor,
+  driver_minor: MISSION_FEE_POLICY.driver_minor,
+  platform_minor: MISSION_FEE_POLICY.platform_minor,
+});
+
+/** Bounds accepted by the admin pricing grid (cents). */
+export const MISSION_FEE_LIMITS = Object.freeze({ min_total_minor: 500, max_total_minor: 10000 });
+
+/**
+ * Validates fee amounts (cents). Returns a French message, or null when valid.
+ * Same checks for the pricing grid and for any stored policy.
+ */
+export function missionFeeAmountsError(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return "Frais d'annulation absents.";
+  const r = raw as Record<string, unknown>;
+  const total = r.total_minor;
+  const driver = r.driver_minor;
+  const platform = r.platform_minor;
+  if (![total, driver, platform].every((v) => Number.isSafeInteger(v) && (v as number) >= 0)) {
+    return "Les frais d'annulation doivent être des montants positifs en cents.";
+  }
+  if ((total as number) < MISSION_FEE_LIMITS.min_total_minor ||
+      (total as number) > MISSION_FEE_LIMITS.max_total_minor) {
+    return "Les frais d'annulation doivent être entre 5 $ et 100 $.";
+  }
+  if ((driver as number) + (platform as number) !== total) {
+    return "Part chauffeur + part Movi-K doit égaler exactement les frais d'annulation.";
+  }
+  if ((driver as number) <= 0) return "Le chauffeur doit recevoir une part des frais d'annulation.";
+  return null;
+}
+
+/**
+ * Policy to use: `raw` when it is a valid policy, else the defaults.
+ * `version` falls back to `fallbackVersion`, then to the default version.
+ */
+export function missionFeePolicyFrom(raw: unknown, fallbackVersion?: string): MissionFeePolicy {
+  if (missionFeeAmountsError(raw) !== null) return DEFAULT_MISSION_FEE_POLICY;
+  const r = raw as Record<string, unknown>;
+  const version = typeof r.version === "string" && r.version.trim()
+    ? r.version.trim()
+    : fallbackVersion?.trim() || DEFAULT_MISSION_FEE_POLICY.version;
+  return {
+    version,
+    total_minor: r.total_minor as number,
+    driver_minor: r.driver_minor as number,
+    platform_minor: r.platform_minor as number,
+  };
+}
+
 /** Card hold placed at driver acceptance: the price, never less than the fee. */
-export function cardHoldMinor(priceMinor: number): number {
+export function cardHoldMinor(
+  priceMinor: number,
+  policy: MissionFeePolicy = DEFAULT_MISSION_FEE_POLICY
+): number {
   if (!Number.isSafeInteger(priceMinor) || priceMinor <= 0) return priceMinor;
-  return Math.max(priceMinor, MISSION_FEE_POLICY.total_minor);
+  return Math.max(priceMinor, policy.total_minor);
 }
 
 /**
  * Splits the fee. The capture can never exceed the card hold: if the hold is
- * below 30 $, the fee is reduced to the hold and split in the same 25/5 ratio.
+ * below the fee, the fee is reduced to the hold and split in the same ratio.
  */
-export function missionFeeAmounts(authorizedMinor: number): MissionFeeAmounts {
-  const p = MISSION_FEE_POLICY;
+export function missionFeeAmounts(
+  authorizedMinor: number,
+  policy: MissionFeePolicy = DEFAULT_MISSION_FEE_POLICY
+): MissionFeeAmounts {
+  const p = policy;
   if (!Number.isSafeInteger(authorizedMinor) || authorizedMinor <= 0) {
     return { total_minor: 0, driver_minor: 0, platform_minor: 0 };
   }

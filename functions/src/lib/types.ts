@@ -400,6 +400,21 @@ export interface PricingVersionDoc {
   tip_policy: TipPolicyConfigDoc;
   quote_config: QuoteConfigDoc;
   tax_rate: number;
+  // Late cancellation / wasted trip fee amounts (cents), set from the admin
+  // pricing grid since 2026-10-24. Absent on older versions: the defaults of
+  // lib/missionFees.ts apply (30 $ = 25 $ driver + 5 $ Movi-K).
+  mission_fee_policy?: MissionFeePolicyDoc;
+  // Publication metadata written by updatePricingConfiguration.
+  previous_pricing_version?: string | null;
+  published_by_user_id?: string;
+  change_note?: string | null;
+}
+
+export interface MissionFeePolicyDoc {
+  version?: string;
+  total_minor: number;
+  driver_minor: number;
+  platform_minor: number;
 }
 
 export interface DriverProfileDoc {
@@ -550,6 +565,8 @@ export interface PaymentDoc {
   // payment ("Frais d'annulation tardive", "Déplacement inutile").
   capture_purpose?: "mission_fee";
   fee_kind?: "late_cancellation" | "customer_failed_delivery";
+  // Fee amounts frozen when the card hold was placed (lib/missionFees.ts).
+  mission_fee_policy?: MissionFeePolicyDoc;
   amount_captured_minor: number;
   amount_refunded_minor: number;
   application_fee_minor: number; // commission Movi-K + frais de service, en cents
