@@ -35,6 +35,9 @@ class _FinanceSection {
   });
 }
 
+// Ordre par famille : transactions clients (paiements, remboursements,
+// litiges), puis chauffeurs (versements, politique de versement), puis
+// comptabilité (registre, réconciliation, taxes).
 final List<_FinanceSection> _kSections = [
   _FinanceSection(
     icon: Icons.payment_outlined,
@@ -47,14 +50,19 @@ final List<_FinanceSection> _kSections = [
     builder: () => const AdminFinanceRefundsTab(),
   ),
   _FinanceSection(
+    icon: Icons.gavel_outlined,
+    titleKey: 'admin_finance_tab_disputes',
+    builder: () => const AdminFinanceDisputesTab(),
+  ),
+  _FinanceSection(
     icon: Icons.account_balance_wallet_outlined,
     titleKey: 'admin_finance_tab_payouts',
     builder: () => const AdminFinancePayoutsTab(),
   ),
   _FinanceSection(
-    icon: Icons.gavel_outlined,
-    titleKey: 'admin_finance_tab_disputes',
-    builder: () => const AdminFinanceDisputesTab(),
+    icon: Icons.schedule_outlined,
+    titleKey: 'admin_finance_tab_payout_policy',
+    builder: () => const AdminFinancePayoutPolicyTab(),
   ),
   _FinanceSection(
     icon: Icons.receipt_long_outlined,
@@ -71,12 +79,10 @@ final List<_FinanceSection> _kSections = [
     titleKey: 'admin_finance_tab_taxes',
     builder: () => const AdminFinanceTaxesTab(),
   ),
-  _FinanceSection(
-    icon: Icons.schedule_outlined,
-    titleKey: 'admin_finance_tab_payout_policy',
-    builder: () => const AdminFinancePayoutPolicyTab(),
-  ),
 ];
+
+int _sectionIndex(String titleKey) =>
+    _kSections.indexWhere((s) => s.titleKey == titleKey);
 
 class AdminFinanceShell extends StatefulWidget {
   const AdminFinanceShell({
@@ -99,7 +105,9 @@ class _AdminFinanceShellState extends State<AdminFinanceShell>
   @override
   void initState() {
     super.initState();
-    _railIndex = widget.initialSection == 'disputes' ? 3 : 0;
+    _railIndex = widget.initialSection == 'disputes'
+        ? _sectionIndex('admin_finance_tab_disputes')
+        : 0;
     _tabController = TabController(
       length: _kSections.length,
       initialIndex: _railIndex,
@@ -163,7 +171,8 @@ class _AdminFinanceShellState extends State<AdminFinanceShell>
                 Expanded(
                   child: Container(
                     color: AppColors.background,
-                    child: _railIndex == 3
+                    child: _kSections[_railIndex].titleKey ==
+                            'admin_finance_tab_disputes'
                         ? AdminFinanceDisputesTab(
                             openOnly: widget.openDisputesOnly,
                           )

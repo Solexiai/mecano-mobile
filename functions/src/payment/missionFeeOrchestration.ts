@@ -186,6 +186,7 @@ export async function chargeMissionFee(missionId: string): Promise<MissionFeeCha
       application_fee_minor: prepared.connected ? prepared.platformMinor : payment.application_fee_minor,
       provider_charge_id: result.providerChargeId,
       capture_purpose: "mission_fee",
+      fee_kind: prepared.kind,
       captured_at: now,
       updated_at: now,
     });

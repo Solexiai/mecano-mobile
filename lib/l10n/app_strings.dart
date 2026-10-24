@@ -3793,6 +3793,156 @@ class AppStrings {
       'es': 'Proveedor',
     },
     'admin_payments_col_date': {'fr': 'Date', 'en': 'Date', 'es': 'Fecha'},
+    'admin_payments_kind_delivery': {
+      'fr': 'Livraison',
+      'en': 'Delivery',
+      'es': 'Entrega',
+    },
+    'admin_payments_kind_late_cancellation': {
+      'fr': 'Frais d\'annulation tardive',
+      'en': 'Late cancellation fee',
+      'es': 'Cargo por cancelación tardía',
+    },
+    'admin_payments_kind_failed_delivery': {
+      'fr': 'Frais de déplacement inutile',
+      'en': 'Wasted trip fee',
+      'es': 'Cargo por viaje inútil',
+    },
+    'admin_payments_kind_mission_fee': {
+      'fr': 'Frais d\'annulation ou de déplacement',
+      'en': 'Cancellation or trip fee',
+      'es': 'Cargo por cancelación o viaje',
+    },
+    'admin_payments_kind_filter_all': {
+      'fr': 'Tous les types',
+      'en': 'All types',
+      'es': 'Todos los tipos',
+    },
+    'admin_payments_kind_filter_deliveries': {
+      'fr': 'Livraisons',
+      'en': 'Deliveries',
+      'es': 'Entregas',
+    },
+    'admin_payments_kind_filter_fees': {
+      'fr': 'Frais',
+      'en': 'Fees',
+      'es': 'Cargos',
+    },
+    'admin_payments_filter_customer_or_email': {
+      'fr': 'Client (courriel ou ID)',
+      'en': 'Customer (email or ID)',
+      'es': 'Cliente (correo o ID)',
+    },
+    'admin_payments_price': {
+      'fr': 'Prix',
+      'en': 'Price',
+      'es': 'Precio',
+    },
+    'admin_payments_hold': {
+      'fr': 'Blocage',
+      'en': 'Hold',
+      'es': 'Retención',
+    },
+    'admin_payments_released': {
+      'fr': 'Libéré',
+      'en': 'Released',
+      'es': 'Liberado',
+    },
+    'admin_payments_share_platform': {
+      'fr': 'Movi-K',
+      'en': 'Movi-K',
+      'es': 'Movi-K',
+    },
+    'admin_payments_share_driver': {
+      'fr': 'Chauffeur',
+      'en': 'Driver',
+      'es': 'Conductor',
+    },
+    'admin_payments_no_connect': {
+      'fr': 'Chauffeur sans Stripe Connect : l\'argent est chez Movi-K, versement au chauffeur à faire manuellement.',
+      'en': 'Driver without Stripe Connect: the money is held by Movi-K and the driver must be paid manually.',
+      'es': 'Conductor sin Stripe Connect: el dinero está en Movi-K y el pago al conductor debe hacerse manualmente.',
+    },
+    'admin_payments_hold_explained': {
+      'fr': 'Le blocage de carte couvre au moins les frais d\'annulation. Seul le prix est prélevé à la livraison ; le reste est libéré sur la carte du client.',
+      'en': 'The card hold always covers at least the cancellation fee. Only the price is charged at delivery; the rest is released on the customer\'s card.',
+      'es': 'La retención de la tarjeta cubre siempre al menos el cargo por cancelación. Solo se cobra el precio en la entrega; el resto se libera en la tarjeta del cliente.',
+    },
+    'admin_payments_summary_captured': {
+      'fr': 'Encaissé',
+      'en': 'Collected',
+      'es': 'Cobrado',
+    },
+    'admin_payments_summary_platform': {
+      'fr': 'Revenu Movi-K',
+      'en': 'Movi-K revenue',
+      'es': 'Ingresos de Movi-K',
+    },
+    'admin_payments_summary_driver': {
+      'fr': 'Versé aux chauffeurs',
+      'en': 'Paid to drivers',
+      'es': 'Pagado a los conductores',
+    },
+    'admin_payments_summary_held': {
+      'fr': 'Blocages en cours',
+      'en': 'Active holds',
+      'es': 'Retenciones activas',
+    },
+    'admin_payments_summary_scope': {
+      'fr': 'Calculé sur les {count} paiements affichés.',
+      'en': 'Based on the {count} payments shown.',
+      'es': 'Calculado sobre los {count} pagos mostrados.',
+    },
+    'admin_payments_summary_truncated': {
+      'fr': 'Seuls les {limit} paiements les plus récents sont chargés.',
+      'en': 'Only the {limit} most recent payments are loaded.',
+      'es': 'Solo se cargan los {limit} pagos más recientes.',
+    },
+    'admin_payments_summary_without_connect': {
+      'fr': '{count} paiement(s) capturé(s) sans Stripe Connect : part du chauffeur à verser manuellement.',
+      'en': '{count} captured payment(s) without Stripe Connect: the driver share must be paid manually.',
+      'es': '{count} pago(s) capturado(s) sin Stripe Connect: la parte del conductor debe pagarse manualmente.',
+    },
+    'admin_payments_export_csv': {
+      'fr': 'Exporter (CSV)',
+      'en': 'Export (CSV)',
+      'es': 'Exportar (CSV)',
+    },
+    'admin_payments_export_done': {
+      'fr': 'Fichier CSV téléchargé.',
+      'en': 'CSV file downloaded.',
+      'es': 'Archivo CSV descargado.',
+    },
+    'admin_payments_export_copied': {
+      'fr': 'CSV copié dans le presse-papiers.',
+      'en': 'CSV copied to the clipboard.',
+      'es': 'CSV copiado al portapapeles.',
+    },
+    'admin_payments_csv_date': {
+      'fr': 'Date et heure',
+      'en': 'Date and time',
+      'es': 'Fecha y hora',
+    },
+    'admin_payments_csv_type': {
+      'fr': 'Type',
+      'en': 'Type',
+      'es': 'Tipo',
+    },
+    'admin_payments_csv_customer_email': {
+      'fr': 'Courriel du client',
+      'en': 'Customer email',
+      'es': 'Correo del cliente',
+    },
+    'admin_payments_csv_customer_id': {
+      'fr': 'ID client',
+      'en': 'Customer ID',
+      'es': 'ID de cliente',
+    },
+    'admin_payments_csv_environment': {
+      'fr': 'Environnement Stripe',
+      'en': 'Stripe environment',
+      'es': 'Entorno de Stripe',
+    },
     'admin_payment_detail_title': {
       'fr': 'Détail du paiement',
       'en': 'Payment detail',
