@@ -1089,13 +1089,25 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ),
   );
   void _step(int step, {int? part}) {
+    final moved = step != _draft.step || (part != null && part != _draft.part);
     setState(() {
       _draft.step = step;
       if (part != null) _draft.part = part;
       _message = null;
     });
     _changed(quote: false);
+    // A new screen starts at its question, not where the last one ended.
+    if (moved) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final target = _stepHeaderKey.currentContext;
+        if (mounted && target != null) {
+          Scrollable.ensureVisible(target, alignment: 0.1);
+        }
+      });
+    }
   }
+
+  final _stepHeaderKey = GlobalKey();
 
   /// Screens of step 0, one question each (2026-10-23).
   void _part(int part) => _step(0, part: part);
@@ -1239,6 +1251,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                     _note(_configurationNotice, warning: true),
                   const SizedBox(height: 16),
                   BookingStepHeader(
+                    key: _stepHeaderKey,
                     current: _screenNumber,
                     total: _screenCount,
                     locale: widget.locale,
