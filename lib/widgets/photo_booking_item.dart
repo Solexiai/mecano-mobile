@@ -94,9 +94,11 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
       widget.onChanged();
     }
 
-    return Row(
+    return Wrap(
       key: ValueKey('photo-quantity-$_id'),
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 0,
+      runSpacing: 4,
       children: [
         Text(tr('Combien ?', 'How many?', '¿Cuántos?')),
         const SizedBox(width: 8),
@@ -529,32 +531,29 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
               const SizedBox(height: 8),
               _quantity(),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton(
-                      key: ValueKey('photo-confirm-$_id'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                      ),
-                      onPressed: _confirm,
-                      child: Text(
-                        tr('Oui, c’est ça', 'Yes, that’s it', 'Sí, es eso'),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      key: ValueKey('photo-change-$_id'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
-                      ),
-                      onPressed: () => setState(() => _editing = true),
-                      child: Text(tr('Non, changer', 'No, change', 'No, cambiar')),
-                    ),
-                  ),
-                ],
+              // Stacked full-width buttons: large targets at any text size.
+              FilledButton(
+                key: ValueKey('photo-confirm-$_id'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: _confirm,
+                child: Text(
+                  tr('Oui, c’est ça', 'Yes, that’s it', 'Sí, es eso'),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                key: ValueKey('photo-change-$_id'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: () => setState(() => _editing = true),
+                child: Text(
+                  tr('Non, changer', 'No, change', 'No, cambiar'),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ] else ...[
               if (photos.isNotEmpty && widget.onAnalyzePhoto != null)
