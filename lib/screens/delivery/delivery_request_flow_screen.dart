@@ -114,16 +114,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       : widget.locale == 'es'
       ? es
       : fr;
-  List<String> get _titles => [
-    tr('Ma livraison', 'My delivery', 'Mi entrega'),
-    tr('Mon prix', 'My price', 'Mi precio'),
-    tr('Mes coordonnées', 'My details', 'Mis datos'),
-    tr(
-      'Confirmation et paiement',
-      'Confirmation and payment',
-      'Confirmación y pago',
-    ),
-  ];
   @override
   void initState() {
     super.initState();
@@ -2131,7 +2121,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ),
   };
   List<Widget> _price() => [
-    _heading(_titles[1]),
+    BookingQuestion(tr('Votre prix', 'Your price', 'Tu precio')),
     if (_uid == null) ...[
       _note(
         tr(
@@ -2224,8 +2214,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           }),
         ),
       if (_draft.quote != null) ...[
-        ..._quoteSummary(),
-        _quoteLoadSummary(collapsible: false),
+        _priceHero(),
+        _recap(),
+        _priceDetails(),
       ],
       if (!_draft.quoteValid)
         _button(
@@ -2276,37 +2267,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ],
       if (_draft.quoteValid) ...[
-        if (_assignmentPending)
-          _note(
-            tr(
-              'Votre prix est calculé. Après votre confirmation, la demande est envoyée aux chauffeurs de la région : un chauffeur qui a vu vos photos et confirmé que l’objet entre dans son véhicule accepte la livraison. Votre carte n’est autorisée qu’à ce moment.',
-              'Your price is calculated. After you confirm, the request is sent to drivers in the area: a driver who has seen your photos and confirmed the item fits their vehicle accepts the delivery. Your card is only authorized at that point.',
-              'Tu precio está calculado. Tras tu confirmación, la solicitud se envía a los conductores de la zona: un conductor que vio tus fotos y confirmó que el objeto cabe en su vehículo acepta la entrega. Tu tarjeta solo se autoriza en ese momento.',
-            ),
-          )
-        else if (_photoMode)
-          _note(
-            tr(
-              'Movi-K propose le véhicule. Le chauffeur examine la photo et accepte ou refuse la demande. Les mesures inconnues ne sont pas des capacités vérifiées.',
-              'Movi-K proposes the vehicle. The driver reviews the photo and accepts or declines. Unknown measurements are not verified capacity.',
-              'Movi-K propone el vehículo. El conductor evalúa la foto y acepta o rechaza. Las medidas desconocidas no son capacidad verificada.',
-            ),
-          )
-        else
-          _note(
-            tr(
-              'Le véhicule recommandé est vérifié à nouveau avec le véhicule réel du chauffeur à l’acceptation.',
-              'The recommended vehicle is checked against the driver’s actual vehicle on acceptance.',
-              'Se verifica la recomendación con el vehículo real del conductor al aceptar.',
-            ),
-          ),
-        _button(
-          tr(
-            'Continuer vers mes coordonnées',
-            'Continue to my details',
-            'Continuar a mis datos',
-          ),
+        _note(
+          _assignmentPending || _photoMode
+              ? tr(
+                  'Après votre réservation, un chauffeur de la région voit vos photos et accepte la livraison. Votre carte n’est utilisée qu’à ce moment.',
+                  'After you book, a driver in the area sees your photos and accepts the delivery. Your card is only used at that point.',
+                  'Después de reservar, un conductor de la zona ve tus fotos y acepta la entrega. Tu tarjeta solo se usa en ese momento.',
+                )
+              : tr(
+                  'Le chauffeur vérifie que tout entre dans son véhicule quand il accepte.',
+                  'The driver checks that everything fits in their vehicle when accepting.',
+                  'El conductor verifica que todo cabe en su vehículo al aceptar.',
+                ),
+        ),
+        _next(
+          tr('Réserver à ce prix', 'Book at this price', 'Reservar a este precio'),
           () => _step(2),
+          key: const ValueKey('booking-reserve'),
         ),
       ],
       TextButton(
@@ -2330,15 +2307,180 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         () => _step(2),
       ),
   ];
-  List<Widget> _quoteSummary() {
+  /// The price in large type (screens 5 and 7).
+  Widget _priceHero({bool compact = false}) {
+    final quote = _draft.quote!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          key: const ValueKey('booking-price-hero'),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: compact ? 14 : 22,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F2A5C),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Column(
+            children: [
+              Text(
+                _moneyText(quote['customerTotal']),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: compact ? 30 : 42,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tr(
+                  'Total officiel, taxes comprises',
+                  'Official total, including taxes',
+                  'Total oficial, impuestos incluidos',
+                ),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFD7E1F5)),
+              ),
+              Text(
+                tr(
+                  'Payé seulement une fois livré',
+                  'Paid only once delivered',
+                  'Se paga solo una vez entregado',
+                ),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFD7E1F5)),
+              ),
+            ],
+          ),
+        ),
+        if (!_draft.quoteValid)
+          _note(
+            tr(
+              'Ce prix a expiré : il est recalculé automatiquement. S’il ne change pas, vous continuez sans rien refaire ; s’il change, vous verrez le nouveau montant avant de confirmer.',
+              'This price has expired: it is recalculated automatically. If it does not change, you continue without redoing anything; if it changes, you will see the new amount before confirming.',
+              'Este precio expiró: se recalcula automáticamente. Si no cambia, continúas sin rehacer nada; si cambia, verás el nuevo monto antes de confirmar.',
+            ),
+            warning: true,
+          ),
+      ],
+    );
+  }
+
+  /// What, where, when (and who, on the last screen), each with "Modifier".
+  Widget _recap({bool contacts = false}) {
+    String dims(Map item) {
+      final l = _dimensionText(item['length']),
+          w = _dimensionText(item['width']),
+          h = _dimensionText(item['height']);
+      if (l == null || w == null || h == null) return '';
+      return ' · $l × $w × $h ${item['dimension_unit']}';
+    }
+
+    Widget row(
+      IconData icon,
+      Widget content,
+      String key,
+      VoidCallback onEdit,
+    ) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF0F2A5C), size: 22),
+          const SizedBox(width: 12),
+          Expanded(child: content),
+          TextButton(
+            key: ValueKey('recap-edit-$key'),
+            onPressed: _busy ? null : onEdit,
+            child: Text(tr('Modifier', 'Edit', 'Modificar')),
+          ),
+        ],
+      ),
+    );
+    final help = helpChoice(_draft.data);
+    return Card(
+      key: const ValueKey('booking-recap'),
+      margin: const EdgeInsets.only(top: 12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: Column(
+          children: [
+            row(
+              Icons.inventory_2_outlined,
+              Text(
+                [
+                  for (final raw in _draft.items)
+                    '${(raw as Map)['quantity']} × ${raw['label']}${dims(raw)}',
+                ].join('\n'),
+              ),
+              'items',
+              () => _step(0, part: 0),
+            ),
+            row(
+              Icons.place_outlined,
+              Text('${_pickup.text}\n→ ${_dropoff.text}'),
+              'where',
+              () => _step(0, part: 1),
+            ),
+            if (help != null)
+              row(
+                Icons.people_alt_outlined,
+                Text(
+                  help == 'two_movers'
+                      ? tr(
+                          'Deux personnes viennent',
+                          'Two people come',
+                          'Vienen dos personas',
+                        )
+                      : tr(
+                          'Un chauffeur, vous donnez un coup de main',
+                          'One driver, you lend a hand',
+                          'Un conductor, tú echas una mano',
+                        ),
+                ),
+                'help',
+                () => _step(0, part: 2),
+              ),
+            row(
+              Icons.calendar_today_outlined,
+              _draft.isImmediate
+                  ? Text(
+                      tr(
+                        'Dès maintenant — selon la disponibilité du chauffeur',
+                        'As soon as possible — subject to driver availability',
+                        'Lo antes posible — según la disponibilidad del conductor',
+                      ),
+                    )
+                  : _localizedTime(_draft.data['requested_at'] as String?),
+              'when',
+              () => _step(0, part: 3),
+            ),
+            if (contacts)
+              row(
+                Icons.phone_outlined,
+                Text(
+                  [
+                    '${_draft.contacts['pickup_name']} · ${_draft.contacts['pickup_phone']}',
+                    if (!_sameRecipient)
+                      '${tr('Reçoit', 'Receives', 'Recibe')} : ${_draft.contacts['dropoff_name']} · ${_draft.contacts['dropoff_phone']}',
+                  ].join('\n'),
+                ),
+                'contacts',
+                () => _step(2),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The full price breakdown, folded by default.
+  Widget _priceDetails() {
     final quote = _draft.quote!;
     final breakdown = Map<String, dynamic>.from(
       quote['breakdown'] as Map? ?? {},
-    );
-    String money(dynamic n) => formatMajorAmount(
-      n is num ? n : null,
-      locale: widget.locale,
-      currencySymbol: tr(r'$ CA', r'CA$', r'CA$'),
     );
     final lines = [
       ('missionBaseValue', tr('Transport', 'Transport', 'Transporte')),
@@ -2356,80 +2498,64 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ('customerDiscountAmount', tr('Remise', 'Discount', 'Descuento')),
       ('taxAmount', tr('Taxes', 'Taxes', 'Impuestos')),
     ];
-    return [
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                money(quote['customerTotal']),
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              Text(
-                tr(
-                  'Total officiel, taxes comprises',
-                  'Official total, including taxes',
-                  'Total oficial, impuestos incluidos',
-                ),
-              ),
-              const Divider(height: 28),
-              for (final line in lines)
-                if (breakdown[line.$1] is num && breakdown[line.$1] != 0)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        alignment: WrapAlignment.spaceBetween,
-                        spacing: 12,
-                        runSpacing: 4,
-                        children: [
-                          Text(line.$2),
-                          Text(
-                            '${line.$1 == 'customerDiscountAmount' ? '-' : ''}${money(breakdown[line.$1])}',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              const Divider(),
-              if (quote['assignmentPending'] == true)
-                Text(
-                  tr(
-                    'Chauffeur à affecter après le calcul du prix',
-                    'Driver assignment follows the price calculation',
-                    'El conductor se asigna después del cálculo del precio',
-                  ),
-                )
-              else
-                Text(
-                  '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
-                ),
-              Text(
-                '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${formatDistanceKm(quote['distanceKm'] is num ? quote['distanceKm'] as num : null, locale: widget.locale)}',
-              ),
-              _localizedTime(
-                DateTime.fromMillisecondsSinceEpoch(
-                  (quote['expiresAtMillis'] as num).toInt(),
-                ).toIso8601String(),
-                prefix: tr('Valable jusqu’à', 'Valid until', 'Válido hasta'),
-              ),
-            ],
-          ),
+    return ExpansionTile(
+      key: const ValueKey('booking-price-details'),
+      tilePadding: EdgeInsets.zero,
+      title: Text(
+        tr(
+          'Voir le détail du prix',
+          'See the price details',
+          'Ver el detalle del precio',
         ),
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
-      if (!_draft.quoteValid)
-        _note(
-          tr(
-            'Ce prix a expiré : il est recalculé automatiquement. S’il ne change pas, vous continuez sans rien refaire ; s’il change, vous verrez le nouveau montant avant de confirmer.',
-            'This price has expired: it is recalculated automatically. If it does not change, you continue without redoing anything; if it changes, you will see the new amount before confirming.',
-            'Este precio expiró: se recalcula automáticamente. Si no cambia, continúas sin rehacer nada; si cambia, verás el nuevo monto antes de confirmar.',
+      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          if (breakdown[line.$1] is num && breakdown[line.$1] != 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: SizedBox(
+                width: double.infinity,
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: [
+                    Text(line.$2),
+                    Text(
+                      '${line.$1 == 'customerDiscountAmount' ? '-' : ''}${_moneyText(breakdown[line.$1])}',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        const Divider(),
+        if (quote['assignmentPending'] == true)
+          Text(
+            tr(
+              'Chauffeur à affecter après le calcul du prix',
+              'Driver assignment follows the price calculation',
+              'El conductor se asigna después del cálculo del precio',
+            ),
+          )
+        else
+          Text(
+            '${tr('Véhicule recommandé', 'Recommended vehicle', 'Vehículo recomendado')} : ${_vehicleLabel(quote['vehicleCategory'] as String? ?? '')}',
           ),
-          warning: true,
+        Text(
+          '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${formatDistanceKm(quote['distanceKm'] is num ? quote['distanceKm'] as num : null, locale: widget.locale)}',
         ),
-    ];
+        _localizedTime(
+          DateTime.fromMillisecondsSinceEpoch(
+            (quote['expiresAtMillis'] as num).toInt(),
+          ).toIso8601String(),
+          prefix: tr('Valable jusqu’à', 'Valid until', 'Válido hasta'),
+        ),
+        const SizedBox(height: 8),
+        _quoteLoadSummary(collapsible: false),
+      ],
+    );
   }
 
   String _vehicleLabel(String v) => switch (v) {
@@ -2505,140 +2631,307 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ],
   ];
 
-  List<Widget> _details(FirebaseAuthProvider auth) => [
-    _heading(_titles[2]),
-    Text(auth.effectiveEmail ?? ''),
-    ..._emailVerification(auth),
-    Text(
-      tr(
-        'Les noms et téléphones des deux contacts sont obligatoires.',
-        'Both contact names and phone numbers are required.',
-        'Los nombres y teléfonos de ambos contactos son obligatorios.',
-      ),
-    ),
-    Form(
-      key: _contactsForm,
+  /// "C'est moi qui reçois la livraison": checked by default unless the
+  /// draft already names a different recipient (2026-10-24).
+  bool get _sameRecipient {
+    final stored = _draft.data['same_recipient'];
+    if (stored is bool) return stored;
+    final c = _draft.contacts;
+    final name = (c['dropoff_name'] as String? ?? '').trim();
+    final phone = (c['dropoff_phone'] as String? ?? '').trim();
+    return (name.isEmpty && phone.isEmpty) ||
+        (name == (c['pickup_name'] as String? ?? '').trim() &&
+            phone == (c['pickup_phone'] as String? ?? '').trim());
+  }
+
+  void _copyRecipient() {
+    final contacts = _draft.data['contacts'] as Map;
+    contacts['dropoff_name'] = contacts['pickup_name'];
+    contacts['dropoff_phone'] = contacts['pickup_phone'];
+  }
+
+  Widget _contactField(String key, String label, {String? hint}) {
+    final phone = key.contains('phone');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final field in [
-            (
-              'pickup_name',
-              tr(
-                'Nom au ramassage',
-                'Pickup contact name',
-                'Nombre en recogida',
+          Text(
+            label,
+            key: ValueKey('contact-label-$key'),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Semantics(
+            label: label,
+            child: TextFormField(
+              key: ValueKey('${_draft.id}-$key'),
+              initialValue: _draft.contacts[key] as String? ?? '',
+              keyboardType: phone ? TextInputType.phone : TextInputType.text,
+              autofillHints: phone ? [AutofillHints.telephoneNumber] : null,
+              minLines: key == 'instructions' ? 2 : 1,
+              maxLines: key == 'instructions' ? 4 : 1,
+              decoration: InputDecoration(
+                hintText: hint,
+                helperText: phone ? _contactPhoneHint : null,
+                helperMaxLines: 16,
+                errorMaxLines: 20,
               ),
+              // Match normalizeContacts: 8–25 allowed characters after
+              // an optional leading +. Keep invalid pasted text editable.
+              maxLength: key == 'instructions'
+                  ? 1200
+                  : phone
+                  ? ((_draft.contacts[key] as String? ?? '').startsWith('+')
+                        ? 26
+                        : 25)
+                  : 120,
+              maxLengthEnforcement: phone ? MaxLengthEnforcement.none : null,
+              validator: (v) {
+                if (key == 'instructions') return null;
+                if (v == null || v.trim().isEmpty) {
+                  return tr('Champ requis', 'Required', 'Obligatorio');
+                }
+                if (phone &&
+                    (!RegExp(r'^\+?[0-9 ()-]{8,25}$').hasMatch(v) ||
+                        v.replaceAll(RegExp(r'\D'), '').length < 8)) {
+                  return '${tr('Téléphone invalide', 'Invalid phone', 'Teléfono inválido')}\n$_contactPhoneHint';
+                }
+                return null;
+              },
+              onChanged: (v) {
+                (_draft.data['contacts'] as Map)[key] = v;
+                if (_sameRecipient && key.startsWith('pickup_')) {
+                  _copyRecipient();
+                }
+                _changed(quote: false);
+              },
             ),
-            (
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Screen 6: who the driver calls. Prefilled from the account.
+  List<Widget> _details(FirebaseAuthProvider auth) {
+    final same = _sameRecipient;
+    return [
+      BookingQuestion(
+        tr(
+          'Qui le chauffeur appelle ?',
+          'Who does the driver call?',
+          '¿A quién llama el conductor?',
+        ),
+        hint: tr(
+          'Déjà rempli avec votre compte. Vérifiez, c’est tout.',
+          'Already filled in from your account. Just check it.',
+          'Ya completado con tu cuenta. Solo verifícalo.',
+        ),
+      ),
+      ..._emailVerification(auth),
+      Form(
+        key: _contactsForm,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _contactField('pickup_name', tr('Votre nom', 'Your name', 'Tu nombre')),
+            _contactField(
               'pickup_phone',
-              tr(
-                'Téléphone au ramassage',
-                'Pickup phone',
-                'Teléfono en recogida',
+              tr('Votre téléphone', 'Your phone', 'Tu teléfono'),
+            ),
+            Material(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: const BorderSide(color: Color(0xFFDDE2EA), width: 2),
+              ),
+              child: CheckboxListTile(
+                key: const ValueKey('booking-same-recipient'),
+                controlAffinity: ListTileControlAffinity.leading,
+                value: same,
+                title: Text(
+                  tr(
+                    'C’est moi qui reçois la livraison',
+                    'I am receiving the delivery',
+                    'Yo recibo la entrega',
+                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onChanged: (v) {
+                  _draft.data['same_recipient'] = v == true;
+                  if (v == true) _copyRecipient();
+                  _changed(quote: false);
+                },
               ),
             ),
-            (
-              'dropoff_name',
-              tr(
-                'Nom à la livraison',
-                'Delivery contact name',
-                'Nombre en entrega',
+            if (!same) ...[
+              const SizedBox(height: 8),
+              _contactField(
+                'dropoff_name',
+                tr(
+                  'Nom de la personne qui reçoit',
+                  'Name of the person receiving',
+                  'Nombre de quien recibe',
+                ),
               ),
-            ),
-            (
-              'dropoff_phone',
-              tr(
-                'Téléphone à la livraison',
-                'Delivery phone',
-                'Teléfono en entrega',
+              _contactField(
+                'dropoff_phone',
+                tr(
+                  'Téléphone de la personne qui reçoit',
+                  'Phone of the person receiving',
+                  'Teléfono de quien recibe',
+                ),
               ),
-            ),
-            (
+            ],
+            _contactField(
               'instructions',
               tr(
-                'Instructions (facultatif)',
-                'Instructions (optional)',
-                'Instrucciones (opcional)',
+                'Un mot pour le chauffeur (facultatif)',
+                'A note for the driver (optional)',
+                'Una nota para el conductor (opcional)',
+              ),
+              hint: tr(
+                'Ex. : sonner à la porte de côté',
+                'E.g. ring at the side door',
+                'Ej.: tocar la puerta lateral',
               ),
             ),
-          ])
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(field.$2, key: ValueKey('contact-label-${field.$1}')),
-                  const SizedBox(height: 8),
-                  Semantics(
-                    label: field.$2,
-                    child: TextFormField(
-                      key: ValueKey('${_draft.id}-${field.$1}'),
-                      initialValue: _draft.contacts[field.$1] as String? ?? '',
-                      keyboardType: field.$1.contains('phone')
-                          ? TextInputType.phone
-                          : TextInputType.text,
-                      autofillHints: field.$1.contains('phone')
-                          ? [AutofillHints.telephoneNumber]
-                          : null,
-                      decoration: InputDecoration(
-                        helperText: field.$1.contains('phone')
-                            ? _contactPhoneHint
-                            : null,
-                        helperMaxLines: 16,
-                        errorMaxLines: 20,
+          ],
+        ),
+      ),
+      _next(
+        _nextLabel,
+        () {
+          if (_sameRecipient) {
+            _copyRecipient();
+            _changed(quote: false);
+          }
+          if (_contactsForm.currentState?.validate() == true) _step(3);
+        },
+        key: const ValueKey('booking-next-details'),
+      ),
+    ];
+  }
+
+  /// "Ce que vous payez, et quand", in 3 sentences (owner mockup 2026-10-23).
+  Widget _paymentTimeline() {
+    Widget line(String bold, String text, {Color dot = const Color(0xFF0F2A5C)}) =>
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 6, right: 12),
+                decoration: BoxDecoration(
+                  color: dot,
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '$bold ',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                      // Match normalizeContacts: 8–25 allowed characters after
-                      // an optional leading +. Keep invalid pasted text editable.
-                      maxLength: field.$1 == 'instructions'
-                          ? 1200
-                          : field.$1.contains('phone')
-                          ? ((_draft.contacts[field.$1] as String? ?? '')
-                                    .startsWith('+')
-                                ? 26
-                                : 25)
-                          : 120,
-                      maxLengthEnforcement: field.$1.contains('phone')
-                          ? MaxLengthEnforcement.none
-                          : null,
-                      validator: (v) {
-                        if (field.$1 == 'instructions') return null;
-                        if (v == null || v.trim().isEmpty) {
-                          return tr('Champ requis', 'Required', 'Obligatorio');
-                        }
-                        if (field.$1.contains('phone') &&
-                            (!RegExp(r'^\+?[0-9 ()-]{8,25}$').hasMatch(v) ||
-                                v.replaceAll(RegExp(r'\D'), '').length < 8)) {
-                          return '${tr('Téléphone invalide', 'Invalid phone', 'Teléfono inválido')}\n$_contactPhoneHint';
-                        }
-                        return null;
-                      },
-                      onChanged: (v) {
-                        (_draft.data['contacts'] as Map)[field.$1] = v;
-                        _changed(quote: false);
-                      },
-                    ),
+                      TextSpan(text: text),
+                    ],
                   ),
-                ],
+                ),
+              ),
+            ],
+          ),
+        );
+    final low =
+        _draft.quote?['customerTotal'] is num &&
+        (_draft.quote!['customerTotal'] as num) < 30;
+    return Card(
+      margin: const EdgeInsets.only(top: 12),
+      child: ExpansionTile(
+        key: const ValueKey('booking-payment-timeline'),
+        initiallyExpanded: true,
+        title: Text(
+          tr(
+            'Ce que vous payez, et quand',
+            'What you pay, and when',
+            'Qué pagas y cuándo',
+          ),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          line(
+            tr('Maintenant :', 'Now:', 'Ahora:'),
+            tr(
+              'vous enregistrez votre carte chez Stripe. Rien n’est débité.',
+              'you save your card with Stripe. Nothing is charged.',
+              'guardas tu tarjeta en Stripe. No se cobra nada.',
+            ),
+          ),
+          line(
+            tr(
+              'Quand un chauffeur accepte :',
+              'When a driver accepts:',
+              'Cuando un conductor acepta:',
+            ),
+            tr(
+              'le montant est réservé sur votre carte (au moins 30 \$).',
+              'the amount is held on your card (at least 30 \$).',
+              'el monto se reserva en tu tarjeta (al menos 30 \$).',
+            ),
+          ),
+          line(
+            tr('Après la livraison :', 'After delivery:', 'Después de la entrega:'),
+            tr(
+              'seul votre prix est débité. Le reste est libéré.',
+              'only your price is charged. The rest is released.',
+              'solo se cobra tu precio. El resto se libera.',
+            ),
+          ),
+          line(
+            tr(
+              'Annulation tardive ou déplacement pour rien :',
+              'Late cancellation or wasted trip:',
+              'Cancelación tardía o viaje en vano:',
+            ),
+            '30 \$.',
+            dot: const Color(0xFFB85E10),
+          ),
+          if (low)
+            Padding(
+              key: const ValueKey('booking-minimum-hold'),
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                tr(
+                  'Votre prix est inférieur à 30 \$ : 30 \$ sont réservés, puis seul votre prix est prélevé à la fin.',
+                  'Your price is below 30 \$: 30 \$ is held, then only your price is charged at the end.',
+                  'Tu precio es inferior a 30 \$: se reservan 30 \$ y al final solo se cobra tu precio.',
+                ),
+                style: const TextStyle(color: Color(0xFF54607A)),
               ),
             ),
         ],
       ),
-    ),
-    _button(
-      _canPay && _draft.quoteValid
-          ? tr(
-              'Vérifier et confirmer',
-              'Review and confirm',
-              'Revisar y confirmar',
-            )
-          : tr('Consulter le résumé', 'Review my draft', 'Ver el resumen'),
-      () {
-        if (_contactsForm.currentState?.validate() == true) _step(3);
-      },
-    ),
-  ];
+    );
+  }
+
+  /// Screen 7: confirm and pay.
   List<Widget> _confirmation(FirebaseAuthProvider auth) => [
-    _heading(_titles[3]),
+    BookingQuestion(
+      tr('Dernière étape', 'Last step', 'Último paso'),
+      hint: tr(
+        'Vérifiez, acceptez les conditions, enregistrez votre carte.',
+        'Check, accept the terms, save your card.',
+        'Verifica, acepta las condiciones y guarda tu tarjeta.',
+      ),
+    ),
     if (_internalTestAllowed && _assignmentPending && _draft.quoteValid) ...[
       _note(
         tr(
@@ -2673,59 +2966,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'Precio no disponible: el precio oficial debe calcularse antes de confirmar.',
         ),
       ),
-    Text('${_pickup.text}\n↓\n${_dropoff.text}'),
-    const SizedBox(height: 12),
-    for (final item in _draft.items)
-      Text(
-        '${item['quantity']} × ${item['label']} · ${_dimensionText(item['length']) ?? '?'} × ${_dimensionText(item['width']) ?? '?'} × ${_dimensionText(item['height']) ?? '?'} ${item['dimension_unit']} · ${item['weight'] ?? '?'} ${item['weight_unit']}',
-      ),
-    if (_draft.isImmediate)
-      Text(
-        tr(
-          'Dès maintenant — selon la disponibilité du chauffeur',
-          'As soon as possible — subject to driver availability',
-          'Lo antes posible — según la disponibilidad del conductor',
-        ),
-      )
-    else
-      _localizedTime(
-        _draft.data['requested_at'] as String?,
-        prefix: tr('Créneau demandé', 'Requested time', 'Horario solicitado'),
-      ),
-    Text(
-      '${tr('Manutentionnaires', 'Handlers', 'Personas para cargar')} : ${_draft.data['handlers']}',
-    ),
-    Text(
-      '${tr('Ramassage', 'Pickup', 'Recogida')} : ${_draft.contacts['pickup_name']} · ${_draft.contacts['pickup_phone']}',
-    ),
-    Text(
-      '${tr('Livraison', 'Delivery', 'Entrega')} : ${_draft.contacts['dropoff_name']} · ${_draft.contacts['dropoff_phone']}',
-    ),
-    Wrap(
-      spacing: 8,
-      children: [
-        TextButton(
-          onPressed: () => _step(0, part: 0),
-          child: Text(
-            tr('Modifier la livraison', 'Edit delivery', 'Modificar entrega'),
-          ),
-        ),
-        TextButton(
-          onPressed: () => _step(2),
-          child: Text(
-            tr(
-              'Modifier mes coordonnées',
-              'Edit my details',
-              'Modificar mis datos',
-            ),
-          ),
-        ),
-      ],
-    ),
-    if (_draft.quote != null) ...[
-      _quoteLoadSummary(collapsible: false),
-      ..._quoteSummary(),
-    ],
+    if (_draft.quote != null) _priceHero(compact: true),
+    _recap(contacts: true),
     if (!_draft.quoteValid)
       _button(
         tr(
@@ -2738,6 +2980,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           await _ensureFreshQuote();
         }),
       ),
+    _paymentTimeline(),
+    if (_draft.quote != null) _priceDetails(),
     // Without approved terms, the single availability banner above already
     // explains that booking is not open; do not repeat it here.
     if (_policy != null) ...[
@@ -2775,48 +3019,25 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         },
       ),
     ],
-    _note(
-      tr(
-        'La préparation du moyen de paiement est distincte de l’autorisation et du paiement final. Consultez les conditions de paiement affichées.',
-        'Preparing a payment method is separate from authorization and final payment. Review the displayed payment terms.',
-        'La preparación del método de pago es distinta de la autorización y del pago final. Consulta las condiciones de pago mostradas.',
-      ),
-    ),
-    if (_draft.quote?['customerTotal'] is num &&
-        (_draft.quote!['customerTotal'] as num) < 30)
-      _note(
-        tr(
-          'Votre prix est inférieur à 30 \$ : quand un chauffeur accepte, 30 \$ sont bloqués sur votre carte pour garantir les frais d’annulation ou de déplacement. À la fin de la livraison, seul votre prix est prélevé et le reste est libéré.',
-          'Your price is below 30 \$: when a driver accepts, 30 \$ is held on your card to cover cancellation or travel fees. At the end of the delivery, only your price is charged and the rest is released.',
-          'Tu precio es inferior a 30 \$: cuando un conductor acepta, se retienen 30 \$ en tu tarjeta para cubrir los cargos de cancelación o desplazamiento. Al final de la entrega, solo se cobra tu precio y el resto se libera.',
-        ),
-        key: const ValueKey('booking-minimum-hold'),
-      ),
     if (auth.user?.emailVerified != true)
       _note(
         tr(
-          'Votre courriel doit être vérifié à l’étape 3.',
-          'Verify your email in step 3.',
-          'Verifica tu correo en el paso 3.',
+          'Votre courriel doit être vérifié à l’étape 6.',
+          'Verify your email in step 6.',
+          'Verifica tu correo en el paso 6.',
         ),
         warning: true,
       ),
     if (_cardReady)
       _note(
         tr(
-          'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
-          'Payment method ready for confirmation. This does not confirm an authorization or a payment.',
-          'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
+          'Carte enregistrée. Rien n’est débité maintenant.',
+          'Card saved. Nothing is charged now.',
+          'Tarjeta guardada. No se cobra nada ahora.',
         ),
+        key: const ValueKey('booking-card-ready'),
       )
     else ...[
-      _note(
-        tr(
-          'Préparation du moyen de paiement non confirmée.',
-          'Payment method preparation is not confirmed.',
-          'La preparación del método de pago no está confirmada.',
-        ),
-      ),
       _button(
         tr(
           'Enregistrer ma carte avec Stripe',
@@ -2825,6 +3046,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         _readyToConfirm(auth) ? () => _run(_setupCard) : null,
         icon: Icons.lock_outline,
+      ),
+      Text(
+        tr(
+          'Paiement sécurisé par Stripe. Movi-K ne voit jamais votre numéro de carte.',
+          'Payment secured by Stripe. Movi-K never sees your card number.',
+          'Pago protegido por Stripe. Movi-K nunca ve el número de tu tarjeta.',
+        ),
+        style: Theme.of(context).textTheme.bodySmall,
       ),
       TextButton(
         onPressed: _canPay && !_busy ? () => _run(_refreshCard) : null,
@@ -2837,13 +3066,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ),
     ],
-    _note(
-      tr(
-        'Le bouton envoie votre demande de livraison au prix affiché. Aucun chauffeur ni créneau n’est confirmé à cette étape. Il ne déclenche pas le prélèvement.',
-        'The button submits your delivery request at the displayed price. No driver or time slot is confirmed at this stage. It does not trigger the charge.',
-        'El botón envía tu solicitud de entrega al precio mostrado. Aún no se confirma conductor ni horario. No inicia el cobro.',
-      ),
-    ),
     if (_confirmBlockers(auth).isNotEmpty)
       Container(
         key: const ValueKey('booking-confirm-blockers'),
@@ -2852,14 +3074,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           warning: true,
         ),
       ),
-    _button(
+    _next(
       tr(
         'Confirmer ma demande de livraison',
         'Confirm my delivery request',
         'Confirmar mi solicitud de entrega',
       ),
       _cardReady && _readyToConfirm(auth) ? () => _run(_confirm) : null,
-      icon: Icons.check,
+      key: const ValueKey('booking-confirm'),
     ),
   ];
   Widget _quoteLoadSummary({bool collapsible = true}) => BookingLoadSummary(
@@ -2898,15 +3120,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
     if (_draft.quote == null)
       tr(
-        'calculer votre prix (étape 2).',
-        'calculate your price (step 2).',
-        'calcular tu precio (paso 2).',
+        'calculer votre prix (étape 5).',
+        'calculate your price (step 5).',
+        'calcular tu precio (paso 5).',
       ),
     if (auth.user?.emailVerified != true)
       tr(
-        'vérifier votre adresse courriel (étape 3).',
-        'verify your email address (step 3).',
-        'verificar tu correo (paso 3).',
+        'vérifier votre adresse courriel (étape 6).',
+        'verify your email address (step 6).',
+        'verificar tu correo (paso 6).',
       ),
     if (_policy != null && !_acceptanceCurrent)
       tr(
