@@ -439,7 +439,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           _Section(
             title: t('admin_pricing_section_trip'),
             note: t('admin_pricing_section_trip_note'),
-            children: [
+            fields: [
               money(
                 'admin_pricing_base_fare',
                 draft.baseFare,
@@ -464,7 +464,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           ),
           _Section(
             title: t('admin_pricing_section_handling'),
-            children: [
+            fields: [
               money(
                 'admin_pricing_loading',
                 draft.loadingFee,
@@ -505,7 +505,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           _Section(
             title: t('admin_pricing_section_movik'),
             note: t('admin_pricing_section_movik_note'),
-            children: [
+            fields: [
               percent(
                 'admin_pricing_service_rate',
                 draft.serviceFeeRate,
@@ -536,7 +536,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           _Section(
             title: t('admin_pricing_section_fees'),
             note: t('admin_pricing_fee_note'),
-            children: [
+            fields: [
               money(
                 'admin_pricing_fee_total',
                 draft.feeTotalMinor / 100,
@@ -566,7 +566,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           ),
           _Section(
             title: t('admin_pricing_section_quote'),
-            children: [
+            fields: [
               _NumberField(
                 key: ValueKey('admin_pricing_quote_validity-$gen'),
                 label: t('admin_pricing_quote_validity'),
@@ -580,7 +580,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           ),
           _Section(
             title: t('admin_pricing_section_locked'),
-            children: [
+            fields: [
               _LockedLine(t('admin_pricing_locked_taxes')),
               _LockedLine(t('admin_pricing_locked_items')),
               _LockedLine(t('admin_pricing_locked_unused')),
@@ -599,7 +599,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           _Section(
             title: t('admin_pricing_section_simulator'),
             note: t('admin_pricing_simulator_note'),
-            children: [
+            fields: [
               _NumberField(
                 key: const ValueKey('admin_pricing_custom_km'),
                 label: t('admin_pricing_custom_km'),
@@ -648,7 +648,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           ),
           _Section(
             title: t('admin_pricing_section_publish'),
-            children: const [],
+            fields: const [],
             footer: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -700,7 +700,7 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
           if (_history.isNotEmpty)
             _Section(
               title: t('admin_pricing_section_history'),
-              children: const [],
+              fields: const [],
               footer: Column(
                 children: _history
                     .map(
@@ -723,11 +723,11 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
 class _Section extends StatelessWidget {
   final String title;
   final String? note;
-  final List<Widget> children;
+  final List<Widget> fields;
   final Widget? footer;
   const _Section({
     required this.title,
-    required this.children,
+    required this.fields,
     this.note,
     this.footer,
   });
@@ -760,13 +760,13 @@ class _Section extends StatelessWidget {
               ),
             ),
           ],
-          if (children.isNotEmpty) ...[
+          if (fields.isNotEmpty) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               crossAxisAlignment: WrapCrossAlignment.center,
-              children: children,
+              children: fields,
             ),
           ],
           if (footer != null) ...[const SizedBox(height: 12), footer!],
