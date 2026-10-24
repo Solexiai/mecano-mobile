@@ -545,6 +545,11 @@ export interface PaymentDoc {
   // travel fee, so that fee can always be collected (owner decision
   // 2026-10-23). Absent on older payments: capture the authorized amount.
   service_amount_minor?: number;
+  // Set when the capture collected a mission fee instead of the delivery
+  // price (missionFeeOrchestration.ts). Lets the admin finance page label the
+  // payment ("Frais d'annulation tardive", "Déplacement inutile").
+  capture_purpose?: "mission_fee";
+  fee_kind?: "late_cancellation" | "customer_failed_delivery";
   amount_captured_minor: number;
   amount_refunded_minor: number;
   application_fee_minor: number; // commission Movi-K + frais de service, en cents

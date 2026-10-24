@@ -48,6 +48,28 @@ class PaymentInfo {
   /// du `FinancialSnapshot` pour la vraie ventilation client).
   final int applicationFeeMinor;
 
+  /// Prix de la livraison à capturer (`service_amount_minor`). Le blocage de
+  /// carte (`amountAuthorizedMinor`) peut être plus élevé : au moins les
+  /// frais d'annulation de 30 $ (décision du 23 octobre 2026). Absent sur
+  /// les anciens paiements : `null`, et le prix vaut alors le montant
+  /// autorisé.
+  final int? serviceAmountMinor;
+
+  /// `"mission_fee"` quand la capture a prélevé des frais d'annulation ou de
+  /// déplacement plutôt que le prix de la livraison.
+  final String? capturePurpose;
+
+  /// Type de frais prélevés (`late_cancellation`,
+  /// `customer_failed_delivery`), absent sur les paiements antérieurs au
+  /// 24 octobre 2026.
+  final String? feeKind;
+
+  /// Environnement Stripe du paiement (`test` ou `live`).
+  final String? stripeEnvironment;
+
+  /// Compte Stripe Connect du chauffeur, si le versement passe par Connect.
+  final String? connectedAccountId;
+
   final String provider; // 'stripe'
   final String? providerCustomerId;
   final String? providerPaymentMethodId;
@@ -81,6 +103,11 @@ class PaymentInfo {
     required this.amountCapturedMinor,
     required this.amountRefundedMinor,
     required this.applicationFeeMinor,
+    this.serviceAmountMinor,
+    this.capturePurpose,
+    this.feeKind,
+    this.stripeEnvironment,
+    this.connectedAccountId,
     required this.provider,
     this.providerCustomerId,
     this.providerPaymentMethodId,
@@ -121,6 +148,11 @@ class PaymentInfo {
         amountCapturedMinor: amountCapturedMinor,
         amountRefundedMinor: amountRefundedMinor,
         applicationFeeMinor: applicationFeeMinor,
+        serviceAmountMinor: serviceAmountMinor,
+        capturePurpose: capturePurpose,
+        feeKind: feeKind,
+        stripeEnvironment: stripeEnvironment,
+        connectedAccountId: connectedAccountId,
         provider: provider,
         providerCustomerId: providerCustomerId,
         providerPaymentMethodId: providerPaymentMethodId,
@@ -149,6 +181,11 @@ class PaymentInfo {
         'amount_captured_minor': amountCapturedMinor,
         'amount_refunded_minor': amountRefundedMinor,
         'application_fee_minor': applicationFeeMinor,
+        'service_amount_minor': serviceAmountMinor,
+        'capture_purpose': capturePurpose,
+        'fee_kind': feeKind,
+        'stripe_environment': stripeEnvironment,
+        'connected_account_id': connectedAccountId,
         'provider': provider,
         'provider_customer_id': providerCustomerId,
         'provider_payment_method_id': providerPaymentMethodId,
@@ -181,6 +218,11 @@ class PaymentInfo {
       amountCapturedMinor: (json['amount_captured_minor'] as num? ?? 0).toInt(),
       amountRefundedMinor: (json['amount_refunded_minor'] as num? ?? 0).toInt(),
       applicationFeeMinor: (json['application_fee_minor'] as num? ?? 0).toInt(),
+      serviceAmountMinor: (json['service_amount_minor'] as num?)?.toInt(),
+      capturePurpose: json['capture_purpose'] as String?,
+      feeKind: json['fee_kind'] as String?,
+      stripeEnvironment: json['stripe_environment'] as String?,
+      connectedAccountId: json['connected_account_id'] as String?,
       provider: json['provider'] as String? ?? 'stripe',
       providerCustomerId: json['provider_customer_id'] as String?,
       providerPaymentMethodId: json['provider_payment_method_id'] as String?,

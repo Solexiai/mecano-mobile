@@ -20,6 +20,7 @@ import '../../../../../finance/models/mission_financial_balance.dart';
 import '../../../../../finance/models/payment_info.dart';
 import '../../../../../finance/models/refund_info.dart';
 import '../../../../../finance/models/transaction_ledger.dart';
+import '../../../../../finance/presentation/admin_payment_presenter.dart';
 import '../../../../../finance/presentation/money_format.dart';
 import '../../../../../models/enums.dart';
 import '../../../../../providers/locale_provider.dart';
@@ -37,7 +38,7 @@ class AdminPaymentDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('${t('admin_payments_col_id')}: $paymentId')),
       body: StreamBuilder<List<PaymentInfo>>(
-        stream: repo.watchPayments(limit: 50),
+        stream: repo.watchPayments(limit: kAdminPaymentsLimit),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return FinanceLoadingState(message: t('admin_finance_loading'));
@@ -137,6 +138,7 @@ class _PaymentSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final view = AdminPaymentView(payment);
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,24 +190,69 @@ class _PaymentSummaryCard extends StatelessWidget {
             ],
           ),
           const Divider(height: 28),
+          Text(
+            t(adminPaymentKindKey(view.kind)),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 10),
           Wrap(
             spacing: 24,
             runSpacing: 10,
             children: [
+              if (!view.isFee)
+                _AmountBlock(
+                  label: t('admin_payments_price'),
+                  minor: view.deliveryPriceMinor,
+                ),
               _AmountBlock(
-                label: t('admin_payments_col_authorized'),
-                minor: payment.amountAuthorizedMinor,
+                label: t('admin_payments_hold'),
+                minor: view.holdMinor,
               ),
               _AmountBlock(
                 label: t('admin_payments_col_captured'),
                 minor: payment.amountCapturedMinor,
               ),
               _AmountBlock(
+                label: t('admin_payments_released'),
+                minor: view.releasedMinor,
+              ),
+              _AmountBlock(
                 label: t('admin_payments_col_refunded'),
                 minor: payment.amountRefundedMinor,
               ),
+              if (view.platformShareMinor != null)
+                _AmountBlock(
+                  label: t('admin_payments_share_platform'),
+                  minor: view.platformShareMinor!,
+                ),
+              if (view.driverShareMinor != null)
+                _AmountBlock(
+                  label: t('admin_payments_share_driver'),
+                  minor: view.driverShareMinor!,
+                ),
             ],
           ),
+          if (view.holdExceedsPrice && !view.isFee) ...[
+            const SizedBox(height: 10),
+            Text(
+              t('admin_payments_hold_explained'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (view.captureDone && !view.viaStripeConnect) ...[
+            const SizedBox(height: 6),
+            Text(
+              t('admin_payments_no_connect'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.warning,
+              ),
+            ),
+          ],
           if (payment.failureMessage != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -234,7 +281,10 @@ class _AmountBlock extends StatelessWidget {
           style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
         ),
         Text(
-          formatMinorAmount(minor),
+          formatMajorAmount(
+            minor / 100,
+            locale: context.watch<LocaleProvider>().locale,
+          ),
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
         ),
       ],

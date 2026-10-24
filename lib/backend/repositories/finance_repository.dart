@@ -103,6 +103,11 @@ abstract class FinanceRepository {
     int limit = 50,
   });
 
+  /// Courriels des clients (`users/{id}.email`) pour l'affichage admin des
+  /// paiements. Lecture réservée aux rôles analyste et plus (règles
+  /// Firestore). Les identifiants introuvables sont simplement absents.
+  Future<Map<String, String>> adminGetUserEmails(Set<String> userIds);
+
   /// Remboursements les plus récents, optionnellement filtrés par statut.
   Stream<List<RefundInfo>> watchRefunds({RefundStatus? status, int limit = 50});
 
@@ -286,6 +291,10 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
     PaymentStatus? status,
     int limit = 50,
   }) => Stream.value(const []);
+
+  @override
+  Future<Map<String, String>> adminGetUserEmails(Set<String> userIds) async =>
+      const {};
 
   @override
   Stream<List<RefundInfo>> watchRefunds({

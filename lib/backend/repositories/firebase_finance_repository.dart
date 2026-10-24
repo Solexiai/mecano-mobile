@@ -344,6 +344,25 @@ class FirebaseFinanceRepository implements FinanceRepository {
   }
 
   @override
+  Future<Map<String, String>> adminGetUserEmails(Set<String> userIds) async {
+    final ids = userIds.where((id) => id.isNotEmpty).toList();
+    final result = <String, String>{};
+    // `whereIn` accepte au plus 30 valeurs : lots de 10 par prudence.
+    for (var i = 0; i < ids.length; i += 10) {
+      final end = i + 10 < ids.length ? i + 10 : ids.length;
+      final snap = await _db
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: ids.sublist(i, end))
+          .get();
+      for (final doc in snap.docs) {
+        final email = doc.data()['email'];
+        if (email is String && email.isNotEmpty) result[doc.id] = email;
+      }
+    }
+    return result;
+  }
+
+  @override
   Stream<List<RefundInfo>> watchRefunds({
     RefundStatus? status,
     int limit = 50,
