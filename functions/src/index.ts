@@ -72,6 +72,7 @@ export { reverseDriverPayout } from "./functions/reverseDriverPayout";
 export { applyDriverPromotion } from "./functions/applyDriverPromotion";
 export { qualifyFoundingDriver, revokeFoundingDriverStatus } from "./functions/qualifyFoundingDriver";
 export { updatePricingConfiguration } from "./functions/updatePricingConfiguration";
+export { previewPricingConfiguration } from "./functions/previewPricingConfiguration";
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";

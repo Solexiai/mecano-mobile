@@ -18,7 +18,7 @@ import { admin, db } from "../lib/admin";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { aborted, failedPrecondition, invalidArgument, notFound } from "../lib/errors";
-import { DRIVER_COMMITTED_STATUSES, MISSION_FEE_POLICY, missionFeeAmounts } from "../lib/missionFees";
+import { DRIVER_COMMITTED_STATUSES, missionFeeAmounts, missionFeePolicyFrom } from "../lib/missionFees";
 import { MissionStatuses, PaymentStatuses } from "../lib/types";
 
 export const chargeWastedTripFee = onCall(async (request) => {
@@ -55,7 +55,9 @@ export const chargeWastedTripFee = onCall(async (request) => {
     if (!payment || payment.status !== PaymentStatuses.AUTHORIZED || payment.mission_id !== missionId) {
       throw failedPrecondition("Aucune autorisation de carte active : frais non percevables, à traiter manuellement.");
     }
-    const amounts = missionFeeAmounts(payment.amount_authorized_minor as number);
+    // Amounts frozen on the card hold when the driver accepted.
+    const policy = missionFeePolicyFrom(payment.mission_fee_policy);
+    const amounts = missionFeeAmounts(payment.amount_authorized_minor as number, policy);
     if (amounts.total_minor <= 0) throw failedPrecondition("Montant autorisé invalide.");
 
     const now = admin.firestore.Timestamp.now();
@@ -69,7 +71,7 @@ export const chargeWastedTripFee = onCall(async (request) => {
         status: "pending",
         ...amounts,
         payment_id: paymentId,
-        policy_version: MISSION_FEE_POLICY.version,
+        policy_version: policy.version,
         decided_at: now,
         decided_by: ctx.uid,
         note: reason.trim(),
@@ -82,7 +84,7 @@ export const chargeWastedTripFee = onCall(async (request) => {
       action: "mission_wasted_trip_fee",
       sourceFunction: "chargeWastedTripFee",
       targetId: missionId,
-      metadata: { previousStatus: mission.status, ...amounts, policyVersion: MISSION_FEE_POLICY.version,
+      metadata: { previousStatus: mission.status, ...amounts, policyVersion: policy.version,
         reason: reason.trim() },
     });
     return { success: true, missionId, feeMinor: amounts.total_minor };

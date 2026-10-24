@@ -49,6 +49,7 @@ import '../../finance/models/dispute_info.dart';
 import '../../finance/models/reconciliation_report.dart';
 import '../../finance/models/tax_configuration.dart';
 import '../../finance/models/payout_policy_configuration.dart';
+import '../../finance/models/pricing_grid_admin.dart';
 import 'finance_repository.dart';
 
 class FirebaseFinanceRepository implements FinanceRepository {
@@ -341,6 +342,88 @@ class FirebaseFinanceRepository implements FinanceRepository {
       items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return items;
     });
+  }
+
+  @override
+  Future<AdminPricingVersionInfo?> adminGetActivePricingVersion() async {
+    final pointer = await _pricingConfigs.doc('active').get();
+    final raw = pointer.data()?['active_pricing_version'];
+    if (raw is! String || raw.trim().isEmpty) return null;
+    final id = raw.trim();
+    final snap = await _pricingVersions.doc(id).get();
+    final data = snap.data();
+    if (data == null) return null;
+    return AdminPricingVersionInfo.fromDoc(id, data);
+  }
+
+  @override
+  Future<List<AdminPricingVersionInfo>> adminListPricingVersions({
+    int limit = 15,
+  }) async {
+    final snap = await _pricingVersions
+        .orderBy('effective_from', descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs
+        .map((d) => AdminPricingVersionInfo.fromDoc(d.id, d.data()))
+        .toList();
+  }
+
+  PricingGridException _pricingError(FirebaseFunctionsException e) {
+    final details = e.details is Map ? e.details as Map : const {};
+    final errors = details['errors'] is List
+        ? (details['errors'] as List).map((x) => '$x').toList()
+        : const <String>[];
+    return PricingGridException(
+      code: e.code,
+      message: e.message ?? e.code,
+      reason: details['reason'] as String?,
+      errors: errors,
+    );
+  }
+
+  @override
+  Future<PricingPreviewResult> adminPreviewPricing({
+    required Map<String, dynamic> config,
+    required List<Map<String, dynamic>> scenarios,
+    String? vehicleCategory,
+  }) async {
+    try {
+      final result = await _functions
+          .httpsCallable('previewPricingConfiguration')
+          .call({
+            'config': config,
+            'scenarios': scenarios,
+            if (vehicleCategory != null) 'vehicleCategory': vehicleCategory,
+          });
+      return PricingPreviewResult.fromJson(callableMap(result.data));
+    } on FirebaseFunctionsException catch (e) {
+      throw _pricingError(e);
+    }
+  }
+
+  @override
+  Future<String> adminPublishPricing({
+    required Map<String, dynamic> config,
+    required String? basedOnVersion,
+    required bool feeTextUpdated,
+    String? changeNote,
+  }) async {
+    try {
+      final result = await _functions
+          .httpsCallable('updatePricingConfiguration')
+          .call({
+            'config': config,
+            'basedOnPricingVersion': basedOnVersion,
+            'feeTextUpdated': feeTextUpdated,
+            if (changeNote != null && changeNote.trim().isNotEmpty)
+              'changeNote': changeNote.trim(),
+          });
+      final data = callableMap(result.data);
+      return '${data['pricingVersion'] ?? ''}';
+    } on FirebaseFunctionsException catch (e) {
+      throw _pricingError(e);
+    }
   }
 
   @override

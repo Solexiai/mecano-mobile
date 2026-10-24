@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
@@ -139,8 +140,38 @@ class _AdminMissionFailureReviewState extends State<AdminMissionFailureReview> {
     }
   }
 
+  /// Fee frozen on the mission's card hold (`payments/{id}.mission_fee_policy`),
+  /// else the 2026-10-23 defaults: 30 $ = 25 $ driver + 5 $ Movi-K.
+  Future<(int, int, int)> _travelFeeAmounts() async {
+    const fallback = (3000, 2500, 500);
+    try {
+      final payment = await BackendLocator.financeRepository
+          .watchPaymentForMission(widget.mission.id)
+          .first
+          .timeout(const Duration(seconds: 5));
+      final total = payment?.missionFeeTotalMinor;
+      final driver = payment?.missionFeeDriverMinor;
+      final platform = payment?.missionFeePlatformMinor;
+      if (total == null || driver == null || platform == null) return fallback;
+      return (total, driver, platform);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
   Future<void> _travelFee(String reason, String locale) async {
     String c(String fr, String en, String es) => _copy(locale, fr, en, es);
+    final (feeTotal, feeDriver, feePlatform) = await _travelFeeAmounts();
+    if (!mounted) return;
+    String m(int minor) {
+      final amount = (minor / 100).toStringAsFixed(2);
+      return locale.startsWith('en')
+          ? '\$$amount'
+          : '${amount.replaceAll('.', ',')} \$';
+    }
+    final total = m(feeTotal);
+    final driver = m(feeDriver);
+    final platform = m(feePlatform);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -153,9 +184,9 @@ class _AdminMissionFailureReviewState extends State<AdminMissionFailureReview> {
         ),
         content: Text(
           c(
-            'La mission sera annulée et 30,00 \$ seront débités de la carte du client (25 \$ pour le chauffeur, 5 \$ de frais d’administration). Le reste du blocage est libéré.',
-            'The job will be cancelled and \$30.00 charged to the customer’s card (\$25 for the driver, \$5 administration fee). The rest of the hold is released.',
-            'El servicio se cancelará y se cobrarán 30,00 \$ a la tarjeta del cliente (25 \$ para el conductor, 5 \$ de gastos de administración). El resto de la retención se libera.',
+            'La mission sera annulée et $total seront débités de la carte du client ($driver pour le chauffeur, $platform de frais d’administration). Le reste du blocage est libéré.',
+            'The job will be cancelled and $total charged to the customer’s card ($driver for the driver, $platform administration fee). The rest of the hold is released.',
+            'El servicio se cancelará y se cobrarán $total a la tarjeta del cliente ($driver para el conductor, $platform de gastos de administración). El resto de la retención se libera.',
           ),
         ),
         actions: [
@@ -166,7 +197,7 @@ class _AdminMissionFailureReviewState extends State<AdminMissionFailureReview> {
           FilledButton(
             key: const Key('travel-fee-submit'),
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text(c('Facturer 30,00 \$', 'Charge \$30.00', 'Cobrar 30,00 \$')),
+            child: Text(c('Facturer $total', 'Charge $total', 'Cobrar $total')),
           ),
         ],
       ),
