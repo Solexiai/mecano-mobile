@@ -88,7 +88,7 @@ void main() {
       );
       await tapBooking(tester, 'Calculer mon prix officiel');
       await tapBooking(tester, 'Réserver à ce prix');
-      await tapBooking(tester, 'Consulter le résumé');
+      await tapBookingKeyIfShown(tester, 'booking-next-details');
       await tapBooking(tester, 'Créer la demande de test — sans paiement');
       expect(
         a.calls.where((name) => name == 'createDeliveryRequest'),

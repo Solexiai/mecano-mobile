@@ -55,6 +55,17 @@ MemoryBookingStorage storage() {
   return MemoryBookingStorage(d);
 }
 
+// Simple card since 2026-10-24: a recognized item shows « On dirait : … »;
+// « Non, changer » opens the fields and the analyze button.
+Future<void> openEditor(WidgetTester t) async {
+  final change = find.byKey(const ValueKey('photo-change-test-item'));
+  if (change.evaluate().isEmpty) return;
+  await t.ensureVisible(change);
+  await t.pumpAndSettle();
+  await t.tap(change);
+  await t.pumpAndSettle();
+}
+
 void main() {
   final bytes = File('assets/home/brand_logo.png').readAsBytesSync();
   testWidgets(
@@ -69,11 +80,16 @@ void main() {
         photoLoader: (_) async => bytes,
       );
       expect(api.analyses, 0);
+      await openEditor(t);
       await tapBooking(t, 'Analyser la photo');
       expect(api.analyses, 1);
       expect(api.analysisPayload!['consent'], true);
       expect(api.analysisPayload!['photoPath'], path);
-      expect(find.text('Suggestion IA : Réfrigérateur fictif'), findsOneWidget);
+      expect(find.text('On dirait :'), findsOneWidget);
+      expect(
+        t.widget<Text>(find.byKey(const ValueKey('photo-guess-test-item'))).data,
+        'Réfrigérateur fictif',
+      );
       expect(find.text('Utiliser cette suggestion'), findsNothing);
       expect(s.saved!.items.single['category'], 'fridge');
       expect(s.saved!.items.single['label'], 'Réfrigérateur fictif');
@@ -81,6 +97,7 @@ void main() {
       for (final k in ['length', 'width', 'height', 'weight']) {
         expect(s.saved!.items.single[k], isNull);
       }
+      await openEditor(t);
       final label = find.descendant(
         of: find.byKey(const ValueKey('photo-label-test-item')),
         matching: find.byType(EditableText),
@@ -112,6 +129,7 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => bytes,
       );
+      await openEditor(t);
       await tapBooking(t, 'Analyser la photo');
       expect(find.textContaining('Analyse indisponible.'), findsOneWidget);
       expect(find.textContaining('RAW SECRET'), findsNothing);
@@ -119,7 +137,7 @@ void main() {
       api.analyze = () async => response();
       await tapBooking(t, 'Analyser la photo');
       expect(api.analyses, 2);
-      expect(find.textContaining('Suggestion IA'), findsOneWidget);
+      expect(find.text('On dirait :'), findsOneWidget);
       expect(find.textContaining('Analyse indisponible.'), findsNothing);
       await disposeBooking(t);
     },
@@ -137,6 +155,7 @@ void main() {
         photoIntakeEnabled: true,
         photoLoader: (_) async => bytes,
       );
+      await openEditor(t);
       final f = find.byKey(const ValueKey('photo-analyze-test-item'));
       await t.ensureVisible(f);
       await t.tap(f);
@@ -149,7 +168,7 @@ void main() {
       await t.pump(const Duration(milliseconds: 800));
       pending.complete(response());
       await t.pumpAndSettle();
-      expect(find.textContaining('Suggestion IA'), findsNothing);
+      expect(find.text('On dirait :'), findsNothing);
       expect(s.saved!.items.single['label'], 'Objet corrigé');
       await disposeBooking(t);
     },
@@ -165,6 +184,7 @@ void main() {
       photoIntakeEnabled: true,
       photoLoader: (_) async => bytes,
     );
+    await openEditor(t);
     final f = find.byKey(const ValueKey('photo-analyze-test-item'));
     await t.ensureVisible(f);
     await t.tap(f);

@@ -341,8 +341,8 @@ void main() {
           .widgetList<Text>(find.byType(Text))
           .map((w) => w.data ?? '')
           .firstWhere((x) => x.startsWith('Créneau demandé'));
-      await tapBooking(t, 'Modifier mes coordonnées');
-      await tapBooking(t, 'Vérifier et confirmer');
+      await tapBookingKeyIfShown(t, 'recap-edit-contacts');
+      await tapBookingKeyIfShown(t, 'booking-next-details');
       honest(t);
       expect(visibleText(t), contains(initial));
       await disposeBooking(t);

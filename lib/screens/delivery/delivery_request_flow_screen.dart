@@ -2453,7 +2453,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                         'Lo antes posible — según la disponibilidad del conductor',
                       ),
                     )
-                  : _localizedTime(_draft.data['requested_at'] as String?),
+                  : _localizedTime(
+                      _draft.data['requested_at'] as String?,
+                      prefix: tr(
+                        'Créneau demandé',
+                        'Requested time',
+                        'Horario solicitado',
+                      ),
+                    ),
               'when',
               () => _step(0, part: 3),
             ),
@@ -3028,16 +3035,25 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         warning: true,
       ),
+    // Never claim the card is saved: Stripe confirms it, then the server
+    // authorizes only when a driver accepts.
     if (_cardReady)
       _note(
         tr(
-          'Carte enregistrée. Rien n’est débité maintenant.',
-          'Card saved. Nothing is charged now.',
-          'Tarjeta guardada. No se cobra nada ahora.',
+          'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
+          'Payment method ready for confirmation. This does not confirm an authorization or a payment.',
+          'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
         ),
         key: const ValueKey('booking-card-ready'),
       )
     else ...[
+      _note(
+        tr(
+          'Préparation du moyen de paiement non confirmée.',
+          'Payment method preparation is not confirmed.',
+          'La preparación del método de pago no está confirmada.',
+        ),
+      ),
       _button(
         tr(
           'Enregistrer ma carte avec Stripe',

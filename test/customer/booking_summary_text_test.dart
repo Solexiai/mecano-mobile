@@ -30,6 +30,8 @@ void main() {
       }
       final api = TestBookingApi()..quote = Map<String, dynamic>.from(d.data['quote'] as Map);
       await pumpBooking(t, storage: MemoryBookingStorage(d), api: api);
+      // Folded under « Voir le détail du prix » since 2026-10-24.
+      await tapBookingKeyIfShown(t, 'booking-price-details');
       expect(find.textContaining('Rez-de-chaussée'), findsNWidgets(2));
       expect(find.text('Sans aide Movi-K'), findsNWidgets(2));
       expect(find.textContaining('Accès à préciser'), findsNothing);

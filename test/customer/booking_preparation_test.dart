@@ -46,7 +46,7 @@ void main() {
         );
         await tapBooking(t, 'Continuer à préparer ma demande');
         expect(storage.saved!.step, 2);
-        await tapBooking(t, 'Consulter le résumé');
+        await tapBookingKeyIfShown(t, 'booking-next-details');
         expect(storage.saved!.step, 3);
         expect(
           find.textContaining('Aucune réservation confirmée'),
@@ -63,7 +63,7 @@ void main() {
               .onPressed,
           isNull,
         );
-        await tapBooking(t, 'Modifier mes coordonnées');
+        await tapBookingKeyIfShown(t, 'recap-edit-contacts');
         expect(storage.saved!.contacts['pickup_phone'], '+15145550100');
         await disposeBooking(t);
         await pumpBooking(
@@ -105,7 +105,7 @@ void main() {
         findsNothing,
       );
       await tapBooking(t, 'Continuer à préparer ma demande');
-      expect(find.text('Nom au ramassage'), findsOneWidget);
+      expect(find.text('Votre nom'), findsOneWidget);
       expect(
         find.textContaining('Impossible de vérifier la disponibilité'),
         findsOneWidget,
@@ -163,7 +163,7 @@ void main() {
     expect(api.calls.where((n) => n == 'calculateDeliveryQuote'), hasLength(1));
     expect(api.calls, isNot(contains('reviewDeliveryLoad')));
     await tapBooking(t, 'Continuer à préparer ma demande');
-    await tapBooking(t, 'Consulter le résumé');
+    await tapBookingKeyIfShown(t, 'booking-next-details');
     expect(api.calls, isNot(contains('createDeliveryRequest')));
     await disposeBooking(t);
   });

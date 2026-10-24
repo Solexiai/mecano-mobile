@@ -67,6 +67,12 @@ void main() {
       final confirm = find.byKey(const ValueKey('photo-confirm-test-item'));
       expect(confirm, findsOneWidget);
       expect(api.calls, isNot(contains('reviewDeliveryLoad')));
+      // « Non, changer » opens the category (simple card, 2026-10-24).
+      final change = find.byKey(const ValueKey('photo-change-test-item'));
+      await t.ensureVisible(change);
+      await t.pumpAndSettle();
+      await t.tap(change);
+      await t.pumpAndSettle();
       final category = find.byKey(const ValueKey('photo-category-test-item'));
       await t.ensureVisible(category);
       await t.tap(category);

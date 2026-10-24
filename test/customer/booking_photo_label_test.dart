@@ -27,7 +27,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.text('Ajouter une photo'));
+    await tester.tap(find.text('Prendre une photo'));
     expect(taps, 1);
     expect(tester.takeException(), isNull);
   });

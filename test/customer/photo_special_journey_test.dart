@@ -63,7 +63,7 @@ void main() {
       await goToBookingPrice(t);
       expect(storage.saved!.quote!['customerTotal'], 123.45);
       await tapBooking(t, 'Réserver à ce prix');
-      await tapBooking(t, 'Vérifier et confirmer');
+      await tapBookingKeyIfShown(t, 'booking-next-details');
       final acceptance = find.byKey(
         const ValueKey('booking-contract-acceptance'),
       );

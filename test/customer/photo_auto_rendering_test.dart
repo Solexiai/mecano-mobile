@@ -68,6 +68,14 @@ void main() {
             ),
           );
           await t.pumpAndSettle();
+          // Simple card (2026-10-24): the guess first, the fields on « Non, changer ».
+          final change = find.byKey(const ValueKey('photo-change-sofa'));
+          if (change.evaluate().isNotEmpty) {
+            await t.ensureVisible(change);
+            await t.pumpAndSettle();
+            await t.tap(change);
+            await t.pumpAndSettle();
+          }
           expect(
             find.byKey(const ValueKey('photo-label-sofa')),
             findsOneWidget,

@@ -76,6 +76,13 @@ void main() {
       }
       expect(api.request!['consent'], true);
       expect(find.text('Utiliser cette suggestion'), findsNothing);
+      // Simple card (2026-10-24): the guess first, the fields on « Non, changer ».
+      expect(find.text('On dirait :'), findsOneWidget);
+      final change = find.byKey(ValueKey('photo-change-${item['id']}'));
+      await t.ensureVisible(change);
+      await t.pumpAndSettle();
+      await t.tap(change);
+      await t.pumpAndSettle();
       final label = find.byKey(ValueKey('photo-label-${item['id']}'));
       expect(label, findsOneWidget);
       await t.ensureVisible(label);
