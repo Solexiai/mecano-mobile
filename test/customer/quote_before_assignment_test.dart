@@ -87,7 +87,7 @@ void main() {
         photoIntakeEnabled: true,
       );
       await tapBooking(tester, 'Calculer mon prix officiel');
-      await tapBooking(tester, 'Continuer vers mes coordonnées');
+      await tapBooking(tester, 'Réserver à ce prix');
       await tapBooking(tester, 'Consulter le résumé');
       await tapBooking(tester, 'Créer la demande de test — sans paiement');
       expect(
@@ -153,13 +153,15 @@ void main() {
       expect((request['booking'] as Map)['items'][0]['weight'], isNull);
       expect(storage.saved!.quote!['customerTotal'], 123.45);
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
+      // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
+      await tapBookingKeyIfShown(tester, 'booking-price-details');
       expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       expect(find.textContaining('Véhicule recommandé'), findsNothing);
       expect(
         find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
         findsNothing,
       );
-      await tapBooking(tester, 'Continuer vers mes coordonnées');
+      await tapBooking(tester, 'Réserver à ce prix');
       expect(storage.saved!.step, 2);
       await disposeBooking(tester);
     },
@@ -200,6 +202,8 @@ void main() {
       );
       expect(a.calls, contains('getBookingQuote'));
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
+      // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
+      await tapBookingKeyIfShown(tester, 'booking-price-details');
       expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       await disposeBooking(tester);
     },

@@ -98,7 +98,7 @@ void main() {
       );
       expect((payload['items'] as List).first['category'], 'armchair');
       expect((payload['items'] as List).first['weight'], isNull);
-      await tapBooking(t, 'Continuer vers mes coordonnées');
+      await tapBooking(t, 'Réserver à ce prix');
       expect(storage.saved!.step, 2);
       expect(t.takeException(), isNull);
       await disposeBooking(t);
@@ -137,6 +137,8 @@ void main() {
       expect(api.calls, isNot(contains('reviewDeliveryLoad')));
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(storage.saved!.quote!['customerTotal'], 123.45);
+      // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
+      await tapBookingKeyIfShown(t, 'booking-price-details');
       expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
       expect(t.takeException(), isNull);
       await disposeBooking(t);
@@ -203,9 +205,9 @@ void main() {
         );
         expect(api.calls, isNot(contains('reviewDeliveryLoad')));
         final prepare = {
-          'fr': 'Continuer vers mes coordonnées',
-          'en': 'Continue to my details',
-          'es': 'Continuar a mis datos',
+          'fr': 'Réserver à ce prix',
+          'en': 'Book at this price',
+          'es': 'Reservar a este precio',
         }[locale]!;
         await tapBooking(t, prepare);
         expect(storage.saved!.step, 2);

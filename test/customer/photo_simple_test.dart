@@ -118,16 +118,18 @@ void main() {
           ),
         );
         await t.pumpAndSettle();
+        // Simple card (2026-10-24): the recognized item, then one tap.
         expect(
-          find.text(
-            {
-              'fr': 'Dimensions estimées',
-              'en': 'Estimated dimensions',
-              'es': 'Dimensiones estimadas',
-            }[locale]!,
-          ),
+          find.text({'fr': 'On dirait :', 'en': 'Looks like:', 'es': 'Parece:'}[locale]!),
           findsOneWidget,
         );
+        expect(find.byKey(const ValueKey('photo-guess-item')), findsOneWidget);
+        expect(find.byKey(const ValueKey('photo-confirm-item')), findsOneWidget);
+        expect(find.byKey(const ValueKey('photo-change-item')), findsOneWidget);
+        expect(find.byKey(const ValueKey('photo-label-item')), findsNothing);
+        await t.ensureVisible(find.byKey(const ValueKey('photo-change-item')));
+        await t.tap(find.byKey(const ValueKey('photo-change-item')));
+        await t.pumpAndSettle();
         expect(
           find.text(
             {

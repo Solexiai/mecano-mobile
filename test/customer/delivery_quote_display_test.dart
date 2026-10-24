@@ -16,6 +16,14 @@ const total = ['1 234,50 \$ CA', 'CA\$1,234.50', '1.234,50 CA\$'];
 const route = ['Distance routière', 'Road distance', 'Distancia por carretera'];
 String spaces(String text) =>
     text.replaceAll('\u00a0', ' ').replaceAll('\u202f', ' ');
+// The price breakdown is folded under « Voir le détail du prix » since
+// 2026-10-24; open it before reading the distance and the lines.
+Future<void> showDetails(WidgetTester t) async {
+  if (find.textContaining(RegExp(route.join('|'))).evaluate().isEmpty) {
+    await tapBookingKeyIfShown(t, 'booking-price-details');
+  }
+}
+
 String texts(WidgetTester t) => spaces(
   t.widgetList<Text>(find.byType(Text)).map((w) => w.data ?? '').join('\n'),
 );
@@ -135,6 +143,7 @@ void main() {
             scale: size.$3,
           );
           expect(texts(t), contains(total[l]));
+          await showDetails(t);
           expect(texts(t), contains('${route[l]} : 10 km'));
           expect(texts(t), isNot(contains('10.0 km')));
           final discount = ['-2,50 \$ CA', '-CA\$2.50', '-2,50 CA\$'][l];
@@ -218,6 +227,7 @@ void main() {
         (12345.67, ['12 345,7', '12,345.7', '12.345,7']),
       ]) {
         final (s, a) = await start(t, locale: locales[l], km: c.$1);
+        await showDetails(t);
         expect(texts(t), contains('${route[l]} : ${c.$2[l]} km'));
         expect(s.saved!.quote!['distanceKm'], c.$1);
         expect(a.quote['distanceKm'], c.$1);
@@ -235,6 +245,7 @@ void main() {
             amount: null,
             km: null,
           );
+          await showDetails(t);
           expect(texts(t), contains('${route[l]} : —'));
           expect(find.text('—'), findsOneWidget);
           expect(s.saved!.quote!.containsKey('customerTotal'), !missing);
@@ -248,6 +259,7 @@ void main() {
           km: -5,
           amount: 'invalid',
         );
+        await showDetails(t);
         expect(texts(t), contains('${route[l]} : —'));
         expect(find.text('—'), findsOneWidget);
         expect(s.saved!.quote!['distanceKm'], -5);
@@ -298,6 +310,7 @@ void main() {
         await t.pumpAndSettle();
         expect(t.state(find.byType(DeliveryRequestFlowScreen)), same(state));
         expect(texts(t), contains(total[l]));
+        await showDetails(t);
         expect(
           texts(t),
           contains("${route[l]} : ${l == 1 ? '10.5' : '10,5'} km"),
@@ -318,9 +331,10 @@ void main() {
           contacts = jsonEncode(s.saved!.contacts),
           load = jsonEncode(s.saved!.load),
           stops = jsonEncode(s.saved!.stops);
-      await tapBooking(t, 'Modifier mes coordonnées');
-      await tapBooking(t, 'Vérifier et confirmer');
+      await tapBookingKeyIfShown(t, 'recap-edit-contacts');
+      await tapBookingKeyIfShown(t, 'booking-next-details');
       expect(texts(t), contains(total.first));
+      await showDetails(t);
       expect(texts(t), contains('Distance routière : 10,5 km'));
       expect(jsonEncode(s.saved!.quote), q);
       await disposeBooking(t);

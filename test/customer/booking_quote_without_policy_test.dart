@@ -29,7 +29,7 @@ void main() {
     ]) {
       expect(api.calls, isNot(contains(call)));
     }
-    expect(find.text('Continuer vers mes coordonnées'), findsOneWidget);
+    expect(find.text('Réserver à ce prix'), findsOneWidget);
     expect(t.takeException(), isNull);
     await disposeBooking(t);
   });

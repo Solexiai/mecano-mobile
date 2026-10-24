@@ -82,20 +82,17 @@ Future<(MemoryBookingStorage, _ContactsApi)> start(
   return (store, api);
 }
 
-const review = {
-  'fr': 'Vérifier et confirmer',
-  'en': 'Review and confirm',
-  'es': 'Revisar y confirmar',
-};
+// Screen 6 of 7 since 2026-10-24: one "Suivant" button.
+const review = {'fr': 'Suivant', 'en': 'Next', 'es': 'Siguiente'};
 const invalid = {
   'fr': 'Téléphone invalide',
   'en': 'Invalid phone',
   'es': 'Teléfono inválido',
 };
 const requiredText = {
-  'fr': 'Les noms et téléphones des deux contacts sont obligatoires.',
-  'en': 'Both contact names and phone numbers are required.',
-  'es': 'Los nombres y teléfonos de ambos contactos son obligatorios.',
+  'fr': 'Qui le chauffeur appelle ?',
+  'en': 'Who does the driver call?',
+  'es': '¿A quién llama el conductor?',
 };
 const hints = {
   'fr':
@@ -251,7 +248,7 @@ void main() {
     await enter(t, 'instructions', '');
     await tapBooking(t, review['fr']!);
     expect(store.saved!.step, 3);
-    await tapBooking(t, 'Modifier mes coordonnées');
+    await tapBookingKeyIfShown(t, 'recap-edit-contacts');
     await enter(t, 'pickup_name', 'A' * 121);
     expect(valueOf(t, 'pickup_name'), 'A' * 120);
     await enter(t, 'instructions', 'I' * 1201);
@@ -271,7 +268,7 @@ void main() {
       await enter(t, 'instructions', 'Instructions fictives conservées');
       await tapBookingKeyIfShown(t, 'booking-back');
       expect(store.saved!.step, 1);
-      await tapBooking(t, 'Continuer vers mes coordonnées');
+      await tapBooking(t, 'Réserver à ce prix');
       expect(valueOf(t, 'pickup_phone'), '+33 1 23 45 67 89');
       expect(valueOf(t, 'instructions'), 'Instructions fictives conservées');
       await disposeBooking(t);
