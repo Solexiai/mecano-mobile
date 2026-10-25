@@ -3,6 +3,7 @@
  * upright orientation when requested. A refusal can require human review. */
 import { invalidArgument, failedPrecondition } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
+import { parsePhotoSizeEstimate, PhotoSizeEstimate } from './photoAnalysis';
 import { normalizeVehicleCategory } from './vehicleCategory';
 
 export interface CargoItem {
@@ -11,6 +12,9 @@ export interface CargoItem {
   weight_kg: number | null; approximate: boolean; upright: boolean; photos: string[];
   identification_confirmed?: boolean; special_handling?: boolean;
   handling_notes?: string;
+  /** The AI's broad size range for one piece, shown to drivers as an
+   * estimate to check on the photo. Never a measurement or a pricing input. */
+  size_estimate?: PhotoSizeEstimate;
 }
 export interface Access {
   floor: number; stairs: boolean; elevator: boolean; help: boolean;
@@ -81,7 +85,7 @@ export function requestedTimeReason(requestedAt: string | null | undefined, now 
 export type ReviewReason = 'dimensions_unknown' | 'weight_unknown' | 'approximate_measurements' |
   'capacity_unconfigured' | 'no_verified_fit' | 'requested_time_missing' |
   'photo_policy_unconfigured' | 'photo_category_unconfigured' | 'photo_required' |
-  'object_confirmation_required' | 'special_details_required' | 'no_eligible_photo_vehicle';
+  'object_confirmation_required' | 'object_category_required' | 'special_details_required' | 'no_eligible_photo_vehicle';
 
 function object(v: unknown): Record<string, unknown> {
   if (!v || typeof v !== 'object' || Array.isArray(v)) throw invalidArgument('Description de livraison invalide.');
@@ -147,7 +151,8 @@ export function normalizeLoad(raw: unknown): BookingLoad {
       weight_kg: i.weight == null ? null : Math.round(num(i.weight, 0.01, 100000) * (i.weight_unit === 'lb' ? 0.45359237 : 1) * 1000) / 1000,
       approximate: bool(i.approximate), upright: bool(i.upright),
       ...(photoIntake ? { identification_confirmed: bool(i.identification_confirmed), special_handling: bool(i.special_handling),
-        ...(i.handling_notes == null ? {} : { handling_notes: str(i.handling_notes, 1200, false) }) } : {}),
+        ...(i.handling_notes == null ? {} : { handling_notes: str(i.handling_notes, 1200, false) }),
+        ...advisorySize(i.photo_size_hint) } : {}),
       photos: Array.isArray(i.photos) && i.photos.length <= 3 ? i.photos.map(p => str(p, 400)) : [] };
   });
   if (count > 20) throw invalidArgument('Au-delà de 20 pièces, une étude de chargement est nécessaire.');
@@ -252,16 +257,26 @@ export function eligibleForPhotoReview(load: BookingLoad, c: Capacity): boolean 
   const measured = load.items.filter(i => i.length_cm !== null && i.width_cm !== null && i.height_cm !== null);
   return fitsKnownGeometry(measured, c);
 }
+// Owner decision 2026-10-25: a confirmed photo of a catalog item is complete.
+// Measurements the customer chose to give still constrain the fit above.
 function isCompletePhotoItem(item: CargoItem): boolean {
   if (!item.photos.length || item.identification_confirmed !== true) return false;
   const assessment = classifyPhotoIntake({ category: item.category,
     customerConfirmed: true, specialItem: item.special_handling !== false });
-  if (assessment.status === 'standard') return true;
-  // Customer-provided dimensions constrain eligibility; they are never AI measurements.
-  // A special item also needs explicit handling details for the driver's decision.
-  return assessment.status === 'special' &&
-    [item.length_cm, item.width_cm, item.height_cm].every(n => n !== null && Number.isFinite(n) && n > 0) &&
-    typeof item.handling_notes === 'string' && item.handling_notes.trim().length > 0;
+  return assessment.status === 'standard' || assessment.status === 'special';
+}
+/** Keeps a valid AI size range from the draft (`photo_size_hint`); anything
+ * malformed is dropped, never an error: it is advisory display only. */
+function advisorySize(raw: unknown): { size_estimate?: PhotoSizeEstimate } {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const h = raw as Record<string, unknown>;
+  try {
+    const estimate = parsePhotoSizeEstimate({ basis: h.basis, confidence: h.confidence,
+      length_cm: h.length_cm, width_cm: h.width_cm, height_cm: h.height_cm });
+    return estimate ? { size_estimate: estimate } : {};
+  } catch {
+    return {};
+  }
 }
 function recommendPhoto(load: BookingLoad, rules: BookingRules) {
   const reasons: ReviewReason[] = [];
@@ -274,7 +289,7 @@ function recommendPhoto(load: BookingLoad, rules: BookingRules) {
   for (const item of load.items) {
     if (item.identification_confirmed !== true) reasons.push('object_confirmation_required');
     if (!item.photos.length) reasons.push('photo_required');
-    if (item.identification_confirmed === true && item.photos.length && !isCompletePhotoItem(item)) reasons.push('special_details_required');
+    if (item.identification_confirmed === true && item.photos.length && !isCompletePhotoItem(item)) reasons.push('object_category_required');
     const mapped = policy?.category_vehicle_categories?.[item.category];
     if (!Array.isArray(mapped) || !mapped.length || mapped.some(x => typeof x !== 'string' ||
       !['pickup_truck','cargo_van','cube_truck'].includes(normalizeVehicleCategory(x)))) reasons.push('photo_category_unconfigured');

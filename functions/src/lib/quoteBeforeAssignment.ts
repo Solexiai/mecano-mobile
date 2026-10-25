@@ -32,8 +32,8 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
       if (item.identification_confirmed !== true) refuse('object_confirmation_required');
       const classification = classifyPhotoIntake({ category: item.category, customerConfirmed: true, specialItem: item.special_handling !== false });
       if (classification.status === 'confirm_category') refuse('object_category_required');
-      if (classification.status === 'special' &&
-        (![item.length_cm,item.width_cm,item.height_cm].every(n => n !== null && Number.isFinite(n) && n > 0) || !item.handling_notes?.trim())) refuse('special_details_required');
+      // No measurements required (owner decision 2026-10-25): drivers judge
+      // the fit from the photos before accepting.
     }
   }
   await validateBookingPhotos(load, uid);

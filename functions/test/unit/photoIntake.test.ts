@@ -4,8 +4,10 @@ const confirmed = (category: unknown, specialItem = false) =>
 test.each(['sofa','armchair','fridge','washer','table','tv','boxes'])('%s needs no mandatory measurements during intake', category => {
   expect(confirmed(category)).toMatchObject({status:'standard',measurementsRequired:false,requiredDetails:[]});
 });
-test('materials request specifications', () => {
-  expect(confirmed('materials')).toMatchObject({status:'special',measurementsRequired:true});
+// Owner decision 2026-10-25: no measurements are ever required from the
+// customer; special items stay flagged for the driver.
+test('materials are flagged special without required measurements', () => {
+  expect(confirmed('materials')).toMatchObject({status:'special',measurementsRequired:false,requiredDetails:[]});
 });
 test('a piano can use existing other category with explicit special classification', () => {
   expect(confirmed('other',true).status).toBe('special');
@@ -16,8 +18,8 @@ test('an exceptional sofa remains special', () => {
 test.each(['piano','cat_furniture','',null,123,{}])('unsupported category is not silently accepted: %p', category => {
   expect(confirmed(category)).toMatchObject({category:null,status:'confirm_category'});
 });
-test('other is not silently treated as ordinary', () => {
-  expect(confirmed('other').status).toBe('confirm_category');
+test('a confirmed "other" item is accepted; the driver judges it from the photo', () => {
+  expect(confirmed('other').status).toBe('standard');
 });
 test('AI result requires customer confirmation', () => {
   expect(classifyPhotoIntake({category:'sofa',specialItem:false,customerConfirmed:false}).status).toBe('confirm_object');

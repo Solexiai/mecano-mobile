@@ -24,12 +24,13 @@ export function classifyPhotoIntake(input: {
     quoteAuthorized: false as const, vehicleFitVerified: false as const };
   if (!category) return { ...base, status: 'confirm_category' };
   if (input.customerConfirmed !== true) return { ...base, status: 'confirm_object' };
-  if (category === 'other' && input.specialItem !== true) {
-    return { ...base, status: 'confirm_category' };
-  }
+  // Owner decision 2026-10-25: the customer never has to type measurements.
+  // A confirmed photo, its type (including "other") and the quantity are
+  // enough; the driver judges the fit from the photos and the AI's advisory
+  // size range. A special item stays flagged for the driver without
+  // blocking the booking.
   if (category === 'materials' || input.specialItem === true) {
-    return { ...base, status: 'special', measurementsRequired: true,
-      requiredDetails: ['description', 'dimensions', 'quantity', 'access', 'handling_constraints'] };
+    return { ...base, status: 'special' };
   }
   return { ...base, status: 'standard' };
 }

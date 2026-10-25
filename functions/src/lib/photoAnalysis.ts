@@ -25,6 +25,8 @@ export type PhotoSuggestion = {
   category: PhotoCategory; label: string; confidence: 'low' | 'medium' | 'high';
   special_handling: boolean; reason: 'ordinary' | 'special' | 'uncertain' | 'multiple_objects';
   size_estimate?: PhotoSizeEstimate | null;
+  /** Pieces of the same type on the photo (e.g. a washer and a dryer = 2). */
+  quantity?: number;
 };
 export class PhotoAnalysisError extends Error {
   constructor(public readonly code: 'invalid-argument' | 'permission-denied' | 'failed-precondition' | 'resource-exhausted' | 'unavailable') {
@@ -34,7 +36,8 @@ export class PhotoAnalysisError extends Error {
 export function parsePhotoSuggestion(value: unknown): PhotoSuggestion {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new PhotoAnalysisError('unavailable');
   const v = value as Record<string, unknown>;
-  if (Object.keys(v).filter(k => k !== 'size_estimate').sort().join(',') !== 'category,confidence,label,reason,special_handling' ||
+  if (Object.keys(v).filter(k => k !== 'size_estimate' && k !== 'quantity').sort().join(',') !== 'category,confidence,label,reason,special_handling' ||
+      (v.quantity !== undefined && (!Number.isSafeInteger(v.quantity) || (v.quantity as number) < 1)) ||
       !(PHOTO_CATEGORIES as readonly unknown[]).includes(v.category) ||
       typeof v.label !== 'string' || !v.label.trim() || v.label.length > 160 ||
       [...v.label].some(c => c.charCodeAt(0) < 32 || c === '<' || c === '>') ||
@@ -43,13 +46,17 @@ export function parsePhotoSuggestion(value: unknown): PhotoSuggestion {
       !['ordinary', 'special', 'uncertain', 'multiple_objects'].includes(v.reason as string)) {
     throw new PhotoAnalysisError('unavailable');
   }
-  // Ambiguity never silently becomes an ordinary object eligible for a quote.
-  const uncertain = v.confidence === 'low' || ['uncertain', 'multiple_objects'].includes(v.reason as string);
+  // An ambiguous photo becomes "other"; the customer still confirms the type.
+  // Several pieces of one type (a washer and a dryer) keep their type and a
+  // quantity (owner decision 2026-10-25).
+  const uncertain = v.confidence === 'low' || v.reason === 'uncertain';
   const category = uncertain ? 'other' : v.category as PhotoCategory;
   const estimate = v.size_estimate === undefined ? undefined : parsePhotoSizeEstimate(v.size_estimate);
+  const quantity = v.quantity === undefined ? undefined : Math.min(20, v.quantity as number);
   return { ...(estimate === undefined ? {} : {size_estimate:uncertain ? null : estimate}), category, label: v.label.trim(), confidence: v.confidence as PhotoSuggestion['confidence'],
-    special_handling: v.special_handling || category === 'materials' || category === 'other' || v.reason === 'special',
-    reason: uncertain ? (v.reason === 'multiple_objects' ? 'multiple_objects' : 'uncertain') : v.reason as PhotoSuggestion['reason'] };
+    special_handling: v.special_handling || category === 'materials' || v.reason === 'special',
+    reason: uncertain ? 'uncertain' : v.reason as PhotoSuggestion['reason'],
+    ...(quantity === undefined ? {} : { quantity }) };
 }
 export type PhotoRequest = { draftId: string; itemId: string; photoPath: string; locale: 'fr' | 'en' | 'es' };
 export function parsePhotoRequest(uid: string, value: unknown): PhotoRequest {

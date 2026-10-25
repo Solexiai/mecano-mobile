@@ -267,7 +267,7 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
     ],
   );
 
-  Widget _specialDetails(bool needsDetails) {
+  Widget _specialDetails(bool hasDetails) {
     Widget measure(String field, String label, String unit) => SizedBox(
       width: 160,
       child: TextFormField(
@@ -285,11 +285,15 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
       ),
     );
     return ExpansionTile(
-      key: ValueKey('photo-measures-$_id-$needsDetails'),
-      initiallyExpanded: needsDetails,
+      key: ValueKey('photo-measures-$_id'),
+      initiallyExpanded: hasDetails,
       tilePadding: EdgeInsets.zero,
       title: Text(
-        tr('Précisions sur l’objet', 'Item details', 'Detalles del objeto'),
+        tr(
+          'Précisions pour le chauffeur (facultatif)',
+          'Notes for the driver (optional)',
+          'Detalles para el conductor (opcional)',
+        ),
       ),
       children: [
         CheckboxListTile(
@@ -310,9 +314,9 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
         ),
         Text(
           tr(
-            'Pour cet objet, précisez les dimensions et la manutention. Le poids peut rester inconnu.',
-            'For this item, add dimensions and handling details. Weight may remain unknown.',
-            'Para este objeto, indica dimensiones y manipulación. El peso puede ser desconocido.',
+            'Facultatif. Le chauffeur voit vos photos et juge lui-même si ça entre dans son véhicule.',
+            'Optional. The driver sees your photos and judges whether it fits in their vehicle.',
+            'Opcional. El conductor ve tus fotos y juzga si cabe en su vehículo.',
           ),
         ),
         Wrap(
@@ -440,11 +444,13 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
     final special =
         item['special_handling'] == true ||
         ['materials', 'other'].contains(item['category']);
-    final needsDetails =
-        special &&
-        (confirmed ||
-            item['special_handling'] == true ||
-            item['category'] == 'materials');
+    // Details are optional (owner decision 2026-10-25): never opened by force.
+    // Owner decision 2026-10-25: details are optional; the panel opens by
+    // itself only when the customer already wrote something in it.
+    final notes = item['handling_notes'];
+    final hasDetails =
+        (notes is String && notes.trim().isNotEmpty) ||
+        ['length', 'width', 'height'].any((f) => item[f] != null);
     final label = (item['label'] as String? ?? '').trim();
     // A placeholder label ("Autre objet") is not a recognized item.
     final placeholder = const [
@@ -541,6 +547,16 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (widget.suggestion?.multiple == true)
+                Text(
+                  tr(
+                    'Plusieurs articles sur la photo : vérifiez la quantité.',
+                    'Several items in the photo: check the quantity.',
+                    'Varios artículos en la foto: verifica la cantidad.',
+                  ),
+                  key: ValueKey('photo-multiple-$_id'),
+                  style: const TextStyle(color: Color(0xFF54607A)),
+                ),
               const SizedBox(height: 8),
               _quantity(),
               const SizedBox(height: 8),
@@ -592,7 +608,7 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
                 child: Text(tr('C’est bon', 'Done', 'Listo')),
               ),
             ],
-            if (special && !widget.analysisBusy) _specialDetails(needsDetails),
+            if (special && !widget.analysisBusy) _specialDetails(hasDetails),
           ],
         ),
       ),

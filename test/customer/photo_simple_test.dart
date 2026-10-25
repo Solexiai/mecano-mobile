@@ -144,7 +144,9 @@ void main() {
       });
     }
   }
-  testWidgets('several items on one photo: the card asks for type and quantity', (
+  // Owner decision 2026-10-25: a washer and a dryer on one photo keep their
+  // type with a quantity of 2; no measurement is asked.
+  testWidgets('several pieces of one type: type kept, quantity suggested', (
     t,
   ) async {
     final response = result();
@@ -153,16 +155,24 @@ void main() {
       'category': 'washer',
       'label': 'Laveuse et sécheuse',
       'reason': 'multiple_objects',
+      'quantity': 2,
     };
     final suggestion = BookingPhotoSuggestion.fromResponse(response, photo);
     expect(suggestion.multiple, isTrue);
-    expect(suggestion.category, 'other');
+    expect(suggestion.uncertain, isFalse);
+    expect(suggestion.category, 'washer');
+    expect(suggestion.special, isFalse);
+    final value = item();
+    suggestion.applyTo(value);
+    expect(value['category'], 'washer');
+    expect(value['quantity'], 2);
+    expect(value['length'], isNull);
     await t.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: SingleChildScrollView(
             child: PhotoBookingItem(
-              item: item()..['category'] = 'other',
+              item: value,
               locale: 'fr',
               categories: const [
                 ('washer', 'Laveuse / sécheuse'),
@@ -180,11 +190,41 @@ void main() {
       ),
     );
     await t.pumpAndSettle();
+    expect(find.text('Laveuse et sécheuse'), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-multiple-item')), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-confirm-item')), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-item-length')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+  test('a quantity from the AI is bounded and validated', () {
+    Map<String, dynamic> withQuantity(Object? q) {
+      final r = result();
+      r['suggestion'] = {...(r['suggestion'] as Map), 'quantity': q};
+      return r;
+    }
+
     expect(
-      find.textContaining('On voit plusieurs articles sur la photo'),
-      findsOneWidget,
+      BookingPhotoSuggestion.fromResponse(withQuantity(50), photo).quantity,
+      20,
     );
-    expect(find.byKey(const ValueKey('photo-category-item')), findsOneWidget);
+    for (final bad in [0, -1, 1.5, '2']) {
+      expect(
+        () => BookingPhotoSuggestion.fromResponse(withQuantity(bad), photo),
+        throwsFormatException,
+      );
+    }
+  });
+  test('an ambiguous photo still becomes "other" without blocking', () {
+    final r = result();
+    r['suggestion'] = {
+      ...(r['suggestion'] as Map),
+      'confidence': 'low',
+      'reason': 'uncertain',
+    };
+    final s = BookingPhotoSuggestion.fromResponse(r, photo);
+    expect(s.category, 'other');
+    expect(s.special, isFalse);
   });
   testWidgets('choosing an ordinary type clears the special flag', (t) async {
     final value = item()

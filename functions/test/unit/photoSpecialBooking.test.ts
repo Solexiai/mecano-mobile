@@ -15,9 +15,18 @@ test('special details survive normalization and therefore quote integrity',()=>{
  const before=JSON.stringify(normalizeLoad(raw));raw.items[0].handling_notes='Different constraints';
  expect(JSON.stringify(normalizeLoad(raw))).not.toBe(before);
 });
-test.each(['length','width','height','handling_notes'])('missing special %s remains blocked',field=>{
+// Owner decision 2026-10-25: details are optional, the driver judges.
+test.each(['length','width','height','handling_notes'])('missing special %s no longer blocks',field=>{
  const raw=request();raw.items[0][field]=null;
- expect(recommend(normalizeLoad(raw),rules).reasons).toContain('special_details_required');
+ const result=recommend(normalizeLoad(raw),rules);
+ expect(result.reasons).not.toContain('special_details_required');
+ expect(result.status).toBe('ready');
+});
+test('the AI size range reaches the driver as an advisory estimate',()=>{
+ const raw=request();Object.assign(raw.items[0],{photo_size_hint:{basis:'typical_object',confidence:'low',length_cm:{min:60,max:70},width_cm:{min:60,max:70},height_cm:{min:85,max:95},photo_path:'x',category:'materials',label:'y'}});
+ expect(normalizeLoad(raw).items[0].size_estimate).toEqual({basis:'typical_object',confidence:'low',length_cm:{min:60,max:70},width_cm:{min:60,max:70},height_cm:{min:85,max:95}});
+ raw.items[0].photo_size_hint={basis:'typical_object',confidence:'high'};
+ expect(normalizeLoad(raw).items[0]).not.toHaveProperty('size_estimate');
 });
 test('special notes are bounded',()=>{
  const raw=request();raw.items[0].handling_notes='x'.repeat(1201);
