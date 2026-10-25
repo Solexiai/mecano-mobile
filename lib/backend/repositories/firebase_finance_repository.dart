@@ -138,7 +138,7 @@ class FirebaseFinanceRepository implements FinanceRepository {
     if (snapshotId == null) return null;
     final snap = await _snapshots.doc(snapshotId).get();
     if (!snap.exists || snap.data() == null) return null;
-    return FinancialSnapshot.fromJson(snap.data()!);
+    return FinancialSnapshot.fromJson(snap.data()!, documentId: snap.id);
   }
 
   @override
@@ -153,7 +153,7 @@ class FirebaseFinanceRepository implements FinanceRepository {
       if (snapshotId == null) return Stream.value(null);
       return _snapshots.doc(snapshotId).snapshots().map((snap) {
         if (!snap.exists || snap.data() == null) return null;
-        return FinancialSnapshot.fromJson(snap.data()!);
+        return FinancialSnapshot.fromJson(snap.data()!, documentId: snap.id);
       });
     });
   }
@@ -302,7 +302,7 @@ class FirebaseFinanceRepository implements FinanceRepository {
         .snapshots()
         .map(
           (snap) => snap.docs
-              .map((d) => FinancialSnapshot.fromJson(d.data()))
+              .map((d) => FinancialSnapshot.fromJson(d.data(), documentId: d.id))
               .toList(),
         );
   }
