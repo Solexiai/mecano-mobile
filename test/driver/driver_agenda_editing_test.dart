@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/backend/repositories/driver_agenda_repository.dart';
+import 'package:movik_connect/core/app_colors.dart';
 import 'package:movik_connect/services/driver_agenda_editing.dart';
 import 'package:movik_connect/widgets/driver_month_availability.dart';
 import 'package:movik_connect/widgets/driver_weekly_hours_card.dart';
@@ -191,5 +192,42 @@ void main() {
     }
     expect(weeklyWindows(changed!, 6), isEmpty);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('calendrier : vert disponible, rouge pas disponible, gris passé', (
+    t,
+  ) async {
+    final agenda = setWeeklyHours(const DriverAgenda(), {1, 2, 3, 4, 5}, 480, 1020);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: DriverMonthAvailability(
+              agenda: agenda,
+              month: d(10, 1),
+              missions: const [],
+              locale: 'fr',
+              now: d(10, 25, 10),
+              onChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    Color fill(String day) => t
+        .widget<Material>(
+          find
+              .ancestor(
+                of: find.byKey(ValueKey('agenda-day-$day')),
+                matching: find.byType(Material),
+              )
+              .first,
+        )
+        .color!;
+    // Lundi 26 : disponible ; samedi 31 : pas disponible ; mardi 20 : passé.
+    expect(fill('2026-10-26'), AppColors.success.withValues(alpha: .28));
+    expect(fill('2026-10-31'), AppColors.error.withValues(alpha: .28));
+    expect(fill('2026-10-20'), AppColors.textSecondary.withValues(alpha: .07));
+    expect(find.text('Jour passé'), findsOneWidget);
   });
 }
