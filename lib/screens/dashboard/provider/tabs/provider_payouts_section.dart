@@ -46,10 +46,19 @@ import '../../../../models/enums.dart';
 class ProviderPayoutsSection extends StatelessWidget {
   final String driverId;
   final String Function(String) t;
+
+  /// Langue des montants (« 25,00 $ »). `null` : format historique.
+  final String? locale;
+
+  /// Section « Missions » (détail par fiche financière). L'onglet Revenus
+  /// la masque : son historique nomme déjà chaque gain une seule fois.
+  final bool showMissions;
   const ProviderPayoutsSection({
     super.key,
     required this.driverId,
     required this.t,
+    this.locale,
+    this.showMissions = true,
   });
 
   @override
@@ -117,6 +126,8 @@ class ProviderPayoutsSection extends StatelessWidget {
               t: t,
               snapshots: snapshots,
               payouts: payouts,
+              locale: locale,
+              showMissions: showMissions,
             );
           },
         );
@@ -135,23 +146,32 @@ class ProviderPayoutsContent extends StatelessWidget {
   final String Function(String) t;
   final List<FinancialSnapshot> snapshots;
   final List<DriverPayoutInfo> payouts;
+  final String? locale;
+  final bool showMissions;
   const ProviderPayoutsContent({
     super.key,
     required this.t,
     required this.snapshots,
     required this.payouts,
+    this.locale,
+    this.showMissions = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    String money(int minor) => locale == null
+        ? formatMinorAmount(minor)
+        : formatMajorAmount(minor / 100, locale: locale);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _EarningsSummary(t: t, payouts: payouts),
+        _EarningsSummary(t: t, payouts: payouts, money: money),
         const SizedBox(height: 28),
-        _MissionsSection(t: t, snapshots: snapshots),
-        const SizedBox(height: 28),
-        _PayoutsListSection(t: t, payouts: payouts),
+        if (showMissions) ...[
+          _MissionsSection(t: t, snapshots: snapshots),
+          const SizedBox(height: 28),
+        ],
+        _PayoutsListSection(t: t, payouts: payouts, money: money),
       ],
     );
   }
@@ -210,7 +230,12 @@ class _PayoutBuckets {
 class _EarningsSummary extends StatelessWidget {
   final String Function(String) t;
   final List<DriverPayoutInfo> payouts;
-  const _EarningsSummary({required this.t, required this.payouts});
+  final String Function(int minor) money;
+  const _EarningsSummary({
+    required this.t,
+    required this.payouts,
+    required this.money,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +253,7 @@ class _EarningsSummary extends StatelessWidget {
             Expanded(
               child: _SummaryCard(
                 label: t('payout_summary_available'),
-                value: formatMinorAmount(buckets.availableMinor),
+                value: money(buckets.availableMinor),
                 color: AppColors.info,
               ),
             ),
@@ -236,7 +261,7 @@ class _EarningsSummary extends StatelessWidget {
             Expanded(
               child: _SummaryCard(
                 label: t('payout_summary_pending'),
-                value: formatMinorAmount(buckets.pendingMinor),
+                value: money(buckets.pendingMinor),
                 color: AppColors.warning,
               ),
             ),
@@ -244,7 +269,7 @@ class _EarningsSummary extends StatelessWidget {
             Expanded(
               child: _SummaryCard(
                 label: t('payout_summary_paid'),
-                value: formatMinorAmount(buckets.paidMinor),
+                value: money(buckets.paidMinor),
                 color: AppColors.success,
               ),
             ),
@@ -432,7 +457,12 @@ class _AmountRow extends StatelessWidget {
 class _PayoutsListSection extends StatelessWidget {
   final String Function(String) t;
   final List<DriverPayoutInfo> payouts;
-  const _PayoutsListSection({required this.t, required this.payouts});
+  final String Function(int minor) money;
+  const _PayoutsListSection({
+    required this.t,
+    required this.payouts,
+    required this.money,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -453,7 +483,7 @@ class _PayoutsListSection extends StatelessWidget {
             ),
           )
         else
-          for (final p in payouts) _PayoutTile(t: t, payout: p),
+          for (final p in payouts) _PayoutTile(t: t, payout: p, money: money),
       ],
     );
   }
@@ -462,7 +492,12 @@ class _PayoutsListSection extends StatelessWidget {
 class _PayoutTile extends StatelessWidget {
   final String Function(String) t;
   final DriverPayoutInfo payout;
-  const _PayoutTile({required this.t, required this.payout});
+  final String Function(int minor) money;
+  const _PayoutTile({
+    required this.t,
+    required this.payout,
+    required this.money,
+  });
 
   Color _statusColor(PayoutStatus status) {
     switch (status) {
@@ -505,7 +540,7 @@ class _PayoutTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                formatMinorAmount(payout.amountMinor),
+                money(payout.amountMinor),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,

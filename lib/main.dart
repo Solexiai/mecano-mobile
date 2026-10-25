@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 
 import 'core/url_strategy_stub.dart'
@@ -74,9 +75,15 @@ class MovikApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MechanicRequestProvider()),
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
+      child: Consumer2<ThemeProvider, LocaleProvider>(
+        builder: (context, themeProvider, localeProvider, _) {
           return MaterialApp.router(
+            // Material widgets (date and time pickers, OK/Cancel, text
+            // selection) follow the app language: French by default, weeks
+            // starting on Monday and 24-hour time in French and Spanish.
+            locale: Locale(localeProvider.locale),
+            supportedLocales: const [Locale('fr'), Locale('en'), Locale('es')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
             title: 'Movi-k',
             builder: (context, child) =>
                 DriverPresenceScope(child: child ?? const SizedBox.shrink()),

@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../../../../backend/backend_locator.dart';
 import '../../../../core/app_colors.dart';
+import '../../../../backend/models/delivery_mission.dart';
+import '../../../../backend/repositories/driver_agenda_repository.dart';
 import '../../../../finance/models/transaction_ledger.dart';
+import '../../../../finance/presentation/driver_display_format.dart';
+import '../../../../finance/presentation/driver_earnings_totals.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
@@ -16,13 +20,24 @@ import 'provider_payouts_section.dart';
 /// `FinanceRepository.watchDriverEarningsHistory()`. Les totaux affichés
 /// sont une simple agrégation en mémoire des entrées déjà confirmées —
 /// aucune transaction historique n'est recalculée ici.
+///
+/// Ordre (25 octobre 2026) : gains de la semaine / du mois / total, puis
+/// les versements, puis l'historique. Chaque ligne d'historique est nommée
+/// (livraison et trajet, ou frais d'annulation) au lieu d'un libellé
+/// générique.
 class ProviderEarningsTab extends StatelessWidget {
-  const ProviderEarningsTab({super.key});
+  const ProviderEarningsTab({super.key, this.missions});
+
+  /// Missions du chauffeur, pour nommer les lignes (trajet). Injection pour
+  /// les tests ; par défaut, les missions attribuées au chauffeur.
+  final Stream<List<DeliveryMission>>? missions;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<FirebaseAuthProvider>();
-    final t = context.watch<LocaleProvider>().t;
+    final localeProvider = context.watch<LocaleProvider>();
+    final t = localeProvider.t;
+    final locale = localeProvider.locale;
 
     if (!auth.isSignedIn || auth.user == null) {
       return Center(
@@ -38,10 +53,75 @@ class ProviderEarningsTab extends StatelessWidget {
 
     final driverId = auth.user!.uid;
 
+    return _EarningsBody(
+      driverId: driverId,
+      t: t,
+      locale: locale,
+      missions: missions,
+    );
+  }
+}
+
+class _EarningsBody extends StatefulWidget {
+  const _EarningsBody({
+    required this.driverId,
+    required this.t,
+    required this.locale,
+    required this.missions,
+  });
+  final String driverId;
+  final String Function(String) t;
+  final String locale;
+  final Stream<List<DeliveryMission>>? missions;
+
+  @override
+  State<_EarningsBody> createState() => _EarningsBodyState();
+}
+
+class _EarningsBodyState extends State<_EarningsBody> {
+  // Streams created once per driver, never in build() (a new stream on each
+  // rebuild would flicker back to the loading state).
+  String? _driverId;
+  late Stream<List<LedgerEntry>> _ledger;
+  late Stream<List<DeliveryMission>> _missions;
+
+  void _ensureStreams() {
+    if (_driverId == widget.driverId) return;
+    _driverId = widget.driverId;
+    _ledger = BackendLocator.financeRepository.watchDriverEarningsHistory(
+      widget.driverId,
+    );
+    _missions =
+        widget.missions ??
+        driverAgendaRepository(widget.driverId).watchMissions();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _ensureStreams();
+    final t = widget.t;
+    final locale = widget.locale;
+    // Missions (for route labels) are listened once, around everything, so
+    // the single-subscription stream is never subscribed twice.
+    return StreamBuilder<List<DeliveryMission>>(
+      stream: _missions,
+      builder: (context, missionsSnap) {
+        final byId = <String, DeliveryMission>{
+          for (final m in missionsSnap.data ?? const <DeliveryMission>[])
+            m.id: m,
+        };
+        return _ledgerView(t, locale, byId);
+      },
+    );
+  }
+
+  Widget _ledgerView(
+    String Function(String) t,
+    String locale,
+    Map<String, DeliveryMission> byId,
+  ) {
     return StreamBuilder<List<LedgerEntry>>(
-      stream: BackendLocator.financeRepository.watchDriverEarningsHistory(
-        driverId,
-      ),
+      stream: _ledger,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Padding(
@@ -80,19 +160,7 @@ class ProviderEarningsTab extends StatelessWidget {
         }
 
         final entries = snapshot.data ?? const <LedgerEntry>[];
-
-        double confirmedTotal = 0;
-        double pendingTotal = 0;
-        for (final e in entries) {
-          final signed = e.direction == LedgerDirection.credit
-              ? e.amount
-              : -e.amount;
-          if (e.status == LedgerEntryStatus.confirmed) {
-            confirmedTotal += signed;
-          } else if (e.status == LedgerEntryStatus.pending) {
-            pendingTotal += signed;
-          }
-        }
+        final totals = DriverEarningsTotals.from(entries, DateTime.now());
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -106,32 +174,43 @@ class ProviderEarningsTab extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 20),
-              // Bloc K — vue financière chauffeur (résumé versements,
-              // missions détaillées, historique de versements). Enrichit
-              // cet onglet Revenus existant plutôt que de créer un écran
-              // dupliqué (voir décision technique dans
-              // provider_payouts_section.dart).
-              ProviderPayoutsSection(driverId: driverId, t: t),
-              const SizedBox(height: 28),
-              Row(
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  Expanded(
-                    child: _MetricCard(
-                      label: t('earnings_total_label'),
-                      value: '${confirmedTotal.toStringAsFixed(2)}\$',
-                      color: AppColors.primary,
-                    ),
+                  _MetricCard(
+                    label: t('earnings_week_label'),
+                    value: driverMoney(totals.week, locale),
+                    color: AppColors.primary,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _MetricCard(
+                  _MetricCard(
+                    label: t('earnings_month_label'),
+                    value: driverMoney(totals.month, locale),
+                    color: AppColors.primary,
+                  ),
+                  _MetricCard(
+                    label: t('earnings_total_label'),
+                    value: driverMoney(totals.total, locale),
+                    color: AppColors.primary,
+                  ),
+                  if (totals.pending != 0)
+                    _MetricCard(
                       label: t('earnings_pending_label'),
-                      value: '${pendingTotal.toStringAsFixed(2)}\$',
+                      value: driverMoney(totals.pending, locale),
                       color: AppColors.warning,
                     ),
-                  ),
                 ],
+              ),
+              const SizedBox(height: 28),
+              // Versements : ce qui est prêt, en attente et déjà versé
+              // (résumé et liste). Le détail par mission est dans
+              // l'historique ci-dessous, une seule fois.
+              ProviderPayoutsSection(
+                driverId: widget.driverId,
+                t: t,
+                locale: locale,
+                showMissions: false,
               ),
               const SizedBox(height: 28),
               Text(
@@ -148,12 +227,20 @@ class ProviderEarningsTab extends StatelessWidget {
                   child: Center(
                     child: Text(
                       t('earnings_empty'),
+                      textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                 )
               else
-                ...entries.map((e) => _LedgerTile(entry: e, t: t)),
+                ...entries.map(
+                  (e) => _LedgerTile(
+                    entry: e,
+                    mission: e.missionId == null ? null : byId[e.missionId],
+                    t: t,
+                    locale: locale,
+                  ),
+                ),
             ],
           ),
         );
@@ -175,6 +262,7 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minWidth: 150),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
@@ -183,11 +271,12 @@ class _MetricCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               color: color,
             ),
@@ -207,8 +296,34 @@ class _MetricCard extends StatelessWidget {
 
 class _LedgerTile extends StatelessWidget {
   final LedgerEntry entry;
+  final DeliveryMission? mission;
   final String Function(String) t;
-  const _LedgerTile({required this.entry, required this.t});
+  final String locale;
+  const _LedgerTile({
+    required this.entry,
+    required this.mission,
+    required this.t,
+    required this.locale,
+  });
+
+  /// « Livraison · Granby → Bromont », « Frais d'annulation tardive (votre
+  /// part) », ou le libellé du type d'écriture.
+  String _title() {
+    switch (entry.feeKind) {
+      case 'late_cancellation':
+        return t('earnings_line_late_cancellation');
+      case 'customer_failed_delivery':
+        return t('earnings_line_failed_delivery');
+    }
+    if (entry.type == LedgerEntryType.driverEarning) {
+      final from = mission?.pickupAddress?.city.trim() ?? '';
+      final to = mission?.dropoffAddress?.city.trim() ?? '';
+      final base = t('ledger_type_driver_earning');
+      if (from.isNotEmpty && to.isNotEmpty) return '$base · $from → $to';
+      return base;
+    }
+    return t(_typeKey(entry.type));
+  }
 
   String _typeKey(LedgerEntryType type) {
     switch (type) {
@@ -283,19 +398,11 @@ class _LedgerTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  t(_typeKey(entry.type)),
+                  _title(),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Text(
-                  // Bloc K2 (K2-2) : `.toLocal()` explicite avant extraction
-                  // des composants de date — voir justification identique
-                  // dans admin_drivers_list_screen.dart::_formatDate.
-                  () {
-                    final local = entry.createdAt.toLocal();
-                    final mm = local.month.toString().padLeft(2, '0');
-                    final dd = local.day.toString().padLeft(2, '0');
-                    return '${local.year}-$mm-$dd';
-                  }(),
+                  driverShortDate(entry.createdAt, locale),
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,
@@ -308,7 +415,7 @@ class _LedgerTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${isCredit ? '+' : '-'}${signedAmount.abs().toStringAsFixed(2)}\$',
+                '${isCredit ? '+' : '−'}${driverMoney(signedAmount.abs(), locale)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: isCredit ? AppColors.success : AppColors.error,

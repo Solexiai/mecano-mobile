@@ -4,6 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../services/booking/booking_api.dart';
 import '../../../../widgets/driver_recurrence_editor.dart';
 import '../../../../widgets/driver_calendars_panel.dart';
+import '../../../../widgets/driver_month_availability.dart';
+import '../../../../widgets/driver_weekly_hours_card.dart';
+import '../../../../finance/presentation/driver_display_format.dart';
+import '../../../../services/driver_agenda_editing.dart';
 import 'package:provider/provider.dart';
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../backend/repositories/driver_agenda_repository.dart';
@@ -28,8 +32,8 @@ class ProviderCalendarTab extends StatefulWidget {
 }
 
 class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
+  // Any day of the month shown in the calendar.
   DateTime _selected = DateTime.now();
-  String _view = 'month';
   BookingApi? _calendarApi;
   DriverAgendaRepository? _repository;
   String? _uid;
@@ -107,7 +111,9 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
       _error = null;
     });
     try {
-      final saved = await _repository!.save(_agenda!);
+      final saved = await _repository!.save(
+        pruneAgenda(_agenda!, DateTime.now()),
+      );
       if (!mounted || generation != _generation) return;
       setState(() {
         _agenda = saved;
@@ -127,6 +133,11 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
       if (mounted && generation == _generation) setState(() => _saving = false);
     }
   }
+
+  void _setAgenda(DriverAgenda value) => setState(() {
+    _agenda = value;
+    _dirty = true;
+  });
 
   void _setSlots(bool blocked, List<AgendaInterval> slots) {
     final a = _agenda!;
@@ -190,7 +201,7 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
   }
 
   String _date(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+      '${driverDayLabel(d, _locale)} · ${driverTime(d, _locale)}';
   Widget _slots(bool blocked) {
     final slots = blocked ? _agenda!.blocked : _agenda!.windows;
     return Column(
@@ -249,137 +260,14 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
     );
   }
 
-  DateTime get _periodStart => _view == 'month'
-      ? DateTime(_selected.year, _selected.month)
-      : _view == 'week'
-      ? DateTime(
-          _selected.year,
-          _selected.month,
-          _selected.day - (_selected.weekday - 1),
-        )
-      : DateTime(_selected.year, _selected.month, _selected.day);
-  DateTime get _periodEnd => _view == 'month'
-      ? DateTime(_selected.year, _selected.month + 1)
-      : DateTime(
-          _periodStart.year,
-          _periodStart.month,
-          _periodStart.day + (_view == 'week' ? 7 : 1),
-        );
+  DateTime get _periodStart => DateTime(_selected.year, _selected.month);
+  DateTime get _periodEnd => DateTime(_selected.year, _selected.month + 1);
   void _move(int direction) => setState(
-    () => _selected = _view == 'month'
-        ? DateTime(_selected.year, _selected.month + direction)
-        : DateTime(
-            _selected.year,
-            _selected.month,
-            _selected.day + direction * (_view == 'week' ? 7 : 1),
-          ),
+    () => _selected = DateTime(_selected.year, _selected.month + direction),
   );
   bool _intersects(DateTime start, DateTime end) =>
       start.isBefore(_periodEnd) && end.isAfter(_periodStart);
-  Widget _dateGrid(List<DeliveryMission> missions) => LayoutBuilder(
-    builder: (context, c) {
-      final first = DateTime(_selected.year, _selected.month);
-      final count = DateTime(_selected.year, _selected.month + 1, 0).day;
-      return Wrap(
-        children: [
-          for (final name
-              in (_locale == 'en'
-                  ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                  : _locale == 'es'
-                  ? ['L', 'M', 'X', 'J', 'V', 'S', 'D']
-                  : ['L', 'M', 'M', 'J', 'V', 'S', 'D']))
-            SizedBox(
-              width: c.maxWidth / 7,
-              height: 28,
-              child: Center(
-                child: Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          for (int i = 0; i < first.weekday - 1; i++)
-            SizedBox(width: c.maxWidth / 7, height: 48),
-          for (int d = 1; d <= count; d++)
-            SizedBox(
-              width: c.maxWidth / 7,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  padding: const EdgeInsets.all(2),
-                ),
-                onPressed: () => setState(() {
-                  _selected = DateTime(_selected.year, _selected.month, d);
-                  _view = 'day';
-                }),
-                child: Column(
-                  children: [
-                    Text(
-                      '$d',
-                      semanticsLabel: _date(
-                        DateTime(_selected.year, _selected.month, d),
-                      ),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    if (missions.any((m) => agendaMissionStart(m)?.day == d))
-                      const Icon(Icons.local_shipping, size: 14),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      );
-    },
-  );
-  String _month() {
-    const fr = [
-      'Janvier',
-      'Février',
-      'Mars',
-      'Avril',
-      'Mai',
-      'Juin',
-      'Juillet',
-      'Août',
-      'Septembre',
-      'Octobre',
-      'Novembre',
-      'Décembre',
-    ];
-    const en = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    const es = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
-    ];
-    return '${(_locale == 'en'
-        ? en
-        : _locale == 'es'
-        ? es
-        : fr)[_selected.month - 1]} ${_selected.year}';
-  }
+  String _month() => driverMonthYear(_selected, _locale);
 
   Widget _mission(DeliveryMission m) {
     final start = agendaMissionStart(m);
@@ -426,7 +314,7 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
             Text(AppStrings.t(m.requiredVehicleCategory.key, _locale)),
             if (m.hasAssignedDriver)
               Text(
-                '${tr('Rémunération enregistrée', 'Recorded compensation', 'Remuneración registrada')} : ${m.driverOfferAmount.toStringAsFixed(2)} CAD',
+                '${tr('Rémunération enregistrée', 'Recorded compensation', 'Remuneración registrada')} : ${driverMoney(m.driverOfferAmount, _locale)}',
               ),
             TextButton(
               onPressed: () =>
@@ -455,280 +343,332 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
     );
   }
 
+  Widget _card(Widget child) => Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Theme.of(context).cardTheme.color,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: child,
+  );
+
+  Widget _intro() => Text(
+    _agenda?.dispatchConnected == true
+        ? tr(
+            'Vos disponibilités sont contrôlées avant l’attribution. Un calendrier externe doit être à jour pour accepter.',
+            'Availability is checked before assignment. Connected calendars must be up to date to accept.',
+            'Se comprueba la disponibilidad antes de asignar. Los calendarios conectados deben estar actualizados para aceptar.',
+          )
+        : tr(
+            'Indiquez quand vous êtes habituellement disponible. Pour l’instant, vos disponibilités ne filtrent pas encore les offres : vous recevez les demandes quand vous êtes « En service ».',
+            'Tell us when you’re usually available. For now, your availability does not yet filter offers: you receive requests while you’re “On duty”.',
+            'Indique cuándo suele estar disponible. Por ahora, su disponibilidad todavía no filtra las ofertas: recibe solicitudes mientras está «En servicio».',
+          ),
+    style: const TextStyle(color: AppColors.textSecondary),
+  );
+
+  Widget _missionsSection() => StreamBuilder<List<DeliveryMission>>(
+    stream: _missions,
+    builder: (context, snapshot) {
+      // The availability calendar stays usable even when missions cannot
+      // be read: only the missions list reports the problem.
+      final missions =
+          (snapshot.data ?? const <DeliveryMission>[]).where((m) {
+            final d = agendaMissionStart(m);
+            final end = DateTime.tryParse(
+              m.scheduling?['end'] as String? ?? '',
+            )?.toLocal();
+            return d == null ||
+                _intersects(d, end ?? d.add(const Duration(minutes: 1)));
+          }).toList()..sort(
+            (a, b) => (agendaMissionStart(a) ?? DateTime(2100)).compareTo(
+              agendaMissionStart(b) ?? DateTime(2100),
+            ),
+          );
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _card(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: tr(
+                          'Mois précédent',
+                          'Previous month',
+                          'Mes anterior',
+                        ),
+                        onPressed: () => _move(-1),
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      Expanded(
+                        child: Text(
+                          _month(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: tr(
+                          'Mois suivant',
+                          'Next month',
+                          'Mes siguiente',
+                        ),
+                        onPressed: () => _move(1),
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () =>
+                          setState(() => _selected = DateTime.now()),
+                      child: Text(tr('Aujourd’hui', 'Today', 'Hoy')),
+                    ),
+                  ),
+                  if (_agenda != null)
+                    DriverMonthAvailability(
+                      agenda: _agenda!,
+                      month: _selected,
+                      missions: missions,
+                      locale: _locale,
+                      enabled: !_saving,
+                      onChanged: _setAgenda,
+                    ),
+                ],
+              ),
+            ),
+          Text(
+            tr(
+              'Mes missions ce mois-ci',
+              'My jobs this month',
+              'Mis misiones este mes',
+            ),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          if (snapshot.hasError)
+            Text(
+              tr(
+                'Impossible de charger les missions.',
+                'Unable to load missions.',
+                'No se pudieron cargar las misiones.',
+              ),
+            )
+          else if (!snapshot.hasData)
+            const LinearProgressIndicator()
+          else if (missions.isEmpty)
+            Text(
+              tr(
+                'Aucune mission attribuée pour ce mois.',
+                'No assigned missions this month.',
+                'No hay misiones asignadas este mes.',
+              ),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ...missions.map(_mission),
+        ],
+      );
+    },
+  );
+
+  Widget _advanced() => ExpansionTile(
+    key: const ValueKey('agenda-advanced'),
+    tilePadding: EdgeInsets.zero,
+    title: Text(
+      tr('Réglages avancés', 'Advanced settings', 'Ajustes avanzados'),
+      style: const TextStyle(fontWeight: FontWeight.w700),
+    ),
+    subtitle: Text(
+      tr(
+        'Plusieurs plages par jour, fuseau horaire, pauses, calendriers connectés',
+        'Several periods per day, time zone, breaks, connected calendars',
+        'Varios períodos por día, zona horaria, pausas, calendarios conectados',
+      ),
+    ),
+    childrenPadding: const EdgeInsets.only(bottom: 12),
+    expandedCrossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      DriverRecurrenceEditor(
+        value: _agenda!.recurrence,
+        locale: _locale,
+        enabled: !_saving,
+        onChanged: (value) {
+          final a = _agenda!;
+          _setAgenda(
+            DriverAgenda(
+              revision: a.revision,
+              configured: a.configured,
+              windows: a.windows,
+              blocked: a.blocked,
+              recurrence: value,
+              dispatchConnected: a.dispatchConnected,
+            ),
+          );
+        },
+      ),
+      const SizedBox(height: 8),
+      _slots(false),
+      const SizedBox(height: 16),
+      _slots(true),
+      if (_calendarApi != null) ...[
+        const SizedBox(height: 8),
+        DriverAvailabilityPreview(
+          api: _calendarApi!,
+          agenda: _agenda!,
+          from: _periodStart,
+          to: _periodEnd,
+          locale: _locale,
+        ),
+        DriverCalendarsPanel(api: _calendarApi!, locale: _locale),
+      ],
+    ],
+  );
+
+  Widget _saveBar() => Material(
+    key: const ValueKey('agenda-save-bar'),
+    elevation: 8,
+    color: Theme.of(context).cardTheme.color,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              tr(
+                'Modifications non enregistrées',
+                'Unsaved changes',
+                'Cambios sin guardar',
+              ),
+            ),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(
+                _saving
+                    ? tr('Enregistrement…', 'Saving…', 'Guardando…')
+                    : tr(
+                        'Enregistrer mes disponibilités',
+                        'Save availability',
+                        'Guardar disponibilidad',
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _errorBlock() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 12),
+      Semantics(
+        liveRegion: true,
+        child: Text(
+          _error!,
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+      ),
+      TextButton(
+        onPressed: _saving
+            ? null
+            : () async {
+                if (_dirty) {
+                  final discard = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(
+                        tr(
+                          'Abandonner les modifications ?',
+                          'Discard changes?',
+                          '¿Descartar cambios?',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text(tr('Conserver', 'Keep', 'Conservar')),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: Text(tr('Recharger', 'Reload', 'Recargar')),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (discard != true) return;
+                }
+                if (mounted) await _load();
+              },
+        child: Text(tr('Recharger', 'Reload', 'Recargar')),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     if (widget.locale == null) _locale = context.watch<LocaleProvider>().locale;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr('Mon agenda', 'My calendar', 'Mi calendario'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final v in [
-                ('day', tr('Jour', 'Day', 'Día')),
-                ('week', tr('Semaine', 'Week', 'Semana')),
-                ('month', tr('Mois', 'Month', 'Mes')),
-              ])
-                ChoiceChip(
-                  label: Text(v.$2),
-                  selected: _view == v.$1,
-                  onSelected: (_) => setState(() => _view = v.$1),
-                ),
-              TextButton(
-                onPressed: () => setState(() => _selected = DateTime.now()),
-                child: Text(tr('Aujourd’hui', 'Today', 'Hoy')),
-              ),
-            ],
-          ),
-          Row(
-            children: [
-              IconButton(
-                tooltip: _view == 'month'
-                    ? tr('Mois précédent', 'Previous month', 'Mes anterior')
-                    : _view == 'week'
-                    ? tr(
-                        'Semaine précédente',
-                        'Previous week',
-                        'Semana anterior',
-                      )
-                    : tr('Jour précédent', 'Previous day', 'Día anterior'),
-                onPressed: () => _move(-1),
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                child: Text(
-                  _view == 'month' ? _month() : _date(_periodStart),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              IconButton(
-                tooltip: _view == 'month'
-                    ? tr('Mois suivant', 'Next month', 'Mes siguiente')
-                    : _view == 'week'
-                    ? tr('Semaine suivante', 'Next week', 'Semana siguiente')
-                    : tr('Jour suivant', 'Next day', 'Día siguiente'),
-                onPressed: () => _move(1),
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          Text(
-            tr(
-              'Heures affichées dans le fuseau de cet appareil.',
-              'Times use this device’s time zone.',
-              'Las horas usan la zona horaria de este dispositivo.',
-            ),
-          ),
-          const SizedBox(height: 12),
-          StreamBuilder<List<DeliveryMission>>(
-            stream: _missions,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Text(
-                  tr(
-                    'Impossible de charger les missions.',
-                    'Unable to load missions.',
-                    'No se pudieron cargar las misiones.',
-                  ),
-                );
-              }
-              if (!snapshot.hasData) return const LinearProgressIndicator();
-              final missions =
-                  snapshot.data!.where((m) {
-                    final d = agendaMissionStart(m);
-                    final end = DateTime.tryParse(
-                      m.scheduling?['end'] as String? ?? '',
-                    )?.toLocal();
-                    return d == null ||
-                        _intersects(
-                          d,
-                          end ?? d.add(const Duration(minutes: 1)),
-                        );
-                  }).toList()..sort(
-                    (a, b) => (agendaMissionStart(a) ?? DateTime(2100))
-                        .compareTo(agendaMissionStart(b) ?? DateTime(2100)),
-                  );
-              if (missions.isEmpty && _view != 'month') {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text(
-                    tr(
-                      'Aucune mission attribuée pour cette période.',
-                      'No assigned missions in this period.',
-                      'No hay misiones asignadas en este período.',
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: [
-                  if (_view == 'month') _dateGrid(missions),
-                  if (missions.isEmpty)
-                    Text(
-                      tr(
-                        'Aucune mission attribuée pour ce mois.',
-                        'No assigned missions this month.',
-                        'No hay misiones asignadas este mes.',
-                      ),
-                    ),
-                  ...missions.map(_mission),
-                ],
-              );
-            },
-          ),
-          if (_calendarApi != null && _agenda != null)
-            DriverAvailabilityPreview(
-              api: _calendarApi!,
-              agenda: _agenda!,
-              from: _periodStart,
-              to: _periodEnd,
-              locale: _locale,
-            ),
-          const Divider(height: 32),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: .06),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              _agenda?.dispatchConnected == true
-                  ? tr(
-                      'Vos disponibilités sont contrôlées avant l’attribution. Un calendrier externe doit être à jour pour accepter.',
-                      'Availability is checked before assignment. Connected calendars must be up to date to accept.',
-                      'Se comprueba la disponibilidad antes de asignar. Los calendarios conectados deben estar actualizados para aceptar.',
-                    )
-                  : tr(
-                      'Préparation des disponibilités : vos plages peuvent être enregistrées, mais ne filtrent pas encore les offres. Les connexions externes se gèrent ci-dessous.',
-                      'Availability preparation: your periods can be saved, but do not yet filter offers. External connections are managed below.',
-                      'Preparación de disponibilidad: puedes guardar períodos, pero todavía no filtran ofertas. Las conexiones externas se gestionan abajo.',
-                    ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (_loading) const LinearProgressIndicator(),
-          if (!_loading && _agenda != null) ...[
-            if (!_agenda!.configured)
-              Text(
-                tr(
-                  'Aucune disponibilité déclarée.',
-                  'No availability declared.',
-                  'No hay disponibilidad declarada.',
-                ),
-              ),
-            Text(
-              tr('Mes disponibilités', 'My availability', 'Mi disponibilidad'),
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            DriverRecurrenceEditor(
-              value: _agenda!.recurrence,
-              locale: _locale,
-              enabled: !_saving,
-              onChanged: (value) {
-                final a = _agenda!;
-                setState(() {
-                  _agenda = DriverAgenda(
-                    revision: a.revision,
-                    configured: a.configured,
-                    windows: a.windows,
-                    blocked: a.blocked,
-                    recurrence: value,
-                    dispatchConnected: a.dispatchConnected,
-                  );
-                  _dirty = true;
-                });
-              },
-            ),
-            _slots(false),
-            const SizedBox(height: 16),
-            _slots(true),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FilledButton(
-                  onPressed: !_dirty || _saving ? null : _save,
-                  child: Text(
-                    _saving
-                        ? tr('Enregistrement…', 'Saving…', 'Guardando…')
-                        : tr(
-                            'Enregistrer mes disponibilités',
-                            'Save availability',
-                            'Guardar disponibilidad',
-                          ),
+                Text(
+                  tr('Mon agenda', 'My calendar', 'Mi calendario'),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                if (_dirty)
-                  Text(
-                    tr(
-                      'Modifications non enregistrées',
-                      'Unsaved changes',
-                      'Cambios sin guardar',
+                const SizedBox(height: 6),
+                _intro(),
+                const SizedBox(height: 16),
+                if (_loading) const LinearProgressIndicator(),
+                if (!_loading && _agenda != null)
+                  _card(
+                    DriverWeeklyHoursCard(
+                      agenda: _agenda!,
+                      locale: _locale,
+                      enabled: !_saving,
+                      onChanged: _setAgenda,
                     ),
                   ),
+                // Keyed: the usual-hours card appears above it once the agenda
+                // is loaded. Without a key the StreamBuilder would be
+                // recreated and subscribe a second time to the missions
+                // stream (single-subscription with Firestore).
+                KeyedSubtree(
+                  key: const ValueKey('agenda-missions'),
+                  child: _missionsSection(),
+                ),
+                if (!_loading && _agenda != null) ...[
+                  const SizedBox(height: 16),
+                  _advanced(),
+                ],
+                if (_error != null) _errorBlock(),
               ],
             ),
-          ],
-          if (_calendarApi != null)
-            DriverCalendarsPanel(api: _calendarApi!, locale: _locale),
-          if (_error != null) ...[
-            const SizedBox(height: 12),
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-            TextButton(
-              onPressed: _saving
-                  ? null
-                  : () async {
-                      if (_dirty) {
-                        final discard = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text(
-                              tr(
-                                'Abandonner les modifications ?',
-                                'Discard changes?',
-                                '¿Descartar cambios?',
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text(
-                                  tr('Conserver', 'Keep', 'Conservar'),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: Text(
-                                  tr('Recharger', 'Reload', 'Recargar'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (discard != true) return;
-                      }
-                      if (mounted) await _load();
-                    },
-              child: Text(tr('Recharger', 'Reload', 'Recargar')),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+        if (_dirty && _agenda != null) _saveBar(),
+      ],
     );
   }
 }

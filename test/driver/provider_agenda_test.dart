@@ -55,6 +55,14 @@ Future<void> show(
   await t.pumpAndSettle();
 }
 
+/// One-off periods and blocks live under « Réglages avancés » since the
+/// agenda redesign (2026-10-25).
+Future<void> openAdvanced(WidgetTester t) async {
+  await t.ensureVisible(find.text('Réglages avancés'));
+  await t.tap(find.text('Réglages avancés'));
+  await t.pumpAndSettle();
+}
+
 void main() {
   test('UTC availability survives serialization and local time conversion', () {
     final d = DriverAgenda.fromJson({
@@ -117,6 +125,7 @@ void main() {
       ],
     );
     await show(t, repo);
+    await openAdvanced(t);
     await t.ensureVisible(find.byIcon(Icons.delete_outline));
     await t.tap(find.byIcon(Icons.delete_outline));
     await t.pumpAndSettle();
@@ -142,6 +151,7 @@ void main() {
     );
     repo.failSave = true;
     await show(t, repo);
+    await openAdvanced(t);
     await t.ensureVisible(find.byIcon(Icons.delete_outline));
     await t.tap(find.byIcon(Icons.delete_outline));
     await t.pumpAndSettle();

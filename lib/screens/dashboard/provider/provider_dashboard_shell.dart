@@ -219,7 +219,7 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
         const SizedBox.shrink(),
     ];
     final navItems = [
-      (Icons.assignment_outlined, t('nav_available_jobs')),
+      (Icons.home_outlined, t('nav_available_jobs')),
       (Icons.calendar_month_outlined, t('nav_calendar')),
       (Icons.payments_outlined, t('nav_earnings')),
       (Icons.person_outline, t('nav_profile')),

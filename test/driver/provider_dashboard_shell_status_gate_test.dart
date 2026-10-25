@@ -374,7 +374,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text(nextMonthLabel), findsOneWidget);
 
-        await tester.tap(find.byIcon(Icons.assignment_outlined));
+        await tester.tap(find.byIcon(Icons.home_outlined));
         await tester.pumpAndSettle();
         expect(
           find.byType(ProviderCalendarTab, skipOffstage: false),

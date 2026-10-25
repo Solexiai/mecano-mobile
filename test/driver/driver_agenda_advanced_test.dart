@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/backend/models/delivery_mission.dart';
 import 'package:movik_connect/backend/repositories/driver_agenda_repository.dart';
+import 'package:movik_connect/finance/presentation/driver_display_format.dart';
 import 'package:movik_connect/services/booking/booking_api.dart';
 import 'package:movik_connect/widgets/driver_calendars_panel.dart';
 import 'package:movik_connect/widgets/driver_slot_confirmation.dart';
@@ -65,24 +66,21 @@ void main() {
     });
     expect(agendaMissionStart(m)!.toUtc(), DateTime.utc(2026, 10, 21, 13));
   });
-  testWidgets('day week month controls are functional and keyboard reachable', (
+  testWidgets('month navigation is functional and keyboard reachable', (
     t,
   ) async {
     final repo = fixtures.AgendaFake();
     addTearDown(repo.missions.close);
     await fixtures.show(t, repo);
-    await t.tap(find.text('Semaine'));
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month + 1);
+    await t.tap(find.byTooltip('Mois suivant'));
     await t.pumpAndSettle();
-    expect(
-      t.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Semaine')).selected,
-      isTrue,
-    );
-    await t.tap(find.text('Jour'));
+    expect(find.text(driverMonthYear(next, 'fr')), findsOneWidget);
+    await t.ensureVisible(find.text('Aujourd’hui'));
+    await t.tap(find.text('Aujourd’hui'));
     await t.pumpAndSettle();
-    expect(
-      t.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Jour')).selected,
-      isTrue,
-    );
+    expect(find.text(driverMonthYear(now, 'fr')), findsOneWidget);
     await t.sendKeyEvent(LogicalKeyboardKey.tab);
     await t.pump();
     expect(t.takeException(), isNull);
