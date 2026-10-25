@@ -109,6 +109,58 @@ describe("Security Rules — users/{userId}", () => {
   });
 });
 
+describe("Security Rules — users/{userId} : profil ancien sans champs protégés (2026-10-25)", () => {
+  // Un profil créé avant l'ajout de is_disabled / email_verified /
+  // created_at : le propriétaire doit pouvoir enregistrer son nom.
+  const legacy = async () =>
+    testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "users/legacy_001"), {
+        uid: "legacy_001",
+        roles: ["customer", "driver"],
+        email: "legacy@example.invalid",
+      });
+    });
+
+  it("le propriétaire peut enregistrer son nom, son téléphone et sa ville", async () => {
+    await legacy();
+    const owner = testEnv.authenticatedContext("legacy_001", { role: "customer" });
+    await assertSucceeds(
+      setDoc(
+        doc(owner.firestore(), "users/legacy_001"),
+        { full_name: "Client Fictif", phone: "514-555-0100", city: "Granby" },
+        { merge: true }
+      )
+    );
+  });
+
+  it("il ne peut toujours PAS changer ses rôles", async () => {
+    await legacy();
+    const owner = testEnv.authenticatedContext("legacy_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/legacy_001"), { roles: ["admin"] })
+    );
+  });
+
+  it("il ne peut PAS ajouter lui-même email_verified ou is_disabled", async () => {
+    await legacy();
+    const owner = testEnv.authenticatedContext("legacy_001", { role: "customer" });
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/legacy_001"), { email_verified: true })
+    );
+    await assertFails(
+      updateDoc(doc(owner.firestore(), "users/legacy_001"), { is_disabled: false })
+    );
+  });
+
+  it("un autre utilisateur ne peut PAS modifier ce profil", async () => {
+    await legacy();
+    const other = testEnv.authenticatedContext("intruder_001", { role: "customer" });
+    await assertFails(
+      setDoc(doc(other.firestore(), "users/legacy_001"), { full_name: "Pirate" }, { merge: true })
+    );
+  });
+});
+
 // -----------------------------------------------------------------------
 // driver_profiles/{driverId} — tentative d'auto-approbation
 // -----------------------------------------------------------------------
