@@ -12,12 +12,15 @@ import 'package:provider/provider.dart';
 import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
+import '../../../../finance/models/transaction_ledger.dart';
+import '../../../../widgets/driver_home_summary.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 
-/// Onglet "Demandes disponibles" du chauffeur.
+/// Onglet "Accueil" du chauffeur : résumé (prochaine mission, gains de la
+/// semaine) puis les demandes disponibles.
 ///
 /// Données 100% réelles : `MissionRepository.watchAvailableMissionsForDriver()`
 /// (missions déjà filtrées côté repository par statut ouvert à l'acceptation
@@ -25,9 +28,19 @@ import '../../../../providers/locale_provider.dart';
 /// `acceptMission()`, qui invoque la Cloud Function `acceptDelivery` —
 /// aucune attribution locale, le serveur tranche en cas de concurrence.
 class ProviderJobsTab extends StatefulWidget {
-  const ProviderJobsTab({super.key, this.bookingApi, this.photoLoader});
+  const ProviderJobsTab({
+    super.key,
+    this.bookingApi,
+    this.photoLoader,
+    this.homeMissions,
+    this.homeLedger,
+  });
   final BookingApi? bookingApi;
   final BookingPhotoLoader? photoLoader;
+
+  /// Injection pour les tests du résumé d'accueil (missions, gains).
+  final Stream<List<DeliveryMission>>? homeMissions;
+  final Stream<List<LedgerEntry>>? homeLedger;
 
   @override
   State<ProviderJobsTab> createState() => _ProviderJobsTabState();
@@ -317,11 +330,6 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t('driver_jobs_title'),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 16),
           // Bannière de reprise : si ce chauffeur a déjà une mission en
           // trajet (assigned -> arrived_at_dropoff), on lui permet d'y
           // revenir directement plutôt que de la laisser invisible parmi
@@ -382,6 +390,19 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
               );
             },
           ),
+          // Accueil (25 octobre 2026) : prochaine mission, gains de la
+          // semaine et missions à venir, puis les demandes disponibles.
+          DriverHomeSummary(
+            driverId: driverId,
+            locale: context.watch<LocaleProvider>().locale,
+            missions: widget.homeMissions,
+            ledger: widget.homeLedger,
+          ),
+          Text(
+            t('driver_jobs_title'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 12),
           StreamBuilder<DeliveryMission?>(
             stream: _activeMissionStream,
             builder: (context, activeSnapshot) {

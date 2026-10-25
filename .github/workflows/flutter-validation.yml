@@ -52,9 +52,21 @@ jobs:
         run: flutter pub get
 
       - name: Analyze Flutter code
-        run: flutter analyze
+        shell: bash
+        run: |
+          set +e
+          flutter analyze > analyze.log 2>&1
+          result=$?
+          tail -n 40 analyze.log
+          # Analyzer findings as annotations, readable in the PR checks.
+          grep -E "•" analyze.log | head -40 | while IFS= read -r line; do
+            echo "::error title=flutter analyze::${line}"
+          done
+          exit "$result"
 
       - name: Run Flutter tests
+        # Also after an analyzer finding, so one run reports both.
+        if: ${{ !cancelled() }}
         shell: bash
         env:
           # Confirmation date fixtures explicitly cover Quebec winter/summer time.

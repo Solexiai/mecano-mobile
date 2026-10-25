@@ -37,6 +37,10 @@ class LedgerEntry {
   /// Si cette entrée est une correction, référence l'entrée d'origine.
   final String? referenceId;
 
+  /// Frais d'annulation tardive (`late_cancellation`) ou de déplacement
+  /// inutile (`customer_failed_delivery`) ; `null` pour une livraison.
+  final String? feeKind;
+
   const LedgerEntry({
     required this.ledgerEntryId,
     this.missionId,
@@ -51,6 +55,7 @@ class LedgerEntry {
     required this.sourceEvent,
     required this.status,
     this.referenceId,
+    this.feeKind,
   });
 
   bool get isConfirmed => status == LedgerEntryStatus.confirmed;
@@ -70,11 +75,12 @@ class LedgerEntry {
         'source_event': sourceEvent,
         'status': status.name,
         'reference_id': referenceId,
+        if (feeKind != null) 'fee_kind': feeKind,
       };
 
   factory LedgerEntry.fromJson(Map<String, dynamic> json) {
     return LedgerEntry(
-      ledgerEntryId: json['ledger_entry_id'] as String,
+      ledgerEntryId: json['ledger_entry_id'] as String? ?? '',
       missionId: json['mission_id'] as String?,
       transactionId: json['transaction_id'] as String?,
       type: LedgerEntryType.values.firstWhere(
@@ -99,6 +105,7 @@ class LedgerEntry {
         orElse: () => LedgerEntryStatus.pending,
       ),
       referenceId: json['reference_id'] as String?,
+      feeKind: json['fee_kind'] as String?,
     );
   }
 }

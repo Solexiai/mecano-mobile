@@ -81,9 +81,9 @@ class AppStrings {
     },
     'nav_logout': {'fr': 'Déconnexion', 'en': 'Logout', 'es': 'Cerrar sesión'},
     'nav_available_jobs': {
-      'fr': 'Demandes disponibles',
-      'en': 'Available Jobs',
-      'es': 'Trabajos disponibles',
+      'fr': 'Accueil',
+      'en': 'Home',
+      'es': 'Inicio',
     },
     'nav_calendar': {'fr': 'Calendrier', 'en': 'Calendar', 'es': 'Calendario'},
     'nav_my_services': {
@@ -919,9 +919,9 @@ class AppStrings {
       'es': 'No se pudieron cargar las solicitudes disponibles.',
     },
     'driver_jobs_empty': {
-      'fr': 'Aucune nouvelle demande pour le moment',
-      'en': 'No new requests at the moment',
-      'es': 'No hay solicitudes nuevas por el momento',
+      'fr': 'Aucune demande pour le moment. Restez « En service » : les nouvelles demandes de votre zone apparaîtront ici et vous recevrez une notification.',
+      'en': 'No requests right now. Stay “On duty”: new requests in your area will appear here and you’ll get a notification.',
+      'es': 'No hay solicitudes por ahora. Permanezca «En servicio»: las nuevas solicitudes de su zona aparecerán aquí y recibirá una notificación.',
     },
     'driver_jobs_accept': {'fr': 'Accepter', 'en': 'Accept', 'es': 'Aceptar'},
     'driver_jobs_accepting': {
@@ -1582,9 +1582,9 @@ class AppStrings {
     },
 
     'ledger_type_driver_earning': {
-      'fr': 'Rémunération de mission',
-      'en': 'Mission earning',
-      'es': 'Ganancia de misión',
+      'fr': 'Livraison',
+      'en': 'Delivery',
+      'es': 'Entrega',
     },
     'ledger_type_driver_tip': {'fr': 'Pourboire', 'en': 'Tip', 'es': 'Propina'},
     'ledger_type_driver_bonus': {'fr': 'Bonus', 'en': 'Bonus', 'es': 'Bono'},
@@ -3384,14 +3384,14 @@ class AppStrings {
       'es': 'Configurar mis pagos',
     },
     'driver_status_online_label_short': {
-      'fr': 'Disponible',
-      'en': 'Available',
-      'es': 'Disponible',
+      'fr': 'En service',
+      'en': 'On duty',
+      'es': 'En servicio',
     },
     'driver_status_offline_label_short': {
-      'fr': 'Hors ligne',
-      'en': 'Offline',
-      'es': 'Fuera de línea',
+      'fr': 'Hors service',
+      'en': 'Off duty',
+      'es': 'Fuera de servicio',
     },
 
     // ---------- Bloc J — Finance client (Phase 6) ----------
@@ -3528,9 +3528,9 @@ class AppStrings {
       'es': 'Pagos',
     },
     'payout_summary_title': {
-      'fr': 'Résumé des gains',
-      'en': 'Earnings summary',
-      'es': 'Resumen de ganancias',
+      'fr': 'Versements',
+      'en': 'Payouts',
+      'es': 'Pagos',
     },
     'payout_summary_available': {
       'fr': 'Gains disponibles',
@@ -4332,6 +4332,26 @@ class AppStrings {
       'fr': 'Nombre invalide',
       'en': 'Invalid number',
       'es': 'Número no válido',
+    },
+    'earnings_week_label': {
+      'fr': 'Cette semaine',
+      'en': 'This week',
+      'es': 'Esta semana',
+    },
+    'earnings_month_label': {
+      'fr': 'Ce mois-ci',
+      'en': 'This month',
+      'es': 'Este mes',
+    },
+    'earnings_line_late_cancellation': {
+      'fr': 'Frais d\'annulation tardive (votre part)',
+      'en': 'Late cancellation fee (your share)',
+      'es': 'Cargo por cancelación tardía (su parte)',
+    },
+    'earnings_line_failed_delivery': {
+      'fr': 'Déplacement inutile (votre part)',
+      'en': 'Wasted trip fee (your share)',
+      'es': 'Viaje inútil (su parte)',
     },
     'admin_payment_detail_title': {
       'fr': 'Détail du paiement',
