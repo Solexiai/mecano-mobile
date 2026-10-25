@@ -5,7 +5,7 @@ import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import '../../../../providers/theme_provider.dart';
-import '../../../../widgets/coming_soon_badge.dart';
+import 'package:go_router/go_router.dart';
 
 /// Onglet profil client — Phase 4 : identité réelle Firebase Auth.
 ///
@@ -53,12 +53,20 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
   Future<void> _save(String uid) async {
     setState(() => _saving = true);
     final t = context.read<LocaleProvider>().t;
+    final auth = context.read<FirebaseAuthProvider>();
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'full_name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'city': _cityController.text.trim(),
       }, SetOptions(merge: true));
+      // The home screen greets the customer by first name (2026-10-25).
+      try {
+        await auth.user?.updateDisplayName(_nameController.text.trim());
+        await auth.reloadCurrentUser();
+      } catch (_) {
+        /* The name stays saved in the profile even if Auth is not updated. */
+      }
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(t('customer_profile_update_success'))));
@@ -79,6 +87,9 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
     final user = auth.user;
     final themeProvider = context.watch<ThemeProvider>();
     final t = context.watch<LocaleProvider>().t;
+    final locale = context.watch<LocaleProvider>().locale;
+    String tr(String fr, String en, String es) =>
+        locale == 'en' ? en : (locale == 'es' ? es : fr);
 
     if (user == null) {
       return const Center(child: CircularProgressIndicator());
@@ -94,7 +105,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(t('customer_profile_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(tr('Compte', 'Account', 'Cuenta'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 20),
           Center(
             child: CircleAvatar(
@@ -139,22 +150,20 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
           ),
           const Divider(height: 20),
           ListTile(
+            key: const ValueKey('account-help'),
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.place_outlined),
-            title: Text(t('nav_saved_addresses')),
-            trailing: const ComingSoonBadge(small: true),
+            leading: const Icon(Icons.help_outline),
+            title: Text(tr('Aide et contact', 'Help and contact', 'Ayuda y contacto')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/$locale/contact'),
           ),
           ListTile(
+            key: const ValueKey('account-terms'),
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.favorite_border),
-            title: Text(t('customer_profile_favourite_providers')),
-            trailing: const ComingSoonBadge(small: true),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.notifications_outlined),
-            title: Text(t('customer_profile_notification_preferences')),
-            trailing: const ComingSoonBadge(small: true),
+            leading: const Icon(Icons.description_outlined),
+            title: Text(tr('Conditions et confidentialité', 'Terms and privacy', 'Condiciones y privacidad')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/$locale/legal/terms'),
           ),
           const Divider(height: 20),
           OutlinedButton.icon(
@@ -164,12 +173,20 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             label: Text(t('nav_logout')),
           ),
           const SizedBox(height: 8),
+          // Honest path (2026-10-25): the request goes through the contact
+          // form; nothing claims it was recorded automatically.
           TextButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(SnackBar(content: Text(t('customer_profile_delete_account_confirmation'))));
-            },
+            key: const ValueKey('account-delete'),
+            onPressed: () => context.go('/$locale/contact'),
             child: Text(t('customer_profile_delete_account_request'), style: const TextStyle(color: AppColors.textSecondary)),
+          ),
+          Text(
+            tr(
+              'Écrivez-nous depuis la page Contact : nous supprimons votre compte et vos données.',
+              'Write to us from the Contact page: we delete your account and your data.',
+              'Escríbenos desde la página de contacto: eliminamos tu cuenta y tus datos.',
+            ),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
       ),
