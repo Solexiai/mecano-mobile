@@ -228,6 +228,12 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
           onChanged: (v) {
             if (v == null) return;
             item['category'] = v;
+            // An ordinary type chosen by the customer replaces the AI's
+            // "special" flag (e.g. two appliances on one photo, 2026-10-25):
+            // no measurements are asked for a washer, a sofa, boxes…
+            if (v != 'materials' && v != 'other') {
+              item['special_handling'] = false;
+            }
             item.remove('photo_size_hint');
             item['identification_confirmed'] = false;
             widget.onChanged();

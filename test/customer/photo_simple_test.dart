@@ -186,4 +186,45 @@ void main() {
     );
     expect(find.byKey(const ValueKey('photo-category-item')), findsOneWidget);
   });
+  testWidgets('choosing an ordinary type clears the special flag', (t) async {
+    final value = item()
+      ..['category'] = 'other'
+      ..['special_handling'] = true
+      ..['label'] = 'Deux appareils de buanderie';
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (_, update) => PhotoBookingItem(
+                item: value,
+                locale: 'fr',
+                categories: const [
+                  ('washer', 'Laveuse / sécheuse'),
+                  ('other', 'Autre'),
+                ],
+                photoLoader: (_) async =>
+                    File('assets/home/brand_logo.png').readAsBytesSync(),
+                onChanged: () => update(() {}),
+                onRemove: () {},
+                onAddPhoto: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    final change = find.byKey(const ValueKey('photo-change-item'));
+    if (change.evaluate().isNotEmpty) {
+      await t.tap(change);
+      await t.pumpAndSettle();
+    }
+    await t.tap(find.byKey(const ValueKey('photo-category-item')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Laveuse / sécheuse').last);
+    await t.pumpAndSettle();
+    expect(value['category'], 'washer');
+    expect(value['special_handling'], isFalse);
+  });
 }
