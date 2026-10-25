@@ -276,45 +276,48 @@ class CustomerTrackingScreen extends StatelessWidget {
                   _LiveDriverCard(mission: mission, locale: locale, t: t),
                   const SizedBox(height: 14),
                   _DeliveryTimeline(mission: mission, t: t),
-                  const SizedBox(height: 8),
-                  ExpansionTile(
-                    key: const ValueKey('tracking-more'),
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: const EdgeInsets.only(bottom: 12),
-                    title: Text(
-                      switch (locale) {
-                        'en' => 'Load and addresses',
-                        'es' => 'Carga y direcciones',
-                        _ => 'Chargement et adresses',
-                      },
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                  if (mission.pickupAddress != null) ...[
+                    const SizedBox(height: 14),
+                    _AddressRow(
+                      icon: Icons.trip_origin,
+                      color: AppColors.info,
+                      label: t('driver_active_mission_pickup'),
+                      value:
+                          '${mission.pickupAddress!.line1}, ${mission.pickupAddress!.city}',
                     ),
-                    children: [
-                      if (mission.bookingSnapshot != null)
+                  ],
+                  if (mission.dropoffAddress != null) ...[
+                    const SizedBox(height: 10),
+                    _AddressRow(
+                      icon: Icons.place,
+                      color: AppColors.error,
+                      label: t('driver_active_mission_dropoff'),
+                      value:
+                          '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
+                    ),
+                  ],
+                  if (mission.bookingSnapshot != null) ...[
+                    const SizedBox(height: 8),
+                    ExpansionTile(
+                      key: const ValueKey('tracking-more'),
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: const EdgeInsets.only(bottom: 12),
+                      title: Text(
+                        switch (locale) {
+                          'en' => 'What is being moved',
+                          'es' => 'Lo que se transporta',
+                          _ => 'Ce qui est transporté',
+                        },
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      children: [
                         BookingLoadSummary(
                           snapshot: mission.bookingSnapshot!,
                           locale: locale,
                         ),
-                      if (mission.pickupAddress != null)
-                        _AddressRow(
-                          icon: Icons.trip_origin,
-                          color: AppColors.info,
-                          label: t('driver_active_mission_pickup'),
-                          value:
-                              '${mission.pickupAddress!.line1}, ${mission.pickupAddress!.city}',
-                        ),
-                      if (mission.dropoffAddress != null) ...[
-                        const SizedBox(height: 10),
-                        _AddressRow(
-                          icon: Icons.place,
-                          color: AppColors.error,
-                          label: t('driver_active_mission_dropoff'),
-                          value:
-                              '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
-                        ),
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   _MissionReference(mission: mission, t: t),
                 ],
@@ -739,10 +742,13 @@ class _CompletedMissionView extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                Text(
-                  customerMoney(mission, locale),
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                Flexible(
+                  child: Text(
+                    customerMoney(mission, locale),
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -1242,8 +1248,10 @@ class _ProofOfDeliveryView extends StatelessWidget {
   }
 
   Widget _proofPlaceholder({required IconData icon, required String message}) {
+    // Minimum height, not a fixed one: the message stays readable with
+    // large text (2026-10-25).
     return Container(
-      height: 160,
+      constraints: const BoxConstraints(minHeight: 160),
       width: double.infinity,
       alignment: Alignment.center,
       decoration: BoxDecoration(

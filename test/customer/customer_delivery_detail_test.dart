@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/delivery_mission.dart';
-import 'package:movik_connect/backend/models/mission_address.dart';
 import 'package:movik_connect/backend/models/mission_rating.dart';
 import 'package:movik_connect/backend/repositories/mission_repository.dart';
 import 'package:movik_connect/backend/repositories/rating_repository.dart';
