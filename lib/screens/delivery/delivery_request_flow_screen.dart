@@ -1038,7 +1038,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ),
     (
       'washer',
-      tr('Laveuse', 'Washer', 'Lavadora'),
+      tr('Laveuse / sécheuse', 'Washer / dryer', 'Lavadora / secadora'),
       Icons.local_laundry_service_outlined,
     ),
     ('table', tr('Table', 'Table', 'Mesa'), Icons.table_restaurant_outlined),
@@ -2053,10 +2053,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'Confirm the category and pictured item.',
       'Confirma la categoría y el objeto fotografiado.',
     ),
+    // Says what to do (2026-10-25): the old text did not.
     'special_details_required' => tr(
-      'Cet objet nécessite des précisions avant le calcul du prix.',
-      'This item needs more details before a price can be calculated.',
-      'Este objeto necesita más detalles antes de calcular el precio.',
+      'Un article est classé « Autre » ou « Matériaux ». Touchez « Compléter », puis sur l’article : choisissez son type (ex. Laveuse / sécheuse, quantité 2), ou ouvrez « Précisions sur l’objet » et indiquez ses mesures et une précaution.',
+      'An item is classified as “Other” or “Materials”. Tap “Complete”, then on the item: choose its type (e.g. Washer / dryer, quantity 2), or open “Item details” and enter its measurements and a precaution.',
+      'Un artículo está clasificado como «Otro» o «Materiales». Toca «Completar» y, en el artículo, elige su tipo (p. ej. Lavadora / secadora, cantidad 2), o abre «Detalles del objeto» e indica sus medidas y una precaución.',
     ),
     'no_eligible_photo_vehicle' => tr(
       'Aucun véhicule configuré ne répond aux informations fournies.',

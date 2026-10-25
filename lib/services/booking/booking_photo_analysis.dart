@@ -5,11 +5,16 @@ class BookingPhotoSuggestion {
     required this.label,
     required this.special,
     required this.uncertain,
+    this.multiple = false,
     this.sizeEstimate,
     this.sourcePhotoPath,
   });
   final String category, label;
   final bool special, uncertain;
+
+  /// Several items on one photo (2026-10-25): the customer is asked for one
+  /// photo per item, or the type and the quantity.
+  final bool multiple;
   final BookingPhotoSizeEstimate? sizeEstimate;
   final String? sourcePhotoPath;
   static const categories = {
@@ -59,6 +64,7 @@ class BookingPhotoSuggestion {
           ['materials', 'other'].contains(category) ||
           value['reason'] == 'special',
       uncertain: uncertain,
+      multiple: value['reason'] == 'multiple_objects',
       sizeEstimate: uncertain
           ? null
           : BookingPhotoSizeEstimate.parse(value['size_estimate']),

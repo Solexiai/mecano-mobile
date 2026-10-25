@@ -186,13 +186,20 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        widget.suggestion?.uncertain == true
+        widget.suggestion?.multiple == true
+            ? tr(
+                'On voit plusieurs articles sur la photo. Choisissez leur type et la quantité, ou prenez une photo par article.',
+                'We see several items in the photo. Choose their type and the quantity, or take one photo per item.',
+                'Vemos varios artículos en la foto. Elige su tipo y la cantidad, o toma una foto por artículo.',
+              )
+            : widget.suggestion?.uncertain == true
             ? tr(
                 'On n’est pas sûr. C’est quoi ?',
                 'We’re not sure. What is it?',
                 'No estamos seguros. ¿Qué es?',
               )
             : tr('C’est quoi ?', 'What is it?', '¿Qué es?'),
+        key: ValueKey('photo-editor-question-$_id'),
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
       ),
       const SizedBox(height: 8),

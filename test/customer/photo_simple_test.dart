@@ -144,4 +144,46 @@ void main() {
       });
     }
   }
+  testWidgets('several items on one photo: the card asks for type and quantity', (
+    t,
+  ) async {
+    final response = result();
+    response['suggestion'] = {
+      ...(response['suggestion'] as Map),
+      'category': 'washer',
+      'label': 'Laveuse et sécheuse',
+      'reason': 'multiple_objects',
+    };
+    final suggestion = BookingPhotoSuggestion.fromResponse(response, photo);
+    expect(suggestion.multiple, isTrue);
+    expect(suggestion.category, 'other');
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PhotoBookingItem(
+              item: item()..['category'] = 'other',
+              locale: 'fr',
+              categories: const [
+                ('washer', 'Laveuse / sécheuse'),
+                ('other', 'Autre'),
+              ],
+              photoLoader: (_) async =>
+                  File('assets/home/brand_logo.png').readAsBytesSync(),
+              onChanged: () {},
+              onRemove: () {},
+              onAddPhoto: () {},
+              suggestion: suggestion,
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(
+      find.textContaining('On voit plusieurs articles sur la photo'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('photo-category-item')), findsOneWidget);
+  });
 }
