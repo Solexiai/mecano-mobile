@@ -49,9 +49,7 @@ class _CustomerRequestsTabState extends State<CustomerRequestsTab> {
       key: ValueKey(_retry),
       stream: BackendLocator.missionRepository.watchCustomerMissions(auth.effectiveUid!),
       builder: (context, snapshot) {
-        final missions = (snapshot.data ?? const <DeliveryMission>[])
-            .where((m) => !m.isInternalTest)
-            .toList();
+        final missions = snapshot.data ?? const <DeliveryMission>[];
         final upcoming = missions.where(isCustomerActive).toList();
         final past = missions.where(isCustomerPast).toList();
         final showUpcoming = _upcoming ?? upcoming.isNotEmpty;
