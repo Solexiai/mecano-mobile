@@ -176,6 +176,19 @@ void main() {
     expect(draft.quote, isNull);
   });
 
+  testWidgets('a test request is listed in Activité like on the home screen', (
+    t,
+  ) async {
+    final test = DeliveryMission.fromJson('test_req', {
+      ...mission('x', 'completed').toJson(),
+      'assignment_mode': 'internal_test',
+      'pickup_address': _address('10 rue Principale', 'Granby'),
+      'dropoff_address': _address('5 rue du Lac', 'Bromont'),
+    });
+    await pump(t, const CustomerRequestsTab(), missions: [test]);
+    expect(find.byKey(const ValueKey('customer-delivery-test_req')), findsOneWidget);
+  });
+
   testWidgets('activity: upcoming first, then past with French prices', (
     t,
   ) async {

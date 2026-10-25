@@ -30,8 +30,10 @@ const customerActiveStatuses = {
   MissionStatus.arrivedAtDropoff,
 };
 
+// Test requests (internal_test) are the customer's own too: shown like any
+// other, on the home screen and in Activité alike (2026-10-25).
 bool isCustomerActive(DeliveryMission m) =>
-    !m.isInternalTest && customerActiveStatuses.contains(m.status);
+    customerActiveStatuses.contains(m.status);
 
 bool isCustomerPast(DeliveryMission m) => const {
   MissionStatus.delivered,
