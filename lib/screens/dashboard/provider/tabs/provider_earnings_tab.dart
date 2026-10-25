@@ -101,6 +101,25 @@ class _EarningsBodyState extends State<_EarningsBody> {
     _ensureStreams();
     final t = widget.t;
     final locale = widget.locale;
+    // Missions (for route labels) are listened once, around everything, so
+    // the single-subscription stream is never subscribed twice.
+    return StreamBuilder<List<DeliveryMission>>(
+      stream: _missions,
+      builder: (context, missionsSnap) {
+        final byId = <String, DeliveryMission>{
+          for (final m in missionsSnap.data ?? const <DeliveryMission>[])
+            m.id: m,
+        };
+        return _ledgerView(t, locale, byId);
+      },
+    );
+  }
+
+  Widget _ledgerView(
+    String Function(String) t,
+    String locale,
+    Map<String, DeliveryMission> byId,
+  ) {
     return StreamBuilder<List<LedgerEntry>>(
       stream: _ledger,
       builder: (context, snapshot) {
@@ -214,28 +233,13 @@ class _EarningsBodyState extends State<_EarningsBody> {
                   ),
                 )
               else
-                StreamBuilder<List<DeliveryMission>>(
-                  stream: _missions,
-                  builder: (context, missionsSnap) {
-                    final byId = <String, DeliveryMission>{
-                      for (final m in missionsSnap.data ?? const <DeliveryMission>[])
-                        m.id: m,
-                    };
-                    return Column(
-                      children: entries
-                          .map(
-                            (e) => _LedgerTile(
-                              entry: e,
-                              mission: e.missionId == null
-                                  ? null
-                                  : byId[e.missionId],
-                              t: t,
-                              locale: locale,
-                            ),
-                          )
-                          .toList(),
-                    );
-                  },
+                ...entries.map(
+                  (e) => _LedgerTile(
+                    entry: e,
+                    mission: e.missionId == null ? null : byId[e.missionId],
+                    t: t,
+                    locale: locale,
+                  ),
                 ),
             ],
           ),

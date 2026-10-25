@@ -650,7 +650,14 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
                       onChanged: _setAgenda,
                     ),
                   ),
-                _missionsSection(),
+                // Keyed: the usual-hours card appears above it once the agenda
+                // is loaded. Without a key the StreamBuilder would be
+                // recreated and subscribe a second time to the missions
+                // stream (single-subscription with Firestore).
+                KeyedSubtree(
+                  key: const ValueKey('agenda-missions'),
+                  child: _missionsSection(),
+                ),
                 if (!_loading && _agenda != null) ...[
                   const SizedBox(height: 16),
                   _advanced(),
