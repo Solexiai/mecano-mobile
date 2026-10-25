@@ -40,6 +40,7 @@ import '../../providers/locale_provider.dart';
 import '../../widgets/internal_test_mission_banner.dart';
 import '../../widgets/live_tracking_map.dart';
 import 'mission_finance_section.dart';
+import '../dashboard/customer/customer_mission_view.dart';
 
 class CustomerTrackingScreen extends StatelessWidget {
   final String missionId;
@@ -406,32 +407,70 @@ class _MissionStatusView extends StatelessWidget {
   );
 }
 
-/// Vue dédiée pour une mission `completed` (point 7/8/9, Phase 5 partie 3) :
-/// statut + date/heure, preuve de livraison, timeline complète, infos utiles.
+/// Détail d'une livraison terminée, comme un reçu Uber (maquette validée par
+/// le propriétaire le 2026-10-25) : quoi, quand, la photo, les deux adresses,
+/// le total, la note, puis trois gestes simples. Le reste (étapes, résumé du
+/// chargement, paiement) est replié plus bas, jamais supprimé.
 class _CompletedMissionView extends StatelessWidget {
   final DeliveryMission mission;
   final String Function(String) t;
   const _CompletedMissionView({required this.mission, required this.t});
 
-  String _formatDateTime(DateTime dt) {
-    final local = dt.toLocal();
-    final d = local.day.toString().padLeft(2, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final y = local.year.toString();
-    final h = local.hour.toString().padLeft(2, '0');
-    final min = local.minute.toString().padLeft(2, '0');
-    return '$d/$m/$y à $h:$min';
-  }
-
   @override
   Widget build(BuildContext context) {
+    final locale = context.read<LocaleProvider>().locale;
+    String tr(String fr, String en, String es) => locale == 'en'
+        ? en
+        : locale == 'es'
+        ? es
+        : fr;
+    final done = mission.completedAt?.toLocal();
+    final day = customerDateLabel(done ?? customerMissionDate(mission), locale);
+    final theme = Theme.of(context);
+    final cardDecoration = BoxDecoration(
+      color: theme.cardTheme.color ?? theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    );
+    const secondary = TextStyle(
+      fontSize: 12.5,
+      color: AppColors.textSecondary,
+      fontWeight: FontWeight.w600,
+    );
+    Widget stop(String letter, Color color, String label, String value) => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 13,
+          backgroundColor: color,
+          child: Text(
+            letter,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: secondary),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ],
+    );
+    final pickup = mission.pickupAddress, dropoff = mission.dropoffAddress;
+    final driver = mission.driverDisplayName?.trim() ?? '';
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _MissionReference(mission: mission, t: t),
-          const SizedBox(height: 16),
           if (mission.isInternalTest) ...[
             InternalTestMissionBanner(
               title: t('internal_test_mission_title'),
@@ -439,111 +478,222 @@ class _CompletedMissionView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
           ],
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: AppColors.success.withValues(alpha: 0.4),
+          Text(
+            tr('Livraison du $day', 'Delivery on $day', 'Entrega del $day'),
+            key: const ValueKey('detail-date'),
+            style: secondary,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            customerMissionTitle(mission, locale, t),
+            key: const ValueKey('detail-title'),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              Text(
+                t('customer_tracking_completed_title'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.success,
+                ),
+              ),
+              if (done != null)
+                Text(
+                  tr(
+                    'à ${customerTimeLabel(done, locale)}',
+                    'at ${customerTimeLabel(done, locale)}',
+                    'a las ${customerTimeLabel(done, locale)}',
+                  ),
+                  key: const ValueKey('detail-time'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.success,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(t('customer_tracking_proof_title'), style: secondary),
+          const SizedBox(height: 8),
+          _ProofOfDeliveryView(url: mission.proofOfDeliveryUrl, t: t),
+          const SizedBox(height: 16),
+          if (pickup != null || dropoff != null || driver.isNotEmpty) ...[
+            Container(
+              key: const ValueKey('detail-addresses'),
+              padding: const EdgeInsets.all(14),
+              decoration: cardDecoration,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (pickup != null)
+                    stop(
+                      'A',
+                      AppColors.info,
+                      t('driver_active_mission_pickup'),
+                      '${pickup.line1}, ${pickup.city}',
+                    ),
+                  if (pickup != null && dropoff != null)
+                    const SizedBox(height: 12),
+                  if (dropoff != null)
+                    stop(
+                      'B',
+                      AppColors.error,
+                      t('driver_active_mission_dropoff'),
+                      '${dropoff.line1}, ${dropoff.city}',
+                    ),
+                  if (driver.isNotEmpty) ...[
+                    const Divider(height: 24),
+                    Text(
+                      tr(
+                        'Chauffeur : $driver',
+                        'Driver: $driver',
+                        'Conductor: $driver',
+                      ),
+                      style: secondary,
+                    ),
+                  ],
+                ],
               ),
             ),
+            const SizedBox(height: 12),
+          ],
+          Container(
+            key: const ValueKey('detail-total'),
+            padding: const EdgeInsets.all(14),
+            decoration: cardDecoration,
             child: Row(
               children: [
-                const Icon(
-                  Icons.check_circle,
-                  color: AppColors.success,
-                  size: 32,
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t('customer_tracking_completed_title'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          color: AppColors.success,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        t('customer_tracking_completed_message'),
-                        style: const TextStyle(fontSize: 12.5),
-                      ),
-                      if (mission.completedAt != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatDateTime(mission.completedAt!),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    tr('Total', 'Total', 'Total'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  customerMoney(mission, locale),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            t('customer_tracking_proof_title'),
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-          ),
-          const SizedBox(height: 10),
-          _ProofOfDeliveryView(url: mission.proofOfDeliveryUrl, t: t),
-          const SizedBox(height: 20),
-          _DeliveryTimeline(mission: mission, t: t),
-          const SizedBox(height: 20),
-          if (mission.bookingSnapshot != null)
-            BookingLoadSummary(
-              snapshot: mission.bookingSnapshot!,
-              locale: context.read<LocaleProvider>().locale,
-            ),
-          if (mission.pickupAddress != null)
-            _AddressRow(
-              icon: Icons.trip_origin,
-              color: AppColors.info,
-              label: t('driver_active_mission_pickup'),
-              value:
-                  '${mission.pickupAddress!.line1}, ${mission.pickupAddress!.city}',
-            ),
-          if (mission.dropoffAddress != null) ...[
-            const SizedBox(height: 10),
-            _AddressRow(
-              icon: Icons.place,
-              color: AppColors.error,
-              label: t('driver_active_mission_dropoff'),
-              value:
-                  '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
-            ),
-          ],
-          const SizedBox(height: 20),
-          // Phase 7, Bloc AB (AB-10) — GAP PRODUIT RÉEL comblé : requirement
-          // initial Movi-k ("après une livraison terminée, le client peut
-          // évaluer le chauffeur de 1 à 5 étoiles avec commentaire
-          // optionnel") n'avait AUCUNE implémentation (ni Cloud Function, ni
-          // repository, ni UI) malgré une Security Rule `ratings/{ratingId}`
-          // déjà correctement conçue depuis Phase 2/3 (commit 3af089f).
-          // N'affiché que si un chauffeur a bien été assigné (toujours vrai
-          // pour une mission `completed`, mais gardé explicite plutôt
-          // qu'implicite — cohérent avec le reste de cet écran).
+          const SizedBox(height: 16),
+          // Notation 1 à 5 étoiles (AB-10), seulement si un chauffeur a été
+          // assigné ; jamais pour une demande de test interne.
           if (!mission.isInternalTest && mission.driverId != null) ...[
             _RateDriverCard(mission: mission, t: t),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
-          // Bloc J — vue financière client (résumé, paiement, remboursement,
-          // historique). Intégrée directement au détail de la mission plutôt
-          // que dans un onglet global dédié : les données financières sont
-          // naturellement scopées par mission (voir décision technique
-          // Bloc J point 7).
+          FilledButton.icon(
+            key: const ValueKey('detail-rebook'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
+            onPressed: () => rebookDelivery(
+              context,
+              mission,
+              locale: locale,
+              uid: context.read<FirebaseAuthProvider>().effectiveUid,
+            ),
+            icon: const Icon(Icons.replay),
+            label: Text(
+              tr(
+                'Refaire cette livraison',
+                'Book this delivery again',
+                'Repetir esta entrega',
+              ),
+            ),
+          ),
+          // Le récapitulatif imprimable n'est pas une preuve de paiement
+          // (il le dit lui-même) : on ne l'appelle donc pas « reçu ».
+          if (mission.bookingSnapshot != null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const ValueKey('detail-summary'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: () => context.push(
+                '/$locale/livraison/conditions/${mission.id}',
+              ),
+              icon: const Icon(Icons.download_outlined),
+              label: Text(
+                tr(
+                  'Télécharger le récapitulatif',
+                  'Download the summary',
+                  'Descargar el resumen',
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          TextButton.icon(
+            key: const ValueKey('detail-report'),
+            onPressed: () => context.go('/$locale/contact'),
+            icon: const Icon(Icons.report_outlined),
+            label: Text(
+              tr(
+                'Signaler un problème',
+                'Report a problem',
+                'Informar un problema',
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (!mission.isInternalTest)
-            MissionFinanceSection(missionId: mission.id, t: t),
+            ExpansionTile(
+              key: const ValueKey('detail-payment'),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: const EdgeInsets.only(bottom: 12),
+              title: Text(
+                tr(
+                  'Reçu et paiement',
+                  'Receipt and payment',
+                  'Recibo y pago',
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              children: [MissionFinanceSection(missionId: mission.id, t: t)],
+            ),
+          ExpansionTile(
+            key: const ValueKey('detail-more'),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: const EdgeInsets.only(bottom: 12),
+            title: Text(
+              tr('Étapes et chargement', 'Steps and load', 'Etapas y carga'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            children: [
+              _DeliveryTimeline(mission: mission, t: t),
+              if (mission.bookingSnapshot != null) ...[
+                const SizedBox(height: 12),
+                BookingLoadSummary(
+                  snapshot: mission.bookingSnapshot!,
+                  locale: locale,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            mission.id.trim().isEmpty
+                ? t('tracking_reference_unavailable')
+                : '${t('tracking_reference')} : ${mission.id}',
+            key: const ValueKey('tracking-mission-reference'),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
