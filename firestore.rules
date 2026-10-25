@@ -83,13 +83,15 @@ service cloud.firestore {
       allow read: if isSignedIn() && (uid() == userId || isAnalystOrAbove());
 
       // Le propriétaire peut modifier ses champs déclaratifs, JAMAIS `roles`,
-      // `uid`, `created_at`, `is_disabled`, `email_verified`.
+      // `uid`, `created_at`, `is_disabled`, `email_verified` (ni les ajouter,
+      // ni les retirer, ni les changer).
+      // 2026-10-25 : comparaison par diff(). L'ancienne forme
+      // (request.resource.data.x == resource.data.x) échouait en erreur dès
+      // qu'un de ces champs manquait dans un profil ancien : le client ne
+      // pouvait alors plus enregistrer son nom ni son téléphone.
       allow update: if isSignedIn() && uid() == userId &&
-        request.resource.data.roles == resource.data.roles &&
-        request.resource.data.uid == resource.data.uid &&
-        request.resource.data.created_at == resource.data.created_at &&
-        request.resource.data.is_disabled == resource.data.is_disabled &&
-        request.resource.data.email_verified == resource.data.email_verified;
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
+          ['roles', 'uid', 'created_at', 'is_disabled', 'email_verified']);
 
       // Création initiale du profil (ex: juste après inscription) — rôle
       // forcé à ['customer'] uniquement ; toute élévation passe ensuite par
