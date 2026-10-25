@@ -186,6 +186,22 @@ int customerProgress(DeliveryMission m) => switch (m.status) {
   _ => 0,
 };
 
+/// Once the item is loaded: the pickup time plus the quote's route time. An
+/// estimate without live traffic, shown as one; null when unknown or past.
+DateTime? customerEstimatedArrival(DeliveryMission m, DateTime now) {
+  if (m.status != MissionStatus.pickedUp &&
+      m.status != MissionStatus.inTransit) {
+    return null;
+  }
+  final start = m.pickedUpAt ?? m.inTransitAt;
+  final minutes = m.estimatedDurationMinutes;
+  if (start == null || minutes == null || !minutes.isFinite || minutes <= 0) {
+    return null;
+  }
+  final eta = start.toLocal().add(Duration(minutes: minutes.round()));
+  return eta.isBefore(now.toLocal()) ? null : eta;
+}
+
 /// Status colors: blue while in progress, green once delivered, orange while
 /// searching, red when cancelled or disputed.
 (Color, Color) customerStatusColors(DeliveryMission m) => switch (m.status) {

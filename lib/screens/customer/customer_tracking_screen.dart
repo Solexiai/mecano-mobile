@@ -255,8 +255,6 @@ class CustomerTrackingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _MissionReference(mission: mission, t: t),
-                  const SizedBox(height: 16),
                   if (mission.isInternalTest) ...[
                     InternalTestMissionBanner(
                       title: t('internal_test_mission_title'),
@@ -264,42 +262,8 @@ class CustomerTrackingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                   ],
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.deliveryGradient,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.local_shipping, color: Colors.white),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                mission.driverDisplayName ??
-                                    t('tracking_driver_fallback'),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Text(
-                                t(mission.status.key),
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  _LiveHeader(mission: mission, locale: locale, t: t),
+                  const SizedBox(height: 14),
                   LiveTrackingMap(
                     driverId: mission.driverId!,
                     pickup: mission.pickupAddress,
@@ -308,37 +272,235 @@ class CustomerTrackingScreen extends StatelessWidget {
                     acceptedAt: mission.acceptedAt,
                     t: t,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
+                  _LiveDriverCard(mission: mission, locale: locale, t: t),
+                  const SizedBox(height: 14),
                   _DeliveryTimeline(mission: mission, t: t),
-                  const SizedBox(height: 16),
-                  if (mission.bookingSnapshot != null)
-                    BookingLoadSummary(
-                      snapshot: mission.bookingSnapshot!,
-                      locale: context.read<LocaleProvider>().locale,
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    key: const ValueKey('tracking-more'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 12),
+                    title: Text(
+                      switch (locale) {
+                        'en' => 'Load and addresses',
+                        'es' => 'Carga y direcciones',
+                        _ => 'Chargement et adresses',
+                      },
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                  if (mission.pickupAddress != null)
-                    _AddressRow(
-                      icon: Icons.trip_origin,
-                      color: AppColors.info,
-                      label: t('driver_active_mission_pickup'),
-                      value:
-                          '${mission.pickupAddress!.line1}, ${mission.pickupAddress!.city}',
-                    ),
-                  if (mission.dropoffAddress != null) ...[
-                    const SizedBox(height: 10),
-                    _AddressRow(
-                      icon: Icons.place,
-                      color: AppColors.error,
-                      label: t('driver_active_mission_dropoff'),
-                      value:
-                          '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
-                    ),
-                  ],
+                    children: [
+                      if (mission.bookingSnapshot != null)
+                        BookingLoadSummary(
+                          snapshot: mission.bookingSnapshot!,
+                          locale: locale,
+                        ),
+                      if (mission.pickupAddress != null)
+                        _AddressRow(
+                          icon: Icons.trip_origin,
+                          color: AppColors.info,
+                          label: t('driver_active_mission_pickup'),
+                          value:
+                              '${mission.pickupAddress!.line1}, ${mission.pickupAddress!.city}',
+                        ),
+                      if (mission.dropoffAddress != null) ...[
+                        const SizedBox(height: 10),
+                        _AddressRow(
+                          icon: Icons.place,
+                          color: AppColors.error,
+                          label: t('driver_active_mission_dropoff'),
+                          value:
+                              '${mission.dropoffAddress!.line1}, ${mission.dropoffAddress!.city}',
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _MissionReference(mission: mission, t: t),
                 ],
               ),
             ));
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Haut du suivi (maquette écran 2) : l'étape en clair, l'heure d'arrivée
+/// estimée une fois l'article chargé, la barre de progression en 4 étapes.
+class _LiveHeader extends StatelessWidget {
+  final DeliveryMission mission;
+  final String locale;
+  final String Function(String) t;
+  const _LiveHeader({
+    required this.mission,
+    required this.locale,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String tr(String fr, String en, String es) => locale == 'en'
+        ? en
+        : locale == 'es'
+        ? es
+        : fr;
+    final eta = customerEstimatedArrival(mission, DateTime.now());
+    final progress = customerProgress(mission);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          customerStatusLabel(mission, locale),
+          key: const ValueKey('tracking-live-status'),
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        if (eta != null) ...[
+          Text(
+            tr(
+              'Arrivée vers ${customerTimeLabel(eta, locale)}',
+              'Arriving around ${customerTimeLabel(eta, locale)}',
+              'Llega hacia las ${customerTimeLabel(eta, locale)}',
+            ),
+            key: const ValueKey('tracking-eta'),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            tr(
+              'Estimation selon le trajet prévu, sans la circulation.',
+              'Estimate from the planned route, without traffic.',
+              'Estimación según la ruta prevista, sin tráfico.',
+            ),
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ] else
+          Text(
+            customerMissionTitle(mission, locale, t),
+            key: const ValueKey('tracking-live-title'),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          '${customerMissionRoute(mission, locale)} · ${customerMoney(mission, locale)}',
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+        Semantics(
+          label: tr(
+            'Étape $progress sur 4',
+            'Step $progress of 4',
+            'Paso $progress de 4',
+          ),
+          child: ExcludeSemantics(
+            child: Row(
+              children: [
+                for (var i = 1; i <= 4; i++) ...[
+                  if (i > 1) const SizedBox(width: 4),
+                  Expanded(
+                    child: Container(
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: i <= progress
+                            ? AppColors.primary
+                            : AppColors.border,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Le chauffeur (maquette écran 2) : son initiale, son nom et l'étape ;
+/// « Aide » ouvre le contact. Pas de bouton d'appel : le numéro du
+/// chauffeur n'est pas partagé avec le client.
+class _LiveDriverCard extends StatelessWidget {
+  final DeliveryMission mission;
+  final String locale;
+  final String Function(String) t;
+  const _LiveDriverCard({
+    required this.mission,
+    required this.locale,
+    required this.t,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = mission.driverDisplayName ?? t('tracking_driver_fallback');
+    final initial = name.trim().isEmpty
+        ? '?'
+        : name.trim().substring(0, 1).toUpperCase();
+    return Container(
+      key: const ValueKey('tracking-driver-card'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: const Color(0xFFE6EDFA),
+            child: Text(
+              initial,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  t(mission.status.key),
+                  style: const TextStyle(color: Color(0xFFC9D6EF)),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('tracking-help'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () => context.go('/$locale/contact'),
+            child: Text(switch (locale) {
+              'en' => 'Help',
+              'es' => 'Ayuda',
+              _ => 'Aide',
+            }),
+          ),
+        ],
       ),
     );
   }
