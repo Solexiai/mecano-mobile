@@ -5,14 +5,13 @@ import 'package:provider/provider.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
-import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
-import '../../../../providers/mechanic_provider.dart';
+import '../customer_mission_view.dart';
 
-/// Vue d'ensemble du client : uniquement des données réelles Firebase.
-/// Aucune donnée n'est inventée quand le backend n'en fournit pas
-/// (le domaine mécanique reste local/non migré, hors périmètre Phase 4).
+/// Customer home, Uber-style (owner mockup validated 2026-10-25): the
+/// delivery in progress first, one big "book" button, then the latest
+/// deliveries with "Refaire". Real Firebase data only; no statistics.
 class CustomerOverviewTab extends StatelessWidget {
   final void Function(int) onGoToTab;
   const CustomerOverviewTab({super.key, required this.onGoToTab});
@@ -33,31 +32,19 @@ class CustomerOverviewTab extends StatelessWidget {
       );
     }
 
-    // Phase 7, Bloc AB (AB-2) — utilise `effectiveUid`/`effectiveDisplayName`
-    // (seam de test déjà établi, voir `FirebaseAuthProvider` et son usage
-    // dans `CustomerTrackingScreen`) plutôt que `auth.user!.uid` : ce dernier
-    // reste `null` en mode `debugForceSignedIn` (widget tests), rendant cet
-    // écran impossible à tester sans un vrai `fb.User` (classe opaque du SDK
-    // non constructible manuellement). Comportement runtime identique avec
-    // un vrai utilisateur Firebase (`effectiveUid` retombe sur `user!.uid`).
+    // `effectiveUid`/`effectiveDisplayName`: the test seam of
+    // FirebaseAuthProvider (same runtime value as `user!.uid`).
     final customerId = auth.effectiveUid!;
-    final displayName = auth.effectiveDisplayName ?? auth.effectiveEmail ?? '';
-    final firstName = displayName.trim().isEmpty ? '' : displayName.trim().split(' ').first;
-    final mechanicJobs = context.watch<MechanicRequestProvider>().forCustomer(customerId);
+    // Greet by first name only; never by email address.
+    final displayName = (auth.effectiveDisplayName ?? '').trim();
+    final firstName = displayName.isEmpty || displayName.contains('@')
+        ? ''
+        : displayName.split(' ').first;
 
     return StreamBuilder<List<DeliveryMission>>(
       stream: BackendLocator.missionRepository.watchCustomerMissions(customerId),
       builder: (context, snapshot) {
-        // Phase 7, Bloc AB (AB-2) — GAP RÉEL corrigé : cette StreamBuilder
-        // ne testait jamais `snapshot.hasError`. En cas d'échec réel du
-        // flux (réseau, permission transitoire), `snapshot.data` reste
-        // `null` -> `deliveries` devient `[]` -> si le client n'a aucune
-        // mission mécanique non plus, l'écran affichait silencieusement
-        // _EmptyState ("vous n'avez encore aucune demande"), c'est-à-dire
-        // une VRAIE ERREUR TECHNIQUE déguisée en zéro-état légitime — very
-        // exactement l'anti-pattern interdit par AB-2. `CustomerRequestsTab`
-        // (onglet voisin) gère déjà ce cas explicitement ; on applique ici
-        // le même traitement pour rester cohérent.
+        // A failed stream is an error, never an empty history (AB-2).
         if (snapshot.hasError) {
           return Center(
             child: Padding(
@@ -75,86 +62,81 @@ class CustomerOverviewTab extends StatelessWidget {
         }
         final deliveries = snapshot.data ?? const <DeliveryMission>[];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        final total = deliveries.length + mechanicJobs.length;
-        final active = deliveries.where((d) => d.status.isOpenForAcceptance || d.status == MissionStatus.assigned || d.status == MissionStatus.driverToPickup || d.status == MissionStatus.arrivedAtPickup || d.status == MissionStatus.pickedUp || d.status == MissionStatus.inTransit || d.status == MissionStatus.arrivedAtDropoff).length +
-            mechanicJobs.where((m) => m.status.name != 'completed' && m.status.name != 'cancelled').length;
+        final active = deliveries.where(isCustomerActive).toList();
+        final recent = deliveries.where(isCustomerPast).take(3).toList();
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${t('overview_greeting')}${firstName.isEmpty ? '' : ', $firstName'} 👋',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 6),
-              Text(t('overview_subtitle'), style: const TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 24),
-              if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: LinearProgressIndicator(),
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(child: _StatCard(icon: Icons.list_alt, label: t('overview_stat_total'), value: '$total', color: AppColors.primary)),
-                    const SizedBox(width: 14),
-                    Expanded(child: _StatCard(icon: Icons.timelapse, label: t('overview_stat_active'), value: '$active', color: AppColors.warning)),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      firstName.isEmpty
+                          ? t('overview_greeting')
+                          : '${t('overview_greeting')} $firstName',
+                      key: const ValueKey('customer-greeting'),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: LinearProgressIndicator(),
+                    ),
+                  for (final m in active) ...[
+                    _ActiveDeliveryCard(mission: m, locale: locale, t: t),
+                    const SizedBox(height: 14),
                   ],
-                ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickAction(
-                      icon: Icons.local_shipping_rounded,
-                      gradient: AppColors.deliveryGradient,
-                      label: t('overview_new_delivery'),
-                      onTap: () => context.go('/$locale/livraison/demande'),
-                    ),
+                  _BookButton(
+                    locale: locale,
+                    onTap: () => context.go('/$locale/livraison/demande'),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _QuickAction(
-                      icon: Icons.build_rounded,
-                      gradient: AppColors.mechanicGradient,
-                      label: t('overview_new_mechanic'),
-                      onTap: () => context.go('/$locale/mecanique-mobile/demande'),
-                    ),
+                  const SizedBox(height: 26),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _tr(locale, 'Récemment', 'Recent', 'Recientes'),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                      ),
+                      TextButton(
+                        onPressed: () => onGoToTab(1),
+                        child: Text(t('overview_see_all')),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  if (!isLoading && deliveries.isEmpty)
+                    _EmptyState(t: t, onCreate: () => context.go('/$locale/livraison/demande'))
+                  else if (!isLoading && recent.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        _tr(
+                          locale,
+                          'Vos livraisons terminées apparaîtront ici.',
+                          'Your finished deliveries will appear here.',
+                          'Tus entregas terminadas aparecerán aquí.',
+                        ),
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    )
+                  else
+                    for (final m in recent)
+                      CustomerDeliveryRow(mission: m, locale: locale, t: t),
                 ],
               ),
-              const SizedBox(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(t('overview_recent_title'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  TextButton(onPressed: () => onGoToTab(1), child: Text(t('overview_see_all'))),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (!isLoading && total == 0)
-                _EmptyState(t: t, onCreate: () => context.go('/$locale/livraison/demande'))
-              else if (!isLoading)
-                ...[
-                  ...deliveries.take(3).map((d) => _RequestPreviewTile(
-                        icon: Icons.local_shipping_outlined,
-                        title: d.itemCategoryKey.isEmpty ? t('delivery_item_category') : t(d.itemCategoryKey),
-                        subtitle: (d.pickupAddress != null && d.dropoffAddress != null)
-                            ? '${d.pickupAddress!.city} → ${d.dropoffAddress!.city}'
-                            : t('delivery_step_addresses_title'),
-                        status: t(d.status.key),
-                      )),
-                  ...mechanicJobs.take(3).map((m) => _RequestPreviewTile(
-                        icon: Icons.build_outlined,
-                        title: m.selectedServices.isEmpty ? t('delivery_item_category') : t(m.selectedServices.first),
-                        subtitle: '${m.vehicleMake} ${m.vehicleModel}',
-                        status: m.status.name,
-                      )),
-                ],
-            ],
+            ),
           ),
         );
       },
@@ -162,91 +144,308 @@ class CustomerOverviewTab extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  const _StatCard({required this.icon, required this.label, required this.value, required this.color});
+String _tr(String locale, String fr, String en, String es) => locale == 'en'
+    ? en
+    : locale == 'es'
+    ? es
+    : fr;
+
+/// The delivery in progress: orange while a driver is sought, navy once a
+/// driver accepted, with the 4-step progress and the driver's first name.
+class _ActiveDeliveryCard extends StatelessWidget {
+  const _ActiveDeliveryCard({required this.mission, required this.locale, required this.t});
+  final DeliveryMission mission;
+  final String locale;
+  final String Function(String) t;
 
   @override
   Widget build(BuildContext context) {
+    final m = mission;
+    final searching = m.isOpenForAcceptance;
+    final fg = searching ? AppColors.textPrimary : Colors.white;
+    final muted = searching ? AppColors.textSecondary : const Color(0xFFC9D6EF);
+    final progress = customerProgress(m);
+    final driver = (m.driverDisplayName ?? '').trim();
+    final when = customerMissionDate(m);
     return Container(
+      key: ValueKey('customer-active-${m.id}'),
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: searching ? const Color(0xFFFFF4E8) : AppColors.primary,
+        borderRadius: BorderRadius.circular(20),
+        border: searching ? Border.all(color: const Color(0xFFF3C99B), width: 2) : null,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(icon, color: color),
-          const SizedBox(height: 10),
-          Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: searching ? const Color(0xFFB85E10) : Colors.white,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                customerStatusLabel(m, locale),
+                style: TextStyle(
+                  color: searching ? Colors.white : AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            customerMissionTitle(m, locale, t),
+            style: TextStyle(color: fg, fontSize: 24, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 2),
+          Text(customerMissionRoute(m, locale), style: TextStyle(color: muted, fontSize: 15)),
+          Text(
+            '${customerDateLabel(when, locale)} · ${customerMoney(m, locale)}',
+            style: TextStyle(color: muted, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          if (searching)
+            Text(
+              _tr(
+                locale,
+                'Les chauffeurs de la région voient vos photos. Rien n’est débité avant qu’un chauffeur accepte.',
+                'Drivers in the area see your photos. Nothing is charged before a driver accepts.',
+                'Los conductores de la zona ven tus fotos. No se cobra nada antes de que un conductor acepte.',
+              ),
+              style: TextStyle(color: muted),
+            )
+          else ...[
+            ExcludeSemantics(
+              child: Row(
+                children: [
+                  for (var i = 1; i <= 4; i++) ...[
+                    if (i > 1) const SizedBox(width: 4),
+                    Expanded(
+                      child: Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: i <= progress ? Colors.white : const Color(0xFF3C5A8F),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (driver.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B3A72),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: const Color(0xFFE6EDFA),
+                      child: Text(
+                        driver.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            driver.split(' ').first,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                            ),
+                          ),
+                          Text(
+                            _tr(locale, 'Votre chauffeur', 'Your driver', 'Tu conductor'),
+                            style: const TextStyle(color: Color(0xFFC9D6EF)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            key: ValueKey('customer-follow-${m.id}'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: searching ? AppColors.primary : Colors.white,
+              foregroundColor: searching ? Colors.white : AppColors.primary,
+              textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () => context.go('/$locale/livraison/suivi/${m.id}'),
+            icon: Icon(searching ? Icons.receipt_long_outlined : Icons.map_outlined),
+            label: Text(
+              searching
+                  ? _tr(locale, 'Voir ma demande', 'See my request', 'Ver mi solicitud')
+                  : _tr(locale, 'Suivre ma livraison', 'Track my delivery', 'Seguir mi entrega'),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final Gradient gradient;
-  final String label;
+class _BookButton extends StatelessWidget {
+  const _BookButton({required this.locale, required this.onTap});
+  final String locale;
   final VoidCallback onTap;
-  const _QuickAction({required this.icon, required this.gradient, required this.label, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+  Widget build(BuildContext context) => Material(
+    color: const Color(0xFFF2F4F8),
+    borderRadius: BorderRadius.circular(18),
+    child: InkWell(
+      key: const ValueKey('customer-book'),
       borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(18)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 12),
-            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.local_shipping_outlined, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _tr(locale, 'Faire livrer un article', 'Get an item delivered', 'Enviar un artículo'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    _tr(locale, 'Votre prix tout de suite, avec une photo', 'Your price right away, with a photo', 'Tu precio al instante, con una foto'),
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.primary),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-class _RequestPreviewTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String status;
-  const _RequestPreviewTile({required this.icon, required this.title, required this.subtitle, required this.status});
+/// One delivery in a list: what, when, price, route, status, and "Refaire"
+/// for a finished one. Opens the delivery's page (tracking or receipt).
+class CustomerDeliveryRow extends StatelessWidget {
+  const CustomerDeliveryRow({
+    super.key,
+    required this.mission,
+    required this.locale,
+    required this.t,
+  });
+  final DeliveryMission mission;
+  final String locale;
+  final String Function(String) t;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: Theme.of(context).cardTheme.color, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-              ],
+    final m = mission;
+    final colors = customerStatusColors(m);
+    final uid = context.read<FirebaseAuthProvider>().effectiveUid;
+    return InkWell(
+      key: ValueKey('customer-delivery-${m.id}'),
+      onTap: () => context.go('/$locale/livraison/suivi/${m.id}'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Color(0xFFEDF0F4))),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3E8F0),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.inventory_2_outlined, color: AppColors.textSecondary),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text(status, style: const TextStyle(fontSize: 10, color: AppColors.info, fontWeight: FontWeight.w700)),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    customerMissionTitle(m, locale, t),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    customerMissionRoute(m, locale),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  Text(
+                    '${customerDateLabel(customerMissionDate(m), locale)} · ${customerMoney(m, locale)}',
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: colors.$1,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      customerStatusLabel(m, locale),
+                      style: TextStyle(color: colors.$2, fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isCustomerPast(m) && m.pickupAddress != null && m.dropoffAddress != null) ...[
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                key: ValueKey('rebook-${m.id}'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: () => rebookDelivery(context, m, locale: locale, uid: uid),
+                icon: const Icon(Icons.replay, size: 18),
+                label: Text(_tr(locale, 'Refaire', 'Rebook', 'Repetir')),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

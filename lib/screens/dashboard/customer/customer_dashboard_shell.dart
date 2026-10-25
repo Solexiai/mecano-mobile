@@ -9,7 +9,6 @@ import '../../../widgets/language_selector.dart';
 import '../../../widgets/notification_bell.dart';
 import 'tabs/customer_overview_tab.dart';
 import 'tabs/customer_requests_tab.dart';
-import 'tabs/customer_messages_tab.dart';
 import 'tabs/customer_profile_tab.dart';
 
 class CustomerDashboardShell extends StatefulWidget {
@@ -55,18 +54,20 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 900;
     final isNarrowPhone = screenWidth < 480;
+    // Three tabs, like a ride app (owner mockup 2026-10-25): Accueil,
+    // Activité, Compte. No "coming soon" messaging tab, no mechanic tile.
+    String tr(String fr, String en, String es) =>
+        locale == 'en' ? en : (locale == 'es' ? es : fr);
     final tabs = [
       CustomerOverviewTab(onGoToTab: (i) => setState(() => _index = i)),
       const CustomerRequestsTab(),
-      const CustomerMessagesTab(),
       const CustomerProfileTab(),
     ];
 
     final navItems = [
-      (Icons.home_outlined, t('nav_dashboard')),
-      (Icons.list_alt_outlined, t('nav_my_requests')),
-      (Icons.chat_bubble_outline, t('nav_messages')),
-      (Icons.person_outline, t('nav_profile')),
+      (Icons.home_outlined, tr('Accueil', 'Home', 'Inicio')),
+      (Icons.receipt_long_outlined, tr('Activité', 'Activity', 'Actividad')),
+      (Icons.person_outline, tr('Compte', 'Account', 'Cuenta')),
     ];
 
     return Scaffold(
@@ -81,7 +82,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
         ),
         titleSpacing: 0,
         title: Text(
-          t('nav_dashboard'),
+          'Movi-K',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w700),
