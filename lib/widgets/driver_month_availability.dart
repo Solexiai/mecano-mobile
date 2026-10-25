@@ -18,6 +18,12 @@ import '../finance/presentation/driver_display_format.dart';
 import '../services/driver_agenda_editing.dart';
 import 'driver_weekly_hours_card.dart' show AgendaTimeDropdown;
 
+/// Fill opacity of an available (green) or unavailable (red) day.
+const double _kStatusAlpha = .28;
+
+/// Fill opacity of a past day (grey).
+const double _kPastAlpha = .07;
+
 String _tr(String locale, String fr, String en, String es) => locale == 'en'
     ? en
     : locale == 'es'
@@ -167,8 +173,13 @@ class _DriverMonthAvailabilityState extends State<DriverMonthAvailability> {
               label: tr('Disponible', 'Available', 'Disponible'),
             ),
             _Legend(
-              color: AppColors.textSecondary,
+              color: AppColors.error,
               label: tr('Pas disponible', 'Not available', 'No disponible'),
+            ),
+            _Legend(
+              color: AppColors.textSecondary,
+              alpha: _kPastAlpha,
+              label: tr('Jour passé', 'Past day', 'Día pasado'),
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -326,10 +337,20 @@ class _DriverMonthAvailabilityState extends State<DriverMonthAvailability> {
     final info = agendaDayInfo(widget.agenda, day);
     final selected = _selected.contains(agendaDateKey(day));
     final mission = _hasMission(day);
-    final base = info.isAvailable ? AppColors.success : AppColors.textSecondary;
-    final background = selected
-        ? AppColors.primary.withValues(alpha: .18)
-        : base.withValues(alpha: past ? .05 : (info.isAvailable ? .16 : .08));
+    // Green = available, red = not available (future days). Past days are
+    // neutral grey: they can no longer change. A selected day keeps its
+    // colour and gets a thick blue border.
+    final base = past
+        ? AppColors.textSecondary
+        : info.isAvailable
+        ? AppColors.success
+        : AppColors.error;
+    final background = base.withValues(
+      alpha: past ? _kPastAlpha : _kStatusAlpha,
+    );
+    final textColor = past
+        ? AppColors.textSecondary
+        : AppColors.statusBadgeTextColor(base, Theme.of(context).brightness);
     final label = driverDayLabel(day, widget.locale);
     final stateLabel = info.isAvailable
         ? tr('disponible', 'available', 'disponible')
@@ -371,10 +392,11 @@ class _DriverMonthAvailabilityState extends State<DriverMonthAvailability> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
-                      color: past ? AppColors.textSecondary : null,
+                      color: textColor,
                     ),
                   ),
-                  if (mission) const Icon(Icons.local_shipping, size: 12),
+                  if (mission)
+                    Icon(Icons.local_shipping, size: 12, color: textColor),
                 ],
               ),
               ),
@@ -387,9 +409,14 @@ class _DriverMonthAvailabilityState extends State<DriverMonthAvailability> {
 }
 
 class _Legend extends StatelessWidget {
-  const _Legend({required this.color, required this.label});
+  const _Legend({
+    required this.color,
+    required this.label,
+    this.alpha = _kStatusAlpha,
+  });
   final Color color;
   final String label;
+  final double alpha;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -399,7 +426,7 @@ class _Legend extends StatelessWidget {
         width: 14,
         height: 14,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: .25),
+          color: color.withValues(alpha: alpha),
           borderRadius: BorderRadius.circular(4),
         ),
       ),
