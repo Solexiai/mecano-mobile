@@ -5,7 +5,6 @@ import '../../../../services/booking/booking_api.dart';
 import '../../../../widgets/driver_recurrence_editor.dart';
 import '../../../../widgets/driver_calendars_panel.dart';
 import '../../../../widgets/driver_month_availability.dart';
-import '../../../../widgets/driver_weekly_hours_card.dart';
 import '../../../../finance/presentation/driver_display_format.dart';
 import '../../../../services/driver_agenda_editing.dart';
 import 'package:provider/provider.dart';
@@ -641,19 +640,13 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
                 _intro(),
                 const SizedBox(height: 16),
                 if (_loading) const LinearProgressIndicator(),
-                if (!_loading && _agenda != null)
-                  _card(
-                    DriverWeeklyHoursCard(
-                      agenda: _agenda!,
-                      locale: _locale,
-                      enabled: !_saving,
-                      onChanged: _setAgenda,
-                    ),
-                  ),
-                // Keyed: the usual-hours card appears above it once the agenda
-                // is loaded. Without a key the StreamBuilder would be
-                // recreated and subscribe a second time to the missions
-                // stream (single-subscription with Firestore).
+                // The « Mon horaire habituel » card was removed at Daniel's
+                // request (2026-10-25): days are set in the calendar; usual
+                // weekly hours stay editable under « Réglages avancés ».
+                // Keyed: the loading bar above comes and goes. Without a key
+                // the StreamBuilder would be recreated and subscribe a second
+                // time to the missions stream (single-subscription with
+                // Firestore).
                 KeyedSubtree(
                   key: const ValueKey('agenda-missions'),
                   child: _missionsSection(),
