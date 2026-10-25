@@ -45,11 +45,13 @@ class AgendaTimeDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final options = [for (var m = min; m <= max; m += 30) m];
     final current = options.contains(value) ? value : options.first;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // Wrap, not Row: with very large text the hour list goes under its
+    // label instead of overflowing.
+    return Wrap(
+      spacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(label),
-        const SizedBox(width: 6),
         DropdownButton<int>(
           value: current,
           onChanged: enabled

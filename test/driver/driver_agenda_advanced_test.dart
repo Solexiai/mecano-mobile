@@ -77,6 +77,7 @@ void main() {
     await t.tap(find.byTooltip('Mois suivant'));
     await t.pumpAndSettle();
     expect(find.text(driverMonthYear(next, 'fr')), findsOneWidget);
+    await t.ensureVisible(find.text('Aujourd’hui'));
     await t.tap(find.text('Aujourd’hui'));
     await t.pumpAndSettle();
     expect(find.text(driverMonthYear(now, 'fr')), findsOneWidget);

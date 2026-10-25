@@ -175,7 +175,7 @@ class _DriverMonthAvailabilityState extends State<DriverMonthAvailability> {
               children: [
                 const Icon(Icons.local_shipping, size: 14),
                 const SizedBox(width: 4),
-                Text(tr('Mission', 'Job', 'Misión')),
+                Flexible(child: Text(tr('Mission', 'Job', 'Misión'))),
               ],
             ),
           ],
@@ -404,7 +404,7 @@ class _Legend extends StatelessWidget {
         ),
       ),
       const SizedBox(width: 4),
-      Text(label),
+      Flexible(child: Text(label)),
     ],
   );
 }
