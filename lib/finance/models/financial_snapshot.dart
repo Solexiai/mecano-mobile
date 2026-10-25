@@ -147,13 +147,27 @@ class FinancialSnapshot {
         'status': status,
       };
 
-  factory FinancialSnapshot.fromJson(Map<String, dynamic> json) {
+  /// [documentId] : identifiant du document Firestore, utilisé quand
+  /// `snapshot_id` est absent. Les fiches de frais d'annulation / de
+  /// déplacement (`snapshot_kind: "mission_fee"`, écrites par
+  /// chargeMissionFee avant le 25 octobre 2026) n'ont ni `snapshot_id` ni
+  /// `pricing_version` : une seule fiche incomplète ne doit jamais faire
+  /// échouer toute la liste des revenus et versements du chauffeur.
+  factory FinancialSnapshot.fromJson(
+    Map<String, dynamic> json, {
+    String? documentId,
+  }) {
+    String text(String key, [String fallback = '']) {
+      final value = json[key];
+      return value is String && value.isNotEmpty ? value : fallback;
+    }
+
     return FinancialSnapshot(
-      snapshotId: json['snapshot_id'] as String,
-      missionId: json['mission_id'] as String,
-      customerId: json['customer_id'] as String,
-      driverId: json['driver_id'] as String,
-      pricingVersion: json['pricing_version'] as String,
+      snapshotId: text('snapshot_id', documentId ?? ''),
+      missionId: text('mission_id'),
+      customerId: text('customer_id'),
+      driverId: text('driver_id'),
+      pricingVersion: text('pricing_version', text('fee_policy_version')),
       missionBaseValue: (json['mission_base_value'] as num? ?? 0).toDouble(),
       driverGrossEarnings: (json['driver_gross_earnings'] as num? ?? 0).toDouble(),
       driverOfferAmount: (json['driver_offer_amount'] as num? ?? 0).toDouble(),

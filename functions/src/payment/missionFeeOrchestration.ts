@@ -206,6 +206,9 @@ export async function chargeMissionFee(missionId: string): Promise<MissionFeeCha
     const platformShare = toMajorUnits(prepared.platformMinor, DEFAULT_CURRENCY);
     if (!existingSnapshot.exists) {
       tx.set(snapshotRef, {
+        // Same identity field as mission snapshots: the driver app lists
+        // fee snapshots next to them (earnings, payouts).
+        snapshot_id: snapshotRef.id,
         snapshot_kind: "mission_fee",
         fee_kind: prepared.kind,
         fee_policy_version: prepared.policyVersion,

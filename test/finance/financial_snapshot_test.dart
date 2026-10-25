@@ -121,4 +121,46 @@ void main() {
       );
     },
   );
+
+  group('FinancialSnapshot.fromJson — fiche de frais d\'annulation', () {
+    // Document réel écrit par chargeMissionFee avant le 25 octobre 2026 :
+    // ni snapshot_id ni pricing_version. Il faisait échouer toute la
+    // section « Versements » du chauffeur.
+    final feeDoc = <String, dynamic>{
+      'snapshot_kind': 'mission_fee',
+      'fee_kind': 'late_cancellation',
+      'fee_policy_version': 'MOVIK-FEES-20261023-001',
+      'mission_id': 'mission_1',
+      'customer_id': 'customer_1',
+      'driver_id': 'driver_1',
+      'payment_id': 'pay_1',
+      'customer_total': 30,
+      'customer_total_minor': 3000,
+      'customer_service_fee': 0,
+      'customer_tax': 0,
+      'platform_commission_amount': 5,
+      'driver_offer_amount': 25,
+      'driver_net_mission_earnings': 25,
+      'driver_total_payout': 25,
+      'status': 'confirmed',
+    };
+
+    test('se lit sans erreur avec l\'identifiant du document', () {
+      final snapshot = FinancialSnapshot.fromJson(
+        feeDoc,
+        documentId: 'fee_mission_1',
+      );
+      expect(snapshot.snapshotId, 'fee_mission_1');
+      expect(snapshot.pricingVersion, 'MOVIK-FEES-20261023-001');
+      expect(snapshot.driverTotalPayout, 25);
+      expect(snapshot.isImmutable, isTrue);
+    });
+
+    test('champs texte absents : valeurs vides, jamais une exception', () {
+      final snapshot = FinancialSnapshot.fromJson(const {});
+      expect(snapshot.snapshotId, '');
+      expect(snapshot.missionId, '');
+      expect(snapshot.pricingVersion, '');
+    });
+  });
 }
