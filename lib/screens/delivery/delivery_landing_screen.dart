@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
 import '../../l10n/home_copy.dart';
-import '../../providers/locale_provider.dart';
 import '../../router/delivery_request_intent.dart';
-import '../../services/demo_data_service.dart';
+import '../../services/booking/item_types.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 
@@ -22,7 +20,6 @@ class DeliveryLandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = context.watch<LocaleProvider>().t;
     final isDesktop = MediaQuery.of(context).size.width >= 900;
     String h(String key) => HomeCopy.text(key, locale);
 
@@ -110,27 +107,29 @@ class DeliveryLandingScreen extends StatelessWidget {
                       'Lo que puedes transportar',
                     ),
                     subtitle: tr(
-                      'Les catégories ci-dessous proviennent du catalogue actuellement accepté dans le formulaire.',
-                      'The categories below come from the catalogue currently accepted by the request form.',
-                      'Las categorías siguientes provienen del catálogo aceptado actualmente en el formulario.',
+                      'Prenez une photo : on reconnaît l’objet pour vous. Votre objet n’est pas dans la liste ? Choisissez « Autre objet ».',
+                      'Snap a photo and we recognize the item for you. Item not in the list? Choose “Other item”.',
+                      'Toma una foto y reconocemos el objeto por ti. ¿Tu objeto no está en la lista? Elige «Otro objeto».',
                     ),
                   ),
                   const SizedBox(height: 22),
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
-                    children: DemoDataService.deliveryCategories
-                        .map(
-                          (category) => Chip(
-                            avatar: const Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: AppColors.success,
-                            ),
-                            label: Text(t(category)),
+                    // Same list as the request form, the photo AI and the
+                    // admin vehicle grid, so this page can never drift.
+                    children: [
+                      for (final type in itemTypes)
+                        Chip(
+                          key: Key('delivery-item-type-${type.id}'),
+                          avatar: Icon(
+                            type.icon,
+                            size: 18,
+                            color: AppColors.primaryDark,
                           ),
-                        )
-                        .toList(),
+                          label: Text(type.label(locale)),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 42),
                   SectionTitle(title: h('steps_title')),
@@ -151,23 +150,23 @@ class DeliveryLandingScreen extends StatelessWidget {
                     icon: Icons.gps_fixed,
                     title: tr('GPS en direct', 'Live GPS', 'GPS en directo'),
                     body: tr(
-                      'La carte GPS est conçue pour les phases actives de la livraison, mais sa validation sur appareils réels reste un prérequis du lancement public.',
-                      'The live map is designed for active delivery phases, but real-device validation remains a prerequisite for public launch.',
-                      'El mapa GPS está diseñado para las fases activas, pero la validación en dispositivos reales sigue siendo un requisito del lanzamiento público.',
+                      'Suivez votre chauffeur en direct sur la carte pendant la livraison.',
+                      'Follow your driver live on the map during the delivery.',
+                      'Sigue a tu conductor en directo en el mapa durante la entrega.',
                     ),
                   ),
                   const SizedBox(height: 12),
                   _StatusNotice(
                     icon: Icons.calculate_outlined,
                     title: tr(
-                      'Prix calculé par Movi‑K',
-                      'Price calculated by Movi‑K',
-                      'Precio calculado por Movi‑K',
+                      'Un prix clair, sans surprise',
+                      'A clear price, no surprises',
+                      'Un precio claro, sin sorpresas',
                     ),
                     body: tr(
-                      'Le prix officiel est calculé côté serveur et sa ventilation est affichée avant confirmation.',
-                      'The official price is calculated on the server and its breakdown is shown before confirmation.',
-                      'El precio oficial se calcula en el servidor y su desglose se muestra antes de confirmar.',
+                      'Le prix affiché est le prix payé, détail inclus. Vous le voyez avant de confirmer.',
+                      'The price shown is the price you pay, breakdown included. You see it before confirming.',
+                      'El precio mostrado es el que pagas, con el desglose. Lo ves antes de confirmar.',
                     ),
                   ),
                   const SizedBox(height: 32),
