@@ -27,6 +27,7 @@ import '../../../../../finance/presentation/money_format.dart';
 import '../../../../../providers/firebase_auth_provider.dart';
 import '../../../../../providers/locale_provider.dart';
 import '../finance_ui_helpers.dart';
+import '../../../../../services/booking/item_types.dart';
 
 class _Scenario {
   const _Scenario({
@@ -36,6 +37,7 @@ class _Scenario {
     required this.minutes,
     this.stairs = false,
     this.twoPeople = false,
+    this.items = const [],
   });
 
   final String id;
@@ -45,7 +47,14 @@ class _Scenario {
   final bool stairs;
   final bool twoPeople;
 
+  /// (type, quantity) for the supplement by item class (2026-10-26).
+  final List<(String, int)> items;
+
   Map<String, dynamic> toJson() => {
+    'items': [
+      for (final (category, quantity) in items)
+        {'category': category, 'quantity': quantity},
+    ],
     'id': id,
     'distanceKm': km,
     'durationMinutes': minutes,
@@ -63,6 +72,7 @@ const List<_Scenario> _kPresetScenarios = [
     labelKey: 'admin_pricing_scenario_short',
     km: 5,
     minutes: 15,
+    items: [('boxes', 3)],
   ),
   _Scenario(
     id: 'medium',
@@ -70,6 +80,7 @@ const List<_Scenario> _kPresetScenarios = [
     km: 15,
     minutes: 30,
     stairs: true,
+    items: [('sofa', 1)],
   ),
   _Scenario(
     id: 'long',
@@ -77,6 +88,7 @@ const List<_Scenario> _kPresetScenarios = [
     km: 40,
     minutes: 60,
     twoPeople: true,
+    items: [('washer', 2)],
   ),
 ];
 
@@ -502,6 +514,72 @@ class _AdminFinancePricingTabState extends State<AdminFinancePricingTab> {
               ),
             ],
           ),
+          // Supplément par objet (owner decision 2026-10-26).
+          _Section(
+            key: const ValueKey('pricing-items-section'),
+            title: t('admin_pricing_section_items'),
+            note: t('admin_pricing_section_items_note'),
+            fields: [
+              for (final c in itemClasses)
+                money(
+                  'admin_pricing_class_$c',
+                  draft.classFees[c] ?? 0,
+                  (d, v) => d.classFees[c] = v,
+                ),
+              money(
+                'admin_pricing_class_cap',
+                draft.classOrderCap,
+                (d, v) => d.classOrderCap = v,
+              ),
+            ],
+            footer: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SwitchListTile(
+                  key: const ValueKey('pricing-class-driver'),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(t('admin_pricing_class_driver')),
+                  value: draft.classFeeToDriver,
+                  onChanged: isSuperAdmin
+                      ? (v) => _edit((d) => d.classFeeToDriver = v)
+                      : null,
+                ),
+                ExpansionTile(
+                  key: const ValueKey('pricing-class-map'),
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(
+                    t('admin_pricing_class_map'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  children: [
+                    for (final type in itemTypes)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(type.label(locale)),
+                        trailing: DropdownButton<String>(
+                          key: ValueKey('pricing-class-${type.id}'),
+                          value: draft.itemClassOf[type.id] ?? 'medium',
+                          onChanged: isSuperAdmin
+                              ? (v) {
+                                  if (v != null) {
+                                    _edit((d) => d.itemClassOf[type.id] = v);
+                                  }
+                                }
+                              : null,
+                          items: [
+                            for (final c in itemClasses)
+                              DropdownMenuItem(
+                                value: c,
+                                child: Text(itemClassLabel(c, locale)),
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
           _Section(
             title: t('admin_pricing_section_movik'),
             note: t('admin_pricing_section_movik_note'),
@@ -726,6 +804,7 @@ class _Section extends StatelessWidget {
   final List<Widget> fields;
   final Widget? footer;
   const _Section({
+    super.key,
     required this.title,
     required this.fields,
     this.note,

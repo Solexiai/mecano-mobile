@@ -1,6 +1,7 @@
 import { PreAssignmentQuote, preparePriceBeforeAssignment, validatePriceBeforeAssignment } from '../lib/quoteBeforeAssignment';
 import type { BookingLoad } from '../lib/booking';
 import { reviewBooking } from "../lib/bookingServer";
+import { itemClassFeeFor } from "../lib/itemClassFees";
 import { bookingHandling, selectBookingVehicle } from "../lib/booking";
 // -----------------------------------------------------------------------------
 // calculateDeliveryQuote — Cloud Function callable (customer).
@@ -230,7 +231,12 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   // 2. Premier passage SANS remise — nécessaire pour connaître le subtotal
   // brut (base de calcul d'une remise en pourcentage), sans jamais faire
   // confiance à un montant envoyé par le client.
+  // Handling supplement by item class (2026-10-26): from the locked items
+  // only, with the classes and amounts of this pricing version.
+  const itemClassFee = itemClassFeeFor(config, (priceLoad ?? booking?.load)?.items ?? []);
   const baseArgs = {
+    itemClassFee: itemClassFee.total,
+    itemClassFeeToDriver: config.item_class_fees?.driver_keeps_all !== false,
     vehicleCategory: configuredVehicleCategory,
     distanceKm: route.distanceKm,
     estimatedDurationMinutes: route.estimatedDurationMinutes,
@@ -272,6 +278,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const customerTotalMinor = toMinorUnits(pricingResult.customerTotal);
   const lockedPricingResult = {
     ...pricingResult,
+    ...(pricingResult.itemClassFeesTotal ? { itemClassFeeLines: itemClassFee.lines } : {}),
     customerTotal: toMajorUnits(customerTotalMinor),
   };
 

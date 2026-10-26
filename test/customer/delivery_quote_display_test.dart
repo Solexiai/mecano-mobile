@@ -60,6 +60,7 @@ Future<(MemoryBookingStorage, QuoteApi)> start(
   Object? km = 10.0,
   bool omit = false,
   bool largeBreakdown = false,
+  bool supplement = false,
 }) async {
   t.view.devicePixelRatio = 1;
   t.view.physicalSize = size;
@@ -85,6 +86,13 @@ Future<(MemoryBookingStorage, QuoteApi)> start(
     'customerServiceFee': 5.25,
     'customerDiscountAmount': 2.5,
     'taxAmount': 230.25,
+    if (supplement) ...{
+      'handlingFeesTotal': 21.5,
+      'itemClassFeesTotal': 20.0,
+      'itemClassFeeLines': [
+        {'category': 'sofa', 'item_class': 'heavy', 'quantity': 1, 'amount': 20.0},
+      ],
+    },
   }; // Deliberately independent fixture: the client must not recompute this total.
   d.data['quote'] = q;
   final storage = MemoryBookingStorage(d);
@@ -376,4 +384,14 @@ void main() {
       expect(texts(t), contains('test_mission'));
     },
   );
+  // Supplement by item class (2026-10-26): its own line, handling without it.
+  offlineWidgetTest('S quote shows the item supplement on its own line', (t) async {
+    await start(t, step: 3, supplement: true);
+    await showDetails(t);
+    final all = texts(t);
+    expect(all, contains('Supplément : Divan / sofa / sectionnel (lourd)'));
+    expect(all, contains('20,00'));
+    expect(all, contains('1,50'));
+    layout(t);
+  });
 }

@@ -35,6 +35,11 @@ export interface CustomerPricingInput {
   // arbitraire venant du client) — voir `customer_discount` dans
   // FinancialSnapshot et l'équivalent Dart (customer_pricing_engine.dart).
   customerDiscountAmount?: number;
+  // Handling supplement by item class, computed server-side from the locked
+  // load (lib/itemClassFees.ts). Part of the handling fees. 2026-10-26.
+  itemClassFee?: number;
+  /** The supplement goes entirely to the driver (no commission on it). */
+  itemClassFeeToDriver?: boolean;
 }
 
 export interface CustomerPricingResult {
@@ -49,6 +54,13 @@ export interface CustomerPricingResult {
   customerServiceFee: number;
   taxAmount: number;
   customerTotal: number;
+  // Present only when a supplement applies (older quotes stay identical).
+  /** Already included in handlingFeesTotal. */
+  itemClassFeesTotal?: number;
+  /** Part of the subtotal paid to the driver without commission. */
+  driverOnlyAmount?: number;
+  /** Per item, for the customer's price details (calculateDeliveryQuote). */
+  itemClassFeeLines?: { category: string; item_class: string; quantity: number; amount: number }[];
 }
 
 export function calculateCustomerQuote(
@@ -79,6 +91,9 @@ export function calculateCustomerQuote(
   if (flags.noElevator) handlingFeesTotal += h.no_elevator_fee;
   if (flags.needsSecondHandler) handlingFeesTotal += h.second_handler_fee;
   if (flags.needsSpecialEquipment) handlingFeesTotal += h.special_equipment_fee;
+  const itemClassFee =
+    Number.isFinite(input.itemClassFee) && (input.itemClassFee as number) > 0 ? (input.itemClassFee as number) : 0;
+  handlingFeesTotal += itemClassFee;
 
   // 3. Frais d'attente.
   const totalWaitingMinutes = input.totalWaitingMinutes ?? 0;
@@ -137,6 +152,12 @@ export function calculateCustomerQuote(
     customerServiceFee,
     taxAmount,
     customerTotal,
+    ...(itemClassFee > 0
+      ? {
+          itemClassFeesTotal: itemClassFee,
+          ...(input.itemClassFeeToDriver ? { driverOnlyAmount: Math.min(itemClassFee, subtotal) } : {}),
+        }
+      : {}),
   };
 }
 
@@ -263,7 +284,12 @@ export function calculateDriverCompensation(params: {
     manualAdjustments = [],
   } = params;
 
-  const commissionBase = pricingResult.subtotal;
+  // The item class supplement can go entirely to the driver (2026-10-26):
+  // the commission is computed without it, then it is added back.
+  const rawDriverOnly = pricingResult.driverOnlyAmount ?? 0;
+  const driverOnly = Number.isFinite(rawDriverOnly) && rawDriverOnly > 0
+    ? Math.min(rawDriverOnly, pricingResult.subtotal) : 0;
+  const commissionBase = pricingResult.subtotal - driverOnly;
 
   const effectiveRate = capEffectiveRate({
     resolvedRate: resolvedCommission.rate,
@@ -280,7 +306,7 @@ export function calculateDriverCompensation(params: {
         : commissionConfig.minimum_platform_commission
       : rawCommission;
 
-  const driverGrossEarnings = commissionBase - platformCommissionAmount;
+  const driverGrossEarnings = commissionBase - platformCommissionAmount + driverOnly;
   const driverOfferAmount = driverGrossEarnings;
 
   const manualAdjustmentsTotal = manualAdjustments.reduce((sum, a) => sum + a.amount, 0);

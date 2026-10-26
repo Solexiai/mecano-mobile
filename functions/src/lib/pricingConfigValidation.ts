@@ -13,6 +13,7 @@
 // la version active (décision du propriétaire : ne pas toucher aux taxes).
 // -----------------------------------------------------------------------------
 
+import { parseItemClassFees } from "./itemClassFees";
 import { missionFeeAmountsError } from "./missionFees";
 import { calculateCustomerQuote, calculateDriverCompensation } from "./pricingEngine";
 import {
@@ -20,6 +21,7 @@ import {
   CommissionConfigDoc,
   CustomerServiceFeeConfigDoc,
   HandlingFeeConfigDoc,
+  ItemClassFeesDoc,
   MissionFeePolicyDoc,
   PricingVersionDoc,
   QuoteConfigDoc,
@@ -74,6 +76,7 @@ export interface PricingDraft {
   commission: CommissionConfigDoc;
   quote_config: QuoteConfigDoc;
   mission_fee_policy: MissionFeePolicyDoc;
+  item_class_fees: ItemClassFeesDoc;
 }
 
 export interface PricingDraftValidation {
@@ -271,7 +274,12 @@ export function validatePricingDraft(raw: unknown): PricingDraftValidation {
     platform_minor: (rawFee?.platform_minor as number) ?? 0,
   };
 
+  // ---- Supplément par objet (2026-10-26) ------------------------------------
+  // Absent from an older grid: 0 $ everywhere, nothing changes.
+  const itemClassFees = parseItemClassFees(input.item_class_fees, errors);
+
   const draft: PricingDraft = {
+    item_class_fees: itemClassFees,
     vehicle_rules: vehicleRules,
     handling_fees: handling,
     waiting_fee: waiting,
@@ -329,5 +337,6 @@ export function asPricingVersion(
     quote_config: draft.quote_config,
     tax_rate: locked.tax_rate,
     mission_fee_policy: { ...draft.mission_fee_policy, version: pricingVersion },
+    item_class_fees: draft.item_class_fees,
   };
 }
