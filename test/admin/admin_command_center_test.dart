@@ -93,7 +93,12 @@ void main() {
     await t.scrollUntilVisible(
       find.byKey(const ValueKey('cc-tile-quoi')),
       300,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find
+          .ancestor(
+            of: find.byKey(const ValueKey('price-simulator')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     expect(find.byKey(const ValueKey('cc-tile-quoi')), findsOneWidget);
     expect(t.takeException(), isNull);
