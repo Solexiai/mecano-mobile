@@ -66,6 +66,13 @@ void main() {
       await tester.ensureVisible(category);
       await tester.tap(category);
       await tester.pumpAndSettle();
+      // 20 types since 2026-10-26: the menu opens on "Autre objet" (last),
+      // scroll up to the first one.
+      await tester.scrollUntilVisible(
+        find.text('Divan / sofa / sectionnel'),
+        -200,
+        scrollable: find.byType(Scrollable).last,
+      );
       await tester.tap(find.text('Divan / sofa / sectionnel').last);
       await tester.pumpAndSettle();
       expect(find.text('Dimensions et précautions (facultatif)'), findsNothing);

@@ -1,3 +1,4 @@
+import 'item_types.dart';
 /// An untrusted suggestion, never a quote, measurement or confirmed identity.
 class BookingPhotoSuggestion {
   const BookingPhotoSuggestion({
@@ -21,17 +22,7 @@ class BookingPhotoSuggestion {
   final int? quantity;
   final BookingPhotoSizeEstimate? sizeEstimate;
   final String? sourcePhotoPath;
-  static const categories = {
-    'sofa',
-    'armchair',
-    'fridge',
-    'washer',
-    'table',
-    'tv',
-    'boxes',
-    'materials',
-    'other',
-  };
+  static final categories = itemTypeIds;
   factory BookingPhotoSuggestion.fromResponse(
     Map<String, dynamic> response,
     String photoPath,

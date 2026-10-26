@@ -270,6 +270,16 @@ class _DashboardBody extends StatelessWidget {
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
               _ActionCard(
+                icon: Icons.checklist_rtl,
+                title: isFrench
+                    ? 'Types d’objets et véhicules'
+                    : 'Item types and vehicles',
+                subtitle: isFrench
+                    ? 'Cocher quels véhicules prennent chaque type d’objet.'
+                    : 'Check which vehicles carry each item type.',
+                onTap: () => context.go('/$locale/admin/types-objets'),
+              ),
+              _ActionCard(
                 icon: Icons.science_outlined,
                 title: isFrench ? 'Pilote privé' : 'Private pilot',
                 subtitle: isFrench
