@@ -114,9 +114,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('8%'), findsNothing);
       expect(
-        find.textContaining('modalités de paiement en production'),
+        find.textContaining('Les paiements ouvriront au lancement'),
         findsOneWidget,
       );
+      // Obsolete claims: measurements, vehicle category in the price.
+      expect(find.textContaining('leurs mesures'), findsNothing);
+      expect(find.textContaining('catégorie de véhicule'), findsNothing);
+      expect(find.textContaining('Rémunération et commission'), findsNothing);
+      expect(find.textContaining('Interac'), findsNothing);
+      expect(find.textContaining('comptant'), findsNothing);
       final pricingAction = find.byKey(const Key('pricing-start-request'));
       await tester.ensureVisible(pricingAction);
       await tester.tap(pricingAction);
