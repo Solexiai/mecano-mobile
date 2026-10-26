@@ -165,6 +165,8 @@ void main() {
       CustomerOverviewTab(onGoToTab: (_) {}),
       missions: [mission('done', 'completed')],
     );
+    await t.ensureVisible(find.byKey(const ValueKey('rebook-done')));
+    await t.pumpAndSettle();
     await t.tap(find.byKey(const ValueKey('rebook-done')));
     await t.pumpAndSettle();
     expect(find.text('BOOKING'), findsOneWidget);
