@@ -239,6 +239,12 @@ export interface ListProviderRefundsResult {
 }
 
 export abstract class PaymentProvider {
+  /** Stripe's hosted receipt for a captured charge (2026-10-26). Read only:
+   * never creates, captures or refunds anything. Null when Stripe has none. */
+  async getChargeReceiptUrl(_providerChargeId: string): Promise<string | null> {
+    void _providerChargeId;
+    throw new PaymentProviderNotConfiguredError();
+  }
   async createCardSetup(_params: { customerId: string; userId: string; quoteId: string; returnUrl: string; locale: string }): Promise<CardSetup> {
     void _params;
     throw new PaymentProviderNotConfiguredError();

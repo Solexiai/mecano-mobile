@@ -98,6 +98,12 @@ export class FakePaymentProvider extends PaymentProvider {
     super();
   }
 
+  readonly receiptLookups: string[] = [];
+  async getChargeReceiptUrl(providerChargeId: string): Promise<string | null> {
+    this.receiptLookups.push(providerChargeId);
+    return `https://pay.stripe.test/receipts/${providerChargeId}`;
+  }
+
   async createCustomer(params: CreateCustomerParams): Promise<CreateCustomerResult> {
     return { providerCustomerId: `fake_cus_${params.userId}` };
   }

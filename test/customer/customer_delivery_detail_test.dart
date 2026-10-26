@@ -13,7 +13,9 @@ import 'package:movik_connect/backend/repositories/rating_repository.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/providers/locale_provider.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:movik_connect/screens/customer/customer_tracking_screen.dart';
+import 'package:movik_connect/services/booking/booking_api.dart';
 
 const _customer = 'customer_detail';
 const _id = 'mission_detail';
@@ -67,7 +69,24 @@ class _Ratings implements RatingRepository {
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-Widget _app(String locale, {double scale = 1}) => MultiProvider(
+class _Api implements BookingApi {
+  _Api(this.answer);
+  final Future<Map<String, dynamic>> Function() answer;
+  final calls = <(String, Map<String, dynamic>)>[];
+  @override
+  Future<Map<String, dynamic>> call(
+    String name, [
+    Map<String, dynamic> data = const {},
+  ]) {
+    calls.add((name, data));
+    return answer();
+  }
+
+  @override
+  Future<Map<String, dynamic>?> profile() async => null;
+}
+
+Widget _app(String locale, {double scale = 1, BookingApi? api}) => MultiProvider(
   providers: [
     ChangeNotifierProvider(create: (_) => LocaleProvider()),
     ChangeNotifierProvider.value(
@@ -89,7 +108,10 @@ Widget _app(String locale, {double scale = 1}) => MultiProvider(
         GoRoute(
           path: '/$locale/livraison/suivi/:missionId',
           builder: (c, s) =>
-              CustomerTrackingScreen(missionId: s.pathParameters['missionId']!),
+              CustomerTrackingScreen(
+                missionId: s.pathParameters['missionId']!,
+                api: api,
+              ),
         ),
         GoRoute(
           path: '/$locale/contact',
@@ -111,6 +133,7 @@ void main() {
     BackendLocator.ratingRepositoryOverride = _Ratings();
   });
   tearDown(() {
+    CustomerTrackingScreen.openReceiptOverride = null;
     BackendLocator.missionRepositoryOverride = null;
     BackendLocator.ratingRepositoryOverride = null;
   });
@@ -135,6 +158,50 @@ void main() {
     expect(find.textContaining('Télécharger le reçu'), findsNothing);
     expect(find.text('Référence : $_id'), findsOneWidget);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('"Reçu de paiement" opens the Stripe receipt from the server', (
+    t,
+  ) async {
+    final opened = <Uri>[];
+    CustomerTrackingScreen.openReceiptOverride = (uri) async {
+      opened.add(uri);
+      return true;
+    };
+    final api = _Api(
+      () async => {'url': 'https://pay.stripe.test/receipts/ch_1'},
+    );
+    await t.pumpWidget(_app('fr', api: api));
+    await t.pumpAndSettle();
+    final receipt = find.byKey(const ValueKey('detail-receipt'));
+    await t.ensureVisible(receipt);
+    await t.pumpAndSettle();
+    await t.tap(receipt);
+    await t.pumpAndSettle();
+    expect(api.calls.single.$1, 'getPaymentReceipt');
+    expect(api.calls.single.$2, {'missionId': _id});
+    expect(opened.single.toString(), 'https://pay.stripe.test/receipts/ch_1');
+    expect(find.byKey(const ValueKey('detail-receipt-message')), findsNothing);
+  });
+
+  testWidgets('nothing charged yet: says so plainly', (t) async {
+    final api = _Api(
+      () async => throw FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'no charge',
+      ),
+    );
+    await t.pumpWidget(_app('fr', api: api));
+    await t.pumpAndSettle();
+    final receipt = find.byKey(const ValueKey('detail-receipt'));
+    await t.ensureVisible(receipt);
+    await t.pumpAndSettle();
+    await t.tap(receipt);
+    await t.pumpAndSettle();
+    expect(
+      find.text('Aucun montant n’a encore été débité pour cette livraison.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('"Signaler un problème" opens the contact page', (t) async {

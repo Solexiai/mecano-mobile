@@ -28,6 +28,8 @@ import '../../widgets/scheduled_mission_panel.dart';
 import '../../widgets/driver_search_status.dart';
 import '../../services/booking/booking_api.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 
 import '../../backend/backend_locator.dart';
@@ -44,7 +46,14 @@ import '../dashboard/customer/customer_mission_view.dart';
 
 class CustomerTrackingScreen extends StatelessWidget {
   final String missionId;
-  const CustomerTrackingScreen({super.key, required this.missionId});
+
+  /// Server calls (payment receipt); Firebase by default. Test seam.
+  final BookingApi? api;
+  const CustomerTrackingScreen({super.key, required this.missionId, this.api});
+
+  /// Opens the Stripe receipt page; `launchUrl` by default. Test seam.
+  @visibleForTesting
+  static Future<bool> Function(Uri uri)? openReceiptOverride;
 
   // Statuts pour lesquels le suivi GPS EN DIRECT (carte + position chauffeur)
   // a un sens. `completed` est géré séparément (_CompletedMissionView) : une
@@ -184,7 +193,11 @@ class CustomerTrackingScreen extends StatelessWidget {
             // Mission complétée : vue dédiée (statut, date, preuve,
             // timeline complète) — plus jamais de carte GPS en direct.
             if (mission.status == MissionStatus.completed) {
-              return _CompletedMissionView(mission: mission, t: t);
+              return _CompletedMissionView(
+                mission: mission,
+                t: t,
+                api: api ?? FirebaseBookingApi(auth.effectiveUid),
+              );
             }
 
             // Before pickup, the customer can cancel (fee policy 2026-10-22:
@@ -579,7 +592,12 @@ class _MissionStatusView extends StatelessWidget {
 class _CompletedMissionView extends StatelessWidget {
   final DeliveryMission mission;
   final String Function(String) t;
-  const _CompletedMissionView({required this.mission, required this.t});
+  final BookingApi api;
+  const _CompletedMissionView({
+    required this.mission,
+    required this.t,
+    required this.api,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -734,7 +752,10 @@ class _CompletedMissionView extends StatelessWidget {
             key: const ValueKey('detail-total'),
             padding: const EdgeInsets.all(14),
             decoration: cardDecoration,
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+            Row(
               children: [
                 Expanded(
                   child: Text(
@@ -751,6 +772,10 @@ class _CompletedMissionView extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
+            ),
+                if (!mission.isInternalTest && mission.customerTotal > 0)
+                  _ReceiptButton(missionId: mission.id, locale: locale, api: api),
               ],
             ),
           ),
@@ -866,6 +891,97 @@ class _CompletedMissionView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// « Reçu de paiement » (2026-10-26) : le reçu hébergé par Stripe pour le
+/// montant réellement débité, demandé au serveur à chaque fois (lecture
+/// seule ; aucun montant n'est calculé ici).
+class _ReceiptButton extends StatefulWidget {
+  const _ReceiptButton({
+    required this.missionId,
+    required this.locale,
+    required this.api,
+  });
+  final String missionId, locale;
+  final BookingApi api;
+  @override
+  State<_ReceiptButton> createState() => _ReceiptButtonState();
+}
+
+class _ReceiptButtonState extends State<_ReceiptButton> {
+  bool _busy = false;
+  String? _message;
+
+  String tr(String fr, String en, String es) => widget.locale == 'en'
+      ? en
+      : widget.locale == 'es'
+      ? es
+      : fr;
+
+  Future<void> _open() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    String? message;
+    final unavailable = tr(
+      'Le reçu n’est pas disponible pour le moment. Réessayez plus tard.',
+      'The receipt is not available right now. Try again later.',
+      'El recibo no está disponible por ahora. Inténtalo más tarde.',
+    );
+    try {
+      final result = await widget.api.call('getPaymentReceipt', {
+        'missionId': widget.missionId,
+      });
+      final url = Uri.tryParse(result['url'] as String? ?? '');
+      if (url == null || url.scheme != 'https') throw const FormatException();
+      final open =
+          CustomerTrackingScreen.openReceiptOverride ??
+          (Uri u) => launchUrl(u, mode: LaunchMode.externalApplication);
+      if (!await open(url)) throw const FormatException();
+    } on FirebaseFunctionsException catch (e) {
+      message = e.code == 'failed-precondition'
+          ? tr(
+              'Aucun montant n’a encore été débité pour cette livraison.',
+              'Nothing has been charged for this delivery yet.',
+              'Aún no se ha cobrado nada por esta entrega.',
+            )
+          : unavailable;
+    } catch (_) {
+      message = unavailable;
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = message;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      TextButton.icon(
+        key: const ValueKey('detail-receipt'),
+        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+        onPressed: _busy ? null : _open,
+        icon: _busy
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.receipt_long_outlined),
+        label: Text(tr('Reçu de paiement', 'Payment receipt', 'Recibo de pago')),
+      ),
+      if (_message != null)
+        Text(
+          _message!,
+          key: const ValueKey('detail-receipt-message'),
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+    ],
+  );
 }
 
 /// Carte de notation client -> chauffeur (Phase 7, Bloc AB, AB-10).
