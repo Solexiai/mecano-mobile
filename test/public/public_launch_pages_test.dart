@@ -136,7 +136,7 @@ void main() {
       AppRouter.router.go('/fr/faq');
       await tester.pumpAndSettle();
       final timeQuestion = find.text(
-        'Puis-je choisir une heure ou un créneau ?',
+        'Quand ma livraison peut-elle avoir lieu ?',
       );
       await tester.ensureVisible(timeQuestion);
       await tester.tap(timeQuestion);
@@ -146,9 +146,14 @@ void main() {
         findsNothing,
       );
       expect(
-        find.textContaining('une date et une heure souhaitées'),
+        find.textContaining('L’heure est confirmée quand un chauffeur accepte'),
         findsOneWidget,
       );
+      // Obsolete FAQ answers (measurements, unapproved cancellation rules,
+      // payment "still being validated") are gone.
+      expect(find.textContaining('dimensions et leur poids'), findsNothing);
+      expect(find.textContaining('pas encore approuvés'), findsNothing);
+      expect(find.textContaining('encore en validation'), findsNothing);
 
       AppRouter.router.go('/fr/comment-ca-marche');
       await tester.pumpAndSettle();

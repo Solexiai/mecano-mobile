@@ -20,6 +20,12 @@ class FaqScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
 
+    // Answers match what the product does on 2026-10-26: photo + AI (#73),
+    // 20 item types (#79), driver confirms the load, hours and days set in
+    // the admin (#85), difficult-conditions supplement (#88), card saved,
+    // held at acceptance, charged at delivery, cancellation fees
+    // (missionFees.ts). No hours, days or zone radius are hard-coded here
+    // because the admin can change them.
     final items = <(String, String)>[
       (
         tr(
@@ -28,21 +34,57 @@ class FaqScreen extends StatelessWidget {
           '¿Cómo obtengo un precio?',
         ),
         tr(
-          'Décrivez vos objets, leurs dimensions et leur poids, puis sélectionnez les adresses et l’aide nécessaire. Movi‑K vérifie les catégories de véhicule compatibles et calcule le prix officiel après connexion. Vous consultez ce prix et sa ventilation avant confirmation. Les renseignements incomplets peuvent nécessiter une vérification.',
-          'Describe your items, dimensions and weight, then select addresses and required assistance. Movi‑K checks compatible vehicle categories and calculates the official price after sign-in. You review the price and breakdown before confirming. Incomplete details may require a review.',
-          'Describe los objetos, sus dimensiones y peso, y selecciona las direcciones y la ayuda necesaria. Movi‑K verifica las categorías de vehículo compatibles y calcula el precio oficial tras iniciar sesión. Revisas el precio y el desglose antes de confirmar. Los datos incompletos pueden requerir revisión.',
+          'Prenez une photo de vos objets : on les reconnaît pour vous. Ajoutez les adresses de ramassage et de livraison, le moment voulu et l’aide nécessaire. Le prix exact s’affiche, taxes et détail inclus, avant que vous confirmiez.',
+          'Snap a photo of your items and we recognize them for you. Add the pickup and delivery addresses, the time you want and the help you need. The exact price is shown, taxes and breakdown included, before you confirm.',
+          'Toma una foto de tus objetos y los reconocemos por ti. Añade las direcciones de recogida y entrega, el momento deseado y la ayuda necesaria. El precio exacto se muestra, con impuestos y desglose, antes de confirmar.',
         ),
       ),
       (
         tr(
-          'Puis-je commencer sans compte ?',
-          'Can I start without an account?',
-          '¿Puedo empezar sin una cuenta?',
+          'Dois-je créer un compte ?',
+          'Do I need an account?',
+          '¿Necesito una cuenta?',
         ),
         tr(
-          'Oui. Vous pouvez préparer la demande avant de vous connecter. Une connexion est requise lorsque vous demandez le prix officiel. Les informations déjà saisies sont conservées localement pour reprendre le parcours après la connexion.',
-          'Yes. You can prepare the request before signing in. Sign-in is required when you request the official price. Information already entered is kept locally so you can resume after signing in.',
-          'Sí. Puedes preparar la solicitud antes de iniciar sesión. Debes iniciar sesión al solicitar el precio oficial. Los datos ya ingresados se conservan localmente para continuar después.',
+          'Vous pouvez commencer sans compte. La connexion est demandée pour obtenir votre prix et réserver. Ce que vous avez déjà rempli est gardé 24 heures.',
+          'You can start without an account. Sign-in is required to get your price and book. What you have already filled in is kept for 24 hours.',
+          'Puedes empezar sin cuenta. Se pide iniciar sesión para obtener tu precio y reservar. Lo que ya completaste se guarda 24 horas.',
+        ),
+      ),
+      (
+        tr(
+          'Quels objets pouvez-vous livrer ?',
+          'What items can you deliver?',
+          '¿Qué objetos pueden transportar?',
+        ),
+        tr(
+          'Meubles (divan, lit, commode, table…), électroménagers (réfrigérateur, laveuse, cuisinière…), téléviseurs, pneus, souffleuse ou tondeuse, meubles de patio et BBQ, vélos, boîtes et matériaux de construction. Votre objet n’est pas dans la liste ? Choisissez « Autre objet ». Les matières dangereuses, biens illégaux, animaux vivants et objets nécessitant un permis spécial sont exclus.',
+          'Furniture (sofa, bed, dresser, table…), appliances (refrigerator, washer, stove…), TVs, tires, snow blower or lawn mower, patio furniture and BBQ, bikes, boxes and construction materials. Item not in the list? Choose “Other item”. Hazardous materials, illegal goods, live animals and items requiring special permits are excluded.',
+          'Muebles (sofá, cama, cómoda, mesa…), electrodomésticos (refrigerador, lavadora, estufa…), televisores, neumáticos, quitanieves o cortacésped, muebles de patio y parrilla, bicicletas, cajas y materiales de construcción. ¿Tu objeto no está en la lista? Elige «Otro objeto». Se excluyen materiales peligrosos, bienes ilegales, animales vivos y objetos que requieren permisos especiales.',
+        ),
+      ),
+      (
+        tr(
+          'Dois-je mesurer mes objets ?',
+          'Do I need to measure my items?',
+          '¿Debo medir mis objetos?',
+        ),
+        tr(
+          'Non. Le chauffeur voit vos photos et confirme que tout entre dans son véhicule avant d’accepter votre demande.',
+          'No. The driver sees your photos and confirms everything fits in their vehicle before accepting your request.',
+          'No. El conductor ve tus fotos y confirma que todo cabe en su vehículo antes de aceptar tu solicitud.',
+        ),
+      ),
+      (
+        tr(
+          'Quand ma livraison peut-elle avoir lieu ?',
+          'When can my delivery happen?',
+          '¿Cuándo puede hacerse mi entrega?',
+        ),
+        tr(
+          'Choisissez « Dès que possible », ou un jour et une heure parmi les créneaux offerts, quelques jours à l’avance. L’heure est confirmée quand un chauffeur accepte votre demande.',
+          'Choose “As soon as possible”, or a day and a time among the slots offered, a few days ahead. The time is confirmed when a driver accepts your request.',
+          'Elige «Lo antes posible», o un día y una hora entre las franjas ofrecidas, con unos días de antelación. La hora se confirma cuando un conductor acepta tu solicitud.',
         ),
       ),
       (
@@ -52,89 +94,105 @@ class FaqScreen extends StatelessWidget {
           '¿Elijo al conductor?',
         ),
         tr(
-          'Non. Après confirmation d’une demande admissible, Movi‑K recherche un chauffeur disponible et admissible. L’attribution dépend de la disponibilité réelle et aucun chauffeur n’est garanti au moment du calcul du prix.',
-          'No. After an eligible request is confirmed, Movi‑K looks for an available, eligible driver. Assignment depends on actual availability and no driver is guaranteed when the price is calculated.',
-          'No. Después de confirmar una solicitud admisible, Movi‑K busca un conductor disponible y apto. La asignación depende de la disponibilidad real y ningún conductor está garantizado al calcular el precio.',
+          'Non. Votre demande est envoyée aux chauffeurs vérifiés de la région. Le premier qui accepte s’occupe de votre livraison.',
+          'No. Your request is sent to verified drivers in the area. The first one to accept handles your delivery.',
+          'No. Tu solicitud se envía a los conductores verificados de la zona. El primero que acepta se encarga de tu entrega.',
         ),
       ),
       (
         tr(
-          'Puis-je choisir une heure ou un créneau ?',
-          'Can I choose a time slot?',
-          '¿Puedo elegir una franja horaria?',
+          'Comment et quand vais-je payer ?',
+          'How and when do I pay?',
+          '¿Cómo y cuándo pago?',
         ),
         tr(
-          'Vous pouvez indiquer une date et une heure souhaitées dans votre demande. Ce souhait dépend de la disponibilité et de l’acceptation du chauffeur : il ne constitue pas un créneau confirmé.',
-          'You can enter a preferred date and time in your request. This preference depends on driver availability and acceptance; it is not a confirmed time slot.',
-          'Puedes indicar una fecha y una hora deseadas en tu solicitud. Dependen de la disponibilidad y aceptación del conductor; no constituyen un horario confirmado.',
-        ),
-      ),
-      (
-        tr(
-          'Comment fonctionne le suivi ?',
-          'How does tracking work?',
-          '¿Cómo funciona el seguimiento?',
-        ),
-        tr(
-          'Le client peut suivre les étapes de la mission dans son espace. Le suivi GPS en direct est conçu pour les phases actives de la livraison; sa validation sur appareils réels fait encore partie des vérifications de lancement. Le site ne promet donc pas une carte GPS pour chaque situation.',
-          'Customers can follow mission status in their account. Live GPS is designed for active delivery phases; real-device validation is still part of launch checks. The site therefore does not promise a live map in every situation.',
-          'El cliente puede seguir las etapas de la misión en su cuenta. El GPS en directo está diseñado para las fases activas; la validación en dispositivos reales sigue siendo parte de las pruebas de lanzamiento. Por eso no se promete un mapa en vivo en todas las situaciones.',
+          'Par carte. Vous l’enregistrez en confirmant, sans être débité. Le montant est réservé quand un chauffeur accepte, puis débité à la livraison. Les paiements ouvriront au lancement du service à Granby.',
+          'By card. You save it when you confirm, without being charged. The amount is held when a driver accepts, then charged at delivery. Payments will open when the service launches in Granby.',
+          'Con tarjeta. La registras al confirmar, sin cobro. El importe se reserva cuando un conductor acepta y se cobra en la entrega. Los pagos se abrirán con el lanzamiento del servicio en Granby.',
         ),
       ),
       (
         tr(
-          'Quels objets peuvent être livrés ?',
-          'What items can be delivered?',
-          '¿Qué objetos se pueden transportar?',
+          'Le prix peut-il changer ?',
+          'Can the price change?',
+          '¿Puede cambiar el precio?',
         ),
         tr(
-          'Le formulaire propose notamment meubles, électroménagers, achats Marketplace, matériaux, boîtes, téléviseurs et petits déménagements, ainsi que d’autres catégories compatibles. Les matières dangereuses, biens illégaux, animaux vivants et objets nécessitant un permis spécial sont exclus.',
-          'The form includes furniture, appliances, Marketplace purchases, materials, boxes, large TVs and small moves, plus other compatible categories. Hazardous materials, illegal goods, live animals and items requiring special permits are excluded.',
-          'El formulario incluye muebles, electrodomésticos, compras Marketplace, materiales, cajas, televisores grandes y pequeñas mudanzas, además de otras categorías compatibles. Se excluyen materiales peligrosos, bienes ilegales, animales vivos y objetos que requieren permisos especiales.',
-        ),
-      ),
-      (
-        tr('Comment puis-je payer ?', 'How can I pay?', '¿Cómo puedo pagar?'),
-        tr(
-          'Les modalités de paiement en production sont encore en validation pour le lancement à Granby. Le parcours affichera le moyen de paiement réellement disponible lorsqu’il sera activé. Le site ne promet pas de paiement comptant ou Interac.',
-          'Production payment methods are still being validated for the Granby launch. The flow will show the payment method that is actually available once activated. The site does not promise cash or Interac.',
-          'Los métodos de pago en producción siguen en validación para el lanzamiento en Granby. El proceso mostrará el método realmente disponible cuando esté activado. El sitio no promete efectivo ni Interac.',
+          'Non, une fois que vous l’avez accepté. Par mauvais temps (tempête, verglas), un supplément peut s’ajouter au prix : il est indiqué, avec sa raison, avant que vous confirmiez.',
+          'No, once you have accepted it. In bad weather (storm, freezing rain), a supplement may be added to the price: it is shown, with its reason, before you confirm.',
+          'No, una vez que lo aceptas. Con mal tiempo (tormenta, hielo), puede añadirse un suplemento al precio: se indica, con su motivo, antes de confirmar.',
         ),
       ),
       (
         tr(
-          'Comment les chauffeurs sont-ils vérifiés?',
-          'How are drivers reviewed?',
-          '¿Cómo se revisan los conductores?',
+          'Et si aucun chauffeur n’accepte ?',
+          'What if no driver accepts?',
+          '¿Y si ningún conductor acepta?',
         ),
         tr(
-          'Le parcours chauffeur demande un profil, un véhicule et les documents requis, notamment permis, assurance et éléments de vérification. Le dossier doit être approuvé avant l’activation.',
-          'The driver flow requires a profile, vehicle and required documents, including licence, insurance and verification items. The application must be approved before activation.',
-          'El proceso del conductor requiere perfil, vehículo y documentos, incluidos licencia, seguro y elementos de verificación. El expediente debe aprobarse antes de activarse.',
-        ),
-      ),
-      (
-        tr(
-          'Quelles sont les règles d’annulation?',
-          'What are the cancellation rules?',
-          '¿Cuáles son las reglas de cancelación?',
-        ),
-        tr(
-          'Les délais et frais commerciaux d’annulation ne sont pas encore approuvés pour publication. La page d’annulation indique donc actuellement que la politique est en révision plutôt que d’inventer un délai ou des frais.',
-          'Commercial cancellation windows and fees are not yet approved for publication. The cancellation page therefore states that the policy is under review rather than inventing a window or fee.',
-          'Los plazos y cargos comerciales de cancelación todavía no están aprobados para publicación. La página de cancelación indica que la política está en revisión en lugar de inventar un plazo o cargo.',
+          'Votre carte n’est pas débitée : le montant n’est réservé qu’au moment où un chauffeur accepte. Vous pouvez annuler votre demande sans frais.',
+          'Your card is not charged: the amount is only held when a driver accepts. You can cancel your request at no cost.',
+          'No se cobra tu tarjeta: el importe solo se reserva cuando un conductor acepta. Puedes cancelar tu solicitud sin costo.',
         ),
       ),
       (
         tr(
-          'Où le service sera-t-il lancé?',
-          'Where will service launch?',
-          '¿Dónde se lanzará el servicio?',
+          'Puis-je annuler ?',
+          'Can I cancel?',
+          '¿Puedo cancelar?',
         ),
         tr(
-          'Le lancement est prévu à Granby et dans les environs. La disponibilité dépendra des chauffeurs actifs, de leur rayon d’action et du véhicule requis.',
-          'The launch is planned for Granby and surrounding areas. Availability will depend on active drivers, their service areas and the required vehicle.',
-          'El lanzamiento está previsto en Granby y alrededores. La disponibilidad dependerá de los conductores activos, sus zonas de servicio y el vehículo necesario.',
+          'Oui, gratuitement avant qu’un chauffeur accepte, et aussi après si le ramassage est dans plus de 2 heures. Sinon, des frais de 30 \$ s’appliquent. Les mêmes frais s’appliquent si le chauffeur se déplace pour rien. Le montant est affiché avant que vous confirmiez.',
+          'Yes, free of charge before a driver accepts, and also afterwards if pickup is more than 2 hours away. Otherwise, a \$30 fee applies. The same fee applies if the driver makes a wasted trip. The amount is shown before you confirm.',
+          'Sí, gratis antes de que un conductor acepte, y también después si la recogida es en más de 2 horas. Si no, se aplica un cargo de 30 \$. El mismo cargo se aplica si el conductor se desplaza en vano. El importe se muestra antes de confirmar.',
+        ),
+      ),
+      (
+        tr(
+          'Comment suivre ma livraison ?',
+          'How do I follow my delivery?',
+          '¿Cómo sigo mi entrega?',
+        ),
+        tr(
+          'Dans votre espace, vous voyez chaque étape, la position du chauffeur sur la carte pendant la livraison, puis les photos prises au ramassage et à la livraison.',
+          'In your account, you see each step, the driver’s position on the map during the delivery, then the photos taken at pickup and delivery.',
+          'En tu cuenta ves cada etapa, la ubicación del conductor en el mapa durante la entrega y luego las fotos tomadas al recoger y al entregar.',
+        ),
+      ),
+      (
+        tr(
+          'Comment les chauffeurs sont-ils vérifiés ?',
+          'How are drivers verified?',
+          '¿Cómo se verifican los conductores?',
+        ),
+        tr(
+          'Chaque chauffeur fournit son permis de conduire, son assurance et les informations de son véhicule. L’équipe Movi‑K approuve son dossier avant qu’il puisse recevoir des demandes.',
+          'Every driver provides their driver’s licence, insurance and vehicle details. The Movi‑K team approves their file before they can receive requests.',
+          'Cada conductor presenta su licencia de conducir, su seguro y los datos de su vehículo. El equipo de Movi‑K aprueba su expediente antes de que pueda recibir solicitudes.',
+        ),
+      ),
+      (
+        tr(
+          'Où le service est-il offert ?',
+          'Where is the service offered?',
+          '¿Dónde se ofrece el servicio?',
+        ),
+        tr(
+          'À Granby et dans les environs. Le parcours vous indique tout de suite si vos adresses sont dans la zone desservie.',
+          'In Granby and surrounding areas. The request flow tells you right away whether your addresses are in the service area.',
+          'En Granby y alrededores. El proceso te indica enseguida si tus direcciones están en la zona de servicio.',
+        ),
+      ),
+      (
+        tr(
+          'Comment devenir chauffeur ?',
+          'How do I become a driver?',
+          '¿Cómo me hago conductor?',
+        ),
+        tr(
+          'Vous avez un pickup, une fourgonnette ou un camion cube ? Inscrivez-vous depuis la page « Devenir chauffeur » et envoyez vos documents. Vous recevrez des demandes une fois votre dossier approuvé.',
+          'Do you have a pickup, a van or a box truck? Sign up from the “Become a Driver” page and send your documents. You will receive requests once your file is approved.',
+          '¿Tienes una camioneta pickup, una furgoneta o un camión de caja? Inscríbete desde la página «Convertirse en conductor» y envía tus documentos. Recibirás solicitudes una vez aprobado tu expediente.',
         ),
       ),
     ];
@@ -154,9 +212,9 @@ class FaqScreen extends StatelessWidget {
                   'Preguntas frecuentes',
                 ),
                 subtitle: tr(
-                  'Réponses alignées sur le parcours actuellement construit et sur l’état de préparation du lancement.',
-                  'Answers aligned with the flow currently built and the launch-readiness state.',
-                  'Respuestas alineadas con el proceso construido y el estado de preparación del lanzamiento.',
+                  'Tout ce qu’il faut savoir avant de réserver.',
+                  'Everything you need to know before booking.',
+                  'Todo lo que necesitas saber antes de reservar.',
                 ),
               ),
               const SizedBox(height: 28),
@@ -180,9 +238,9 @@ class FaqScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         tr(
-                          'Pré-lancement à Granby et dans les environs : une demande ou un prix ne garantit pas encore qu’un chauffeur sera disponible.',
-                          'Pre-launch in Granby and surrounding areas: a request or price does not yet guarantee driver availability.',
-                          'Prelanzamiento en Granby y alrededores: una solicitud o un precio aún no garantiza la disponibilidad de un conductor.',
+                          'Lancement à Granby et dans les environs. La disponibilité d’un chauffeur est confirmée quand il accepte votre demande.',
+                          'Launching in Granby and surrounding areas. Driver availability is confirmed when a driver accepts your request.',
+                          'Lanzamiento en Granby y alrededores. La disponibilidad de un conductor se confirma cuando acepta tu solicitud.',
                         ),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
