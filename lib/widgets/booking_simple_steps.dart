@@ -68,16 +68,60 @@ void applyHelpChoice(Map data, String choice) {
 const bookingSlotHours = [9, 11, 13, 15, 17, 19];
 const bookingSlotLead = Duration(hours: 1);
 
-List<DateTime> bookingSlotDays(DateTime now) => [
-  for (var i = 0; i < 4; i++) DateTime(now.year, now.month, now.day + i),
-].where((day) => bookingSlotHours.any((h) => slotOpen(day, h, now))).toList();
+/// Hours set in the Centre de commande (Où et quand ?, 2026-10-26), sent by
+/// getBookingConfiguration; the launch rules above when none were saved.
+class BookingHours {
+  const BookingHours({
+    this.slotHours = bookingSlotHours,
+    this.lead = bookingSlotLead,
+    this.daysAhead = 4,
+    this.openWeekdays = const [1, 2, 3, 4, 5, 6, 7],
+  });
 
-bool slotOpen(DateTime day, int hour, DateTime now) => DateTime(
-  day.year,
-  day.month,
-  day.day,
-  hour,
-).isAfter(now.add(bookingSlotLead));
+  static BookingHours fromJson(Object? raw) {
+    if (raw is! Map) return const BookingHours();
+    List<int>? ints(Object? v, int min, int max) {
+      if (v is! List || v.isEmpty) return null;
+      final out = [for (final x in v) if (x is int && x >= min && x <= max) x];
+      return out.length == v.length ? (out..sort()) : null;
+    }
+
+    final hours = ints(raw['slot_hours'], 0, 23);
+    final days = ints(raw['open_weekdays'], 1, 7);
+    final lead = raw['lead_minutes'];
+    final ahead = raw['days_ahead'];
+    return BookingHours(
+      slotHours: hours ?? bookingSlotHours,
+      lead: lead is int && lead >= 0 && lead <= 1440
+          ? Duration(minutes: lead)
+          : bookingSlotLead,
+      daysAhead: ahead is int && ahead >= 1 && ahead <= 14 ? ahead : 4,
+      openWeekdays: days ?? const [1, 2, 3, 4, 5, 6, 7],
+    );
+  }
+
+  final List<int> slotHours;
+  final Duration lead;
+  final int daysAhead;
+  final List<int> openWeekdays;
+}
+
+List<DateTime> bookingSlotDays(
+  DateTime now, [
+  BookingHours hours = const BookingHours(),
+]) => [
+  for (var i = 0; i < hours.daysAhead; i++)
+    DateTime(now.year, now.month, now.day + i),
+].where((day) => hours.slotHours.any((h) => slotOpen(day, h, now, hours))).toList();
+
+bool slotOpen(
+  DateTime day,
+  int hour,
+  DateTime now, [
+  BookingHours hours = const BookingHours(),
+]) =>
+    hours.openWeekdays.contains(day.weekday) &&
+    DateTime(day.year, day.month, day.day, hour).isAfter(now.add(hours.lead));
 
 String slotDayKey(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
