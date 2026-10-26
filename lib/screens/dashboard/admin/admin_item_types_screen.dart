@@ -26,14 +26,25 @@ const _vehicleLabels = {
   'cube_truck': 'Camion cube',
 };
 
-class AdminItemTypesScreen extends StatefulWidget {
+class AdminItemTypesScreen extends StatelessWidget {
   const AdminItemTypesScreen({super.key, this.api});
   final ItemTypesApi? api;
   @override
-  State<AdminItemTypesScreen> createState() => _AdminItemTypesScreenState();
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Types d’objets et véhicules')),
+    body: AdminItemTypesPanel(api: api),
+  );
 }
 
-class _AdminItemTypesScreenState extends State<AdminItemTypesScreen> {
+/// The grid itself, also tab "1 · Quoi ?" of the command center.
+class AdminItemTypesPanel extends StatefulWidget {
+  const AdminItemTypesPanel({super.key, this.api});
+  final ItemTypesApi? api;
+  @override
+  State<AdminItemTypesPanel> createState() => _AdminItemTypesPanelState();
+}
+
+class _AdminItemTypesPanelState extends State<AdminItemTypesPanel> {
   ItemTypesApi get _api => widget.api ?? _firebaseItemTypesApi;
   final Map<String, Set<String>> _checked = {};
   final Set<String> _unsaved = {};
@@ -109,9 +120,7 @@ class _AdminItemTypesScreenState extends State<AdminItemTypesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final types = itemTypes.where((t) => _checked.containsKey(t.id)).toList();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Types d’objets et véhicules')),
-      body: ListView(
+    return ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
@@ -204,7 +213,6 @@ class _AdminItemTypesScreenState extends State<AdminItemTypesScreen> {
             style: TextStyle(fontSize: 12),
           ),
         ],
-      ),
     );
   }
 }
