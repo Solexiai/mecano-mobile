@@ -12,7 +12,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
-import { failedPrecondition, invalidArgument } from "../lib/errors";
+import { invalidArgument } from "../lib/errors";
 import { ITEM_VEHICLES, parseItemVehicles, PROPOSED_ITEM_VEHICLES } from "../lib/itemTypes";
 import { PHOTO_CATEGORIES } from "../lib/photoIntake";
 import { normalizeVehicleCategory } from "../lib/vehicleCategory";
@@ -49,15 +49,21 @@ export const adminItemTypes = onCall(async (request) => {
     const version = `admin-${new Date().toISOString().slice(0, 10)}`;
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(CONFIG);
-      if (!snap.exists || !snap.data()?.photo_intake) {
-        throw failedPrecondition("La réservation par photo n'est pas configurée (system_config/booking_capacity).");
+      const fields = {
+        category_vehicle_categories: mapping,
+        version,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+        updated_by_user_id: ctx.uid,
+      };
+      if (snap.exists && snap.data()?.photo_intake) {
+        tx.update(CONFIG, Object.fromEntries(Object.entries(fields).map(([k, v]) => [`photo_intake.${k}`, v])));
+      } else {
+        // First save (production had no booking_capacity, 2026-10-26): only
+        // the grid is created. `enabled` stays false: it opens nothing in the
+        // older measured-capacity path; the live price-first booking reads
+        // the grid directly (quoteBeforeAssignment.vehicleCategoriesForLoad).
+        tx.set(CONFIG, { photo_intake: { enabled: false, ...fields } }, { merge: true });
       }
-      tx.update(CONFIG, {
-        "photo_intake.category_vehicle_categories": mapping,
-        "photo_intake.version": version,
-        "photo_intake.updated_at": admin.firestore.FieldValue.serverTimestamp(),
-        "photo_intake.updated_by_user_id": ctx.uid,
-      });
       writeAuditLogInTransaction(tx, {
         actorUserId: ctx.uid, actorRole: ctx.role ?? "admin", action: "item_types_vehicles_saved",
         sourceFunction: "adminItemTypes", targetId: "booking_capacity",

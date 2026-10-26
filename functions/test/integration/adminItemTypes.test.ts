@@ -62,8 +62,12 @@ test.each([
   expect((await ref.get()).data()!.photo_intake.version).toBe('old');
 });
 
-test('no photo booking configuration: refused, nothing created', async () => {
-  await expect(adminItemTypes.run(call({ action: 'save', mapping: PROPOSED_ITEM_VEHICLES })))
-    .rejects.toMatchObject({ code: 'failed-precondition' });
-  expect((await ref.get()).exists).toBe(false);
+test('first save without any configuration creates only the grid', async () => {
+  await adminItemTypes.run(call({ action: 'save', mapping: PROPOSED_ITEM_VEHICLES }));
+  const after = (await ref.get()).data()!;
+  expect(Object.keys(after)).toEqual(['photo_intake']);
+  expect(after.photo_intake.enabled).toBe(false);
+  expect(after.photo_intake.category_vehicle_categories).toEqual(PROPOSED_ITEM_VEHICLES);
+  const again = (await adminItemTypes.run(call({ action: 'get' }))) as any;
+  expect(again.types.every((t: any) => t.saved)).toBe(true);
 });
