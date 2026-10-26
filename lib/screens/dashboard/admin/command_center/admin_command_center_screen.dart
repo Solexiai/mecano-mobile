@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
+import 'price_simulator.dart';
+import 'share_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
 const commandCenterTabs = [
@@ -26,12 +28,18 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.initialTab = 'accueil',
     this.itemTypesApi,
     this.pricingTab,
+    this.loadActive,
+    this.preview,
   });
   final String initialTab;
   final ItemTypesApi? itemTypesApi;
 
   /// Test seam: the pricing tab reads Firestore.
   final Widget? pricingTab;
+
+  /// Test seams for the simulator (active grid, server preview).
+  final ActiveVersionLoader? loadActive;
+  final PricePreviewer? preview;
 
   @override
   State<AdminCommandCenterScreen> createState() =>
@@ -86,7 +94,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
     body: TabBarView(
       controller: _tabs,
       children: [
-        _Home(onOpen: _open),
+        _Home(onOpen: _open, loadActive: widget.loadActive, preview: widget.preview),
         AdminItemTypesPanel(api: widget.itemTypesApi),
         widget.pricingTab ?? const AdminFinancePricingTab(),
         const _Coming(
@@ -94,10 +102,10 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           text:
               'Zone desservie, heures de réservation, délai minimum et jours ouverts, modifiables ici. En préparation.',
         ),
-        const _Coming(
-          title: 'Qui reçoit quoi ?',
-          text:
-              'Commission Movi-K, part du chauffeur, frais de service et partage du supplément par objet. En préparation.',
+        SharePanel(
+          onEditPrices: () => _open('combien'),
+          loadActive: widget.loadActive,
+          preview: widget.preview,
         ),
         const _Coming(
           title: 'Conditions spéciales',
@@ -110,8 +118,10 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
 }
 
 class _Home extends StatelessWidget {
-  const _Home({required this.onOpen});
+  const _Home({required this.onOpen, this.loadActive, this.preview});
   final void Function(String id) onOpen;
+  final ActiveVersionLoader? loadActive;
+  final PricePreviewer? preview;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +187,7 @@ class _Home extends StatelessWidget {
       tile('service', '3 · OÙ ET QUAND ?', 'Service',
           'Zone desservie, heures de réservation, délai minimum.', ready: false),
       tile('partage', '4 · QUI REÇOIT QUOI ?', 'Partage',
-          'Commission Movi-K, part du chauffeur, frais de service.', ready: false),
+          'Commission Movi-K, part du chauffeur, frais de service.'),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',
           'Supplément tempête, pause du service.', ready: false),
     ];
@@ -188,6 +198,8 @@ class _Home extends StatelessWidget {
           'Tout ce qui décide ce que le client voit et paie, au même endroit. Une question par onglet.',
           style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
+        const SizedBox(height: 16),
+        PriceSimulator(loadActive: loadActive, preview: preview),
         const SizedBox(height: 16),
         // Wrap, not a fixed-ratio grid: tiles grow with their text (phone,
         // large text) instead of overflowing.
