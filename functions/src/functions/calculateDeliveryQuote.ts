@@ -1,4 +1,4 @@
-import { PreAssignmentQuote, preparePriceBeforeAssignment, validatePriceBeforeAssignment, vehicleCategoriesForLoad } from '../lib/quoteBeforeAssignment';
+import { PreAssignmentQuote, preparePriceBeforeAssignment, validatePriceBeforeAssignment } from '../lib/quoteBeforeAssignment';
 import type { BookingLoad } from '../lib/booking';
 import { reviewBooking } from "../lib/bookingServer";
 import { bookingHandling, selectBookingVehicle } from "../lib/booking";
@@ -204,7 +204,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
 
   if (priceLoad) {
     const prepared = preparePriceBeforeAssignment(priceLoad, config);
-    preAssignment = { ...prepared.context, vehicle_categories: await vehicleCategoriesForLoad(priceLoad) };
+    preAssignment = prepared.context;
     input.vehicleCategory = prepared.vehicleCategory;
     input.handling = prepared.handling;
     input.totalWaitingMinutes = 0;
