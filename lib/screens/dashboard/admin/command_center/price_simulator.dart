@@ -156,13 +156,21 @@ class _PriceSimulatorState extends State<PriceSimulator> {
             runSpacing: 10,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              DropdownButton<String>(
-                key: const ValueKey('try-item'),
-                value: _item,
-                onChanged: _busy ? null : (v) => _set(() => _item = v ?? 'sofa'),
-                items: [
-                  for (final t in itemTypes) DropdownMenuItem(value: t.id, child: Text(t.fr)),
-                ],
+              SizedBox(
+                width: 240,
+                child: DropdownButton<String>(
+                  key: const ValueKey('try-item'),
+                  isExpanded: true,
+                  value: _item,
+                  onChanged: _busy ? null : (v) => _set(() => _item = v ?? 'sofa'),
+                  items: [
+                    for (final t in itemTypes)
+                      DropdownMenuItem(
+                        value: t.id,
+                        child: Text(t.fr, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                ),
               ),
               DropdownButton<int>(
                 key: const ValueKey('try-quantity'),

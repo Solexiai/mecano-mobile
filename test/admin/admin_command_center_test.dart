@@ -90,6 +90,11 @@ void main() {
     addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(_app('accueil'));
     await t.pumpAndSettle();
+    await t.scrollUntilVisible(
+      find.byKey(const ValueKey('cc-tile-quoi')),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.byKey(const ValueKey('cc-tile-quoi')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
