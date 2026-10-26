@@ -1,7 +1,7 @@
 import { BookingConsent, parseBookingPolicy, requireBookingConsent } from '../lib/bookingContract';
 import { normalizeLoad } from "../lib/booking";
 import { normalizeContacts } from "../lib/bookingServer";
-import { driverJudgementSnapshot } from "../lib/quoteBeforeAssignment";
+import { allowedVehicles, driverJudgementSnapshot } from "../lib/quoteBeforeAssignment";
 // -----------------------------------------------------------------------------
 // createDeliveryRequest — Cloud Function callable (customer).
 //
@@ -234,8 +234,23 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       input.description = preAssignment.load.items.map(i => i.quantity + ' × ' + i.label).join('; ');
       input.itemCategoryKey = preAssignment.load.items[0].category;
     }
+    // Admin grid "Types d'objets et véhicules" (2026-10-26): only drivers
+    // with a vehicle allowed for every item see the request. Read in the
+    // transaction, before any write; the price is already locked.
+    let vehicleCategories: string[] | undefined;
+    if (preAssignment && !isInternalTest && !lockedQuote.pricingSnapshot?.booking) {
+      const grid = (await tx.get(db.doc("system_config/booking_capacity"))).data()
+        ?.photo_intake?.category_vehicle_categories;
+      try {
+        vehicleCategories = allowedVehicles(preAssignment.load, grid && typeof grid === "object" ? grid : {});
+      } catch {
+        throw failedPrecondition("Ce type d'objet n'est pas offert pour le moment. Choisissez un autre type ou écrivez-nous depuis la page Contact.");
+      }
+    }
     const booking = lockedQuote.pricingSnapshot?.booking ??
-      (preAssignment && !isInternalTest ? driverJudgementSnapshot(preAssignment) : undefined);
+      (preAssignment && !isInternalTest
+        ? driverJudgementSnapshot({ ...preAssignment, ...(vehicleCategories ? { vehicle_categories: vehicleCategories } : {}) })
+        : undefined);
     let policy = null;
     let contacts = null;
     let attemptRef: FirebaseFirestore.DocumentReference | null = null;
