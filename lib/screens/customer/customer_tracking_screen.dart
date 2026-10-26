@@ -649,9 +649,13 @@ class _CompletedMissionView extends StatelessWidget {
     );
     final pickup = mission.pickupAddress, dropoff = mission.dropoffAddress;
     final driver = mission.driverDisplayName?.trim() ?? '';
+    // Same reading width as the home screen on a computer (2026-10-26).
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-      child: Column(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (mission.isInternalTest) ...[
@@ -805,7 +809,7 @@ class _CompletedMissionView extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                Flexible(
+                Expanded(
                   child: Text(
                     customerMoney(mission, locale),
                     textAlign: TextAlign.end,
@@ -930,6 +934,8 @@ class _CompletedMissionView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
