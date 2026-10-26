@@ -93,6 +93,9 @@ void main() {
     ));
     await t.pumpAndSettle();
     expect(t.takeException(), isNull);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('conditions-resume')), 300,
+        scrollable: find.byType(Scrollable).first);
     expect(find.byKey(const ValueKey('conditions-resume')), findsOneWidget);
+    expect(t.takeException(), isNull);
   });
 }
