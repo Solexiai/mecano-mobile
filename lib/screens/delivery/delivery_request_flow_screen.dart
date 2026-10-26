@@ -2488,6 +2488,31 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ('customerDiscountAmount', tr('Remise', 'Discount', 'Descuento')),
       ('taxAmount', tr('Taxes', 'Taxes', 'Impuestos')),
     ];
+    // Supplement by item class (2026-10-26): shown apart from the other
+    // handling fees, one line per item, as the server computed it.
+    final itemFee = breakdown['itemClassFeesTotal'];
+    final itemLines = <(String, num)>[];
+    if (itemFee is num && itemFee > 0) {
+      final handling = breakdown['handlingFeesTotal'];
+      if (handling is num) breakdown['handlingFeesTotal'] = handling - itemFee;
+      for (final raw in (breakdown['itemClassFeeLines'] as List? ?? [])) {
+        if (raw is! Map || raw['amount'] is! num) continue;
+        final type = itemTypes.where((t) => t.id == raw['category']).firstOrNull;
+        final label = type?.label(widget.locale) ?? tr('Objet', 'Item', 'Objeto');
+        final cls = itemClassLabel('${raw['item_class']}', widget.locale).toLowerCase();
+        final qty = raw['quantity'] is int && (raw['quantity'] as int) > 1
+            ? ' ×${raw['quantity']}'
+            : '';
+        itemLines.add(('$label$qty ($cls)', raw['amount'] as num));
+      }
+      final linesSum = itemLines.fold<num>(0, (a, l) => a + l.$2);
+      if (itemLines.isEmpty || (linesSum - itemFee).abs() > 0.005) {
+        // Capped per order: one line with the capped total.
+        itemLines
+          ..clear()
+          ..add((tr('Objets', 'Items', 'Objetos'), itemFee));
+      }
+    }
     return ExpansionTile(
       key: const ValueKey('booking-price-details'),
       tilePadding: EdgeInsets.zero,
@@ -2501,6 +2526,23 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        for (final (label, amount) in itemLines)
+          Padding(
+            key: const ValueKey('booking-price-item-supplement'),
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  Text('${tr('Supplément', 'Supplement', 'Suplemento')} : $label'),
+                  Text(_moneyText(amount)),
+                ],
+              ),
+            ),
+          ),
         for (final line in lines)
           if (breakdown[line.$1] is num && breakdown[line.$1] != 0)
             Padding(

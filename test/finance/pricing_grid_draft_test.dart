@@ -147,4 +147,26 @@ void main() {
     expect(result.rows.single.current!.customerTotalMinor, 4250);
     expect(result.rows.single.draft, isNull);
   });
+
+  // Supplement by item class (2026-10-26).
+  test('supplement by item: zeros by default, proposed classes, sent back', () {
+    final draft = PricingGridDraft.fromVersion(_version());
+    expect(draft.classFees, {'light': 0, 'medium': 0, 'heavy': 0, 'very_heavy': 0});
+    expect(draft.classFeeToDriver, isTrue);
+    expect(draft.itemClassOf['sofa'], 'heavy');
+    expect(draft.itemClassOf['materials'], 'very_heavy');
+    draft
+      ..classFees['heavy'] = 20
+      ..classOrderCap = 60
+      ..itemClassOf['sofa'] = 'medium';
+    final sent = draft.toServerConfig()['item_class_fees'] as Map;
+    expect(sent['heavy'], 20);
+    expect(sent['order_cap'], 60);
+    expect(sent['driver_keeps_all'], isTrue);
+    expect((sent['classes'] as Map)['sofa'], 'medium');
+    final again = PricingGridDraft.fromVersion({..._version(), 'item_class_fees': sent});
+    expect(again.classFees['heavy'], 20);
+    expect(again.itemClassOf['sofa'], 'medium');
+    expect(again.fingerprint, draft.fingerprint);
+  });
 }

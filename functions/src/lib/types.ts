@@ -386,6 +386,21 @@ export interface QuoteConfigDoc {
   quote_validity_minutes: number;
 }
 
+export type ItemClass = "light" | "medium" | "heavy" | "very_heavy";
+
+/** Per item, times its quantity, capped per order (0 = no cap). The class of
+ * each item type is part of the version, so prices stay versioned. */
+export interface ItemClassFeesDoc {
+  light: number;
+  medium: number;
+  heavy: number;
+  very_heavy: number;
+  order_cap: number;
+  /** true: the supplement goes entirely to the driver (no commission on it). */
+  driver_keeps_all: boolean;
+  classes: Record<string, ItemClass>;
+}
+
 export interface PricingVersionDoc {
   pricing_version: string;
   is_active: boolean;
@@ -404,6 +419,9 @@ export interface PricingVersionDoc {
   // pricing grid since 2026-10-24. Absent on older versions: the defaults of
   // lib/missionFees.ts apply (30 $ = 25 $ driver + 5 $ Movi-K).
   mission_fee_policy?: MissionFeePolicyDoc;
+  // Handling supplement by item class (owner decision 2026-10-26, Centre de
+  // commande > Combien ?). Absent on older versions: no supplement.
+  item_class_fees?: ItemClassFeesDoc;
   // Publication metadata written by updatePricingConfiguration.
   previous_pricing_version?: string | null;
   published_by_user_id?: string;

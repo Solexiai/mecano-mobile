@@ -18,6 +18,8 @@ import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { invalidArgument } from "../lib/errors";
 import { cardHoldMinor, MissionFeePolicy, missionFeePolicyFrom } from "../lib/missionFees";
 import { toMinorUnits } from "../lib/money";
+import { itemClassFeeFor } from "../lib/itemClassFees";
+import { PHOTO_CATEGORIES } from "../lib/photoIntake";
 import {
   asPricingVersion,
   PILOT_PRICING_CATEGORIES,
@@ -38,6 +40,8 @@ export interface PricingPreviewScenario {
   durationMinutes: number;
   additionalStops?: number;
   handling?: HandlingFlagsInput;
+  /** Items of the course type, for the supplement by item class. */
+  items?: { category: string; quantity: number }[];
 }
 
 export interface PreviewPricingConfigurationRequest {
@@ -87,7 +91,21 @@ function parseScenarios(raw: unknown): PricingPreviewScenario[] {
     const rawHandling = (s.handling ?? {}) as Record<string, unknown>;
     const handling: HandlingFlagsInput = { isHeavyItem: false, isBulkyItem: false };
     for (const key of HANDLING_KEYS) handling[key] = rawHandling[key] === true;
+    const rawItems = s.items ?? [];
+    if (!Array.isArray(rawItems) || rawItems.length > 20) {
+      throw invalidArgument(`Course ${index + 1} : au plus 20 objets.`);
+    }
+    const items = rawItems.map((raw) => {
+      const it = (raw ?? {}) as Record<string, unknown>;
+      const quantity = it.quantity ?? 1;
+      if (typeof it.category !== "string" || !(PHOTO_CATEGORIES as readonly string[]).includes(it.category) ||
+          !Number.isSafeInteger(quantity) || (quantity as number) < 1 || (quantity as number) > 20) {
+        throw invalidArgument(`Course ${index + 1} : objet invalide.`);
+      }
+      return { category: it.category, quantity: quantity as number };
+    });
     return {
+      items,
       id: typeof s.id === "string" && s.id.trim() ? s.id.trim().slice(0, 40) : `course_${index + 1}`,
       distanceKm,
       durationMinutes,
@@ -117,6 +135,8 @@ async function quoteAmounts(
     totalWaitingMinutes: 0,
     additionalStopsCount: scenario.additionalStops ?? 0,
     applicableSurchargeIds: [],
+    itemClassFee: itemClassFeeFor(config, scenario.items ?? []).total,
+    itemClassFeeToDriver: config.item_class_fees?.driver_keeps_all !== false,
   });
   const taxSnapshot = await resolveAndFreezeTaxSnapshot({
     jurisdiction: DEFAULT_JURISDICTION,

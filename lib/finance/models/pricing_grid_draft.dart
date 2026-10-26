@@ -16,6 +16,8 @@
 //   - les tarifs des véhicules hors pilote.
 // ---------------------------------------------------------------------------
 
+import '../../services/booking/item_types.dart';
+
 /// Véhicules tarifés ensemble par le parcours « prix avant chauffeur ».
 const List<String> kPilotPricingCategories = [
   'pickup_truck',
@@ -76,6 +78,10 @@ class PricingGridDraft {
     required this.feeTotalMinor,
     required this.feeDriverMinor,
     required this.taxRate,
+    required this.classFees,
+    required this.classOrderCap,
+    required this.classFeeToDriver,
+    required this.itemClassOf,
   });
 
   /// Version active à l'ouverture de la grille (contrôle de concurrence).
@@ -126,6 +132,13 @@ class PricingGridDraft {
   /// Affichage seulement : jamais envoyé au serveur.
   final double? taxRate;
 
+  // Supplément par objet (2026-10-26) : montant par classe, plafond par
+  // commande (0 = aucun), part du chauffeur et classe de chaque type.
+  final Map<String, double> classFees;
+  double classOrderCap;
+  bool classFeeToDriver;
+  final Map<String, String> itemClassOf;
+
   /// Construit le brouillon depuis un document `pricing_versions/{v}`.
   factory PricingGridDraft.fromVersion(
     Map<String, dynamic> version, {
@@ -163,8 +176,19 @@ class PricingGridDraft {
     final fee = _map(version['mission_fee_policy']);
     final feeTotal = _int(fee['total_minor'], kDefaultMissionFeeTotalMinor);
     final feeDriver = _int(fee['driver_minor'], kDefaultMissionFeeDriverMinor);
+    final classSection = _map(version['item_class_fees']);
+    final savedClasses = _map(classSection['classes']);
 
     return PricingGridDraft(
+      classFees: {for (final c in itemClasses) c: _num(classSection[c])},
+      classOrderCap: _num(classSection['order_cap']),
+      classFeeToDriver: classSection['driver_keeps_all'] != false,
+      itemClassOf: {
+        for (final e in proposedItemClasses.entries)
+          e.key: itemClasses.contains(savedClasses[e.key])
+              ? savedClasses[e.key] as String
+              : e.value,
+      },
       basedOnVersion: versionId ?? version['pricing_version'] as String?,
       pilotCategoryNames: pilotNames,
       otherVehicleRules: others,
@@ -254,6 +278,12 @@ class PricingGridDraft {
         'total_minor': feeTotalMinor,
         'driver_minor': feeDriverMinor,
         'platform_minor': feePlatformMinor,
+      },
+      'item_class_fees': {
+        for (final c in itemClasses) c: classFees[c] ?? 0,
+        'order_cap': classOrderCap,
+        'driver_keeps_all': classFeeToDriver,
+        'classes': Map<String, String>.from(itemClassOf),
       },
     };
   }

@@ -38,3 +38,24 @@ const itemTypes = <ItemType>[
 ];
 
 final itemTypeIds = {for (final t in itemTypes) t.id};
+
+/// Item classes for the handling supplement (2026-10-26); same ids and
+/// proposal as the server (functions/src/lib/itemClassFees.ts).
+const itemClasses = ['light', 'medium', 'heavy', 'very_heavy'];
+
+String itemClassLabel(String id, String locale) => switch (id) {
+  'light' => locale == 'en' ? 'Light' : locale == 'es' ? 'Ligero' : 'Léger',
+  'medium' => locale == 'en' ? 'Medium' : locale == 'es' ? 'Mediano' : 'Moyen',
+  'heavy' => locale == 'en' ? 'Heavy' : locale == 'es' ? 'Pesado' : 'Lourd',
+  _ => locale == 'en' ? 'Very heavy' : locale == 'es' ? 'Muy pesado' : 'Très lourd',
+};
+
+const proposedItemClasses = {
+  'sofa': 'heavy', 'armchair': 'medium', 'bed': 'heavy', 'dresser': 'medium',
+  'desk': 'medium', 'chairs': 'light', 'table': 'medium', 'tv_stand': 'medium',
+  'tv': 'light', 'fridge': 'heavy', 'freezer': 'heavy', 'washer': 'heavy',
+  'stove': 'heavy', 'tires': 'medium', 'yard_equipment': 'very_heavy',
+  'patio': 'medium', 'sport': 'light', 'boxes': 'light',
+  'materials': 'very_heavy', 'other': 'medium',
+};
+
