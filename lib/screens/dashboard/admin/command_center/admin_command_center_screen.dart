@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
+import 'service_settings_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
 const commandCenterTabs = [
@@ -26,12 +27,14 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.initialTab = 'accueil',
     this.itemTypesApi,
     this.pricingTab,
+    this.serviceApi,
   });
   final String initialTab;
   final ItemTypesApi? itemTypesApi;
 
   /// Test seam: the pricing tab reads Firestore.
   final Widget? pricingTab;
+  final ServiceSettingsApi? serviceApi;
 
   @override
   State<AdminCommandCenterScreen> createState() =>
@@ -89,11 +92,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
         _Home(onOpen: _open),
         AdminItemTypesPanel(api: widget.itemTypesApi),
         widget.pricingTab ?? const AdminFinancePricingTab(),
-        const _Coming(
-          title: 'Où et quand ?',
-          text:
-              'Zone desservie, heures de réservation, délai minimum et jours ouverts, modifiables ici. En préparation.',
-        ),
+        ServiceSettingsPanel(api: widget.serviceApi),
         const _Coming(
           title: 'Qui reçoit quoi ?',
           text:
@@ -175,7 +174,7 @@ class _Home extends StatelessWidget {
       tile('combien', '2 · COMBIEN ?', 'Prix',
           'Prix de base et suppléments. Essayer, comparer, publier une version.'),
       tile('service', '3 · OÙ ET QUAND ?', 'Service',
-          'Zone desservie, heures de réservation, délai minimum.', ready: false),
+          'Zone desservie, heures de réservation, délai minimum.'),
       tile('partage', '4 · QUI REÇOIT QUOI ?', 'Partage',
           'Commission Movi-K, part du chauffeur, frais de service.', ready: false),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',

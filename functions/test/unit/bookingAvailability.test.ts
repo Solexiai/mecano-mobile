@@ -1,4 +1,8 @@
 jest.mock('../../src/lib/bookingServer', () => ({ getBookingPolicy: jest.fn() }));
+jest.mock('../../src/lib/bookingHours', () => ({
+  ...jest.requireActual('../../src/lib/bookingHours'),
+  getSavedBookingHours: jest.fn(async () => null),
+}));
 jest.mock('../../src/lib/runtimeFlags', () => ({
   RuntimeFlagKeys: { ACCEPT_NEW_DELIVERY_REQUESTS: 'booking', PAYMENTS_ENABLED: 'payment' },
   resolveRuntimeFlag: jest.fn(),
@@ -6,11 +10,13 @@ jest.mock('../../src/lib/runtimeFlags', () => ({
 }));
 import { getPublicBookingConfiguration } from '../../src/lib/bookingAvailability';
 import { getBookingPolicy } from '../../src/lib/bookingServer';
+import { getSavedBookingHours } from '../../src/lib/bookingHours';
 import { isPilotUser, resolveRuntimeFlag } from '../../src/lib/runtimeFlags';
 
 describe('read-only booking availability', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    (getSavedBookingHours as jest.Mock).mockResolvedValue(null);
     (isPilotUser as jest.Mock).mockResolvedValue(false);
   });
   test.each([[true,true],[false,true],[true,false],[false,false]])(
@@ -21,6 +27,7 @@ describe('read-only booking availability', () => {
       }));
       expect(await getPublicBookingConfiguration()).toEqual({
         policy: { approved: true, version: 'TEST' },
+        booking_hours: { slot_hours: [9, 11, 13, 15, 17, 19], lead_minutes: 60, days_ahead: 4, open_weekdays: [1, 2, 3, 4, 5, 6, 7] },
         availability: { booking_enabled: booking, payment_enabled: payment, technical_error: false },
       });
       expect(resolveRuntimeFlag).toHaveBeenCalledTimes(2);
