@@ -14,6 +14,7 @@ import { allowedVehicles, driverJudgementSnapshot } from "../lib/quoteBeforeAssi
 
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
+import { getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { isInternalDemoCustomer, isSuperAdmin, requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
@@ -89,6 +90,10 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   ) {
     throw killSwitchRefusal();
   }
+  // Service paused by the admin (Conditions spéciales, 2026-10-26): no new
+  // booking. A retry of a booking already made returned above.
+  const paused = pauseMessage(await getSpecialConditions().catch(() => null));
+  if (!isInternalTest && paused) throw failedPrecondition(paused);
 
   const input = request.data;
 
