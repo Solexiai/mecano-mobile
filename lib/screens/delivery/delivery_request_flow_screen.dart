@@ -1,3 +1,4 @@
+import '../../services/booking/item_types.dart';
 import '../../widgets/booking_access_section.dart';
 import '../../widgets/booking_simple_steps.dart';
 import '../../services/booking/booking_contract.dart';
@@ -1024,36 +1025,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     if (notify) _changed();
   }
 
+  // Shared with the server and the admin screen (2026-10-26).
   List<(String, String, IconData)> get _catalog => [
-    (
-      'sofa',
-      tr('Divan / sofa / sectionnel', 'Sofa / sectional', 'Sofá / seccional'),
-      Icons.weekend_outlined,
-    ),
-    ('armchair', tr('Fauteuil', 'Armchair', 'Sillón'), Icons.chair_outlined),
-    (
-      'fridge',
-      tr('Réfrigérateur', 'Refrigerator', 'Refrigerador'),
-      Icons.kitchen_outlined,
-    ),
-    (
-      'washer',
-      tr('Laveuse / sécheuse', 'Washer / dryer', 'Lavadora / secadora'),
-      Icons.local_laundry_service_outlined,
-    ),
-    ('table', tr('Table', 'Table', 'Mesa'), Icons.table_restaurant_outlined),
-    ('tv', tr('Téléviseur', 'TV', 'Televisor'), Icons.tv_outlined),
-    ('boxes', tr('Boîtes', 'Boxes', 'Cajas'), Icons.inventory_2_outlined),
-    (
-      'materials',
-      tr('Matériaux', 'Materials', 'Materiales'),
-      Icons.construction_outlined,
-    ),
-    (
-      'other',
-      tr('Autre objet', 'Other item', 'Otro objeto'),
-      Icons.category_outlined,
-    ),
+    for (final type in itemTypes) (type.id, type.label(widget.locale), type.icon),
   ];
   Widget _heading(String text) => Padding(
     padding: const EdgeInsets.only(top: 20, bottom: 12),

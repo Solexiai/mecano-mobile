@@ -2,7 +2,10 @@
  * AI suggestions are untrusted; the customer must confirm the object.
  * Measurements are never inferred or fabricated by this policy.
  */
-export const PHOTO_CATEGORIES = ['sofa','armchair','fridge','washer','table','tv','boxes','materials','other'] as const;
+// Item types (owner decision 2026-10-26): which vehicles may carry each one
+// is set by the admin (lib/itemTypes.ts, adminItemTypes).
+export const PHOTO_CATEGORIES = ['sofa','armchair','bed','dresser','desk','chairs','table','tv_stand','tv',
+  'fridge','freezer','washer','stove','tires','yard_equipment','patio','sport','boxes','materials','other'] as const;
 export type PhotoCategory = typeof PHOTO_CATEGORIES[number];
 export type IntakeResult = {
   category: PhotoCategory | null;

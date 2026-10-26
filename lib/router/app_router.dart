@@ -36,6 +36,7 @@ import '../screens/dashboard/admin/drivers/admin_drivers_list_screen.dart';
 import '../screens/dashboard/admin/drivers/admin_driver_detail_screen.dart';
 import '../screens/dashboard/admin/finance/admin_finance_shell.dart';
 import '../screens/dashboard/admin/missions/admin_missions_screen.dart';
+import '../screens/dashboard/admin/admin_item_types_screen.dart';
 import '../screens/dashboard/admin/admin_pilot_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../providers/firebase_auth_provider.dart';
@@ -492,6 +493,11 @@ class AppRouter {
                   path: 'pilote',
                   builder: (c, s) =>
                       const AdminAuthGate(child: AdminPilotScreen()),
+                ),
+                GoRoute(
+                  path: 'types-objets',
+                  builder: (c, s) =>
+                      const AdminAuthGate(child: AdminItemTypesScreen()),
                 ),
                 GoRoute(
                   path: 'paiements',

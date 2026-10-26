@@ -27,6 +27,7 @@ export { acceptDelivery } from "./functions/acceptDelivery";
 export { adminAssignDelivery } from "./functions/adminAssignDelivery";
 export { completePickup } from "./functions/completePickup";
 export { getPaymentReceipt } from "./functions/getPaymentReceipt";
+export { adminItemTypes } from "./functions/adminItemTypes";
 export { completeDelivery } from "./functions/completeDelivery";
 export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";
 export {
