@@ -95,28 +95,30 @@ abstract final class HomeCopy {
       'es': 'De la solicitud a la entrega',
     },
     'step1': {
-      'fr': 'Décrivez l’objet et le trajet',
-      'en': 'Describe the item and route',
-      'es': 'Describe el objeto y el trayecto',
+      'fr': 'Prenez une photo',
+      'en': 'Snap a photo',
+      'es': 'Toma una foto',
     },
     'step1_body': {
       'fr':
-          'Précisez les objets, leurs mesures, les adresses, les accès et la date souhaitée.',
+          'Photographiez vos objets, on les reconnaît pour vous. Ajoutez les adresses et la date.',
       'en':
-          'Provide items, measurements, addresses, access details and your preferred date.',
+          'Photograph your items and we recognize them for you. Add the addresses and the date.',
       'es':
-          'Indica los objetos, las medidas, las direcciones, los accesos y la fecha deseada.',
+          'Fotografía tus objetos y los reconocemos por ti. Añade las direcciones y la fecha.',
     },
     'step2': {
-      'fr': 'Consultez votre prix',
-      'en': 'Review your price',
-      'es': 'Consulta el precio',
+      'fr': 'Obtenez votre prix',
+      'en': 'Get your price',
+      'es': 'Obtén tu precio',
     },
     'step2_body': {
       'fr':
-          'Vérifiez le prix et les informations avant de confirmer la demande.',
-      'en': 'Check the price and details before confirming your request.',
-      'es': 'Revisa el precio y los datos antes de confirmar la solicitud.',
+          'Voyez le prix exact et confirmez. Votre carte n’est pas débitée à ce moment-là.',
+      'en':
+          'See the exact price and confirm. Your card is not charged at that point.',
+      'es':
+          'Ve el precio exacto y confirma. No se cobra tu tarjeta en ese momento.',
     },
     'step3': {
       'fr': 'Un chauffeur accepte',
@@ -124,9 +126,12 @@ abstract final class HomeCopy {
       'es': 'Un conductor acepta',
     },
     'step3_body': {
-      'fr': 'L’attribution dépend d’un chauffeur admissible et disponible.',
-      'en': 'Assignment depends on an eligible, available driver.',
-      'es': 'La asignación depende de un conductor apto y disponible.',
+      'fr':
+          'Un chauffeur de la région voit vos photos, confirme que tout entre dans son véhicule et accepte.',
+      'en':
+          'A local driver sees your photos, confirms everything fits in their vehicle and accepts.',
+      'es':
+          'Un conductor de la zona ve tus fotos, confirma que todo cabe en su vehículo y acepta.',
     },
     'step4': {
       'fr': 'Suivez votre livraison',
@@ -135,10 +140,11 @@ abstract final class HomeCopy {
     },
     'step4_body': {
       'fr':
-          'Consultez son état dans votre espace, puis la preuve de livraison.',
-      'en': 'Check its status in your account, then view the delivery proof.',
+          'Suivez-la dans votre espace, avec une photo au ramassage et à la livraison. Le paiement se fait à la livraison.',
+      'en':
+          'Follow it in your account, with a photo at pickup and at delivery. Payment happens at delivery.',
       'es':
-          'Consulta el estado en tu cuenta y después el comprobante de entrega.',
+          'Síguela en tu cuenta, con una foto al recoger y al entregar. El pago se hace en la entrega.',
     },
     'details': {
       'fr': 'Comprendre les étapes',
