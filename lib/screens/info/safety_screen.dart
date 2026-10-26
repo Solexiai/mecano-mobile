@@ -21,32 +21,67 @@ class SafetyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
 
+    // Only what the product really does today (checked 2026-10-26):
+    // driver approval, pickup/delivery photos (#75), card on Stripe's hosted
+    // page, driver position readable by the customer only during their
+    // active mission (firestore.rules, driver_locations). No insurance
+    // coverage and no claim deadline are promised.
     final sections = <(IconData, String, String, Color)>[
       (
         Icons.verified_user_outlined,
+        tr('Chauffeurs vérifiés', 'Verified drivers', 'Conductores verificados'),
         tr(
-          'Vérification des chauffeurs',
-          'Driver review',
-          'Verificación de conductores',
+          'Chaque chauffeur fournit son permis de conduire, son assurance et les informations de son véhicule. L’équipe Movi‑K approuve son dossier avant qu’il puisse recevoir des demandes.',
+          'Every driver provides their driver’s licence, insurance and vehicle details. The Movi‑K team approves their file before they can receive requests.',
+          'Cada conductor presenta su licencia de conducir, su seguro y los datos de su vehículo. El equipo de Movi‑K aprueba su expediente antes de que pueda recibir solicitudes.',
+        ),
+        AppColors.primary,
+      ),
+      (
+        Icons.photo_camera_outlined,
+        tr(
+          'Photos au ramassage et à la livraison',
+          'Photos at pickup and delivery',
+          'Fotos al recoger y al entregar',
         ),
         tr(
-          'Chaque dossier chauffeur comprend un profil, un véhicule et les documents requis, notamment le permis et l’assurance. Le dossier doit être approuvé avant l’activation.',
-          'Each driver file includes a profile, vehicle and required documents, including licence and insurance. The file must be approved before activation.',
-          'Cada expediente de conductor incluye perfil, vehículo y los documentos requeridos, incluida licencia y seguro. Debe aprobarse antes de la activación.',
+          'Le chauffeur prend une photo de vos objets au ramassage, puis à la livraison. Vous les voyez dans votre espace : elles servent de preuve en cas de problème.',
+          'The driver takes a photo of your items at pickup, then at delivery. You see them in your account: they serve as proof if something goes wrong.',
+          'El conductor toma una foto de tus objetos al recogerlos y al entregarlos. Las ves en tu cuenta: sirven de prueba si hay un problema.',
+        ),
+        AppColors.primary,
+      ),
+      (
+        Icons.lock_outline,
+        tr('Paiement protégé', 'Protected payment', 'Pago protegido'),
+        tr(
+          'Votre carte est enregistrée sur la page sécurisée de Stripe : Movi‑K ne voit jamais votre numéro de carte. Le montant n’est débité qu’à la livraison.',
+          'Your card is saved on Stripe’s secure page: Movi‑K never sees your card number. The amount is only charged at delivery.',
+          'Tu tarjeta se guarda en la página segura de Stripe: Movi‑K nunca ve tu número de tarjeta. El importe solo se cobra en la entrega.',
+        ),
+        AppColors.primary,
+      ),
+      (
+        Icons.gps_fixed,
+        tr(
+          'Position partagée pendant la livraison',
+          'Location shared during the delivery',
+          'Ubicación compartida durante la entrega',
+        ),
+        tr(
+          'Vous voyez la position de votre chauffeur seulement pendant votre livraison en cours. Une fois la livraison terminée, elle n’est plus visible.',
+          'You see your driver’s location only during your delivery in progress. Once the delivery is completed, it is no longer visible.',
+          'Ves la ubicación de tu conductor solo durante tu entrega en curso. Una vez terminada la entrega, deja de ser visible.',
         ),
         AppColors.primary,
       ),
       (
         Icons.person_outline,
+        tr('Votre part', 'Your part', 'Tu parte'),
         tr(
-          'Responsabilités du client',
-          'Customer responsibilities',
-          'Responsabilidades del cliente',
-        ),
-        tr(
-          'Décrivez l’objet et les accès avec exactitude, indiquez les besoins de manutention et assurez un accès sécuritaire aux lieux de départ et d’arrivée.',
-          'Describe the item and access conditions accurately, specify handling needs and ensure safe access at pickup and delivery.',
-          'Describe con precisión el objeto y los accesos, indica las necesidades de manipulación y garantiza un acceso seguro en recogida y entrega.',
+          'Prenez des photos fidèles de vos objets, indiquez les escaliers et les accès difficiles, et assurez un passage sécuritaire (entrée déneigée l’hiver). Soyez présent, ou quelqu’un pour vous, au ramassage et à la livraison.',
+          'Take accurate photos of your items, mention stairs and difficult access, and make sure the way is safe (cleared of snow in winter). Be there, or have someone there for you, at pickup and delivery.',
+          'Toma fotos fieles de tus objetos, indica las escaleras y los accesos difíciles, y asegura un paso seguro (entrada sin nieve en invierno). Está presente, o alguien por ti, al recoger y al entregar.',
         ),
         AppColors.primary,
       ),
@@ -61,34 +96,14 @@ class SafetyScreen extends StatelessWidget {
         AppColors.error,
       ),
       (
-        Icons.event_busy_outlined,
-        tr('Annulation', 'Cancellation', 'Cancelación'),
+        Icons.report_outlined,
+        tr('En cas de problème', 'If something goes wrong', 'Si hay un problema'),
         tr(
-          'Les délais, frais et conditions commerciales d’annulation ne sont pas encore approuvés pour publication. Aucune fenêtre gratuite ni aucun frais fixe n’est donc annoncé à ce stade.',
-          'Commercial cancellation windows, fees and conditions are not yet approved for publication. No free-cancellation window or fixed fee is therefore advertised at this stage.',
-          'Los plazos, cargos y condiciones comerciales de cancelación aún no están aprobados para publicación. Por eso no se anuncia ningún plazo gratuito ni cargo fijo.',
+          'Signalez-le rapidement depuis la page Contact, avec le numéro de votre livraison et vos photos. Nous examinons chaque signalement.',
+          'Report it quickly from the Contact page, with your delivery number and your photos. We review every report.',
+          'Infórmalo rápidamente desde la página de Contacto, con el número de tu entrega y tus fotos. Revisamos cada reporte.',
         ),
         AppColors.warning,
-      ),
-      (
-        Icons.photo_camera_outlined,
-        tr('Dommages et preuve', 'Damage and evidence', 'Daños y pruebas'),
-        tr(
-          'En cas de problème, conservez les photos et renseignements utiles liés à la mission. Aucun délai commercial de réclamation n’est publié tant que la politique finale n’est pas approuvée.',
-          'If a problem occurs, keep useful photos and mission details. No commercial claim deadline is published until the final policy is approved.',
-          'Si ocurre un problema, conserva fotos y datos útiles de la misión. No se publica ningún plazo comercial de reclamación hasta aprobar la política final.',
-        ),
-        AppColors.warning,
-      ),
-      (
-        Icons.gps_fixed,
-        tr('Localisation', 'Location', 'Ubicación'),
-        tr(
-          'La position du chauffeur peut être utilisée pour le suivi d’une mission active. La validation GPS sur appareils réels et les textes de consentement font encore partie des prérequis de lancement.',
-          'Driver location may be used to track an active mission. Real-device GPS validation and consent disclosures remain launch prerequisites.',
-          'La ubicación del conductor puede utilizarse para seguir una misión activa. La validación GPS en dispositivos reales y los textos de consentimiento siguen siendo requisitos previos al lanzamiento.',
-        ),
-        AppColors.primary,
       ),
       (
         Icons.local_hospital_outlined,
@@ -113,20 +128,29 @@ class SafetyScreen extends StatelessWidget {
               SectionTitle(
                 title: tr('Sécurité', 'Safety', 'Seguridad'),
                 subtitle: tr(
-                  'Ce que la plateforme vérifie aujourd’hui et ce qui reste à finaliser avant l’ouverture publique.',
-                  'What the platform verifies today and what still needs to be finalized before public launch.',
-                  'Lo que la plataforma verifica hoy y lo que falta finalizar antes de la apertura pública.',
+                  'Comment Movi‑K protège vos objets, votre paiement et vos données.',
+                  'How Movi‑K protects your items, your payment and your data.',
+                  'Cómo Movi‑K protege tus objetos, tu pago y tus datos.',
                 ),
               ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 28),
+              ...sections.map(
+                (section) => _SafetyCard(
+                  icon: section.$1,
+                  title: section.$2,
+                  description: section.$3,
+                  color: section.$4,
+                ),
+              ),
+              const SizedBox(height: 14),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: .08),
+                  color: AppColors.primary.withValues(alpha: .08),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColors.warning.withValues(alpha: .25),
+                    color: AppColors.primary.withValues(alpha: .25),
                   ),
                 ),
                 child: Column(
@@ -137,15 +161,15 @@ class SafetyScreen extends StatelessWidget {
                       children: [
                         const Icon(
                           Icons.support_agent_outlined,
-                          color: AppColors.warning,
+                          color: AppColors.primary,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             tr(
-                              'Le canal officiel de soutien et de signalement est encore en préparation. Cette page ne simule aucun envoi. Consultez la page Contact pour l’état actuel.',
-                              'The official support and reporting channel is still being prepared. This page does not simulate a submission. See the Contact page for the current status.',
-                              'El canal oficial de soporte y reportes sigue en preparación. Esta página no simula ningún envío. Consulta la página de Contacto para conocer el estado actual.',
+                              'Une question sur la sécurité ou une livraison ? Écrivez-nous depuis la page Contact.',
+                              'A question about safety or a delivery? Write to us from the Contact page.',
+                              '¿Una pregunta sobre seguridad o una entrega? Escríbenos desde la página de Contacto.',
                             ),
                             style: const TextStyle(
                               color: AppColors.textSecondary,
@@ -164,15 +188,6 @@ class SafetyScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              ...sections.map(
-                (section) => _SafetyCard(
-                  icon: section.$1,
-                  title: section.$2,
-                  description: section.$3,
-                  color: section.$4,
                 ),
               ),
             ],
