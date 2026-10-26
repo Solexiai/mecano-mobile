@@ -26,6 +26,7 @@ export { createDeliveryRequest } from "./functions/createDeliveryRequest";
 export { acceptDelivery } from "./functions/acceptDelivery";
 export { adminAssignDelivery } from "./functions/adminAssignDelivery";
 export { completePickup } from "./functions/completePickup";
+export { getPaymentReceipt } from "./functions/getPaymentReceipt";
 export { completeDelivery } from "./functions/completeDelivery";
 export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";
 export {

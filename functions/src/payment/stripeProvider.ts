@@ -175,6 +175,16 @@ export class StripeProvider extends PaymentProvider {
     }
   }
 
+  // ---- Reçu (lecture seule, 2026-10-26) ----
+  // Charge de destination : elle vit sur le compte plateforme, d'où la
+  // lecture sans `stripeAccount`. Stripe régénère le lien à chaque lecture.
+  async getChargeReceiptUrl(providerChargeId: string): Promise<string | null> {
+    const charge = await this.stripe.charges.retrieve(providerChargeId);
+    return typeof charge.receipt_url === "string" && charge.receipt_url.startsWith("https://")
+      ? charge.receipt_url
+      : null;
+  }
+
   // ---- 5. capturePayment ----
   async capturePayment(params: CapturePaymentParams): Promise<CapturePaymentResult> {
     try {
