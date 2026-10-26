@@ -150,7 +150,10 @@ class _FakeMissionRepository implements MissionRepository {
   Stream<DeliveryMission?> watchMission(String missionId) => _controller.stream;
 
   @override
-  Future<void> markPickupCompleted(String missionId) async {
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) async {
     advanceTo(MissionStatus.pickedUp);
   }
 
@@ -236,6 +239,7 @@ DeliveryMission _copyWithStatus(DeliveryMission m, MissionStatus status) {
     cancelledAt: m.cancelledAt,
     cancellationReason: m.cancellationReason,
     proofOfDeliveryUrl: m.proofOfDeliveryUrl,
+    proofOfPickupUrl: m.proofOfPickupUrl,
     pickupAddress: m.pickupAddress,
     dropoffAddress: m.dropoffAddress,
     distanceKm: m.distanceKm,

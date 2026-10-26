@@ -172,7 +172,7 @@ async function runToCapturedCompletion(): Promise<{
       targetStatus: MissionStatuses.ARRIVED_AT_PICKUP,
     })
   );
-  await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, undefined, { missionId }));
+  await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, undefined, { missionId, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
   await updateMissionTrackingStatus.run(
     authedRequest<UpdateMissionTrackingStatusRequest>(DRIVER_ID, undefined, {
       missionId,

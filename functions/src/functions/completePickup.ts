@@ -1,5 +1,11 @@
 // -----------------------------------------------------------------------------
 // completePickup — Cloud Function callable (driver assigné uniquement).
+//
+// PHOTO AU RAMASSAGE (décision du propriétaire, 2026-10-26) : obligatoire,
+// comme à la livraison. Le chauffeur photographie l'article chargé
+// (Storage `delivery_proofs/{missionId}/pickup_proof_*.jpg`) ; l'URL est
+// dénormalisée sur la mission (`proof_of_pickup_url`) pour que le client la
+// voie dans le détail, et reste tracée dans `tracking_events`.
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
@@ -11,13 +17,17 @@ import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy"
 
 export interface CompletePickupRequest {
   missionId: string;
-  proofOfPickupUrl?: string;
+  proofOfPickupUrl: string;
 }
 
 export const completePickup = onCall<CompletePickupRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   const { missionId, proofOfPickupUrl } = request.data;
   if (!missionId) throw invalidArgument("missionId est requis.");
+  if (!proofOfPickupUrl || typeof proofOfPickupUrl !== "string" || !proofOfPickupUrl.trim() ||
+    proofOfPickupUrl.length > 2048) {
+    throw invalidArgument("proofOfPickupUrl est requis : photo de l'article chargé obligatoire.");
+  }
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
@@ -46,7 +56,11 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
       missionRef.collection("stops").where("sequence", "==", 0).limit(1)
     );
 
-    tx.update(missionRef, { status: MissionStatuses.PICKED_UP, picked_up_at: now });
+    tx.update(missionRef, {
+      status: MissionStatuses.PICKED_UP,
+      picked_up_at: now,
+      proof_of_pickup_url: proofOfPickupUrl,
+    });
 
     if (!stopsSnap.empty) {
       tx.update(stopsSnap.docs[0].ref, { completed_at: now });
@@ -57,7 +71,7 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
       event_type: "picked_up",
       actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: proofOfPickupUrl ? { proof_of_pickup_url: proofOfPickupUrl } : {},
+      metadata: { proof_of_pickup_url: proofOfPickupUrl },
     });
   });
 

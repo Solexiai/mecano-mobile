@@ -215,7 +215,13 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
   /// toute erreur (annulation, caméra indisponible, échec réseau, échec
   /// Cloud Function) laisse la mission dans son statut courant et permet de
   /// réessayer depuis le début.
-  Future<void> _capturePhotoAndCompleteDelivery(DeliveryMission mission) async {
+  ///
+  /// Même parcours au ramassage (décision du propriétaire, 2026-10-26) :
+  /// photo de l'article chargé obligatoire, puis `markPickupCompleted`.
+  Future<void> _capturePhotoAndComplete(
+    DeliveryMission mission, {
+    required bool pickup,
+  }) async {
     if (_actionInProgress || _uploadingProof) return;
 
     // 1. Capture caméra.
@@ -245,6 +251,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       builder: (dialogContext) => _ProofPreviewDialog(
         imageBytes: bytes,
         t: context.read<LocaleProvider>().t,
+        pickup: pickup,
       ),
     );
     if (confirmed != true || !mounted) return;
@@ -260,7 +267,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       // dossier (`delivery_proofs/{missionId}/`) est fixe et validée par
       // storage.rules (seul le chauffeur assigné peut y écrire).
       final fileName =
-          'delivery_proof_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          '${pickup ? 'pickup' : 'delivery'}_proof_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final url = await BackendLocator.proofUploadRepository
           .uploadDeliveryProof(
             missionId: mission.id,
@@ -270,7 +277,11 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
           );
 
       final repo = BackendLocator.missionRepository;
-      await repo.markDeliveryCompleted(mission.id, proofOfDeliveryUrl: url);
+      if (pickup) {
+        await repo.markPickupCompleted(mission.id, proofOfPickupUrl: url);
+      } else {
+        await repo.markDeliveryCompleted(mission.id, proofOfDeliveryUrl: url);
+      }
     } on CloudFunctionException {
       if (!mounted) return;
       setState(() => _actionErrorKey = 'driver_active_mission_cf_error');
@@ -458,7 +469,7 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
             ),
           ),
           onConfirmPickup: () =>
-              _runAction(() => repo.markPickupCompleted(mission.id)),
+              _capturePhotoAndComplete(mission, pickup: true),
           onStartTransit: () => _runAction(
             () => repo.updateTrackingStatus(
               missionId: mission.id,
@@ -471,7 +482,8 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
               targetStatus: MissionStatus.arrivedAtDropoff,
             ),
           ),
-          onCompleteDelivery: () => _capturePhotoAndCompleteDelivery(mission),
+          onCompleteDelivery: () =>
+              _capturePhotoAndComplete(mission, pickup: false),
         );
       },
     );
@@ -776,7 +788,33 @@ class _MissionCard extends StatelessWidget {
           button('driver_active_mission_arrived_at_pickup', onArrivedAtPickup),
         ];
       case MissionStatus.arrivedAtPickup:
-        return [button('driver_active_mission_mark_pickup', onConfirmPickup)];
+        if (uploadingProof) {
+          return [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(t('driver_active_mission_uploading_pickup_proof')),
+                ],
+              ),
+            ),
+          ];
+        }
+        return [
+          button(
+            'driver_active_mission_mark_pickup',
+            onConfirmPickup,
+            disabled: uploadingProof,
+          ),
+        ];
       case MissionStatus.pickedUp:
         return [button('driver_active_mission_start_transit', onStartTransit)];
       case MissionStatus.inTransit:
@@ -827,12 +865,25 @@ class _ProofPreviewDialog extends StatelessWidget {
   final Uint8List imageBytes;
   final String Function(String) t;
 
-  const _ProofPreviewDialog({required this.imageBytes, required this.t});
+  /// Photo de l'article chargé (ramassage) plutôt que de la livraison.
+  final bool pickup;
+
+  const _ProofPreviewDialog({
+    required this.imageBytes,
+    required this.t,
+    this.pickup = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(t('driver_active_mission_proof_preview_title')),
+      title: Text(
+        t(
+          pickup
+              ? 'driver_active_mission_pickup_preview_title'
+              : 'driver_active_mission_proof_preview_title',
+        ),
+      ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 320),
         child: ClipRRect(
@@ -847,7 +898,13 @@ class _ProofPreviewDialog extends StatelessWidget {
         ),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(true),
-          child: Text(t('driver_active_mission_confirm_proof')),
+          child: Text(
+            t(
+              pickup
+                  ? 'driver_active_mission_confirm_pickup_proof'
+                  : 'driver_active_mission_confirm_proof',
+            ),
+          ),
         ),
       ],
     );

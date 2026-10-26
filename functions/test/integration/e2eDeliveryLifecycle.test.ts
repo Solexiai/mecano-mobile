@@ -405,7 +405,7 @@ describe("E2E — cycle de vie complet d'une livraison (client -> chauffeur -> c
       );
 
       // ---- 6. Confirmation du ramassage (fonction dédiée, pas updateMissionTrackingStatus) ----
-      await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, { missionId: id }));
+      await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, { missionId: id, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.PICKED_UP);
 
@@ -594,7 +594,7 @@ describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois as
   it("depuis 'assigned', tenter directement completePickup() PUIS sauter en_transit->arrived_at_dropoff sans passer par in_transit échoue", async () => {
     missionId = await runHappyPathUntilAssigned();
 
-    await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, { missionId: missionId! }));
+    await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, { missionId: missionId!, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
 
     // Tentative de saut : picked_up -> arrived_at_dropoff directement (sans in_transit).
     await expect(

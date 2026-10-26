@@ -42,6 +42,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../helpers/gps_offline_transport.dart';
+import '../helpers/fake_camera.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:geolocator_platform_interface/geolocator_platform_interface.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -138,6 +140,7 @@ class _FakeMissionRepository implements MissionRepository {
   final _controller = StreamController<DeliveryMission?>();
 
   int markPickupCompletedCallCount = 0;
+  String? lastPickupProofUrl;
   int updateTrackingStatusCallCount = 0;
   MissionStatus? lastTargetStatus;
 
@@ -167,8 +170,12 @@ class _FakeMissionRepository implements MissionRepository {
   Stream<DeliveryMission?> watchMission(String missionId) => _controller.stream;
 
   @override
-  Future<void> markPickupCompleted(String missionId) async {
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) async {
     markPickupCompletedCallCount++;
+    lastPickupProofUrl = proofOfPickupUrl;
     advanceTo(MissionStatus.pickedUp);
   }
 
@@ -259,6 +266,7 @@ DeliveryMission _copyWithStatus(DeliveryMission m, MissionStatus status) {
     cancelledAt: m.cancelledAt,
     cancellationReason: m.cancellationReason,
     proofOfDeliveryUrl: m.proofOfDeliveryUrl,
+    proofOfPickupUrl: m.proofOfPickupUrl,
     pickupAddress: m.pickupAddress,
     dropoffAddress: m.dropoffAddress,
     distanceKm: m.distanceKm,
@@ -347,6 +355,7 @@ void _registerTests() {
   tearDown(() {
     BackendLocator.missionRepositoryOverride = null;
     BackendLocator.locationRepositoryOverride = null;
+    BackendLocator.proofUploadRepositoryOverride = null;
   });
 
   String btn(String key) => AppStrings.t(key, 'fr');
@@ -462,9 +471,27 @@ void _registerTests() {
       );
       expect(markPickupButton, findsOneWidget);
 
+      // 2026-10-26 : photo de l'article chargé obligatoire avant
+      // `markPickupCompleted()` (caméra et téléversement simulés).
+      final camera = FakeCamera();
+      ImagePickerPlatform.instance = camera;
+      final uploads = FakeProofUploads();
+      BackendLocator.proofUploadRepositoryOverride = uploads;
+
       await tester.ensureVisible(markPickupButton);
       await tester.tap(markPickupButton);
       await tester.pumpAndSettle();
+      expect(camera.calls, 1);
+      expect(
+        find.text(btn('driver_active_mission_pickup_preview_title')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.text(btn('driver_active_mission_confirm_pickup_proof')),
+      );
+      await tester.pumpAndSettle();
+      expect(uploads.fileNames.single, startsWith('pickup_proof_'));
+      expect(fakeRepo.lastPickupProofUrl, contains('pickup_proof_'));
 
       // RÈGLE CRITIQUE : la transition pickedUp passe par
       // `markPickupCompleted()` (impact financier / Cloud Function
@@ -479,6 +506,36 @@ void _registerTests() {
         ),
         findsOneWidget,
       );
+    },
+  );
+
+  offlineWidgetTest(
+    'arrivedAtPickup : sans photo (caméra annulée), le ramassage n\'est jamais confirmé',
+    (tester) async {
+      final fakeRepo = _FakeMissionRepository(
+        _buildMission(status: MissionStatus.arrivedAtPickup),
+      );
+      BackendLocator.missionRepositoryOverride = fakeRepo;
+      addTearDown(fakeRepo.dispose);
+      final camera = FakeCamera()..cancel = true;
+      ImagePickerPlatform.instance = camera;
+      final uploads = FakeProofUploads();
+      BackendLocator.proofUploadRepositoryOverride = uploads;
+
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      final markPickupButton = find.widgetWithText(
+        ElevatedButton,
+        btn('driver_active_mission_mark_pickup'),
+      );
+      await tester.ensureVisible(markPickupButton);
+      await tester.tap(markPickupButton);
+      await tester.pumpAndSettle();
+
+      expect(camera.calls, 1);
+      expect(uploads.fileNames, isEmpty);
+      expect(fakeRepo.markPickupCompletedCallCount, 0);
+      expect(markPickupButton, findsOneWidget);
     },
   );
 

@@ -240,7 +240,10 @@ class _FakeMissionRepository implements MissionRepository {
   }) async {}
 
   @override
-  Future<void> markPickupCompleted(String missionId) async {}
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) async {}
 
   @override
   Future<void> updateTrackingStatus({

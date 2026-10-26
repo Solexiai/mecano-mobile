@@ -83,7 +83,7 @@ describe("GAP-S-04 suspension policy for assigned missions", () => {
     expect(profile.status).toBe("suspended");
     expect(profile.suspension_mode).toBe("ordinary");
     expect(profile.online_status).toBe("offline");
-    await completePickup.run(request(DRIVER, { missionId: MISSION }));
+    await completePickup.run(request(DRIVER, { missionId: MISSION, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
     expect((await missionRef.get()).data()?.status).toBe(MissionStatuses.PICKED_UP);
     expect((await profileRef.get()).data()?.online_status).toBe("offline");
   });
@@ -105,7 +105,7 @@ describe("GAP-S-04 suspension policy for assigned missions", () => {
   it("urgent suspension blocks pickup without mission or tracking side effects", async () => {
     await seed();
     await suspend("urgent");
-    await expect(completePickup.run(request(DRIVER, { missionId: MISSION })))
+    await expect(completePickup.run(request(DRIVER, { missionId: MISSION, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" })))
       .rejects.toMatchObject({ code: "permission-denied" });
     expect((await missionRef.get()).data()?.status).toBe(MissionStatuses.ASSIGNED);
     expect((await missionRef.collection("tracking_events").get()).empty).toBe(true);
@@ -153,7 +153,7 @@ describe("GAP-S-04 suspension policy for assigned missions", () => {
   it("legacy suspended profile without a mode is urgent by default", async () => {
     await seed();
     await profileRef.update({ status: "suspended", online_status: "offline" });
-    await expect(completePickup.run(request(DRIVER, { missionId: MISSION })))
+    await expect(completePickup.run(request(DRIVER, { missionId: MISSION, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" })))
       .rejects.toMatchObject({ code: "permission-denied" });
     await expect(recordTrackingPoint.run(request(DRIVER, {
       latitude: 45.5, longitude: -73.5,
@@ -165,7 +165,7 @@ describe("GAP-S-04 suspension policy for assigned missions", () => {
     await suspend("ordinary");
     await suspend("urgent");
     expect((await profileRef.get()).data()?.suspension_mode).toBe("urgent");
-    await expect(completePickup.run(request(DRIVER, { missionId: MISSION })))
+    await expect(completePickup.run(request(DRIVER, { missionId: MISSION, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" })))
       .rejects.toMatchObject({ code: "permission-denied" });
     await expect(suspendDriver.run(request(ADMIN, {
       driverId: DRIVER, reason: "No second urgent suspension.", suspensionMode: "urgent",
@@ -179,7 +179,7 @@ describe("GAP-S-04 suspension policy for assigned missions", () => {
     const profile = (await profileRef.get()).data()!;
     expect(profile.status).toBe("approved");
     expect(profile.suspension_mode).toBeNull();
-    await completePickup.run(request(DRIVER, { missionId: MISSION }));
+    await completePickup.run(request(DRIVER, { missionId: MISSION, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
     expect((await missionRef.get()).data()?.status).toBe(MissionStatuses.PICKED_UP);
   });
 

@@ -396,7 +396,7 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
 
       // ---- 10. completePickup -> picked_up ----
       await completePickup.run(
-        buildRequest<CompletePickupRequest>(DRIVER_ID, { missionId: id }, ["driver"])
+        buildRequest<CompletePickupRequest>(DRIVER_ID, { missionId: id, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }, ["driver"])
       );
       missionSnap = await db.collection("delivery_requests").doc(id).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.PICKED_UP);
