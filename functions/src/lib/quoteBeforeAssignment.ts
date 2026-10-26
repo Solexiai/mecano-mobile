@@ -2,6 +2,7 @@
 // This context is NOT a booking/capacity certificate. Historical snapshots are unchanged.
 import { HttpsError } from 'firebase-functions/v2/https';
 import { BookingLoad, BookingSnapshot, DRIVER_JUDGEMENT, normalizeLoad, requestedTimeReason } from './booking';
+import { db } from './admin';
 import { validateBookingPhotos } from './bookingPhotoValidation';
 import { invalidArgument } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
@@ -14,6 +15,9 @@ export interface PreAssignmentQuote {
   load: BookingLoad;
   vehicle_assignment: 'pending';
   tariff_categories: string[];
+  /** Vehicles allowed for this load by the admin grid "Types d'objets et
+   * véhicules" (2026-10-26). Absent on older quotes: all tariff categories. */
+  vehicle_categories?: string[];
   /** Calculation basis only: never displayed as a recommended or verified vehicle. */
   tariff_rule_category: string;
 }
@@ -90,6 +94,31 @@ export function driverJudgementSnapshot(pre: PreAssignmentQuote): BookingSnapsho
     category: pre.tariff_rule_category,
     capacity_version: DRIVER_JUDGEMENT,
     vehicle_assessment: DRIVER_JUDGEMENT,
-    eligible_categories: [...pre.tariff_categories],
+    eligible_categories: [...(pre.vehicle_categories ?? pre.tariff_categories)],
   };
 }
+
+/** Vehicles allowed for every item of the load, from the admin grid
+ * (system_config/booking_capacity.photo_intake.category_vehicle_categories,
+ * owner decision 2026-10-26). A type the admin never saved keeps every pilot
+ * vehicle, as before; a type saved with no vehicle is not offered. The price
+ * does not depend on it: only which drivers see the request. */
+export async function vehicleCategoriesForLoad(load: BookingLoad): Promise<string[]> {
+  const config = (await db.doc('system_config/booking_capacity').get()).data();
+  const mapping = config?.photo_intake?.category_vehicle_categories;
+  return allowedVehicles(load, mapping && typeof mapping === 'object' ? mapping as Record<string, unknown> : {});
+}
+
+export function allowedVehicles(load: BookingLoad, mapping: Record<string, unknown>): string[] {
+  let allowed = [...PILOT_CATEGORIES];
+  for (const item of load.items) {
+    const listed = mapping[item.category];
+    if (!Array.isArray(listed)) continue;
+    const normalized = listed.filter((v): v is string => typeof v === 'string').map(normalizeVehicleCategory);
+    if (!normalized.some((v) => PILOT_CATEGORIES.includes(v))) refuse('photo_category_unconfigured');
+    allowed = allowed.filter((v) => normalized.includes(v));
+  }
+  if (!allowed.length) refuse('no_eligible_photo_vehicle');
+  return allowed;
+}
+
