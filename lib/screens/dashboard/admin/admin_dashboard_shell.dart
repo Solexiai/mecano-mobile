@@ -270,14 +270,12 @@ class _DashboardBody extends StatelessWidget {
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
               _ActionCard(
-                icon: Icons.checklist_rtl,
-                title: isFrench
-                    ? 'Types d’objets et véhicules'
-                    : 'Item types and vehicles',
+                icon: Icons.tune,
+                title: isFrench ? 'Centre de commande' : 'Command center',
                 subtitle: isFrench
-                    ? 'Cocher quels véhicules prennent chaque type d’objet.'
-                    : 'Check which vehicles carry each item type.',
-                onTap: () => context.go('/$locale/admin/types-objets'),
+                    ? 'Objets, prix, zone et heures, partage, conditions spéciales.'
+                    : 'Items, prices, area and hours, sharing, special conditions.',
+                onTap: () => context.go('/$locale/admin/centre-commande'),
               ),
               _ActionCard(
                 icon: Icons.science_outlined,
