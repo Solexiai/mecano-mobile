@@ -13,13 +13,17 @@ Finder heroImage() => find.byWidgetPredicate(
       widget.image is AssetImage &&
       (widget.image as AssetImage).assetName.startsWith('assets/home/hero_'),
 );
-String assetFor(String locale) => locale == 'fr'
-    ? 'assets/home/hero_clean.png'
-    : 'assets/home/hero_neutral.png';
+// One photo for every language; the slogan is real text drawn over it.
+String assetFor(String locale) => 'assets/home/hero_neutral.png';
 String labelFor(String locale) => {
   'fr': 'Camionnette Movi-K et chauffeur préparant une livraison',
   'en': 'Movi-K van and driver preparing a delivery',
   'es': 'Furgoneta Movi-K y conductor preparando una entrega',
+}[locale]!;
+String signFor(String locale) => {
+  'fr': 'Trop gros pour votre auto ? Pas pour nous !',
+  'en': 'Too big for your car? Not for us!',
+  'es': '¿Demasiado grande para tu auto? ¡No para nosotros!',
 }[locale]!;
 
 void main() {
@@ -83,6 +87,16 @@ void main() {
             assetFor(locale),
           );
           expect(find.bySemanticsLabel(labelFor(locale)), findsWidgets);
+          // The handwritten sign sits inside the photo, in its top-right part.
+          final sign = find.byKey(const Key('home-hero-sign'));
+          expect(sign, findsOneWidget);
+          expect(find.bySemanticsLabel(signFor(locale)), findsOneWidget);
+          final photo = tester.getRect(heroImage());
+          final signRect = tester.getRect(sign);
+          expect(photo.inflate(1).contains(signRect.topLeft), isTrue);
+          expect(photo.inflate(1).contains(signRect.bottomRight), isTrue);
+          expect(signRect.center.dx, greaterThan(photo.center.dx));
+          expect(signRect.center.dy, lessThan(photo.center.dy));
           await tester.ensureVisible(heroImage());
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);
@@ -123,6 +137,12 @@ void main() {
       expect(
         (tester.widget<Image>(heroImage()).image as AssetImage).assetName,
         assetFor(pair.$1),
+      );
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is Text && w.data?.replaceAll('\n', ' ') == signFor(pair.$1),
+        ),
+        findsOneWidget,
       );
       expect(tester.takeException(), isNull);
     }

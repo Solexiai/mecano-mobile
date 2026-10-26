@@ -12,6 +12,13 @@ abstract final class HomeCopy {
       'en': 'Open navigation menu',
       'es': 'Abrir el menú de navegación',
     },
+    // Handwritten sign over the hero photo. Line breaks are part of the
+    // design (three short lines, like a hand-lettered sign).
+    'hero_sign': {
+      'fr': 'Trop gros pour\nvotre auto ?\nPas pour nous !',
+      'en': 'Too big for\nyour car?\nNot for us!',
+      'es': '¿Demasiado grande\npara tu auto?\n¡No para nosotros!',
+    },
     'hero_scene_label': {
       'fr': 'Camionnette Movi-K et chauffeur préparant une livraison',
       'en': 'Movi-K van and driver preparing a delivery',
