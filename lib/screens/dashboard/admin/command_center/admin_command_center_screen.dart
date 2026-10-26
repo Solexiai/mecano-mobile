@@ -10,7 +10,9 @@ import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
 import 'conditions_panel.dart';
+import 'price_simulator.dart';
 import 'service_settings_panel.dart';
+import 'share_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
 const commandCenterTabs = [
@@ -30,6 +32,8 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.pricingTab,
     this.serviceApi,
     this.conditionsApi,
+    this.loadActive,
+    this.preview,
   });
   final String initialTab;
   final ItemTypesApi? itemTypesApi;
@@ -38,6 +42,10 @@ class AdminCommandCenterScreen extends StatefulWidget {
   final Widget? pricingTab;
   final ServiceSettingsApi? serviceApi;
   final ConditionsApi? conditionsApi;
+
+  /// Test seams for the simulator (active grid, server preview).
+  final ActiveVersionLoader? loadActive;
+  final PricePreviewer? preview;
 
   @override
   State<AdminCommandCenterScreen> createState() =>
@@ -92,14 +100,14 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
     body: TabBarView(
       controller: _tabs,
       children: [
-        _Home(onOpen: _open),
+        _Home(onOpen: _open, loadActive: widget.loadActive, preview: widget.preview),
         AdminItemTypesPanel(api: widget.itemTypesApi),
         widget.pricingTab ?? const AdminFinancePricingTab(),
         ServiceSettingsPanel(api: widget.serviceApi),
-        const _Coming(
-          title: 'Qui reçoit quoi ?',
-          text:
-              'Commission Movi-K, part du chauffeur, frais de service et partage du supplément par objet. En préparation.',
+        SharePanel(
+          onEditPrices: () => _open('combien'),
+          loadActive: widget.loadActive,
+          preview: widget.preview,
         ),
         ConditionsPanel(api: widget.conditionsApi),
       ],
@@ -108,8 +116,10 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
 }
 
 class _Home extends StatelessWidget {
-  const _Home({required this.onOpen});
+  const _Home({required this.onOpen, this.loadActive, this.preview});
   final void Function(String id) onOpen;
+  final ActiveVersionLoader? loadActive;
+  final PricePreviewer? preview;
 
   @override
   Widget build(BuildContext context) {
@@ -175,7 +185,7 @@ class _Home extends StatelessWidget {
       tile('service', '3 · OÙ ET QUAND ?', 'Service',
           'Zone desservie, heures de réservation, délai minimum.'),
       tile('partage', '4 · QUI REÇOIT QUOI ?', 'Partage',
-          'Commission Movi-K, part du chauffeur, frais de service.', ready: false),
+          'Commission Movi-K, part du chauffeur, frais de service.'),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',
           'Supplément tempête, pause du service.'),
     ];
@@ -186,6 +196,8 @@ class _Home extends StatelessWidget {
           'Tout ce qui décide ce que le client voit et paie, au même endroit. Une question par onglet.',
           style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
+        const SizedBox(height: 16),
+        PriceSimulator(loadActive: loadActive, preview: preview),
         const SizedBox(height: 16),
         // Wrap, not a fixed-ratio grid: tiles grow with their text (phone,
         // large text) instead of overflowing.
@@ -216,18 +228,4 @@ class _Home extends StatelessWidget {
       ],
     );
   }
-}
-
-class _Coming extends StatelessWidget {
-  const _Coming({required this.title, required this.text});
-  final String title, text;
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 8),
-      Text(text, style: const TextStyle(fontSize: 16)),
-    ],
-  );
 }
