@@ -121,26 +121,24 @@ void main() {
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);
           }
+          // Pre-launch caution, in customer wording (FAQ 2026-10-26):
+          // nothing is confirmed before a driver accepts, payments open at
+          // launch.
           for (final claim in [
             tr([
-              'aucun chauffeur n’est garanti au moment du calcul du prix',
-              'no driver is guaranteed when the price is calculated',
-              'ningún conductor está garantizado al calcular el precio',
+              'La disponibilité d’un chauffeur est confirmée quand il accepte votre demande',
+              'Driver availability is confirmed when a driver accepts your request',
+              'La disponibilidad de un conductor se confirma cuando acepta tu solicitud',
             ]),
             tr([
-              'il ne constitue pas un créneau confirmé',
-              'it is not a confirmed time slot',
-              'no constituyen un horario confirmado',
+              'L’heure est confirmée quand un chauffeur accepte',
+              'The time is confirmed when a driver accepts',
+              'La hora se confirma cuando un conductor acepta',
             ]),
             tr([
-              'sa validation sur appareils réels',
-              'real-device validation is still',
-              'la validación en dispositivos reales sigue',
-            ]),
-            tr([
-              'Les modalités de paiement en production sont encore en validation',
-              'Production payment methods are still being validated',
-              'Los métodos de pago en producción siguen en validación',
+              'Les paiements ouvriront au lancement du service à Granby',
+              'Payments will open when the service launches in Granby',
+              'Los pagos se abrirán con el lanzamiento del servicio en Granby',
             ]),
           ]) {
             expect(find.textContaining(claim), findsOneWidget);
