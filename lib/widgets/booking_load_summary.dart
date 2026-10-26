@@ -72,7 +72,11 @@ class BookingLoadSummary extends StatelessWidget {
                 Text(
                   '${i['quantity']} × ${i['label']} · ${i['length_cm'] ?? '?'} × ${i['width_cm'] ?? '?'} × ${i['height_cm'] ?? '?'} cm · ${i['weight_kg'] ?? '?'} kg',
                 ),
-                if (photoAssessment &&
+                // The AI's broad size range for one piece (2026-10-25): an
+                // estimate to check on the photo, never a measurement.
+                if (_estimateText(i['size_estimate'], tr) case final estimate?)
+                  Text(estimate, key: const ValueKey('load-size-estimate'))
+                else if (photoAssessment &&
                     [
                       i['length_cm'],
                       i['width_cm'],
@@ -99,7 +103,22 @@ class BookingLoadSummary extends StatelessWidget {
                   Text(
                     '${tr('Précautions', 'Precautions', 'Precauciones')} : ${i['handling_notes']}',
                   ),
-                if (i['approximate'] == true)
+                if (i['special_handling'] == true)
+                  Text(
+                    tr(
+                      'Objet particulier signalé : regardez bien la photo',
+                      'Special item flagged: check the photo carefully',
+                      'Objeto especial señalado: revisa bien la foto',
+                    ),
+                    key: const ValueKey('load-special-flag'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                if (i['approximate'] == true &&
+                    [
+                      i['length_cm'],
+                      i['width_cm'],
+                      i['height_cm'],
+                    ].any((v) => v != null))
                   Text(
                     tr(
                       'Mesures approximatives fournies par le client',
@@ -306,4 +325,20 @@ class _BookingPhotoState extends State<BookingPhoto> {
             ),
     ),
   );
+}
+
+/// "Taille estimée (IA, à vérifier sur la photo) : 60–70 × 60–70 × 85–95 cm".
+String? _estimateText(
+  dynamic raw,
+  String Function(String fr, String en, String es) tr,
+) {
+  if (raw is! Map) return null;
+  String? range(String key) {
+    final r = raw[key];
+    if (r is! Map || r['min'] is! num || r['max'] is! num) return null;
+    return '${r['min']}–${r['max']}';
+  }
+  final l = range('length_cm'), w = range('width_cm'), h = range('height_cm');
+  if (l == null || w == null || h == null) return null;
+  return '${tr('Taille estimée (IA, à vérifier sur la photo)', 'Estimated size (AI, check the photo)', 'Tamaño estimado (IA, verificar en la foto)')} : $l × $w × $h cm';
 }

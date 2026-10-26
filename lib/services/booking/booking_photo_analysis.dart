@@ -5,11 +5,20 @@ class BookingPhotoSuggestion {
     required this.label,
     required this.special,
     required this.uncertain,
+    this.multiple = false,
+    this.quantity,
     this.sizeEstimate,
     this.sourcePhotoPath,
   });
   final String category, label;
   final bool special, uncertain;
+
+  /// Several items on one photo (2026-10-25): the customer is asked for one
+  /// photo per item, or the type and the quantity.
+  final bool multiple;
+
+  /// Pieces of the same type on the photo (a washer and a dryer = 2).
+  final int? quantity;
   final BookingPhotoSizeEstimate? sizeEstimate;
   final String? sourcePhotoPath;
   static const categories = {
@@ -47,18 +56,25 @@ class BookingPhotoSuggestion {
         ].contains(value['reason'])) {
       throw const FormatException('Invalid photo suggestion');
     }
+    // Same rule as the server (2026-10-25): only an ambiguous photo becomes
+    // "other"; several pieces of one type keep their type and a quantity.
     final uncertain =
-        value['confidence'] == 'low' ||
-        ['uncertain', 'multiple_objects'].contains(value['reason']);
+        value['confidence'] == 'low' || value['reason'] == 'uncertain';
+    final rawQuantity = value['quantity'];
+    if (rawQuantity != null && (rawQuantity is! int || rawQuantity < 1)) {
+      throw const FormatException('Invalid quantity');
+    }
     final category = uncertain ? 'other' : value['category'] as String;
     return BookingPhotoSuggestion(
       category: category,
       label: (value['label'] as String).trim(),
       special:
           value['special_handling'] == true ||
-          ['materials', 'other'].contains(category) ||
+          category == 'materials' ||
           value['reason'] == 'special',
+      quantity: rawQuantity is int ? (rawQuantity > 20 ? 20 : rawQuantity) : null,
       uncertain: uncertain,
+      multiple: value['reason'] == 'multiple_objects',
       sizeEstimate: uncertain
           ? null
           : BookingPhotoSizeEstimate.parse(value['size_estimate']),
@@ -79,10 +95,12 @@ class BookingPhotoSuggestion {
     item['category'] = category;
     item['label'] = label;
     item['special_handling'] = special || item['special_handling'] == true;
+    if (quantity != null) item['quantity'] = quantity;
     item['identification_confirmed'] = false;
     item['photo_suggestion_revision'] =
         (item['photo_suggestion_revision'] as int? ?? 0) + 1;
-    // Intentionally leave quantity, actual measurements, photos and money untouched.
+    // Measurements, photos and money stay untouched; the quantity is only a
+    // suggestion the customer confirms with the item.
   }
 }
 

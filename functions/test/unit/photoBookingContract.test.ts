@@ -31,8 +31,9 @@ test('unapproved capacity config still blocks photo intake',()=>expect(result(ra
 test('unmapped category cannot silently select a vehicle',()=>{const input=raw();input.items[0].category='fridge';expect(result(input).reasons).toContain('photo_category_unconfigured');});
 test('photo is required when measurements are unknown',()=>{const input=raw();input.items[0].photos=[];expect(result(input).reasons).toContain('photo_required');});
 test('object confirmation is required',()=>{const input=raw();input.items[0].identification_confirmed=false;expect(result(input).reasons).toContain('object_confirmation_required');});
-test.each(['materials','other'])('special or unknown %s does not receive photo-only quote',category=>{const input=raw();input.items[0].category=category;expect(result(input).status).toBe('review_required');});
-test('client explicitly flagging unusual object cannot bypass specifications',()=>{const input=raw();input.items[0].special_handling=true;expect(result(input).reasons).toContain('special_details_required');});
+test.each(['materials','other'])('%s without a configured vehicle mapping still cannot select a vehicle',category=>{const input=raw();input.items[0].category=category;expect(result(input).reasons).toContain('photo_category_unconfigured');});
+// Owner decision 2026-10-25: a flagged item reaches drivers without measurements.
+test('client flagging an unusual object is passed to drivers without required measurements',()=>{const input=raw();input.items[0].special_handling=true;const r=result(input);expect(r.reasons).not.toContain('special_details_required');expect(r.status).toBe('ready');});
 test('known overweight never becomes eligible through photo review',()=>{const input=raw();input.items[0].weight=201;expect(result(input).status).toBe('review_required');});
 test('known oversize dimension never becomes eligible through photo review',()=>{const input=raw();input.items[0].length=1000;expect(result(input).status).toBe('review_required');});
 test('actual services, equipment and handlers remain mandatory',()=>{

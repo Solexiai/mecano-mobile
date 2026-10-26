@@ -9,8 +9,11 @@ const envelope=(s:unknown=suggestion())=>({status:'completed',output:[{type:'mes
 test('valid suggestion has no prices, measurements or confirmation',()=>expect(parsePhotoSuggestion(suggestion())).toEqual(suggestion()));
 test.each(['weight','price','driverId'])('additional model field %s rejected',field=>expect(()=>parsePhotoSuggestion({...suggestion(),[field]:1})).toThrow());
 test.each([{category:'not-catalog'},{label:''},{label:'x'.repeat(161)},{special_handling:'false'},{confidence:0.99},{reason:'whatever'}])('malformed output %p rejected',patch=>expect(()=>parsePhotoSuggestion({...suggestion(),...patch})).toThrow());
-test.each([{confidence:'low'},{reason:'uncertain'},{reason:'multiple_objects'}])('ambiguous output %p never eligible ordinary',patch=>expect(parsePhotoSuggestion({...suggestion(),...patch})).toMatchObject({category:'other',special_handling:true}));
-test.each(['materials','other'])('special category %s cannot bypass',category=>expect(parsePhotoSuggestion({...suggestion(),category})).toMatchObject({special_handling:true}));
+test.each([{confidence:'low'},{reason:'uncertain'}])('ambiguous output %p becomes other for the customer to confirm',patch=>expect(parsePhotoSuggestion({...suggestion(),...patch})).toMatchObject({category:'other',reason:'uncertain'}));
+// Owner decision 2026-10-25: a washer and a dryer keep their type and a quantity.
+test('several pieces of one type keep the category and the quantity',()=>expect(parsePhotoSuggestion({...suggestion(),category:'washer',label:'Laveuse et sécheuse',reason:'multiple_objects',quantity:2})).toMatchObject({category:'washer',reason:'multiple_objects',quantity:2}));
+test.each([{quantity:0},{quantity:1.5},{quantity:'2'}])('invalid quantity %p rejected',patch=>expect(()=>parsePhotoSuggestion({...suggestion(),...patch})).toThrow());
+test('materials stay flagged special for the driver',()=>expect(parsePhotoSuggestion({...suggestion(),category:'materials'})).toMatchObject({special_handling:true}));
 test('request owner exact and locale validated',()=>expect(parsePhotoRequest('fake',req()).photoPath).toBe(req().photoPath));
 test.each([{photoPath:'https://example.invalid/photo.jpg'},{photoPath:'booking_photos/other/draft-fictitious/item/0.jpg'},{draftId:'../bad'},{itemId:'../bad'},{consent:false},{locale:'zz'}])('request %p rejected',patch=>expect(()=>parsePhotoRequest('fake',{...req(),...patch})).toThrow());
 test('owned live draft accepted',()=>expect(()=>assertPhotoDraft('fake',parsePhotoRequest('fake',req()),draft(),1000)).not.toThrow());

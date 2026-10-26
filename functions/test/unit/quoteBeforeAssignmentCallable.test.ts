@@ -102,9 +102,10 @@ test('missing photo is refused', async () => {
   const r = request(); r.data.booking.items[0].photos = [];
   await expect(run(r)).rejects.toMatchObject({ code: 'failed-precondition', details: { quote_reason: 'photo_required' } });
 });
-test('special object still requires customer details', async () => {
+// Owner decision 2026-10-25: no measurements required, the driver judges.
+test('a special object is priced without customer measurements', async () => {
   const r = request(); r.data.booking.items[0].special_handling = true;
-  await expect(run(r)).rejects.toMatchObject({ code: 'failed-precondition', details: { quote_reason: 'special_details_required' } });
+  await expect(run(r)).resolves.toBeDefined();
 });
 test('zone and scheduled date validations are not bypassed', async () => {
   (isWithinServiceZones as jest.Mock).mockReturnValue(false);

@@ -144,4 +144,127 @@ void main() {
       });
     }
   }
+  // Owner decision 2026-10-25: a washer and a dryer on one photo keep their
+  // type with a quantity of 2; no measurement is asked.
+  testWidgets('several pieces of one type: type kept, quantity suggested', (
+    t,
+  ) async {
+    final response = result();
+    response['suggestion'] = {
+      ...(response['suggestion'] as Map),
+      'category': 'washer',
+      'label': 'Laveuse et sécheuse',
+      'reason': 'multiple_objects',
+      'quantity': 2,
+    };
+    final suggestion = BookingPhotoSuggestion.fromResponse(response, photo);
+    expect(suggestion.multiple, isTrue);
+    expect(suggestion.uncertain, isFalse);
+    expect(suggestion.category, 'washer');
+    expect(suggestion.special, isFalse);
+    final value = item();
+    suggestion.applyTo(value);
+    expect(value['category'], 'washer');
+    expect(value['quantity'], 2);
+    expect(value['length'], isNull);
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: PhotoBookingItem(
+              item: value,
+              locale: 'fr',
+              categories: const [
+                ('washer', 'Laveuse / sécheuse'),
+                ('other', 'Autre'),
+              ],
+              photoLoader: (_) async =>
+                  File('assets/home/brand_logo.png').readAsBytesSync(),
+              onChanged: () {},
+              onRemove: () {},
+              onAddPhoto: () {},
+              suggestion: suggestion,
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Laveuse et sécheuse'), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-multiple-item')), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-confirm-item')), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-item-length')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+  test('a quantity from the AI is bounded and validated', () {
+    Map<String, dynamic> withQuantity(Object? q) {
+      final r = result();
+      r['suggestion'] = {...(r['suggestion'] as Map), 'quantity': q};
+      return r;
+    }
+
+    expect(
+      BookingPhotoSuggestion.fromResponse(withQuantity(50), photo).quantity,
+      20,
+    );
+    for (final bad in [0, -1, 1.5, '2']) {
+      expect(
+        () => BookingPhotoSuggestion.fromResponse(withQuantity(bad), photo),
+        throwsFormatException,
+      );
+    }
+  });
+  test('an ambiguous photo still becomes "other" without blocking', () {
+    final r = result();
+    r['suggestion'] = {
+      ...(r['suggestion'] as Map),
+      'confidence': 'low',
+      'reason': 'uncertain',
+    };
+    final s = BookingPhotoSuggestion.fromResponse(r, photo);
+    expect(s.category, 'other');
+    expect(s.special, isFalse);
+  });
+  testWidgets('choosing an ordinary type clears the special flag', (t) async {
+    final value = item()
+      ..['category'] = 'other'
+      ..['special_handling'] = true
+      ..['label'] = 'Deux appareils de buanderie';
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StatefulBuilder(
+              builder: (_, update) => PhotoBookingItem(
+                item: value,
+                locale: 'fr',
+                categories: const [
+                  ('washer', 'Laveuse / sécheuse'),
+                  ('other', 'Autre'),
+                ],
+                photoLoader: (_) async =>
+                    File('assets/home/brand_logo.png').readAsBytesSync(),
+                onChanged: () => update(() {}),
+                onRemove: () {},
+                onAddPhoto: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    final change = find.byKey(const ValueKey('photo-change-item'));
+    if (change.evaluate().isNotEmpty) {
+      await t.tap(change);
+      await t.pumpAndSettle();
+    }
+    await t.tap(find.byKey(const ValueKey('photo-category-item')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Laveuse / sécheuse').last);
+    await t.pumpAndSettle();
+    expect(value['category'], 'washer');
+    expect(value['special_handling'], isFalse);
+  });
 }

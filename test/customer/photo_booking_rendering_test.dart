@@ -184,7 +184,8 @@ void main() {
       expect(draft.quote, isNotNull);
     },
   );
-  testWidgets('special item shows details without promising an ordinary quote', (
+  // Owner decision 2026-10-25: details are optional and folded away.
+  testWidgets('special item offers optional driver notes, no measurement asked', (
     tester,
   ) async {
     final value = item()..['special_handling'] = true;
@@ -206,14 +207,22 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Précisions sur l’objet'), findsOneWidget);
+    final tile = find.text('Précisions pour le chauffeur (facultatif)');
+    expect(tile, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('photo-test-item-length')),
+      findsNothing,
+    );
+    await tester.ensureVisible(tile);
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('photo-test-item-length')),
       findsOneWidget,
     );
     expect(
       find.text(
-        'Pour cet objet, précisez les dimensions et la manutention. Le poids peut rester inconnu.',
+        'Facultatif. Le chauffeur voit vos photos et juge lui-même si ça entre dans son véhicule.',
       ),
       findsOneWidget,
     );

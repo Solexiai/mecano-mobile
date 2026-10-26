@@ -211,7 +211,7 @@ void main() {
     }
   });
   test(
-    'low confidence, special and ambiguous remain special; manual measurements retained',
+    'low confidence becomes "other" without blocking; manual measurements retained',
     () {
       final r = response();
       (r['suggestion'] as Map)['confidence'] = 'low';
@@ -224,7 +224,8 @@ void main() {
       };
       suggestion.applyTo(item);
       expect(item['category'], 'other');
-      expect(item['special_handling'], true);
+      // 2026-10-25: "other" is no longer special by itself.
+      expect(item['special_handling'], false);
       expect(item['weight'], 42);
       expect(item['length'], 80);
       expect(item['quantity'], 2);
