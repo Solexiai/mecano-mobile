@@ -38,16 +38,150 @@ class HomeScreen extends StatelessWidget {
   );
 }
 
-String _heroAsset(String locale) => locale == 'en' || locale == 'es'
-    ? 'assets/home/hero_neutral.png'
-    : 'assets/home/hero_clean.png';
+/// Same photo in every language: the slogan is drawn over it as real text
+/// ([_HeroSign]) so it can be translated and changed without editing pixels.
+const _heroAsset = 'assets/home/hero_neutral.png';
+
+/// Hero photo with the handwritten sign in the top-right corner.
+/// Uses [Align] (not Positioned) so the desktop layout stays flow-based
+/// (P1-HOME-001).
+class _HeroScene extends StatelessWidget {
+  final double radius;
+  final FilterQuality quality;
+  const _HeroScene({required this.radius, required this.quality});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>().locale;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: AspectRatio(
+        aspectRatio: 524 / 350,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              _heroAsset,
+              fit: BoxFit.cover,
+              alignment: Alignment.centerRight,
+              filterQuality: quality,
+              semanticLabel: HomeCopy.text('hero_scene_label', locale),
+            ),
+            const Align(
+              alignment: Alignment(0.93, -0.82),
+              child: FractionallySizedBox(widthFactor: 0.34, child: _HeroSign()),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeroSign extends StatelessWidget {
+  const _HeroSign();
+
+  static const _ink = Color(0xFF1D3B8F);
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>().locale;
+    final slogan = HomeCopy.text('hero_sign', locale);
+    return Semantics(
+      key: const Key('home-hero-sign'),
+      container: true,
+      label: slogan.replaceAll('\n', ' '),
+      excludeSemantics: true,
+      child: Transform.rotate(
+        angle: -0.05,
+        // The sign scales with the photo, like the lettering it replaces.
+        child: FittedBox(
+          fit: BoxFit.contain,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F9FF).withValues(alpha: .92),
+              borderRadius: BorderRadius.circular(6),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .16),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  slogan,
+                  softWrap: false,
+                  textScaler: TextScaler.noScaling,
+                  style: const TextStyle(
+                    fontFamily: 'Caveat',
+                    fontWeight: FontWeight.w700,
+                    fontSize: 34,
+                    height: 1.05,
+                    color: _ink,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Padding(
+                  padding: EdgeInsets.only(left: 28),
+                  child: CustomPaint(
+                    size: Size(64, 40),
+                    painter: _SignArrowPainter(_ink),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hand-drawn arrow curving down-left toward the van.
+class _SignArrowPainter extends CustomPainter {
+  final Color color;
+  const _SignArrowPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final w = size.width, h = size.height;
+    final tip = Offset(w * .08, h * .88);
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * .92, h * .04)
+        ..quadraticBezierTo(w * .86, h * .80, tip.dx, tip.dy),
+      paint,
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(tip.dx + w * .10, tip.dy - h * .30)
+        ..lineTo(tip.dx, tip.dy)
+        ..lineTo(tip.dx + w * .22, tip.dy + h * .04),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SignArrowPainter old) => old.color != color;
+}
 
 class _Hero extends StatelessWidget {
   final VoidCallback quote, driver;
   const _Hero({required this.quote, required this.driver});
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<LocaleProvider>().locale;
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 980;
 
@@ -115,23 +249,11 @@ class _Hero extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 32),
-                  Expanded(
+                  const Expanded(
                     flex: 6,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: AspectRatio(
-                        aspectRatio: 524 / 350,
-                        child: Image.asset(
-                          _heroAsset(locale),
-                          fit: BoxFit.cover,
-                          alignment: Alignment.centerRight,
-                          filterQuality: FilterQuality.high,
-                          semanticLabel: HomeCopy.text(
-                            'hero_scene_label',
-                            locale,
-                          ),
-                        ),
-                      ),
+                    child: _HeroScene(
+                      radius: 28,
+                      quality: FilterQuality.high,
                     ),
                   ),
                 ],
@@ -250,27 +372,9 @@ class _HeroRight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<LocaleProvider>().locale;
-    final scene = Semantics(
-      image: true,
-      label: HomeCopy.text('hero_scene_label', locale),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: AspectRatio(
-          aspectRatio: 524 / 350,
-          child: Image.asset(
-            _heroAsset(locale),
-            fit: BoxFit.cover,
-            alignment: Alignment.centerRight,
-            filterQuality: FilterQuality.medium,
-          ),
-        ),
-      ),
-    );
-
     return Column(
       children: [
-        scene,
+        const _HeroScene(radius: 30, quality: FilterQuality.medium),
         const SizedBox(height: 14),
         _QuoteCard(onTap: quote),
       ],
