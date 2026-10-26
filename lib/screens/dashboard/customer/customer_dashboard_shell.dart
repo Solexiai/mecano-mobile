@@ -61,7 +61,7 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
     final tabs = [
       CustomerOverviewTab(onGoToTab: (i) => setState(() => _index = i)),
       const CustomerRequestsTab(),
-      const CustomerProfileTab(),
+      CustomerProfileTab(onGoToTab: (i) => setState(() => _index = i)),
     ];
 
     final navItems = [
