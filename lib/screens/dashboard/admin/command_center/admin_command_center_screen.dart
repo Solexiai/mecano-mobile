@@ -189,14 +189,17 @@ class _Home extends StatelessWidget {
           style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 16),
-        GridView.count(
-          crossAxisCount: columns,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: columns == 1 ? 2.6 : 1.7,
-          children: tiles,
+        // Wrap, not a fixed-ratio grid: tiles grow with their text (phone,
+        // large text) instead of overflowing.
+        LayoutBuilder(
+          builder: (context, box) {
+            final w = (box.maxWidth - 14 * (columns - 1)) / columns;
+            return Wrap(
+              spacing: 14,
+              runSpacing: 14,
+              children: [for (final t in tiles) SizedBox(width: w, child: t)],
+            );
+          },
         ),
         const SizedBox(height: 16),
         Container(
