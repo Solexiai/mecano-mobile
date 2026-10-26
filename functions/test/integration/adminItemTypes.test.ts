@@ -23,7 +23,7 @@ test('admins only', async () => {
 test('get: saved types as saved (normalized), new types as the proposal', async () => {
   await ref.set({ approved: true, capacities, photo_intake: { enabled: true, version: 'old',
     category_vehicle_categories: { sofa: ['pickupTruck'], materials: ['cube_truck', 'unknown'] } } });
-  const result = await adminItemTypes.run(call({ action: 'get' }));
+  const result = (await adminItemTypes.run(call({ action: 'get' }))) as any;
   expect(result).toMatchObject({ configured: true, photoIntakeEnabled: true, vehicles: ['pickup_truck', 'cargo_van', 'cube_truck'] });
   const byType = Object.fromEntries(result.types.map((t: any) => [t.category, t]));
   expect(byType.sofa).toEqual({ category: 'sofa', vehicles: ['pickup_truck'], saved: true });
@@ -36,7 +36,7 @@ test('save replaces only the mapping, keeps the rest, and is audited', async () 
   await ref.set({ approved: true, capacities, heavy_item_kg: 100, photo_intake: { enabled: true, version: 'old',
     category_vehicle_categories: { sofa: ['pickup_truck'], legacy: ['cargo_van'] } } });
   const mapping = { ...PROPOSED_ITEM_VEHICLES, tires: [] };
-  const saved = await adminItemTypes.run(call({ action: 'save', mapping }));
+  const saved = (await adminItemTypes.run(call({ action: 'save', mapping }))) as any;
   expect(saved.success).toBe(true);
   const after = (await ref.get()).data()!;
   expect(after.capacities).toEqual(capacities);

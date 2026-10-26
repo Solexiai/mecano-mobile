@@ -72,6 +72,10 @@ void main() {
   });
 
   testWidgets('nothing changed and all saved: the button waits', (t) async {
+    t.view.physicalSize = const Size(1200, 4000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(
       MaterialApp(
         home: AdminItemTypesScreen(api: (_) async => state(savedAll: true)),
