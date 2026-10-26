@@ -18,7 +18,7 @@ import 'package:movik_connect/screens/customer/customer_tracking_screen.dart';
 const _customer = 'customer_detail';
 const _id = 'mission_detail';
 
-DeliveryMission _mission() => DeliveryMission(
+DeliveryMission _mission({String? pickupProof}) => DeliveryMission(
   id: _id,
   customerId: _customer,
   customerDisplayName: 'Client',
@@ -33,6 +33,7 @@ DeliveryMission _mission() => DeliveryMission(
   completedAt: DateTime(2026, 10, 23, 15, 4),
   driverOfferAmount: 20,
   customerTotal: 25,
+  proofOfPickupUrl: pickupProof,
   pickupAddress: const MissionAddress(
     line1: '1 rue Fictive',
     city: 'Granby',
@@ -50,9 +51,11 @@ DeliveryMission _mission() => DeliveryMission(
 );
 
 class _Missions implements MissionRepository {
+  _Missions([DeliveryMission? mission]) : mission = mission ?? _mission();
+  final DeliveryMission mission;
   @override
   Stream<DeliveryMission?> watchMission(String missionId) =>
-      Stream.value(_mission());
+      Stream.value(mission);
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
@@ -134,6 +137,18 @@ void main() {
     // Never called a receipt: the printable summary says it is not one.
     expect(find.textContaining('Télécharger le reçu'), findsNothing);
     expect(find.text('Référence : $_id'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('with a loading photo: both photos, labeled', (t) async {
+    BackendLocator.missionRepositoryOverride = _Missions(
+      _mission(pickupProof: 'https://storage.example.test/pickup.jpg'),
+    );
+    await t.pumpWidget(_app('fr'));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('detail-photos')), findsOneWidget);
+    expect(find.text('Au ramassage'), findsOneWidget);
+    expect(find.text('À la livraison'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 

@@ -442,7 +442,7 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
           targetStatus: MissionStatuses.ARRIVED_AT_PICKUP,
         })
       );
-      await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, undefined, { missionId: id }));
+      await completePickup.run(authedRequest<CompletePickupRequest>(DRIVER_ID, undefined, { missionId: id, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
       await updateMissionTrackingStatus.run(
         authedRequest<UpdateMissionTrackingStatusRequest>(DRIVER_ID, undefined, {
           missionId: id,

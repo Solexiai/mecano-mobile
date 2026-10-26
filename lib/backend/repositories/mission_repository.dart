@@ -114,7 +114,12 @@ abstract class MissionRepository {
     required String driverId,
   });
 
-  Future<void> markPickupCompleted(String missionId);
+  /// Confirme le ramassage (Cloud Function `completePickup()`). La photo de
+  /// l'article chargé est OBLIGATOIRE depuis le 2026-10-26.
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  });
 
   /// Confirme la livraison finale (Cloud Function `completeDelivery()`).
   /// `proofOfDeliveryUrl` est OBLIGATOIRE (Phase 5, partie 3) — la Cloud
@@ -178,7 +183,10 @@ class NotConfiguredMissionRepository implements MissionRepository {
   }
 
   @override
-  Future<void> markPickupCompleted(String missionId) {
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) {
     throw BackendNotConfiguredException('markPickupCompleted: backend Firebase non configuré.');
   }
 

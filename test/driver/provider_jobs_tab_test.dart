@@ -167,7 +167,10 @@ class _FakeMissionRepository implements MissionRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> markPickupCompleted(String missionId) =>
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) =>
       throw UnimplementedError();
 
   @override
@@ -653,7 +656,10 @@ class _ThrowingMissionRepository implements MissionRepository {
       throw UnimplementedError();
 
   @override
-  Future<void> markPickupCompleted(String missionId) =>
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) =>
       throw UnimplementedError();
 
   @override

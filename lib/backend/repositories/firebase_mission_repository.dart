@@ -319,10 +319,14 @@ class FirebaseMissionRepository implements MissionRepository {
   }
 
   @override
-  Future<void> markPickupCompleted(String missionId) async {
+  Future<void> markPickupCompleted(
+    String missionId, {
+    required String proofOfPickupUrl,
+  }) async {
     try {
       await _functions.httpsCallable('completePickup').call({
         'missionId': missionId,
+        'proofOfPickupUrl': proofOfPickupUrl,
       });
     } on FirebaseFunctionsException catch (e) {
       throw CloudFunctionException(

@@ -67,11 +67,13 @@ describe("completePickup — transitions valides depuis les 3 prédécesseurs au
     async (fromStatus) => {
       await seedMission(fromStatus);
 
-      const result = await completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }));
+      const result = await completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }));
       expect(result).toMatchObject({ success: true, missionId: MISSION_ID });
 
       const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
       expect(missionSnap.data()!.status).toBe(MissionStatuses.PICKED_UP);
+      // 2026-10-26 : la photo du chargement est visible par le client.
+      expect(missionSnap.data()!.proof_of_pickup_url).toBe("https://storage.example.test/delivery_proofs/pickup_proof.jpg");
 
       const stopSnap = await db
         .collection("delivery_requests")
@@ -98,7 +100,7 @@ describe("completePickup — cas négatifs", () => {
   it("un chauffeur qui n'est pas celui assigné ne peut PAS confirmer le ramassage", async () => {
     await seedMission(MissionStatuses.ASSIGNED, DRIVER_ID);
     await expect(
-      completePickup.run(buildRequest(OTHER_DRIVER_ID, { missionId: MISSION_ID }))
+      completePickup.run(buildRequest(OTHER_DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }))
     ).rejects.toMatchObject({ code: "permission-denied" });
 
     const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
@@ -108,27 +110,27 @@ describe("completePickup — cas négatifs", () => {
   it("depuis 'searching_driver' (pas encore assignée) échoue avec failed-precondition", async () => {
     await seedMission(MissionStatuses.SEARCHING_DRIVER);
     await expect(
-      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 
   it("depuis 'picked_up' (déjà ramassé, appel en double) échoue avec failed-precondition", async () => {
     await seedMission(MissionStatuses.PICKED_UP);
     await expect(
-      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 
   it("depuis 'completed' échoue avec failed-precondition (aucune régression possible)", async () => {
     await seedMission(MissionStatuses.COMPLETED);
     await expect(
-      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID }))
+      completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }))
     ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 
   it("mission introuvable échoue avec not-found", async () => {
     await expect(
-      completePickup.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante" }))
+      completePickup.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante", proofOfPickupUrl: "https://storage.example.test/delivery_proofs/pickup_proof.jpg" }))
     ).rejects.toMatchObject({ code: "not-found" });
   });
 
@@ -138,4 +140,17 @@ describe("completePickup — cas négatifs", () => {
       completePickup.run(buildRequest(DRIVER_ID, {}))
     ).rejects.toMatchObject({ code: "invalid-argument" });
   });
+
+  it.each([undefined, "", "   ", 42, "x".repeat(2049)])(
+    "sans photo de l'article chargé (%p), le ramassage est refusé et la mission ne bouge pas",
+    async (proofOfPickupUrl) => {
+      await seedMission(MissionStatuses.ARRIVED_AT_PICKUP);
+      await expect(
+        completePickup.run(buildRequest(DRIVER_ID, { missionId: MISSION_ID, proofOfPickupUrl } as any))
+      ).rejects.toMatchObject({ code: "invalid-argument" });
+      const missionSnap = await db.collection("delivery_requests").doc(MISSION_ID).get();
+      expect(missionSnap.data()!.status).toBe(MissionStatuses.ARRIVED_AT_PICKUP);
+      expect(missionSnap.data()!.proof_of_pickup_url).toBeUndefined();
+    }
+  );
 });
