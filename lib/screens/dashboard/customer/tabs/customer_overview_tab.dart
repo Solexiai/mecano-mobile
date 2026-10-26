@@ -7,6 +7,8 @@ import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import '../../../../services/account/saved_addresses.dart';
+import '../../../../widgets/home_address_sheet.dart';
 import '../customer_mission_view.dart';
 
 /// Customer home, Uber-style (owner mockup validated 2026-10-25): the
@@ -101,6 +103,8 @@ class CustomerOverviewTab extends StatelessWidget {
                     locale: locale,
                     onTap: () => context.go('/$locale/livraison/demande'),
                   ),
+                  const SizedBox(height: 22),
+                  PickupShortcuts(uid: customerId, locale: locale),
                   const SizedBox(height: 26),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -473,3 +477,151 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
+/// "Ramasser à" (owner mockup 2026-10-25, decided 2026-10-26): one tap
+/// opens a booking already filled in. A store fills the pickup search
+/// ("IKEA Granby"), the customer picks their store in the suggestions; the
+/// saved home address becomes the drop-off. "Maison" picks up at home.
+class PickupShortcuts extends StatefulWidget {
+  const PickupShortcuts({super.key, required this.uid, required this.locale});
+  final String uid, locale;
+  @override
+  State<PickupShortcuts> createState() => _PickupShortcutsState();
+}
+
+class _PickupShortcutsState extends State<PickupShortcuts> {
+  Map<String, dynamic>? _home;
+  bool _loaded = false;
+
+  static const stores = [
+    ('ikea', 'IKEA'),
+    ('costco', 'Costco'),
+    ('canadian_tire', 'Canadian Tire'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    SavedAddresses.instance.home(widget.uid).then((home) {
+      if (mounted) {
+        setState(() {
+          _home = home;
+          _loaded = true;
+        });
+      }
+    });
+  }
+
+  String tr(String fr, String en, String es) => _tr(widget.locale, fr, en, es);
+
+  Future<Map<String, dynamic>?> _askHome() async {
+    final saved = await showHomeAddressSheet(
+      context,
+      uid: widget.uid,
+      locale: widget.locale,
+      current: _home,
+    );
+    if (saved != null && mounted) setState(() => _home = saved);
+    return saved;
+  }
+
+  Future<void> _start({
+    Map<String, dynamic>? pickup,
+    String? pickupText,
+    required String shortcut,
+  }) => startPrefilledBooking(
+    context,
+    locale: widget.locale,
+    uid: widget.uid,
+    pickup: pickup,
+    dropoff: shortcut == 'home' ? null : _home,
+    pickupText: pickupText,
+    shortcut: shortcut,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final city = (_home?['city'] as String? ?? '').trim();
+    Widget chip(String id, IconData icon, String label, VoidCallback onTap) =>
+        ActionChip(
+          key: ValueKey('shortcut-$id'),
+          avatar: Icon(icon, size: 18, color: AppColors.primary),
+          label: Text(label),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+            side: const BorderSide(color: AppColors.border),
+          ),
+          onPressed: onTap,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          tr('Ramasser à', 'Pick up at', 'Recoger en'),
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            chip('home', Icons.home_outlined, tr('Maison', 'Home', 'Casa'), () async {
+              final home = _home ?? await _askHome();
+              if (home != null && mounted) {
+                await _start(pickup: home, shortcut: 'home');
+              }
+            }),
+            for (final (id, name) in stores)
+              chip(
+                id,
+                Icons.store_outlined,
+                name,
+                () => _start(
+                  pickupText: city.isEmpty ? name : '$name $city',
+                  shortcut: id,
+                ),
+              ),
+            chip(
+              'marketplace',
+              Icons.sell_outlined,
+              'Marketplace',
+              () => _start(shortcut: 'marketplace'),
+            ),
+          ],
+        ),
+        if (_loaded && _home == null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('shortcut-add-home'),
+              onPressed: _askHome,
+              icon: const Icon(Icons.add_location_alt_outlined),
+              label: Text(
+                tr(
+                  'Ajouter mon adresse (Maison) pour aller plus vite',
+                  'Add my address (Home) to go faster',
+                  'Añadir mi dirección (Casa) para ir más rápido',
+                ),
+              ),
+            ),
+          )
+        else if (_home != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              tr(
+                'Magasins et Marketplace : livré à la maison (${_home!['line1']}).',
+                'Stores and Marketplace: delivered home (${_home!['line1']}).',
+                'Tiendas y Marketplace: entregado en casa (${_home!['line1']}).',
+              ),
+              key: const ValueKey('shortcut-home-note'),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+      ],
+    );
+  }
+}
+

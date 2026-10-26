@@ -7,6 +7,8 @@ import '../../../../providers/locale_provider.dart';
 import '../../../../providers/theme_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../widgets/language_selector.dart';
+import '../../../../services/account/saved_addresses.dart';
+import '../../../../widgets/home_address_sheet.dart';
 
 /// Onglet profil client — Phase 4 : identité réelle Firebase Auth.
 ///
@@ -31,6 +33,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
   bool _loaded = false;
   bool _saving = false;
   bool _editing = false;
+  Map<String, dynamic>? _home;
 
   @override
   void initState() {
@@ -48,6 +51,7 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
       _nameController.text = (data?['full_name'] as String?) ?? user.displayName ?? '';
       _phoneController.text = (data?['phone'] as String?) ?? '';
       _cityController.text = (data?['city'] as String?) ?? '';
+      _home = SavedAddresses.parseHome(data);
     } catch (_) {
       _nameController.text = user.displayName ?? '';
     } finally {
@@ -212,6 +216,32 @@ class _CustomerProfileTabState extends State<CustomerProfileTab> {
             ),
           ],
           const SizedBox(height: 20),
+          Text(tr('Adresses enregistrées', 'Saved addresses', 'Direcciones guardadas'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 4),
+          row(
+            key: const ValueKey('account-home-address'),
+            icon: Icons.home_outlined,
+            title: tr('Maison', 'Home', 'Casa'),
+            subtitle: (_home?['formatted_address'] as String?) ??
+                (_home == null
+                    ? tr('Ajouter votre adresse', 'Add your address', 'Añadir tu dirección')
+                    : '${_home!['line1']}, ${_home!['city']}'),
+            trailing: Text(
+              _home == null ? tr('Ajouter', 'Add', 'Añadir') : tr('Modifier', 'Edit', 'Editar'),
+              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+            ),
+            onTap: () async {
+              final saved = await showHomeAddressSheet(
+                context,
+                uid: user.uid,
+                locale: locale,
+                current: _home,
+              );
+              if (saved != null && mounted) setState(() => _home = saved);
+            },
+          ),
+          const SizedBox(height: 16),
           Text(tr('Mon compte', 'My account', 'Mi cuenta'),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 4),

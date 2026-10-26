@@ -238,10 +238,39 @@ Future<void> rebookDelivery(
   final category = DemoDataService.deliveryCategories.contains(m.itemCategoryKey)
       ? m.itemCategoryKey
       : null;
+  await startPrefilledBooking(
+    context,
+    locale: locale,
+    uid: uid,
+    storage: storage,
+    category: category,
+    pickup: address(m.pickupAddress),
+    dropoff: address(m.dropoffAddress),
+    rebookFrom: m.id,
+  );
+}
+
+/// Opens a new booking already filled in ("Refaire", the home "Ramasser à"
+/// shortcuts, 2026-10-26). `pickupText` is a search the customer finishes
+/// by picking the store in the suggestions; `shortcut` names the shortcut.
+Future<void> startPrefilledBooking(
+  BuildContext context, {
+  required String locale,
+  required String? uid,
+  BookingDraftStorage? storage,
+  String? category,
+  Map<String, dynamic>? pickup,
+  Map<String, dynamic>? dropoff,
+  String? pickupText,
+  String? shortcut,
+  String? rebookFrom,
+}) async {
   final draft = BookingDraft(category: category);
-  draft.data['pickup'] = address(m.pickupAddress);
-  draft.data['dropoff'] = address(m.dropoffAddress);
-  draft.data['rebook_from'] = m.id;
+  draft.data['pickup'] = pickup;
+  draft.data['dropoff'] = dropoff;
+  if (pickupText != null) draft.data['pickup_text'] = pickupText;
+  if (shortcut != null) draft.data['pickup_shortcut'] = shortcut;
+  if (rebookFrom != null) draft.data['rebook_from'] = rebookFrom;
   try {
     await (storage ?? BookingDraftStorage()).save(draft, uid);
   } catch (_) {

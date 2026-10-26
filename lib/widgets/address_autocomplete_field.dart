@@ -72,7 +72,12 @@ class AddressAutocompleteField extends StatefulWidget {
     this.provider,
     this.resolvedText,
     this.debounceDuration = const Duration(milliseconds: 350),
+    this.searchInitialText = false,
   });
+
+  /// Shows suggestions right away for text already in the field (the home
+  /// "Ramasser à" shortcuts pre-fill "IKEA Granby", 2026-10-26).
+  final bool searchInitialText;
 
   @override
   State<AddressAutocompleteField> createState() =>
@@ -100,6 +105,13 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
         ? widget.resolvedText
         : null;
     widget.controller.addListener(_onTextChanged);
+    if (widget.searchInitialText &&
+        _lastResolvedText == null &&
+        widget.controller.text.trim().length >= 3) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _search(widget.controller.text.trim());
+      });
+    }
   }
 
   @override
