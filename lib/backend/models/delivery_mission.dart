@@ -69,6 +69,9 @@ class DeliveryMission {
   // (ou jamais) complétée, ou complétée avant l'introduction de ce champ.
   final String? proofOfDeliveryUrl;
 
+  /// Photo de l'article chargé, prise au ramassage (2026-10-26).
+  final String? proofOfPickupUrl;
+
   // Champs dénormalisés écrits par createDeliveryRequest() — lecture seule,
   // jamais recalculés côté Flutter.
   final MissionAddress? pickupAddress;
@@ -110,6 +113,7 @@ class DeliveryMission {
     this.cancellationReason,
     this.cancellationFee,
     this.proofOfDeliveryUrl,
+    this.proofOfPickupUrl,
     this.pickupAddress,
     this.dropoffAddress,
     this.distanceKm,
@@ -152,6 +156,7 @@ class DeliveryMission {
     'cancelled_at': cancelledAt?.toIso8601String(),
     'cancellation_reason': cancellationReason,
     'proof_of_delivery_url': proofOfDeliveryUrl,
+    'proof_of_pickup_url': proofOfPickupUrl,
     'distance_km': distanceKm,
     'estimated_duration_minutes': estimatedDurationMinutes,
     'driver_offer_amount': driverOfferAmount,
@@ -200,6 +205,7 @@ class DeliveryMission {
           ? Map<String, dynamic>.from(json['cancellation_fee'] as Map)
           : null,
       proofOfDeliveryUrl: json['proof_of_delivery_url'] as String?,
+      proofOfPickupUrl: json['proof_of_pickup_url'] as String?,
       pickupAddress: _parseAddress(json['pickup_address']),
       dropoffAddress: _parseAddress(json['dropoff_address']),
       distanceKm: (json['distance_km'] as num?)?.toDouble(),

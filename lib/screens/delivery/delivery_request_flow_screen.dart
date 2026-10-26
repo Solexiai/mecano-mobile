@@ -1423,7 +1423,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ..._address(
         'pickup',
         _pickup,
-        tr('On le prend ici', 'We pick it up here', 'Lo recogemos aquí'),
+        _draft.data['pickup_shortcut'] == 'marketplace'
+            ? tr(
+                'Adresse du vendeur',
+                'Seller’s address',
+                'Dirección del vendedor',
+              )
+            : tr('On le prend ici', 'We pick it up here', 'Lo recogemos aquí'),
         ask,
       ),
       const SizedBox(height: 12),
@@ -2003,6 +2009,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       AddressAutocompleteField(
         key: ValueKey('$key-${_draft.id}'),
         controller: controller,
+        searchInitialText: _draft.data['${key}_shortcut'] is String,
         resolvedText:
             (_draft.data[key] as Map?)?['formatted_address'] as String?,
         label: label,

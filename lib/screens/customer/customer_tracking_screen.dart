@@ -704,9 +704,51 @@ class _CompletedMissionView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(t('customer_tracking_proof_title'), style: secondary),
-          const SizedBox(height: 8),
-          _ProofOfDeliveryView(url: mission.proofOfDeliveryUrl, t: t),
+          // Deux photos quand le chauffeur a photographié le chargement
+          // (obligatoire depuis le 2026-10-26) ; sinon la seule preuve de
+          // livraison, comme avant.
+          if ((mission.proofOfPickupUrl ?? '').isNotEmpty)
+            Row(
+              key: const ValueKey('detail-photos'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        tr('Au ramassage', 'At pickup', 'En la recogida'),
+                        style: secondary,
+                      ),
+                      const SizedBox(height: 6),
+                      _ProofOfDeliveryView(url: mission.proofOfPickupUrl, t: t),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        tr('À la livraison', 'At delivery', 'En la entrega'),
+                        style: secondary,
+                      ),
+                      const SizedBox(height: 6),
+                      _ProofOfDeliveryView(
+                        url: mission.proofOfDeliveryUrl,
+                        t: t,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            Text(t('customer_tracking_proof_title'), style: secondary),
+            const SizedBox(height: 8),
+            _ProofOfDeliveryView(url: mission.proofOfDeliveryUrl, t: t),
+          ],
           const SizedBox(height: 16),
           if (pickup != null || dropoff != null || driver.isNotEmpty) ...[
             Container(

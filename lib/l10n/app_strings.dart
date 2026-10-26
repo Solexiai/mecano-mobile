@@ -973,9 +973,24 @@ class AppStrings {
       'es': 'Ganancia esperada',
     },
     'driver_active_mission_mark_pickup': {
-      'fr': 'Marquer l\'enlèvement comme complété',
-      'en': 'Mark pickup as completed',
-      'es': 'Marcar recogida como completada',
+      'fr': 'Photographier l\'article chargé',
+      'en': 'Photograph the loaded item',
+      'es': 'Fotografiar el artículo cargado',
+    },
+    'driver_active_mission_pickup_preview_title': {
+      'fr': 'Photo de l\'article chargé',
+      'en': 'Photo of the loaded item',
+      'es': 'Foto del artículo cargado',
+    },
+    'driver_active_mission_confirm_pickup_proof': {
+      'fr': 'Confirmer le ramassage',
+      'en': 'Confirm pickup',
+      'es': 'Confirmar la recogida',
+    },
+    'driver_active_mission_uploading_pickup_proof': {
+      'fr': 'Envoi de la photo du chargement…',
+      'en': 'Uploading the loading photo…',
+      'es': 'Subiendo la foto de la carga…',
     },
     'driver_active_mission_mark_delivered': {
       'fr': 'Marquer la livraison comme complétée',
