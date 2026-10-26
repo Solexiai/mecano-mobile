@@ -322,7 +322,14 @@ void main() {
 
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.byType(TextField), findsNothing);
-      expect(find.textContaining('canal officiel de soutien'), findsOneWidget);
+      expect(
+        find.textContaining('Écrivez-nous depuis la page Contact'),
+        findsOneWidget,
+      );
+      // Internal pre-launch wording no longer shown to customers.
+      expect(find.textContaining('canal officiel de soutien'), findsNothing);
+      expect(find.textContaining('pas encore approuvés'), findsNothing);
+      expect(find.textContaining('appareils réels'), findsNothing);
       expect(contact, findsOneWidget);
       expect(tester.takeException(), isNull);
     });
