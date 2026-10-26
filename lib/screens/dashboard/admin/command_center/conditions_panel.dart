@@ -176,11 +176,18 @@ class _ConditionsPanelState extends State<ConditionsPanel> {
                   runSpacing: 10,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    DropdownButton<String>(
-                      key: const ValueKey('conditions-reason'),
-                      value: _reason,
-                      onChanged: _busy ? null : (v) => setState(() => _reason = v ?? 'snow'),
-                      items: [for (final e in _reasons.entries) DropdownMenuItem(value: e.key, child: Text(e.value))],
+                    SizedBox(
+                      width: 240,
+                      child: DropdownButton<String>(
+                        key: const ValueKey('conditions-reason'),
+                        isExpanded: true,
+                        value: _reason,
+                        onChanged: _busy ? null : (v) => setState(() => _reason = v ?? 'snow'),
+                        items: [
+                          for (final e in _reasons.entries)
+                            DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis)),
+                        ],
+                      ),
                     ),
                     SegmentedButton<String>(
                       key: const ValueKey('conditions-mode'),
@@ -208,11 +215,18 @@ class _ConditionsPanelState extends State<ConditionsPanel> {
                         },
                       ),
                     ),
-                    DropdownButton<int>(
-                      key: const ValueKey('conditions-duration'),
-                      value: _hours,
-                      onChanged: _busy ? null : (v) => setState(() => _hours = v ?? 12),
-                      items: [for (final h in _durations) DropdownMenuItem(value: h, child: Text('Pendant $h h'))],
+                    SizedBox(
+                      width: 200,
+                      child: DropdownButton<int>(
+                        key: const ValueKey('conditions-duration'),
+                        isExpanded: true,
+                        value: _hours,
+                        onChanged: _busy ? null : (v) => setState(() => _hours = v ?? 12),
+                        items: [
+                          for (final h in _durations)
+                            DropdownMenuItem(value: h, child: Text('Pendant $h h', overflow: TextOverflow.ellipsis)),
+                        ],
+                      ),
                     ),
                   ],
                 ),
