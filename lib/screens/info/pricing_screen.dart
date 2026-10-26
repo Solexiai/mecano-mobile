@@ -182,9 +182,9 @@ class PricingScreen extends StatelessWidget {
                 icon: Icons.event_busy_outlined,
                 title: tr('Annulation', 'Cancellation', 'Cancelación'),
                 body: tr(
-                  'Gratuite avant qu’un chauffeur accepte, et aussi après si le ramassage est dans plus de 2 heures. Sinon, des frais de 30 $ s’appliquent. Les mêmes frais s’appliquent si le chauffeur se déplace pour rien. Le montant est toujours affiché avant de confirmer.',
-                  'Free before a driver accepts, and also afterwards if pickup is more than 2 hours away. Otherwise, a $30 fee applies. The same fee applies if the driver makes a wasted trip. The amount is always shown before you confirm.',
-                  'Gratuita antes de que un conductor acepte, y también después si la recogida es en más de 2 horas. Si no, se aplica un cargo de 30 $. El mismo cargo se aplica si el conductor se desplaza en vano. El importe siempre se muestra antes de confirmar.',
+                  'Gratuite avant qu’un chauffeur accepte, et aussi après si le ramassage est dans plus de 2 heures. Sinon, des frais de 30 \$ s’appliquent. Les mêmes frais s’appliquent si le chauffeur se déplace pour rien. Le montant est toujours affiché avant de confirmer.',
+                  'Free before a driver accepts, and also afterwards if pickup is more than 2 hours away. Otherwise, a \$30 fee applies. The same fee applies if the driver makes a wasted trip. The amount is always shown before you confirm.',
+                  'Gratuita antes de que un conductor acepte, y también después si la recogida es en más de 2 horas. Si no, se aplica un cargo de 30 \$. El mismo cargo se aplica si el conductor se desplaza en vano. El importe siempre se muestra antes de confirmar.',
                 ),
                 tone: AppColors.warning,
               ),
