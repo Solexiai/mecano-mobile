@@ -20,7 +20,8 @@ import { bookingHandling, selectBookingVehicle } from "../lib/booking";
 // envoyé directement par le client est ignoré.
 // -----------------------------------------------------------------------------
 
-import { onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { activeConditionSurcharge, getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { consumeRoutingBudget } from "../lib/routingRateLimit";
@@ -113,6 +114,12 @@ async function resolvePromoDiscountAmount(
 export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   const input = request.data;
+
+  // Special conditions (Centre de commande, 2026-10-26): a paused service
+  // gives no new price; a storm supplement is added and locked in the quote.
+  const conditions = await getSpecialConditions().catch(() => null);
+  const paused = pauseMessage(conditions);
+  if (paused) throw new HttpsError("failed-precondition", paused, { quote_reason: "service_paused", pause_message: paused });
 
   let booking;
   let priceLoad: BookingLoad | undefined;
@@ -234,6 +241,15 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   // Handling supplement by item class (2026-10-26): from the locked items
   // only, with the classes and amounts of this pricing version.
   const itemClassFee = itemClassFeeFor(config, (priceLoad ?? booking?.load)?.items ?? []);
+  const conditionSurcharge = activeConditionSurcharge(conditions);
+  const pricingConfig: PricingVersionDoc = conditionSurcharge
+    ? { ...config, surcharges: [...config.surcharges.filter((s) => s.id !== conditionSurcharge.id),
+      { id: conditionSurcharge.id, mode: conditionSurcharge.mode, value: conditionSurcharge.value, enabled: true }] }
+    : config;
+  if (conditionSurcharge) {
+    input.applicableSurchargeIds = [...(input.applicableSurchargeIds ?? []).filter((id) => id !== conditionSurcharge.id),
+      conditionSurcharge.id];
+  }
   const baseArgs = {
     itemClassFee: itemClassFee.total,
     itemClassFeeToDriver: config.item_class_fees?.driver_keeps_all !== false,
@@ -247,7 +263,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     additionalStopsCount: Math.max(0, input.stops.length - 2),
     applicableSurchargeIds: input.applicableSurchargeIds,
   };
-  const unDiscountedResult = calculateCustomerQuote(config, baseArgs);
+  const unDiscountedResult = calculateCustomerQuote(pricingConfig, baseArgs);
 
   // 3. Résolution serveur du montant de remise (jamais un montant client).
   const customerDiscountAmount = await resolvePromoDiscountAmount(
@@ -256,7 +272,7 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   );
 
   // 4. Calcul final du devis avec la remise résolue côté serveur.
-  const flatPricingResult = calculateCustomerQuote(config, {
+  const flatPricingResult = calculateCustomerQuote(pricingConfig, {
     ...baseArgs,
     customerDiscountAmount,
   });
@@ -279,6 +295,9 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const lockedPricingResult = {
     ...pricingResult,
     ...(pricingResult.itemClassFeesTotal ? { itemClassFeeLines: itemClassFee.lines } : {}),
+    ...(conditionSurcharge && pricingResult.surchargesTotal > 0
+      ? { conditionSurcharge: { reason: conditionSurcharge.reason, mode: conditionSurcharge.mode, value: conditionSurcharge.value } }
+      : {}),
     customerTotal: toMajorUnits(customerTotalMinor),
   };
 

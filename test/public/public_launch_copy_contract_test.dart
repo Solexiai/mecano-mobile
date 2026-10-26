@@ -196,9 +196,9 @@ void main() {
           expect(
             find.textContaining(
               tr([
-                'tant que l’activation réelle n’a pas été confirmée',
-                'until live activation has been confirmed',
-                'hasta confirmar la activación real',
+                'Les paiements ouvriront au lancement du service à Granby.',
+                'Payments will open when the service launches in Granby.',
+                'Los pagos se abrirán con el lanzamiento del servicio en Granby.',
               ]),
             ),
             findsOneWidget,

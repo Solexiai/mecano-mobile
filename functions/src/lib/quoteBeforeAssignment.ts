@@ -3,6 +3,7 @@
 import { HttpsError } from 'firebase-functions/v2/https';
 import { BookingLoad, BookingSnapshot, DRIVER_JUDGEMENT, normalizeLoad, requestedTimeReason } from './booking';
 import { validateBookingPhotos } from './bookingPhotoValidation';
+import { bookingHoursReason, getSavedBookingHours } from './bookingHours';
 import { invalidArgument } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
 import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
@@ -52,7 +53,10 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
   if (!zones.enabled || !zones.zones.length) refuse('service_area_unconfigured');
   if (stops.some(s => !isWithinServiceZones(s.address.lat, s.address.lng, zones))) refuse('outside_service_area');
   if (load.timing_mode !== 'immediate' && !load.requested_at) refuse('requested_time_missing');
-  const timeReason = requestedTimeReason(load.requested_at);
+  // Hours saved by the admin (Où et quand ?, 2026-10-26) also apply.
+  const savedHours = await getSavedBookingHours();
+  const timeReason = requestedTimeReason(load.requested_at) ??
+    (savedHours ? bookingHoursReason(load.requested_at, savedHours) : null);
   if (timeReason) refuse(timeReason);
   return load;
 }

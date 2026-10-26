@@ -61,6 +61,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     with WidgetsBindingObserver {
   late BookingDraft _draft;
   late BookingDraftStorage _storage;
+  String? _pauseMessage;
+
+  /// Booking hours from the Centre de commande (2026-10-26).
+  BookingHours _hours = const BookingHours();
   final _pickup = TextEditingController();
   final _dropoff = TextEditingController();
   final _contactsForm = GlobalKey<FormState>();
@@ -322,6 +326,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Future<void> _loadConfiguration(int epoch) async {
     Map<String, dynamic>? policy;
     bool error = false, booking = false, payment = false, internalTest = false;
+    var hours = const BookingHours();
     try {
       final config = await _api.call('getBookingConfiguration');
       internalTest = config['internal_test_request'] == true;
@@ -331,6 +336,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         payment = availability['payment_enabled'] == true;
         error = availability['technical_error'] == true;
       }
+      hours = BookingHours.fromJson(config['booking_hours']);
       if (config['policy'] is Map) {
         final value = Map<String, dynamic>.from(config['policy'] as Map);
         if (BookingContract.from(value) != null) policy = value;
@@ -352,6 +358,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         );
       }
       _policy = policy;
+      _hours = hours;
       _configurationChecked = true;
       _internalTestAllowed = internalTest;
       _configurationError = error;
@@ -622,6 +629,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (details is Map && details['quote_reason'] is String) {
         if (mounted && epoch == _epoch && revision == _draft.revision) {
           setState(() {
+            // The admin's own words when the service is paused (2026-10-26).
+            if (details['pause_message'] is String) {
+              _pauseMessage = details['pause_message'] as String;
+            }
             _review = {
               'status': 'review_required',
               'reasons': [details['quote_reason']],
@@ -1526,7 +1537,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   /// Screen 4: when. As soon as possible, or a day and a fixed hour.
   List<Widget> _whenPart() {
     final now = DateTime.now();
-    final days = bookingSlotDays(now);
+    final days = bookingSlotDays(now, _hours);
     final dayKey = _draft.data['slot_day'] as String?;
     final day = slotDayFromKey(dayKey);
     final hour = (_draft.data['slot_hour'] as num?)?.toInt();
@@ -1539,7 +1550,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       final h = (_draft.data['slot_hour'] as num?)?.toInt();
       _draft.data['timing_mode'] = 'scheduled';
       _draft.data['requested_at'] =
-          d != null && h != null && slotOpen(d, h, DateTime.now())
+          d != null && h != null && slotOpen(d, h, DateTime.now(), _hours)
           ? DateTime(d.year, d.month, d.day, h).toUtc().toIso8601String()
           : null;
       _changed();
@@ -1600,7 +1611,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             _draft.data['slot_day'] = key;
             final d = slotDayFromKey(key);
             final h = (_draft.data['slot_hour'] as num?)?.toInt();
-            if (d != null && h != null && !slotOpen(d, h, DateTime.now())) {
+            if (d != null && h != null && !slotOpen(d, h, DateTime.now(), _hours)) {
               _draft.data['slot_hour'] = null;
             }
             applySlot();
@@ -1617,8 +1628,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             keyPrefix: 'slot-hour',
             selected: hour?.toString(),
             options: [
-              for (final h in bookingSlotHours)
-                if (slotOpen(day, h, now))
+              for (final h in _hours.slotHours)
+                if (slotOpen(day, h, now, _hours))
                   ('$h', slotHourLabel(h, widget.locale)),
             ],
             onSelected: (value) {
@@ -1691,9 +1702,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   String get _tooFarMessage => tr(
-    'Choisissez une date dans les 4 prochains jours.',
-    'Choose a date within the next 4 days.',
-    'Elige una fecha dentro de los próximos 4 días.',
+    'Choisissez une date dans les ${_hours.daysAhead} prochains jours.',
+    'Choose a date within the next ${_hours.daysAhead} days.',
+    'Elige una fecha dentro de los próximos ${_hours.daysAhead} días.',
   );
 
   // Presentation only: never round stored dimensions or quote payloads.
@@ -2041,6 +2052,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'An item is classified as “Other” or “Materials”. Tap “Complete”, then on the item: choose its type (e.g. Washer / dryer, quantity 2), or open “Notes for the driver” and enter its measurements and a precaution.',
       'Un artículo está clasificado como «Otro» o «Materiales». Toca «Completar» y, en el artículo, elige su tipo (p. ej. Lavadora / secadora, cantidad 2), o abre «Detalles para el conductor» e indica sus medidas y una precaución.',
     ),
+    'service_paused' =>
+      _pauseMessage ??
+      tr(
+        'Le service est en pause pour le moment. Réessayez plus tard.',
+        'The service is paused for now. Try again later.',
+        'El servicio está en pausa por ahora. Inténtalo más tarde.',
+      ),
+    'requested_time_closed' => tr(
+      'Cette heure n’est pas offerte. Choisissez une autre heure.',
+      'This time is not offered. Choose another time.',
+      'Esta hora no está disponible. Elige otra hora.',
+    ),
     'no_eligible_photo_vehicle' => tr(
       'Aucun véhicule configuré ne répond aux informations fournies.',
       'No configured vehicle meets the supplied details.',
@@ -2145,6 +2168,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'outside_service_area',
           'requested_time_past',
           'requested_time_too_far',
+          'requested_time_closed',
           'requested_time_missing',
         }.contains(reason),
       ))
@@ -2336,6 +2360,22 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFFD7E1F5)),
               ),
+              // The reason of a conditions supplement, always visible before
+              // paying (Conditions spéciales, 2026-10-26).
+              if (quote['breakdown'] is Map &&
+                  (quote['breakdown'] as Map)['conditionSurcharge'] is Map)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '${tr('Comprend', 'Includes', 'Incluye')} : ${_surchargeLabel(Map<String, dynamic>.from(quote['breakdown'] as Map)).toLowerCase()}',
+                    key: const ValueKey('booking-price-condition'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFFFD9A8),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -2467,6 +2507,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   /// The full price breakdown, folded by default.
+  /// "Supplément tempête de neige" when the admin turned it on (2026-10-26).
+  String _surchargeLabel(Map<String, dynamic> breakdown) {
+    final condition = breakdown['conditionSurcharge'];
+    final reason = condition is Map ? condition['reason'] : null;
+    return switch (reason) {
+      'snow' => tr('Supplément tempête de neige', 'Snowstorm supplement', 'Suplemento tormenta de nieve'),
+      'ice' => tr('Supplément verglas', 'Freezing rain supplement', 'Suplemento hielo'),
+      'rain' => tr('Supplément pluie forte', 'Heavy rain supplement', 'Suplemento lluvia fuerte'),
+      'event' => tr('Supplément événement', 'Event supplement', 'Suplemento evento'),
+      _ => tr('Suppléments', 'Surcharges', 'Suplementos'),
+    };
+  }
+
   Widget _priceDetails() {
     final quote = _draft.quote!;
     final breakdown = Map<String, dynamic>.from(
@@ -2480,7 +2533,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'additionalStopsFee',
         tr('Arrêts supplémentaires', 'Additional stops', 'Paradas adicionales'),
       ),
-      ('surchargesTotal', tr('Suppléments', 'Surcharges', 'Suplementos')),
+      ('surchargesTotal', _surchargeLabel(breakdown)),
       (
         'customerServiceFee',
         tr('Frais de service', 'Service fee', 'Tarifa de servicio'),

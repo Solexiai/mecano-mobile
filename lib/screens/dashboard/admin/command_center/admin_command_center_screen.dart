@@ -9,7 +9,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
+import 'conditions_panel.dart';
 import 'price_simulator.dart';
+import 'service_settings_panel.dart';
 import 'share_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
@@ -28,6 +30,8 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.initialTab = 'accueil',
     this.itemTypesApi,
     this.pricingTab,
+    this.serviceApi,
+    this.conditionsApi,
     this.loadActive,
     this.preview,
   });
@@ -36,6 +40,8 @@ class AdminCommandCenterScreen extends StatefulWidget {
 
   /// Test seam: the pricing tab reads Firestore.
   final Widget? pricingTab;
+  final ServiceSettingsApi? serviceApi;
+  final ConditionsApi? conditionsApi;
 
   /// Test seams for the simulator (active grid, server preview).
   final ActiveVersionLoader? loadActive;
@@ -97,21 +103,13 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
         _Home(onOpen: _open, loadActive: widget.loadActive, preview: widget.preview),
         AdminItemTypesPanel(api: widget.itemTypesApi),
         widget.pricingTab ?? const AdminFinancePricingTab(),
-        const _Coming(
-          title: 'Où et quand ?',
-          text:
-              'Zone desservie, heures de réservation, délai minimum et jours ouverts, modifiables ici. En préparation.',
-        ),
+        ServiceSettingsPanel(api: widget.serviceApi),
         SharePanel(
           onEditPrices: () => _open('combien'),
           loadActive: widget.loadActive,
           preview: widget.preview,
         ),
-        const _Coming(
-          title: 'Conditions spéciales',
-          text:
-              'Supplément tempête ou verglas (raison montrée au client avant de payer) et pause du service. En préparation.',
-        ),
+        ConditionsPanel(api: widget.conditionsApi),
       ],
     ),
   );
@@ -185,11 +183,11 @@ class _Home extends StatelessWidget {
       tile('combien', '2 · COMBIEN ?', 'Prix',
           'Prix de base et suppléments. Essayer, comparer, publier une version.'),
       tile('service', '3 · OÙ ET QUAND ?', 'Service',
-          'Zone desservie, heures de réservation, délai minimum.', ready: false),
+          'Zone desservie, heures de réservation, délai minimum.'),
       tile('partage', '4 · QUI REÇOIT QUOI ?', 'Partage',
           'Commission Movi-K, part du chauffeur, frais de service.'),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',
-          'Supplément tempête, pause du service.', ready: false),
+          'Supplément tempête, pause du service.'),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -230,18 +228,4 @@ class _Home extends StatelessWidget {
       ],
     );
   }
-}
-
-class _Coming extends StatelessWidget {
-  const _Coming({required this.title, required this.text});
-  final String title, text;
-  @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.all(24),
-    children: [
-      Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-      const SizedBox(height: 8),
-      Text(text, style: const TextStyle(fontSize: 16)),
-    ],
-  );
 }

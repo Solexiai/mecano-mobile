@@ -45,6 +45,11 @@ beforeEach(() => {
       reads.push(path);
       if (path === 'pricing_configs/active') return { exists: true, data: () => ({ active_pricing_version: config.pricing_version }) };
       if (path === `pricing_versions/${config.pricing_version}`) return { exists: true, data: () => config };
+      // Booking hours set in the Centre de commande (2026-10-26): a time
+      // rule, never a price input. None saved here.
+      if (path === 'system_config/booking_hours') return { exists: false, data: () => undefined };
+      // Special conditions (2026-10-26): none saved here.
+      if (path === 'system_config/special_conditions') return { exists: false, data: () => undefined };
       throw new Error(`UNEXPECTED_DEPENDENCY:${path}`);
     },
     set: async (value: any) => { if (!path.startsWith('delivery_quotes/')) throw new Error('UNEXPECTED_WRITE'); written[path] = value; },
@@ -59,7 +64,7 @@ test('price is issued with no capacity, photo policy, driver, booking policy or 
   expect(result).toMatchObject({ quoteId: 'quote-first-test', customerTotal: 45.5, assignmentPending: true, booking: null });
   expect(reviewBooking).not.toHaveBeenCalled();
   expect(validateBookingPhotos).toHaveBeenCalledTimes(1);
-  expect(reads).toEqual(['pricing_configs/active', `pricing_versions/${config.pricing_version}`]);
+  expect(reads).toEqual(['system_config/special_conditions', 'system_config/booking_hours', 'pricing_configs/active', `pricing_versions/${config.pricing_version}`]);
   expect(Object.keys(written)).toEqual(['delivery_quotes/quote-first-test']);
   const saved = written['delivery_quotes/quote-first-test'];
   expect(saved.mission_id).toBeNull(); expect(saved.is_consumed).toBe(false);
