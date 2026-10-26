@@ -69,7 +69,7 @@ void main() {
       // 20 types since 2026-10-26: the menu opens on "Autre objet" (last),
       // scroll up to the first one.
       await tester.scrollUntilVisible(
-        find.text('Divan / sofa / sectionnel').last,
+        find.text('Divan / sofa / sectionnel'),
         -200,
         scrollable: find.byType(Scrollable).last,
       );
