@@ -61,6 +61,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     with WidgetsBindingObserver {
   late BookingDraft _draft;
   late BookingDraftStorage _storage;
+  String? _pauseMessage;
+
   /// Booking hours from the Centre de commande (2026-10-26).
   BookingHours _hours = const BookingHours();
   final _pickup = TextEditingController();
@@ -627,6 +629,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       if (details is Map && details['quote_reason'] is String) {
         if (mounted && epoch == _epoch && revision == _draft.revision) {
           setState(() {
+            // The admin's own words when the service is paused (2026-10-26).
+            if (details['pause_message'] is String) {
+              _pauseMessage = details['pause_message'] as String;
+            }
             _review = {
               'status': 'review_required',
               'reasons': [details['quote_reason']],
@@ -2046,6 +2052,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'An item is classified as “Other” or “Materials”. Tap “Complete”, then on the item: choose its type (e.g. Washer / dryer, quantity 2), or open “Notes for the driver” and enter its measurements and a precaution.',
       'Un artículo está clasificado como «Otro» o «Materiales». Toca «Completar» y, en el artículo, elige su tipo (p. ej. Lavadora / secadora, cantidad 2), o abre «Detalles para el conductor» e indica sus medidas y una precaución.',
     ),
+    'service_paused' =>
+      _pauseMessage ??
+      tr(
+        'Le service est en pause pour le moment. Réessayez plus tard.',
+        'The service is paused for now. Try again later.',
+        'El servicio está en pausa por ahora. Inténtalo más tarde.',
+      ),
     'requested_time_closed' => tr(
       'Cette heure n’est pas offerte. Choisissez une autre heure.',
       'This time is not offered. Choose another time.',
@@ -2347,6 +2360,22 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFFD7E1F5)),
               ),
+              // The reason of a conditions supplement, always visible before
+              // paying (Conditions spéciales, 2026-10-26).
+              if (quote['breakdown'] is Map &&
+                  (quote['breakdown'] as Map)['conditionSurcharge'] is Map)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    '${tr('Comprend', 'Includes', 'Incluye')} : ${_surchargeLabel(Map<String, dynamic>.from(quote['breakdown'] as Map)).toLowerCase()}',
+                    key: const ValueKey('booking-price-condition'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFFFD9A8),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -2478,6 +2507,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   /// The full price breakdown, folded by default.
+  /// "Supplément tempête de neige" when the admin turned it on (2026-10-26).
+  String _surchargeLabel(Map<String, dynamic> breakdown) {
+    final condition = breakdown['conditionSurcharge'];
+    final reason = condition is Map ? condition['reason'] : null;
+    return switch (reason) {
+      'snow' => tr('Supplément tempête de neige', 'Snowstorm supplement', 'Suplemento tormenta de nieve'),
+      'ice' => tr('Supplément verglas', 'Freezing rain supplement', 'Suplemento hielo'),
+      'rain' => tr('Supplément pluie forte', 'Heavy rain supplement', 'Suplemento lluvia fuerte'),
+      'event' => tr('Supplément événement', 'Event supplement', 'Suplemento evento'),
+      _ => tr('Suppléments', 'Surcharges', 'Suplementos'),
+    };
+  }
+
   Widget _priceDetails() {
     final quote = _draft.quote!;
     final breakdown = Map<String, dynamic>.from(
@@ -2491,7 +2533,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'additionalStopsFee',
         tr('Arrêts supplémentaires', 'Additional stops', 'Paradas adicionales'),
       ),
-      ('surchargesTotal', tr('Suppléments', 'Surcharges', 'Suplementos')),
+      ('surchargesTotal', _surchargeLabel(breakdown)),
       (
         'customerServiceFee',
         tr('Frais de service', 'Service fee', 'Tarifa de servicio'),

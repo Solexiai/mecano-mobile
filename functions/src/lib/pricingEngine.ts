@@ -61,6 +61,8 @@ export interface CustomerPricingResult {
   driverOnlyAmount?: number;
   /** Per item, for the customer's price details (calculateDeliveryQuote). */
   itemClassFeeLines?: { category: string; item_class: string; quantity: number; amount: number }[];
+  /** Special conditions supplement locked in this quote (2026-10-26). */
+  conditionSurcharge?: { reason: string; mode: string; value: number };
 }
 
 export function calculateCustomerQuote(

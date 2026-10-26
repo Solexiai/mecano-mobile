@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
+import 'conditions_panel.dart';
 import 'service_settings_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
@@ -28,6 +29,7 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.itemTypesApi,
     this.pricingTab,
     this.serviceApi,
+    this.conditionsApi,
   });
   final String initialTab;
   final ItemTypesApi? itemTypesApi;
@@ -35,6 +37,7 @@ class AdminCommandCenterScreen extends StatefulWidget {
   /// Test seam: the pricing tab reads Firestore.
   final Widget? pricingTab;
   final ServiceSettingsApi? serviceApi;
+  final ConditionsApi? conditionsApi;
 
   @override
   State<AdminCommandCenterScreen> createState() =>
@@ -98,11 +101,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           text:
               'Commission Movi-K, part du chauffeur, frais de service et partage du supplément par objet. En préparation.',
         ),
-        const _Coming(
-          title: 'Conditions spéciales',
-          text:
-              'Supplément tempête ou verglas (raison montrée au client avant de payer) et pause du service. En préparation.',
-        ),
+        ConditionsPanel(api: widget.conditionsApi),
       ],
     ),
   );
@@ -178,7 +177,7 @@ class _Home extends StatelessWidget {
       tile('partage', '4 · QUI REÇOIT QUOI ?', 'Partage',
           'Commission Movi-K, part du chauffeur, frais de service.', ready: false),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',
-          'Supplément tempête, pause du service.', ready: false),
+          'Supplément tempête, pause du service.'),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),
