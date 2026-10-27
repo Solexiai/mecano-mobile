@@ -49,7 +49,15 @@ export { registerPushToken, unregisterPushToken } from "./functions/registerPush
 export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 
 // ---- Finance ----
-export { recordTip } from "./functions/recordTip";
+// 🔒 SEC-03 / PAY-02 (rapport pré-lancement 2026-10-27) — `recordTip` n'est
+// PLUS exposée : elle écrivait une entrée de registre CONFIRMED (montant
+// libre, sans borne) sans jamais créer de PaymentIntent ; le pourboire
+// n'était ni encaissé auprès du client ni inclus dans le versement du
+// chauffeur, ce qui gonflait le solde dû et déclenchait TIP_MISMATCH à la
+// réconciliation. Le fichier `functions/recordTip.ts` est conservé (tests
+// d'intégration du registre) jusqu'à l'implémentation d'un vrai pourboire
+// Stripe. Le prochain `firebase deploy --only functions` supprimera la
+// fonction déployée (confirmer la suppression lorsque la CLI le demande).
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 export { createLedgerEntry } from "./functions/createLedgerEntry";
 export { calculateDriverPayout } from "./functions/calculateDriverPayout";

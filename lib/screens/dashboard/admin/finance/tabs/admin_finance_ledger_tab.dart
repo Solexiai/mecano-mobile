@@ -188,6 +188,7 @@ class _AdminFinanceLedgerTabState extends State<AdminFinanceLedgerTab> {
                     labelText: t('admin_ledger_col_type'),
                   ),
                   items: LedgerEntryType.values
+                      .where((v) => v != LedgerEntryType.unknown)
                       .map(
                         (v) => DropdownMenuItem(
                           value: v,

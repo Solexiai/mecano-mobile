@@ -413,7 +413,7 @@ describe("E2E REFUND APRÈS PAYOUT (Bloc R) — payout PAID -> refund client -> 
       expect(partialAmountMinor).toBeGreaterThan(0);
 
       const refundResult = await refundPayment.run(
-        authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        authedRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId: activePaymentId,
           amountMinor: partialAmountMinor,
           reason: RefundReasons.GOODWILL,
@@ -540,7 +540,7 @@ describe("E2E REFUND APRÈS PAYOUT (Bloc R) — payout PAID -> refund client -> 
 
       // ===== REFUND COMPLET (amountMinor omis = solde capturé intégral) =====
       const refundResult = await refundPayment.run(
-        authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        authedRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId: activePaymentId,
           reason: RefundReasons.MISSION_IMPOSSIBLE,
           clientRequestId: `e2erefundpp_full_click_${missionId}`,
@@ -591,7 +591,7 @@ describe("E2E REFUND APRÈS PAYOUT (Bloc R) — payout PAID -> refund client -> 
       // Un second remboursement (même 1 cent) doit être refusé : plus rien à rembourser.
       await expect(
         refundPayment.run(
-          authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+          authedRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
             paymentId: activePaymentId,
             amountMinor: 1,
             reason: RefundReasons.CUSTOMER_REQUEST,
@@ -651,7 +651,7 @@ describe("E2E REFUND APRÈS PAYOUT (Bloc R) — payout PAID -> refund client -> 
       const refundSpy = jest.spyOn(fakeProvider, "refundPayment");
       const partialAmountMinor = Math.floor(amountCapturedMinor * 0.25);
 
-      const refundRequest = authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      const refundRequest = authedRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId: activePaymentId,
         amountMinor: partialAmountMinor,
         reason: RefundReasons.CUSTOMER_REQUEST,

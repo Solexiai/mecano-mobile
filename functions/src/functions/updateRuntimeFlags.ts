@@ -10,11 +10,13 @@
 //
 // 🔒 Auto-bootstrap : si `system_config/runtime_flags` n'existe pas encore
 // (premier appel admin après déploiement Phase 8), cette fonction le crée
-// avec les 4 flags à `true` (voir RUNTIME_FLAG_BOOTSTRAP_DEFAULTS) AVANT
-// d'appliquer les changements demandés dans CETTE même transaction — un
-// admin n'a donc jamais besoin d'une étape manuelle séparée pour initialiser
-// la configuration (X-13), et ne peut jamais accidentellement écraser un
-// document déjà existant (la lecture précède toujours l'écriture).
+// avec les 4 flags à `false` (PAY-09, 2026-10-27 — voir
+// RUNTIME_FLAG_BOOTSTRAP_DEFAULTS) AVANT d'appliquer les changements
+// demandés dans CETTE même transaction : seuls les flags explicitement
+// passés à `true` sont ouverts. Un admin n'a donc jamais besoin d'une étape
+// manuelle séparée pour initialiser la configuration (X-13), et ne peut
+// jamais accidentellement écraser un document déjà existant (la lecture
+// précède toujours l'écriture).
 //
 // 🔒 Validation stricte (X-4) : seules les 4 clés `ALL_RUNTIME_FLAG_KEYS`
 // sont acceptées ; toute clé inconnue -> invalid-argument (jamais un champ
@@ -86,9 +88,9 @@ export const updateRuntimeFlags = onCall<UpdateRuntimeFlagsRequest>(async (reque
     const snap = await tx.get(configRef);
     const existing = snap.exists ? (snap.data() as Partial<RuntimeFlagsDoc>) : null;
 
-    // Base = document existant, ou defaults de BOOTSTRAP si le document
-    // n'existe pas encore (X-13 — jamais les fail-safe defaults à `false`
-    // ici : un bootstrap doit démarrer Movi-K opérationnel, pas bloqué).
+    // Base = document existant, ou defaults de BOOTSTRAP (tous `false`,
+    // PAY-09) si le document n'existe pas encore : une clé absente d'un
+    // document existant est elle aussi lue comme fermée.
     const baseValues: Record<RuntimeFlagKey, boolean> = existing
       ? {
           accept_new_delivery_requests: existing.accept_new_delivery_requests ?? RUNTIME_FLAG_BOOTSTRAP_DEFAULTS.accept_new_delivery_requests,

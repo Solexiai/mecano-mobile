@@ -1,6 +1,10 @@
 // -----------------------------------------------------------------------------
 // recordTip — Cloud Function callable (customer, mission complétée).
 //
+// ⚠️ NON EXPOSÉE depuis le 2026-10-27 (SEC-03 / PAY-02, voir index.ts) :
+// aucun encaissement Stripe n'est fait, le pourboire n'est jamais versé. À
+// réécrire autour d'un PaymentIntent dédié avant toute remise en service.
+//
 // Politique : 100% du pourboire va au chauffeur (TipPolicyConfig.driverTipPercentage,
 // voir lib/finance/models/pricing_config.dart). Toute dérogation à ce
 // pourcentage nécessite super_admin (canModifyProtectedFinancialPolicy) et

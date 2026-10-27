@@ -89,16 +89,20 @@ service cloud.firestore {
       // (request.resource.data.x == resource.data.x) échouait en erreur dès
       // qu'un de ces champs manquait dans un profil ancien : le client ne
       // pouvait alors plus enregistrer son nom ni son téléphone.
+      // 2026-10-27 (SEC-02) : `internal_tester` est un miroir d'affichage du
+      // claim du même nom, posé uniquement par setUserRole() ; jamais
+      // modifiable par le propriétaire.
       allow update: if isSignedIn() && uid() == userId &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ['roles', 'uid', 'created_at', 'is_disabled', 'email_verified']);
+          ['roles', 'uid', 'created_at', 'is_disabled', 'email_verified', 'internal_tester']);
 
       // Création initiale du profil (ex: juste après inscription) — rôle
       // forcé à ['customer'] uniquement ; toute élévation passe ensuite par
       // la Cloud Function setUserRole() (jamais par ce create).
       allow create: if isSignedIn() && uid() == userId &&
         request.resource.data.uid == userId &&
-        request.resource.data.roles == ['customer'];
+        request.resource.data.roles == ['customer'] &&
+        !('internal_tester' in request.resource.data);
 
       // 🔒 roles: Cloud Functions only (setUserRole). Aucune règle 'update'
       // ci-dessus n'autorise un changement de roles — la contrainte

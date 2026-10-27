@@ -74,6 +74,27 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                     children: roles.map((r) => Chip(label: Text(r))).toList(),
                   ),
                   const SizedBox(height: 20),
+                  // SEC-02 (2026-10-27) : compte de test interne. Le serveur
+                  // lit le claim `internal_tester` ; `users.internal_tester`
+                  // n'est qu'un miroir d'affichage écrit par setUserRole.
+                  Card(
+                    child: SwitchListTile(
+                      secondary: const Icon(Icons.science_outlined),
+                      title: Text(
+                        fr ? 'Compte de test interne' : 'Internal test account',
+                      ),
+                      subtitle: Text(
+                        fr
+                            ? 'Peut créer des livraisons de test sans paiement. Réservé aux comptes de Movi-K.'
+                            : 'Can create test deliveries without payment. Movi-K accounts only.',
+                      ),
+                      value: user['internal_tester'] == true,
+                      onChanged: _syncing
+                          ? null
+                          : (value) => _setInternalTester(roles, value, fr),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Card(
                     child: ListTile(
                       leading: Icon(
@@ -178,6 +199,49 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
           content: Text(
             error.message ??
                 (fr ? 'Synchronisation impossible.' : 'Unable to synchronize.'),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _setInternalTester(
+    List<String> currentRoles,
+    bool value,
+    bool fr,
+  ) async {
+    setState(() => _syncing = true);
+    final roles = currentRoles.isEmpty ? <String>['customer'] : currentRoles;
+    try {
+      await FirebaseFunctions.instance.httpsCallable('setUserRole').call({
+        'targetUid': widget.userId,
+        'roles': roles,
+        'internalTester': value,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            value
+                ? (fr
+                      ? 'Compte marqué comme test interne. La personne doit se reconnecter.'
+                      : 'Account marked as internal test. The person must sign in again.')
+                : (fr
+                      ? 'Statut de test interne retiré. La personne doit se reconnecter.'
+                      : 'Internal test status removed. The person must sign in again.'),
+          ),
+        ),
+      );
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ??
+                (fr ? 'Modification impossible.' : 'Unable to update.'),
           ),
           backgroundColor: AppColors.error,
         ),

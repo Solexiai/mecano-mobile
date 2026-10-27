@@ -12,7 +12,7 @@
 import { onCall } from "firebase-functions/v2/https";
 import type { UserRecord } from "firebase-admin/auth";
 import { admin, authAdmin, db } from "../lib/admin";
-import { requireSignedIn, requireSuperAdmin } from "../lib/auth";
+import { INTERNAL_TESTER_CLAIM, requireSignedIn, requireSuperAdmin } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLog } from "../lib/audit";
 import { PlatformRole, PlatformRoles } from "../lib/types";
@@ -42,14 +42,25 @@ function validClaimRoles(user: UserRecord): PlatformRole[] {
 export interface SetUserRoleRequest {
   targetUid: string;
   roles: PlatformRole[]; // ex: ['customer', 'driver']
+  /**
+   * 🔒 SEC-02 — marque (true) ou retire (false) le statut de compte de test
+   * interne (custom claim `internal_tester`). Omis => la valeur actuelle du
+   * claim est conservée. Un testeur interne peut créer des missions
+   * `internal_test` sans Stripe ; ce droit ne doit être posé que sur des
+   * comptes de recette appartenant à Movi-K.
+   */
+  internalTester?: boolean;
 }
 
 export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   requireSuperAdmin(ctx);
 
-  const { targetUid, roles } = request.data;
+  const { targetUid, roles, internalTester } = request.data;
   if (!targetUid) throw invalidArgument("targetUid est requis.");
+  if (internalTester !== undefined && typeof internalTester !== "boolean") {
+    throw invalidArgument("internalTester doit être un booléen strict (ou omis).");
+  }
   if (!Array.isArray(roles) || roles.length === 0) {
     throw invalidArgument("roles doit être un tableau non vide.");
   }
@@ -161,9 +172,15 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
     : null;
 
   // Les claims Firebase Auth demeurent la source de vérité des permissions.
+  // SEC-02 : le claim `internal_tester` est conservé tel quel si la requête
+  // ne le mentionne pas (un simple changement de rôle ne doit ni accorder ni
+  // retirer le statut de testeur).
+  const previousInternalTester = targetUser.customClaims?.[INTERNAL_TESTER_CLAIM] === true;
+  const effectiveInternalTester = internalTester ?? previousInternalTester;
   await authAdmin.setCustomUserClaims(resolvedUid, {
     role: effectiveRoles[0],
     roles: effectiveRoles,
+    ...(effectiveInternalTester ? { [INTERNAL_TESTER_CLAIM]: true } : {}),
   });
   await authAdmin.revokeRefreshTokens(resolvedUid);
 
@@ -180,6 +197,7 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
         uid: resolvedUid,
         email: targetUser.email ?? sourceUser.email,
         roles: effectiveRoles,
+        internal_tester: effectiveInternalTester,
         legacy_uids: admin.firestore.FieldValue.arrayUnion(targetUid),
         updated_at: now,
       },
@@ -228,7 +246,11 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
       batch.update(doc.ref, { driver_id: resolvedUid, updated_at: now });
     });
   } else {
-    batch.set(sourceUserRef, { roles: effectiveRoles, updated_at: now }, { merge: true });
+    batch.set(
+      sourceUserRef,
+      { roles: effectiveRoles, internal_tester: effectiveInternalTester, updated_at: now },
+      { merge: true }
+    );
   }
   await batch.commit();
 
@@ -243,6 +265,8 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
       resolvedUid,
       resolvedByEmail,
       newRoles: effectiveRoles,
+      internalTester: effectiveInternalTester,
+      internalTesterChanged: effectiveInternalTester !== previousInternalTester,
     },
   });
 
@@ -252,6 +276,7 @@ export const setUserRole = onCall<SetUserRoleRequest>(async (request) => {
     sourceUid: targetUid,
     relinked: resolvedByEmail,
     roles: effectiveRoles,
+    internalTester: effectiveInternalTester,
     note: "Le client doit rafraîchir son jeton ou se reconnecter pour appliquer immédiatement les nouveaux rôles.",
   };
 });

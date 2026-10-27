@@ -203,6 +203,15 @@ const List<String> _kPhase6Keys = [
   'ledger_type_customer_adjustment',
   'ledger_type_driver_adjustment',
   'ledger_type_customer_service_fee',
+  // TECH-04 (2026-10-27) — types alignés sur LedgerEntryTypes serveur
+  'ledger_type_customer_authorization',
+  'ledger_type_chargeback_reversal',
+  'ledger_type_chargeback_fee',
+  'ledger_type_chargeback_won',
+  'ledger_type_chargeback_lost',
+  'ledger_type_driver_payout_reversal',
+  'ledger_type_promotion_cost',
+  'ledger_type_unknown',
   // --- Communs réutilisés (doivent aussi être couverts) --------------------
   'common_cancel',
   'common_confirm',

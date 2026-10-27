@@ -1482,15 +1482,18 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
 
   it(
     "config absente : le PREMIER appel admin à updateRuntimeFlags crée le document " +
-      "(bootstrap à true pour les flags non modifiés), puis les actions protégées " +
-      "fonctionnent selon les flags configurés",
+      "(PAY-09 : bootstrap à FALSE pour les flags non mentionnés), puis les actions " +
+      "protégées fonctionnent selon les flags explicitement ouverts",
     async () => {
       await deleteRuntimeFlagsDoc();
 
+      // 🔒 PAY-09 (2026-10-27) — l'admin n'ouvre QUE accept_new_delivery_requests.
+      // Avant le correctif, les 3 autres flags (dont payments_enabled et
+      // driver_payouts_enabled) auraient été créés à `true` à son insu.
       const result = await updateRuntimeFlags.run(
         authedRequest<UpdateRuntimeFlagsRequest>(
           "flagsK_admin_001",
-          { flags: { payments_enabled: false } },
+          { flags: { accept_new_delivery_requests: true } },
           "admin"
         )
       );
@@ -1499,14 +1502,13 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
       const docAfter = await RUNTIME_FLAGS_REF().get();
       expect(docAfter.exists).toBe(true);
       const data = docAfter.data()!;
-      // Le flag explicitement modifié reflète la demande...
-      expect(data.payments_enabled).toBe(false);
-      // ...les 3 AUTRES flags, jamais mentionnés dans cet appel, démarrent au
-      // bootstrap PERMISSIF (true) — Movi-K reste opérationnel par défaut,
-      // seul le flag explicitement coupé par l'admin est désactivé.
+      // Le flag explicitement ouvert reflète la demande...
       expect(data.accept_new_delivery_requests).toBe(true);
-      expect(data.allow_driver_acceptance).toBe(true);
-      expect(data.driver_payouts_enabled).toBe(true);
+      // ...les 3 AUTRES flags, jamais mentionnés dans cet appel, démarrent
+      // FERMÉS (fail-closed) : rien ne s'ouvre sans demande explicite.
+      expect(data.payments_enabled).toBe(false);
+      expect(data.allow_driver_acceptance).toBe(false);
+      expect(data.driver_payouts_enabled).toBe(false);
       expect(data.updated_by_user_id).toBe("flagsK_admin_001");
 
       // ---- L'audit documente explicitement que ce document a été bootstrappé ----
@@ -1519,8 +1521,9 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
       expect(bootstrapEntry).toBeTruthy();
 
       // ---- Les flags configurés sont maintenant appliqués : accept_new_
-      // delivery_requests=true (bootstrap) fonctionne, mais payments_enabled
-      // =false bloque acceptDelivery (démontré exhaustivement en section D). ----
+      // delivery_requests=true (ouvert explicitement) fonctionne, mais
+      // payments_enabled=false bloque acceptDelivery (démontré exhaustivement
+      // en section D). ----
       await Promise.all([
         seedPricing(PRICING_VERSION),
         db.collection("payment_profiles").doc(CUSTOMER_ID).set(buildFakePaymentProfile(CUSTOMER_ID)),
@@ -1537,7 +1540,7 @@ describe("Bloc X (X-11, section K) — bootstrap", () => {
         authedRequest<CreateDeliveryRequestRequest>(CUSTOMER_ID, {
           quoteId: quote.quoteId,
           itemCategoryKey: "furniture",
-          description: "bootstrap puis création OK (accept_new_delivery_requests=true)",
+          description: "bootstrap fail-closed puis création OK (accept_new_delivery_requests ouvert explicitement)",
           requiredVehicleCategory: "cargoVan",
           distanceKm: 10,
           estimatedDurationMinutes: 20,

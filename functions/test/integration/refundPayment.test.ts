@@ -165,7 +165,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     await seedPayment(paymentId, { amountCapturedMinor: 5000, missionId });
 
     const result = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         reason: RefundReasons.CUSTOMER_REQUEST,
         clientRequestId: "click_full_1",
@@ -206,7 +206,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     await seedPayment(paymentId, { amountCapturedMinor: 10000, missionId });
 
     const result = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 3000,
         reason: RefundReasons.GOODWILL,
@@ -229,7 +229,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     await seedPayment(paymentId, { amountCapturedMinor: 10000, missionId });
 
     const r1 = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 4000,
         reason: RefundReasons.PARTIAL_DELIVERY,
@@ -239,7 +239,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     expect(r1.success).toBe(true);
 
     const r2 = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 3500,
         reason: RefundReasons.PARTIAL_DELIVERY,
@@ -254,7 +254,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     // Le 3e remboursement pousse EXACTEMENT au montant capturé => REFUNDED.
     const r3 = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 2500,
         reason: RefundReasons.PARTIAL_DELIVERY,
@@ -270,7 +270,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     // remboursable.
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 1,
           reason: RefundReasons.PARTIAL_DELIVERY,
@@ -289,7 +289,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 5001,
           reason: RefundReasons.CUSTOMER_REQUEST,
@@ -306,7 +306,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     const missionId = "mission_idempotent_1";
     await seedPayment(paymentId, { amountCapturedMinor: 5000, missionId });
 
-    const req = buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+    const req = buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
       paymentId,
       amountMinor: 2000,
       reason: RefundReasons.CUSTOMER_REQUEST,
@@ -346,7 +346,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     // ce spy le révélerait immédiatement (2 appels au lieu de 1).
     const refundSpy = jest.spyOn(currentFakeProvider, "refundPayment");
 
-    const req = buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+    const req = buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
       paymentId,
       amountMinor: 2000,
       reason: RefundReasons.CUSTOMER_REQUEST,
@@ -405,7 +405,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     // Pas de financial_snapshot ni de driver_payouts liés => pas de payout.
 
     const result = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 1000,
         reason: RefundReasons.GOODWILL,
@@ -444,7 +444,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
       const payoutBefore = (await db.collection("driver_payouts").doc(payoutId).get()).data()!;
 
       const result = await refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 1500,
           reason: RefundReasons.CUSTOMER_REQUEST,
@@ -491,7 +491,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 100,
           reason: RefundReasons.CUSTOMER_REQUEST,
@@ -506,7 +506,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
   it("refuse (not-found) si le paiement n'existe pas", async () => {
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId: "pay_does_not_exist_xyz",
           amountMinor: 100,
           reason: RefundReasons.CUSTOMER_REQUEST,
@@ -516,7 +516,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     ).rejects.toThrow();
   });
 
-  it("refuse (permission-denied) si l'appelant n'est ni le client propriétaire ni un admin", async () => {
+  it("refuse (permission-denied) si l'appelant est un client étranger au paiement", async () => {
     const paymentId = "pay_unauthorized_1";
     const missionId = "mission_unauthorized_1";
     await seedPayment(paymentId, { amountCapturedMinor: 3000, missionId });
@@ -530,7 +530,49 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
           clientRequestId: "unauthorized_1",
         })
       )
-    ).rejects.toThrow();
+    ).rejects.toThrow(/admin/i);
+
+    await cleanupAll([paymentId], [missionId]);
+  });
+
+  // 🔒 SEC-01 (2026-10-27) — le remboursement en libre-service est retiré :
+  // même le client PROPRIÉTAIRE du paiement ne peut plus se rembourser, y
+  // compris après livraison (mission completed). Aucun RefundDoc ne doit
+  // être créé et le solde du paiement doit rester intact.
+  it("SEC-01 : refuse le client propriétaire, même après livraison, sans créer de refund", async () => {
+    const paymentId = "pay_owner_selfservice_1";
+    const missionId = "mission_owner_selfservice_1";
+    await seedPayment(paymentId, { amountCapturedMinor: 3000, missionId });
+    await db.collection("delivery_requests").doc(missionId).set(
+      { status: "completed", updated_at: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
+
+    await expect(
+      refundPayment.run(
+        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+          paymentId,
+          reason: RefundReasons.CUSTOMER_REQUEST,
+          clientRequestId: "owner_selfservice_1",
+        })
+      )
+    ).rejects.toThrow(/admin/i);
+
+    // Un analyste (lecture seule) est refusé lui aussi.
+    await expect(
+      refundPayment.run(
+        buildRequest<RefundPaymentRequest>("refund_analyst_001", "analyst", {
+          paymentId,
+          reason: RefundReasons.CUSTOMER_REQUEST,
+          clientRequestId: "analyst_selfservice_1",
+        })
+      )
+    ).rejects.toThrow(/admin/i);
+
+    const refunds = await db.collection("refunds").where("payment_id", "==", paymentId).get();
+    expect(refunds.empty).toBe(true);
+    const paySnap = await db.collection("payments").doc(paymentId).get();
+    expect(paySnap.data()!.amount_refunded_minor).toBe(0);
 
     await cleanupAll([paymentId], [missionId]);
   });
@@ -564,7 +606,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
     await seedPayment(paymentId, { amountCapturedMinor: 3000, missionId });
 
     const result = await refundPayment.run(
-      buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+      buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
         paymentId,
         amountMinor: 1000,
         reason: RefundReasons.CUSTOMER_REQUEST,
@@ -593,7 +635,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 100,
           reason: "not_a_valid_reason" as unknown as RefundPaymentRequest["reason"],
@@ -612,7 +654,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: 10.5,
           reason: RefundReasons.CUSTOMER_REQUEST,
@@ -623,7 +665,7 @@ describe("refundPayment — remboursement réel, complet/partiel, avant/après p
 
     await expect(
       refundPayment.run(
-        buildRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        buildRequest<RefundPaymentRequest>(ADMIN_ID, "admin", {
           paymentId,
           amountMinor: -100,
           reason: RefundReasons.CUSTOMER_REQUEST,

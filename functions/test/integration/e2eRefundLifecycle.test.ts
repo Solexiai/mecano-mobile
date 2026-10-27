@@ -335,7 +335,7 @@ describe("E2E REFUND (Bloc P->Q) — paiement capturé -> remboursement réel ->
       expect(partialAmountMinor).toBeGreaterThan(0);
 
       const refundResult = await refundPayment.run(
-        authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        authedRequest<RefundPaymentRequest>("e2erefund_admin_001", "admin", {
           paymentId: activePaymentId,
           amountMinor: partialAmountMinor,
           reason: RefundReasons.PARTIAL_DELIVERY,
@@ -426,7 +426,7 @@ describe("E2E REFUND (Bloc P->Q) — paiement capturé -> remboursement réel ->
 
       // ===== REFUND TOTAL : amountMinor OMIS => solde restant intégral =====
       const refundResult = await refundPayment.run(
-        authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+        authedRequest<RefundPaymentRequest>("e2erefund_admin_001", "admin", {
           paymentId: activePaymentId,
           reason: RefundReasons.CUSTOMER_REQUEST,
           clientRequestId: `e2erefund_full_click_${missionId}`,
@@ -474,7 +474,7 @@ describe("E2E REFUND (Bloc P->Q) — paiement capturé -> remboursement réel ->
       // Un second remboursement (même 1 cent) doit être refusé : plus rien à rembourser.
       await expect(
         refundPayment.run(
-          authedRequest<RefundPaymentRequest>(CUSTOMER_ID, "customer", {
+          authedRequest<RefundPaymentRequest>("e2erefund_admin_001", "admin", {
             paymentId: activePaymentId,
             amountMinor: 1,
             reason: RefundReasons.CUSTOMER_REQUEST,
