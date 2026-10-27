@@ -31,6 +31,7 @@ class _AdminFinancePayoutPolicyTabState
     extends State<AdminFinancePayoutPolicyTab> {
   bool _editing = false;
   bool _saving = false;
+  PayoutMode _mode = PayoutMode.stripeDirect;
   late TextEditingController _defaultController;
   late TextEditingController _newDriverController;
   late TextEditingController _riskyController;
@@ -77,6 +78,7 @@ class _AdminFinancePayoutPolicyTabState
                 _riskyController = TextEditingController(
                   text: '${config.riskyDriverHoldPeriodHours}',
                 );
+                _mode = config.payoutMode;
               }
 
               final canEdit = auth.isSuperAdmin;
@@ -106,6 +108,38 @@ class _AdminFinancePayoutPolicyTabState
                           ),
                         ),
                       ),
+                    // Option A (2026-10-27) : mode de versement. En
+                    // « Stripe direct », les rétentions ci-dessous ne
+                    // s'appliquent pas (Stripe vire à la capture).
+                    DropdownButtonFormField<PayoutMode>(
+                      key: const ValueKey('admin-payout-mode'),
+                      initialValue: _mode,
+                      decoration: InputDecoration(
+                        labelText: t('admin_payout_mode_label'),
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: [
+                        for (final m in PayoutMode.values)
+                          DropdownMenuItem(value: m, child: Text(t(m.i18nKey))),
+                      ],
+                      onChanged: canEdit && _editing
+                          ? (v) => setState(() => _mode = v ?? _mode)
+                          : null,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      t(
+                        _mode == PayoutMode.stripeDirect
+                            ? 'admin_payout_mode_stripe_direct_help'
+                            : 'admin_payout_mode_movik_batch_help',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     _HoldField(
                       label: t('admin_payout_policy_default'),
                       controller: _defaultController,
@@ -193,6 +227,7 @@ class _AdminFinancePayoutPolicyTabState
             defaultHoldPeriodHours: defaultH,
             newDriverHoldPeriodHours: newDriverH,
             riskyDriverHoldPeriodHours: riskyH,
+            payoutMode: _mode,
           );
       if (mounted && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

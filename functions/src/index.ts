@@ -60,6 +60,11 @@ export { attachCustomerPaymentMethod } from "./functions/attachCustomerPaymentMe
 export { createDriverStripeAccount } from "./functions/createDriverStripeAccount";
 export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyConfiguration";
 export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
+// Option A (2026-10-27) : miroir, pour le chauffeur, de la part virée par
+// Stripe Connect à la capture (driver_transfers/{paymentId}).
+export { onPaymentWrittenMirrorDriverTransfer } from "./functions/onPaymentWrittenMirrorDriverTransfer";
+// PAY-12 : publication des conditions de réservation finales (admin).
+export { publishBookingPolicy } from "./functions/publishBookingPolicy";
 export { refundPayment } from "./functions/refundPayment";
 export { updateDisputeStatus } from "./functions/updateDisputeStatus";
 export { processStripeWebhook, processStripeConnectWebhook } from "./functions/processStripeWebhook";

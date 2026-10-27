@@ -35,7 +35,8 @@
 
 import { admin, db } from "./admin";
 import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "./money";
-import { LedgerEntryTypes, MissionFinancialBalanceDoc, RefundStatuses } from "./types";
+import { LedgerEntryTypes, MissionFinancialBalanceDoc, PaymentDoc, RefundStatuses } from "./types";
+import { connectTransferShare } from "./payoutMode";
 
 /**
  * Calcule le `MissionFinancialBalanceDoc` "frais" pour une mission SANS
@@ -57,10 +58,16 @@ export async function computeMissionFinancialBalance(
   ]);
 
   // ---- Paiement : customer_charged (capturé), driver_paid dérivé du payout ----
+  // Option A (2026-10-27) : sur une destination charge Stripe Connect, la
+  // part du chauffeur est virée à la capture (connectTransferShare) — elle
+  // compte comme PAYÉE au chauffeur, nette des renversements estimés.
   let customerChargedMinor = 0;
+  let driverTransferredMinor = 0;
   for (const doc of paymentsQuery.docs) {
     const p = doc.data();
     customerChargedMinor = addMinor(customerChargedMinor, (p.amount_captured_minor as number) ?? 0);
+    const share = connectTransferShare(p as Partial<PaymentDoc>);
+    if (share) driverTransferredMinor = addMinor(driverTransferredMinor, share.netMinor);
   }
 
   // ---- Refunds : seuls les SUCCEEDED comptent comme argent réellement rendu ----
@@ -158,8 +165,8 @@ export async function computeMissionFinancialBalance(
   // driver_earned_minor de cette mission comme "payé" (hypothèse : un
   // payout PAID paie l'INTÉGRALITÉ des snapshots qu'il inclut, aucune
   // capture partielle de payout n'existe dans l'architecture actuelle).
-  let driverPaidMinor = 0;
-  if (snapshotIds.length > 0) {
+  let driverPaidMinor = driverTransferredMinor;
+  if (snapshotIds.length > 0 && driverTransferredMinor === 0) {
     // 🔒 BLOC N (Firestore/Indexes, gap réel corrigé) — AVANT : ce scan
     // lisait TOUS les driver_payouts `paid` de la PLATEFORME ENTIÈRE (sans
     // `.limit()`, sans filtre driver_id) pour trouver celui qui inclut le
@@ -222,6 +229,7 @@ export async function computeMissionFinancialBalance(
     customer_service_fee_minor: customerServiceFeeMinor,
     driver_earned_minor: driverEarnedMinor,
     driver_paid_minor: driverPaidMinor,
+    driver_transferred_minor: driverTransferredMinor,
     driver_tip_minor: driverTipMinor,
     driver_bonus_minor: driverBonusMinor,
     adjustments_minor: adjustmentsMinor,

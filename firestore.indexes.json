@@ -267,6 +267,20 @@
       ]
     },
     {
+      "collectionGroup": "driver_transfers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "driver_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "captured_at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "ratings",
       "queryScope": "COLLECTION",
       "fields": [

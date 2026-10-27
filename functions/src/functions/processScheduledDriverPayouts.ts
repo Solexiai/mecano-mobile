@@ -25,7 +25,8 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { admin, db } from "../lib/admin";
 import { writeAuditLog } from "../lib/audit";
-import { DriverPayoutDoc, DriverProfileDoc, PayoutStatuses } from "../lib/types";
+import { DriverPayoutDoc, DriverProfileDoc, PayoutModes, PayoutStatuses } from "../lib/types";
+import { readPayoutMode } from "../lib/payoutMode";
 import { submitDriverPayout } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
@@ -42,6 +43,22 @@ const BATCH_LIMIT = 100;
 export const processScheduledDriverPayouts = onSchedule(
   { schedule: "every 60 minutes", secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async () => {
+    // Option A (2026-10-27) : en mode stripe_direct, Stripe vire la part du
+    // chauffeur à la capture — ce chemin groupé est en veille : rien n'est
+    // promu ni soumis. Un versement groupé encore ouvert (créé avant le
+    // passage en stripe_direct) est signalé, jamais traité en silence.
+    if ((await readPayoutMode()) === PayoutModes.STRIPE_DIRECT) {
+      const open = await db
+        .collection("driver_payouts")
+        .where("status", "in", [PayoutStatuses.PENDING, PayoutStatuses.HELD, PayoutStatuses.ELIGIBLE])
+        .limit(1)
+        .get();
+      if (!open.empty) {
+        console.warn("[payouts] mode stripe_direct : versement groupé ouvert non traité", open.docs[0].id);
+      }
+      return;
+    }
+
     const now = admin.firestore.Timestamp.now();
 
     // ---- Étape A : PENDING|HELD -> ELIGIBLE (rétention écoulée) ----

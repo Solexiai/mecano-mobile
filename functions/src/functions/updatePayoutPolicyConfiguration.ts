@@ -17,12 +17,18 @@ import { admin, db } from "../lib/admin";
 import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
 import { invalidArgument } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
-import { PayoutPolicyConfigDoc } from "../lib/types";
+import { PayoutMode, PayoutModes, PayoutPolicyConfigDoc } from "../lib/types";
 
 export interface UpdatePayoutPolicyConfigurationRequest {
   defaultHoldPeriodHours: number;
   newDriverHoldPeriodHours: number;
   riskyDriverHoldPeriodHours: number;
+  /**
+   * Mode de versement (option A, 2026-10-27) : "stripe_direct" (défaut —
+   * Stripe vire la part du chauffeur à la capture, chemin groupé en veille)
+   * ou "movik_batch". Omis = valeur actuelle conservée.
+   */
+  payoutMode?: PayoutMode;
   /**
    * Identifiant de corrélation optionnel (traçabilité pure, jamais utilisé
    * pour la logique métier). Propagé dans l'événement d'audit
@@ -46,10 +52,14 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
       defaultHoldPeriodHours,
       newDriverHoldPeriodHours,
       riskyDriverHoldPeriodHours,
+      payoutMode,
       correlationId,
     } = request.data;
 
     assertNonNegativeHours(defaultHoldPeriodHours, "defaultHoldPeriodHours");
+    if (payoutMode !== undefined && payoutMode !== PayoutModes.STRIPE_DIRECT && payoutMode !== PayoutModes.MOVIK_BATCH) {
+      throw invalidArgument("payoutMode doit valoir 'stripe_direct' ou 'movik_batch'.");
+    }
     assertNonNegativeHours(newDriverHoldPeriodHours, "newDriverHoldPeriodHours");
     assertNonNegativeHours(riskyDriverHoldPeriodHours, "riskyDriverHoldPeriodHours");
 
@@ -67,10 +77,13 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
         ? (previousSnap.data() as PayoutPolicyConfigDoc)
         : null;
 
+      const effectiveMode: PayoutMode =
+        payoutMode ?? previousConfig?.payout_mode ?? PayoutModes.STRIPE_DIRECT;
       const config: PayoutPolicyConfigDoc = {
         default_hold_period_hours: defaultHoldPeriodHours,
         new_driver_hold_period_hours: newDriverHoldPeriodHours,
         risky_driver_hold_period_hours: riskyDriverHoldPeriodHours,
+        payout_mode: effectiveMode,
         updated_at: now,
         updated_by_user_id: ctx.uid,
       };
@@ -86,6 +99,7 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
           defaultHoldPeriodHours,
           newDriverHoldPeriodHours,
           riskyDriverHoldPeriodHours,
+          payoutMode: effectiveMode,
         },
       });
 
@@ -106,12 +120,14 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
                 defaultHoldPeriodHours: previousConfig.default_hold_period_hours,
                 newDriverHoldPeriodHours: previousConfig.new_driver_hold_period_hours,
                 riskyDriverHoldPeriodHours: previousConfig.risky_driver_hold_period_hours,
+                payoutMode: previousConfig.payout_mode ?? null,
               }
             : null,
           newConfiguration: {
             defaultHoldPeriodHours,
             newDriverHoldPeriodHours,
             riskyDriverHoldPeriodHours,
+            payoutMode: effectiveMode,
           },
           effectiveAt: now,
           configurationId: "payout_policy_configs/default",
@@ -138,15 +154,26 @@ export const updatePayoutPolicyConfiguration = onCall<UpdatePayoutPolicyConfigur
  */
 export async function readPayoutPolicyConfig(): Promise<PayoutPolicyConfigDoc> {
   const snap = await db.collection("payout_policy_configs").doc("default").get();
-  if (snap.exists) {
-    return snap.data() as PayoutPolicyConfigDoc;
-  }
-  return {
+  const defaults: PayoutPolicyConfigDoc = {
     default_hold_period_hours: 72,
     new_driver_hold_period_hours: 168,
     risky_driver_hold_period_hours: 336,
+    payout_mode: PayoutModes.STRIPE_DIRECT,
     updated_at: admin.firestore.Timestamp.now(),
     updated_by_user_id: "system_default",
+  };
+  if (!snap.exists) return defaults;
+  // Champ par champ : un document partiel (ex. seul payout_mode écrit)
+  // n'entraîne jamais une rétention NaN.
+  const stored = snap.data() as Partial<PayoutPolicyConfigDoc>;
+  const hours = (v: unknown, fallback: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : fallback;
+  return {
+    ...defaults,
+    ...stored,
+    default_hold_period_hours: hours(stored.default_hold_period_hours, defaults.default_hold_period_hours),
+    new_driver_hold_period_hours: hours(stored.new_driver_hold_period_hours, defaults.new_driver_hold_period_hours),
+    risky_driver_hold_period_hours: hours(stored.risky_driver_hold_period_hours, defaults.risky_driver_hold_period_hours),
   };
 }
 

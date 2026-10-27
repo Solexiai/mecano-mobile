@@ -3598,6 +3598,60 @@ class AppStrings {
       'en': 'No payouts yet.',
       'es': 'Ningún pago por el momento.',
     },
+    // ---- Option A (2026-10-27) : virements Stripe Connect à l'encaissement ----
+    'payout_summary_transferred': {
+      'fr': 'Viré par Stripe',
+      'en': 'Transferred by Stripe',
+      'es': 'Transferido por Stripe',
+    },
+    'payout_transfers_title': {
+      'fr': 'Virements Stripe',
+      'en': 'Stripe transfers',
+      'es': 'Transferencias Stripe',
+    },
+    'payout_transfers_note': {
+      'fr':
+          'À chaque livraison encaissée, votre part est virée sur votre compte Stripe, puis déposée sur votre compte bancaire selon le calendrier de versements de votre compte Stripe.',
+      'en':
+          'Each time a delivery is collected, your share is transferred to your Stripe account, then deposited to your bank according to your Stripe payout schedule.',
+      'es':
+          'Cada vez que se cobra una entrega, su parte se transfiere a su cuenta Stripe y luego se deposita en su banco según el calendario de pagos de su cuenta Stripe.',
+    },
+    'payout_transfers_empty': {
+      'fr': 'Aucun virement pour le moment.',
+      'en': 'No transfers yet.',
+      'es': 'Ninguna transferencia por el momento.',
+    },
+    'payout_transfer_status_transferred': {
+      'fr': 'Viré',
+      'en': 'Transferred',
+      'es': 'Transferido',
+    },
+    'payout_transfer_status_partially_reversed': {
+      'fr': 'Partiellement renversé',
+      'en': 'Partially reversed',
+      'es': 'Parcialmente revertido',
+    },
+    'payout_transfer_status_reversed': {
+      'fr': 'Renversé',
+      'en': 'Reversed',
+      'es': 'Revertido',
+    },
+    'payout_transfer_reversed_amount': {
+      'fr': 'Renversé (remboursement client)',
+      'en': 'Reversed (customer refund)',
+      'es': 'Revertido (reembolso al cliente)',
+    },
+    'payout_transfer_fee_purpose': {
+      'fr': 'Frais de mission',
+      'en': 'Mission fee',
+      'es': 'Cargo de misión',
+    },
+    'payout_transfer_captured_at': {
+      'fr': 'Encaissé le',
+      'en': 'Collected on',
+      'es': 'Cobrado el',
+    },
     'payout_amount': {'fr': 'Montant', 'en': 'Amount', 'es': 'Monto'},
     'payout_created_at': {
       'fr': 'Créé le',
@@ -4855,6 +4909,38 @@ class AppStrings {
       'fr': 'Politique de versement mise à jour.',
       'en': 'Payout policy updated.',
       'es': 'Política de pagos actualizada.',
+    },
+    // ---- Option A (2026-10-27) : mode de versement ----
+    'admin_payout_mode_label': {
+      'fr': 'Mode de versement',
+      'en': 'Payout mode',
+      'es': 'Modo de pago',
+    },
+    'admin_payout_mode_stripe_direct': {
+      'fr': 'Stripe direct (Connect)',
+      'en': 'Stripe direct (Connect)',
+      'es': 'Stripe directo (Connect)',
+    },
+    'admin_payout_mode_movik_batch': {
+      'fr': 'Versements groupés Movi-K',
+      'en': 'Movi-K batch payouts',
+      'es': 'Pagos agrupados Movi-K',
+    },
+    'admin_payout_mode_stripe_direct_help': {
+      'fr':
+          'La part du chauffeur est virée sur son compte Stripe au moment de l\'encaissement, puis déposée sur son compte bancaire par Stripe. Les rétentions ci-dessous ne s\'appliquent pas.',
+      'en':
+          'The driver\'s share is transferred to their Stripe account when the payment is collected, then deposited to their bank by Stripe. The hold periods below do not apply.',
+      'es':
+          'La parte del conductor se transfiere a su cuenta Stripe al cobrar el pago y luego Stripe la deposita en su banco. Las retenciones de abajo no se aplican.',
+    },
+    'admin_payout_mode_movik_batch_help': {
+      'fr':
+          'Movi-K regroupe les gains et les verse après la rétention, uniquement pour les paiements encaissés sans compte Stripe connecté.',
+      'en':
+          'Movi-K groups earnings and pays them out after the hold period, only for payments collected without a connected Stripe account.',
+      'es':
+          'Movi-K agrupa las ganancias y las paga tras la retención, solo para pagos cobrados sin cuenta Stripe conectada.',
     },
 
     // ---- Bloc L (étape 2/N) — statuts détaillés admin, non résumés ----

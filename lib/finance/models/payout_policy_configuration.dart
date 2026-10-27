@@ -21,10 +21,31 @@
 
 import '../../backend/models/firestore_date.dart';
 
+/// Mode de versement des chauffeurs (option A, 2026-10-27) — aligné sur
+/// `PayoutModes` côté serveur. `stripeDirect` : Stripe vire la part du
+/// chauffeur à la capture (destination charge), le chemin groupé Movi-K
+/// est en veille. `movikBatch` : chemin groupé historique.
+enum PayoutMode {
+  stripeDirect,
+  movikBatch;
+
+  String get firestoreValue =>
+      this == PayoutMode.movikBatch ? 'movik_batch' : 'stripe_direct';
+
+  String get i18nKey => this == PayoutMode.movikBatch
+      ? 'admin_payout_mode_movik_batch'
+      : 'admin_payout_mode_stripe_direct';
+
+  /// Absent ou inconnu -> stripeDirect (même repli que le serveur).
+  static PayoutMode fromFirestoreValue(String? value) =>
+      value == 'movik_batch' ? PayoutMode.movikBatch : PayoutMode.stripeDirect;
+}
+
 class PayoutPolicyConfiguration {
   final int defaultHoldPeriodHours;
   final int newDriverHoldPeriodHours;
   final int riskyDriverHoldPeriodHours;
+  final PayoutMode payoutMode;
 
   final DateTime updatedAt;
   final String updatedByUserId;
@@ -33,6 +54,7 @@ class PayoutPolicyConfiguration {
     required this.defaultHoldPeriodHours,
     required this.newDriverHoldPeriodHours,
     required this.riskyDriverHoldPeriodHours,
+    this.payoutMode = PayoutMode.stripeDirect,
     required this.updatedAt,
     required this.updatedByUserId,
   });
@@ -55,6 +77,7 @@ class PayoutPolicyConfiguration {
     'default_hold_period_hours': defaultHoldPeriodHours,
     'new_driver_hold_period_hours': newDriverHoldPeriodHours,
     'risky_driver_hold_period_hours': riskyDriverHoldPeriodHours,
+    'payout_mode': payoutMode.firestoreValue,
     'updated_at': updatedAt.toIso8601String(),
     'updated_by_user_id': updatedByUserId,
   };
@@ -69,6 +92,7 @@ class PayoutPolicyConfiguration {
           (json['new_driver_hold_period_hours'] as num? ?? 72).toInt(),
       riskyDriverHoldPeriodHours:
           (json['risky_driver_hold_period_hours'] as num? ?? 72).toInt(),
+      payoutMode: PayoutMode.fromFirestoreValue(json['payout_mode'] as String?),
       updatedAt: parseFirestoreDate(json['updated_at']) ?? DateTime.now(),
       updatedByUserId: json['updated_by_user_id'] as String? ?? '',
     );

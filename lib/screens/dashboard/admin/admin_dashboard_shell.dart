@@ -285,6 +285,16 @@ class _DashboardBody extends StatelessWidget {
                     : 'Authorized testers and trial terms.',
                 onTap: () => context.go('/$locale/admin/pilote'),
               ),
+              _ActionCard(
+                icon: Icons.gavel_outlined,
+                title: isFrench
+                    ? 'Conditions de réservation'
+                    : 'Booking terms',
+                subtitle: isFrench
+                    ? 'Relire, versionner et publier les conditions finales.'
+                    : 'Review, version and publish the final terms.',
+                onTap: () => context.go('/$locale/admin/conditions'),
+              ),
             ],
           ),
         ),

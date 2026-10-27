@@ -533,6 +533,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // driver_transfers/{paymentId} — option A (2026-10-27) : miroir, pour le
+    // chauffeur, de la part virée par Stripe Connect à la capture d'un
+    // paiement (montant, renversements, date). Écrit uniquement par le
+    // déclencheur onPaymentWrittenMirrorDriverTransfer (SDK Admin). Même
+    // portée de lecture que driver_payouts : le chauffeur propriétaire et
+    // analyst/admin/super_admin.
+    match /driver_transfers/{paymentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+
     // -------------------------------------------------------------------
     // PHASE 6 — collections financières additionnelles, toutes
     // Cloud-Functions-only en écriture (le SDK Admin contourne les Rules ;

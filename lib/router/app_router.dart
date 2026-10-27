@@ -39,6 +39,7 @@ import '../screens/dashboard/admin/missions/admin_missions_screen.dart';
 import '../screens/dashboard/admin/admin_item_types_screen.dart';
 import '../screens/dashboard/admin/command_center/admin_command_center_screen.dart';
 import '../screens/dashboard/admin/admin_pilot_screen.dart';
+import '../screens/dashboard/admin/admin_booking_policy_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../providers/firebase_auth_provider.dart';
 
@@ -494,6 +495,11 @@ class AppRouter {
                   path: 'pilote',
                   builder: (c, s) =>
                       const AdminAuthGate(child: AdminPilotScreen()),
+                ),
+                GoRoute(
+                  path: 'conditions',
+                  builder: (c, s) =>
+                      const AdminAuthGate(child: AdminBookingPolicyScreen()),
                 ),
                 GoRoute(
                   path: 'centre-commande',

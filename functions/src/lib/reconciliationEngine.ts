@@ -57,9 +57,12 @@ import {
   startFinancialOperationTimer,
 } from "./observability";
 import { assertStripeReferenceEnvironmentConsistency, StripeEnvironment } from "./stripeEnvironment";
+import { connectTransferShare, readPayoutMode } from "./payoutMode";
 import {
   DriverPayoutDoc,
   PaymentDoc,
+  PaymentStatuses,
+  PayoutModes,
   PayoutStatuses,
   ReconciliationAnomaly,
   ReconciliationReportDoc,
@@ -78,6 +81,19 @@ export const ReconciliationAnomalyTypes = {
   DUPLICATE_REFUND: "duplicate_refund",
   PAYOUT_MISSING: "payout_missing",
   PAYOUT_AMOUNT_MISMATCH: "payout_amount_mismatch",
+  /**
+   * Option A (2026-10-27, mode stripe_direct) — un snapshot confirmé dont
+   * le paiement a été capturé SANS compte connecté : Stripe n'a rien viré au
+   * chauffeur et aucun versement groupé ne le fera (chemin en veille) —
+   * versement manuel à organiser.
+   */
+  DRIVER_TRANSFER_MISSING: "driver_transfer_missing",
+  /**
+   * Option A — la part virée par Stripe à la capture (capturé moins
+   * application_fee) diffère du gain net du snapshot : la répartition de
+   * la destination charge (ex. taxes) ne suit pas le contrat économique.
+   */
+  DRIVER_TRANSFER_MISMATCH: "driver_transfer_mismatch",
   TIP_MISMATCH: "tip_mismatch",
   COMMISSION_LEDGER_INCONSISTENCY: "commission_ledger_inconsistency",
   WEBHOOK_UNPROCESSED: "webhook_unprocessed",
@@ -705,7 +721,16 @@ export async function runReconciliation(
   // mission a été complétée depuis plus de PAYOUT_STALE_THRESHOLD_MS,
   // signale un versement chauffeur jamais déclenché (bug de scheduling ou
   // d'agrégation) — jamais silencieusement corrigé ici.
+  //
+  // Option A (2026-10-27) : en mode stripe_direct, la part du chauffeur est
+  // virée par Stripe à la capture (destination charge). La vérification
+  // devient alors : pour chaque snapshot confirmé, le paiement actif de la
+  // mission, s'il est capturé, doit porter un compte connecté
+  // (driver_transfer_missing sinon) et la part virée doit égaler le gain
+  // net du snapshot (driver_transfer_mismatch sinon). Un paiement non
+  // capturé relève des vérifications de capture, pas de celle-ci.
   const PAYOUT_STALE_THRESHOLD_MS = 30 * 24 * 3600 * 1000; // 30 jours, seuil opérationnel (pas fiscal)
+  const payoutMode = await readPayoutMode();
   const staleSnapshotsQuery = await db
     .collection("financial_snapshots")
     .where("status", "==", "confirmed")
@@ -715,6 +740,59 @@ export async function runReconciliation(
   for (const snapDoc of staleSnapshotsQuery.docs) {
     const snap = snapDoc.data();
     if (snap.included_in_payout_id) continue;
+    if (payoutMode === PayoutModes.STRIPE_DIRECT) {
+      const missionId = typeof snap.mission_id === "string" ? (snap.mission_id as string) : null;
+      if (!missionId) continue;
+      const expectedMinor = toMinorUnits((snap.driver_net_mission_earnings as number) ?? 0, DEFAULT_CURRENCY);
+      const mission = (await db.collection("delivery_requests").doc(missionId).get()).data();
+      const activePaymentId = typeof mission?.active_payment_id === "string" ? (mission!.active_payment_id as string) : null;
+      const payment = activePaymentId
+        ? ((await db.collection("payments").doc(activePaymentId).get()).data() as PaymentDoc | undefined)
+        : undefined;
+      if (!payment || payment.status !== PaymentStatuses.CAPTURED) continue;
+      // Un frais de mission (annulation tardive, déplacement inutile) n'est
+      // pas la livraison décrite par le snapshot de devis.
+      if (payment.capture_purpose === "mission_fee") continue;
+      const share = connectTransferShare(payment);
+      if (!share) {
+        anomalies.push(
+          newAnomaly(now, {
+            severity: "critical",
+            type: ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISSING,
+            mission_id: missionId,
+            payment_id: activePaymentId,
+            payout_id: null,
+            refund_id: null,
+            expected_amount_minor: expectedMinor,
+            actual_amount_minor: 0,
+            description:
+              `payments/${activePaymentId} capturé sans compte connecté : Stripe n'a rien viré au ` +
+              `chauffeur et le chemin de versement groupé est en veille (mode stripe_direct) — ` +
+              `versement manuel à organiser (financial_snapshots/${snapDoc.id}).`,
+            resolution_notes: null,
+          })
+        );
+      } else if (share.amountMinor !== expectedMinor) {
+        anomalies.push(
+          newAnomaly(now, {
+            severity: "warning",
+            type: ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISMATCH,
+            mission_id: missionId,
+            payment_id: activePaymentId,
+            payout_id: null,
+            refund_id: null,
+            expected_amount_minor: expectedMinor,
+            actual_amount_minor: share.amountMinor,
+            description:
+              `payments/${activePaymentId} : part virée au chauffeur à la capture (${share.amountMinor}, ` +
+              `capturé moins application_fee) différente du gain net du snapshot ` +
+              `financial_snapshots/${snapDoc.id} (${expectedMinor}).`,
+            resolution_notes: null,
+          })
+        );
+      }
+      continue;
+    }
     const createdAtMillis = (snap.created_at as FirebaseFirestore.Timestamp)?.toMillis?.() ?? 0;
     if (now.toMillis() - createdAtMillis >= PAYOUT_STALE_THRESHOLD_MS) {
       anomalies.push(

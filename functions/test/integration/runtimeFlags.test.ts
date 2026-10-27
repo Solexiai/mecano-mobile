@@ -83,6 +83,11 @@ import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
 import {
+  cleanupMissionsWithPayments,
+  seedMissionWithPayment,
+  seedMovikBatchPayoutMode,
+} from "../testUtils/payoutBatchFixture";
+import {
   runtimeFlagsDocRef,
   seedRuntimeFlags,
   deleteRuntimeFlagsDoc,
@@ -787,6 +792,7 @@ describe("Bloc X (X-11, section F) — driver_payouts_enabled ON/OFF (2 entry po
   const DRIVER_ID = "flagsF_driver_001";
   const ADMIN_ID = "flagsF_admin_001";
 
+  const seededMissionIds: string[] = [];
   async function seedSnapshot(id: string, missionId: string, driverNetMissionEarnings: number): Promise<void> {
     await db.collection("financial_snapshots").doc(id).set({
       snapshot_id: id,
@@ -797,6 +803,9 @@ describe("Bloc X (X-11, section F) — driver_payouts_enabled ON/OFF (2 entry po
       included_in_payout_id: null,
       created_at: admin.firestore.Timestamp.now(),
     });
+    // Option A : versable seulement avec un paiement capturé sans compte connecté.
+    seededMissionIds.push(missionId);
+    await seedMissionWithPayment(missionId, DRIVER_ID);
   }
 
   async function seedDriverProfile(connectedAccountId: string | null): Promise<void> {
@@ -821,11 +830,17 @@ describe("Bloc X (X-11, section F) — driver_payouts_enabled ON/OFF (2 entry po
     await batch.commit();
     const ledger = await db.collection("transaction_ledger").where("driver_id", "==", DRIVER_ID).get();
     await Promise.all(ledger.docs.map((d) => d.ref.delete()));
+    await cleanupMissionsWithPayments(seededMissionIds.splice(0));
   }
 
   async function cleanupPayoutPolicy(): Promise<void> {
     await db.collection("payout_policy_configs").doc("default").delete();
   }
+
+  // Option A (2026-10-27) : le chemin groupé n'existe qu'en mode movik_batch.
+  beforeEach(async () => {
+    await seedMovikBatchPayoutMode();
+  });
 
   afterEach(async () => {
     setPaymentProviderForTesting(null);
@@ -848,6 +863,7 @@ describe("Bloc X (X-11, section F) — driver_payouts_enabled ON/OFF (2 entry po
             defaultHoldPeriodHours: 0,
             newDriverHoldPeriodHours: 0,
             riskyDriverHoldPeriodHours: 0,
+            payoutMode: "movik_batch",
           },
           "admin"
         )
@@ -896,6 +912,7 @@ describe("Bloc X (X-11, section F) — driver_payouts_enabled ON/OFF (2 entry po
             defaultHoldPeriodHours: 0,
             newDriverHoldPeriodHours: 0,
             riskyDriverHoldPeriodHours: 0,
+            payoutMode: "movik_batch",
           },
           "admin"
         )

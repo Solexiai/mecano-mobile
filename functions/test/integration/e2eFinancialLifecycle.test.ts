@@ -519,6 +519,7 @@ describe("E2E FINANCIER PRINCIPAL (Bloc P) — client -> devis -> ... -> payout 
 
       // ===== POINT 15 — PAYOUT HOLD (holdPeriodHours = 0, SANS compte connecté -> PENDING) =====
       await db.collection("payout_policy_configs").doc("default").set({
+        payout_mode: "movik_batch", // option A : chemin groupé explicite
         default_hold_period_hours: 0,
         new_driver_hold_period_hours: 0,
         risky_driver_hold_period_hours: 168,

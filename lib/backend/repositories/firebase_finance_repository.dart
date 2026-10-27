@@ -45,6 +45,7 @@ import '../../finance/models/payment_info.dart';
 import '../../finance/models/refund_info.dart';
 import '../../finance/models/mission_financial_balance.dart';
 import '../../finance/models/driver_payout_info.dart';
+import '../../finance/models/driver_transfer_info.dart';
 import '../../finance/models/dispute_info.dart';
 import '../../finance/models/reconciliation_report.dart';
 import '../../finance/models/tax_configuration.dart';
@@ -87,6 +88,8 @@ class FirebaseFinanceRepository implements FinanceRepository {
       _db.collection('refunds');
   CollectionReference<Map<String, dynamic>> get _missionFinancialBalance =>
       _db.collection('mission_financial_balance');
+  CollectionReference<Map<String, dynamic>> get _driverTransfers =>
+      _db.collection('driver_transfers');
   CollectionReference<Map<String, dynamic>> get _driverPayouts =>
       _db.collection('driver_payouts');
 
@@ -285,6 +288,21 @@ class FirebaseFinanceRepository implements FinanceRepository {
         .map(
           (snap) => snap.docs
               .map((d) => DriverPayoutInfo.fromJson(d.id, d.data()))
+              .toList(),
+        );
+  }
+
+  // Index composite driver_transfers(driver_id, captured_at desc) — voir
+  // firestore.indexes.json.
+  @override
+  Stream<List<DriverTransferInfo>> watchTransfersForDriver(String driverId) {
+    return _driverTransfers
+        .where('driver_id', isEqualTo: driverId)
+        .orderBy('captured_at', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => DriverTransferInfo.fromJson(d.id, d.data()))
               .toList(),
         );
   }
@@ -683,12 +701,14 @@ class FirebaseFinanceRepository implements FinanceRepository {
     required int defaultHoldPeriodHours,
     required int newDriverHoldPeriodHours,
     required int riskyDriverHoldPeriodHours,
+    PayoutMode? payoutMode,
     String? correlationId,
   }) async {
     await _functions.httpsCallable('updatePayoutPolicyConfiguration').call({
       'defaultHoldPeriodHours': defaultHoldPeriodHours,
       'newDriverHoldPeriodHours': newDriverHoldPeriodHours,
       'riskyDriverHoldPeriodHours': riskyDriverHoldPeriodHours,
+      if (payoutMode != null) 'payoutMode': payoutMode.firestoreValue,
       if (correlationId != null) 'correlationId': correlationId,
     });
   }

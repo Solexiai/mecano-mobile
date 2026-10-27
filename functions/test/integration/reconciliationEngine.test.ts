@@ -46,6 +46,7 @@ import {
 } from "../../src/lib/types";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
+import { clearPayoutMode, seedMovikBatchPayoutMode } from "../testUtils/payoutBatchFixture";
 
 const ADMIN_ID = "recon_admin_001";
 const SUPER_ADMIN_ID = "recon_super_admin_001";
@@ -77,6 +78,8 @@ async function seedPayment(
     providerPaymentIntentId?: string;
     createdAt?: FirebaseFirestore.Timestamp;
     stripeEnvironment?: "test" | "live";
+    connectedAccountId?: string | null;
+    applicationFeeMinor?: number;
   }
 ): Promise<void> {
   const now = opts.createdAt ?? admin.firestore.Timestamp.now();
@@ -90,19 +93,25 @@ async function seedPayment(
     amount_authorized_minor: opts.amountCapturedMinor,
     amount_captured_minor: opts.amountCapturedMinor,
     amount_refunded_minor: opts.amountRefundedMinor ?? 0,
-    application_fee_minor: Math.round(opts.amountCapturedMinor * 0.15),
+    application_fee_minor: opts.applicationFeeMinor ?? Math.round(opts.amountCapturedMinor * 0.15),
     provider: "stripe",
     ...(opts.stripeEnvironment ? { stripe_environment: opts.stripeEnvironment } : {}),
     provider_customer_id: `fake_cus_${CUSTOMER_ID}`,
     provider_payment_method_id: `fake_pm_${CUSTOMER_ID}`,
     provider_payment_intent_id: opts.providerPaymentIntentId ?? `fake_pi_${paymentId}`,
     provider_charge_id: `fake_ch_${paymentId}`,
-    connected_account_id: null,
+    connected_account_id: opts.connectedAccountId ?? null,
     idempotency_key: `createPayment:${paymentId}`,
     captured_at: now,
     created_at: now,
     updated_at: now,
   });
+  // Option A : la vérification 7 (stripe_direct) retrouve le paiement actif
+  // par la mission.
+  await db.collection("delivery_requests").doc(missionId).set(
+    { driver_id: DRIVER_ID, customer_id: CUSTOMER_ID, status: "completed", active_payment_id: paymentId },
+    { merge: true }
+  );
 }
 
 async function seedRefund(
@@ -247,6 +256,8 @@ async function cleanupAll(prefix: string): Promise<void> {
     "provider_webhook_events",
     "mission_financial_balance",
     "reconciliation_reports",
+    "delivery_requests",
+    "driver_transfers",
   ];
   for (const col of collections) {
     const snap = await db.collection(col).get();
@@ -450,24 +461,85 @@ describe("reconciliationEngine — détection des 11 anomalies (Bloc G, point 27
     expect(found?.actual_amount_minor).toBe(4000); // somme des refunds
   });
 
-  it("(7) payout_missing : snapshot confirmed ancien (>30j) jamais inclus dans un payout", async () => {
-    const missionId = "recon_mission_payout_missing_1";
-    const oldTimestamp = admin.firestore.Timestamp.fromMillis(Date.now() - 40 * 24 * 3600 * 1000);
-    await seedSnapshot("recon_snap_stale_1", missionId, {
-      driverNetMissionEarningsMinor: 6000,
-      createdAt: oldTimestamp,
-    });
+  it("(7) payout_missing (mode movik_batch) : snapshot confirmed ancien (>30j) jamais inclus dans un payout", async () => {
+    await seedMovikBatchPayoutMode();
+    try {
+      const missionId = "recon_mission_payout_missing_1";
+      const oldTimestamp = admin.firestore.Timestamp.fromMillis(Date.now() - 40 * 24 * 3600 * 1000);
+      await seedSnapshot("recon_snap_stale_1", missionId, {
+        driverNetMissionEarningsMinor: 6000,
+        createdAt: oldTimestamp,
+      });
 
-    const { report } = await runReconciliation({
-      periodStartMillis: oldTimestamp.toMillis() - 3600 * 1000,
-      periodEndMillis: oldTimestamp.toMillis() + 3600 * 1000,
-    });
+      const { report } = await runReconciliation({
+        periodStartMillis: oldTimestamp.toMillis() - 3600 * 1000,
+        periodEndMillis: oldTimestamp.toMillis() + 3600 * 1000,
+      });
 
+      const found = report.anomalies.find(
+        (a) => a.type === ReconciliationAnomalyTypes.PAYOUT_MISSING && a.mission_id === missionId
+      );
+      expect(found).toBeTruthy();
+      expect(found?.expected_amount_minor).toBe(6000);
+    } finally {
+      await clearPayoutMode();
+    }
+  });
+
+  it("(7-A) option A, mode stripe_direct : transfert Connect conforme -> aucune anomalie de versement", async () => {
+    const missionId = "recon_mission_transfer_ok_1";
+    // 10 000 capturé, 1 500 de frais plateforme -> 8 500 virés = gain net du snapshot.
+    await seedPayment("recon_pay_transfer_ok_1", missionId, {
+      amountCapturedMinor: 10000,
+      applicationFeeMinor: 1500,
+      connectedAccountId: "acct_fake_recon_ok",
+    });
+    await seedSnapshot("recon_snap_transfer_ok_1", missionId, { driverNetMissionEarningsMinor: 8500 });
+
+    const { report } = await runReconciliation({ periodStartMillis: PERIOD_START, periodEndMillis: PERIOD_END });
+    const payoutAnomalies = report.anomalies.filter(
+      (a) =>
+        a.mission_id === missionId &&
+        [
+          ReconciliationAnomalyTypes.PAYOUT_MISSING,
+          ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISSING,
+          ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISMATCH,
+        ].includes(a.type as never)
+    );
+    expect(payoutAnomalies).toEqual([]);
+  });
+
+  it("(7-B) option A : paiement capturé SANS compte connecté -> driver_transfer_missing (critique)", async () => {
+    const missionId = "recon_mission_transfer_missing_1";
+    await seedPayment("recon_pay_transfer_missing_1", missionId, { amountCapturedMinor: 10000 });
+    await seedSnapshot("recon_snap_transfer_missing_1", missionId, { driverNetMissionEarningsMinor: 8500 });
+
+    const { report } = await runReconciliation({ periodStartMillis: PERIOD_START, periodEndMillis: PERIOD_END });
     const found = report.anomalies.find(
-      (a) => a.type === ReconciliationAnomalyTypes.PAYOUT_MISSING && a.mission_id === missionId
+      (a) => a.type === ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISSING && a.mission_id === missionId
     );
     expect(found).toBeTruthy();
-    expect(found?.expected_amount_minor).toBe(6000);
+    expect(found?.severity).toBe("critical");
+    expect(found?.expected_amount_minor).toBe(8500);
+    expect(found?.payment_id).toBe("recon_pay_transfer_missing_1");
+  });
+
+  it("(7-C) option A : part virée différente du gain net du snapshot -> driver_transfer_mismatch", async () => {
+    const missionId = "recon_mission_transfer_mismatch_1";
+    await seedPayment("recon_pay_transfer_mismatch_1", missionId, {
+      amountCapturedMinor: 10000,
+      applicationFeeMinor: 1500, // 8 500 virés
+      connectedAccountId: "acct_fake_recon_mismatch",
+    });
+    await seedSnapshot("recon_snap_transfer_mismatch_1", missionId, { driverNetMissionEarningsMinor: 8000 });
+
+    const { report } = await runReconciliation({ periodStartMillis: PERIOD_START, periodEndMillis: PERIOD_END });
+    const found = report.anomalies.find(
+      (a) => a.type === ReconciliationAnomalyTypes.DRIVER_TRANSFER_MISMATCH && a.mission_id === missionId
+    );
+    expect(found).toBeTruthy();
+    expect(found?.expected_amount_minor).toBe(8000);
+    expect(found?.actual_amount_minor).toBe(8500);
   });
 
   it("(8) payout_amount_mismatch : montant payout Movi-K différent du montant provider", async () => {

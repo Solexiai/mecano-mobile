@@ -22,6 +22,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/finance/models/driver_payout_info.dart';
+import 'package:movik_connect/finance/models/driver_transfer_info.dart';
 import 'package:movik_connect/finance/models/financial_snapshot.dart';
 import 'package:movik_connect/screens/dashboard/provider/tabs/provider_payouts_section.dart';
 
@@ -88,7 +89,10 @@ void main() {
 
         expect(find.text(_t('payout_summary_title')), findsOneWidget);
         expect(find.text(_t('payout_missions_empty')), findsOneWidget);
-        expect(find.text(_t('payout_list_empty')), findsOneWidget);
+        // Option A : les virements Stripe sont le chemin réel ; la liste
+        // des versements groupés n'apparaît que s'il en existe.
+        expect(find.text(_t('payout_transfers_empty')), findsOneWidget);
+        expect(find.text(_t('payout_list_empty')), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );
@@ -106,7 +110,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(_t('payout_missions_empty')), findsOneWidget);
-      expect(find.text(_t('payout_list_empty')), findsOneWidget);
+      expect(find.text(_t('payout_transfers_empty')), findsOneWidget);
+      expect(find.text(_t('payout_list_empty')), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -234,6 +239,63 @@ void main() {
           find.textContaining('Litige client résolu en faveur du client'),
           findsOneWidget,
         );
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'option A : virements Stripe — total viré, statut, renversement partiel',
+      (tester) async {
+        final transfers = [
+          DriverTransferInfo.fromJson('pay_a', {
+            'mission_id': 'mission_a',
+            'driver_id': 'driver_test_001',
+            'amount_minor': 8500,
+            'reversed_minor': 0,
+            'net_minor': 8500,
+            'status': 'transferred',
+            'captured_at': DateTime(2026, 10, 20).toIso8601String(),
+          }),
+          DriverTransferInfo.fromJson('pay_b', {
+            'mission_id': 'mission_b',
+            'driver_id': 'driver_test_001',
+            'amount_minor': 4000,
+            'reversed_minor': 1000,
+            'net_minor': 3000,
+            'status': 'partially_reversed',
+            'capture_purpose': 'mission_fee',
+            'captured_at': DateTime(2026, 10, 21).toIso8601String(),
+          }),
+        ];
+        await tester.pumpWidget(
+          _wrap(
+            ProviderPayoutsContent(
+              t: _t,
+              snapshots: const [],
+              payouts: const [],
+              transfers: transfers,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // 85,00 + 30,00 = 115,00 $ (somme des net_minor serveur).
+        final summary = find.byKey(const ValueKey('payout-summary-transferred'));
+        expect(summary, findsOneWidget);
+        expect(
+          find.descendant(of: summary, matching: find.textContaining('115')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('payout-transfer-pay_a')), findsOneWidget);
+        expect(find.text(_t('payout_transfer_status_transferred')), findsOneWidget);
+        expect(
+          find.text(_t('payout_transfer_status_partially_reversed')),
+          findsOneWidget,
+        );
+        expect(find.text(_t('payout_transfer_fee_purpose')), findsOneWidget);
+        expect(find.text(_t('payout_transfer_reversed_amount')), findsOneWidget);
+        // Aucun versement groupé : sa liste reste masquée.
+        expect(find.text(_t('payout_list_title')), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );

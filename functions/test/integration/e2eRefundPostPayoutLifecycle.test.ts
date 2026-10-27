@@ -230,6 +230,7 @@ async function runToPaidPayout(fakeProvider: FakePaymentProvider): Promise<{
 
   // ===== PAYOUT : hold=0, driver sans compte connecté au départ =====
   await db.collection("payout_policy_configs").doc("default").set({
+        payout_mode: "movik_batch", // option A : chemin groupé explicite
     default_hold_period_hours: 0,
     new_driver_hold_period_hours: 0,
     risky_driver_hold_period_hours: 168,

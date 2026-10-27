@@ -56,6 +56,7 @@ import { LedgerEntryTypes, MissionStatuses, DriverStatuses } from "../../src/lib
 import { buildPricingConfig } from "../unit/fixtures";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider, buildFakePaymentProfile } from "../testUtils/fakePaymentProvider";
+import { clearPayoutMode, seedMovikBatchPayoutMode } from "../testUtils/payoutBatchFixture";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
 
 const CUSTOMER_ID = "e2e_onb_customer_001";
@@ -264,6 +265,7 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
 
   afterEach(async () => {
     await cleanupAll(missionId, documentIds, payoutId);
+    await clearPayoutMode();
     await deleteAuthUserIfExists(DRIVER_ID);
     missionId = null;
     documentIds = [];
@@ -456,6 +458,8 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       expect(driverSnap.data()!.online_status).toBe("online");
 
       // ==== 14. PAYOUT COHÉRENT : calculateDriverPayout (admin) ====
+      // Option A (2026-10-27) : le chemin groupé n'existe qu'en mode movik_batch.
+      await seedMovikBatchPayoutMode();
       const payoutResult = await calculateDriverPayout.run(
         buildRequest<CalculateDriverPayoutRequest>(ADMIN_ID, { driverId: DRIVER_ID }, ["admin"])
       );

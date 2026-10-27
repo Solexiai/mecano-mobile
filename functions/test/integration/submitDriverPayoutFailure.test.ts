@@ -59,6 +59,7 @@ import { recalculateMissionFinancialBalance } from "../../src/lib/missionFinanci
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import { cleanupMissionsWithPayments, seedMissionWithPayment } from "../testUtils/payoutBatchFixture";
 
 const DRIVER_ID = "payout_fail_driver_001";
 const ADMIN_ID = "payout_fail_admin_001";
@@ -91,6 +92,9 @@ async function seedSnapshot(
     included_in_payout_id: null,
     created_at: admin.firestore.Timestamp.now(),
   });
+  // Option A : versable seulement si le paiement de la mission est capturé
+  // sans compte connecté (sinon Stripe a déjà viré la part à la capture).
+  await seedMissionWithPayment(missionId, driverId);
 }
 
 async function seedDriverProfile(
@@ -133,6 +137,7 @@ async function cleanup(driverId: string, missionIds: string[]): Promise<void> {
   balances.forEach((snap) => {
     if (snap.exists) batch.delete(snap.ref);
   });
+  await cleanupMissionsWithPayments(missionIds);
   await batch.commit();
 }
 
@@ -182,6 +187,7 @@ describe("submitDriverPayout — échec fournisseur (createDriverPayout renvoie 
             defaultHoldPeriodHours: 0,
             newDriverHoldPeriodHours: 0,
             riskyDriverHoldPeriodHours: 0,
+            payoutMode: "movik_batch",
           })
         );
         await seedDriverProfile(DRIVER_ID, {
