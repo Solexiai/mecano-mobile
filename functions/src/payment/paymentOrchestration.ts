@@ -751,7 +751,10 @@ export async function captureMissionPayment(
 
   return {
     success: outcome.success,
-    status: outcome.status,
+    // Succès : statut BRUT du provider (ex. "succeeded"), comme avant ;
+    // échec : statut de paiement Movi-K (capture_failed / capture_pending /
+    // failed) — c'est lui qui dit à l'appelant si une relance suivra.
+    status: outcome.success ? result.status : outcome.status,
     failureMessage: outcome.success ? undefined : (outcome.failureMessage ?? result.failureMessage),
   };
 }
