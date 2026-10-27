@@ -97,6 +97,14 @@ export const ReconciliationAnomalyTypes = {
    * vraie divergence financière.
    */
   ENVIRONMENT_MISMATCH: "environment_mismatch",
+  /**
+   * PAY-03 (2026-10-27) — livraison effectuée, carte refusée au débit :
+   * relances automatiques en cours (CAPTURE_FAILED). Critique : Movi-K et le
+   * chauffeur n'ont pas été payés pour une livraison faite.
+   */
+  CAPTURE_FAILED_AFTER_DELIVERY: "capture_failed_after_delivery",
+  /** Toutes les relances ont échoué (FAILED) : recouvrement manuel requis. */
+  CAPTURE_ABANDONED_AFTER_RETRIES: "capture_abandoned_after_retries",
 } as const;
 export type ReconciliationAnomalyType =
   (typeof ReconciliationAnomalyTypes)[keyof typeof ReconciliationAnomalyTypes];
@@ -235,6 +243,62 @@ export async function runReconciliation(
   ]);
 
   const payments = paymentsQuery.docs.map((d) => ({ id: d.id, data: d.data() as PaymentDoc }));
+
+  // ---- Vérification 12 (PAY-03) : captures refusées après livraison ------
+  // Indépendante de la fenêtre : un paiement créé il y a plusieurs jours
+  // peut n'échouer qu'à la livraison. Chaque exécution remonte TOUS les
+  // paiements encore en reprise ou abandonnés (bornés), jusqu'à résolution
+  // (capture réussie, ou anomalie résolue manuellement par l'admin).
+  const [captureFailedQuery, captureAbandonedQuery] = await Promise.all([
+    db.collection("payments").where("status", "==", "capture_failed").limit(200).get(),
+    db.collection("payments")
+      .where("status", "==", "failed")
+      .where("failure_code", "==", "capture_abandoned_after_retries")
+      .limit(200)
+      .get(),
+  ]);
+  for (const doc of captureFailedQuery.docs) {
+    const p = doc.data() as PaymentDoc;
+    const expected = Number.isSafeInteger(p.service_amount_minor) ? (p.service_amount_minor as number) : p.amount_authorized_minor;
+    anomalies.push(
+      newAnomaly(now, {
+        severity: "critical",
+        type: ReconciliationAnomalyTypes.CAPTURE_FAILED_AFTER_DELIVERY,
+        mission_id: p.mission_id,
+        payment_id: doc.id,
+        payout_id: null,
+        refund_id: null,
+        expected_amount_minor: expected,
+        actual_amount_minor: p.amount_captured_minor ?? 0,
+        description:
+          `Livraison effectuée, carte refusée au débit (tentative ${p.capture_attempt_count ?? 1}/3, ` +
+          `code ${p.failure_code ?? "?"}). Relance automatique` +
+          (p.capture_retry_at ? ` prévue le ${p.capture_retry_at.toDate().toISOString()}.` : " non planifiée.") +
+          " Le client a été invité à mettre sa carte à jour.",
+        resolution_notes: null,
+      })
+    );
+  }
+  for (const doc of captureAbandonedQuery.docs) {
+    const p = doc.data() as PaymentDoc;
+    const expected = Number.isSafeInteger(p.service_amount_minor) ? (p.service_amount_minor as number) : p.amount_authorized_minor;
+    anomalies.push(
+      newAnomaly(now, {
+        severity: "critical",
+        type: ReconciliationAnomalyTypes.CAPTURE_ABANDONED_AFTER_RETRIES,
+        mission_id: p.mission_id,
+        payment_id: doc.id,
+        payout_id: null,
+        refund_id: null,
+        expected_amount_minor: expected,
+        actual_amount_minor: p.amount_captured_minor ?? 0,
+        description:
+          "Livraison effectuée, toutes les relances de débit ont échoué : recouvrement manuel requis " +
+          "(contacter le client, puis relancer depuis la fiche paiement une fois la carte mise à jour).",
+        resolution_notes: null,
+      })
+    );
+  }
   const refunds = refundsQuery.docs.map((d) => ({ id: d.id, data: d.data() as RefundDoc }));
   const payouts = payoutsQuery.docs.map((d) => ({ id: d.id, data: d.data() as DriverPayoutDoc }));
 

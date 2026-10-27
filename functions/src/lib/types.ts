@@ -228,6 +228,15 @@ export const PaymentStatuses = {
   AUTHORIZED: "authorized",
   CAPTURE_PENDING: "capture_pending",
   CAPTURED: "captured",
+  /**
+   * PAY-03 (2026-10-27) — la capture a été REFUSÉE après la livraison
+   * (carte annulée, plafond, autorisation expirée). État NON terminal :
+   * une nouvelle tentative de débit est planifiée (2 relances sur 3 jours,
+   * décision de Daniel), le client est invité à mettre sa carte à jour, et
+   * l'admin voit l'anomalie. Passe à FAILED (terminal, traitement manuel)
+   * après la dernière relance infructueuse.
+   */
+  CAPTURE_FAILED: "capture_failed",
   FAILED: "failed",
   CANCELLED: "cancelled",
   REFUNDED: "refunded",
@@ -610,6 +619,17 @@ export interface PaymentDoc {
   // `provider_payment_intent_id`/`connected_account_id` (l'appel
   // createPayment() initial, avant toute autorisation/capture).
   stripe_environment?: StripeEnvironment;
+  // ---- PAY-03 / PAY-11 (2026-10-27) — reprise de capture ----
+  /** Tentatives de débit effectuées (1 = capture initiale). */
+  capture_attempt_count?: number;
+  /** Prochaine relance automatique (cron retryFailedCaptures) ; null = aucune. */
+  capture_retry_at?: admin_Timestamp | null;
+  /** Dernière erreur réseau/API non concluante (PAY-11) : le résultat Stripe est inconnu. */
+  capture_indeterminate_at?: admin_Timestamp | null;
+  /** PaymentIntents Stripe créés par les relances (débit off-session). */
+  recovery_payment_intent_ids?: string[];
+  /** PaymentIntent d'origine (autorisation), conservé quand une relance a réussi avec un autre PI. */
+  original_payment_intent_id?: string | null;
 }
 
 /**

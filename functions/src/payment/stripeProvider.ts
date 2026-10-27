@@ -27,6 +27,8 @@ import {
   CancelAuthorizationResult,
   CapturePaymentParams,
   CapturePaymentResult,
+  ChargeSavedPaymentMethodParams,
+  ChargeSavedPaymentMethodResult,
   CreateCustomerParams,
   CreateCustomerResult,
   CreateDriverAccountParams,
@@ -215,6 +217,62 @@ export class StripeProvider extends PaymentProvider {
         providerChargeId: null,
         failureCode: stripeErr.code ?? "unknown_error",
         failureMessage: stripeErr.message,
+        indeterminate: isIndeterminateStripeError(stripeErr),
+      };
+    }
+  }
+
+  // ---- 5b. chargeSavedPaymentMethod (PAY-03, 2026-10-27) ----
+  // Reprise d'une capture refusée après livraison : NOUVEAU PaymentIntent
+  // off-session, confirmé et capturé immédiatement, même destination
+  // chauffeur et mêmes frais plateforme que le paiement d'origine. Jamais de
+  // redirection (3DS off-session impossible sans le client présent).
+  async chargeSavedPaymentMethod(
+    params: ChargeSavedPaymentMethodParams
+  ): Promise<ChargeSavedPaymentMethodResult> {
+    const createParams: Stripe.PaymentIntentCreateParams = {
+      amount: params.amountMinor,
+      currency: params.currency.toLowerCase(),
+      customer: params.providerCustomerId,
+      payment_method: params.providerPaymentMethodId,
+      capture_method: "automatic",
+      confirm: true,
+      off_session: true,
+      automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+      metadata: params.metadata,
+    };
+    if (params.connectedAccountId) {
+      createParams.transfer_data = { destination: params.connectedAccountId };
+      createParams.application_fee_amount = params.applicationFeeMinor;
+    }
+    try {
+      const intent = await this.stripe.paymentIntents.create(createParams, {
+        idempotencyKey: params.idempotencyKey,
+      });
+      const charge = intent.latest_charge;
+      const chargeId = typeof charge === "string" ? charge : charge?.id ?? null;
+      return {
+        success: intent.status === "succeeded",
+        status: intent.status,
+        providerPaymentIntentId: intent.id,
+        providerChargeId: chargeId,
+        amountCapturedMinor: intent.amount_received ?? 0,
+        failureCode: intent.last_payment_error?.code ?? null,
+        failureMessage: intent.last_payment_error?.message ?? null,
+      };
+    } catch (err) {
+      const stripeErr = err as Stripe.errors.StripeError & { payment_intent?: Stripe.PaymentIntent };
+      return {
+        success: false,
+        status: "failed",
+        // Stripe renvoie le PaymentIntent créé-puis-refusé dans l'erreur :
+        // on le conserve pour l'audit, jamais pour un nouvel essai.
+        providerPaymentIntentId: stripeErr.payment_intent?.id ?? null,
+        providerChargeId: null,
+        amountCapturedMinor: 0,
+        failureCode: stripeErr.code ?? "unknown_error",
+        failureMessage: stripeErr.message,
+        indeterminate: isIndeterminateStripeError(stripeErr),
       };
     }
   }
@@ -354,6 +412,10 @@ export class StripeProvider extends PaymentProvider {
       },
       business_type: "individual",
       metadata: { movik_driver_id: params.driverId },
+    }, {
+      // PAY-14 (2026-10-27) : un échec d'écriture Firestore après la
+      // création laissait un compte Express orphelin à chaque nouvel essai.
+      idempotencyKey: `connect-account:${this.environment}:${params.driverId}`,
     });
 
     return { connectedAccountId: account.id, onboardingUrl: await this.createDriverOnboardingLink(account.id) };
@@ -506,4 +568,21 @@ export class StripeProvider extends PaymentProvider {
     }
     return { found: false, providerAmountMinor: null, providerStatus: null };
   }
+}
+
+/**
+ * PAY-11 (2026-10-27) — une erreur de TRANSPORT (timeout, connexion
+ * coupée, 5xx, rate limit) ne dit rien du résultat réel chez Stripe : le
+ * débit a peut-être eu lieu. Elle ne doit jamais être traitée comme un
+ * refus de carte. Les erreurs métier (card_error, invalid_request_error,
+ * idempotency_error) sont, elles, concluantes.
+ */
+export function isIndeterminateStripeError(err: unknown): boolean {
+  const e = err as { type?: string; statusCode?: number; code?: string } | null;
+  if (!e || typeof e !== "object") return true; // erreur non-Stripe (réseau brut)
+  if (e.type === "StripeConnectionError" || e.type === "StripeAPIError" || e.type === "StripeRateLimitError") {
+    return true;
+  }
+  if (typeof e.statusCode === "number" && e.statusCode >= 500) return true;
+  return false;
 }

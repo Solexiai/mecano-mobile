@@ -25,7 +25,7 @@
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../lib/admin";
-import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
+import { DeliveryMissionDoc, MissionStatuses, PaymentStatuses } from "../lib/types";
 import { sendCustomerMissionStatusPush } from "../lib/pushNotifications";
 import type { CustomerMissionPushType } from "../lib/pushNotifications";
 import {
@@ -82,6 +82,30 @@ const NOTIFICATION_BY_STATUS: Partial<Record<string, NotificationSpec>> = {
     titleKey: "notif_cancelled_title",
     bodyKey: "notif_cancelled_body",
   },
+  // DISP-02 (2026-10-27) : autorisation refusée à l'acceptation.
+  [MissionStatuses.PAYMENT_FAILED]: {
+    type: "payment_authorization_failed",
+    titleKey: "notif_payment_authorization_failed_title",
+    bodyKey: "notif_payment_authorization_failed_body",
+  },
+};
+
+/**
+ * PAY-03 (2026-10-27) — `payment_status` d'une mission livrée : capture
+ * refusée (carte à mettre à jour) ou abandonnée après les relances. Déclenché
+ * à chaque ENTRÉE dans l'état (une relance refusée renvoie donc un rappel).
+ */
+const NOTIFICATION_BY_PAYMENT_STATUS: Partial<Record<string, NotificationSpec>> = {
+  [PaymentStatuses.CAPTURE_FAILED]: {
+    type: "payment_capture_failed",
+    titleKey: "notif_payment_capture_failed_title",
+    bodyKey: "notif_payment_capture_failed_body",
+  },
+  [PaymentStatuses.FAILED]: {
+    type: "payment_capture_abandoned",
+    titleKey: "notif_payment_capture_abandoned_title",
+    bodyKey: "notif_payment_capture_abandoned_body",
+  },
 };
 
 export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
@@ -93,9 +117,26 @@ export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
 
     const missionId = event.params.missionId;
 
-    if (before && before.status === after.status) return; // pas une transition de statut
-    const spec = NOTIFICATION_BY_STATUS[after.status];
-    if (!spec) return; // statut sans notification définie (draft, quoted, searching_driver, offered, disputed, refunded, delivered)
+    let spec: NotificationSpec | undefined;
+    if (!before || before.status !== after.status) {
+      spec = NOTIFICATION_BY_STATUS[after.status];
+    } else if (
+      after.status === MissionStatuses.COMPLETED &&
+      before.payment_status !== after.payment_status &&
+      typeof after.payment_status === "string"
+    ) {
+      // Mission déjà livrée : seul le statut de PAIEMENT a changé (PAY-03).
+      // Un FAILED n'est notifié que s'il conclut les relances
+      // (`payment_failure_kind` posé par captureRecovery.ts), jamais pour un
+      // FAILED technique (incohérence d'environnement).
+      const abandoned = (after as unknown as { payment_failure_kind?: string }).payment_failure_kind === "capture_abandoned";
+      if (after.payment_status === PaymentStatuses.FAILED && !abandoned) {
+        spec = undefined;
+      } else {
+        spec = NOTIFICATION_BY_PAYMENT_STATUS[after.payment_status];
+      }
+    }
+    if (!spec) return; // transition sans notification définie
 
     if (!after.customer_id) return; // garde-fou défensif
 

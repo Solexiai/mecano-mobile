@@ -30,6 +30,8 @@ String paymentStatusKey(PaymentStatus s) {
       return 'admin_payment_status_capture_pending';
     case PaymentStatus.captured:
       return 'admin_payment_status_captured';
+    case PaymentStatus.captureFailed:
+      return 'admin_payment_status_capture_failed';
     case PaymentStatus.failed:
       return 'admin_payment_status_failed';
     case PaymentStatus.cancelled:
@@ -51,6 +53,7 @@ Color paymentStatusColor(PaymentStatus s) {
     case PaymentStatus.refunded:
       return AppColors.success;
     case PaymentStatus.failed:
+    case PaymentStatus.captureFailed:
     case PaymentStatus.cancelled:
     case PaymentStatus.disputed:
     case PaymentStatus.chargeback:

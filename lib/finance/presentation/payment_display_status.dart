@@ -63,6 +63,7 @@ extension PaymentDisplayStatusX on PaymentDisplayStatus {
       case PaymentStatus.disputed:
       case PaymentStatus.chargeback:
       case PaymentStatus.failed:
+      case PaymentStatus.captureFailed:
       case PaymentStatus.cancelled:
         return PaymentDisplayStatus.failed;
       case PaymentStatus.captured:

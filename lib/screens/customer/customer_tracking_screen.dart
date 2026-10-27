@@ -825,6 +825,19 @@ class _CompletedMissionView extends StatelessWidget {
               ],
             ),
           ),
+          // PAY-03 (2026-10-27) : carte refusée au débit après la livraison.
+          if (!mission.isInternalTest &&
+              (mission.paymentStatus == 'capture_failed' ||
+                  mission.paymentStatus == 'failed') &&
+              mission.activePaymentId != null) ...[
+            const SizedBox(height: 16),
+            _PaymentRecoveryCard(
+              paymentId: mission.activePaymentId!,
+              paymentStatus: mission.paymentStatus!,
+              locale: locale,
+              api: api,
+            ),
+          ],
           const SizedBox(height: 16),
           // Notation 1 à 5 étoiles (AB-10), seulement si un chauffeur a été
           // assigné ; jamais pour une demande de test interne.
@@ -936,6 +949,184 @@ class _CompletedMissionView extends StatelessWidget {
         ],
       ),
         ),
+      ),
+    );
+  }
+}
+
+/// PAY-03 (2026-10-27) — la livraison est faite mais la carte a été refusée
+/// au débit. Le client met sa carte à jour (Stripe Checkout, mode setup) puis
+/// relance le paiement ; sinon le serveur relance seul (J+1, J+3). Une fois
+/// toutes les relances échouées (`failed`), seul un message est affiché.
+class _PaymentRecoveryCard extends StatefulWidget {
+  const _PaymentRecoveryCard({
+    required this.paymentId,
+    required this.paymentStatus,
+    required this.locale,
+    required this.api,
+  });
+  final String paymentId, paymentStatus, locale;
+  final BookingApi api;
+  @override
+  State<_PaymentRecoveryCard> createState() => _PaymentRecoveryCardState();
+}
+
+class _PaymentRecoveryCardState extends State<_PaymentRecoveryCard> {
+  bool _busy = false;
+  String? _message;
+
+  String tr(String fr, String en, String es) => widget.locale == 'en'
+      ? en
+      : widget.locale == 'es'
+      ? es
+      : fr;
+
+  Future<void> _updateCard() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    String? message;
+    try {
+      final result = await widget.api.call('startPaymentRecoveryCardSetup', {
+        'paymentId': widget.paymentId,
+        'locale': widget.locale,
+      });
+      if (result['ready'] == true) {
+        message = tr(
+          'Votre carte est déjà enregistrée. Appuyez sur « Réessayer le paiement ».',
+          'Your card is already saved. Tap "Retry payment".',
+          'Su tarjeta ya está guardada. Toque «Reintentar el pago».',
+        );
+      } else {
+        final url = Uri.tryParse(result['url'] as String? ?? '');
+        if (url == null || url.scheme != 'https') throw const FormatException();
+        final open =
+            CustomerTrackingScreen.openReceiptOverride ??
+            (Uri u) => launchUrl(u, mode: LaunchMode.externalApplication);
+        if (!await open(url)) throw const FormatException();
+      }
+    } on FirebaseFunctionsException catch (e) {
+      message = e.message ??
+          tr('Impossible pour le moment.', 'Not possible right now.', 'No es posible por ahora.');
+    } catch (_) {
+      message = tr('Impossible pour le moment.', 'Not possible right now.', 'No es posible por ahora.');
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = message;
+    });
+  }
+
+  Future<void> _retry() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    String? message;
+    try {
+      final result = await widget.api.call('retryFailedCapture', {
+        'paymentId': widget.paymentId,
+      });
+      message = result['success'] == true
+          ? tr('Paiement encaissé. Merci!', 'Payment collected. Thank you!', '¡Pago cobrado. Gracias!')
+          : (result['message'] as String?) ??
+                tr('La carte a été refusée.', 'The card was declined.', 'La tarjeta fue rechazada.');
+    } on FirebaseFunctionsException catch (e) {
+      message = e.message ??
+          tr('Impossible pour le moment.', 'Not possible right now.', 'No es posible por ahora.');
+    } catch (_) {
+      message = tr('Impossible pour le moment.', 'Not possible right now.', 'No es posible por ahora.');
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = message;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final abandoned = widget.paymentStatus == 'failed';
+    return Container(
+      key: const ValueKey('detail-payment-recovery'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBE7E5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE8B4AE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.credit_card_off_outlined, color: Color(0xFFA33A2F)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  abandoned
+                      ? tr('Paiement en attente', 'Payment pending', 'Pago pendiente')
+                      : tr('Paiement refusé', 'Payment declined', 'Pago rechazado'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFA33A2F),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            abandoned
+                ? tr(
+                    'Nous n’avons pas pu encaisser cette livraison. Notre équipe vous contactera.',
+                    'We could not collect payment for this delivery. Our team will contact you.',
+                    'No pudimos cobrar esta entrega. Nuestro equipo se comunicará con usted.',
+                  )
+                : tr(
+                    'Votre carte a été refusée pour cette livraison. Mettez votre carte à jour, puis réessayez. Sans action de votre part, nous réessayerons automatiquement.',
+                    'Your card was declined for this delivery. Update your card, then retry. If you do nothing, we will retry automatically.',
+                    'Su tarjeta fue rechazada para esta entrega. Actualice su tarjeta y reintente. Si no hace nada, reintentaremos automáticamente.',
+                  ),
+          ),
+          if (!abandoned) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey('detail-payment-update-card'),
+                  onPressed: _busy ? null : _updateCard,
+                  icon: const Icon(Icons.credit_card),
+                  label: Text(tr('Mettre ma carte à jour', 'Update my card', 'Actualizar mi tarjeta')),
+                ),
+                OutlinedButton.icon(
+                  key: const ValueKey('detail-payment-retry'),
+                  onPressed: _busy ? null : _retry,
+                  icon: _busy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                  label: Text(tr('Réessayer le paiement', 'Retry payment', 'Reintentar el pago')),
+                ),
+              ],
+            ),
+          ],
+          if (_message != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _message!,
+              key: const ValueKey('detail-payment-recovery-message'),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ],
       ),
     );
   }

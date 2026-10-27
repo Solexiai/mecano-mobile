@@ -51,6 +51,8 @@ export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 // ---- Finance ----
 export { recordTip } from "./functions/recordTip";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
+// ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
+export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";
 export { createLedgerEntry } from "./functions/createLedgerEntry";
 export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 

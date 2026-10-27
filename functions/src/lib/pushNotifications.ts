@@ -40,7 +40,13 @@ export type CustomerMissionPushType =
   | "in_transit"
   | "arrived_at_dropoff"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  // PAY-03 (2026-10-27) : capture refusée après livraison, carte à mettre à jour.
+  | "payment_capture_failed"
+  // Dernière relance échouée : traitement manuel par Movi-K.
+  | "payment_capture_abandoned"
+  // Autorisation refusée à l'acceptation (DISP-02) : refaire une demande avec une autre carte.
+  | "payment_authorization_failed";
 
 const CUSTOMER_MISSION_PUSH_COPY: Record<
   CustomerMissionPushType,
@@ -156,6 +162,48 @@ const CUSTOMER_MISSION_PUSH_COPY: Record<
     es: {
       title: "Misi\u00f3n cancelada",
       body: "Su solicitud de entrega ha sido cancelada.",
+    },
+  },
+  payment_capture_failed: {
+    fr: {
+      title: "Paiement refus\u00e9",
+      body: "Votre carte a \u00e9t\u00e9 refus\u00e9e pour votre livraison. Mettez votre carte \u00e0 jour dans l'app.",
+    },
+    en: {
+      title: "Payment declined",
+      body: "Your card was declined for your delivery. Update your card in the app.",
+    },
+    es: {
+      title: "Pago rechazado",
+      body: "Su tarjeta fue rechazada para su entrega. Actualice su tarjeta en la app.",
+    },
+  },
+  payment_capture_abandoned: {
+    fr: {
+      title: "Paiement en attente",
+      body: "Nous n'avons pas pu encaisser votre livraison. Notre \u00e9quipe vous contactera.",
+    },
+    en: {
+      title: "Payment pending",
+      body: "We could not collect payment for your delivery. Our team will contact you.",
+    },
+    es: {
+      title: "Pago pendiente",
+      body: "No pudimos cobrar su entrega. Nuestro equipo se comunicar\u00e1 con usted.",
+    },
+  },
+  payment_authorization_failed: {
+    fr: {
+      title: "Carte refus\u00e9e",
+      body: "Votre carte a \u00e9t\u00e9 refus\u00e9e. Mettez-la \u00e0 jour, puis refaites votre demande.",
+    },
+    en: {
+      title: "Card declined",
+      body: "Your card was declined. Update it, then book again.",
+    },
+    es: {
+      title: "Tarjeta rechazada",
+      body: "Su tarjeta fue rechazada. Actual\u00edcela y vuelva a reservar.",
     },
   },
 };

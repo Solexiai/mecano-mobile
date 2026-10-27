@@ -66,6 +66,7 @@ import {
 } from "../lib/stripeEnvironment";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { cardHoldMinor, MissionFeePolicy, missionFeePolicyFrom } from "../lib/missionFees";
+import { applyCaptureAttemptResult } from "./captureRecovery";
 
 // 🔒 Phase 8B (item f, isolation d'environnement Stripe) — CHAQUE fonction
 // ci-dessous qui RÉUTILISE une référence Stripe déjà stockée (au lieu d'en
@@ -655,7 +656,14 @@ export async function captureMissionPayment(
       assertValidPaymentTransition(payment.status, PaymentStatuses.CAPTURE_PENDING);
 
       const key = buildIdempotencyKey("capturePayment", paymentId);
-      tx.update(payRef, { status: PaymentStatuses.CAPTURE_PENDING, updated_at: admin.firestore.Timestamp.now() });
+      tx.update(payRef, {
+        status: PaymentStatuses.CAPTURE_PENDING,
+        // PAY-03 : tentative n°1 ; les relances (captureRecovery.ts) incrémentent.
+        capture_attempt_count: 1,
+        capture_retry_at: null,
+        capture_indeterminate_at: null,
+        updated_at: admin.firestore.Timestamp.now(),
+      });
 
       return {
         providerPaymentIntentId: payment.provider_payment_intent_id!,
@@ -722,67 +730,30 @@ export async function captureMissionPayment(
     idempotencyKey,
   });
 
-  // Étape 3 : transaction — applique le résultat.
-  await db.runTransaction(async (tx) => {
-    const paySnap = await tx.get(payRef);
-    if (!paySnap.exists) return;
-    const payment = paySnap.data() as PaymentDoc;
-    const now = admin.firestore.Timestamp.now();
-
-    if (result.success) {
-      assertValidPaymentTransition(payment.status, PaymentStatuses.CAPTURED);
-      tx.update(payRef, {
-        status: PaymentStatuses.CAPTURED,
-        amount_captured_minor: result.amountCapturedMinor,
-        provider_charge_id: result.providerChargeId,
-        captured_at: now,
-        updated_at: now,
-      });
-    } else {
-      // 🔒 Cas grave documenté (marchandise déjà livrée, capture refusée) :
-      // enregistré comme FAILED, jamais masqué. La réconciliation (point 27)
-      // et le tableau de bord admin doivent le faire remonter comme anomalie
-      // nécessitant une action de recouvrement manuelle.
-      assertValidPaymentTransition(payment.status, PaymentStatuses.FAILED);
-      tx.update(payRef, {
-        status: PaymentStatuses.FAILED,
-        failed_at: now,
-        failure_code: result.failureMessage ? "capture_failed" : "capture_failed_unknown",
-        failure_message: result.failureMessage ?? "Capture refusée par le fournisseur.",
-        updated_at: now,
-      });
-    }
-
-    const missionRef = db.collection("delivery_requests").doc(missionId);
-    tx.update(missionRef, {
-      payment_status: result.success ? PaymentStatuses.CAPTURED : PaymentStatuses.FAILED,
-    });
+  // Étape 3 : application du résultat (captureRecovery.ts, PAY-03/PAY-11) :
+  //   - succès        -> CAPTURED ;
+  //   - non concluant -> reste CAPTURE_PENDING, recontrôle planifié (jamais
+  //                      traité comme un refus : la carte a peut-être été
+  //                      débitée) ;
+  //   - refus         -> CAPTURE_FAILED + relance planifiée (2 relances sur
+  //                      3 jours), le client est invité à mettre sa carte à
+  //                      jour ; FAILED seulement après la dernière relance.
+  // La mission RESTE `completed` dans tous les cas (la livraison a eu lieu).
+  // mission_financial_balance est recalculé par applyCaptureAttemptResult.
+  const outcome = await applyCaptureAttemptResult({
+    missionId,
+    paymentId,
+    result,
+    mode: "initial",
+    correlationId,
+    operationStartedAt,
   });
 
-  // 🔒 Bloc F (point 7, directive 38 points) : mission_financial_balance
-  // reflète l'argent RÉELLEMENT capturé — recalcul HORS transaction (lecture
-  // multi-collections), y compris sur échec de capture (recalcul idempotent,
-  // sans effet si rien n'a changé côté payments/refunds/ledger/snapshots).
-  await recalculateMissionFinancialBalance(missionId);
-
-  if (result.success) {
-    logFinancialSuccess(
-      "capture_payment",
-      operationStartedAt,
-      { missionId, paymentId },
-      { correlationId, metadata: { amountCapturedMinor: result.amountCapturedMinor } }
-    );
-  } else {
-    logFinancialFailure(
-      "capture_payment",
-      operationStartedAt,
-      result.failureMessage ? "capture_failed" : "capture_failed_unknown",
-      { missionId, paymentId },
-      { correlationId, message: result.failureMessage }
-    );
-  }
-
-  return { success: result.success, status: result.status, failureMessage: result.failureMessage };
+  return {
+    success: outcome.success,
+    status: outcome.status,
+    failureMessage: outcome.success ? undefined : (outcome.failureMessage ?? result.failureMessage),
+  };
 }
 
 // -----------------------------------------------------------------------------

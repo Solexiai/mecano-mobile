@@ -1,5 +1,5 @@
 // Booking hours set by the admin (Où et quand ?, 2026-10-26).
-import { bookingHoursReason, DEFAULT_BOOKING_HOURS, parseBookingHours } from '../../src/lib/bookingHours';
+import { bookingHoursReason, DEFAULT_BOOKING_HOURS, MAX_BOOKING_DAYS_AHEAD, parseBookingHours } from '../../src/lib/bookingHours';
 
 // Monday 2026-11-02 in Québec (UTC-5 after the time change).
 const now = Date.parse('2026-11-02T13:00:00Z'); // 8:00 local
@@ -23,9 +23,14 @@ test('too soon, too far, closed hour, closed day', () => {
 });
 test('admin values are validated', () => {
   const ok: string[] = [];
-  expect(parseBookingHours({ slot_hours: [17, 9, 9], lead_minutes: 30, days_ahead: 7, open_weekdays: [6, 7] }, ok))
-    .toEqual({ slot_hours: [9, 17], lead_minutes: 30, days_ahead: 7, open_weekdays: [6, 7] });
+  expect(parseBookingHours({ slot_hours: [17, 9, 9], lead_minutes: 30, days_ahead: 5, open_weekdays: [6, 7] }, ok))
+    .toEqual({ slot_hours: [9, 17], lead_minutes: 30, days_ahead: 5, open_weekdays: [6, 7] });
   expect(ok).toEqual([]);
+  // PAY-08 (2026-10-27) : jamais au-delà de 5 jours (fenêtre d'autorisation Stripe).
+  expect(MAX_BOOKING_DAYS_AHEAD).toBe(5);
+  const tooFar: string[] = [];
+  parseBookingHours({ ...DEFAULT_BOOKING_HOURS, days_ahead: 7 }, tooFar);
+  expect(tooFar.length).toBeGreaterThan(0);
   for (const bad of [null, { ...DEFAULT_BOOKING_HOURS, slot_hours: [] }, { ...DEFAULT_BOOKING_HOURS, slot_hours: [23] },
     { ...DEFAULT_BOOKING_HOURS, lead_minutes: -1 }, { ...DEFAULT_BOOKING_HOURS, days_ahead: 30 }, { ...DEFAULT_BOOKING_HOURS, open_weekdays: [0] }]) {
     const e: string[] = [];

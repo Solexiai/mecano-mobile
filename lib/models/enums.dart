@@ -492,6 +492,10 @@ enum PaymentStatus {
   authorized,
   capturePending,
   captured,
+
+  /// PAY-03 (2026-10-27) : capture refusée après la livraison, relances
+  /// automatiques en cours ; le client peut mettre sa carte à jour.
+  captureFailed,
   failed,
   cancelled,
   refunded,

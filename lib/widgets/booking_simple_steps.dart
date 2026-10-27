@@ -95,7 +95,8 @@ class BookingHours {
       lead: lead is int && lead >= 0 && lead <= 1440
           ? Duration(minutes: lead)
           : bookingSlotLead,
-      daysAhead: ahead is int && ahead >= 1 && ahead <= 14 ? ahead : 4,
+      // PAY-08 : plafond 5 jours (fenêtre d'autorisation Stripe), voir serveur.
+      daysAhead: ahead is int && ahead >= 1 && ahead <= 5 ? ahead : 4,
       openWeekdays: days ?? const [1, 2, 3, 4, 5, 6, 7],
     );
   }
