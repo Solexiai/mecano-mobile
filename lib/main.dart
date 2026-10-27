@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,9 @@ import 'package:provider/provider.dart';
 import 'core/url_strategy_stub.dart'
     if (dart.library.html) 'core/url_strategy_web.dart';
 
+import 'l10n/app_strings.dart';
+import 'seo/page_meta.dart';
+import 'seo/page_meta_sync.dart';
 import 'services/driver_presence.dart';
 import 'core/app_theme.dart';
 import 'providers/locale_provider.dart';
@@ -44,6 +48,10 @@ Future<void> main() async {
 
   runApp(MovikApp(backendStatus: backendStatus));
 
+  // Web only: the HTML language, title and description follow the address
+  // (/fr, /en, /es) on the first load and after each navigation.
+  startPageMetaSync(AppRouter.router);
+
   // Phase 8D — initialise le cycle de vie FCM APRÈS runApp afin que le
   // deep-link d'une notification ouverte dispose déjà du GoRouter monté.
   // Aucun prompt système n'est affiché ici : la permission est demandée au
@@ -63,7 +71,19 @@ class MovikApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<BackendStatus>.value(value: backendStatus),
-        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+        // On the web, the language of the address (French when the address
+        // has none, as '/' redirects to '/fr') wins over the language saved
+        // on a previous visit. Mobile apps keep the saved language.
+        ChangeNotifierProvider(
+          create: (_) {
+            final webPath = currentWebPath();
+            return LocaleProvider(
+              initialLocale: webPath == null
+                  ? null
+                  : PageMeta.localeInPath(webPath) ?? 'fr',
+            );
+          },
+        ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(
@@ -84,7 +104,12 @@ class MovikApp extends StatelessWidget {
             locale: Locale(localeProvider.locale),
             supportedLocales: const [Locale('fr'), Locale('en'), Locale('es')],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            title: 'Movi-k',
+            // On the web this is the browser tab and search result title:
+            // keep the full page title instead of replacing it with the
+            // short app name.
+            title: kIsWeb
+                ? AppStrings.t('seo_default_title', localeProvider.locale)
+                : 'Movi-k',
             builder: (context, child) =>
                 DriverPresenceScope(child: child ?? const SizedBox.shrink()),
             debugShowCheckedModeBanner: false,

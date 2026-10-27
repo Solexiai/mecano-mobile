@@ -11,7 +11,163 @@
   "outputDirectory": "build/web",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/:page(granby|livraison|delivery|entrega|mecanique-mobile|mobile-mechanic|mecanico-movil|devenir-chauffeur|become-driver|convertirse-conductor|devenir-mecanicien|become-mechanic|convertirse-mecanico|connexion|sign-in|iniciar-sesion|tarifs|pricing|precios|comment-ca-marche|how-it-works|como-funciona|securite|safety|seguridad|faq|a-propos|about|acerca-de|contact|contacto|blogue|blog|notifications|tableau-de-bord|dashboard|panel|admin)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/livraison/demande",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/delivery/request",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/entrega/solicitud",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/mecanique-mobile/demande",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/mobile-mechanic/request",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/mecanico-movil/solicitud",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/devenir-chauffeur/inscription",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/become-driver/onboarding",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/devenir-chauffeur/statut",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/become-driver/status",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/convertirse-conductor/estado",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/devenir-mecanicien/inscription",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/become-mechanic/onboarding",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/fournisseur/tableau-de-bord",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/provider/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/chauffeur/onboarding/complete",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/driver/onboarding/complete",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/conductor/incorporacion/completado",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/chauffeur/onboarding/refresh",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/driver/onboarding/refresh",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/conductor/incorporacion/reintentar",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/chauffeurs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/utilisateurs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/missions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/pilote",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/centre-commande",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/types-objets",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/paiements",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/legal/:type(terms|privacy|cancellation|dispute|accessibility|cookies|provider-agreement)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/livraison/conditions/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/livraison/suivi/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/delivery/track/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/entrega/seguimiento/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/fournisseur/mission/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/provider/mission/:missionId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/chauffeurs/:driverId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:locale(fr|en|es)/admin/utilisateurs/:userId",
       "destination": "/index.html"
     }
   ]

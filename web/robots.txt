@@ -1,0 +1,27 @@
+# Movi-K — public pages are open to search engines.
+# Account, dashboard, tracking and admin areas are private and not useful
+# in search results.
+User-agent: *
+Allow: /
+Disallow: /*/connexion
+Disallow: /*/sign-in
+Disallow: /*/iniciar-sesion
+Disallow: /*/tableau-de-bord
+Disallow: /*/dashboard
+Disallow: /*/panel
+Disallow: /*/notifications
+Disallow: /*/admin
+Disallow: /*/fournisseur/
+Disallow: /*/provider/
+Disallow: /*/livraison/suivi/
+Disallow: /*/delivery/track/
+Disallow: /*/entrega/seguimiento/
+Disallow: /*/livraison/conditions/
+Disallow: /*/chauffeur/onboarding/
+Disallow: /*/driver/onboarding/
+Disallow: /*/conductor/incorporacion/
+Disallow: /*/devenir-chauffeur/statut
+Disallow: /*/become-driver/status
+Disallow: /*/convertirse-conductor/estado
+
+Sitemap: https://movi-k.com/sitemap.xml
