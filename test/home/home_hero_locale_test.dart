@@ -14,7 +14,7 @@ Finder heroImage() => find.byWidgetPredicate(
       (widget.image as AssetImage).assetName.startsWith('assets/home/hero_'),
 );
 // One photo for every language; the slogan is real text drawn over it.
-String assetFor(String locale) => 'assets/home/hero_neutral.png';
+String assetFor(String locale) => 'assets/home/hero_neutral.webp';
 String labelFor(String locale) => {
   'fr': 'Camionnette Movi-K et chauffeur préparant une livraison',
   'en': 'Movi-K van and driver preparing a delivery',

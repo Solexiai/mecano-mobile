@@ -5389,6 +5389,22 @@ class AppStrings {
       'en': 'Refresh status',
       'es': 'Actualizar estado',
     },
+    // ---------- Web page title and description (search engines) ----------
+    // The French values must stay identical to web/index.html
+    // (checked by test/seo/seo_web_files_test.dart).
+    'seo_default_title': {
+      'fr': 'Movi-K | Livraison de gros objets — lancement à Granby',
+      'en': 'Movi-K | Large-item delivery — launching in Granby',
+      'es': 'Movi-K | Entrega de artículos voluminosos — lanzamiento en Granby',
+    },
+    'seo_default_description': {
+      'fr':
+          'Movi-K prépare son lancement à Granby et dans les environs. Préparez votre demande de livraison et consultez les informations de lancement.',
+      'en':
+          'Movi-K is preparing its launch in Granby and surrounding areas. Prepare your delivery request and check the launch information.',
+      'es':
+          'Movi-K prepara su lanzamiento en Granby y alrededores. Prepara tu solicitud de entrega y consulta la información del lanzamiento.',
+    },
   };
 
   static String t(String key, String locale) {

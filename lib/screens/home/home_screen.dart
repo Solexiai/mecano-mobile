@@ -40,7 +40,7 @@ class HomeScreen extends StatelessWidget {
 
 /// Same photo in every language: the slogan is drawn over it as real text
 /// ([_HeroSign]) so it can be translated and changed without editing pixels.
-const _heroAsset = 'assets/home/hero_neutral.png';
+const _heroAsset = 'assets/home/hero_neutral.webp';
 
 /// Hero photo with the handwritten sign in the top-right corner.
 /// Uses [Align] (not Positioned) so the desktop layout stays flow-based

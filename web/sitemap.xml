@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://movi-k.com/fr</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/livraison</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/livraison"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/entrega"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/livraison"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/delivery</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/livraison"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/entrega"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/livraison"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/entrega</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/livraison"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/entrega"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/livraison"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/tarifs</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/precios"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/tarifs"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/pricing</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/precios"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/tarifs"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/precios</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/tarifs"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/pricing"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/precios"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/tarifs"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/comment-ca-marche</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/comment-ca-marche"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/how-it-works"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/como-funciona"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/comment-ca-marche"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/how-it-works</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/comment-ca-marche"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/how-it-works"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/como-funciona"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/comment-ca-marche"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/como-funciona</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/comment-ca-marche"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/how-it-works"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/como-funciona"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/comment-ca-marche"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/securite</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/securite"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/safety"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/seguridad"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/securite"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/safety</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/securite"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/safety"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/seguridad"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/securite"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/seguridad</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/securite"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/safety"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/seguridad"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/securite"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/faq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/faq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/faq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/faq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/faq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/faq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/faq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/faq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/faq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/faq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/granby</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/granby"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/granby"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/granby"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/granby"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/granby</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/granby"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/granby"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/granby"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/granby"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/granby</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/granby"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/granby"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/granby"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/granby"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/devenir-chauffeur</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/devenir-chauffeur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/become-driver"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/convertirse-conductor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/devenir-chauffeur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/become-driver</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/devenir-chauffeur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/become-driver"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/convertirse-conductor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/devenir-chauffeur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/convertirse-conductor</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/devenir-chauffeur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/become-driver"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/convertirse-conductor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/devenir-chauffeur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/a-propos</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/acerca-de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/a-propos"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/about</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/acerca-de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/a-propos"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/acerca-de</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/a-propos"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/about"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/acerca-de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/a-propos"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/contacto"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/contact"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/contact</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/contacto"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/contact"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/contacto</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/contact"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/contact"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/contacto"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/contact"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/legal/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/legal/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/legal/privacy</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/legal/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/legal/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/legal/terms</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/legal/cancellation</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/legal/cancellation</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/legal/cancellation</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/legal/dispute</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/legal/dispute</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/legal/dispute</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
+  </url>
+</urlset>
