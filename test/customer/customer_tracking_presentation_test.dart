@@ -434,7 +434,7 @@ void main() => offlineTests(() {
       expect(find.byType(LiveTrackingMap), findsNothing);
     },
   );
-  for (final raw in ['new_status', 'payment_failed', null]) {
+  for (final raw in ['new_status', null]) {
     offlineWidgetTest('O unsupported raw status $raw remains neutral', (
       t,
     ) async {
@@ -450,6 +450,23 @@ void main() => offlineTests(() {
       expect(find.byType(LiveTrackingMap), findsNothing);
     });
   }
+  // TECH-04 : payment_failed est désormais un statut connu du client
+  // (autorisation refusée) : son libellé s'affiche, jamais une recherche.
+  offlineWidgetTest('O payment_failed shows its own label, no search', (
+    t,
+  ) async {
+    final h = await start(t);
+    final m = DeliveryMission.fromJson('mission_A', {
+      'customer_id': 'booking_test',
+      'status': 'payment_failed',
+    });
+    await emit(t, h, m);
+    expect(find.text(ref('mission_A', 'fr')), findsOneWidget);
+    expect(find.text('Paiement refusé'), findsOneWidget);
+    expect(find.text(unavailableStatus['fr']!), findsNothing);
+    expect(find.text(search['fr']!), findsNothing);
+    expect(find.byType(LiveTrackingMap), findsNothing);
+  });
   offlineWidgetTest(
     'O changing A to B clears old scope even before B response',
     (t) async {
