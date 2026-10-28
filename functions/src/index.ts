@@ -59,6 +59,8 @@ export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 // Stripe. Le prochain `firebase deploy --only functions` supprimera la
 // fonction déployée (confirmer la suppression lorsque la CLI le demande).
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
+// ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
+export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";
 export { createLedgerEntry } from "./functions/createLedgerEntry";
 export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 

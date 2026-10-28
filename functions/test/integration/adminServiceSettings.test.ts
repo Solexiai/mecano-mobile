@@ -25,7 +25,7 @@ test('get: launch defaults, not saved', async () => {
 test('save zones and hours: in force for prices and bookings, audited', async () => {
   const zones = [{ name: 'Granby', center_lat: 45.39856, center_lng: -72.72225, radius_km: 50 },
     { name: 'Bromont', center_lat: 45.3167, center_lng: -72.65, radius_km: 15 }];
-  const hours = { slot_hours: [8, 10, 12], lead_minutes: 120, days_ahead: 7, open_weekdays: [1, 2, 3, 4, 5] };
+  const hours = { slot_hours: [8, 10, 12], lead_minutes: 120, days_ahead: 5, open_weekdays: [1, 2, 3, 4, 5] };
   await adminServiceSettings.run(call({ action: 'save', zones, hours }));
   const config = await getServiceZonesConfig({ fallbackToLaunchZone: true });
   expect(config.enabled).toBe(true);
@@ -44,6 +44,8 @@ test.each([
   { zones: [{ name: 'X', center_lat: 95, center_lng: -72, radius_km: 10 }] },
   { zones: [{ name: 'X', center_lat: 45, center_lng: -72, radius_km: 0 }] },
   { hours: { slot_hours: [], lead_minutes: 60, days_ahead: 4, open_weekdays: [1] } },
+  // PAY-08 (2026-10-27) : fenêtre de réservation plafonnée à 5 jours.
+  { hours: { slot_hours: [9, 11], lead_minutes: 60, days_ahead: 6, open_weekdays: [1] } },
   {},
 ])('invalid save refused, nothing written: %p', async (payload) => {
   await expect(adminServiceSettings.run(call({ action: 'save', ...payload }))).rejects.toMatchObject({ code: 'invalid-argument' });

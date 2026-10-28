@@ -1529,6 +1529,37 @@ class AppStrings {
       'en': 'Your delivery request has been cancelled.',
       'es': 'Su solicitud de entrega ha sido cancelada.',
     },
+    // ---- Paiement (PAY-03 / DISP-02, 2026-10-27) ----
+    'notif_payment_capture_failed_title': {
+      'fr': 'Paiement refusé',
+      'en': 'Payment declined',
+      'es': 'Pago rechazado',
+    },
+    'notif_payment_capture_failed_body': {
+      'fr': 'Votre carte a été refusée pour votre livraison. Mettez votre carte à jour dans l\'app.',
+      'en': 'Your card was declined for your delivery. Update your card in the app.',
+      'es': 'Su tarjeta fue rechazada para su entrega. Actualice su tarjeta en la app.',
+    },
+    'notif_payment_capture_abandoned_title': {
+      'fr': 'Paiement en attente',
+      'en': 'Payment pending',
+      'es': 'Pago pendiente',
+    },
+    'notif_payment_capture_abandoned_body': {
+      'fr': 'Nous n\'avons pas pu encaisser votre livraison. Notre équipe vous contactera.',
+      'en': 'We could not collect payment for your delivery. Our team will contact you.',
+      'es': 'No pudimos cobrar su entrega. Nuestro equipo se comunicará con usted.',
+    },
+    'notif_payment_authorization_failed_title': {
+      'fr': 'Carte refusée',
+      'en': 'Card declined',
+      'es': 'Tarjeta rechazada',
+    },
+    'notif_payment_authorization_failed_body': {
+      'fr': 'Votre carte a été refusée. Mettez-la à jour, puis refaites votre demande.',
+      'en': 'Your card was declined. Update it, then book again.',
+      'es': 'Su tarjeta fue rechazada. Actualícela y vuelva a reservar.',
+    },
     'notif_document_expiring_soon_title': {
       'fr': 'Document bientôt expiré',
       'en': 'Document expiring soon',
@@ -4899,6 +4930,11 @@ class AppStrings {
       'fr': 'Capture en cours',
       'en': 'Capture pending',
       'es': 'Captura pendiente',
+    },
+    'admin_payment_status_capture_failed': {
+      'fr': 'Débit refusé (relance en cours)',
+      'en': 'Charge declined (retry pending)',
+      'es': 'Cobro rechazado (reintento pendiente)',
     },
     'admin_payment_status_captured': {
       'fr': 'Capturé',

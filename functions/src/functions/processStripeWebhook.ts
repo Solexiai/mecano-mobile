@@ -327,7 +327,27 @@ async function dispatchStripeEvent(
         .limit(1)
         .get();
       if (paySnap.empty) {
-        throw new Error(`Aucun payment trouvé pour provider_charge_id=${chargeId} (dispute ${dispute.id}).`);
+        // PAY-13 (2026-10-27) : lever ici faisait répondre 500 à Stripe, qui
+        // rejouait l'évènement pendant 3 jours. Un litige sur une charge
+        // inconnue de Movi-K (autre produit, charge d'un autre environnement)
+        // est accusé réception et journalisé pour examen manuel, sans boucle.
+        relatedDisputeId = dispute.id;
+        logFinancialFailure(
+          "dispute_opened",
+          startFinancialOperationTimer(),
+          "dispute_unknown_charge",
+          { providerEventId: event.id },
+          { correlationId: event.id, metadata: { providerChargeId: chargeId, providerDisputeId: dispute.id } }
+        );
+        await writeAuditLog({
+          actorUserId: "system",
+          actorRole: "system",
+          action: "dispute_unknown_charge_acknowledged",
+          sourceFunction: sourceFunctionName,
+          targetId: dispute.id,
+          metadata: { providerChargeId: chargeId, eventType: event.type },
+        });
+        break;
       }
       const paymentId = paySnap.docs[0].id;
       relatedPaymentId = paymentId;

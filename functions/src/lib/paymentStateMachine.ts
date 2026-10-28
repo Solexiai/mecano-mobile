@@ -32,7 +32,22 @@ const TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
     PaymentStatuses.CANCELLED, // mission annulée avant capture
     PaymentStatuses.FAILED, // autorisation expirée (fenêtre réseau dépassée)
   ],
-  [PaymentStatuses.CAPTURE_PENDING]: [PaymentStatuses.CAPTURED, PaymentStatuses.FAILED],
+  [PaymentStatuses.CAPTURE_PENDING]: [
+    PaymentStatuses.CAPTURED,
+    // PAY-03 : capture refusée après livraison -> reprise planifiée.
+    PaymentStatuses.CAPTURE_FAILED,
+    // Incohérence d'environnement, frais de mission refusés (jamais relancés).
+    PaymentStatuses.FAILED,
+  ],
+  // PAY-03 (2026-10-27) — état de REPRISE. Une relance (cron ou callable)
+  // repasse par CAPTURE_PENDING avant l'appel Stripe (même schéma en 3 temps
+  // que la capture initiale) ; l'abandon après la dernière relance, ou une
+  // décision admin, termine en FAILED.
+  [PaymentStatuses.CAPTURE_FAILED]: [
+    PaymentStatuses.CAPTURE_PENDING,
+    PaymentStatuses.CAPTURED,
+    PaymentStatuses.FAILED,
+  ],
   [PaymentStatuses.CAPTURED]: [
     PaymentStatuses.PARTIALLY_REFUNDED,
     PaymentStatuses.REFUNDED,

@@ -38,6 +38,7 @@ const List<PaymentStatus?> _kPaymentFilters = [
   PaymentStatus.cancelled,
   PaymentStatus.refunded,
   PaymentStatus.partiallyRefunded,
+  PaymentStatus.captureFailed,
   PaymentStatus.failed,
   PaymentStatus.disputed,
 ];

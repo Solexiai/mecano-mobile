@@ -95,6 +95,42 @@ export interface CapturePaymentResult {
   providerChargeId: string | null;
   failureCode?: string | null;
   failureMessage?: string | null;
+  /**
+   * PAY-11 (2026-10-27) — true quand le provider n'a PAS répondu (timeout,
+   * erreur réseau, 5xx, rate limit) : la carte a peut-être été débitée. Ce
+   * n'est PAS un refus ; l'appelant doit relire le statut provider plus tard
+   * (même clé d'idempotence) au lieu de conclure à un échec.
+   */
+  indeterminate?: boolean;
+}
+
+/**
+ * PAY-03 (2026-10-27) — débit DIRECT (sans autorisation préalable) du moyen
+ * de paiement enregistré du client, utilisé UNIQUEMENT pour reprendre une
+ * capture refusée après livraison : l'autorisation initiale est perdue ou
+ * expirée, on crée un nouveau paiement off-session capturé immédiatement,
+ * avec la même répartition (destination chauffeur + frais plateforme).
+ */
+export interface ChargeSavedPaymentMethodParams {
+  providerCustomerId: string;
+  providerPaymentMethodId: string;
+  amountMinor: number;
+  currency: Currency;
+  connectedAccountId: string | null;
+  applicationFeeMinor: number;
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
+export interface ChargeSavedPaymentMethodResult {
+  success: boolean;
+  status: string;
+  providerPaymentIntentId: string | null;
+  providerChargeId: string | null;
+  amountCapturedMinor: number;
+  failureCode?: string | null;
+  failureMessage?: string | null;
+  /** Voir CapturePaymentResult.indeterminate. */
+  indeterminate?: boolean;
 }
 
 export interface CancelAuthorizationParams {
@@ -281,6 +317,13 @@ export abstract class PaymentProvider {
   abstract authorizePayment(params: AuthorizePaymentParams): Promise<AuthorizePaymentResult>;
 
   abstract capturePayment(params: CapturePaymentParams): Promise<CapturePaymentResult>;
+
+  /** PAY-03 — voir ChargeSavedPaymentMethodParams. Non abstraite pour ne pas
+   *  casser les doubles de test existants ; StripeProvider l'implémente. */
+  async chargeSavedPaymentMethod(_params: ChargeSavedPaymentMethodParams): Promise<ChargeSavedPaymentMethodResult> {
+    void _params;
+    throw new PaymentProviderNotConfiguredError();
+  }
 
   abstract cancelAuthorization(
     params: CancelAuthorizationParams

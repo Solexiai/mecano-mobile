@@ -747,37 +747,39 @@ describe("processStripeWebhook", () => {
   });
 
   test("erreur TEMPORAIRE lors du dispatch => 500, statut `failed`, puis RETRY réussi", async () => {
-    // `charge.dispute.created` sans aucun `payments` correspondant lève
-    // une erreur explicite dans dispatchStripeEvent() (voir
-    // processStripeWebhook.ts: "Aucun payment trouvé pour
-    // provider_charge_id=...") — utilisé ici comme scénario d'échec
+    // `charge.dispute.updated` sur un litige que Movi-K ne connaît pas encore
+    // lève une erreur explicite dans transitionDisputeStatus()
+    // ("disputes/... introuvable") — utilisé ici comme scénario d'échec
     // temporaire déterministe et reproductible sans mock du réseau.
+    // (Depuis PAY-13, `charge.dispute.created` sur une charge inconnue est
+    // accusé réception sans erreur : voir le test dédié ci-dessous.)
     const eventId = "evt_temp_error_001";
+    const createdEventId = "evt_temp_error_001_created";
     const missionId = "webhook_mission_retry";
     const paymentId = "webhook_payment_retry";
     const chargeId = "ch_retry_001";
     const disputeId = "dp_retry_001";
 
-    const payload = buildStripeEventPayload(eventId, "charge.dispute.created", {
+    const payload = buildStripeEventPayload(eventId, "charge.dispute.updated", {
       id: disputeId,
       charge: chargeId,
       amount: 1500,
       reason: "fraudulent",
-      status: "warning_needs_response",
+      status: "under_review",
     });
     const sig = signPayload(payload);
 
-    // ---- 1er appel : le payment n'existe pas encore => échec temporaire ----
+    // ---- 1er appel : le litige n'existe pas encore => échec temporaire ----
     const first = await invokeWebhook(payload, sig);
     expect(first.status).toBe(500);
     const firstBody = first.body as { received: boolean; error: string };
     expect(firstBody.received).toBe(false);
-    expect(firstBody.error).toMatch(/Aucun payment trouvé/);
+    expect(firstBody.error).toMatch(/introuvable/);
 
     const docAfterFailure = await getEventDoc(eventId);
     expect(docAfterFailure!.processing_status).toBe("failed");
     expect(docAfterFailure!.attempt_count).toBe(1);
-    expect(docAfterFailure!.last_error).toMatch(/Aucun payment trouvé/);
+    expect(docAfterFailure!.last_error).toMatch(/introuvable/);
 
     const failAudit = await db
       .collection("audit_logs")
@@ -786,8 +788,18 @@ describe("processStripeWebhook", () => {
       .get();
     expect(failAudit.size).toBe(1);
 
-    // ---- Correction de la condition d'échec (le payment est créé) ----
+    // ---- Correction de la condition d'échec : le paiement existe et le
+    // litige est ouvert par son évènement `created` (arrivé en retard) ----
     await seedPayment(paymentId, missionId, { providerChargeId: chargeId });
+    const createdPayload = buildStripeEventPayload(createdEventId, "charge.dispute.created", {
+      id: disputeId,
+      charge: chargeId,
+      amount: 1500,
+      reason: "fraudulent",
+      status: "warning_needs_response",
+    });
+    const created = await invokeWebhook(createdPayload, signPayload(createdPayload));
+    expect(created.status).toBe(200);
 
     // ---- 2e appel (RETRY, même event.id) : doit maintenant réussir ----
     const second = await invokeWebhook(payload, sig);
@@ -799,13 +811,11 @@ describe("processStripeWebhook", () => {
     // attempt_count incrémenté lors de la nouvelle tentative (2e passage).
     expect(docAfterRetry!.attempt_count).toBe(2);
     expect(docAfterRetry!.related_dispute_id).toBe(disputeId);
-    expect(docAfterRetry!.related_payment_id).toBe(paymentId);
 
-    // Le litige a bien été créé UNE SEULE FOIS malgré les deux passages
-    // (openDispute() est idempotent sur l'ID du document = provider_dispute_id).
+    // Le litige a bien été créé UNE SEULE FOIS puis passé en examen.
     const disputeSnap = await db.collection("disputes").doc(disputeId).get();
     expect(disputeSnap.exists).toBe(true);
-    expect(disputeSnap.data()!.status).toBe(DisputeStatuses.OPENED);
+    expect(disputeSnap.data()!.status).toBe(DisputeStatuses.UNDER_REVIEW);
 
     const chargebackFeeSnap = await db
       .collection("transaction_ledger")
@@ -815,11 +825,42 @@ describe("processStripeWebhook", () => {
     expect(chargebackFeeSnap.size).toBe(1); // aucun doublon ledger
 
     await cleanupAll({
-      eventIds: [eventId],
+      eventIds: [eventId, createdEventId],
       paymentIds: [paymentId],
       missionIds: [missionId],
       disputeIds: [disputeId],
     });
+  });
+
+  test("PAY-13 : charge.dispute.created sur une charge inconnue => 200, accusé réception journalisé, aucun litige créé", async () => {
+    const eventId = "evt_dispute_unknown_charge_001";
+    const disputeId = "dp_unknown_charge_001";
+    const payload = buildStripeEventPayload(eventId, "charge.dispute.created", {
+      id: disputeId,
+      charge: "ch_unknown_to_movik_001",
+      amount: 1500,
+      reason: "fraudulent",
+      status: "warning_needs_response",
+    });
+    const result = await invokeWebhook(payload, signPayload(payload));
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({ received: true });
+
+    const doc = await getEventDoc(eventId);
+    expect(doc!.processing_status).toBe("processed");
+    expect(doc!.related_dispute_id).toBe(disputeId);
+    expect(doc!.related_payment_id).toBeNull();
+    expect((await db.collection("disputes").doc(disputeId).get()).exists).toBe(false);
+
+    const ack = await db
+      .collection("audit_logs")
+      .where("action", "==", "dispute_unknown_charge_acknowledged")
+      .where("target_id", "==", disputeId)
+      .get();
+    expect(ack.size).toBe(1);
+
+    await ack.docs[0].ref.delete();
+    await cleanupAll({ eventIds: [eventId] });
   });
 
   // ---------------------------------------------------------------------

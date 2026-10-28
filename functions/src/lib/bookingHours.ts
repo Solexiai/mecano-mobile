@@ -7,12 +7,21 @@
 // -----------------------------------------------------------------------------
 import { db } from "./admin";
 
+/**
+ * PAY-08 (2026-10-27) — borne dure sur la fenêtre de réservation. La carte
+ * est autorisée à l'acceptation et débitée à la livraison ; une autorisation
+ * Stripe expire après ~7 jours (Visa ~5). Au-delà de 5 jours, la capture
+ * échouerait systématiquement. Décision de Daniel : 4 jours par défaut, 5 au
+ * maximum, sans tâche de ré-autorisation.
+ */
+export const MAX_BOOKING_DAYS_AHEAD = 5;
+
 export interface BookingHours {
   /** Hours offered, local Québec time (6 to 21). */
   slot_hours: number[];
   /** Minimum notice before a slot. */
   lead_minutes: number;
-  /** Days offered, today included. */
+  /** Days offered, today included (1 to MAX_BOOKING_DAYS_AHEAD). */
   days_ahead: number;
   /** 1 = Monday ... 7 = Sunday. */
   open_weekdays: number[];
@@ -52,7 +61,7 @@ export function parseBookingHours(raw: unknown, errors: string[]): BookingHours 
   return {
     slot_hours: ints(r.slot_hours, 6, 21, "Heures offertes"),
     lead_minutes: int(r.lead_minutes, 0, 1440, "Délai minimum (minutes)"),
-    days_ahead: int(r.days_ahead, 1, 14, "Jours à l'avance"),
+    days_ahead: int(r.days_ahead, 1, MAX_BOOKING_DAYS_AHEAD, "Jours à l'avance"),
     open_weekdays: ints(r.open_weekdays, 1, 7, "Jours ouverts"),
   };
 }

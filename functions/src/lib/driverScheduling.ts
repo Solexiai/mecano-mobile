@@ -2,6 +2,9 @@ import { db, admin } from './admin';
 import { failedPrecondition, invalidArgument } from './errors';
 import { AgendaInterval, normalizeAgendaInterval, normalizeDriverAgenda, intervalIsAvailable } from './driverAgenda';
 import { ServiceZonesConfig, isWithinServiceZones } from './serviceZones';
+import { MAX_BOOKING_DAYS_AHEAD } from './bookingHours';
+/** PAY-08 : jamais au-delà de la fenêtre d'autorisation Stripe, quelle que soit la config. */
+export const MAX_SCHEDULING_ADVANCE_MINUTES = MAX_BOOKING_DAYS_AHEAD * 24 * 60;
 export interface SchedulingPolicy {
     enabled: true;
     approved: true;
@@ -16,7 +19,7 @@ export async function readSchedulingPolicy(tx?: FirebaseFirestore.Transaction): 
     if (p.approved !== true || p.duration_confirmation_approved !== true ||
         typeof p.version !== 'string' || !p.version || !Number.isSafeInteger(p.max_advance_minutes) || p.max_advance_minutes <= 0)
         throw failedPrecondition('La configuration de planification active est incomplète ou non approuvée.');
-    return p as SchedulingPolicy;
+    return { ...(p as SchedulingPolicy), max_advance_minutes: Math.min(p.max_advance_minutes, MAX_SCHEDULING_ADVANCE_MINUTES) };
 }
 export interface ReservedSlot extends AgendaInterval {
     pickup_at: string;

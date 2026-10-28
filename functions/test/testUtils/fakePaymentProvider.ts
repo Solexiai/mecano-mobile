@@ -24,6 +24,8 @@ import {
   CancelAuthorizationResult,
   CapturePaymentParams,
   CapturePaymentResult,
+  ChargeSavedPaymentMethodParams,
+  ChargeSavedPaymentMethodResult,
   CreateCustomerParams,
   CreateCustomerResult,
   CreateDriverAccountParams,
@@ -55,6 +57,12 @@ export interface FakePaymentProviderOptions {
   forceAuthorizeFailure?: boolean;
   /** Si vrai, `capturePayment()` renvoie un échec déterministe. */
   forceCaptureFailure?: boolean;
+  /** PAY-11 : si vrai, `capturePayment()` renvoie une réponse NON concluante (timeout simulé). */
+  forceCaptureIndeterminate?: boolean;
+  /** PAY-03 : si vrai, `chargeSavedPaymentMethod()` (relance) renvoie un refus déterministe. */
+  forceChargeFailure?: boolean;
+  /** PAY-03 : nombre de relances refusées avant un succès (décrémenté à chaque appel). */
+  chargeFailuresBeforeSuccess?: number;
   /** Si vrai, `refundPayment()` renvoie un échec déterministe (refus provider simulé). */
   forceRefundFailure?: boolean;
   /** Si vrai, `createDriverPayout()` renvoie un échec déterministe (versement refusé simulé, ex: compte connecté invalide côté Stripe). */
@@ -136,8 +144,46 @@ export class FakePaymentProvider extends PaymentProvider {
     };
   }
 
+  readonly chargedSavedMethodParams: ChargeSavedPaymentMethodParams[] = [];
+  async chargeSavedPaymentMethod(
+    params: ChargeSavedPaymentMethodParams
+  ): Promise<ChargeSavedPaymentMethodResult> {
+    this.chargedSavedMethodParams.push(params);
+    const remaining = this.options.chargeFailuresBeforeSuccess ?? 0;
+    if (this.options.forceChargeFailure || remaining > 0) {
+      if (remaining > 0) this.options.chargeFailuresBeforeSuccess = remaining - 1;
+      return {
+        success: false,
+        status: "failed",
+        providerPaymentIntentId: nextId("pi_retry"),
+        providerChargeId: null,
+        amountCapturedMinor: 0,
+        failureCode: this.options.failureCode ?? "card_declined",
+        failureMessage: this.options.failureMessage ?? "Carte refusée (relance simulée).",
+      };
+    }
+    return {
+      success: true,
+      status: "succeeded",
+      providerPaymentIntentId: nextId("pi_retry"),
+      providerChargeId: nextId("ch_retry"),
+      amountCapturedMinor: params.amountMinor,
+    };
+  }
+
   async capturePayment(params: CapturePaymentParams): Promise<CapturePaymentResult> {
     this.capturedPaymentParams.push(params);
+    if (this.options.forceCaptureIndeterminate) {
+      return {
+        success: false,
+        status: "unknown",
+        amountCapturedMinor: 0,
+        providerChargeId: null,
+        failureCode: "connection_error",
+        failureMessage: "Réponse non reçue (simulation de test).",
+        indeterminate: true,
+      };
+    }
     if (this.options.forceCaptureFailure) {
       return {
         success: false,

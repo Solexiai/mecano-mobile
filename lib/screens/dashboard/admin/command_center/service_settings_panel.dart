@@ -75,7 +75,7 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
       _hours = {for (final h in hours['slot_hours'] as List) h as int};
       _days = {for (final d in hours['open_weekdays'] as List) d as int};
       _lead = hours['lead_minutes'] as int;
-      _ahead = hours['days_ahead'] as int;
+      _ahead = (hours['days_ahead'] as int).clamp(1, 5);
       _zonesSaved = zones['saved'] == true;
       _hoursSaved = hours['saved'] == true;
       _loaded = true;
@@ -313,7 +313,10 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
                       key: const ValueKey('service-ahead'),
                       value: _ahead,
                       onChanged: _busy ? null : (v) => _change(() => _ahead = v ?? 4),
-                      items: [for (var d = 1; d <= 14; d++) DropdownMenuItem(value: d, child: Text('$d'))],
+                      // PAY-08 (2026-10-27) : la carte est autorisée à l'acceptation
+                      // et débitée à la livraison ; une autorisation expire après
+                      // ~7 jours. 5 jours au maximum (voir bookingHours.ts).
+                      items: [for (var d = 1; d <= 5; d++) DropdownMenuItem(value: d, child: Text('$d'))],
                     ),
                   ],
                 ),

@@ -47,6 +47,8 @@ class DeliveryMission {
   final String pricingVersion;
   final String? activeQuoteId;
   final String? activeFinancialSnapshotId;
+  /// `payments/{id}` rattaché (PAY-03 : reprise de capture côté client).
+  final String? activePaymentId;
   final String assignmentMode;
   final DateTime createdAt;
   // Timestamps métier par statut (Phase 5, partie 3) — un champ dédié par
@@ -101,6 +103,7 @@ class DeliveryMission {
     required this.pricingVersion,
     this.activeQuoteId,
     this.activeFinancialSnapshotId,
+    this.activePaymentId,
     this.assignmentMode = 'standard',
     required this.createdAt,
     this.driverToPickupAt,
@@ -145,6 +148,7 @@ class DeliveryMission {
     'pricing_version': pricingVersion,
     'active_quote_id': activeQuoteId,
     'active_financial_snapshot_id': activeFinancialSnapshotId,
+    'active_payment_id': activePaymentId,
     'assignment_mode': assignmentMode,
     'created_at': createdAt.toIso8601String(),
     'driver_to_pickup_at': driverToPickupAt?.toIso8601String(),
@@ -191,6 +195,7 @@ class DeliveryMission {
       activeQuoteId: json['active_quote_id'] as String?,
       activeFinancialSnapshotId:
           json['active_financial_snapshot_id'] as String?,
+      activePaymentId: json['active_payment_id'] as String?,
       assignmentMode: json['assignment_mode'] as String? ?? 'standard',
       createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       driverToPickupAt: parseFirestoreDate(json['driver_to_pickup_at']),
