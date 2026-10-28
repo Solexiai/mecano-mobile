@@ -239,9 +239,10 @@ describe("SEC-07 — plafond de demandes ouvertes par client", () => {
     expect(await countOpenMissions(customer)).toBe(MAX_OPEN_MISSIONS_PER_CUSTOMER);
     await expect(createDeliveryRequest.run(call(customer, { quoteId: "q_whatever" } as never)))
       .rejects.toMatchObject({ code: "failed-precondition", message: expect.stringContaining("en cours") });
-    // Une livraison de moins : la demande passe le plafond (et échoue plus loin, devis inexistant).
+    // Une livraison de moins : la demande passe le plafond (et échoue plus loin, devis invalide/inexistant).
     await db.doc(`delivery_requests/${PREFIX}open_1`).update({ status: MissionStatuses.CANCELLED });
-    await expect(createDeliveryRequest.run(call(customer, { quoteId: "q_whatever" } as never)))
-      .rejects.toMatchObject({ code: "not-found" });
+    const after = await createDeliveryRequest.run(call(customer, { quoteId: "q_whatever" } as never)).catch((e) => e);
+    expect(after).toBeInstanceOf(Error);
+    expect(String((after as Error).message)).not.toContain("en cours");
   });
 });

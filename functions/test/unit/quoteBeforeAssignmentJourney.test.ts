@@ -51,7 +51,26 @@ function ref(path: string): any {
     collection: (name: string) => collection(path + '/' + name),
   };
 }
-function collection(name: string): any { return { doc: (id?: string) => ref(name + '/' + (id ?? 'generated-' + ++serial)) }; }
+// Minimal query support (SEC-07 open-missions cap reads `customer_id`): an
+// in-memory where/orderBy/limit over the documents of the collection.
+function query(name: string, filters: Array<[string, any]>, max = Infinity): any {
+  return {
+    where: (field: string, _op: string, value: any) => query(name, [...filters, [field, value]], max),
+    orderBy: () => query(name, filters, max),
+    limit: (n: number) => query(name, filters, n),
+    get: async () => {
+      const docs = [...store.entries()]
+        .filter(([path]) => path.startsWith(name + '/') && !path.slice(name.length + 1).includes('/'))
+        .filter(([, data]) => filters.every(([field, value]) => data?.[field] === value))
+        .slice(0, max)
+        .map(([path, data]) => ({ id: path.split('/').pop(), ref: ref(path), data: () => data }));
+      return { docs, size: docs.length, empty: docs.length === 0 };
+    },
+  };
+}
+function collection(name: string): any {
+  return { doc: (id?: string) => ref(name + '/' + (id ?? 'generated-' + ++serial)), ...query(name, []) };
+}
 beforeEach(() => {
   jest.clearAllMocks(); store = new Map(); reads = []; writes = []; serial = 0;
   (isRuntimeFlagEnabled as jest.Mock).mockResolvedValue(false);
