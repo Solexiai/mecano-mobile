@@ -116,7 +116,7 @@ class CustomerTrackingScreen extends StatelessWidget {
                     key: const ValueKey('tracking-sign-in'),
                     // CLI-08 : retour sur ce suivi après la connexion.
                     onPressed: () => context.go(DeliveryRequestIntent.loginPathReturningTo(
-                      locale, '/$locale/livraison/suivi/${widget.missionId}',
+                      locale, '/$locale/livraison/suivi/$missionId',
                     )),
                     child: Text(t('delivery_sign_in_button')),
                   ),
