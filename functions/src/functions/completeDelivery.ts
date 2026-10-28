@@ -22,6 +22,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
+import { assertProofUrlForMission } from "../lib/proofUrl";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy";
 import {
@@ -46,9 +47,8 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
   const ctx = requireSignedIn(request);
   const { missionId, proofOfDeliveryUrl } = request.data;
   if (!missionId) throw invalidArgument("missionId est requis.");
-  if (!proofOfDeliveryUrl || typeof proofOfDeliveryUrl !== "string" || !proofOfDeliveryUrl.trim()) {
-    throw invalidArgument("proofOfDeliveryUrl est requis pour compléter la livraison (preuve de livraison obligatoire).");
-  }
+  // SEC-04 (2026-10-28) : URL Cloud Storage du dossier de preuves de CETTE mission.
+  const proofUrl = assertProofUrlForMission(proofOfDeliveryUrl, missionId, "proofOfDeliveryUrl");
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
@@ -96,7 +96,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
     tx.update(missionRef, {
       status: MissionStatuses.COMPLETED,
       completed_at: now,
-      proof_of_delivery_url: proofOfDeliveryUrl,
+      proof_of_delivery_url: proofUrl,
     });
 
     if (!isInternalTest) {
@@ -179,7 +179,7 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
       actor_uid: ctx.uid,
       occurred_at: now,
       metadata: {
-        proof_of_delivery_url: proofOfDeliveryUrl,
+        proof_of_delivery_url: proofUrl,
         internal_test: isInternalTest,
       },
     });

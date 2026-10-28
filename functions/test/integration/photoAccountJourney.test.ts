@@ -86,7 +86,7 @@ beforeEach(async()=>{
  await db.doc('payment_profiles/'+customer).set(buildFakePaymentProfile(customer));
  await db.doc('driver_profiles/'+driver).set({status:'pending_review',full_name:'Synthetic Driver',online_status:'online',documents_all_valid:false,accepted_vehicle_categories:['cargoVan'],current_geohash:encodeGeohash(45.4,-72.7,6)});
  await db.doc('driver_vehicles/'+vehicle).set({driver_id:driver,category:'cargo_van',make_model:'SYNTHETIC VEHICLE',year:2025,plate:'TEST-ONLY',max_payload_kg:500,is_verified:false});
- for(const type of ['drivers_licence','vehicle_registration','insurance','identity']) await db.doc('driver_documents/'+type).set({driver_id:driver,type,status:'uploaded',uploaded_at:admin.firestore.Timestamp.now(),expires_at:admin.firestore.Timestamp.fromMillis(Date.now()+604800000)});
+ for(const type of ['drivers_licence','vehicle_registration','insurance','identity']) await db.doc('driver_documents/'+type).set({driver_id:driver,type,status:'approved',reviewed_at:admin.firestore.Timestamp.now(),uploaded_at:admin.firestore.Timestamp.now(),expires_at:admin.firestore.Timestamp.fromMillis(Date.now()+604800000)});
  await approveDriver.run(await request(reviewer,{driverId:driver}));
  await verifyVehicle('cargo_van');
 });

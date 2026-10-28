@@ -26,7 +26,7 @@ beforeEach(async () => {
   await db.doc('driver_profiles/'+driver).set({status:'pending_review',documents_all_valid:false});
   const v = {driver_id:driver,category:'cargo_van',make_model:'SYNTHETIC VAN',year:2025,plate:'TEST-ONLY',max_payload_kg:500,is_verified:false};
   identity=vehicleIdentity(v); await ref().set(v);
-  for(const type of types) await db.doc('driver_documents/'+type).set({driver_id:driver,type,status:'uploaded',uploaded_at:admin.firestore.Timestamp.now(),expires_at:admin.firestore.Timestamp.fromMillis(Date.now()+604800000)});
+  for(const type of types) await db.doc('driver_documents/'+type).set({driver_id:driver,type,status:'approved',reviewed_at:admin.firestore.Timestamp.now(),uploaded_at:admin.firestore.Timestamp.now(),expires_at:admin.firestore.Timestamp.fromMillis(Date.now()+604800000)});
 });
 afterEach(async () => {
   for(const name of ['driver_profiles','driver_vehicles','driver_documents','audit_logs']) await db.recursiveDelete(db.collection(name));

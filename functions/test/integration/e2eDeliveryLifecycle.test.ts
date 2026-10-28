@@ -582,7 +582,7 @@ describe("E2E — aucune étape de la chaîne ne peut être sautée (une fois as
       completeDelivery.run(
         authedRequest<CompleteDeliveryRequest>(DRIVER_ID, {
           missionId: missionId!,
-          proofOfDeliveryUrl: "https://storage.googleapis.com/movik-test/delivery_proofs/x/proof.jpg",
+          proofOfDeliveryUrl: `https://storage.googleapis.com/movik-test/delivery_proofs/${missionId}/proof.jpg`,
         })
       )
     ).rejects.toMatchObject({ code: "failed-precondition" });

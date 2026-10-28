@@ -12,6 +12,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
+import { assertProofUrlForMission } from "../lib/proofUrl";
 import { MissionStatuses } from "../lib/types";
 import { requireMissionProgressPermission } from "../lib/driverSuspensionPolicy";
 
@@ -24,10 +25,8 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   const { missionId, proofOfPickupUrl } = request.data;
   if (!missionId) throw invalidArgument("missionId est requis.");
-  if (!proofOfPickupUrl || typeof proofOfPickupUrl !== "string" || !proofOfPickupUrl.trim() ||
-    proofOfPickupUrl.length > 2048) {
-    throw invalidArgument("proofOfPickupUrl est requis : photo de l'article chargé obligatoire.");
-  }
+  // SEC-04 (2026-10-28) : URL Cloud Storage du dossier de preuves de CETTE mission.
+  const proofUrl = assertProofUrlForMission(proofOfPickupUrl, missionId, "proofOfPickupUrl");
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
 
@@ -59,7 +58,7 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
     tx.update(missionRef, {
       status: MissionStatuses.PICKED_UP,
       picked_up_at: now,
-      proof_of_pickup_url: proofOfPickupUrl,
+      proof_of_pickup_url: proofUrl,
     });
 
     if (!stopsSnap.empty) {
@@ -71,7 +70,7 @@ export const completePickup = onCall<CompletePickupRequest>(async (request) => {
       event_type: "picked_up",
       actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: { proof_of_pickup_url: proofOfPickupUrl },
+      metadata: { proof_of_pickup_url: proofUrl },
     });
   });
 

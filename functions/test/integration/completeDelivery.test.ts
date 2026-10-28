@@ -252,7 +252,7 @@ describe("completeDelivery — cas négatifs", () => {
 
   it("mission introuvable échoue avec not-found", async () => {
     await expect(
-      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante", proofOfDeliveryUrl: PROOF_URL }))
+      completeDelivery.run(buildRequest(DRIVER_ID, { missionId: "mission_inexistante", proofOfDeliveryUrl: PROOF_URL.replace(MISSION_ID, "mission_inexistante") }))
     ).rejects.toMatchObject({ code: "not-found" });
   });
 
