@@ -21,3 +21,7 @@ const { ROUTING_QUOTA_DEFAULTS, ROUTING_DAILY_QUOTA_DEFAULT } = jest.requireActu
 process.env.ROUTING_REQUESTS_PER_WINDOW ??= String(ROUTING_QUOTA_DEFAULTS.requests);
 process.env.ROUTING_WINDOW_SECONDS ??= String(ROUTING_QUOTA_DEFAULTS.windowSeconds);
 process.env.ROUTING_REQUESTS_PER_DAY ??= String(ROUTING_DAILY_QUOTA_DEFAULT);
+
+// SEC-04 (2026-10-28) : les fixtures historiques utilisent des hôtes fictifs
+// pour les preuves photo ; en production seul Cloud Storage est accepté.
+process.env.PROOF_URL_TEST_HOSTS ??= "storage.example.test,example.invalid";

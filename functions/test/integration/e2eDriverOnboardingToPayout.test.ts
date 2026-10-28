@@ -40,6 +40,7 @@ import type { DecodedIdToken } from "firebase-admin/auth";
 import { registerAsDriver } from "../../src/functions/registerAsDriver";
 import { submitDriverForReview } from "../../src/functions/submitDriverForReview";
 import { approveDriver, ApproveDriverRequest } from "../../src/functions/approveDriver";
+import { validateDriverDocument, ValidateDriverDocumentRequest } from "../../src/functions/validateDriverDocument";
 import { rejectDriver, RejectDriverRequest } from "../../src/functions/rejectDriver";
 import { calculateDeliveryQuote, CalculateDeliveryQuoteRequest } from "../../src/functions/calculateDeliveryQuote";
 import { createDeliveryRequest, CreateDeliveryRequestRequest, StopInput } from "../../src/functions/createDeliveryRequest";
@@ -314,6 +315,16 @@ describe("E2E — parcours chauffeur complet : registerAsDriver -> ... -> calcul
       expect(resubmit).toMatchObject({ success: true, status: DriverStatuses.PENDING_REVIEW, alreadyPending: true });
 
       // ---- 5. Analyste approuve le chauffeur ----
+      // SEC-05 (2026-10-28) : refusé tant que les documents ne sont pas
+      // approuvés un par un ; puis chaque document est revu, puis le dossier.
+      await expect(
+        approveDriver.run(buildRequest<ApproveDriverRequest>(ANALYST_ID, { driverId: DRIVER_ID }, ["analyst"]))
+      ).rejects.toMatchObject({ code: "failed-precondition" });
+      for (const documentSnap of docsBeforeApproval.docs) {
+        await validateDriverDocument.run(
+          buildRequest<ValidateDriverDocumentRequest>(ANALYST_ID, { documentId: documentSnap.id, newStatus: "approved" }, ["analyst"])
+        );
+      }
       const approveResult = await approveDriver.run(
         buildRequest<ApproveDriverRequest>(ANALYST_ID, { driverId: DRIVER_ID }, ["analyst"])
       );

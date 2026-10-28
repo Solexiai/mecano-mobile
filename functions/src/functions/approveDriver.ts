@@ -57,22 +57,17 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
       );
     }
 
-    // Le bouton « Approuver » finalise le dossier complet en une action,
-    // mais seulement si chaque document obligatoire a réellement été
-    // téléversé et n'est ni rejeté, expiré, ni à remplacer.
+    // SEC-05 (2026-10-28) : « Approuver le dossier » ne valide plus en bloc
+    // des documents jamais revus. Chaque document obligatoire doit avoir été
+    // APPROUVÉ individuellement (validateDriverDocument, revue humaine), être
+    // non expiré, et le plus récent de son type est retenu.
     const now = admin.firestore.Timestamp.now();
     const selectedDocuments = REQUIRED_DOCUMENT_TYPES.map((type) => {
       const candidates = documentsSnap.docs
         .filter((documentSnap) => {
           const document = documentSnap.data();
           if (document.type !== type) return false;
-          if (
-            document.status === DriverDocumentStatuses.REJECTED ||
-            document.status === DriverDocumentStatuses.EXPIRED ||
-            document.status === DriverDocumentStatuses.REPLACEMENT_REQUIRED
-          ) {
-            return false;
-          }
+          if (document.status !== DriverDocumentStatuses.APPROVED) return false;
           const expiresAt = document.expires_at as admin.firestore.Timestamp | null;
           return !expiresAt || expiresAt.toMillis() > now.toMillis();
         })
@@ -87,8 +82,9 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
     });
 
     if (selectedDocuments.some((documentSnap) => documentSnap === null)) {
+      const missing = REQUIRED_DOCUMENT_TYPES.filter((_, index) => selectedDocuments[index] === null);
       throw failedPrecondition(
-        "Tous les documents obligatoires doivent être téléversés et valides avant l'approbation."
+        `Chaque document obligatoire doit d'abord être approuvé individuellement (manquants ou non approuvés : ${missing.join(", ")}).`
       );
     }
 
@@ -104,15 +100,6 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
       throw failedPrecondition(
         "Seul un super administrateur peut approuver son propre dossier de test."
       );
-    }
-
-    for (const documentSnap of selectedDocuments) {
-      tx.update(documentSnap!.ref, {
-        status: DriverDocumentStatuses.APPROVED,
-        reviewed_at: now,
-        reviewed_by_user_id: ctx.uid,
-        rejection_reason: null,
-      });
     }
 
     tx.update(driverRef, {

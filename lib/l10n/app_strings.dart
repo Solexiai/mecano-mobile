@@ -3003,6 +3003,32 @@ class AppStrings {
       'en': 'No documents uploaded.',
       'es': 'No se han cargado documentos.',
     },
+    // SEC-05 (2026-10-28) : validation document par document.
+    'admin_driver_doc_approve': {
+      'fr': 'Approuver',
+      'en': 'Approve',
+      'es': 'Aprobar',
+    },
+    'admin_driver_doc_reject': {
+      'fr': 'Rejeter',
+      'en': 'Reject',
+      'es': 'Rechazar',
+    },
+    'admin_driver_doc_reject_reason': {
+      'fr': 'Motif (visible par le chauffeur)',
+      'en': 'Reason (visible to the driver)',
+      'es': 'Motivo (visible para el conductor)',
+    },
+    'admin_driver_doc_validated': {
+      'fr': 'Document mis à jour.',
+      'en': 'Document updated.',
+      'es': 'Documento actualizado.',
+    },
+    'admin_driver_doc_validate_failed': {
+      'fr': 'Mise à jour du document refusée.',
+      'en': 'Document update refused.',
+      'es': 'Actualización del documento rechazada.',
+    },
     'admin_driver_doc_view': {
       'fr': 'Voir le document',
       'en': 'View document',

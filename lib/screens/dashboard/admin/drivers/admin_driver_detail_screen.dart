@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -422,6 +423,59 @@ class _DocumentTile extends StatefulWidget {
 
 class _DocumentTileState extends State<_DocumentTile> {
   bool _opening = false;
+  bool _validating = false;
+
+  Future<void> _validate(String newStatus) async {
+    final t = widget.t;
+    String? reason;
+    if (newStatus == 'rejected') {
+      final controller = TextEditingController();
+      reason = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(t('admin_driver_doc_reject')),
+          content: TextField(
+            key: const ValueKey('doc-reject-reason'),
+            controller: controller,
+            autofocus: true,
+            maxLength: 300,
+            decoration: InputDecoration(labelText: t('admin_driver_doc_reject_reason')),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(t('admin_finance_cancel'))),
+            FilledButton(
+              key: const ValueKey('doc-reject-confirm'),
+              onPressed: () => Navigator.pop(dialogContext, controller.text.trim()),
+              child: Text(t('admin_driver_doc_reject')),
+            ),
+          ],
+        ),
+      );
+      controller.dispose();
+      if (reason == null || reason.isEmpty || !mounted) return;
+    }
+    setState(() => _validating = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseFunctions.instance.httpsCallable('validateDriverDocument').call({
+        'documentId': widget.doc.id,
+        'newStatus': newStatus,
+        if (reason != null) 'rejectionReason': reason,
+      });
+      messenger.showSnackBar(SnackBar(content: Text(t('admin_driver_doc_validated'))));
+    } on FirebaseFunctionsException catch (e) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(e.message ?? t('admin_driver_doc_validate_failed')),
+        backgroundColor: AppColors.error,
+      ));
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(t('admin_driver_doc_validate_failed')),
+        backgroundColor: AppColors.error,
+      ));
+    }
+    if (mounted) setState(() => _validating = false);
+  }
 
   Color get _statusColor {
     switch (widget.doc.status) {
@@ -601,6 +655,29 @@ class _DocumentTileState extends State<_DocumentTile> {
                 style: const TextStyle(fontSize: 11.5, color: AppColors.error),
               ),
             ),
+          // SEC-05 (2026-10-28) : chaque document est approuvé ou rejeté UN PAR
+          // UN (validateDriverDocument) ; « Approuver le dossier » exige ensuite
+          // que les quatre documents obligatoires soient approuvés.
+          if (doc.status != DriverDocumentStatus.approved) ...[
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  key: ValueKey('doc-approve-${doc.id}'),
+                  onPressed: _validating ? null : () => _validate('approved'),
+                  icon: const Icon(Icons.check, size: 16),
+                  label: Text(t('admin_driver_doc_approve'), style: const TextStyle(fontSize: 12)),
+                ),
+                OutlinedButton.icon(
+                  key: ValueKey('doc-reject-${doc.id}'),
+                  onPressed: _validating ? null : () => _validate('rejected'),
+                  icon: const Icon(Icons.close, size: 16),
+                  label: Text(t('admin_driver_doc_reject'), style: const TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerLeft,
