@@ -151,7 +151,7 @@ export async function sweepDriverOffers(): Promise<void> {
             const state = exhausted ? NO_DRIVER_AVAILABLE : 'searching';
             if (m.status !== 'searching_driver' || m.dispatch_state !== state)
                 tx.update(doc.ref, { status: 'searching_driver', dispatch_state: state });
-            mission = { ...m, status: 'searching_driver', dispatch_state: state } as DeliveryMissionDoc;
+            mission = { ...m, status: 'searching_driver', dispatch_state: state } as unknown as DeliveryMissionDoc;
         });
         if (retry && mission) {
             // Dispatch planifié si une politique existe ; sinon dispatch immédiat.
