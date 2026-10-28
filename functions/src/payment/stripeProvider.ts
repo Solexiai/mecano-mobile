@@ -580,6 +580,9 @@ export class StripeProvider extends PaymentProvider {
 export function isIndeterminateStripeError(err: unknown): boolean {
   const e = err as { type?: string; statusCode?: number; code?: string } | null;
   if (!e || typeof e !== "object") return true; // erreur non-Stripe (réseau brut)
+  // Toute erreur Stripe porte un `type` ; sans `type`, c'est une erreur brute
+  // (socket, DNS, exception runtime) : on ne sait pas si Stripe a reçu l'appel.
+  if (typeof e.type !== "string") return true;
   if (e.type === "StripeConnectionError" || e.type === "StripeAPIError" || e.type === "StripeRateLimitError") {
     return true;
   }
