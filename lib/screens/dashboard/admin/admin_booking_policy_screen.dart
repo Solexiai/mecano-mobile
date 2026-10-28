@@ -245,102 +245,107 @@ class _AdminBookingPolicyScreenState extends State<AdminBookingPolicyScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Conditions de réservation')),
-      body: ListView(
+      // Colonne défilante (et non ListView) : tous les champs existent dès le
+      // premier rendu, ce que supposent les tests et le prérempli.
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        children: [
-          Text(
-            published == null
-                ? 'Aucune condition publiée : aucune réservation ne peut être confirmée. '
-                      'Le formulaire est prérempli avec la version d’essai, à relire et re-versionner.'
-                : 'Publiées : version ${published['version']}'
-                      '${published['trial'] == true ? ' (essai — à remplacer par la version finale)' : ''}.',
-            key: const ValueKey('policy-status'),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Le texte accepté est copié dans chaque réservation. Tout changement de texte '
-            'exige une nouvelle version ; la publication est journalisée.',
-            style: TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 12),
-          if (_busy) const LinearProgressIndicator(),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                _error!,
-                key: const ValueKey('policy-error'),
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
-            ),
-          if (_notice != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                _notice!,
-                key: const ValueKey('policy-notice'),
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
-            ),
-          if (_loaded) ...[
-            const Divider(height: 32),
-            _field(
-              'version',
-              'Version',
-              helper: 'Lettres, chiffres, points et tirets (ex. 2026-11-01-1).',
-            ),
-            _field(
-              'approval_reference',
-              'Référence d’approbation',
-              helper: 'Qui a relu et approuvé, et quand.',
-            ),
-            SwitchListTile(
-              key: const ValueKey('policy-setup-enabled'),
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Enregistrement de carte activé'),
-              subtitle: const Text(
-                'Désactivé, aucune réservation ne peut être confirmée.',
-              ),
-              value: _setupEnabled,
-              onChanged: _busy
-                  ? null
-                  : (v) => setState(() => _setupEnabled = v),
-            ),
-            const Divider(height: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Text(
-              'Résumés affichés avant la confirmation',
-              style: theme.textTheme.titleMedium,
+              published == null
+                  ? 'Aucune condition publiée : aucune réservation ne peut être confirmée. '
+                        'Le formulaire est prérempli avec la version d’essai, à relire et re-versionner.'
+                  : 'Publiées : version ${published['version']}'
+                        '${published['trial'] == true ? ' (essai — à remplacer par la version finale)' : ''}.',
+              key: const ValueKey('policy-status'),
             ),
-            const SizedBox(height: 8),
-            _localizedFields('cancellation_text', 'Annulation'),
-            _localizedFields('payment_text', 'Paiement'),
-            for (final (key, title) in _documents) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Le texte accepté est copié dans chaque réservation. Tout changement de texte '
+              'exige une nouvelle version ; la publication est journalisée.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            if (_busy) const LinearProgressIndicator(),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  _error!,
+                  key: const ValueKey('policy-error'),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ),
+            if (_notice != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  _notice!,
+                  key: const ValueKey('policy-notice'),
+                  style: TextStyle(color: theme.colorScheme.primary),
+                ),
+              ),
+            if (_loaded) ...[
               const Divider(height: 32),
-              Text(title, style: theme.textTheme.titleMedium),
+              _field(
+                'version',
+                'Version',
+                helper: 'Lettres, chiffres, points et tirets (ex. 2026-11-01-1).',
+              ),
+              _field(
+                'approval_reference',
+                'Référence d’approbation',
+                helper: 'Qui a relu et approuvé, et quand.',
+              ),
+              SwitchListTile(
+                key: const ValueKey('policy-setup-enabled'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enregistrement de carte activé'),
+                subtitle: const Text(
+                  'Désactivé, aucune réservation ne peut être confirmée.',
+                ),
+                value: _setupEnabled,
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() => _setupEnabled = v),
+              ),
+              const Divider(height: 32),
+              Text(
+                'Résumés affichés avant la confirmation',
+                style: theme.textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
-              _field('$key.version', 'Version du document'),
-              _field('$key.url', 'Adresse publique (https)'),
-              _localizedFields('$key.content', 'Texte intégral', lines: 10),
-            ],
-            const Divider(height: 32),
-            Row(
-              children: [
-                OutlinedButton(
-                  key: const ValueKey('policy-preview'),
-                  onPressed: _busy ? null : () => _run('preview'),
-                  child: const Text('Vérifier'),
-                ),
-                const SizedBox(width: 12),
-                FilledButton(
-                  key: const ValueKey('policy-publish'),
-                  onPressed: _busy ? null : _confirmPublish,
-                  child: const Text('Publier'),
-                ),
+              _localizedFields('cancellation_text', 'Annulation'),
+              _localizedFields('payment_text', 'Paiement'),
+              for (final (key, title) in _documents) ...[
+                const Divider(height: 32),
+                Text(title, style: theme.textTheme.titleMedium),
+                const SizedBox(height: 8),
+                _field('$key.version', 'Version du document'),
+                _field('$key.url', 'Adresse publique (https)'),
+                _localizedFields('$key.content', 'Texte intégral', lines: 10),
               ],
-            ),
-            const SizedBox(height: 24),
+              const Divider(height: 32),
+              Row(
+                children: [
+                  OutlinedButton(
+                    key: const ValueKey('policy-preview'),
+                    onPressed: _busy ? null : () => _run('preview'),
+                    child: const Text('Vérifier'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton(
+                    key: const ValueKey('policy-publish'),
+                    onPressed: _busy ? null : _confirmPublish,
+                    child: const Text('Publier'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

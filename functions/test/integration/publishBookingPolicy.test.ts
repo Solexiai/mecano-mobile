@@ -38,7 +38,7 @@ test('admins only', async () => {
 });
 
 test('get : rien de publié -> point de départ = version d\'essai, marquée comme telle', async () => {
-  const state = await publishBookingPolicy.run(call({ action: 'get' }));
+  const state = (await publishBookingPolicy.run(call({ action: 'get' }))) as any;
   expect(state.published).toBeNull();
   expect(state.starter).toMatchObject({ version: TRIAL_POLICY_VERSION, trial: true });
   expect(state.starter.documents.booking.content.fr).toContain("VERSION D'ESSAI");
@@ -60,7 +60,7 @@ test('publish : politique finale valide, jamais marquée essai, journalisée, pu
   await adminPilotSetup.run(call({ action: 'publishTrialTerms' }));
   expect((await getBookingPolicy())!.version).toBe(TRIAL_POLICY_VERSION);
 
-  const preview = await publishBookingPolicy.run(call({ action: 'preview', policy: draft() }));
+  const preview = (await publishBookingPolicy.run(call({ action: 'preview', policy: draft() }))) as any;
   expect(preview).toMatchObject({ valid: true, version: '2026-11-01-1' });
 
   const result = await publishBookingPolicy.run(call({ action: 'publish', policy: draft() }));
@@ -73,7 +73,7 @@ test('publish : politique finale valide, jamais marquée essai, journalisée, pu
   expect(raw.published_by_user_id).toBe('policy_staff');
   expect(raw.published_at).toBeTruthy();
 
-  const state = await publishBookingPolicy.run(call({ action: 'get' }));
+  const state = (await publishBookingPolicy.run(call({ action: 'get' }))) as any;
   expect(state.published).toMatchObject({ version: '2026-11-01-1', trial: false });
 
   // La version d'essai ne remplace jamais des conditions approuvées.

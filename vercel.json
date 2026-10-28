@@ -135,6 +135,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/:locale(fr|en|es)/admin/conditions",
+      "destination": "/index.html"
+    },
+    {
       "source": "/:locale(fr|en|es)/legal/:type(terms|privacy|cancellation|dispute|accessibility|cookies|provider-agreement)",
       "destination": "/index.html"
     },
