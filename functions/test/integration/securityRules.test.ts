@@ -303,7 +303,19 @@ describe("Security Rules — pricing_versions/{version} : modification de commis
     );
   });
 
-  it("tout utilisateur signé PEUT lire pricing_versions (lecture publique, écriture verrouillée)", async () => {
+  it("SEC-08 (2026-10-28) : un client ne lit PLUS pricing_versions ni pricing_configs ; le personnel oui", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "pricing_configs/active"), { active_pricing_version: "MOVIK-PRICING-001" });
+    });
+    const customer = testEnv.authenticatedContext("customer_pricing_001", { role: "customer" });
+    const driver = testEnv.authenticatedContext("driver_pricing_001", { role: "driver" });
+    const analyst = testEnv.authenticatedContext("analyst_pricing_001", { role: "analyst" });
+    await assertFails(getDoc(doc(customer.firestore(), "pricing_configs/active")));
+    await assertFails(getDoc(doc(driver.firestore(), "pricing_configs/active")));
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "pricing_configs/active")));
+  });
+
+  it("le personnel (analyste et plus) PEUT lire pricing_versions (écriture verrouillée)", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "pricing_versions/MOVIK-PRICING-001"), {
         pricing_version: "MOVIK-PRICING-001",
@@ -311,7 +323,59 @@ describe("Security Rules — pricing_versions/{version} : modification de commis
     });
 
     const customer = testEnv.authenticatedContext("customer_001", { role: "customer" });
-    await assertSucceeds(getDoc(doc(customer.firestore(), "pricing_versions/MOVIK-PRICING-001")));
+    await assertFails(getDoc(doc(customer.firestore(), "pricing_versions/MOVIK-PRICING-001")));
+    const analyst = testEnv.authenticatedContext("analyst_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "pricing_versions/MOVIK-PRICING-001")));
+  });
+});
+
+// -----------------------------------------------------------------------
+// SEC-09 (2026-10-28) — listes blanches users / delivery_requests
+// -----------------------------------------------------------------------
+describe("Security Rules — SEC-09 : listes blanches (users, delivery_requests)", () => {
+  it("users : le propriétaire modifie nom/téléphone/ville/adresses, rien d'autre", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "users/sec09_user"), { uid: "sec09_user", roles: ["customer"], full_name: "A", email_verified: true });
+    });
+    const me = testEnv.authenticatedContext("sec09_user", { role: "customer" });
+    await assertSucceeds(updateDoc(doc(me.firestore(), "users/sec09_user"), { full_name: "Daniel T.", phone: "+1 450 555 0100", city: "Granby" }));
+    await assertSucceeds(updateDoc(doc(me.firestore(), "users/sec09_user"), { saved_addresses: { home: { line1: "1 rue Test", city: "Granby" } } }));
+    await assertFails(updateDoc(doc(me.firestore(), "users/sec09_user"), { email_verified: false }));
+    await assertFails(updateDoc(doc(me.firestore(), "users/sec09_user"), { internal_tester: true }));
+    await assertFails(updateDoc(doc(me.firestore(), "users/sec09_user"), { some_random_field: "x" }));
+    await assertFails(updateDoc(doc(me.firestore(), "users/sec09_user"), { full_name: "x".repeat(121) }));
+  });
+
+  it("delivery_requests : avant acceptation, seule la description est retouchable ; jamais l'adresse, le client ou le prix", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/sec09_m1"), {
+        customer_id: "sec09_cust", driver_id: null, status: "searching_driver", description: "Divan",
+        pickup_address: { line1: "1 rue A" }, customer_total: 100, pricing_version: "V1", dispatch_zone_geohash: "f25dvk",
+      });
+    });
+    const me = testEnv.authenticatedContext("sec09_cust", { role: "customer" });
+    await assertSucceeds(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { description: "Divan 3 places" }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { pickup_address: { line1: "99 rue B" } }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { customer_id: "someone_else" }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { dispatch_zone_geohash: "zzzzzz" }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { customer_total: 1 }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { proof_of_delivery_url: "https://evil.example/x.jpg" }));
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { description: "ok", anything: "x" }));
+    // Annulation gratuite avant acceptation : toujours permise, mais rien d'autre ne change.
+    await assertFails(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { status: "cancelled", customer_total: 0 }));
+    await assertSucceeds(updateDoc(doc(me.firestore(), "delivery_requests/sec09_m1"), { status: "cancelled", cancellation_reason: "changement de plan" }));
+  });
+
+  it("ratings : lisible par l'auteur, la mission (client/chauffeur) et le personnel, pas par un tiers (SEC-08)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "delivery_requests/sec08_m1"), { customer_id: "sec08_cust", driver_id: "sec08_drv", status: "completed" });
+      await setDoc(doc(ctx.firestore(), "ratings/sec08_m1_customer"), { mission_id: "sec08_m1", rater_id: "sec08_cust", rater_role: "customer", stars: 5, comment: "privé" });
+    });
+    for (const [uid, role, ok] of [["sec08_cust", "customer", true], ["sec08_drv", "driver", true], ["sec08_analyst", "analyst", true], ["sec08_stranger", "customer", false]] as const) {
+      const ctx = testEnv.authenticatedContext(uid, { role });
+      const read = getDoc(doc(ctx.firestore(), "ratings/sec08_m1_customer"));
+      if (ok) await assertSucceeds(read); else await assertFails(read);
+    }
   });
 });
 
@@ -1096,7 +1160,8 @@ describe("Security Rules — driver_documents/{documentId}", () => {
       setDoc(doc(driver.firestore(), "driver_documents/doc_100"), {
         driver_id: "driver_100",
         status: "uploaded",
-        type: "drivers_license",
+        type: "drivers_licence",
+        storage_bucket_path: "driver_documents/driver_100/permis.jpg",
       })
     );
   });
@@ -1107,7 +1172,8 @@ describe("Security Rules — driver_documents/{documentId}", () => {
       setDoc(doc(driver.firestore(), "driver_documents/doc_101"), {
         driver_id: "driver_999",
         status: "uploaded",
-        type: "drivers_license",
+        type: "drivers_licence",
+        storage_bucket_path: "driver_documents/driver_999/permis.jpg",
       })
     );
   });
@@ -1118,7 +1184,8 @@ describe("Security Rules — driver_documents/{documentId}", () => {
       setDoc(doc(driver.firestore(), "driver_documents/doc_102"), {
         driver_id: "driver_102",
         status: "approved",
-        type: "drivers_license",
+        type: "drivers_licence",
+        storage_bucket_path: "driver_documents/driver_102/permis.jpg",
       })
     );
   });
@@ -1434,8 +1501,24 @@ describe("Security Rules — driver_documents/{documentId}", () => {
         driver_id: "driver_doc_001",
         type: "drivers_licence",
         status: "uploaded",
+        storage_bucket_path: "driver_documents/driver_doc_001/permis.jpg",
       })
     );
+  });
+
+  // SEC-05 (2026-10-28) : liste blanche des champs, type connu, fichier sous
+  // driver_documents/{uid}/, aucun champ de revue pré-rempli.
+  it("SEC-05 : type inconnu, fichier hors de son dossier, champ de revue pré-rempli ou champ arbitraire -> refusé", async () => {
+    const driver = testEnv.authenticatedContext("driver_doc_010", { role: "driver" });
+    const base = { driver_id: "driver_doc_010", type: "insurance", status: "uploaded",
+      storage_bucket_path: "driver_documents/driver_doc_010/assurance.pdf" };
+    await assertSucceeds(setDoc(doc(driver.firestore(), "driver_documents/doc_010"), base));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_011"), { ...base, type: "passport_scan" }));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_012"), { ...base, storage_bucket_path: "driver_documents/driver_doc_999/x.pdf" }));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_013"), { ...base, storage_bucket_path: "https://evil.example/x.pdf" }));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_014"), { ...base, reviewed_by_user_id: "driver_doc_010" }));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_015"), { ...base, documents_all_valid: true }));
+    await assertFails(setDoc(doc(driver.firestore(), "driver_documents/doc_016"), { driver_id: "driver_doc_010", type: "insurance", status: "uploaded" }));
   });
 
   it("un chauffeur ne peut PAS créer un document avec un statut différent de 'uploaded' (ex: 'approved')", async () => {
