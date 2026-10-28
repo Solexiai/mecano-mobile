@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:movik_connect/screens/dashboard/admin/command_center/admin_command_center_screen.dart';
+import 'package:movik_connect/screens/dashboard/admin/command_center/runtime_flags_panel.dart';
 import 'package:movik_connect/finance/models/pricing_grid_admin.dart';
 import 'package:movik_connect/services/booking/item_types.dart';
 
@@ -44,9 +45,18 @@ Future<PricingPreviewResult> _preview(
   );
 }
 
+class _FakeFlagsApi implements RuntimeFlagsApi {
+  final updates = <Map<String, bool>>[];
+  @override
+  Stream<Map<String, bool>> watch() => Stream.value({for (final k in runtimeFlagKeys) k: false});
+  @override
+  Future<void> update(Map<String, bool> patch) async => updates.add(patch);
+}
+
 Widget _app(String tab) => MaterialApp(
   home: AdminCommandCenterScreen(
     initialTab: tab,
+    runtimeFlagsApi: _FakeFlagsApi(),
     itemTypesApi: (_) async => _types(),
     pricingTab: const Center(child: Text('PRICING TAB')),
     loadActive: () async => _version,
@@ -55,14 +65,14 @@ Widget _app(String tab) => MaterialApp(
 );
 
 void main() {
-  testWidgets('home: five tiles and the same rule everywhere', (t) async {
+  testWidgets('home: six tiles and the same rule everywhere', (t) async {
     t.view.physicalSize = const Size(1280, 1000);
     t.view.devicePixelRatio = 1;
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
     await t.pumpWidget(_app('accueil'));
     await t.pumpAndSettle();
-    for (final id in ['quoi', 'combien', 'service', 'partage', 'conditions']) {
+    for (final id in ['quoi', 'combien', 'service', 'partage', 'conditions', 'interrupteurs']) {
       expect(find.byKey(ValueKey('cc-tile-$id')), findsOneWidget);
     }
     expect(find.byKey(const ValueKey('cc-rule')), findsOneWidget);
@@ -105,7 +115,7 @@ void main() {
   });
 
   test('tab ids in the URL', () {
-    expect(commandCenterTabs, ['accueil', 'quoi', 'combien', 'service', 'partage', 'conditions']);
+    expect(commandCenterTabs, ['accueil', 'quoi', 'combien', 'service', 'partage', 'conditions', 'interrupteurs']);
   });
 
   testWidgets('home simulator: who receives what, from the active grid', (t) async {

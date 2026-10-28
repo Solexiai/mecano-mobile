@@ -255,7 +255,12 @@ class _InfoBanner extends StatelessWidget {
 /// sinon affiche `child` (le vrai AdminDashboardShell).
 class AdminAuthGate extends StatelessWidget {
   final Widget child;
-  const AdminAuthGate({super.key, required this.child});
+
+  /// ADM-07 (2026-10-28) : écrans réservés aux administrateurs (réglages du
+  /// service, pilote, conditions). Un analyste y voyait des actions que le
+  /// serveur lui refusait ; il reçoit maintenant un message clair.
+  final bool adminOnly;
+  const AdminAuthGate({super.key, required this.child, this.adminOnly = false});
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +315,23 @@ class AdminAuthGate extends StatelessWidget {
 
     if (!auth.isAnalystOrAbove) {
       return const AdminLoginScreen();
+    }
+
+    if (adminOnly && !auth.isAdminOrAbove) {
+      final t = context.watch<LocaleProvider>().t;
+      return Scaffold(
+        appBar: AppBar(title: Text(t('admin_login_title'))),
+        body: Center(
+          key: const ValueKey('admin-only-notice'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              t('admin_only_section'),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
     }
 
     return _AdminShellWithSignOut(child: child);

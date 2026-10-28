@@ -11,6 +11,7 @@ import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
 import 'conditions_panel.dart';
 import 'price_simulator.dart';
+import 'runtime_flags_panel.dart';
 import 'service_settings_panel.dart';
 import 'share_panel.dart';
 
@@ -22,6 +23,7 @@ const commandCenterTabs = [
   'service',
   'partage',
   'conditions',
+  'interrupteurs',
 ];
 
 class AdminCommandCenterScreen extends StatefulWidget {
@@ -32,6 +34,8 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.pricingTab,
     this.serviceApi,
     this.conditionsApi,
+    this.runtimeFlagsApi,
+    this.canEditRuntimeFlags = true,
     this.loadActive,
     this.preview,
   });
@@ -42,6 +46,10 @@ class AdminCommandCenterScreen extends StatefulWidget {
   final Widget? pricingTab;
   final ServiceSettingsApi? serviceApi;
   final ConditionsApi? conditionsApi;
+
+  /// ADM-02 : interrupteurs d'urgence (test seam + droit d'écriture).
+  final RuntimeFlagsApi? runtimeFlagsApi;
+  final bool canEditRuntimeFlags;
 
   /// Test seams for the simulator (active grid, server preview).
   final ActiveVersionLoader? loadActive;
@@ -94,6 +102,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           Tab(key: ValueKey('cc-tab-service'), text: '3 · Où et quand ?'),
           Tab(key: ValueKey('cc-tab-partage'), text: '4 · Qui reçoit quoi ?'),
           Tab(key: ValueKey('cc-tab-conditions'), text: '5 · Conditions spéciales'),
+          Tab(key: ValueKey('cc-tab-interrupteurs'), text: '6 · Interrupteurs'),
         ],
       ),
     ),
@@ -110,6 +119,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           preview: widget.preview,
         ),
         ConditionsPanel(api: widget.conditionsApi),
+        RuntimeFlagsPanel(api: widget.runtimeFlagsApi, canEdit: widget.canEditRuntimeFlags),
       ],
     ),
   );
@@ -188,6 +198,8 @@ class _Home extends StatelessWidget {
           'Commission Movi-K, part du chauffeur, frais de service.'),
       tile('conditions', '5 · CONDITIONS SPÉCIALES', 'Météo et événements',
           'Supplément tempête, pause du service.'),
+      tile('interrupteurs', '6 · INTERRUPTEURS', 'Urgence',
+          'Couper ou rouvrir les demandes, l’acceptation et les paiements, immédiatement.'),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),
