@@ -4,7 +4,9 @@ import { createHash } from "crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import { warn } from "firebase-functions/logger";
 import { db } from "./admin";
-import { ROUTING_REQUESTS_PER_WINDOW, ROUTING_WINDOW_SECONDS } from "./appConfig";
+import { ROUTING_REQUESTS_PER_DAY, ROUTING_REQUESTS_PER_WINDOW, ROUTING_WINDOW_SECONDS } from "./appConfig";
+
+export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface RoutingBudget { startedAtMs: number; count: number }
 export type BudgetDecision =
@@ -31,6 +33,28 @@ export function nextRoutingBudget(
   return { allowed: true, next: { startedAtMs: budget.startedAtMs, count: budget.count + 1 } };
 }
 
+/**
+ * SEC-07 : plafond quotidien (fenêtre fixe de 24 h à partir du premier appel),
+ * stocké sous `daily` dans le même document que la fenêtre glissante.
+ */
+export function nextDailyRoutingBudget(
+  stored: RoutingBudget | undefined, now: number, limit: number
+): BudgetDecision {
+  if (!Number.isSafeInteger(now) || now < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100000) {
+    throw new HttpsError("failed-precondition", "Configuration de protection invalide.");
+  }
+  if (stored && (!Number.isSafeInteger(stored.startedAtMs) || stored.startedAtMs < 0 ||
+      stored.startedAtMs > now || !Number.isSafeInteger(stored.count) || stored.count < 1)) {
+    throw new HttpsError("unavailable", "Vérification temporairement indisponible.");
+  }
+  const active = stored && now - stored.startedAtMs < DAY_MS;
+  const budget = active ? stored : { startedAtMs: now, count: 0 };
+  if (budget.count >= limit) {
+    return { allowed: false, retryAfterSeconds: Math.ceil((budget.startedAtMs + DAY_MS - now) / 1000) };
+  }
+  return { allowed: true, next: { startedAtMs: budget.startedAtMs, count: budget.count + 1 } };
+}
+
 export async function consumeRoutingBudget(uid: string): Promise<void> {
   const id = createHash("sha256").update(uid).digest("hex");
   const ref = db.collection("routing_request_limits").doc(id);
@@ -38,11 +62,16 @@ export async function consumeRoutingBudget(uid: string): Promise<void> {
   try {
     decision = await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
+      const data = snap.exists ? snap.data() as RoutingBudget & { daily?: RoutingBudget } : undefined;
+      const now = Date.now();
       const result = nextRoutingBudget(
-        snap.exists ? snap.data() as RoutingBudget : undefined,
-        Date.now(), ROUTING_REQUESTS_PER_WINDOW.value(), ROUTING_WINDOW_SECONDS.value() * 1000
+        data ? { startedAtMs: data.startedAtMs, count: data.count } : undefined,
+        now, ROUTING_REQUESTS_PER_WINDOW.value(), ROUTING_WINDOW_SECONDS.value() * 1000
       );
-      if (result.allowed) tx.set(ref, result.next);
+      if (!result.allowed) return result;
+      const daily = nextDailyRoutingBudget(data?.daily, now, ROUTING_REQUESTS_PER_DAY.value());
+      if (!daily.allowed) return daily;
+      tx.set(ref, { ...result.next, daily: daily.next });
       return result;
     });
   } catch (error) {

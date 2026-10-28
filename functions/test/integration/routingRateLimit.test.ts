@@ -38,7 +38,10 @@ test("different customers have separate budgets and no raw UID in the record", a
   const a = freshUid(); const b = freshUid();
   for (let i = 0; i < 3; i++) await consumeRoutingBudget(a);
   await expect(consumeRoutingBudget(b)).resolves.toBeUndefined();
-  expect((await refFor(b).get()).data()).toEqual({ startedAtMs: expect.any(Number), count: 1 });
+  expect((await refFor(b).get()).data()).toEqual({
+    startedAtMs: expect.any(Number), count: 1,
+    daily: { startedAtMs: expect.any(Number), count: 1 },
+  });
 });
 test("unauthenticated callers cannot create budget records", async () => {
   const uid = freshUid();
