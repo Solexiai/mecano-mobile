@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/link.dart';
+import '../../core/support_contact.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
@@ -36,7 +37,7 @@ class ContactScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const SelectableText('info@movi-k.com'),
+              const SelectableText(kSupportEmail),
               const SizedBox(height: 12),
               Text(
                 tr(
@@ -48,7 +49,7 @@ class ContactScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Link(
-                uri: Uri(scheme: 'mailto', path: 'info@movi-k.com'),
+                uri: kSupportMailto,
                 builder: (context, followLink) => OutlinedButton.icon(
                   onPressed: followLink,
                   icon: const Icon(Icons.email_outlined),

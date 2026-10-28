@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:movik_connect/core/support_contact.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movik_connect/core/app_theme.dart';
 import 'package:movik_connect/l10n/home_copy.dart';
@@ -297,7 +298,7 @@ void main() {
       // visitor's own email app (contact page since 2026-10-19).
       expect(find.byType(TextFormField), findsNothing);
       expect(find.textContaining('support@movi-k.demo'), findsNothing);
-      expect(find.text('info@movi-k.com'), findsWidgets);
+      expect(find.text(kSupportEmail), findsWidgets);
       expect(find.text('Ouvrir mon courriel'), findsOneWidget);
     },
   );

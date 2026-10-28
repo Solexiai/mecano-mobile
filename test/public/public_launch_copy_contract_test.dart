@@ -164,9 +164,9 @@ void main() {
           expect(
             find.text(
               tr([
-                'Canal de contact à venir',
-                'Contact channel coming soon',
-                'Canal de contacto próximamente',
+                'Pour nous joindre',
+                'How to reach us',
+                'Cómo contactarnos',
               ]),
             ),
             findsOneWidget,

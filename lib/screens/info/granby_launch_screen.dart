@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/support_contact.dart';
 import '../../l10n/home_copy.dart';
 import '../../providers/locale_provider.dart';
 import '../../router/delivery_request_intent.dart';
@@ -112,14 +113,14 @@ class GranbyLaunchScreen extends StatelessWidget {
                   _LaunchPoint(
                     icon: Icons.support_agent_outlined,
                     title: tr(
-                      'Canal de contact à venir',
-                      'Contact channel coming soon',
-                      'Canal de contacto próximamente',
+                      'Pour nous joindre',
+                      'How to reach us',
+                      'Cómo contactarnos',
                     ),
                     body: tr(
-                      'Le canal officiel de contact n’est pas encore publié. La page Contact indique l’état actuel; aucun message n’y est simulé.',
-                      'The official contact channel is not yet published. The Contact page shows the current status and does not simulate message delivery.',
-                      'El canal oficial de contacto aún no está publicado. La página de Contacto muestra el estado actual y no simula el envío de mensajes.',
+                      'Écrivez-nous à $kSupportEmail pour toute question sur le service ou sur une demande. La page Contact ouvre directement votre courriel.',
+                      'Email us at $kSupportEmail with any question about the service or a request. The Contact page opens your email app directly.',
+                      'Escríbenos a $kSupportEmail para cualquier pregunta sobre el servicio o una solicitud. La página de Contacto abre directamente tu correo.',
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -146,9 +147,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                     onPressed: () => context.go('/$locale/contact'),
                     child: Text(
                       tr(
-                        'Voir l’état du contact',
-                        'View contact status',
-                        'Ver el estado del contacto',
+                        'Nous écrire',
+                        'Email us',
+                        'Escribirnos',
                       ),
                     ),
                   ),

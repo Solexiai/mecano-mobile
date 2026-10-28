@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/link.dart';
+import 'package:movik_connect/core/support_contact.dart';
 import 'package:movik_connect/providers/firebase_auth_provider.dart';
 import 'package:movik_connect/router/app_router.dart';
 import '../helpers/gps_offline_transport.dart';
@@ -20,10 +21,10 @@ void main() {
         AppRouter.router.go('/$locale/contact');
         await tester.pumpWidget(wrapPublicPage(auth, textScale: scale));
         await tester.pumpAndSettle();
-        expect(find.text('info@movi-k.com'), findsOneWidget);
+        expect(find.text(kSupportEmail), findsOneWidget);
         final links = tester.widgetList<Link>(find.byType(Link));
         expect(
-          links.any((link) => link.uri.toString() == 'mailto:info@movi-k.com'),
+          links.any((link) => link.uri.toString() == 'mailto:$kSupportEmail'),
           isTrue,
         );
         expect(tester.takeException(), isNull);
