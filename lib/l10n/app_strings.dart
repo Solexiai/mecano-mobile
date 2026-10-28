@@ -3229,6 +3229,12 @@ class AppStrings {
     },
 
     // ---------- Admin login screen (Bloc K) ----------
+    // ADM-07 (2026-10-28) : section réservée aux administrateurs.
+    'admin_only_section': {
+      'fr': 'Cette section est réservée aux administrateurs. Votre compte analyste permet de consulter les données, pas de modifier le service.',
+      'en': 'This section is for administrators only. Your analyst account can view data, not change the service.',
+      'es': 'Esta sección está reservada a los administradores. Su cuenta de analista permite consultar los datos, no modificar el servicio.',
+    },
     'admin_login_title': {
       'fr': 'Administration Movi-K',
       'en': 'Movi-K Administration',
@@ -5404,6 +5410,103 @@ class AppStrings {
       'fr': 'Versement annulé.',
       'en': 'Payout reversed.',
       'es': 'Pago revertido.',
+    },
+
+    // ---------- ADM-01 (2026-10-28) — Remboursement et litiges depuis l'admin ----------
+    'admin_refund_button': {
+      'fr': 'Rembourser',
+      'en': 'Refund',
+      'es': 'Reembolsar',
+    },
+    'admin_refund_title': {
+      'fr': 'Rembourser le client',
+      'en': 'Refund the customer',
+      'es': 'Reembolsar al cliente',
+    },
+    'admin_refund_refundable': {
+      'fr': 'Montant remboursable',
+      'en': 'Refundable amount',
+      'es': 'Importe reembolsable',
+    },
+    'admin_refund_reason': {
+      'fr': 'Motif',
+      'en': 'Reason',
+      'es': 'Motivo',
+    },
+    'admin_refund_full': {
+      'fr': 'Remboursement total du solde',
+      'en': 'Full refund of the remaining balance',
+      'es': 'Reembolso total del saldo',
+    },
+    'admin_refund_partial': {
+      'fr': 'Remboursement partiel',
+      'en': 'Partial refund',
+      'es': 'Reembolso parcial',
+    },
+    'admin_refund_amount': {
+      'fr': 'Montant à rembourser',
+      'en': 'Amount to refund',
+      'es': 'Importe a reembolsar',
+    },
+    'admin_refund_amount_invalid': {
+      'fr': 'Entrez un montant valide, en dollars (ex. 12,50).',
+      'en': 'Enter a valid amount in dollars (e.g. 12.50).',
+      'es': 'Ingrese un importe válido en dólares (p. ej. 12,50).',
+    },
+    'admin_refund_amount_too_high': {
+      'fr': 'Le montant dépasse le solde remboursable.',
+      'en': 'The amount exceeds the refundable balance.',
+      'es': 'El importe supera el saldo reembolsable.',
+    },
+    'admin_refund_notice': {
+      'fr': 'Le remboursement est envoyé à Stripe immédiatement et journalisé à votre nom. Avec Stripe Connect, la part du chauffeur est reprise sur son compte.',
+      'en': 'The refund is sent to Stripe immediately and logged under your name. With Stripe Connect, the driver share is reversed from their account.',
+      'es': 'El reembolso se envía a Stripe de inmediato y queda registrado a su nombre. Con Stripe Connect, la parte del conductor se revierte de su cuenta.',
+    },
+    'admin_refund_confirm': {
+      'fr': 'Rembourser',
+      'en': 'Refund',
+      'es': 'Reembolsar',
+    },
+    'admin_refund_failed': {
+      'fr': 'Remboursement refusé. Réessayez ou vérifiez le paiement dans Stripe.',
+      'en': 'Refund refused. Try again or check the payment in Stripe.',
+      'es': 'Reembolso rechazado. Inténtelo de nuevo o verifique el pago en Stripe.',
+    },
+    'admin_refund_success': {
+      'fr': 'Remboursement envoyé.',
+      'en': 'Refund sent.',
+      'es': 'Reembolso enviado.',
+    },
+    'admin_finance_cancel': {
+      'fr': 'Annuler',
+      'en': 'Cancel',
+      'es': 'Cancelar',
+    },
+    'admin_dispute_update_status': {
+      'fr': 'Changer le statut',
+      'en': 'Change status',
+      'es': 'Cambiar estado',
+    },
+    'admin_dispute_update_title': {
+      'fr': 'Mettre à jour le litige',
+      'en': 'Update the dispute',
+      'es': 'Actualizar la disputa',
+    },
+    'admin_dispute_update_body': {
+      'fr': 'Le statut est mis à jour dans Movi-K et journalisé. La réponse au litige elle-même (preuves) se fait dans le tableau de bord Stripe.',
+      'en': 'The status is updated in Movi-K and logged. The dispute response itself (evidence) is handled in the Stripe dashboard.',
+      'es': 'El estado se actualiza en Movi-K y queda registrado. La respuesta a la disputa (pruebas) se gestiona en el panel de Stripe.',
+    },
+    'admin_dispute_updated_success': {
+      'fr': 'Litige mis à jour.',
+      'en': 'Dispute updated.',
+      'es': 'Disputa actualizada.',
+    },
+    'admin_dispute_update_failed': {
+      'fr': 'Mise à jour refusée.',
+      'en': 'Update refused.',
+      'es': 'Actualización rechazada.',
     },
 
     // ---------- Bloc 8B — Connect Onboarding Flutter (Stripe Connect) ----------

@@ -23,8 +23,11 @@ import '../../../../../finance/models/transaction_ledger.dart';
 import '../../../../../finance/presentation/admin_payment_presenter.dart';
 import '../../../../../finance/presentation/money_format.dart';
 import '../../../../../models/enums.dart';
+import '../../../../../providers/firebase_auth_provider.dart';
 import '../../../../../providers/locale_provider.dart';
 import '../finance_ui_helpers.dart';
+import '../widgets/dispute_status_menu.dart';
+import '../widgets/refund_payment_dialog.dart';
 
 class AdminPaymentDetailScreen extends StatelessWidget {
   final String paymentId;
@@ -258,6 +261,29 @@ class _PaymentSummaryCard extends StatelessWidget {
             Text(
               payment.failureMessage!,
               style: const TextStyle(color: AppColors.error, fontSize: 12.5),
+            ),
+          ],
+          // ADM-01 : remboursement depuis la fiche paiement (admin et plus,
+          // paiement encaissé avec un solde remboursable).
+          if (context.watch<FirebaseAuthProvider>().isAdminOrAbove &&
+              view.captureDone &&
+              refundableMinor(payment) > 0) ...[
+            const SizedBox(height: 14),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const ValueKey('payment-refund-button'),
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+                icon: const Icon(Icons.undo),
+                label: Text(t('admin_refund_button')),
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final done = await showRefundPaymentDialog(context, payment: payment, t: t);
+                  if (done) {
+                    messenger.showSnackBar(SnackBar(content: Text(t('admin_refund_success'))));
+                  }
+                },
+              ),
             ),
           ],
         ],
@@ -550,6 +576,8 @@ class _DisputesSection extends StatelessWidget {
                           formatMinorAmount(d.amountMinor),
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
+                        if (context.watch<FirebaseAuthProvider>().isAdminOrAbove)
+                          DisputeStatusMenu(dispute: d, t: t),
                       ],
                     ),
                   ),

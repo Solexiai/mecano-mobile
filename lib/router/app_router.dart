@@ -493,17 +493,22 @@ class AppRouter {
                 ),
                 GoRoute(
                   path: 'pilote',
-                  builder: (c, s) =>
-                      const AdminAuthGate(child: AdminPilotScreen()),
+                  builder: (c, s) => const AdminAuthGate(
+                    adminOnly: true,
+                    child: AdminPilotScreen(),
+                  ),
                 ),
                 GoRoute(
                   path: 'conditions',
-                  builder: (c, s) =>
-                      const AdminAuthGate(child: AdminBookingPolicyScreen()),
+                  builder: (c, s) => const AdminAuthGate(
+                    adminOnly: true,
+                    child: AdminBookingPolicyScreen(),
+                  ),
                 ),
                 GoRoute(
                   path: 'centre-commande',
                   builder: (c, s) => AdminAuthGate(
+                    adminOnly: true,
                     child: AdminCommandCenterScreen(
                       key: ValueKey(s.uri.toString()),
                       initialTab: s.uri.queryParameters['onglet'] ?? 'accueil',
@@ -512,8 +517,10 @@ class AppRouter {
                 ),
                 GoRoute(
                   path: 'types-objets',
-                  builder: (c, s) =>
-                      const AdminAuthGate(child: AdminItemTypesScreen()),
+                  builder: (c, s) => const AdminAuthGate(
+                    adminOnly: true,
+                    child: AdminItemTypesScreen(),
+                  ),
                 ),
                 GoRoute(
                   path: 'paiements',

@@ -269,32 +269,36 @@ class _DashboardBody extends StatelessWidget {
                 badge: metrics?.openDisputes ?? 0,
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
-              _ActionCard(
-                icon: Icons.tune,
-                title: isFrench ? 'Centre de commande' : 'Command center',
-                subtitle: isFrench
-                    ? 'Objets, prix, zone et heures, partage, conditions spéciales.'
-                    : 'Items, prices, area and hours, sharing, special conditions.',
-                onTap: () => context.go('/$locale/admin/centre-commande'),
-              ),
-              _ActionCard(
-                icon: Icons.science_outlined,
-                title: isFrench ? 'Pilote privé' : 'Private pilot',
-                subtitle: isFrench
-                    ? 'Testeurs autorisés et conditions d’essai.'
-                    : 'Authorized testers and trial terms.',
-                onTap: () => context.go('/$locale/admin/pilote'),
-              ),
-              _ActionCard(
-                icon: Icons.gavel_outlined,
-                title: isFrench
-                    ? 'Conditions de réservation'
-                    : 'Booking terms',
-                subtitle: isFrench
-                    ? 'Relire, versionner et publier les conditions finales.'
-                    : 'Review, version and publish the final terms.',
-                onTap: () => context.go('/$locale/admin/conditions'),
-              ),
+              // ADM-07 : réglages du service, pilote et conditions réservés
+              // aux administrateurs ; l'analyste ne voit que la consultation.
+              if (context.watch<FirebaseAuthProvider>().isAdminOrAbove) ...[
+                _ActionCard(
+                  icon: Icons.tune,
+                  title: isFrench ? 'Centre de commande' : 'Command center',
+                  subtitle: isFrench
+                      ? 'Objets, prix, zone et heures, partage, conditions spéciales.'
+                      : 'Items, prices, area and hours, sharing, special conditions.',
+                  onTap: () => context.go('/$locale/admin/centre-commande'),
+                ),
+                _ActionCard(
+                  icon: Icons.science_outlined,
+                  title: isFrench ? 'Pilote privé' : 'Private pilot',
+                  subtitle: isFrench
+                      ? 'Testeurs autorisés et conditions d’essai.'
+                      : 'Authorized testers and trial terms.',
+                  onTap: () => context.go('/$locale/admin/pilote'),
+                ),
+                _ActionCard(
+                  icon: Icons.gavel_outlined,
+                  title: isFrench
+                      ? 'Conditions de réservation'
+                      : 'Booking terms',
+                  subtitle: isFrench
+                      ? 'Relire, versionner et publier les conditions finales.'
+                      : 'Review, version and publish the final terms.',
+                  onTap: () => context.go('/$locale/admin/conditions'),
+                ),
+              ],
             ],
           ),
         ),

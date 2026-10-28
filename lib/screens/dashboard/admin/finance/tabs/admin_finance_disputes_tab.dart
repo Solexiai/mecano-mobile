@@ -15,8 +15,10 @@ import '../../../../../core/app_colors.dart';
 import '../../../../../finance/models/dispute_info.dart';
 import '../../../../../finance/presentation/money_format.dart';
 import '../../../../../models/enums.dart';
+import '../../../../../providers/firebase_auth_provider.dart';
 import '../../../../../providers/locale_provider.dart';
 import '../finance_ui_helpers.dart';
+import '../widgets/dispute_status_menu.dart';
 
 const List<DisputeStatus?> _kDisputeFilters = [
   null,
@@ -222,6 +224,11 @@ class _DisputeRow extends StatelessWidget {
                 label: t(disputeStatusKey(dispute.status)),
                 color: disputeStatusColor(dispute.status),
               ),
+              // ADM-01 : changement de statut (admin et plus).
+              if (context.watch<FirebaseAuthProvider>().isAdminOrAbove) ...[
+                const SizedBox(height: 8),
+                DisputeStatusMenu(dispute: dispute, t: t),
+              ],
             ],
           ),
         ],

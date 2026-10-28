@@ -163,13 +163,31 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
     ),
   );
 
+  /// ADM-06 (2026-10-28) : mêmes critères que le serveur (adminAssignDelivery) :
+  /// approuvé, documents valides, pas déjà en mission, et une catégorie de
+  /// véhicule acceptée parmi celles de la demande. Pour une réservation
+  /// « jugement du chauffeur », la demande porte plusieurs catégories
+  /// (`booking_snapshot.eligible_categories`), pas une seule.
   bool _isEligible(DriverProfileV2 driver) =>
       driver.status == DriverStatus.approved &&
       driver.documentsAllValid &&
       driver.onlineStatus != DriverOnlineStatus.onMission &&
-      driver.acceptedVehicleCategories.contains(
-        widget.mission.requiredVehicleCategory,
-      );
+      _servesMission(driver);
+
+  static String _normalizeCategory(String raw) =>
+      raw.toLowerCase().replaceAll('_', '').replaceAll('-', '').trim();
+
+  bool _servesMission(DriverProfileV2 driver) {
+    final accepted = driver.acceptedVehicleCategories
+        .map((c) => _normalizeCategory(c.firestoreValue))
+        .toSet();
+    final snapshot = widget.mission.bookingSnapshot;
+    final eligible = snapshot?['eligible_categories'];
+    final wanted = snapshot?['vehicle_assessment'] == 'driver_judgement' && eligible is List
+        ? eligible.whereType<String>().map(_normalizeCategory).toList()
+        : [_normalizeCategory(widget.mission.requiredVehicleCategory.firestoreValue)];
+    return wanted.any(accepted.contains);
+  }
 
   Widget _driverTile(DriverProfileV2 driver) {
     final busy = _assigningDriverId == driver.uid;
