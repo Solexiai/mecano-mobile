@@ -92,9 +92,18 @@ service cloud.firestore {
       // 2026-10-27 (SEC-02) : `internal_tester` est un miroir d'affichage du
       // claim du même nom, posé uniquement par setUserRole() ; jamais
       // modifiable par le propriétaire.
+      // 2026-10-28 (SEC-09, Bloc D) : LISTE BLANCHE. Le propriétaire ne
+      // modifie que ses champs déclaratifs ; tout autre champ (rôles, miroirs
+      // serveur, champs arbitraires jusqu'à 1 Mo) est refusé.
       allow update: if isSignedIn() && uid() == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(
-          ['roles', 'uid', 'created_at', 'is_disabled', 'email_verified', 'internal_tester']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['full_name', 'phone', 'city', 'saved_addresses', 'profile_photo_url', 'preferred_locale', 'updated_at']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['full_name']) ||
+          (request.resource.data.full_name is string && request.resource.data.full_name.size() <= 120)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['phone']) ||
+          (request.resource.data.phone is string && request.resource.data.phone.size() <= 25)) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['city']) ||
+          (request.resource.data.city is string && request.resource.data.city.size() <= 120));
 
       // Création initiale du profil (ex: juste après inscription) — rôle
       // forcé à ['customer'] uniquement ; toute élévation passe ensuite par
@@ -191,9 +200,22 @@ service cloud.firestore {
         (resource.data.driver_id == uid() || isAnalystOrAbove());
 
       // Le chauffeur peut créer un document en statut 'uploaded' uniquement.
+      // 2026-10-28 (SEC-05, Bloc D) : liste blanche des champs, type connu,
+      // fichier obligatoirement sous driver_documents/{uid}/ dans Storage,
+      // aucun champ de revue pré-rempli.
       allow create: if isSignedIn() && isDriver() &&
         request.resource.data.driver_id == uid() &&
-        request.resource.data.status == 'uploaded';
+        request.resource.data.status == 'uploaded' &&
+        request.resource.data.keys().hasOnly(
+          ['id', 'driver_id', 'type', 'status', 'storage_bucket_path', 'uploaded_at',
+           'reviewed_at', 'reviewed_by_user_id', 'rejection_reason', 'expires_at', 'file_name', 'mime_type']) &&
+        request.resource.data.type in
+          ['drivers_licence', 'vehicle_registration', 'insurance', 'identity', 'vehicle_photo', 'other'] &&
+        request.resource.data.storage_bucket_path is string &&
+        request.resource.data.storage_bucket_path.matches('^driver_documents/' + uid() + '/[^/]{1,200}$') &&
+        request.resource.data.get('reviewed_at', null) == null &&
+        request.resource.data.get('reviewed_by_user_id', null) == null &&
+        request.resource.data.get('rejection_reason', null) == null;
 
       // 🔒 Le changement de `status` (approved/rejected/replacement_required)
       // est exclusivement Cloud Functions only (validateDriverDocument(),
@@ -318,64 +340,28 @@ service cloud.firestore {
       // terminaux" (voir V-8). CORRIGÉ en exigeant explicitement que le
       // statut ACTUEL soit encore actif (jamais déjà terminal) avant
       // d'autoriser la transition vers 'cancelled'.
+      // 2026-10-28 (SEC-09, Bloc D) : LISTE BLANCHE à la place de la liste
+      // noire. L'app n'écrit plus directement une mission (annulation via la
+      // Cloud Function cancelDeliveryRequest) ; on ne garde que deux cas
+      // étroits pour d'anciens clients : une retouche de description avant
+      // toute acceptation, et l'annulation gratuite avant acceptation.
       allow update: if isSignedIn() &&
-        resource.data.customer_id == uid() &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'scheduling', 'schedule_state', 'acceptance_request_id', 'duration_confirmation', 'dispatch_candidate_cursor', 'acceptance_fingerprint', 'dispatch_round', 'dispatch_state', 'dispatch_next_attempt_at', 'dispatch_candidates_limited', 'offered_driver_ids', 'offered_until', 'requested_at',
-          'booking_snapshot', 'assigned_vehicle_id', 'assigned_capacity_version', 'requested_time_status',
-          'assignment_mode',
-          'internal_test_authorized',
-          'internal_test_assigned_by',
-          'internal_test_assigned_at',
-          'active_quote_id',
-          'active_financial_snapshot_id',
-          'active_payment_id',
-          'pricing_version',
-          'pricing_snapshot',
-          'quote_breakdown',
-          'quote_integrity_hash',
-          'quote_schema_version',
-          'customer_total',
-          'customer_total_minor',
-          'customer_discount_amount',
-          'tax_snapshot',
-          'distance_km',
-          'estimated_duration_minutes',
-          'required_vehicle_category',
-          'pickup_address',
-          'dropoff_address',
-          'driver_offer_amount',
-          'payment_status',
-          // Mission fees (2026-10-22): decided and collected by Cloud Functions only.
-          'cancellation_fee',
-          'cancelled_by'
-        ]) && (
+        resource.data.customer_id == uid() && (
+        // (a) retouche de la description, avant tout chauffeur.
         (resource.data.driver_id == null &&
-         request.resource.data.driver_id == resource.data.driver_id &&
-         request.resource.data.status == resource.data.status &&
-         request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
-         request.resource.data.customer_total == resource.data.customer_total &&
-         request.resource.data.payment_status == resource.data.payment_status &&
-         request.resource.data.pricing_version == resource.data.pricing_version) ||
-        // Annulation : seul le champ status -> 'cancelled' + cancellation_reason,
-        // et UNIQUEMENT depuis un statut ACTUEL non terminal.
-        // SEC-S1 (2026-10-22) : annulation client UNIQUEMENT avant le
-        // ramassage. Une fois l'objet pris en charge (picked_up et après),
-        // annuler libérait l'autorisation de carte alors que le chauffeur
-        // avait déjà transporté l'objet. 'delivered' n'était pas non plus
-        // exclu. Liste blanche explicite plutôt que liste noire.
-        // Frais d'annulation (2026-10-22) : une fois qu'un chauffeur a
-        // accepté (assigned, driver_to_pickup, arrived_at_pickup), le client
-        // annule UNIQUEMENT via la Cloud Function cancelDeliveryRequest, qui
-        // affiche et applique les frais d'annulation tardive. L'écriture
-        // directe reste permise avant toute acceptation (toujours gratuite).
-        (request.resource.data.status == 'cancelled' &&
-         resource.data.status in ['draft', 'quoted', 'searching_driver', 'offered',
-                                  'payment_failed'] &&
-         request.resource.data.driver_id == resource.data.driver_id &&
-         request.resource.data.driver_offer_amount == resource.data.driver_offer_amount &&
-         request.resource.data.customer_total == resource.data.customer_total &&
-         request.resource.data.pricing_version == resource.data.pricing_version)
+         resource.data.status in ['draft', 'quoted', 'searching_driver', 'offered'] &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['description', 'updated_at']) &&
+         request.resource.data.description is string &&
+         request.resource.data.description.size() <= 2000) ||
+        // (b) annulation gratuite avant acceptation (SEC-S1, BUG-V-01).
+        (resource.data.driver_id == null &&
+         resource.data.status in ['draft', 'quoted', 'searching_driver', 'offered', 'payment_failed'] &&
+         request.resource.data.status == 'cancelled' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+           ['status', 'cancellation_reason', 'cancelled_at', 'updated_at']) &&
+         (!('cancellation_reason' in request.resource.data) ||
+          (request.resource.data.cancellation_reason is string &&
+           request.resource.data.cancellation_reason.size() <= 300)))
       );
 
       // 🔒 Toute écriture impliquant driver_id, status (hors annulation
@@ -437,12 +423,14 @@ service cloud.firestore {
     // pricing_configs/{singleton} & pricing_versions/{version}
     // -------------------------------------------------------------------
     match /pricing_configs/{docId} {
-      allow read: if isSignedIn();
+      // 2026-10-28 (SEC-08) : grille et commissions lisibles par le personnel
+      // seulement ; le client reçoit son prix du serveur (calculateDeliveryQuote).
+      allow read: if isAnalystOrAbove();
       allow write: if false; // 🔒 Cloud Functions only (updatePricingConfiguration).
     }
 
     match /pricing_versions/{version} {
-      allow read: if isSignedIn();
+      allow read: if isAnalystOrAbove(); // SEC-08 (2026-10-28)
       allow write: if false; // 🔒 Cloud Functions only, immuable une fois publiée.
     }
 
@@ -685,7 +673,16 @@ service cloud.firestore {
     }
 
     match /ratings/{ratingId} {
-      allow read: if isSignedIn();
+      // 2026-10-28 (SEC-08) : une note (texte libre, identifiants) n'est lue
+      // que par son auteur, par la personne notée (via la mission) ou par le
+      // personnel ; plus jamais par tout utilisateur connecté.
+      allow read: if isSignedIn() && (
+        resource.data.rater_id == uid() ||
+        isAnalystOrAbove() ||
+        (exists(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)) &&
+         (get(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)).data.customer_id == uid() ||
+          get(/databases/$(database)/documents/delivery_requests/$(resource.data.mission_id)).data.driver_id == uid()))
+      );
 
       allow create: if isSignedIn() &&
         request.resource.data.rater_id == uid() &&

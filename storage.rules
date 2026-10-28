@@ -124,7 +124,10 @@ service firebase.storage {
     // sensible)"). Écriture/suppression réservées au propriétaire.
     match /profile_photos/{userId}/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn() && uid() == userId && isValidImageUpload();
+      // SEC-21 (2026-10-28) : lecture publique => formats d'image sûrs
+      // seulement (jamais de SVG, qui peut embarquer du script).
+      allow write: if isSignedIn() && uid() == userId && isValidImageUpload() &&
+        request.resource.contentType.matches('image/(jpeg|png|webp)');
       allow delete: if isSignedIn() && uid() == userId;
     }
 
