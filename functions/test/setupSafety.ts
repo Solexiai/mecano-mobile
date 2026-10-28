@@ -17,6 +17,7 @@ if (isFirebaseDataSuite(expect.getState().testPath ?? "")) {
 
 // Direct Jest invocation does not run Firebase CLI parameter resolution.
 // Reuse exactly the production declaration defaults, never a permissive quota.
-const { ROUTING_QUOTA_DEFAULTS } = jest.requireActual<typeof import("../src/lib/appConfig")>("../src/lib/appConfig");
+const { ROUTING_QUOTA_DEFAULTS, ROUTING_DAILY_QUOTA_DEFAULT } = jest.requireActual<typeof import("../src/lib/appConfig")>("../src/lib/appConfig");
 process.env.ROUTING_REQUESTS_PER_WINDOW ??= String(ROUTING_QUOTA_DEFAULTS.requests);
 process.env.ROUTING_WINDOW_SECONDS ??= String(ROUTING_QUOTA_DEFAULTS.windowSeconds);
+process.env.ROUTING_REQUESTS_PER_DAY ??= String(ROUTING_DAILY_QUOTA_DEFAULT);

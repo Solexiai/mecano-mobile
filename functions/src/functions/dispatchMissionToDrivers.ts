@@ -147,7 +147,7 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
     // que le dispatch planifié).
     const priorOffers = await tx.get(db.collection("delivery_offers").where("mission_id", "==", missionId));
     const declined = new Set(priorOffers.docs.filter((o) => o.data().status === "declined").map((o) => o.data().driver_id as string));
-    offered = eligible.filter((d) => !declined.has(d.id));
+    offered = eligible.filter((d) => !declined.has(d.id)).slice(0, MAX_CANDIDATE_DRIVERS);
     if (offered.length === 0) {
       const exhausted = round >= MAX_DISPATCH_ROUNDS && !options.force;
       tx.update(missionRef, {
