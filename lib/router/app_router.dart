@@ -6,16 +6,12 @@ import 'package:provider/provider.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/delivery/delivery_landing_screen.dart';
 import '../screens/delivery/delivery_request_flow_screen.dart';
-import '../screens/mechanic/mechanic_landing_screen.dart';
-import '../screens/mechanic/mechanic_request_flow_screen.dart';
 import '../screens/driver/driver_landing_screen.dart';
 import '../screens/driver/driver_onboarding_screen.dart';
 import '../screens/driver/driver_status_screen.dart';
 import '../screens/driver/driver_stripe_onboarding_return_screen.dart';
 import '../screens/driver/driver_active_mission_screen.dart';
 import '../screens/customer/customer_tracking_screen.dart';
-import '../screens/mechanic_provider/mechanic_provider_landing_screen.dart';
-import '../screens/mechanic_provider/mechanic_onboarding_screen.dart';
 import '../screens/auth/auth_screen.dart';
 import '../screens/auth/admin_login_screen.dart';
 import '../screens/info/pricing_screen.dart';
@@ -24,6 +20,8 @@ import '../screens/info/safety_screen.dart';
 import '../screens/info/faq_screen.dart';
 import '../screens/info/about_screen.dart';
 import '../screens/info/contact_screen.dart';
+import '../screens/info/coming_soon_screen.dart';
+import '../screens/info/not_found_screen.dart';
 import '../screens/info/granby_launch_screen.dart';
 import '../screens/info/blog_screen.dart';
 import '../screens/legal/legal_screen.dart';
@@ -66,8 +64,20 @@ class AppRouter {
 
   static const supportedLocales = ['fr', 'en', 'es'];
 
+  /// Locale d'une adresse inconnue : premier segment s'il est supporté, sinon fr.
+  static String _localeOf(Uri uri) {
+    final first = uri.pathSegments.isEmpty ? '' : uri.pathSegments.first;
+    return supportedLocales.contains(first) ? first : 'fr';
+  }
+
   static final GoRouter router = GoRouter(
     initialLocation: '/fr',
+    // CLI-02 (2026-10-28) : page 404 Movi-K (FR/EN/ES, dans l'AppShell) au
+    // lieu de l'écran anglais par défaut de go_router.
+    errorBuilder: (context, state) => NotFoundScreen(
+      locale: _localeOf(state.uri),
+      path: state.uri.path,
+    ),
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/fr'),
       ...supportedLocales.map(
@@ -115,27 +125,27 @@ class AppRouter {
 
             GoRoute(
               path: 'mecanique-mobile',
-              builder: (c, s) => MechanicLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'mobile-mechanic',
-              builder: (c, s) => MechanicLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'mecanico-movil',
-              builder: (c, s) => MechanicLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'mecanique-mobile/demande',
-              builder: (c, s) => MechanicRequestFlowScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'mobile-mechanic/request',
-              builder: (c, s) => MechanicRequestFlowScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'mecanico-movil/solicitud',
-              builder: (c, s) => MechanicRequestFlowScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
 
             GoRoute(
@@ -173,23 +183,23 @@ class AppRouter {
 
             GoRoute(
               path: 'devenir-mecanicien',
-              builder: (c, s) => MechanicProviderLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'become-mechanic',
-              builder: (c, s) => MechanicProviderLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'convertirse-mecanico',
-              builder: (c, s) => MechanicProviderLandingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'devenir-mecanicien/inscription',
-              builder: (c, s) => MechanicOnboardingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
             GoRoute(
               path: 'become-mechanic/onboarding',
-              builder: (c, s) => MechanicOnboardingScreen(locale: loc),
+              builder: (c, s) => ComingSoonScreen(locale: loc),
             ),
 
             GoRoute(

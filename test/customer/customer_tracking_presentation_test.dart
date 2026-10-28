@@ -49,6 +49,8 @@ DeliveryMission mission({
   MissionStatus status = MissionStatus.searchingDriver,
   String? driver,
   String? driverName,
+  String? cancellationReason,
+  String? cancelledBy,
 }) => DeliveryMission(
   id: id,
   customerId: customer,
@@ -62,6 +64,8 @@ DeliveryMission mission({
   createdAt: DateTime(2026, 10, 1),
   acceptedAt: driver == null ? null : DateTime(2026, 10, 1),
   assignmentMode: 'internal_test',
+  cancellationReason: cancellationReason,
+  cancelledBy: cancelledBy,
 );
 const reference = {'fr': 'Référence', 'en': 'Reference', 'es': 'Referencia'};
 const search = {
@@ -374,6 +378,26 @@ void main() => offlineTests(() {
       }
     });
   }
+  // CLI-04 / CLI-05 (2026-10-28) : motif d'annulation et suite proposée.
+  offlineWidgetTest('O cancelled: reason, fee line absent, book again', (t) async {
+    final h = await start(t);
+    await emit(t, h, mission(status: MissionStatus.cancelled, cancellationReason: 'customer_request', cancelledBy: 'customer'));
+    expect(find.byKey(const ValueKey('tracking-cancelled-view')), findsOneWidget);
+    expect(find.text('Vous avez annulé cette demande.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('tracking-cancellation-fee')), findsNothing);
+    expect(find.byKey(const ValueKey('tracking-rebook')), findsOneWidget);
+    await emit(t, h, mission(status: MissionStatus.cancelled, cancelledBy: 'driver'));
+    expect(find.textContaining('Le chauffeur a dû annuler'), findsOneWidget);
+  });
+  offlineWidgetTest('O payment failed: explanation and book again with another card', (t) async {
+    final h = await start(t);
+    await emit(t, h, mission(status: MissionStatus.paymentFailed));
+    expect(find.byKey(const ValueKey('tracking-payment-failed-view')), findsOneWidget);
+    expect(find.text(AppStrings.t('mission_status_paymentfailed', 'fr')), findsOneWidget);
+    expect(find.textContaining('Utiliser une autre carte'), findsOneWidget);
+    expect(find.byKey(const ValueKey('tracking-rebook-new-card')), findsOneWidget);
+    expect(find.byType(LiveTrackingMap), findsNothing);
+  });
   offlineWidgetTest('O initial loading and disappeared mission', (t) async {
     final h = await start(t);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);

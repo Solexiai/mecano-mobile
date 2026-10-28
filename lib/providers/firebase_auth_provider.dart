@@ -306,6 +306,47 @@ class FirebaseAuthProvider extends ChangeNotifier {
     }
   }
 
+  /// CLI-01 / DRV-08 (2026-10-28) : courriel de réinitialisation du mot de
+  /// passe, dans la langue de l'interface. Firebase ne révèle pas si le
+  /// courriel existe (`user-not-found` est traité comme un succès) : on ne
+  /// confirme jamais l'existence d'un compte à un tiers.
+  Future<bool> sendPasswordReset({
+    required String email,
+    String locale = 'fr',
+  }) async {
+    if (!_backendConfigured) {
+      _lastError = 'Backend Firebase non configuré sur cet environnement.';
+      notifyListeners();
+      return false;
+    }
+    final address = email.trim();
+    if (address.isEmpty || !address.contains('@')) {
+      _lastError = _mapErrorMessage('invalid-email');
+      notifyListeners();
+      return false;
+    }
+    try {
+      await fb.FirebaseAuth.instance.setLanguageCode(locale);
+      await fb.FirebaseAuth.instance.sendPasswordResetEmail(email: address);
+      _lastError = null;
+      notifyListeners();
+      return true;
+    } on fb.FirebaseAuthException catch (e) {
+      if (e.code == 'user-not-found') {
+        _lastError = null;
+        notifyListeners();
+        return true;
+      }
+      _lastError = _mapErrorMessage(e.code);
+      notifyListeners();
+      return false;
+    } catch (_) {
+      _lastError = 'Une erreur inattendue est survenue. Réessayez.';
+      notifyListeners();
+      return false;
+    }
+  }
+
   String _mapErrorMessage(String code) {
     switch (code) {
       case 'user-not-found':

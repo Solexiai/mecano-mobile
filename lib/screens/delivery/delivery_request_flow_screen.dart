@@ -716,7 +716,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     }
   }
 
-  Future<void> _setupCard() async {
+  /// [replace] (CLI-05, 2026-10-28) : enregistrer une autre carte même si une
+  /// carte par défaut existe déjà (après un refus d'autorisation, par exemple).
+  Future<void> _setupCard({bool replace = false}) async {
     await _loadConfiguration(_epoch);
     if (!mounted) return;
     if (!await _ensureFreshQuote() || !mounted) return;
@@ -730,6 +732,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'quoteId': _draft.quote!['quoteId'],
       'locale': widget.locale,
       'consent': _currentConsent,
+      if (replace) 'replace': true,
     });
     if (!mounted || epoch != _epoch) return;
     if (result['ready'] == true) {
@@ -3115,7 +3118,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
     // Never claim the card is saved: Stripe confirms it, then the server
     // authorizes only when a driver accepts.
-    if (_cardReady)
+    if (_cardReady) ...[
       _note(
         tr(
           'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
@@ -3123,8 +3126,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
         ),
         key: const ValueKey('booking-card-ready'),
-      )
-    else ...[
+      ),
+      // CLI-05 : après une carte refusée, le client peut en enregistrer une autre.
+      TextButton.icon(
+        key: const ValueKey('booking-card-replace'),
+        onPressed: _canPay && !_busy && _readyToConfirm(auth)
+            ? () => _run(() => _setupCard(replace: true))
+            : null,
+        icon: const Icon(Icons.credit_card_outlined, size: 18),
+        label: Text(
+          tr('Utiliser une autre carte', 'Use another card', 'Usar otra tarjeta'),
+        ),
+      ),
+    ] else ...[
       _note(
         tr(
           'Préparation du moyen de paiement non confirmée.',

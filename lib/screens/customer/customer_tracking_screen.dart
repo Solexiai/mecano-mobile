@@ -39,6 +39,7 @@ import '../../core/app_colors.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
+import '../../router/delivery_request_intent.dart';
 import '../../widgets/internal_test_mission_banner.dart';
 import '../../widgets/live_tracking_map.dart';
 import 'mission_finance_section.dart';
@@ -112,7 +113,11 @@ class CustomerTrackingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () => context.go('/$locale/connexion'),
+                    key: const ValueKey('tracking-sign-in'),
+                    // CLI-08 : retour sur ce suivi après la connexion.
+                    onPressed: () => context.go(DeliveryRequestIntent.loginPathReturningTo(
+                      locale, '/$locale/livraison/suivi/${widget.missionId}',
+                    )),
                     child: Text(t('delivery_sign_in_button')),
                   ),
                 ],
@@ -242,6 +247,15 @@ class CustomerTrackingScreen extends StatelessWidget {
                 ),
               );
             }
+            // CLI-04 / CLI-05 (2026-10-28) : une annulation et un refus de
+            // paiement ont leur propre vue, avec le motif et une suite claire.
+            if (mission.status == MissionStatus.cancelled) {
+              return _CancelledMissionView(mission: mission, t: t, locale: locale);
+            }
+            if (mission.status == MissionStatus.paymentFailed) {
+              return _PaymentFailedMissionView(mission: mission, t: t, locale: locale);
+            }
+
             final hasDriver = mission.driverId?.trim().isNotEmpty ?? false;
             if (!hasDriver || !_trackableStatuses.contains(mission.status)) {
               final String message;
@@ -582,6 +596,151 @@ class _MissionStatusView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(fee, key: const ValueKey('tracking-cancellation-fee')),
         ],
+      ],
+    ),
+  );
+}
+
+/// CLI-04 (2026-10-28) : livraison annulée — qui, pourquoi, frais éventuels,
+/// et deux suites : refaire une demande, nous écrire.
+class _CancelledMissionView extends StatelessWidget {
+  final DeliveryMission mission;
+  final String Function(String) t;
+  final String locale;
+  const _CancelledMissionView({required this.mission, required this.t, required this.locale});
+
+  String tr(String fr, String en, String es) => locale == 'en' ? en : locale == 'es' ? es : fr;
+
+  String _reason() {
+    switch (mission.cancellationReason) {
+      case 'customer_request':
+        return tr(
+          'Vous avez annulé cette demande.',
+          'You cancelled this request.',
+          'Usted canceló esta solicitud.',
+        );
+      case 'customer_failed_delivery':
+        return tr(
+          'La livraison n’a pas pu être faite sur place (personne, accès impossible ou objet non prêt). Des frais de déplacement peuvent s’appliquer.',
+          'The delivery could not be completed on site (no one there, no access or item not ready). A travel fee may apply.',
+          'La entrega no pudo realizarse en el lugar (nadie presente, sin acceso u objeto no listo). Puede aplicarse una tarifa de desplazamiento.',
+        );
+    }
+    switch (mission.cancelledBy) {
+      case 'driver':
+        return tr(
+          'Le chauffeur a dû annuler. Aucun frais ne vous est facturé pour cette annulation.',
+          'The driver had to cancel. You are not charged for this cancellation.',
+          'El conductor tuvo que cancelar. No se le cobra nada por esta cancelación.',
+        );
+      case 'admin':
+        return tr(
+          'Movi-K a annulé cette demande. Écrivez-nous si vous avez une question.',
+          'Movi-K cancelled this request. Email us if you have a question.',
+          'Movi-K canceló esta solicitud. Escríbanos si tiene alguna pregunta.',
+        );
+    }
+    return tr('Cette demande a été annulée.', 'This request was cancelled.', 'Esta solicitud fue cancelada.');
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      key: const ValueKey('tracking-cancelled-view'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MissionReference(mission: mission, t: t),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            const Icon(Icons.cancel_outlined, color: AppColors.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              t(mission.status.key),
+              key: const ValueKey('tracking-mission-state'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(_reason(), key: const ValueKey('tracking-cancellation-reason'), style: const TextStyle(height: 1.5)),
+        if (cancellationFeeSummary(mission.cancellationFee, locale) case final fee?) ...[
+          const SizedBox(height: 8),
+          Text(fee, key: const ValueKey('tracking-cancellation-fee')),
+        ],
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          key: const ValueKey('tracking-rebook'),
+          onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
+          icon: const Icon(Icons.replay),
+          label: Text(tr('Refaire une demande', 'Book again', 'Volver a solicitar')),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () => context.go('/$locale/contact'),
+          icon: const Icon(Icons.mail_outline),
+          label: Text(tr('Nous écrire', 'Email us', 'Escribirnos')),
+        ),
+      ],
+    ),
+  );
+}
+
+/// CLI-05 (2026-10-28) : autorisation de la carte refusée quand le chauffeur
+/// a accepté — la demande est close ; le client refait une demande en
+/// enregistrant une autre carte (bouton « Utiliser une autre carte » à
+/// l'étape paiement).
+class _PaymentFailedMissionView extends StatelessWidget {
+  final DeliveryMission mission;
+  final String Function(String) t;
+  final String locale;
+  const _PaymentFailedMissionView({required this.mission, required this.t, required this.locale});
+
+  String tr(String fr, String en, String es) => locale == 'en' ? en : locale == 'es' ? es : fr;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(20),
+    child: Column(
+      key: const ValueKey('tracking-payment-failed-view'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MissionReference(mission: mission, t: t),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            const Icon(Icons.credit_card_off_outlined, color: AppColors.error),
+            const SizedBox(width: 8),
+            Text(
+              t(mission.status.key),
+              key: const ValueKey('tracking-mission-state'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          tr(
+            'Votre carte a été refusée au moment où un chauffeur acceptait votre livraison. Rien n’a été débité et cette demande est close. Refaites une demande et choisissez « Utiliser une autre carte » à l’étape du paiement.',
+            'Your card was declined when a driver accepted your delivery. Nothing was charged and this request is closed. Book again and choose “Use another card” at the payment step.',
+            'Su tarjeta fue rechazada cuando un conductor aceptó su entrega. No se cobró nada y esta solicitud quedó cerrada. Vuelva a solicitar y elija «Usar otra tarjeta» en el paso de pago.',
+          ),
+          style: const TextStyle(height: 1.5),
+        ),
+        const SizedBox(height: 24),
+        FilledButton.icon(
+          key: const ValueKey('tracking-rebook-new-card'),
+          onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
+          icon: const Icon(Icons.credit_card_outlined),
+          label: Text(tr('Refaire une demande', 'Book again', 'Volver a solicitar')),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () => context.go('/$locale/contact'),
+          icon: const Icon(Icons.mail_outline),
+          label: Text(tr('Nous écrire', 'Email us', 'Escribirnos')),
+        ),
       ],
     ),
   );

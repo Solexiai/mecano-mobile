@@ -246,6 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
           decoration: InputDecoration(labelText: t('auth_password')),
           obscureText: true,
         ),
+        if (_mode == _AuthMode.signIn) _buildForgotPassword(t),
         _buildError(t),
         const SizedBox(height: 22),
         SizedBox(
@@ -272,6 +273,67 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
+  /// CLI-01 / DRV-08 (2026-10-28) : « Mot de passe oublié ? » — client,
+  /// chauffeur et admin partagent la même connexion Firebase.
+  Widget _buildForgotPassword(String Function(String) t) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        key: const ValueKey('auth-forgot-password'),
+        onPressed: _submitting ? null : () => _forgotPassword(t),
+        child: Text(t('auth_forgot_password')),
+      ),
+    );
+  }
+
+  Future<void> _forgotPassword(String Function(String) t) async {
+    final controller = TextEditingController(text: _emailController.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(t('auth_reset_title')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(t('auth_reset_body')),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('auth-reset-email'),
+              controller: controller,
+              autofocus: true,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(labelText: t('auth_email')),
+              onSubmitted: (v) => Navigator.pop(dialogContext, v),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(t('auth_cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('auth-reset-send'),
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(t('auth_reset_send')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (email == null || !mounted) return;
+    final auth = context.read<FirebaseAuthProvider>();
+    final ok = await auth.sendPasswordReset(email: email, locale: widget.locale);
+    if (!mounted) return;
+    setState(() => _error = ok ? null : auth.lastError);
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('auth_reset_sent'))),
+      );
+    }
+  }
+
   Widget _buildSignInFields(String Function(String) t) {
     return Column(
       children: [
@@ -286,6 +348,7 @@ class _AuthScreenState extends State<AuthScreen> {
           decoration: InputDecoration(labelText: t('auth_password')),
           obscureText: true,
         ),
+        _buildForgotPassword(t),
         _buildError(t),
         const SizedBox(height: 22),
         SizedBox(

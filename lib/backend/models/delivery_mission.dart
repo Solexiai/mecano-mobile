@@ -63,6 +63,8 @@ class DeliveryMission {
   final DateTime? completedAt;
   final DateTime? cancelledAt;
   final String? cancellationReason;
+  /// Qui a annulé (`customer`, `driver`, `admin`), écrit par le serveur.
+  final String? cancelledBy;
   // Late cancellation / travel fee (2026-10-22), written by Cloud Functions
   // only: kind, status, total_minor, driver_minor, platform_minor.
   final Map<String, dynamic>? cancellationFee;
@@ -114,6 +116,7 @@ class DeliveryMission {
     this.completedAt,
     this.cancelledAt,
     this.cancellationReason,
+    this.cancelledBy,
     this.cancellationFee,
     this.proofOfDeliveryUrl,
     this.proofOfPickupUrl,
@@ -159,6 +162,7 @@ class DeliveryMission {
     'completed_at': completedAt?.toIso8601String(),
     'cancelled_at': cancelledAt?.toIso8601String(),
     'cancellation_reason': cancellationReason,
+    'cancelled_by': cancelledBy,
     'proof_of_delivery_url': proofOfDeliveryUrl,
     'proof_of_pickup_url': proofOfPickupUrl,
     'distance_km': distanceKm,
@@ -206,6 +210,7 @@ class DeliveryMission {
       completedAt: parseFirestoreDate(json['completed_at']),
       cancelledAt: parseFirestoreDate(json['cancelled_at']),
       cancellationReason: json['cancellation_reason'] as String?,
+      cancelledBy: json['cancelled_by'] as String?,
       cancellationFee: json['cancellation_fee'] is Map
           ? Map<String, dynamic>.from(json['cancellation_fee'] as Map)
           : null,

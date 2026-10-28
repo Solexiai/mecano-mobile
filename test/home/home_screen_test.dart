@@ -318,6 +318,10 @@ void main() {
       '/fr/livraison/demande#fragment',
       '/fr/livraison/demande?next=/fr/admin',
       '/fr/livraison/demande?category=a&category=b',
+      '/en/livraison/suivi/abc',
+      '/fr/livraison/suivi/abc?next=/fr/admin',
+      '/fr/livraison/suivi/../admin',
+      '/fr/tableau-de-bord?x=1',
     ]) {
       expect(
         DeliveryRequestIntent.safeReturnPath(bad, 'fr'),
@@ -325,6 +329,13 @@ void main() {
         reason: bad,
       );
     }
+    // CLI-08 : suivi et espace client repris après connexion.
+    expect(DeliveryRequestIntent.safeReturnPath('/fr/livraison/suivi/mission_42', 'fr'), '/fr/livraison/suivi/mission_42');
+    expect(DeliveryRequestIntent.safeReturnPath('/fr/tableau-de-bord', 'fr'), '/fr/tableau-de-bord');
+    final login = Uri.parse(DeliveryRequestIntent.loginPathReturningTo('fr', '/fr/livraison/suivi/mission_42'));
+    expect(login.path, '/fr/connexion');
+    expect(login.queryParameters['returnTo'], '/fr/livraison/suivi/mission_42');
+    expect(DeliveryRequestIntent.loginPathReturningTo('fr', '/fr/admin'), '/fr/connexion');
   });
   offlineWidgetTest(
     'language changes keep category in the guest request form',
