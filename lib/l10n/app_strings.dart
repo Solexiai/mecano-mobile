@@ -356,6 +356,37 @@ class AppStrings {
       'en': 'Password',
       'es': 'Contraseña',
     },
+    // CLI-01 / DRV-08 (2026-10-28) : mot de passe oublié.
+    'auth_forgot_password': {
+      'fr': 'Mot de passe oublié ?',
+      'en': 'Forgot your password?',
+      'es': '¿Olvidó su contraseña?',
+    },
+    'auth_reset_title': {
+      'fr': 'Réinitialiser le mot de passe',
+      'en': 'Reset your password',
+      'es': 'Restablecer la contraseña',
+    },
+    'auth_reset_body': {
+      'fr': 'Nous vous enverrons un courriel avec un lien pour choisir un nouveau mot de passe.',
+      'en': 'We will email you a link to choose a new password.',
+      'es': 'Le enviaremos un correo con un enlace para elegir una nueva contraseña.',
+    },
+    'auth_reset_send': {
+      'fr': 'Envoyer le lien',
+      'en': 'Send the link',
+      'es': 'Enviar el enlace',
+    },
+    'auth_reset_sent': {
+      'fr': 'Si un compte existe pour cette adresse, un courriel vient de partir. Vérifiez aussi vos courriels indésirables.',
+      'en': 'If an account exists for this address, an email is on its way. Check your spam folder too.',
+      'es': 'Si existe una cuenta con esta dirección, acabamos de enviar un correo. Revise también el correo no deseado.',
+    },
+    'auth_cancel': {
+      'fr': 'Annuler',
+      'en': 'Cancel',
+      'es': 'Cancelar',
+    },
     'auth_intro_subtitle': {
       'fr': 'Connectez-vous ou créez un compte Movi-K pour continuer.',
       'en': 'Sign in or create a Movi-K account to continue.',

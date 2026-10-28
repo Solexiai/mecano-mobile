@@ -56,7 +56,7 @@ void main() {
 
   group('Bloc F — routes invalides / paramètres invalides', () {
     testWidgets(
-      'ROUTE-F-01: route totalement inconnue -> fallback GoRouter par défaut (Page Not Found), pas décran blanc, pas exception',
+      'ROUTE-F-01: route totalement inconnue -> page 404 Movi-K (CLI-02), pas décran blanc, pas exception',
       (tester) async {
         AppRouter.router.go('/fr/route-qui-nexiste-pas');
         final auth = FirebaseAuthProvider(backendConfigured: false);
@@ -64,8 +64,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.text('Page Not Found'), findsOneWidget);
-        expect(find.text('Home'), findsOneWidget);
+        expect(find.byKey(const ValueKey('not-found-page')), findsOneWidget);
+        expect(find.text('Page introuvable'), findsOneWidget);
+        expect(find.byKey(const ValueKey('not-found-home')), findsOneWidget);
+        expect(find.text('Page Not Found'), findsNothing);
       },
     );
 
@@ -81,8 +83,8 @@ void main() {
 
         expect(tester.takeException(), isNull);
         // The empty required :missionId segment does not match the
-        // parameterized route -> GoRouter's default error screen renders.
-        expect(find.text('Page Not Found'), findsOneWidget);
+        // parameterized route -> Movi-K 404 page renders (CLI-02).
+        expect(find.byKey(const ValueKey('not-found-page')), findsOneWidget);
       },
     );
 

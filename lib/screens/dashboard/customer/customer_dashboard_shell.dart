@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/app_colors.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
+import '../../../router/delivery_request_intent.dart';
 import '../../../widgets/language_selector.dart';
 import '../../../widgets/notification_bell.dart';
 import 'tabs/customer_overview_tab.dart';
@@ -42,7 +43,9 @@ class _CustomerDashboardShellState extends State<CustomerDashboardShell> {
               Text(t('customer_dashboard_locked_message')),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () => context.go('/$locale/connexion'),
+                onPressed: () => context.go(
+                  DeliveryRequestIntent.loginPathReturningTo(locale, '/$locale/tableau-de-bord'),
+                ),
                 child: Text(t('delivery_sign_in_button')),
               ),
             ],
