@@ -1119,6 +1119,12 @@ class AppStrings {
       'en': 'Open route in Google Maps',
       'es': 'Abrir la ruta en Google Maps',
     },
+    // DRV-04 (2026-10-28) : avertir que la position se met en pause dans Maps.
+    'driver_active_mission_maps_pause_notice': {
+      'fr': 'Pendant que Google Maps est ouvert, votre position n’est plus transmise au client. Revenez dans Movi-K de temps en temps.',
+      'en': 'While Google Maps is open, your position is no longer shared with the customer. Come back to Movi-K from time to time.',
+      'es': 'Mientras Google Maps esté abierto, su posición ya no se comparte con el cliente. Vuelva a Movi-K de vez en cuando.',
+    },
     'driver_active_mission_maps_error': {
       'fr': 'Impossible d\'ouvrir Google Maps sur cet appareil. Réessayez.',
       'en': 'Unable to open Google Maps on this device. Try again.',
@@ -1208,10 +1214,12 @@ class AppStrings {
       'en': 'The route will appear as soon as positions are received.',
       'es': 'El trayecto aparecerá en cuanto se reciban posiciones.',
     },
+    // DRV-04 (2026-10-28) : expliquer la pause (le chauffeur est souvent dans
+    // son GPS, l'app Movi-K en arrière-plan ne transmet plus la position).
     'tracking_position_stale': {
-      'fr': 'Position non actualisée',
-      'en': 'Position not updated',
-      'es': 'Posición sin actualizar',
+      'fr': 'Position non actualisée — le chauffeur utilise sans doute son GPS. Elle reprendra dès son retour dans l’app.',
+      'en': 'Position not updated — the driver is probably using their GPS. It will resume when they return to the app.',
+      'es': 'Posición sin actualizar — el conductor probablemente está usando su GPS. Se reanudará cuando vuelva a la app.',
     },
     'tracking_last_known_position': {
       'fr': 'Dernière position connue',

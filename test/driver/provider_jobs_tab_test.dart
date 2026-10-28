@@ -291,6 +291,30 @@ void main() {
     },
   );
 
+  // DRV-02 (2026-10-28) : le vrai motif du serveur, pas « déjà acceptée ».
+  testWidgets(
+    'server refusal message is shown verbatim (vehicle confirmation, zone, offline...)',
+    (tester) async {
+      _OfferApi.acceptError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'Confirmez le véhicule utilisé pour cette livraison.',
+      );
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      await _confirmDisplayedOffer(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('Confirmez le véhicule utilisé pour cette livraison.'), findsOneWidget);
+      expect(find.text(AppStrings.t('driver_jobs_accept_error', 'fr')), findsNothing);
+      expect(find.text('MISSION_STUB'), findsNothing);
+    },
+  );
+
   testWidgets(
     'chauffeur admissible voit la mission disponible avec son offre',
     (tester) async {

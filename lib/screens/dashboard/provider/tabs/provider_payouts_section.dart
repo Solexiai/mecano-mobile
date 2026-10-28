@@ -48,6 +48,7 @@ import '../../../../finance/models/driver_transfer_info.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../finance/presentation/payout_display_status.dart';
 import '../../../../models/enums.dart';
+import '../../../../widgets/memoized_stream_builder.dart';
 
 class ProviderPayoutsSection extends StatelessWidget {
   final String driverId;
@@ -69,18 +70,22 @@ class ProviderPayoutsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<FinancialSnapshot>>(
-      stream: BackendLocator.financeRepository.watchFinancialSnapshotsForDriver(
+    // DRV-10 : trois flux créés une fois par chauffeur, pas à chaque build.
+    return MemoizedStreamBuilder<List<FinancialSnapshot>>(
+      id: driverId,
+      create: () => BackendLocator.financeRepository.watchFinancialSnapshotsForDriver(
         driverId,
       ),
       builder: (context, snapshotsSnap) {
-        return StreamBuilder<List<DriverTransferInfo>>(
-          stream: BackendLocator.financeRepository.watchTransfersForDriver(
+        return MemoizedStreamBuilder<List<DriverTransferInfo>>(
+          id: driverId,
+          create: () => BackendLocator.financeRepository.watchTransfersForDriver(
             driverId,
           ),
           builder: (context, transfersSnap) {
-            return StreamBuilder<List<DriverPayoutInfo>>(
-              stream: BackendLocator.financeRepository.watchPayoutsForDriver(
+            return MemoizedStreamBuilder<List<DriverPayoutInfo>>(
+              id: driverId,
+              create: () => BackendLocator.financeRepository.watchPayoutsForDriver(
                 driverId,
               ),
               builder: (context, payoutsSnap) {

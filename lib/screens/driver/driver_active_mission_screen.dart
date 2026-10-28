@@ -46,6 +46,7 @@ import '../../providers/locale_provider.dart';
 import '../../services/driver_location_reporter.dart';
 import '../../widgets/internal_test_mission_banner.dart';
 import '../../widgets/live_tracking_map.dart';
+import '../../widgets/memoized_stream_builder.dart';
 
 /// Statuts de trajet pendant lesquels le chauffeur doit partager sa
 /// position GPS (Phase 5) — le partage s'arrête dès que la mission n'est
@@ -177,6 +178,19 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
       if (!launched && mounted) {
         setState(
           () => _navigationErrorKey = 'driver_active_mission_maps_error',
+        );
+      } else if (launched && mounted) {
+        // DRV-04 (2026-10-28) : pas de GPS en arrière-plan pour l'instant —
+        // le partage de position se met en pause tant que Maps est au
+        // premier plan. Dit franchement au chauffeur (et au client côté suivi).
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            key: const ValueKey('driver-maps-pause-notice'),
+            duration: const Duration(seconds: 6),
+            content: Text(
+              context.read<LocaleProvider>().t('driver_active_mission_maps_pause_notice'),
+            ),
+          ),
         );
       }
     } catch (_) {
@@ -346,8 +360,10 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
     final uid = auth.effectiveUid!;
     final repo = BackendLocator.missionRepository;
 
-    return StreamBuilder<DeliveryMission?>(
-      stream: repo.watchMission(widget.missionId),
+    // DRV-03 : flux créé une fois par mission, pas à chaque setState.
+    return MemoizedStreamBuilder<DeliveryMission?>(
+      id: widget.missionId,
+      create: () => repo.watchMission(widget.missionId),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Padding(

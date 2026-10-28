@@ -258,6 +258,16 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
         await prefs.remove(key);
       }
       if (mounted) {
+        // DRV-02 (2026-10-28) : le serveur distingue « passez en ligne »,
+        // « hors zone », « confirmez le véhicule », « documents invalides »,
+        // « offre expirée »… On affiche SON message (préfixe `server:`) au
+        // lieu de prétendre que la mission est déjà prise.
+        final serverMessage = error is FirebaseFunctionsException &&
+                const ['failed-precondition', 'permission-denied', 'invalid-argument', 'not-found']
+                    .contains(error.code) &&
+                (error.message ?? '').trim().isNotEmpty
+            ? error.message!.trim()
+            : null;
         setState(
           () => _acceptErrors[mission.id] =
               error is FirebaseFunctionsException &&
@@ -265,6 +275,8 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                     CloudFunctionException(error.code, error.message ?? ''),
                   )
               ? kKillSwitchErrorCode
+              : serverMessage != null
+              ? 'server:$serverMessage'
               : 'unknown_error',
         );
       }
@@ -675,6 +687,8 @@ class _JobCard extends StatelessWidget {
                       )
                     : errorCode == kKillSwitchErrorCode
                     ? t('service_temporarily_unavailable')
+                    : errorCode!.startsWith('server:')
+                    ? errorCode!.substring('server:'.length)
                     : t('driver_jobs_accept_error'),
                 style: const TextStyle(color: AppColors.error, fontSize: 12.5),
               ),

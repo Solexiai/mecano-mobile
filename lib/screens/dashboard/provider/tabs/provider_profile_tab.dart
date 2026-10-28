@@ -8,6 +8,7 @@ import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../models/enums.dart';
 import 'provider_stripe_connect_section.dart';
+import '../../../../widgets/memoized_stream_builder.dart';
 
 class ProviderProfileTab extends StatelessWidget {
   const ProviderProfileTab({super.key});
@@ -43,8 +44,10 @@ class ProviderProfileTab extends StatelessWidget {
     if (user == null) return const Center(child: CircularProgressIndicator());
     final displayName = user.displayName ?? user.email ?? '';
 
-    return StreamBuilder<DriverProfileV2?>(
-      stream: BackendLocator.driverRepository.watchDriverProfile(user.uid),
+    // DRV-10 : flux créé une fois par utilisateur, pas à chaque build.
+    return MemoizedStreamBuilder<DriverProfileV2?>(
+      id: user.uid,
+      create: () => BackendLocator.driverRepository.watchDriverProfile(user.uid),
       builder: (context, snap) {
         final profile = snap.data;
         return SingleChildScrollView(
