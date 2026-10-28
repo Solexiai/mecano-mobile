@@ -23,7 +23,9 @@
 
 import type { CallableRequest, Request } from "firebase-functions/v2/https";
 import type { DecodedIdToken } from "firebase-admin/auth";
+import type { ScheduledEvent } from "firebase-functions/v2/scheduler";
 import { calculateDriverPayout, CalculateDriverPayoutRequest } from "../../src/functions/calculateDriverPayout";
+import { processScheduledDriverPayouts } from "../../src/functions/processScheduledDriverPayouts";
 import {
   updatePayoutPolicyConfiguration,
   UpdatePayoutPolicyConfigurationRequest,
@@ -33,6 +35,11 @@ import { PayoutStatuses } from "../../src/lib/types";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
+import {
+  cleanupMissionsWithPayments,
+  seedMissionWithPayment,
+  seedMovikBatchPayoutMode,
+} from "../testUtils/payoutBatchFixture";
 
 const DRIVER_ID = "payout_driver_001";
 const OTHER_DRIVER_ID = "payout_driver_no_snapshot";
@@ -52,20 +59,31 @@ function buildAdminRequest<T>(uid: string, role: string, data: T): CallableReque
   };
 }
 
+// Option A : chaque snapshot a une mission dont le paiement actif est
+// CAPTURÉ sans compte connecté (sinon il n'est pas versable par ce chemin).
+const seededMissionIds = new Set<string>();
 async function seedSnapshot(
   id: string,
   driverId: string,
   driverNetMissionEarnings: number,
-  opts: { includedInPayoutId?: string | null } = {}
+  opts: { includedInPayoutId?: string | null; payment?: "captured" | "authorized" | "connect" | "none" } = {}
 ): Promise<void> {
+  const missionId = `mission_for_${id}`;
   await db.collection("financial_snapshots").doc(id).set({
     snapshot_id: id,
-    mission_id: `mission_for_${id}`,
+    mission_id: missionId,
     driver_id: driverId,
     status: "confirmed",
     driver_net_mission_earnings: driverNetMissionEarnings,
     included_in_payout_id: opts.includedInPayoutId ?? null,
     created_at: admin.firestore.Timestamp.now(),
+  });
+  const payment = opts.payment ?? "captured";
+  if (payment === "none") return;
+  seededMissionIds.add(missionId);
+  await seedMissionWithPayment(missionId, driverId, {
+    status: payment === "authorized" ? "authorized" : "captured",
+    connectedAccountId: payment === "connect" ? "acct_fake_connect" : null,
   });
 }
 
@@ -94,6 +112,8 @@ async function cleanup(driverId: string): Promise<void> {
   ]);
   const batch = db.batch();
   snapshots.docs.forEach((d) => batch.delete(d.ref));
+  await cleanupMissionsWithPayments([...seededMissionIds]);
+  seededMissionIds.clear();
   const payoutIds = payouts.docs.map((d) => d.id);
   payouts.docs.forEach((d) => batch.delete(d.ref));
   if (driverDoc.exists) batch.delete(driverDoc.ref);
@@ -131,6 +151,8 @@ beforeEach(async () => {
 describe("calculateDriverPayout — agrégation, cents, rétention configurable", () => {
   beforeEach(async () => {
     setPaymentProviderForTesting(new FakePaymentProvider());
+    // Option A (2026-10-27) : le chemin groupé n'existe qu'en mode movik_batch.
+    await seedMovikBatchPayoutMode();
   });
 
   afterEach(async () => {
@@ -198,6 +220,70 @@ describe("calculateDriverPayout — agrégation, cents, rétention configurable"
     );
     expect(result.payoutId).toBeNull();
     expect(result.amountMinor).toBe(0);
+  });
+
+  // ---- Option A (2026-10-27) ----------------------------------------------
+  it("option A : refuse (failed-precondition) en mode stripe_direct — Stripe vire à la capture", async () => {
+    await db.doc("payout_policy_configs/default").set({ payout_mode: "stripe_direct" }, { merge: true });
+    await seedDriverProfile(DRIVER_ID, { completedMissions: 50 });
+    await seedSnapshot("snap_direct_1", DRIVER_ID, 10);
+
+    await expect(
+      calculateDriverPayout.run(
+        buildAdminRequest<CalculateDriverPayoutRequest>(ADMIN_ID, "admin", { driverId: DRIVER_ID })
+      )
+    ).rejects.toThrow(/stripe_direct/);
+    const snapAfter = await db.collection("financial_snapshots").doc("snap_direct_1").get();
+    expect(snapAfter.data()!.included_in_payout_id).toBeNull();
+    const payouts = await db.collection("driver_payouts").where("driver_id", "==", DRIVER_ID).get();
+    expect(payouts.empty).toBe(true);
+  });
+
+  it("option A : un snapshot dont le paiement n'est pas capturé, ou a été viré par Connect, n'est jamais versé", async () => {
+    await seedDriverProfile(DRIVER_ID, { completedMissions: 50 });
+    await seedSnapshot("snap_mix_captured", DRIVER_ID, 20);
+    await seedSnapshot("snap_mix_authorized", DRIVER_ID, 30, { payment: "authorized" });
+    await seedSnapshot("snap_mix_connect", DRIVER_ID, 40, { payment: "connect" });
+    await seedSnapshot("snap_mix_nopayment", DRIVER_ID, 50, { payment: "none" });
+
+    const result = await calculateDriverPayout.run(
+      buildAdminRequest<CalculateDriverPayoutRequest>(ADMIN_ID, "admin", { driverId: DRIVER_ID })
+    );
+    expect(result.amountMinor).toBe(2000);
+    const payout = (await db.collection("driver_payouts").doc(result.payoutId as string).get()).data()!;
+    expect(payout.financial_snapshot_ids).toEqual(["snap_mix_captured"]);
+    for (const id of ["snap_mix_authorized", "snap_mix_connect", "snap_mix_nopayment"]) {
+      const snap = await db.collection("financial_snapshots").doc(id).get();
+      expect(snap.data()!.included_in_payout_id).toBeNull();
+    }
+  });
+
+  it("option A : en mode stripe_direct, le cron ne promeut ni ne soumet aucun versement groupé", async () => {
+    await db.doc("payout_policy_configs/default").set({ payout_mode: "stripe_direct" }, { merge: true });
+    await seedDriverProfile(DRIVER_ID, { completedMissions: 50, connectedAccountId: "acct_fake_cron_direct" });
+    const payoutId = "payout_direct_cron_001";
+    const now = admin.firestore.Timestamp.now();
+    await db.collection("driver_payouts").doc(payoutId).set({
+      driver_id: DRIVER_ID,
+      financial_snapshot_ids: [],
+      amount_minor: 1000,
+      currency: "CAD",
+      status: PayoutStatuses.PENDING,
+      payout_hold_period_hours: 0,
+      payout_eligible_at: admin.firestore.Timestamp.fromMillis(now.toMillis() - 60_000),
+      provider_payout_id: null,
+      connected_account_id: "acct_fake_cron_direct",
+      created_at: now,
+      idempotency_key: `seed_${payoutId}`,
+    });
+
+    await (
+      processScheduledDriverPayouts as unknown as { run: (e: ScheduledEvent) => Promise<void> }
+    ).run({ scheduleTime: new Date().toISOString(), jobName: "test-direct" } as unknown as ScheduledEvent);
+
+    const after = (await db.collection("driver_payouts").doc(payoutId).get()).data()!;
+    expect(after.status).toBe(PayoutStatuses.PENDING);
+    expect(after.provider_payout_id).toBeNull();
   });
 
   it("refuse (invalid-argument) si driverId est manquant", async () => {
@@ -393,6 +479,7 @@ describe("updatePayoutPolicyConfiguration", () => {
         defaultHoldPeriodHours: 10,
         newDriverHoldPeriodHours: 20,
         riskyDriverHoldPeriodHours: 30,
+        payoutMode: "stripe_direct",
       });
       expect(firstEntry.metadata.effectiveAt).toBeTruthy();
       expect(firstEntry.metadata.configurationId).toBe("payout_policy_configs/default");
@@ -421,11 +508,13 @@ describe("updatePayoutPolicyConfiguration", () => {
         defaultHoldPeriodHours: 10,
         newDriverHoldPeriodHours: 20,
         riskyDriverHoldPeriodHours: 30,
+        payoutMode: "stripe_direct",
       });
       expect(secondEntry.metadata.newConfiguration).toEqual({
         defaultHoldPeriodHours: 15,
         newDriverHoldPeriodHours: 25,
         riskyDriverHoldPeriodHours: 35,
+        payoutMode: "stripe_direct",
       });
     }
   );

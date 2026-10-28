@@ -26,6 +26,7 @@ import {
 import { processScheduledDriverPayouts } from "../../src/functions/processScheduledDriverPayouts";
 import { setPaymentProviderForTesting } from "../../src/payment/paymentProviderFactory";
 import { FakePaymentProvider } from "../testUtils/fakePaymentProvider";
+import { clearPayoutMode, seedMovikBatchPayoutMode } from "../testUtils/payoutBatchFixture";
 import { PaymentStatuses, PayoutStatuses } from "../../src/lib/types";
 import type { ScheduledEvent } from "firebase-functions/v2/scheduler";
 import { seedDefaultRuntimeFlagsEnabled } from "../testUtils/runtimeFlagsFixture";
@@ -150,14 +151,17 @@ beforeEach(async () => {
 describe("BLOC N — concurrence financière : double capture / double payout / collision cron+manuel", () => {
   let fakeProvider: FakePaymentProvider;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fakeProvider = new FakePaymentProvider();
     setPaymentProviderForTesting(fakeProvider);
+    // Option A (2026-10-27) : le cron de versement groupé n'agit qu'en movik_batch.
+    await seedMovikBatchPayoutMode();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     setPaymentProviderForTesting(null);
     jest.restoreAllMocks();
+    await clearPayoutMode();
   });
 
   // ---------------------------------------------------------------------

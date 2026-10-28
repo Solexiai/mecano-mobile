@@ -14,6 +14,11 @@
 //     (estimation locale PRÉ-mission uniquement, voir Bloc K point 3).
 //   - Versements : `DriverPayoutInfo` (statut, montant, dates, période de
 //     rétention, échec/reversal reformulés sans exposer de code provider).
+//   - Virements Stripe (option A, 2026-10-27) : `DriverTransferInfo` — la
+//     part virée par Stripe Connect sur le compte du chauffeur à chaque
+//     encaissement, puis déposée sur son compte bancaire par Stripe. C'est
+//     le chemin de versement réel ; les `DriverPayoutInfo` (versements
+//     groupés Movi-K) ne s'affichent que s'il en existe.
 //
 // DÉCISION TECHNIQUE (Bloc K point 4) : enrichissement de
 // `provider_earnings_tab.dart` plutôt que création d'un écran dupliqué —
@@ -39,6 +44,7 @@ import '../../../../backend/backend_locator.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../finance/models/financial_snapshot.dart';
 import '../../../../finance/models/driver_payout_info.dart';
+import '../../../../finance/models/driver_transfer_info.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../finance/presentation/payout_display_status.dart';
 import '../../../../models/enums.dart';
@@ -68,66 +74,80 @@ class ProviderPayoutsSection extends StatelessWidget {
         driverId,
       ),
       builder: (context, snapshotsSnap) {
-        return StreamBuilder<List<DriverPayoutInfo>>(
-          stream: BackendLocator.financeRepository.watchPayoutsForDriver(
+        return StreamBuilder<List<DriverTransferInfo>>(
+          stream: BackendLocator.financeRepository.watchTransfersForDriver(
             driverId,
           ),
-          builder: (context, payoutsSnap) {
-            final loading =
-                snapshotsSnap.connectionState == ConnectionState.waiting ||
-                payoutsSnap.connectionState == ConnectionState.waiting;
-            final hasError = snapshotsSnap.hasError || payoutsSnap.hasError;
+          builder: (context, transfersSnap) {
+            return StreamBuilder<List<DriverPayoutInfo>>(
+              stream: BackendLocator.financeRepository.watchPayoutsForDriver(
+                driverId,
+              ),
+              builder: (context, payoutsSnap) {
+                final loading =
+                    snapshotsSnap.connectionState == ConnectionState.waiting ||
+                    transfersSnap.connectionState == ConnectionState.waiting ||
+                    payoutsSnap.connectionState == ConnectionState.waiting;
+                final hasError =
+                    snapshotsSnap.hasError ||
+                    transfersSnap.hasError ||
+                    payoutsSnap.hasError;
 
-            if (loading) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                if (loading) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          t('payout_loading'),
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      t('payout_loading'),
-                      style: const TextStyle(color: AppColors.textSecondary),
+                  );
+                }
+                if (hasError) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: AppColors.error,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            t('payout_error'),
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            }
-            if (hasError) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: AppColors.error,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        t('payout_error'),
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+                  );
+                }
 
-            final snapshots = snapshotsSnap.data ?? const <FinancialSnapshot>[];
-            final payouts = payoutsSnap.data ?? const <DriverPayoutInfo>[];
+                final snapshots = snapshotsSnap.data ?? const <FinancialSnapshot>[];
+                final payouts = payoutsSnap.data ?? const <DriverPayoutInfo>[];
+                final transfers =
+                    transfersSnap.data ?? const <DriverTransferInfo>[];
 
-            return ProviderPayoutsContent(
-              t: t,
-              snapshots: snapshots,
-              payouts: payouts,
-              locale: locale,
-              showMissions: showMissions,
+                return ProviderPayoutsContent(
+                  t: t,
+                  snapshots: snapshots,
+                  payouts: payouts,
+                  transfers: transfers,
+                  locale: locale,
+                  showMissions: showMissions,
+                );
+              },
             );
           },
         );
@@ -146,6 +166,9 @@ class ProviderPayoutsContent extends StatelessWidget {
   final String Function(String) t;
   final List<FinancialSnapshot> snapshots;
   final List<DriverPayoutInfo> payouts;
+
+  /// Virements Stripe Connect reçus à l'encaissement (option A).
+  final List<DriverTransferInfo> transfers;
   final String? locale;
   final bool showMissions;
   const ProviderPayoutsContent({
@@ -153,6 +176,7 @@ class ProviderPayoutsContent extends StatelessWidget {
     required this.t,
     required this.snapshots,
     required this.payouts,
+    this.transfers = const [],
     this.locale,
     this.showMissions = true,
   });
@@ -162,16 +186,29 @@ class ProviderPayoutsContent extends StatelessWidget {
     String money(int minor) => locale == null
         ? formatMinorAmount(minor)
         : formatMajorAmount(minor / 100, locale: locale);
+    // Les versements groupés Movi-K (chemin en veille, option A) ne
+    // s'affichent que s'il en existe pour ce chauffeur.
+    final showBatchPayouts = payouts.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _EarningsSummary(t: t, payouts: payouts, money: money),
+        _EarningsSummary(
+          t: t,
+          payouts: payouts,
+          transfers: transfers,
+          money: money,
+          showBatchPayouts: showBatchPayouts,
+        ),
         const SizedBox(height: 28),
         if (showMissions) ...[
           _MissionsSection(t: t, snapshots: snapshots),
           const SizedBox(height: 28),
         ],
-        _PayoutsListSection(t: t, payouts: payouts, money: money),
+        _TransfersListSection(t: t, transfers: transfers, money: money),
+        if (showBatchPayouts) ...[
+          const SizedBox(height: 28),
+          _PayoutsListSection(t: t, payouts: payouts, money: money),
+        ],
       ],
     );
   }
@@ -230,16 +267,25 @@ class _PayoutBuckets {
 class _EarningsSummary extends StatelessWidget {
   final String Function(String) t;
   final List<DriverPayoutInfo> payouts;
+  final List<DriverTransferInfo> transfers;
   final String Function(int minor) money;
+  final bool showBatchPayouts;
   const _EarningsSummary({
     required this.t,
     required this.payouts,
+    required this.transfers,
     required this.money,
+    required this.showBatchPayouts,
   });
 
   @override
   Widget build(BuildContext context) {
     final buckets = _PayoutBuckets.from(payouts);
+    // Somme brute des `netMinor` serveur (jamais recalculée ici).
+    var transferredMinor = 0;
+    for (final tr in transfers) {
+      transferredMinor += tr.netMinor;
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -248,33 +294,42 @@ class _EarningsSummary extends StatelessWidget {
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _SummaryCard(
-                label: t('payout_summary_available'),
-                value: money(buckets.availableMinor),
-                color: AppColors.info,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SummaryCard(
-                label: t('payout_summary_pending'),
-                value: money(buckets.pendingMinor),
-                color: AppColors.warning,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SummaryCard(
-                label: t('payout_summary_paid'),
-                value: money(buckets.paidMinor),
-                color: AppColors.success,
-              ),
-            ),
-          ],
+        _SummaryCard(
+          key: const ValueKey('payout-summary-transferred'),
+          label: t('payout_summary_transferred'),
+          value: money(transferredMinor),
+          color: AppColors.success,
         ),
+        if (showBatchPayouts) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _SummaryCard(
+                  label: t('payout_summary_available'),
+                  value: money(buckets.availableMinor),
+                  color: AppColors.info,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryCard(
+                  label: t('payout_summary_pending'),
+                  value: money(buckets.pendingMinor),
+                  color: AppColors.warning,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SummaryCard(
+                  label: t('payout_summary_paid'),
+                  value: money(buckets.paidMinor),
+                  color: AppColors.success,
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -285,6 +340,7 @@ class _SummaryCard extends StatelessWidget {
   final String value;
   final Color color;
   const _SummaryCard({
+    super.key,
     required this.label,
     required this.value,
     required this.color,
@@ -445,6 +501,143 @@ class _AmountRow extends StatelessWidget {
               color: bold ? AppColors.textPrimary : style.color,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Virements Stripe Connect (option A) : montant viré, renversements,
+/// date d'encaissement — lecture directe de `DriverTransferInfo`.
+class _TransfersListSection extends StatelessWidget {
+  final String Function(String) t;
+  final List<DriverTransferInfo> transfers;
+  final String Function(int minor) money;
+  const _TransfersListSection({
+    required this.t,
+    required this.transfers,
+    required this.money,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('payout_transfers_title'),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          t('payout_transfers_note'),
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+        if (transfers.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Text(
+              t('payout_transfers_empty'),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          )
+        else
+          for (final tr in transfers)
+            _TransferTile(t: t, transfer: tr, money: money),
+      ],
+    );
+  }
+}
+
+class _TransferTile extends StatelessWidget {
+  final String Function(String) t;
+  final DriverTransferInfo transfer;
+  final String Function(int minor) money;
+  const _TransferTile({
+    required this.t,
+    required this.transfer,
+    required this.money,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (transfer.status) {
+      DriverTransferStatus.transferred => AppColors.success,
+      DriverTransferStatus.partiallyReversed => AppColors.warning,
+      DriverTransferStatus.reversed => AppColors.error,
+    };
+    return Container(
+      key: ValueKey('payout-transfer-${transfer.paymentId}'),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                money(transfer.netMinor),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: color.withValues(alpha: 0.4)),
+                ),
+                child: Text(
+                  t(transfer.status.i18nKey),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.statusBadgeTextColor(
+                      color,
+                      Theme.of(context).brightness,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (transfer.capturedAt != null)
+            _DetailRow(
+              label: t('payout_transfer_captured_at'),
+              value: formatDisplayDate(
+                transfer.capturedAt!,
+                connector: t('datetime_connector_at'),
+              ),
+            ),
+          if (transfer.isMissionFee)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Text(
+                t('payout_transfer_fee_purpose'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+          if (transfer.reversedMinor > 0)
+            _DetailRow(
+              label: t('payout_transfer_reversed_amount'),
+              value: '- ${money(transfer.reversedMinor)}',
+            ),
         ],
       ),
     );

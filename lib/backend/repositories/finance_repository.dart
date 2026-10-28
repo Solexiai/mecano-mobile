@@ -17,6 +17,7 @@ import '../../finance/models/payment_info.dart';
 import '../../finance/models/refund_info.dart';
 import '../../finance/models/mission_financial_balance.dart';
 import '../../finance/models/driver_payout_info.dart';
+import '../../finance/models/driver_transfer_info.dart';
 import '../../finance/models/dispute_info.dart';
 import '../../finance/models/reconciliation_report.dart';
 import '../../finance/models/tax_configuration.dart';
@@ -73,6 +74,14 @@ abstract class FinanceRepository {
   /// `driver_payouts/{payoutId}` ne laisse lire que le propriétaire
   /// (`driver_id == uid()`) ou analyst+.
   Stream<List<DriverPayoutInfo>> watchPayoutsForDriver(String driverId);
+
+  /// Option A (2026-10-27) : virements Stripe Connect reçus par ce
+  /// chauffeur à l'encaissement de ses livraisons
+  /// (`driver_transfers/{paymentId}`, miroir écrit par le serveur), triés
+  /// du plus récent au plus ancien. Requête scopée
+  /// `.where('driver_id', isEqualTo: driverId)` ; la règle de sécurité ne
+  /// laisse lire que le propriétaire ou analyst+.
+  Stream<List<DriverTransferInfo>> watchTransfersForDriver(String driverId);
 
   /// `FinancialSnapshot` figés (offer/bonus/pourboire/net déjà calculés
   /// côté serveur à l'acceptation) pour toutes les missions de ce
@@ -236,6 +245,7 @@ abstract class FinanceRepository {
     required int defaultHoldPeriodHours,
     required int newDriverHoldPeriodHours,
     required int riskyDriverHoldPeriodHours,
+    PayoutMode? payoutMode,
     String? correlationId,
   });
 
@@ -304,6 +314,10 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
 
   @override
   Stream<List<DriverPayoutInfo>> watchPayoutsForDriver(String driverId) =>
+      Stream.value(const []);
+
+  @override
+  Stream<List<DriverTransferInfo>> watchTransfersForDriver(String driverId) =>
       Stream.value(const []);
 
   @override
@@ -444,6 +458,7 @@ class NotConfiguredFinanceRepository implements FinanceRepository {
     required int defaultHoldPeriodHours,
     required int newDriverHoldPeriodHours,
     required int riskyDriverHoldPeriodHours,
+    PayoutMode? payoutMode,
     String? correlationId,
   }) async => throw UnsupportedError(
     'Backend non configuré : adminUpdatePayoutPolicyConfiguration indisponible.',

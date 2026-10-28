@@ -258,6 +258,24 @@ export const PayoutStatuses = {
 } as const;
 export type PayoutStatus = (typeof PayoutStatuses)[keyof typeof PayoutStatuses];
 
+/**
+ * Mode de versement des chauffeurs (décision 2026-10-27, option A) :
+ *   - stripe_direct : les paiements sont des « destination charges » Stripe
+ *     Connect — la part du chauffeur (montant capturé moins
+ *     application_fee) est virée sur son compte connecté AU MOMENT DE LA
+ *     CAPTURE, puis Stripe la dépose sur son compte bancaire selon le
+ *     calendrier du compte Express. Le chemin de versement groupé Movi-K
+ *     (driver_payouts) est en veille : il ne crée rien et ne soumet rien.
+ *   - movik_batch : chemin historique (calculateDriverPayout +
+ *     processScheduledDriverPayouts), réservé aux paiements SANS compte
+ *     connecté. Jamais les deux à la fois pour un même paiement.
+ */
+export const PayoutModes = {
+  STRIPE_DIRECT: "stripe_direct",
+  MOVIK_BATCH: "movik_batch",
+} as const;
+export type PayoutMode = (typeof PayoutModes)[keyof typeof PayoutModes];
+
 export const DisputeStatuses = {
   OPENED: "opened",
   UNDER_REVIEW: "under_review",
@@ -668,8 +686,39 @@ export interface PayoutPolicyConfigDoc {
   default_hold_period_hours: number;
   new_driver_hold_period_hours: number;
   risky_driver_hold_period_hours: number;
+  /** Absent = stripe_direct (voir PayoutModes). */
+  payout_mode?: PayoutMode;
   updated_at: admin_Timestamp;
   updated_by_user_id: string;
+}
+
+/**
+ * driver_transfers/{paymentId} — miroir LECTURE SEULE, pour le chauffeur,
+ * de la part qui lui a été virée par Stripe Connect à la capture d'un
+ * paiement (mode stripe_direct). Écrit uniquement par le déclencheur
+ * onPaymentWrittenMirrorDriverTransfer à partir de payments/{paymentId} ;
+ * jamais une source de vérité (le PaymentDoc et Stripe font foi).
+ */
+export interface DriverTransferDoc {
+  payment_id: string;
+  mission_id: string;
+  driver_id: string;
+  connected_account_id: string;
+  currency: string;
+  /** Montant viré au compte connecté = amount_captured - application_fee. */
+  amount_minor: number;
+  /** Part renversée par les remboursements (reverse_transfer), estimation
+   *  proportionnelle : Stripe fait foi. */
+  reversed_minor: number;
+  /** amount_minor - reversed_minor. */
+  net_minor: number;
+  status: "transferred" | "partially_reversed" | "reversed";
+  /** Frais de mission (annulation tardive, déplacement inutile) plutôt
+   *  qu'une livraison. */
+  capture_purpose: "mission_fee" | null;
+  captured_at: admin_Timestamp | null;
+  stripe_environment: StripeEnvironment | null;
+  updated_at: admin_Timestamp;
 }
 
 /**
@@ -844,7 +893,11 @@ export interface MissionFinancialBalanceDoc {
   platform_commission_minor: number;
   customer_service_fee_minor: number;
   driver_earned_minor: number; // gain net chauffeur avant versement (hors tip/bonus)
-  driver_paid_minor: number; // somme des driver_payouts PAID incluant cette mission
+  driver_paid_minor: number; // driver_payouts PAID incluant cette mission + part virée par Stripe Connect à la capture
+  // Part virée au compte connecté du chauffeur à la capture (destination
+  // charge, mode stripe_direct) : amount_captured - application_fee, nette
+  // des renversements estimés. Incluse dans driver_paid_minor.
+  driver_transferred_minor?: number;
   driver_tip_minor: number; // 100% chauffeur — jamais dans platform_commission_minor
   driver_bonus_minor: number;
   adjustments_minor: number; // somme des ajustements manuels (createLedgerEntry compensatoires)

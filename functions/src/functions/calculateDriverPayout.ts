@@ -32,7 +32,8 @@
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { requireAdminOrAbove, requireSignedIn } from "../lib/auth";
-import { invalidArgument } from "../lib/errors";
+import { failedPrecondition, invalidArgument } from "../lib/errors";
+import { connectTransferShare, readPayoutMode } from "../lib/payoutMode";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { buildIdempotencyKey } from "../lib/idempotency";
 import { toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
@@ -49,6 +50,9 @@ import {
   LedgerEntryStatuses,
   LedgerEntryTypes,
   LedgerParties,
+  PaymentDoc,
+  PaymentStatuses,
+  PayoutModes,
   PayoutStatus,
   PayoutStatuses,
 } from "../lib/types";
@@ -83,6 +87,16 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(
   const { driverId } = request.data;
   if (!driverId) throw invalidArgument("driverId est requis.");
 
+  // Option A (2026-10-27) : en mode stripe_direct, la part du chauffeur est
+  // virée par Stripe Connect à la capture — ce chemin groupé est en veille.
+  if ((await readPayoutMode()) === PayoutModes.STRIPE_DIRECT) {
+    throw failedPrecondition(
+      "Versements effectués directement par Stripe Connect à la capture (mode stripe_direct) : " +
+        "aucun versement groupé à créer. Passez en mode movik_batch dans la politique de versement " +
+        "pour réactiver ce chemin."
+    );
+  }
+
   // 🔒 BLOC I (observabilité) — point d'entrée admin de la création d'un
   // versement (distinct de sa SOUMISSION au fournisseur, déjà instrumentée
   // dans submitDriverPayout()). Aucun correlationId entrant possible ici
@@ -95,7 +109,23 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(
     .where("driver_id", "==", driverId)
     .where("status", "==", "confirmed")
     .get();
-  const eligibleSnapshots = snapshotsQuery.docs.filter((d) => !d.data().included_in_payout_id);
+  const candidateSnapshots = snapshotsQuery.docs.filter((d) => !d.data().included_in_payout_id);
+  // Un snapshot n'est versable que si le client a réellement été débité
+  // (paiement actif de la mission CAPTURÉ) et que Stripe n'a pas déjà viré
+  // la part du chauffeur à la capture (destination charge : compte connecté
+  // sur le paiement). Les autres restent en attente, jamais exclus pour de bon.
+  const eligibleSnapshots: typeof candidateSnapshots = [];
+  for (const snap of candidateSnapshots) {
+    const missionId = snap.data().mission_id as string | undefined;
+    if (!missionId) continue;
+    const mission = (await db.collection("delivery_requests").doc(missionId).get()).data();
+    const paymentId = mission?.active_payment_id as string | undefined;
+    if (!paymentId) continue;
+    const payment = (await db.collection("payments").doc(paymentId).get()).data() as PaymentDoc | undefined;
+    if (!payment || payment.status !== PaymentStatuses.CAPTURED) continue;
+    if (connectTransferShare(payment)) continue;
+    eligibleSnapshots.push(snap);
+  }
   if (eligibleSnapshots.length === 0) {
     return { success: true, payoutId: null, amountMinor: 0, message: "Aucun snapshot éligible." };
   }

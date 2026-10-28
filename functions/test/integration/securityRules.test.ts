@@ -447,6 +447,58 @@ describe("Security Rules — payments/{paymentId} : lecture propriétaire unique
 });
 
 // -----------------------------------------------------------------------
+// driver_transfers/{paymentId} — option A (2026-10-27) : miroir de la part
+// virée par Stripe Connect, lecture propriétaire (chauffeur) / analyst+,
+// jamais d'écriture cliente.
+// -----------------------------------------------------------------------
+describe("Security Rules — driver_transfers/{paymentId} : lecture propriétaire, écriture interdite (option A)", () => {
+  const seed = async (id: string) => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `driver_transfers/${id}`), {
+        payment_id: id,
+        mission_id: "mission_t_001",
+        driver_id: "driver_t_001",
+        amount_minor: 8500,
+        reversed_minor: 0,
+        net_minor: 8500,
+        status: "transferred",
+      });
+    });
+  };
+
+  it("le chauffeur propriétaire lit son virement, y compris par requête driver_id", async () => {
+    await seed("transfer_t_001");
+    const owner = testEnv.authenticatedContext("driver_t_001", { role: "driver" });
+    await assertSucceeds(getDoc(doc(owner.firestore(), "driver_transfers/transfer_t_001")));
+    await assertSucceeds(
+      getDocs(query(collection(owner.firestore(), "driver_transfers"), where("driver_id", "==", "driver_t_001")))
+    );
+  });
+
+  it("un autre chauffeur, un client ou un anonyme ne lit pas ce virement ; un analyst oui", async () => {
+    await seed("transfer_t_002");
+    const stranger = testEnv.authenticatedContext("driver_t_999", { role: "driver" });
+    await assertFails(getDoc(doc(stranger.firestore(), "driver_transfers/transfer_t_002")));
+    const customer = testEnv.authenticatedContext("customer_t_001", { role: "customer" });
+    await assertFails(getDoc(doc(customer.firestore(), "driver_transfers/transfer_t_002")));
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "driver_transfers/transfer_t_002")));
+    const analyst = testEnv.authenticatedContext("analyst_t_001", { role: "analyst" });
+    await assertSucceeds(getDoc(doc(analyst.firestore(), "driver_transfers/transfer_t_002")));
+  });
+
+  it("aucune écriture cliente, même par le propriétaire ou un super_admin", async () => {
+    await seed("transfer_t_003");
+    const owner = testEnv.authenticatedContext("driver_t_001", { role: "driver" });
+    await assertFails(updateDoc(doc(owner.firestore(), "driver_transfers/transfer_t_003"), { net_minor: 99999 }));
+    const superAdmin = testEnv.authenticatedContext("super_t_001", { role: "super_admin" });
+    await assertFails(deleteDoc(doc(superAdmin.firestore(), "driver_transfers/transfer_t_003")));
+    await assertFails(
+      setDoc(doc(owner.firestore(), "driver_transfers/transfer_t_new"), { driver_id: "driver_t_001", net_minor: 1 })
+    );
+  });
+});
+
+// -----------------------------------------------------------------------
 // driver_payouts/{payoutId} — lecture propriétaire (chauffeur) uniquement
 // (Bloc K — UI financière chauffeur, Phase 6).
 // -----------------------------------------------------------------------
