@@ -17,6 +17,12 @@ export interface AuthContext {
   role: PlatformRole | undefined;
   roles: PlatformRole[];
   email?: string;
+  /**
+   * 🔒 SEC-02 — compte de test interne, attribué UNIQUEMENT par un
+   * super_admin via `setUserRole({ internalTester: true })` (custom claim
+   * `internal_tester`). Jamais déduit d'un courriel.
+   */
+  internalTester: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +38,7 @@ export function requireSignedIn(request: CallableRequest<any>): AuthContext {
     roles,
     role,
     email: typeof token.email === "string" ? token.email.toLowerCase() : undefined,
+    internalTester: token[INTERNAL_TESTER_CLAIM] === true,
   };
 }
 
@@ -63,12 +70,20 @@ export function isSuperAdmin(ctx: AuthContext): boolean {
   return ctx.roles.includes(PlatformRoles.SUPER_ADMIN);
 }
 
-const INTERNAL_DEMO_CUSTOMER_EMAILS = new Set([
-  "demo.client.160926@movi-k.com",
-]);
+/**
+ * 🔒 SEC-02 (rapport pré-lancement 2026-10-27) — l'ancien privilège par
+ * COURRIEL EN DUR (`demo.client.160926@movi-k.com`) est retiré : si ce
+ * compte n'existait pas en production, n'importe qui pouvait le créer par
+ * l'inscription ouverte et obtenir des missions sans paiement, hors
+ * interrupteurs et hors pause. Le compte de test interne est désormais un
+ * custom claim Firebase Auth (`internal_tester: true`) que seul un
+ * super_admin peut poser via `setUserRole`. Un super_admin connecté reste
+ * lui-même un testeur interne (comportement inchangé).
+ */
+export const INTERNAL_TESTER_CLAIM = "internal_tester";
 
-export function isInternalDemoCustomer(ctx: AuthContext): boolean {
-  return ctx.email !== undefined && INTERNAL_DEMO_CUSTOMER_EMAILS.has(ctx.email);
+export function isInternalTester(ctx: AuthContext): boolean {
+  return ctx.internalTester === true || isSuperAdmin(ctx);
 }
 
 export function requireAnalystOrAbove(ctx: AuthContext): void {

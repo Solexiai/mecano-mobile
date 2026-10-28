@@ -112,7 +112,7 @@ void main() {
     });
 
     test(
-      'document avec status inconnu/corrompu -> repli sur draft (jamais une exception)',
+      'document avec status inconnu/corrompu -> MissionStatus.unknown (jamais une exception, jamais un faux brouillon)',
       () {
         final rawDoc = <String, dynamic>{
           'customer_id': 'cust_002',
@@ -126,9 +126,10 @@ void main() {
 
         final mission = DeliveryMission.fromJson('mission_2', rawDoc);
 
-        // `fromFirestoreValue` a un `orElse` défensif -> jamais d'exception,
-        // repli sur une valeur par défaut connue.
-        expect(mission.status, MissionStatus.draft);
+        // `fromFirestoreValue` a un `orElse` défensif -> jamais d'exception.
+        // TECH-04 (2026-10-27) : une valeur inconnue devient `unknown`,
+        // jamais `draft`, pour ne pas maquiller un nouveau statut serveur.
+        expect(mission.status, MissionStatus.unknown);
         expect(mission.requiredVehicleCategory, isNotNull);
         // `created_at` absent -> repli sur `DateTime.now()`, jamais null et
         // jamais une exception de parsing.

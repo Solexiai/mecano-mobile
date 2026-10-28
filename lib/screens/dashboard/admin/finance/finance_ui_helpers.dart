@@ -270,6 +270,22 @@ String ledgerTypeKey(LedgerEntryType t) {
       return 'ledger_type_customer_adjustment';
     case LedgerEntryType.driverPayout:
       return 'ledger_type_driver_payout';
+    case LedgerEntryType.customerAuthorization:
+      return 'ledger_type_customer_authorization';
+    case LedgerEntryType.chargebackReversal:
+      return 'ledger_type_chargeback_reversal';
+    case LedgerEntryType.chargebackFee:
+      return 'ledger_type_chargeback_fee';
+    case LedgerEntryType.chargebackWon:
+      return 'ledger_type_chargeback_won';
+    case LedgerEntryType.chargebackLost:
+      return 'ledger_type_chargeback_lost';
+    case LedgerEntryType.driverPayoutReversal:
+      return 'ledger_type_driver_payout_reversal';
+    case LedgerEntryType.promotionCost:
+      return 'ledger_type_promotion_cost';
+    case LedgerEntryType.unknown:
+      return 'ledger_type_unknown';
   }
 }
 

@@ -336,6 +336,17 @@ enum MissionStatus {
   cancelled,
   disputed,
   refunded,
+
+  /// Serveur : l'autorisation de paiement a échoué à l'acceptation (carte
+  /// refusée). Le client doit corriger sa carte puis refaire une demande.
+  /// TECH-04 (2026-10-27) : ce statut existait côté serveur mais pas ici et
+  /// s'affichait « Brouillon ».
+  paymentFailed,
+
+  /// TECH-04 : valeur reçue du serveur inconnue de cette version de l'app.
+  /// Jamais écrite, jamais envoyée ; sert uniquement à ne PAS maquiller un
+  /// nouveau statut serveur en « Brouillon ».
+  unknown,
 }
 
 extension MissionStatusX on MissionStatus {
@@ -344,11 +355,16 @@ extension MissionStatusX on MissionStatus {
   /// `functions/src/lib/types.ts`.
   String get firestoreValue => _camelToSnake(name);
 
-  static MissionStatus fromFirestoreValue(String? value) =>
-      MissionStatus.values.firstWhere(
-        (s) => s.firestoreValue == value,
-        orElse: () => MissionStatus.draft,
-      );
+  /// Une valeur absente est un brouillon (document encore sans statut) ;
+  /// une valeur présente mais inconnue devient [MissionStatus.unknown]
+  /// plutôt qu'un faux « Brouillon » (TECH-04).
+  static MissionStatus fromFirestoreValue(String? value) {
+    if (value == null || value.isEmpty) return MissionStatus.draft;
+    return MissionStatus.values.firstWhere(
+      (s) => s != MissionStatus.unknown && s.firestoreValue == value,
+      orElse: () => MissionStatus.unknown,
+    );
+  }
 
   String get key => 'mission_status_${name.toLowerCase()}';
 
@@ -404,6 +420,7 @@ enum SurchargeMode { fixedAmount, percentage }
 // =====================================================================
 
 enum LedgerEntryType {
+  customerAuthorization,
   customerCharge,
   customerServiceFee,
   platformCommission,
@@ -417,18 +434,31 @@ enum LedgerEntryType {
   refund,
   partialRefund,
   chargeback,
+  chargebackReversal,
+  chargebackFee,
+  chargebackWon,
+  chargebackLost,
   driverAdjustment,
   customerAdjustment,
   driverPayout,
+  driverPayoutReversal,
+  promotionCost,
+
+  /// TECH-04 : type reçu du serveur inconnu de cette version de l'app.
+  /// Jamais écrit ; évite d'afficher un vrai mouvement comme « Ajustement ».
+  unknown,
 }
 
 extension LedgerEntryTypeX on LedgerEntryType {
   String get firestoreValue => _camelToSnake(name);
 
+  /// Aligné sur `LedgerEntryTypes` (functions/src/lib/types.ts). Une valeur
+  /// inconnue devient [LedgerEntryType.unknown] plutôt qu'un faux
+  /// « Ajustement chauffeur » (TECH-04, 2026-10-27).
   static LedgerEntryType fromFirestoreValue(String? value) =>
       LedgerEntryType.values.firstWhere(
-        (t) => t.firestoreValue == value,
-        orElse: () => LedgerEntryType.driverAdjustment,
+        (t) => t != LedgerEntryType.unknown && t.firestoreValue == value,
+        orElse: () => LedgerEntryType.unknown,
       );
 }
 

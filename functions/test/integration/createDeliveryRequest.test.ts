@@ -43,13 +43,14 @@ function buildRequest(
   customerId: string,
   data: CreateDeliveryRequestRequest,
   roles: string[] = [],
-  email?: string
+  email?: string,
+  extraClaims: Record<string, unknown> = {}
 ): CallableRequest<CreateDeliveryRequestRequest> {
   return {
     data,
     auth: {
       uid: customerId,
-      token: { roles, email } as unknown as DecodedIdToken,
+      token: { roles, email, ...extraClaims } as unknown as DecodedIdToken,
       rawToken: "fake-raw-token-for-emulator-test",
     },
     rawRequest: {} as Request,
@@ -386,7 +387,10 @@ describe("createDeliveryRequest — démonstration interne autorisée", () => {
     await cleanupPaymentProfile(CUSTOMER_ID);
   });
 
-  it("crée une mission internal_test sans carte pour le compte client démo autorisé", async () => {
+  // 🔒 SEC-02 (2026-10-27) — le compte de test est reconnu par le custom
+  // claim `internal_tester` (posé par setUserRole), plus jamais par un
+  // courriel en dur.
+  it("crée une mission internal_test sans carte pour un compte porteur du claim internal_tester", async () => {
     await seedRuntimeFlags({
       accept_new_delivery_requests: false,
       allow_driver_acceptance: false,
@@ -399,7 +403,8 @@ describe("createDeliveryRequest — démonstration interne autorisée", () => {
         CUSTOMER_ID,
         { quoteId: QUOTE_ID, ...baseInput },
         [],
-        "demo.client.160926@movi-k.com"
+        "testeur@movi-k.com",
+        { internal_tester: true }
       )
     );
     createdMissionIds.push(result.missionId);
@@ -410,6 +415,26 @@ describe("createDeliveryRequest — démonstration interne autorisée", () => {
     expect(result.internalTest).toBe(true);
     expect(mission.assignment_mode).toBe("internal_test");
     expect(mission.active_financial_snapshot_id).toBeNull();
+  });
+
+  it("SEC-02 : l'ancien courriel démo en dur ne confère plus aucun privilège", async () => {
+    await seedRuntimeFlags({
+      accept_new_delivery_requests: false,
+      allow_driver_acceptance: false,
+      payments_enabled: false,
+    });
+    await seedQuote();
+
+    await expect(
+      createDeliveryRequest.run(
+        buildRequest(
+          CUSTOMER_ID,
+          { quoteId: QUOTE_ID, ...baseInput },
+          [],
+          "demo.client.160926@movi-k.com"
+        )
+      )
+    ).rejects.toThrow();
   });
 
   it("crée une mission internal_test sans carte pour un super_admin en superlogin", async () => {

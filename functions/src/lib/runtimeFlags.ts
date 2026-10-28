@@ -117,16 +117,17 @@ export const RUNTIME_FLAG_FAIL_SAFE_DEFAULTS: Record<RuntimeFlagKey, boolean> = 
 /**
  * Valeurs de BOOTSTRAP (X-13) — utilisées UNIQUEMENT à la création du
  * document initial s'il n'existe pas encore (jamais pour écraser un document
- * existant, même partiellement). Toutes à `true` : au premier déploiement,
- * Movi-K doit fonctionner normalement (aucune opération bloquée par défaut).
- * Un admin doit ensuite désactiver EXPLICITEMENT un flag via
- * `updateRuntimeFlags` pour couper une opération — jamais l'inverse.
+ * existant, même partiellement).
+ *
+ * 🔒 PAY-09 (rapport pré-lancement 2026-10-27) : toutes à `false`, comme
+ * les fail-safe defaults. Avant, un document absent était créé avec les 4
+ * flags à `true` au premier appel `updateRuntimeFlags`, paiements et
+ * versements compris : un admin qui ne voulait ouvrir qu'UN interrupteur
+ * ouvrait tout. Désormais, absent = tout fermé, et chaque opération doit
+ * être ouverte EXPLICITEMENT, une par une (procédure GO/NO-GO).
  */
 export const RUNTIME_FLAG_BOOTSTRAP_DEFAULTS: Record<RuntimeFlagKey, boolean> = {
-  [RuntimeFlagKeys.ACCEPT_NEW_DELIVERY_REQUESTS]: true,
-  [RuntimeFlagKeys.ALLOW_DRIVER_ACCEPTANCE]: true,
-  [RuntimeFlagKeys.PAYMENTS_ENABLED]: true,
-  [RuntimeFlagKeys.DRIVER_PAYOUTS_ENABLED]: true,
+  ...RUNTIME_FLAG_FAIL_SAFE_DEFAULTS,
 };
 
 export const RUNTIME_FLAGS_COLLECTION = "system_config";

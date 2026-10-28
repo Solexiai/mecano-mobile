@@ -15,7 +15,7 @@ import { allowedVehicles, driverJudgementSnapshot } from "../lib/quoteBeforeAssi
 import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { getSpecialConditions, pauseMessage } from "../lib/specialConditions";
-import { isInternalDemoCustomer, isSuperAdmin, requireSignedIn } from "../lib/auth";
+import { isInternalTester, requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
@@ -64,9 +64,9 @@ export interface CreateDeliveryRequestRequest {
 
 export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
   const ctx = requireSignedIn(request);
-  // Seuls les superadministrateurs en superlogin et le compte client de
-  // démonstration explicitement autorisé créent une mission interne sans
-  // opération Stripe. Les clients ordinaires restent protégés.
+  // Seuls les super_admin et les comptes porteurs du claim
+  // `internal_tester` (SEC-02, posé par setUserRole) créent une mission
+  // interne sans opération Stripe. Les clients ordinaires restent protégés.
   const retryId = request.data?.quoteId;
   if (typeof retryId === 'string' && retryId && !retryId.includes('/')) {
     const prior = (await db.doc(`delivery_quotes/${retryId}`).get()).data();
@@ -75,7 +75,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       if (existing?.customer_id === ctx.uid && existing.active_quote_id === retryId) return { missionId: prior.mission_id, internalTest: existing.internal_test_authorized === true };
     }
   }
-  const isInternalTest = isSuperAdmin(ctx) || isInternalDemoCustomer(ctx);
+  const isInternalTest = isInternalTester(ctx);
 
   // 🔒 Phase 7, Bloc X (X-6) — kill switch. OFF => aucune NOUVELLE mission
   // n'est créée. N'affecte jamais une mission déjà existante (ce contrôle

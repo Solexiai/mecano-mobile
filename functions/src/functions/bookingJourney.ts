@@ -3,7 +3,7 @@ import { onCall } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { normalizeLoad } from '../lib/booking';
 import { admin, db } from '../lib/admin';
-import { requireSignedIn, isSuperAdmin, isInternalDemoCustomer } from '../lib/auth';
+import { requireSignedIn, isInternalTester } from '../lib/auth';
 import { resolveLockedQuote } from '../lib/quoteIntegrity';
 import { permissionDenied, failedPrecondition } from '../lib/errors';
 import { readDriverOfferCompensation } from '../lib/driverOfferCompensation';
@@ -14,7 +14,7 @@ import { findCompatibleVehicle, reviewBooking } from '../lib/bookingServer';
 export const getBookingConfiguration = onCall(async request => {
   const ctx = request.auth ? requireSignedIn(request) : null;
   const configuration = await getPublicBookingConfiguration(ctx?.uid);
-  return { ...configuration, internal_test_request: !!ctx && (isSuperAdmin(ctx) || isInternalDemoCustomer(ctx)) };
+  return { ...configuration, internal_test_request: !!ctx && isInternalTester(ctx) };
 });
 export const reviewDeliveryLoad = onCall(async request => {
   const { uid } = requireSignedIn(request);

@@ -685,6 +685,16 @@ class AppStrings {
       'en': 'Refunded',
       'es': 'Reembolsada',
     },
+    'mission_status_paymentfailed': {
+      'fr': 'Paiement refusé',
+      'en': 'Payment declined',
+      'es': 'Pago rechazado',
+    },
+    'mission_status_unknown': {
+      'fr': 'Statut inconnu',
+      'en': 'Unknown status',
+      'es': 'Estado desconocido',
+    },
 
     // ---------- Delivery flow (Firebase réel — Phase 4) ----------
     'delivery_login_required': {
@@ -5029,6 +5039,47 @@ class AppStrings {
       'fr': 'Ajustement client',
       'en': 'Customer adjustment',
       'es': 'Ajuste del cliente',
+    },
+    // ---- Ledger : types ajoutés le 2026-10-27 (TECH-04, alignement serveur) ----
+    'ledger_type_customer_authorization': {
+      'fr': 'Autorisation de la carte',
+      'en': 'Card authorization',
+      'es': 'Autorización de la tarjeta',
+    },
+    'ledger_type_chargeback_reversal': {
+      'fr': 'Annulation de rétrofacturation',
+      'en': 'Chargeback reversal',
+      'es': 'Reversión de contracargo',
+    },
+    'ledger_type_chargeback_fee': {
+      'fr': 'Frais de rétrofacturation',
+      'en': 'Chargeback fee',
+      'es': 'Tarifa de contracargo',
+    },
+    'ledger_type_chargeback_won': {
+      'fr': 'Rétrofacturation gagnée',
+      'en': 'Chargeback won',
+      'es': 'Contracargo ganado',
+    },
+    'ledger_type_chargeback_lost': {
+      'fr': 'Rétrofacturation perdue',
+      'en': 'Chargeback lost',
+      'es': 'Contracargo perdido',
+    },
+    'ledger_type_driver_payout_reversal': {
+      'fr': 'Annulation de versement',
+      'en': 'Payout reversal',
+      'es': 'Reversión de pago',
+    },
+    'ledger_type_promotion_cost': {
+      'fr': 'Coût de promotion',
+      'en': 'Promotion cost',
+      'es': 'Costo de promoción',
+    },
+    'ledger_type_unknown': {
+      'fr': 'Type inconnu',
+      'en': 'Unknown type',
+      'es': 'Tipo desconocido',
     },
 
     'admin_ledger_party_customer': {

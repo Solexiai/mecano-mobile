@@ -167,6 +167,18 @@ String customerStatusLabel(DeliveryMission m, String locale) =>
         'Problema informado',
       ),
       MissionStatus.refunded => _tr(locale, 'Remboursée', 'Refunded', 'Reembolsada'),
+      MissionStatus.paymentFailed => _tr(
+        locale,
+        'Paiement refusé',
+        'Payment declined',
+        'Pago rechazado',
+      ),
+      MissionStatus.unknown => _tr(
+        locale,
+        'Statut inconnu',
+        'Unknown status',
+        'Estado desconocido',
+      ),
       _ => _tr(
         locale,
         'On cherche un chauffeur',
@@ -209,7 +221,8 @@ DateTime? customerEstimatedArrival(DeliveryMission m, DateTime now) {
   MissionStatus.completed ||
   MissionStatus.refunded => (const Color(0xFFE3F2E8), const Color(0xFF1F6B3A)),
   MissionStatus.cancelled ||
-  MissionStatus.disputed => (const Color(0xFFFBE7E5), const Color(0xFFA33A2F)),
+  MissionStatus.disputed ||
+  MissionStatus.paymentFailed => (const Color(0xFFFBE7E5), const Color(0xFFA33A2F)),
   MissionStatus.searchingDriver ||
   MissionStatus.offered => (const Color(0xFFFFF4E8), const Color(0xFF8A4307)),
   _ => (const Color(0xFFE6EDFA), const Color(0xFF0F2A5C)),

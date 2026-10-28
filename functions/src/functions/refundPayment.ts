@@ -1,5 +1,12 @@
 // -----------------------------------------------------------------------------
-// refundPayment — Cloud Function callable (customer, admin, super_admin).
+// refundPayment — Cloud Function callable (admin, super_admin UNIQUEMENT).
+//
+// 🔒 SEC-01 (rapport pré-lancement 2026-10-27) : le remboursement en
+// libre-service par le client a été RETIRÉ. Un client pouvait appeler cette
+// callable directement (SDK + jeton) et se rembourser intégralement après
+// livraison et après versement du chauffeur. Désormais, seul un admin ou un
+// super_admin peut déclencher un remboursement ; un client passe par une
+// demande traitée par l'administration (support / onglet Remboursements).
 //
 // PHASE 6 (directive 38 points, points 1 à 6) : remboursement réel, complet
 // ou partiel (y compris plusieurs remboursements partiels successifs dans
@@ -12,8 +19,7 @@
 // `refundPayment()` de `payment/paymentOrchestration.ts` (schéma en 3 temps
 // déjà validé pour createAndAuthorizeMissionPayment/capturePayment/
 // submitDriverPayout). Cette Cloud Function callable se limite à :
-//   1. authentifier/autoriser l'appelant (customer propriétaire du paiement,
-//      OU admin/super_admin pour un remboursement administratif),
+//   1. authentifier/autoriser l'appelant (admin/super_admin uniquement),
 //   2. valider les entrées,
 //   3. construire une `requestKey` déterministe pour la déduplication
 //      client (retry réseau du même clic "rembourser" ne crée jamais deux
@@ -25,8 +31,8 @@
 
 import { onCall } from "firebase-functions/v2/https";
 import { db } from "../lib/admin";
-import { requireSignedIn, isAdminOrAbove } from "../lib/auth";
-import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
+import { requireSignedIn, requireAdminOrAbove } from "../lib/auth";
+import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLog } from "../lib/audit";
 import { PaymentDoc, RefundReason, RefundReasons } from "../lib/types";
 import { refundPayment as refundPaymentOrchestration } from "../payment/paymentOrchestration";
@@ -68,6 +74,9 @@ export const refundPayment = onCall<RefundPaymentRequest>(
   { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async (request) => {
   const ctx = requireSignedIn(request);
+  // 🔒 SEC-01 — refus AVANT toute lecture Firestore : un client (ou un
+  // analyste) ne doit même pas pouvoir sonder l'existence d'un paiement.
+  requireAdminOrAbove(ctx);
   const { paymentId, reason, clientRequestId } = request.data;
   const amountMinorInput = request.data.amountMinor;
 
@@ -89,10 +98,9 @@ export const refundPayment = onCall<RefundPaymentRequest>(
   if (!paySnap.exists) throw notFound(`payments/${paymentId} introuvable.`);
   const payment = paySnap.data() as PaymentDoc;
 
-  const isAdminInitiated = isAdminOrAbove(ctx);
-  if (!isAdminInitiated && payment.customer_id !== ctx.uid) {
-    throw permissionDenied("Seul le client de ce paiement (ou un administrateur) peut demander un remboursement.");
-  }
+  // Toujours vrai après requireAdminOrAbove ; conservé pour l'audit et
+  // l'orchestration (champ `isAdminInitiated` des RefundDoc).
+  const isAdminInitiated = true;
 
   // Remboursement total du solde restant si amountMinor omis/0 : calculé
   // ICI pour la requestKey déterministe uniquement — la validation
@@ -123,7 +131,7 @@ export const refundPayment = onCall<RefundPaymentRequest>(
 
   await writeAuditLog({
     actorUserId: ctx.uid,
-    actorRole: ctx.role ?? (isAdminInitiated ? "admin" : "customer"),
+    actorRole: ctx.role ?? "admin",
     action: "refund_requested",
     sourceFunction: "refundPayment",
     targetId: paymentId,
@@ -141,7 +149,7 @@ export const refundPayment = onCall<RefundPaymentRequest>(
     amountMinor,
     reason,
     initiatedByUserId: ctx.uid,
-    initiatedByRole: ctx.role ?? (isAdminInitiated ? "admin" : "customer"),
+    initiatedByRole: ctx.role ?? "admin",
     isAdminInitiated,
     requestKey,
     correlationId,
@@ -149,7 +157,7 @@ export const refundPayment = onCall<RefundPaymentRequest>(
 
   await writeAuditLog({
     actorUserId: ctx.uid,
-    actorRole: ctx.role ?? (isAdminInitiated ? "admin" : "customer"),
+    actorRole: ctx.role ?? "admin",
     action: outcome.success ? "refund_succeeded" : "refund_failed",
     sourceFunction: "refundPayment",
     targetId: paymentId,

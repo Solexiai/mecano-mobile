@@ -251,9 +251,11 @@ class CustomerTrackingScreen extends StatelessWidget {
                   !hasDriver) {
                 message = t('tracking_no_driver_assigned');
               } else if (mission.status == MissionStatus.draft ||
+                  mission.status == MissionStatus.unknown ||
                   mission.status.isOpenForAcceptance) {
-                // Unknown raw statuses currently map to draft in the model.
-                // Do not infer an active search or a confirmed assignment.
+                // A missing status maps to draft and an unsupported raw
+                // status to unknown (SEC/TECH-04). Do not infer an active
+                // search or a confirmed assignment from either.
                 message = t('tracking_status_unavailable');
               } else {
                 message = t(mission.status.key);

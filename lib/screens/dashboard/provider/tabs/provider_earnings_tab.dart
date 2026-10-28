@@ -343,6 +343,12 @@ class _LedgerTile extends StatelessWidget {
         return 'ledger_type_partial_refund';
       case LedgerEntryType.chargeback:
         return 'ledger_type_chargeback';
+      case LedgerEntryType.driverPayoutReversal:
+        return 'ledger_type_driver_payout_reversal';
+      case LedgerEntryType.promotionCost:
+        return 'ledger_type_promotion_cost';
+      case LedgerEntryType.unknown:
+        return 'ledger_type_unknown';
       default:
         return 'ledger_type_driver_adjustment';
     }
