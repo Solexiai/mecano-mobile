@@ -8,6 +8,8 @@ import { invalidArgument, permissionDenied, failedPrecondition, notFound } from 
 import { readSchedulingPolicy, confirmedSlot, prepareReservation, terminalScheduleStatuses, missionRequestedAt } from '../lib/driverScheduling';
 import { dispatchScheduledMission } from '../lib/scheduledDispatch';
 import { writeAuditLogInTransaction } from '../lib/audit';
+import { dispatchMission, MAX_DISPATCH_ROUNDS, NO_DRIVER_AVAILABLE } from './dispatchMissionToDrivers';
+import type { DeliveryMissionDoc } from '../lib/types';
 function id(v: unknown): string {
     if (typeof v !== 'string' || !v || v.includes('/') || v.length > 200)
         throw invalidArgument('Identifiant invalide.');
@@ -103,15 +105,33 @@ export async function reconcileMissionSchedule(missionId: string): Promise<void>
     });
 }
 export const onMissionScheduleChanged = onDocumentWritten('delivery_requests/{missionId}', event => reconcileMissionSchedule(event.params.missionId));
+/**
+ * Balayage par minute des demandes ouvertes (`offered` / `searching_driver`).
+ *
+ * DISP-01 (2026-10-28) : fonctionne AVEC ou SANS `system_config/driver_scheduling`.
+ * Avant, sans politique de planification (état de la prod), ce balayage
+ * sortait immédiatement : les offres de 45 s n'étaient jamais expirées, la
+ * mission restait `offered` pour toujours, le client n'était jamais informé
+ * et « Relancer la recherche » était refusé. Maintenant :
+ *   - les offres échues passent à `expired` ;
+ *   - sans offre ouverte, la mission repasse `searching_driver` avec
+ *     `dispatch_state: searching` (nouvelle ronde) ou `no_driver_available`
+ *     après MAX_DISPATCH_ROUNDS rondes (client notifié, relance possible) ;
+ *   - la ronde suivante part par le dispatch planifié si une politique
+ *     existe, sinon par le dispatch immédiat (dispatchMissionToDrivers).
+ */
 export async function sweepDriverOffers(): Promise<void> {
-    if (!(await readSchedulingPolicy()))
-        return;
+    // Lève si la politique existe mais est incomplète (configuration à corriger) ;
+    // `null` (absente ou désactivée) est un état normal.
+    const policy = await readSchedulingPolicy();
     const cursorRef = db.doc('calendar_worker_state/offer_sweep');
     const cursor = (await cursorRef.get()).data()?.cursor;
     const query = db.collection('delivery_requests').where('status', 'in', ['offered', 'searching_driver']).orderBy(admin.firestore.FieldPath.documentId()).limit(50);
     const pending = await (typeof cursor === 'string' ? query.startAfter(cursor) : query).get();
     for (const doc of pending.docs) {
         let retry = false;
+        let reopened = false;
+        let mission: DeliveryMissionDoc | undefined;
         await db.runTransaction(async (tx) => {
             const m = (await tx.get(doc.ref)).data();
             if (!m || m.driver_id || m.assignment_mode === 'internal_test' || (m.pricing_snapshot?.pre_assignment && !m.booking_snapshot) ||
@@ -125,12 +145,28 @@ export async function sweepDriverOffers(): Promise<void> {
                     tx.update(o.ref, { status: 'expired' });
             if (open.length)
                 return;
-            const exhausted = (m.dispatch_round ?? 0) >= 3;
+            const exhausted = (m.dispatch_round ?? 0) >= MAX_DISPATCH_ROUNDS || m.dispatch_state === NO_DRIVER_AVAILABLE;
             retry = !exhausted && (m.dispatch_next_attempt_at?.toMillis() ?? 0) <= now;
-            tx.update(doc.ref, { status: 'searching_driver', dispatch_state: exhausted ? 'no_driver_available' : 'searching' });
+            reopened = m.status === 'offered';
+            const state = exhausted ? NO_DRIVER_AVAILABLE : 'searching';
+            if (m.status !== 'searching_driver' || m.dispatch_state !== state)
+                tx.update(doc.ref, { status: 'searching_driver', dispatch_state: state });
+            mission = { ...m, status: 'searching_driver', dispatch_state: state } as unknown as DeliveryMissionDoc;
         });
-        if (retry)
-            await dispatchScheduledMission(doc.id);
+        if (retry && mission) {
+            // Dispatch planifié si une politique existe ; sinon dispatch immédiat.
+            // Une mission qui vient de repasser `offered` -> `searching_driver`
+            // est déjà relancée par le trigger onMissionReopenedDispatch.
+            // Une mission défectueuse n'interrompt jamais le balayage des autres.
+            try {
+                const handled = policy ? await dispatchScheduledMission(doc.id) : false;
+                if (!handled && !reopened)
+                    await dispatchMission(doc.id, mission);
+            }
+            catch (error) {
+                console.error('[offer-sweep] dispatch failed', doc.id, error instanceof Error ? error.message : String(error));
+            }
+        }
         await cursorRef.set({ cursor: doc.id });
     }
     if (pending.size < 50)
@@ -145,10 +181,15 @@ export const retryDriverSearch = onCall(async (request) => {
             throw notFound();
         if (m.customer_id !== ctx.uid && !isAdminOrAbove(ctx))
             throw permissionDenied();
-        if (m.driver_id || m.status !== 'searching_driver' || m.dispatch_state !== 'no_driver_available')
+        if (m.driver_id || m.status !== 'searching_driver' || m.dispatch_state !== NO_DRIVER_AVAILABLE)
             throw failedPrecondition('Cette recherche ne peut pas être relancée.');
         tx.update(ref, { dispatch_round: 0, dispatch_state: 'searching', dispatch_next_attempt_at: admin.firestore.Timestamp.now() });
     });
-    await dispatchScheduledMission(missionId);
+    // DISP-01 : sans politique de planification, dispatchScheduledMission ne
+    // fait rien (false) ; la relance passe alors par le dispatch immédiat.
+    if (!(await dispatchScheduledMission(missionId))) {
+        const m = (await db.doc('delivery_requests/' + missionId).get()).data() as DeliveryMissionDoc | undefined;
+        if (m) await dispatchMission(missionId, m);
+    }
     return { success: true };
 });

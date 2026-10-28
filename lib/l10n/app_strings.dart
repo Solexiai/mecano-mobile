@@ -1560,6 +1560,17 @@ class AppStrings {
       'en': 'Your card was declined. Update it, then book again.',
       'es': 'Su tarjeta fue rechazada. Actualícela y vuelva a reservar.',
     },
+    // DISP-02 (2026-10-28) : aucun chauffeur n'a accepté après les rondes de recherche.
+    'notif_no_driver_available_title': {
+      'fr': 'Aucun chauffeur disponible',
+      'en': 'No driver available',
+      'es': 'Ningún conductor disponible',
+    },
+    'notif_no_driver_available_body': {
+      'fr': 'Aucun chauffeur n\'a accepté votre livraison pour le moment. Relancez la recherche ou changez l\'heure.',
+      'en': 'No driver has accepted your delivery yet. Search again or change the time.',
+      'es': 'Ningún conductor ha aceptado su entrega por ahora. Vuelva a buscar o cambie la hora.',
+    },
     'notif_document_expiring_soon_title': {
       'fr': 'Document bientôt expiré',
       'en': 'Document expiring soon',

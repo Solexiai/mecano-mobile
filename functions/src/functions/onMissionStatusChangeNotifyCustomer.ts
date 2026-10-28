@@ -25,7 +25,7 @@
 
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { admin, db } from "../lib/admin";
-import { DeliveryMissionDoc, MissionStatuses, PaymentStatuses } from "../lib/types";
+import { DeliveryMissionDoc, MissionStatuses, OPEN_FOR_ACCEPTANCE_STATUSES, PaymentStatuses } from "../lib/types";
 import { sendCustomerMissionStatusPush } from "../lib/pushNotifications";
 import type { CustomerMissionPushType } from "../lib/pushNotifications";
 import {
@@ -108,6 +108,18 @@ const NOTIFICATION_BY_PAYMENT_STATUS: Partial<Record<string, NotificationSpec>> 
   },
 };
 
+/**
+ * DISP-02 (2026-10-28) — aucun chauffeur n'a accepté après les rondes de
+ * recherche (`dispatch_state` passe à `no_driver_available`, le statut reste
+ * ouvert). Les conditions promettent « vous en êtes informé » ; le client
+ * peut relancer la recherche ou changer l'heure depuis le suivi.
+ */
+const NO_DRIVER_AVAILABLE_SPEC: NotificationSpec = {
+  type: "no_driver_available",
+  titleKey: "notif_no_driver_available_title",
+  bodyKey: "notif_no_driver_available_body",
+};
+
 export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
   "delivery_requests/{missionId}",
   async (event) => {
@@ -135,6 +147,15 @@ export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
       } else {
         spec = NOTIFICATION_BY_PAYMENT_STATUS[after.payment_status];
       }
+    }
+    const dispatchState = (doc?: DeliveryMissionDoc) => (doc as unknown as { dispatch_state?: string } | undefined)?.dispatch_state;
+    if (
+      !spec &&
+      OPEN_FOR_ACCEPTANCE_STATUSES.includes(after.status) &&
+      dispatchState(after) === "no_driver_available" &&
+      dispatchState(before) !== "no_driver_available"
+    ) {
+      spec = NO_DRIVER_AVAILABLE_SPEC;
     }
     if (!spec) return; // transition sans notification définie
 

@@ -35,8 +35,23 @@ import { driverServesMissionCategory } from "../lib/vehicleCategory";
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
 const MAX_CANDIDATE_DRIVERS = 15;
+// DISP-01 (2026-10-28) — rondes du dispatch « immédiat » (sans politique de
+// planification) : alignées sur le dispatch planifié (scheduledDispatch.ts).
+// Après MAX_DISPATCH_ROUNDS rondes sans acceptation, la mission passe en
+// `dispatch_state: no_driver_available` (client notifié, relance possible).
+export const MAX_DISPATCH_ROUNDS = 3;
+export const DISPATCH_RETRY_DELAY_MS = 60_000;
+export const NO_DRIVER_AVAILABLE = "no_driver_available";
+/** SEC-07 : délai minimal entre deux relances déclenchées par le même chauffeur. */
+export const DRIVER_RESCAN_DEBOUNCE_MS = 60_000;
 
-async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): Promise<void> {
+export interface DispatchOptions {
+  /** Un chauffeur vient de se rendre disponible : on retente même une mission
+   *  déjà déclarée sans chauffeur (la ronde compte quand même). */
+  force?: boolean;
+}
+
+export async function dispatchMission(missionId: string, mission: DeliveryMissionDoc, options: DispatchOptions = {}): Promise<void> {
   if((mission as unknown as Record<string,unknown>).assignment_mode==='internal_test')return;
   if(await dispatchScheduledMission(missionId))return;
   // Price-only requests (no booking snapshot) await explicit manual
@@ -53,6 +68,10 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
   // mission_id (identifiant métier) est transmis, jamais les coordonnées
   // GPS brutes ni un identifiant client/chauffeur non pertinent ici.
   const operationStartedAt = startFinancialOperationTimer();
+  if (typeof mission.dispatch_zone_geohash !== "string" || mission.dispatch_zone_geohash.length < DISPATCH_ZONE_PREFIX_LENGTH) {
+    logFinancialFailure("dispatch_no_driver_available", operationStartedAt, "mission_zone_missing", { missionId });
+    return;
+  }
   const zonePrefix = mission.dispatch_zone_geohash.slice(0, DISPATCH_ZONE_PREFIX_LENGTH);
 
   // Cherche d'abord les chauffeurs réellement disponibles. Les critères de
@@ -98,40 +117,47 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
     const compatible = await Promise.all(eligible.map(async d => ({ d, vehicle: await findCompatibleVehicle(d.id, mission.booking_snapshot!) })));
     eligible = compatible.filter(x => x.vehicle !== null).map(x => x.d);
   }
-  eligible = eligible.slice(0, MAX_CANDIDATE_DRIVERS);
-
-  if (eligible.length === 0) {
-    // Aucun chauffeur dispo dans la zone immédiate — laissé en
-    // 'searching_driver' ; un job planifié pourra élargir le rayon de
-    // recherche (hors scope de ce squelette). NE PLANTE JAMAIS (comportement
-    // métier normal, pas une erreur système) — mais DOIT rester observable
-    // (Y-1 : "dispatch échoué" était un GAP silencieux avant ce correctif) :
-    // journalisé en "failure" opérationnelle (jamais une exception levée)
-    // pour permettre une alerte HIGH si ce cas se répète massivement (voir
-    // docs/MONITORING_RUNBOOK.md, Y-5).
-    logFinancialFailure(
-      "dispatch_no_driver_available",
-      operationStartedAt,
-      "no_eligible_driver_in_zone",
-      { missionId },
-      { metadata: { candidatesScanned: candidatesSnap.size, zonePrefix } }
-    );
-    return;
-  }
-
   const now = admin.firestore.Timestamp.now();
   const expiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + OFFER_EXPIRY_MS);
+  const nextAttemptAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + DISPATCH_RETRY_DELAY_MS);
 
   const missionRef = db.collection("delivery_requests").doc(missionId);
   // Firestore events may be replayed or overlap with assignment/cancellation.
   // Only the transaction that still observes an unassigned searching mission
   // may publish offers; a retry must not reopen it or notify drivers again.
+  //
+  // DISP-01 : la ronde est comptée DANS la transaction, qu'il y ait ou non
+  // des chauffeurs éligibles, pour que le balayage (sweepDriverOffers) et le
+  // client voient toujours un état cohérent : `searching` (nouvelle ronde à
+  // venir), `offered` (offres en cours) ou `no_driver_available` (épuisé).
+  let offered: typeof eligible = [];
   const dispatched = await db.runTransaction(async (tx) => {
     const current = (await tx.get(missionRef)).data();
     if (!current || current.status !== MissionStatuses.SEARCHING_DRIVER || current.driver_id) {
       return false;
     }
-    for (const driverDoc of eligible) {
+    const previousRound = typeof current.dispatch_round === "number" ? current.dispatch_round : 0;
+    const exhaustedBefore = current.dispatch_state === NO_DRIVER_AVAILABLE || previousRound >= MAX_DISPATCH_ROUNDS;
+    if (exhaustedBefore && !options.force) {
+      if (current.dispatch_state !== NO_DRIVER_AVAILABLE) tx.update(missionRef, { dispatch_state: NO_DRIVER_AVAILABLE });
+      return false;
+    }
+    const round = previousRound + 1;
+    // Un chauffeur qui a refusé cette demande ne la revoit pas (même règle
+    // que le dispatch planifié).
+    const priorOffers = await tx.get(db.collection("delivery_offers").where("mission_id", "==", missionId));
+    const declined = new Set(priorOffers.docs.filter((o) => o.data().status === "declined").map((o) => o.data().driver_id as string));
+    offered = eligible.filter((d) => !declined.has(d.id)).slice(0, MAX_CANDIDATE_DRIVERS);
+    if (offered.length === 0) {
+      const exhausted = round >= MAX_DISPATCH_ROUNDS && !options.force;
+      tx.update(missionRef, {
+        dispatch_round: round,
+        dispatch_state: exhausted ? NO_DRIVER_AVAILABLE : "searching",
+        dispatch_next_attempt_at: nextAttemptAt,
+      });
+      return false;
+    }
+    for (const driverDoc of offered) {
       const offerRef = db.collection("delivery_offers").doc();
       tx.set(offerRef, {
         mission_id: missionId,
@@ -165,19 +191,39 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
         },
       });
     }
-    tx.update(db.collection("delivery_requests").doc(missionId), {
+    tx.update(missionRef, {
       status: MissionStatuses.OFFERED,
-      offered_driver_ids:eligible.map(d=>d.id),offered_until:expiresAt,
+      offered_driver_ids: offered.map((d) => d.id),
+      offered_until: expiresAt,
+      dispatch_round: round,
+      dispatch_state: "offered",
+      dispatch_next_attempt_at: nextAttemptAt,
     });
     return true;
   });
-  if (!dispatched) return;
+  if (!dispatched) {
+    if (eligible.length === 0) {
+      // Aucun chauffeur dispo dans la zone immédiate. NE PLANTE JAMAIS
+      // (comportement métier normal, pas une erreur système) — mais DOIT
+      // rester observable (Y-1 : "dispatch échoué" était un GAP silencieux) :
+      // journalisé en "failure" opérationnelle pour permettre une alerte HIGH
+      // si ce cas se répète massivement (voir docs/MONITORING_RUNBOOK.md, Y-5).
+      logFinancialFailure(
+        "dispatch_no_driver_available",
+        operationStartedAt,
+        "no_eligible_driver_in_zone",
+        { missionId },
+        { metadata: { candidatesScanned: candidatesSnap.size, zonePrefix } }
+      );
+    }
+    return;
+  }
 
   // Push après le commit uniquement : ne jamais avertir un chauffeur d'une
   // offre qui n'a pas réellement été persistée. sendDeliveryOfferPush() est
   // fail-soft et ne propage jamais un échec FCM.
   const pushResults = await Promise.all(
-    eligible.map((driverDoc) =>
+    offered.map((driverDoc) =>
       sendDeliveryOfferPush({
         driverId: driverDoc.id,
         missionId,
@@ -196,8 +242,8 @@ async function dispatchMission(missionId: string, mission: DeliveryMissionDoc): 
     { missionId },
     {
       metadata: {
-        offersCreated: eligible.length,
-        inAppNotificationsCreated: eligible.length,
+        offersCreated: offered.length,
+        inAppNotificationsCreated: offered.length,
         pushAttempted,
         pushSent,
         candidatesScanned: candidatesSnap.size,
@@ -253,14 +299,28 @@ export const onDriverBecameAvailableDispatch = onDocumentUpdated(
 
     if (!isAvailable(after) || isAvailable(before)) return;
 
+    // SEC-07 (2026-10-28) — anti-rafale : un chauffeur qui bascule en ligne /
+    // hors ligne en boucle ne relance pas 25 dispatchs (offres + push) à
+    // chaque fois. Une seule relance par chauffeur par minute ; l'écriture
+    // ci-dessous redéclenche ce trigger, qui sort aussitôt (déjà disponible).
+    const now = admin.firestore.Timestamp.now();
+    const rescanAfter = after.dispatch_rescan_after;
+    if (rescanAfter instanceof admin.firestore.Timestamp && rescanAfter.toMillis() > now.toMillis()) return;
+    await event.data!.after.ref.update({
+      dispatch_rescan_after: admin.firestore.Timestamp.fromMillis(now.toMillis() + DRIVER_RESCAN_DEBOUNCE_MS),
+    });
+
     const pendingMissions = await db
       .collection("delivery_requests")
       .where("status", "==", MissionStatuses.SEARCHING_DRIVER)
       .limit(25)
       .get();
 
+    // Un chauffeur qui arrive est la meilleure occasion de retenter une
+    // demande déclarée sans chauffeur (force) : la ronde est comptée.
     for (const missionDoc of pendingMissions.docs) {
-      await dispatchMission(missionDoc.id, missionDoc.data() as DeliveryMissionDoc);
+      await dispatchMission(missionDoc.id, missionDoc.data() as DeliveryMissionDoc, { force: true });
     }
   }
 );
+

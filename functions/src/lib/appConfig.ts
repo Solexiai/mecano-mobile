@@ -64,3 +64,8 @@ export function getDriverStripeRefreshUrl(): string {
 export const ROUTING_QUOTA_DEFAULTS = { requests: 60, windowSeconds: 60 } as const;
 export const ROUTING_REQUESTS_PER_WINDOW = defineInt("ROUTING_REQUESTS_PER_WINDOW", { default: ROUTING_QUOTA_DEFAULTS.requests });
 export const ROUTING_WINDOW_SECONDS = defineInt("ROUTING_WINDOW_SECONDS", { default: ROUTING_QUOTA_DEFAULTS.windowSeconds });
+// SEC-07 (2026-10-28) : plafond quotidien par compte, en plus de la fenêtre
+// glissante. 60/min seul autorisait ~86 000 appels Google Routes par jour et
+// par compte ; 300/jour couvre très largement un usage réel.
+export const ROUTING_DAILY_QUOTA_DEFAULT = 300;
+export const ROUTING_REQUESTS_PER_DAY = defineInt("ROUTING_REQUESTS_PER_DAY", { default: ROUTING_DAILY_QUOTA_DEFAULT });

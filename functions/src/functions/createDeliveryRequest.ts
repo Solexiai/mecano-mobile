@@ -62,6 +62,36 @@ export interface CreateDeliveryRequestRequest {
   customerDisplayName: string;
 }
 
+/** SEC-07 : demandes simultanément ouvertes (de la recherche à la livraison) par client. */
+export const MAX_OPEN_MISSIONS_PER_CUSTOMER = 3;
+const OPEN_MISSION_STATUSES: ReadonlySet<string> = new Set([
+  MissionStatuses.SEARCHING_DRIVER,
+  MissionStatuses.OFFERED,
+  MissionStatuses.ASSIGNED,
+  MissionStatuses.DRIVER_TO_PICKUP,
+  MissionStatuses.ARRIVED_AT_PICKUP,
+  MissionStatuses.PICKED_UP,
+  MissionStatuses.IN_TRANSIT,
+  MissionStatuses.ARRIVED_AT_DROPOFF,
+]);
+
+export async function countOpenMissions(customerId: string): Promise<number> {
+  const recent = await db.collection("delivery_requests")
+    .where("customer_id", "==", customerId)
+    .orderBy("created_at", "desc")
+    .limit(25)
+    .get();
+  return recent.docs.filter((d) => OPEN_MISSION_STATUSES.has(d.data().status) && d.data().assignment_mode !== MissionAssignmentModes.INTERNAL_TEST).length;
+}
+
+async function assertOpenMissionsBelowCap(customerId: string): Promise<void> {
+  if ((await countOpenMissions(customerId)) >= MAX_OPEN_MISSIONS_PER_CUSTOMER) {
+    throw failedPrecondition(
+      `Vous avez déjà ${MAX_OPEN_MISSIONS_PER_CUSTOMER} livraisons en cours. Attendez qu'une livraison se termine ou annulez-en une avant d'en demander une autre.`
+    );
+  }
+}
+
 export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
   const ctx = requireSignedIn(request);
   // Seuls les super_admin et les comptes porteurs du claim
@@ -94,6 +124,12 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // booking. A retry of a booking already made returned above.
   const paused = pauseMessage(await getSpecialConditions().catch(() => null));
   if (!isInternalTest && paused) throw failedPrecondition(paused);
+
+  // SEC-07 (2026-10-28) — plafond de demandes ouvertes par client. Chaque
+  // création déclenche un dispatch (jusqu'à 15 offres + 15 push) : un compte
+  // ne peut pas en empiler sans limite. Les testeurs internes ne sont pas
+  // plafonnés (recette). Lecture bornée sur l'index (customer_id, created_at).
+  if (!isInternalTest) await assertOpenMissionsBelowCap(ctx.uid);
 
   const input = request.data;
 

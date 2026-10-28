@@ -46,7 +46,9 @@ export type CustomerMissionPushType =
   // Dernière relance échouée : traitement manuel par Movi-K.
   | "payment_capture_abandoned"
   // Autorisation refusée à l'acceptation (DISP-02) : refaire une demande avec une autre carte.
-  | "payment_authorization_failed";
+  | "payment_authorization_failed"
+  // DISP-02 (2026-10-28) : aucun chauffeur n'a accepté après les rondes de recherche.
+  | "no_driver_available";
 
 const CUSTOMER_MISSION_PUSH_COPY: Record<
   CustomerMissionPushType,
@@ -204,6 +206,20 @@ const CUSTOMER_MISSION_PUSH_COPY: Record<
     es: {
       title: "Tarjeta rechazada",
       body: "Su tarjeta fue rechazada. Actual\u00edcela y vuelva a reservar.",
+    },
+  },
+  no_driver_available: {
+    fr: {
+      title: "Aucun chauffeur disponible",
+      body: "Aucun chauffeur n'a accept\u00e9 votre livraison pour le moment. Relancez la recherche ou changez l'heure.",
+    },
+    en: {
+      title: "No driver available",
+      body: "No driver has accepted your delivery yet. Search again or change the time.",
+    },
+    es: {
+      title: "Ning\u00fan conductor disponible",
+      body: "Ning\u00fan conductor ha aceptado su entrega por ahora. Vuelva a buscar o cambie la hora.",
     },
   },
 };
