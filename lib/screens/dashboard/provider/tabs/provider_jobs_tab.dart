@@ -264,7 +264,9 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
             ? 'acceptance_pending'
             : result['errorCode'] as String? ?? 'unknown_error';
         setState(() => _acceptErrors[mission.id] = code);
-        await _showAcceptFailure(code);
+        // Not awaited: the "accepting" spinner must stop (finally below)
+        // while the dialog is open.
+        unawaited(_showAcceptFailure(code));
         return;
       }
       await prefs.remove(key);
@@ -298,7 +300,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
             ? 'server:$serverMessage'
             : 'unknown_error';
         setState(() => _acceptErrors[mission.id] = code);
-        await _showAcceptFailure(code);
+        unawaited(_showAcceptFailure(code));
       }
     } finally {
       if (mounted) setState(() => _accepting.remove(mission.id));
