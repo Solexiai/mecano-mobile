@@ -73,6 +73,8 @@ export { processScheduledDriverPayouts } from "./functions/processScheduledDrive
 // Option A (2026-10-27) : miroir, pour le chauffeur, de la part virée par
 // Stripe Connect à la capture (driver_transfers/{paymentId}).
 export { onPaymentWrittenMirrorDriverTransfer } from "./functions/onPaymentWrittenMirrorDriverTransfer";
+// 2026-10-29 — frais Stripe réels lus après l'encaissement (bilan de mission).
+export { onPaymentCapturedRecordProcessingFee, recordMissingPaymentProcessingFees } from "./functions/paymentProcessingFees";
 // PAY-12 : publication des conditions de réservation finales (admin).
 export { publishBookingPolicy } from "./functions/publishBookingPolicy";
 export { refundPayment } from "./functions/refundPayment";

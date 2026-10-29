@@ -49,10 +49,15 @@ import {
   ReconcileTransactionResult,
   RefundPaymentParams,
   RefundPaymentResult,
+  ChargeProcessingFee,
 } from "../../src/payment/paymentProvider";
 import { StripeEnvironment } from "../../src/lib/stripeEnvironment";
 
 export interface FakePaymentProviderOptions {
+  /** 2026-10-29 : frais renvoyés par `getChargeProcessingFee()` (cents CAD) ; absent = indisponible (null). */
+  processingFeeMinor?: number;
+  /** 2026-10-29 : si vrai, `getChargeProcessingFee()` lève (Stripe injoignable simulé). */
+  forceProcessingFeeError?: boolean;
   /** Si vrai, `authorizePayment()` renvoie un échec déterministe (carte refusée simulée). */
   forceAuthorizeFailure?: boolean;
   /** Si vrai, `capturePayment()` renvoie un échec déterministe. */
@@ -104,6 +109,13 @@ export class FakePaymentProvider extends PaymentProvider {
 
   constructor(private readonly options: FakePaymentProviderOptions = {}) {
     super();
+  }
+
+  readonly processingFeeLookups: string[] = [];
+  async getChargeProcessingFee(providerChargeId: string): Promise<ChargeProcessingFee | null> {
+    this.processingFeeLookups.push(providerChargeId);
+    if (this.options.forceProcessingFeeError) throw new Error("Stripe injoignable (simulé)");
+    return this.options.processingFeeMinor === undefined ? null : { feeMinor: this.options.processingFeeMinor, currency: "cad" };
   }
 
   readonly receiptLookups: string[] = [];
