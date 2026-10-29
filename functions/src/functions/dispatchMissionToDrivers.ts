@@ -31,6 +31,7 @@ import {
 } from "../lib/observability";
 import { sendDeliveryOfferPush } from "../lib/pushNotifications";
 import { driverServesMissionCategory } from "../lib/vehicleCategory";
+import { driverWithinDispatchRadius, pickupPoint } from "../lib/dispatchDistance";
 
 const OFFER_EXPIRY_MS = 45_000; // 45s pour accepter avant que l'offre expire
 const DISPATCH_ZONE_PREFIX_LENGTH = 3; // ~150km — large filtre initial, affiné ensuite côté client/app par distance réelle
@@ -85,8 +86,15 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
     .limit(50)
     .get();
 
+  const pickup = pickupPoint(mission as unknown as { pickup_address?: unknown });
+  const nowMillis = Date.now();
+  // Positions GPS des candidats (≤ 50 lectures, lot déjà borné ci-dessus).
+  const locations = pickup
+    ? await Promise.all(candidatesSnap.docs.map((d) => db.doc("driver_locations/" + d.id).get()))
+    : [];
+
   let eligible = candidatesSnap.docs
-    .filter((driverDoc) => {
+    .filter((driverDoc, index) => {
       const driver = driverDoc.data();
 
       // La validation documentaire reste obligatoire. Un champ absent sur
@@ -99,10 +107,14 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
         : [];
       if (!driverServesMissionCategory(categories, mission)) return false;
 
-      // La dernière position GPS est prioritaire. Avant le premier partage
-      // GPS, l'adresse de base validée pendant l'onboarding sert de repli :
-      // le chauffeur peut donc recevoir une première offre sans cercle
-      // impossible « mission requise avant activation du GPS ».
+      // 2026-10-28 : distance réelle (GPS de moins de 30 min, sinon adresse de
+      // base) comparée au rayon de service — voir lib/dispatchDistance.ts.
+      if (pickup) {
+        return driverWithinDispatchRadius(driver, locations[index]?.data(), pickup, nowMillis);
+      }
+
+      // Repli historique (mission sans coordonnées de ramassage) : préfixe
+      // geohash de la zone de dispatch.
       const currentGeohash =
         typeof driver.current_geohash === "string" && driver.current_geohash.length >= 3
           ? driver.current_geohash
@@ -111,8 +123,7 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
             : null;
 
       return currentGeohash?.slice(0, DISPATCH_ZONE_PREFIX_LENGTH) === zonePrefix;
-    })
-    ;
+    });
   if (mission.booking_snapshot) {
     const compatible = await Promise.all(eligible.map(async d => ({ d, vehicle: await findCompatibleVehicle(d.id, mission.booking_snapshot!) })));
     eligible = compatible.filter(x => x.vehicle !== null).map(x => x.d);
