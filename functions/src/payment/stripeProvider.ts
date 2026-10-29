@@ -19,6 +19,7 @@ import type { CardSetup } from "../lib/bookingPayment";
 import Stripe from "stripe";
 import { getDriverStripeRefreshUrl, getDriverStripeReturnUrl } from "../lib/appConfig";
 import {
+  ChargeProcessingFee,
   AttachPaymentMethodParams,
   AttachPaymentMethodResult,
   AuthorizePaymentParams,
@@ -185,6 +186,16 @@ export class StripeProvider extends PaymentProvider {
     return typeof charge.receipt_url === "string" && charge.receipt_url.startsWith("https://")
       ? charge.receipt_url
       : null;
+  }
+
+  // ---- Frais de traitement (lecture seule, 2026-10-29) ----
+  // Charge de destination : les frais Stripe sont prélevés sur le compte
+  // plateforme ; ils figurent sur la balance transaction de la charge.
+  async getChargeProcessingFee(providerChargeId: string): Promise<ChargeProcessingFee | null> {
+    const charge = await this.stripe.charges.retrieve(providerChargeId, { expand: ["balance_transaction"] });
+    const bt = charge.balance_transaction;
+    if (!bt || typeof bt === "string" || !Number.isInteger(bt.fee) || bt.fee < 0) return null;
+    return { feeMinor: bt.fee, currency: bt.currency.toUpperCase() };
   }
 
   // ---- 5. capturePayment ----

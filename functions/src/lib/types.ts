@@ -637,6 +637,10 @@ export interface PaymentDoc {
   // `provider_payment_intent_id`/`connected_account_id` (l'appel
   // createPayment() initial, avant toute autorisation/capture).
   stripe_environment?: StripeEnvironment;
+  // ---- 2026-10-29 — frais réels du fournisseur (lecture balance transaction) ----
+  /** Frais de traitement prélevés par Stripe sur ce paiement (cents). Absent = pas encore lus. */
+  processing_fee_minor?: number;
+  processing_fee_recorded_at?: admin_Timestamp;
   // ---- PAY-03 / PAY-11 (2026-10-27) — reprise de capture ----
   /** Tentatives de débit effectuées (1 = capture initiale). */
   capture_attempt_count?: number;
@@ -890,18 +894,24 @@ export interface MissionFinancialBalanceDoc {
   mission_id: string;
   customer_charged_minor: number; // = amount_captured_minor du PaymentDoc
   customer_refunded_minor: number; // somme des RefundDoc SUCCEEDED liés
-  platform_commission_minor: number;
+  platform_commission_minor: number; // nette de la part rendue au client lors d'un remboursement Connect
   customer_service_fee_minor: number;
-  driver_earned_minor: number; // gain net chauffeur avant versement (hors tip/bonus)
+  driver_earned_minor: number; // gain net chauffeur avant versement (hors tip/bonus), avant remboursement
   driver_paid_minor: number; // driver_payouts PAID incluant cette mission + part virée par Stripe Connect à la capture
   // Part virée au compte connecté du chauffeur à la capture (destination
   // charge, mode stripe_direct) : amount_captured - application_fee, nette
   // des renversements estimés. Incluse dans driver_paid_minor.
   driver_transferred_minor?: number;
+  // 2026-10-29 — paiements Stripe Connect remboursés (reverse_transfer +
+  // refund_application_fee) : part reprise au chauffeur et part de la
+  // commission rendue au client, au prorata. Le remboursement client =
+  // driver_refund_reversed_minor + platform_commission_refunded_minor.
+  driver_refund_reversed_minor?: number;
+  platform_commission_refunded_minor?: number;
   driver_tip_minor: number; // 100% chauffeur — jamais dans platform_commission_minor
   driver_bonus_minor: number;
   adjustments_minor: number; // somme des ajustements manuels (createLedgerEntry compensatoires)
-  outstanding_driver_balance_minor: number; // driver_earned+tip+bonus+adjustments - driver_paid
+  outstanding_driver_balance_minor: number; // driver_earned+tip+bonus+adjustments - driver_refund_reversed - driver_paid
   outstanding_customer_balance_minor: number; // customer_charged - customer_refunded, vue solde
   provider_processing_cost_minor: number; // frais Stripe estimés/réels (payment_processing_fee ledger)
   contribution_margin_minor: number; // platform_commission + service_fee - provider_processing_cost

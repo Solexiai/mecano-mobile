@@ -63,11 +63,28 @@ export async function computeMissionFinancialBalance(
   // compte comme PAYÉE au chauffeur, nette des renversements estimés.
   let customerChargedMinor = 0;
   let driverTransferredMinor = 0;
+  // 2026-10-29 (recette) — un remboursement d'un paiement Connect est créé
+  // avec reverse_transfer + refund_application_fee : Stripe reprend au
+  // chauffeur sa part (share.reversedMinor) et rend le reste depuis la
+  // commission (frais de plateforme). Avant, le bilan affichait cette part
+  // reprise comme « due au chauffeur » et la commission restait brute.
+  let driverRefundReversedMinor = 0;
+  let platformFeeRefundedMinor = 0;
   for (const doc of paymentsQuery.docs) {
     const p = doc.data();
     customerChargedMinor = addMinor(customerChargedMinor, (p.amount_captured_minor as number) ?? 0);
     const share = connectTransferShare(p as Partial<PaymentDoc>);
-    if (share) driverTransferredMinor = addMinor(driverTransferredMinor, share.netMinor);
+    if (share) {
+      driverTransferredMinor = addMinor(driverTransferredMinor, share.netMinor);
+      driverRefundReversedMinor = addMinor(driverRefundReversedMinor, share.reversedMinor);
+      const captured = (p.amount_captured_minor as number) ?? 0;
+      const fee = (p.application_fee_minor as number) ?? 0;
+      const refunded = Math.min(Math.max((p.amount_refunded_minor as number) ?? 0, 0), captured);
+      platformFeeRefundedMinor = addMinor(
+        platformFeeRefundedMinor,
+        Math.min(fee, Math.max(0, refunded - share.reversedMinor))
+      );
+    }
   }
 
   // ---- Refunds : seuls les SUCCEEDED comptent comme argent réellement rendu ----
@@ -207,9 +224,19 @@ export async function computeMissionFinancialBalance(
   // directive ; tracé intégralement dans le ledger, source de vérité).
   void driverPayoutReversalMinor;
 
+  // Part de commission rendue au client : d'abord sur la commission, le
+  // reste éventuel sur les frais de service (les deux forment le frais de
+  // plateforme Stripe).
+  const commissionRefundedMinor = Math.min(platformFeeRefundedMinor, Math.max(platformCommissionMinor, 0));
+  platformCommissionMinor = subtractMinor(platformCommissionMinor, commissionRefundedMinor);
+  customerServiceFeeMinor = subtractMinor(
+    customerServiceFeeMinor,
+    Math.min(subtractMinor(platformFeeRefundedMinor, commissionRefundedMinor), Math.max(customerServiceFeeMinor, 0))
+  );
+
   const outstandingDriverBalanceMinor = subtractMinor(
     addMinor(driverEarnedMinor, driverTipMinor, driverBonusMinor, adjustmentsMinor),
-    driverPaidMinor
+    addMinor(driverRefundReversedMinor, driverPaidMinor)
   );
   const outstandingCustomerBalanceMinor = subtractMinor(
     customerChargedMinor,
@@ -230,6 +257,8 @@ export async function computeMissionFinancialBalance(
     driver_earned_minor: driverEarnedMinor,
     driver_paid_minor: driverPaidMinor,
     driver_transferred_minor: driverTransferredMinor,
+    driver_refund_reversed_minor: driverRefundReversedMinor,
+    platform_commission_refunded_minor: platformFeeRefundedMinor,
     driver_tip_minor: driverTipMinor,
     driver_bonus_minor: driverBonusMinor,
     adjustments_minor: adjustmentsMinor,
