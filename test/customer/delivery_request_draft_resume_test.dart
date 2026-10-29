@@ -52,4 +52,44 @@ void main() {
     expect(store.saved!.items.first['length'], 200);
     await disposeBooking(t);
   });
+  test('le reçu de confirmation expire après 30 minutes', () {
+    final fresh = BookingDraft.receipt('m1');
+    expect(fresh.isReceipt, isTrue);
+    expect(fresh.expired, isFalse);
+    final old = BookingDraft.receipt('m1')
+      ..data['receipt_at'] = DateTime.now()
+          .subtract(const Duration(minutes: 31))
+          .millisecondsSinceEpoch;
+    expect(old.expired, isTrue);
+    // Reçu d'une version précédente, sans horodatage.
+    final legacy = BookingDraft()..data['missionId'] = 'm1';
+    expect(legacy.expired, isTrue);
+    // Un brouillon normal n'est pas concerné.
+    expect(testDraft().expired, isFalse);
+  });
+  testWidgets(
+    'Obtenir mon prix après une ancienne confirmation ouvre une demande vierge',
+    (t) async {
+      final old = BookingDraft.receipt('old_mission')
+        ..data['receipt_at'] = DateTime.now()
+            .subtract(const Duration(hours: 2))
+            .millisecondsSinceEpoch;
+      final store = MemoryBookingStorage(old);
+      await pumpBooking(t, storage: store, api: TestBookingApi());
+      expect(find.textContaining('Votre demande est enregistrée'), findsNothing);
+      expect(find.textContaining('old_mission'), findsNothing);
+      await disposeBooking(t);
+    },
+  );
+  testWidgets('un reçu récent reste affiché après un rafraîchissement', (
+    t,
+  ) async {
+    final store = MemoryBookingStorage(BookingDraft.receipt('new_mission'));
+    await pumpBooking(t, storage: store, api: TestBookingApi());
+    expect(
+      find.textContaining('Votre demande est enregistrée'),
+      findsOneWidget,
+    );
+    await disposeBooking(t);
+  });
 }
