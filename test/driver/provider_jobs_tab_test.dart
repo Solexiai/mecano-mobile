@@ -247,6 +247,16 @@ Future<void> _confirmDisplayedOffer(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// 2026-10-29 : a refused acceptance also opens a dialog that stays on
+/// screen (the job card may disappear). Checks it, then closes it so the
+/// card assertions below see a single copy of the message.
+Future<void> _dismissFailureDialog(WidgetTester tester) async {
+  expect(find.byKey(const Key('driver-accept-failure-dialog')), findsOneWidget);
+  await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('driver-accept-failure-dialog')), findsNothing);
+}
+
 void main() {
   late _FakeMissionRepository fakeRepo;
   late FirebaseAuthProvider auth;
@@ -283,6 +293,7 @@ void main() {
       );
       await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
+      await _dismissFailureDialog(tester);
       expect(
         find.text(AppStrings.t('service_temporarily_unavailable', 'fr')),
         findsOneWidget,
@@ -309,6 +320,7 @@ void main() {
       );
       await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
+      await _dismissFailureDialog(tester);
       expect(find.text('Confirmez le véhicule utilisé pour cette livraison.'), findsOneWidget);
       expect(find.text(AppStrings.t('driver_jobs_accept_error', 'fr')), findsNothing);
       expect(find.text('MISSION_STUB'), findsNothing);
@@ -477,6 +489,7 @@ void main() {
       );
       await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
+      await _dismissFailureDialog(tester);
 
       expect(
         find.text(AppStrings.t('driver_jobs_accept_error', 'fr')),
@@ -517,6 +530,7 @@ void main() {
       );
       await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
+      await _dismissFailureDialog(tester);
 
       expect(tester.takeException(), isNull);
       expect(
@@ -545,6 +559,7 @@ void main() {
       );
       await _confirmDisplayedOffer(tester);
       await tester.pumpAndSettle();
+      await _dismissFailureDialog(tester);
 
       expect(tester.takeException(), isNull);
       expect(
@@ -553,6 +568,154 @@ void main() {
       );
     },
   );
+
+  // 2026-10-29 (recette) : la mission disparaissait sans explication quand
+  // l'autorisation de paiement du client échouait à l'acceptation.
+  testWidgets(
+    'paiement du client refusé : fenêtre qui reste, avec une explication claire',
+    (tester) async {
+      _OfferApi.acceptError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message:
+            "Autorisation de paiement refusée (failed): Your card was declined.. La mission est passée en statut 'payment_failed' et n'est plus assignée ; le client doit corriger son moyen de paiement puis soumettre une nouvelle demande.",
+      );
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      await _confirmDisplayedOffer(tester);
+      await tester.pumpAndSettle();
+
+      final dialog = find.byKey(const Key('driver-accept-failure-dialog'));
+      expect(dialog, findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.text('Mission non acceptée')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('Le paiement du client a été refusé'),
+        ),
+        findsOneWidget,
+      );
+      // Pas de message technique (statut interne) montré au chauffeur.
+      expect(find.textContaining('payment_failed'), findsNothing);
+      expect(find.text('MISSION_STUB'), findsNothing);
+      await _dismissFailureDialog(tester);
+    },
+  );
+
+  testWidgets(
+    'offre expirée : explication claire dans la fenêtre',
+    (tester) async {
+      _OfferApi.acceptError = FirebaseFunctionsException(
+        code: 'failed-precondition',
+        message: 'Cette offre est indisponible ou expirée.',
+      );
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      await _confirmDisplayedOffer(tester);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('driver-accept-failure-dialog')),
+          matching: find.textContaining('Cette offre a expiré avant votre confirmation'),
+        ),
+        findsOneWidget,
+      );
+      await _dismissFailureDialog(tester);
+    },
+  );
+
+  testWidgets(
+    'temps restant de l’offre affiché sur la carte et dans la confirmation',
+    (tester) async {
+      final base = _buildAvailableMission();
+      fakeRepo.availableMissions = [
+        DeliveryMission(
+          id: base.id,
+          customerId: base.customerId,
+          itemCategoryKey: base.itemCategoryKey,
+          description: base.description,
+          requiredVehicleCategory: base.requiredVehicleCategory,
+          status: base.status,
+          pricingVersion: base.pricingVersion,
+          createdAt: base.createdAt,
+          pickupAddress: base.pickupAddress,
+          dropoffAddress: base.dropoffAddress,
+          driverOfferAmount: base.driverOfferAmount,
+          customerTotal: base.customerTotal,
+          offerExpiresAt: DateTime.now().add(const Duration(minutes: 6)),
+        ),
+      ];
+      await tester.pumpWidget(_buildTestApp(auth));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('driver-offer-countdown')), findsOneWidget);
+      expect(find.textContaining('Offre valable encore 5 min'), findsOneWidget);
+
+      await tester.tap(
+        find.widgetWithText(
+          ElevatedButton,
+          AppStrings.t('driver_jobs_accept', 'fr'),
+        ),
+      );
+      for (var i = 0; i < 20 && find.byType(AlertDialog).evaluate().isEmpty; i++) {
+        await tester.pump(const Duration(milliseconds: 20));
+      }
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(const Key('driver-offer-countdown')),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Retour'));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  test('driverAcceptFailureText : messages clairs pour les refus connus', () {
+    String t(String key) => AppStrings.t(key, 'fr');
+    expect(
+      driverAcceptFailureText('server:Autorisation de paiement refusée (failed): x', 'fr', t),
+      startsWith('Le paiement du client a été refusé'),
+    );
+    expect(
+      driverAcceptFailureText('server:Autorisation de paiement refusée (failed): x', 'en', t),
+      startsWith('The customer’s payment was declined'),
+    );
+    expect(
+      driverAcceptFailureText('server:Mission annulée pendant l\'autorisation ; x', 'fr', t),
+      startsWith('Le client a annulé sa demande'),
+    );
+    expect(
+      driverAcceptFailureText('server:Cette offre est indisponible ou expirée.', 'fr', t),
+      startsWith('Cette offre a expiré'),
+    );
+    expect(
+      driverAcceptFailureText('server:Mission déjà assignée à un autre chauffeur.', 'fr', t),
+      AppStrings.t('driver_jobs_accept_error', 'fr'),
+    );
+    expect(
+      driverAcceptFailureText('server:Passez en ligne avant d’accepter une offre.', 'fr', t),
+      'Passez en ligne avant d’accepter une offre.',
+    );
+    expect(
+      driverAcceptFailureText('unknown_error', 'fr', t),
+      AppStrings.t('driver_jobs_accept_error', 'fr'),
+    );
+  });
 
   // -------------------------------------------------------------------------
   // AB-8 — couverture manquante identifiée pendant la clôture Bloc AB :

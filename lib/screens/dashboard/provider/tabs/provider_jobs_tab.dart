@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -127,23 +128,30 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                   'Confirmar el vehículo',
                 ),
               ),
-              content: driverJudgement
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${vehicle['label']}'),
-                        const SizedBox(height: 12),
-                        Text(
-                          tr(
-                            'En confirmant, vous déclarez avoir vu les photos et la description, et que le chargement entre dans ce véhicule.',
-                            'By confirming, you declare that you have seen the photos and description and that the load fits this vehicle.',
-                            'Al confirmar, declaras que viste las fotos y la descripción y que la carga cabe en este vehículo.',
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text('${vehicle['label']}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${vehicle['label']}'),
+                  if (driverJudgement) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      tr(
+                        'En confirmant, vous déclarez avoir vu les photos et la description, et que le chargement entre dans ce véhicule.',
+                        'By confirming, you declare that you have seen the photos and description and that the load fits this vehicle.',
+                        'Al confirmar, declaras que viste las fotos y la descripción y que la carga cabe en este vehículo.',
+                      ),
+                    ),
+                  ],
+                  if (mission.offerExpiresAt != null) ...[
+                    const SizedBox(height: 12),
+                    OfferCountdown(
+                      expiresAt: mission.offerExpiresAt!,
+                      locale: locale,
+                    ),
+                  ],
+                ],
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
@@ -203,8 +211,21 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                   '¿Aceptar esta misión?',
                 ),
               ),
-              content: Text(
-                '${tr('Rémunération', 'Compensation', 'Remuneración')} : ${(minor / 100).toStringAsFixed(2)} CAD',
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${tr('Rémunération', 'Compensation', 'Remuneración')} : ${(minor / 100).toStringAsFixed(2)} CAD',
+                  ),
+                  if (mission.offerExpiresAt != null) ...[
+                    const SizedBox(height: 12),
+                    OfferCountdown(
+                      expiresAt: mission.offerExpiresAt!,
+                      locale: locale,
+                    ),
+                  ],
+                ],
               ),
               actions: [
                 TextButton(
@@ -239,11 +260,11 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       final result = await api.call('acceptDelivery', payload);
       if (!mounted) return;
       if (result['success'] != true) {
-        setState(
-          () => _acceptErrors[mission.id] = result['pending'] == true
-              ? 'acceptance_pending'
-              : result['errorCode'] as String? ?? 'unknown_error',
-        );
+        final code = result['pending'] == true
+            ? 'acceptance_pending'
+            : result['errorCode'] as String? ?? 'unknown_error';
+        setState(() => _acceptErrors[mission.id] = code);
+        await _showAcceptFailure(code);
         return;
       }
       await prefs.remove(key);
@@ -268,21 +289,62 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                 (error.message ?? '').trim().isNotEmpty
             ? error.message!.trim()
             : null;
-        setState(
-          () => _acceptErrors[mission.id] =
-              error is FirebaseFunctionsException &&
-                  isKillSwitchException(
-                    CloudFunctionException(error.code, error.message ?? ''),
-                  )
-              ? kKillSwitchErrorCode
-              : serverMessage != null
-              ? 'server:$serverMessage'
-              : 'unknown_error',
-        );
+        final code = error is FirebaseFunctionsException &&
+                isKillSwitchException(
+                  CloudFunctionException(error.code, error.message ?? ''),
+                )
+            ? kKillSwitchErrorCode
+            : serverMessage != null
+            ? 'server:$serverMessage'
+            : 'unknown_error';
+        setState(() => _acceptErrors[mission.id] = code);
+        await _showAcceptFailure(code);
       }
     } finally {
       if (mounted) setState(() => _accepting.remove(mission.id));
     }
+  }
+
+  /// 2026-10-29 (recette) : un refus du serveur (paiement du client refusé,
+  /// offre expirée…) retire la mission de la liste, et le message affiché
+  /// dans sa carte disparaissait avec elle. La raison s'affiche donc aussi
+  /// dans une fenêtre qui reste à l'écran jusqu'à ce que le chauffeur la
+  /// ferme.
+  Future<void> _showAcceptFailure(String code) async {
+    if (!mounted) return;
+    final locale = context.read<LocaleProvider>().locale;
+    final t = context.read<LocaleProvider>().t;
+    String tr(String fr, String en, String es) => locale == 'en'
+        ? en
+        : locale == 'es'
+        ? es
+        : fr;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const Key('driver-accept-failure-dialog'),
+        title: Text(
+          code == 'acceptance_pending'
+              ? tr(
+                  'Validation en cours',
+                  'Validation pending',
+                  'Validación en curso',
+                )
+              : tr(
+                  'Mission non acceptée',
+                  'Mission not accepted',
+                  'Misión no aceptada',
+                ),
+        ),
+        content: Text(driverAcceptFailureText(code, locale, t)),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _decline(DeliveryMission mission, String driverId) async {
@@ -631,10 +693,12 @@ class _JobCard extends StatelessWidget {
                   '${tr('Ramassage prévu', 'Requested pickup', 'Recogida prevista')} : ${DateTime.parse(mission.bookingSnapshot!['load']['requested_at'] as String).toLocal()}',
             ),
           if (mission.offerExpiresAt != null)
-            _InfoRow(
-              icon: Icons.timer_outlined,
-              text:
-                  '${tr('Offre valable jusqu’à', 'Offer expires at', 'Oferta válida hasta')} : ${mission.offerExpiresAt!.toLocal()}',
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: OfferCountdown(
+                expiresAt: mission.offerExpiresAt!,
+                locale: context.read<LocaleProvider>().locale,
+              ),
             ),
           if (mission.estimatedDurationMinutes != null)
             _InfoRow(
@@ -673,23 +737,11 @@ class _JobCard extends StatelessWidget {
               // FirebaseMissionRepository.acceptMission() pour le mapping
               // errorCode == kKillSwitchErrorCode.
               child: Text(
-                errorCode == 'acceptance_pending'
-                    ? tr(
-                        'Attribution enregistrée, validation en cours. Réessayez pour consulter son résultat.',
-                        'Assignment saved, validation pending. Retry to check its result.',
-                        'Asignación guardada, validación pendiente. Reintenta para consultar el resultado.',
-                      )
-                    : errorCode == 'offer_decline_failed'
-                    ? tr(
-                        'Le refus n’a pas été enregistré. Réessayez.',
-                        'Your decline was not saved. Please retry.',
-                        'No se guardó el rechazo. Reintenta.',
-                      )
-                    : errorCode == kKillSwitchErrorCode
-                    ? t('service_temporarily_unavailable')
-                    : errorCode!.startsWith('server:')
-                    ? errorCode!.substring('server:'.length)
-                    : t('driver_jobs_accept_error'),
+                driverAcceptFailureText(
+                  errorCode!,
+                  context.read<LocaleProvider>().locale,
+                  t,
+                ),
                 style: const TextStyle(color: AppColors.error, fontSize: 12.5),
               ),
             ),
@@ -763,6 +815,141 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Message shown to the driver when an acceptance is refused. Shared by the
+/// job card and the failure dialog. Known server refusals get a plain
+/// explanation; any other server message is shown as is.
+String driverAcceptFailureText(
+  String code,
+  String locale,
+  String Function(String) t,
+) {
+  String tr(String fr, String en, String es) => locale == 'en'
+      ? en
+      : locale == 'es'
+      ? es
+      : fr;
+  if (code == 'acceptance_pending') {
+    return tr(
+      'Attribution enregistrée, validation en cours. Réessayez pour consulter son résultat.',
+      'Assignment saved, validation pending. Retry to check its result.',
+      'Asignación guardada, validación pendiente. Reintenta para consultar el resultado.',
+    );
+  }
+  if (code == 'offer_decline_failed') {
+    return tr(
+      'Le refus n’a pas été enregistré. Réessayez.',
+      'Your decline was not saved. Please retry.',
+      'No se guardó el rechazo. Reintenta.',
+    );
+  }
+  if (code == kKillSwitchErrorCode) return t('service_temporarily_unavailable');
+  if (!code.startsWith('server:')) return t('driver_jobs_accept_error');
+  final message = code.substring('server:'.length);
+  if (message.startsWith('Autorisation de paiement refusée')) {
+    return tr(
+      'Le paiement du client a été refusé par sa banque. La mission ne vous est pas attribuée et le client est invité à mettre à jour sa carte.',
+      'The customer’s payment was declined by their bank. The mission is not assigned to you and the customer is asked to update their card.',
+      'El banco del cliente rechazó el pago. La misión no se te asigna y se pide al cliente que actualice su tarjeta.',
+    );
+  }
+  if (message.startsWith('Mission annulée')) {
+    return tr(
+      'Le client a annulé sa demande pendant votre acceptation. Rien n’a été débité.',
+      'The customer cancelled the request while you were accepting. Nothing was charged.',
+      'El cliente canceló la solicitud mientras aceptabas. No se cobró nada.',
+    );
+  }
+  if (message.contains('indisponible ou expirée')) {
+    return tr(
+      'Cette offre a expiré avant votre confirmation. La demande a peut-être été proposée à d’autres chauffeurs.',
+      'This offer expired before you confirmed. The request may have been offered to other drivers.',
+      'Esta oferta caducó antes de tu confirmación. La solicitud pudo ofrecerse a otros conductores.',
+    );
+  }
+  if (message.contains('un autre chauffeur') ||
+      message.contains('déjà assignée')) {
+    return t('driver_jobs_accept_error');
+  }
+  return message;
+}
+
+/// Live "offer valid for X min" line, so a driver who opens an offer late
+/// sees how much time is left before confirming.
+class OfferCountdown extends StatefulWidget {
+  const OfferCountdown({
+    super.key,
+    required this.expiresAt,
+    required this.locale,
+  });
+
+  final DateTime expiresAt;
+  final String locale;
+
+  @override
+  State<OfferCountdown> createState() => _OfferCountdownState();
+}
+
+class _OfferCountdownState extends State<OfferCountdown> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+      if (!widget.expiresAt.isAfter(DateTime.now())) _timer?.cancel();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _tr(String fr, String en, String es) => widget.locale == 'en'
+      ? en
+      : widget.locale == 'es'
+      ? es
+      : fr;
+
+  @override
+  Widget build(BuildContext context) {
+    final left = widget.expiresAt.difference(DateTime.now());
+    final expired = left.inSeconds <= 0;
+    final minutes = left.inMinutes;
+    final seconds = left.inSeconds % 60;
+    final text = expired
+        ? _tr(
+            'Cette offre a expiré.',
+            'This offer has expired.',
+            'Esta oferta caducó.',
+          )
+        : '${_tr('Offre valable encore', 'Offer valid for', 'Oferta válida por')} '
+              '${minutes > 0 ? '$minutes min ' : ''}${seconds.toString().padLeft(minutes > 0 ? 2 : 1, '0')} s';
+    final urgent = expired || left.inSeconds < 60;
+    final color = urgent ? AppColors.error : AppColors.textSecondary;
+    return Row(
+      key: const Key('driver-offer-countdown'),
+      children: [
+        Icon(Icons.timer_outlined, size: 15, color: color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: color,
+              fontWeight: urgent ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
