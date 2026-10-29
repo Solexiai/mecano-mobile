@@ -29,6 +29,8 @@ import {
   DRIVER_RESCAN_DEBOUNCE_MS,
   MAX_DISPATCH_ROUNDS,
   NO_DRIVER_AVAILABLE,
+  OFFER_EXPIRY_MS,
+  offerOpenMissionToDriver,
   onDriverBecameAvailableDispatch,
   onMissionCreatedDispatch,
   onMissionReopenedDispatch,
@@ -225,6 +227,72 @@ describe("DISP-01 — dispatch immédiat sans system_config/driver_scheduling", 
     await onDriverBecameAvailableDispatch.run(updatedEvent(offline, onlineAgain, { driverId: DRIVER_A }, ref));
     expect((await missionDoc(id2)).status).toBe(MissionStatuses.SEARCHING_DRIVER);
     expect(await offersOf(id2)).toHaveLength(0);
+  });
+});
+
+describe("2026-10-29 — fenêtre d'offre et chauffeur qui arrive pendant une ronde", () => {
+  it("une offre reste ouverte 10 minutes (et non 45 s)", async () => {
+    const id = PREFIX + "window";
+    await db.doc("delivery_requests/" + id).set(mission(id));
+    await onMissionCreatedDispatch.run(createdEvent(id, await missionDoc(id)));
+    expect(OFFER_EXPIRY_MS).toBe(10 * 60_000);
+    const [offer] = await offersOf(id);
+    const ttl = (offer.expires_at as FirebaseFirestore.Timestamp).toMillis() - (offer.offered_at as FirebaseFirestore.Timestamp).toMillis();
+    expect(ttl).toBe(OFFER_EXPIRY_MS);
+  });
+
+  it("un chauffeur qui passe en ligne pendant une ronde en cours la rejoint (même échéance, une seule fois)", async () => {
+    const id = PREFIX + "join";
+    await db.doc("delivery_requests/" + id).set(mission(id));
+    await onMissionCreatedDispatch.run(createdEvent(id, await missionDoc(id)));
+    const round = await missionDoc(id);
+    expect(round.offered_driver_ids).toEqual([DRIVER_A]);
+
+    // B était hors ligne pendant la ronde ; il passe en ligne.
+    const ref = db.doc("driver_profiles/" + DRIVER_B);
+    const offline = driver(DRIVER_B, { online_status: "offline" });
+    const online = driver(DRIVER_B);
+    await ref.set(online);
+    await onDriverBecameAvailableDispatch.run(updatedEvent(offline, online, { driverId: DRIVER_B }, ref));
+
+    const m = await missionDoc(id);
+    expect(m.status).toBe(MissionStatuses.OFFERED);
+    expect(m.dispatch_round).toBe(1); // la ronde n'est pas recomptée
+    expect(m.offered_driver_ids).toEqual(expect.arrayContaining([DRIVER_A, DRIVER_B]));
+    const offerB = (await offersOf(id)).filter((o) => o.driver_id === DRIVER_B);
+    expect(offerB).toHaveLength(1);
+    expect((offerB[0].expires_at as FirebaseFirestore.Timestamp).toMillis())
+      .toBe((round.offered_until as FirebaseFirestore.Timestamp).toMillis());
+    const notif = await db.doc(`users/${DRIVER_B}/notifications/delivery_offer_${id}`).get();
+    expect(notif.data()).toMatchObject({ type: "delivery_offer", is_read: false, related_mission_id: id });
+
+    // Rejoué (trigger at-least-once) : aucune offre en double.
+    expect(await offerOpenMissionToDriver(id, DRIVER_B)).toBe(false);
+    expect((await offersOf(id)).filter((o) => o.driver_id === DRIVER_B)).toHaveLength(1);
+  });
+
+  it("ne rejoint pas : chauffeur hors zone, refus antérieur, ronde échue", async () => {
+    const id = PREFIX + "nojoin";
+    await db.doc("delivery_requests/" + id).set(mission(id));
+    await onMissionCreatedDispatch.run(createdEvent(id, await missionDoc(id)));
+
+    // Hors zone (Montréal, case geohash différente).
+    await db.doc("driver_profiles/" + DRIVER_B).set(driver(DRIVER_B, { current_geohash: "f2mdv" }));
+    expect(await offerOpenMissionToDriver(id, DRIVER_B)).toBe(false);
+
+    // Refus antérieur.
+    await db.doc("driver_profiles/" + DRIVER_B).set(driver(DRIVER_B));
+    await db.collection("delivery_offers").doc(PREFIX + "declined_b").set({
+      mission_id: id, driver_id: DRIVER_B, status: "declined", offered_at: admin.firestore.Timestamp.now(),
+      expires_at: admin.firestore.Timestamp.now(),
+    });
+    expect(await offerOpenMissionToDriver(id, DRIVER_B)).toBe(false);
+    await db.doc("delivery_offers/" + PREFIX + "declined_b").delete();
+
+    // Ronde échue.
+    await db.doc("delivery_requests/" + id).update({ offered_until: admin.firestore.Timestamp.fromMillis(Date.now() - 1000) });
+    expect(await offerOpenMissionToDriver(id, DRIVER_B)).toBe(false);
+    expect((await offersOf(id)).filter((o) => o.driver_id === DRIVER_B)).toHaveLength(0);
   });
 });
 
