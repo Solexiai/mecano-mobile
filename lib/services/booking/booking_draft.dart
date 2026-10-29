@@ -102,9 +102,33 @@ class BookingDraft {
     }
   }
 
-  bool get expired =>
-      DateTime.now().millisecondsSinceEpoch - (data['created'] as num) >=
-      const Duration(hours: 24).inMilliseconds;
+  /// Reçu de confirmation (2026-10-29) : après `createDeliveryRequest`, le
+  /// brouillon est remplacé par un petit reçu `{missionId, receipt_at}` pour
+  /// survivre à un rafraîchissement. Il ne doit pas réapparaître des heures
+  /// plus tard quand le client revient sur « Obtenir mon prix » : sa durée
+  /// de vie est courte, le suivi reste accessible depuis l'espace client.
+  static const receiptLifetime = Duration(minutes: 30);
+
+  static BookingDraft receipt(Object? missionId) => BookingDraft()
+    ..data['missionId'] = missionId
+    ..data['receipt_at'] = DateTime.now().millisecondsSinceEpoch;
+
+  bool get isReceipt => data['missionId'] != null;
+
+  bool get expired {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - (data['created'] as num) >=
+        const Duration(hours: 24).inMilliseconds) {
+      return true;
+    }
+    if (isReceipt) {
+      final at = data['receipt_at'];
+      // Reçu d'une version précédente (sans horodatage) : on ne le garde pas.
+      if (at is! num) return true;
+      return now - at >= receiptLifetime.inMilliseconds;
+    }
+    return false;
+  }
 }
 
 /// Guest data stays in this browser tab. A short-lived explicit handoff is

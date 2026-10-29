@@ -183,6 +183,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     } catch (_) {
       /* Storage may be disabled by the browser. */
     }
+    if (restored != null && restored.expired) {
+      // Reçu de confirmation périmé : nouvelle demande vierge.
+      restored = null;
+      try {
+        await _storage.clear(_uid);
+      } catch (_) {
+        /* Storage may be disabled by the browser. */
+      }
+    }
     if (restored == null) {
       try {
         final legacy = await DeliveryRequestDraft.load(uid: _uid);
@@ -308,6 +317,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             _draft.data['quote'] = official;
             if (official['missionId'] != null) {
               _draft.data['missionId'] = official['missionId'];
+              _draft.data['receipt_at'] ??=
+                  DateTime.now().millisecondsSinceEpoch;
             }
           });
           await _refreshCard();
@@ -782,7 +793,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     }
     final oldId = _draft.id;
     setState(() {
-      _draft = BookingDraft()..data['missionId'] = result['missionId'];
+      _draft = BookingDraft.receipt(result['missionId']);
     });
     await _persistLocal();
     await _api.call('clearBookingDraft', {'draftId': oldId});
@@ -818,7 +829,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     // Keep a small receipt locally for refresh/retry, clear personal data.
     final missionId = result['missionId'];
     final oldId = _draft.id;
-    _draft = BookingDraft()..data['missionId'] = missionId;
+    _draft = BookingDraft.receipt(missionId);
     await _persistLocal();
     await _api.call('clearBookingDraft', {'draftId': oldId});
   }
