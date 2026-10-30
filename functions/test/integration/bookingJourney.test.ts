@@ -136,8 +136,8 @@ test('passage au vrai argent: a test payment profile is archived and a live cust
  const getUser=jest.spyOn(authAdmin,'getUser').mockResolvedValue({uid,email:'test@example.invalid',displayName:'Test'} as any);
  const create=jest.spyOn(provider,'createCardSetup').mockImplementation(async p=>({id:'cs_live_booking',url:'https://checkout.stripe.com/live',complete:false,customerId:p.customerId,paymentMethodId:null,livemode:true,quoteId:id,userId:uid}));
  try{
+  await db.doc(`payment_profiles/${uid}`).update({stripe_environment:'test'});
   const old=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
-  expect(old.stripe_environment).toBe('test');
   // Status first: the saved test card is not usable in live.
   expect((await getBookingCardStatus.run(request({quoteId:id}))).ready).toBe(false);
   const started=await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));

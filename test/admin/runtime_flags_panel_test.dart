@@ -29,6 +29,10 @@ Future<Map<String, dynamic>> _stripe(Map<String, dynamic> _) async => {
 
 void main() {
   testWidgets('all closed banner, confirm dialog, then the function is called with one flag', (t) async {
+    t.view.physicalSize = const Size(1200, 2000);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
     final api = _Api();
     await t.pumpWidget(MaterialApp(home: Scaffold(body: RuntimeFlagsPanel(api: api, stripeApi: _stripe))));
     await t.pumpAndSettle();
