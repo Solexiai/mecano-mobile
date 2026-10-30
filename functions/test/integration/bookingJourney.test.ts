@@ -134,7 +134,9 @@ test('expired photo cleanup is isolated by account and retries a temporary Stora
 test('passage au vrai argent: a test payment profile is archived and a live customer is created; the card is asked again',async()=>{
  const provider=new FakeLivePaymentProvider();setPaymentProviderForTesting(provider);
  const getUser=jest.spyOn(authAdmin,'getUser').mockResolvedValue({uid,email:'test@example.invalid',displayName:'Test'} as any);
- const create=jest.spyOn(provider,'createCardSetup').mockImplementation(async p=>({id:'cs_live_booking',url:'https://checkout.stripe.com/live',complete:false,customerId:p.customerId,paymentMethodId:null,livemode:true,quoteId:id,userId:uid}));
+ const session=(customerId:string)=>({id:'cs_live_booking',url:'https://checkout.stripe.com/live',complete:false,customerId,paymentMethodId:null,livemode:true,quoteId:id,userId:uid});
+ const create=jest.spyOn(provider,'createCardSetup').mockImplementation(async p=>session(p.customerId));
+ const retrieve=jest.spyOn(provider,'getCardSetup').mockImplementation(async()=>session(`fake_cus_${uid}`));
  try{
   await db.doc(`payment_profiles/${uid}`).update({stripe_environment:'test'});
   const old=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
@@ -154,5 +156,5 @@ test('passage au vrai argent: a test payment profile is archived and a live cust
   await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
   expect((await db.doc(`payment_profiles/${uid}`).get()).data()!.provider_customer_id).toBe(fresh.provider_customer_id);
   expect((await db.collection(`payment_profiles/${uid}/archived`).get()).size).toBe(1);
- }finally{getUser.mockRestore();await db.recursiveDelete(db.doc(`payment_profiles/${uid}`));}
+ }finally{getUser.mockRestore();create.mockRestore();retrieve.mockRestore();await db.recursiveDelete(db.doc(`payment_profiles/${uid}`));}
 });
