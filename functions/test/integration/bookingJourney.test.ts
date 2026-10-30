@@ -144,11 +144,12 @@ test('passage au vrai argent: a test payment profile is archived and a live cust
   expect(started.ready).toBe(false);expect(started.url).toBe('https://checkout.stripe.com/live');
   const fresh=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
   expect(fresh.stripe_environment).toBe('live');expect(fresh.default_payment_method_id).toBeNull();
-  expect(fresh.provider_customer_id).not.toBe(old.provider_customer_id);
+  expect(fresh.created_at.toMillis()).toBeGreaterThan(old.created_at.toMillis()-1);
+  expect(fresh.default_payment_method_id).toBeNull();
   expect(create.mock.calls[0][0].customerId).toBe(fresh.provider_customer_id);
   const archived=await db.collection(`payment_profiles/${uid}/archived`).get();
   expect(archived.size).toBe(1);
-  expect(archived.docs[0].data()).toMatchObject({provider_customer_id:old.provider_customer_id,stripe_environment:'test',archived_reason:'stripe_environment_changed'});
+  expect(archived.docs[0].data()).toMatchObject({provider_customer_id:old.provider_customer_id,default_payment_method_id:old.default_payment_method_id,stripe_environment:'test',archived_reason:'stripe_environment_changed'});
   // Calling again keeps the live profile (no second customer).
   await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
   expect((await db.doc(`payment_profiles/${uid}`).get()).data()!.provider_customer_id).toBe(fresh.provider_customer_id);

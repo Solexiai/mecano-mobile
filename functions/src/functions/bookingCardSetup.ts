@@ -56,7 +56,6 @@ export const startBookingCardSetup = onCall(options, async request => {
   // (owner decision 2026-10-22); the card is only authorized at acceptance.
   if (!(locked.pricingSnapshot?.booking || locked.pricingSnapshot?.pre_assignment) || quote.is_consumed || quote.status === 'cancelled' || quote.expires_at.toMillis() <= Date.now()) throw failedPrecondition('Recalculez le devis avant d’enregistrer votre carte.');
   const provider = getPaymentProvider();
-  const profileRef = db.doc(`payment_profiles/${ctx.uid}`);
   const profile = await ensurePaymentProfile(ctx.uid, provider);
   if (profile.stripe_environment !== provider.environment) throw failedPrecondition('Le profil de paiement appartient à un autre environnement.');
   if (profile.default_payment_method_id && request.data.replace !== true) return { ready: true, url: null };
