@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,10 +11,31 @@ import '../../../../widgets/internal_test_mission_banner.dart';
 import 'admin_mission_assignment_dialog.dart';
 import 'admin_mission_failure_review.dart';
 
-enum AdminMissionFilter { all, active, completed, unassigned }
+enum AdminMissionFilter { all, active, completed, unassigned, cancelled }
 
 bool adminMissionAwaitingAssignment(MissionStatus status) =>
     status == MissionStatus.searchingDriver || status == MissionStatus.offered;
+
+/// Same lists as the server (functions/src/functions/adminMissionActions.ts).
+const adminCancellableStatuses = {
+  MissionStatus.draft,
+  MissionStatus.quoted,
+  MissionStatus.searchingDriver,
+  MissionStatus.offered,
+  MissionStatus.assigned,
+  MissionStatus.driverToPickup,
+  MissionStatus.arrivedAtPickup,
+  MissionStatus.pickedUp,
+  MissionStatus.inTransit,
+  MissionStatus.arrivedAtDropoff,
+  MissionStatus.paymentFailed,
+};
+const adminDeletableStatuses = {
+  MissionStatus.cancelled,
+  MissionStatus.completed,
+  MissionStatus.refunded,
+  MissionStatus.paymentFailed,
+};
 
 class AdminMissionsScreen extends StatefulWidget {
   const AdminMissionsScreen({super.key, this.initialFilter = 'active'});
@@ -42,6 +64,7 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
       'unassigned' => AdminMissionFilter.unassigned,
       'completed' => AdminMissionFilter.completed,
       'all' => AdminMissionFilter.all,
+      'cancelled' => AdminMissionFilter.cancelled,
       _ => AdminMissionFilter.active,
     };
   }
@@ -70,6 +93,9 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
           }
           final missions =
               snapshot.data!.docs
+                  // « Effacée » par un admin : gardée pour la comptabilité,
+                  // retirée des listes.
+                  .where((d) => d.data()['admin_archived'] != true)
                   .map((d) => DeliveryMission.fromJson(d.id, d.data()))
                   .where(_matches)
                   .toList()
@@ -90,6 +116,10 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
                   _chip(
                     AdminMissionFilter.completed,
                     fr ? 'Terminées' : 'Completed',
+                  ),
+                  _chip(
+                    AdminMissionFilter.cancelled,
+                    fr ? 'Annulées' : 'Cancelled',
                   ),
                 ],
               ),
@@ -130,6 +160,9 @@ class _AdminMissionsScreenState extends State<AdminMissionsScreen> {
     AdminMissionFilter.completed =>
       mission.status == MissionStatus.completed ||
           mission.status == MissionStatus.delivered,
+    AdminMissionFilter.cancelled =>
+      mission.status == MissionStatus.cancelled ||
+          mission.status == MissionStatus.paymentFailed,
   };
 
   Widget _chip(AdminMissionFilter value, String label) => ChoiceChip(
@@ -199,6 +232,7 @@ class _MissionCard extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
+                  key: ValueKey('admin-assign-${mission.id}'),
                   onPressed: () => showAdminMissionAssignmentDialog(
                     context,
                     mission: mission,
@@ -211,9 +245,167 @@ class _MissionCard extends StatelessWidget {
                 ),
               ),
             ),
+          if (adminCancellableStatuses.contains(mission.status))
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: ValueKey('admin-cancel-${mission.id}'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                  onPressed: () => _confirmCancel(context),
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: Text(
+                    isFrench ? 'Annuler la mission' : 'Cancel the job',
+                  ),
+                ),
+              ),
+            ),
+          if (adminDeletableStatuses.contains(mission.status))
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  key: ValueKey('admin-delete-${mission.id}'),
+                  onPressed: () => _confirmDelete(context),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(isFrench ? 'Effacer' : 'Delete'),
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  String _tr(String fr, String en) => isFrench ? fr : en;
+
+  Future<void> _confirmCancel(BuildContext context) async {
+    final note = TextEditingController();
+    final assigned = mission.driverId != null;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const Key('admin-cancel-dialog'),
+        title: Text(_tr('Annuler cette mission ?', 'Cancel this job?')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _tr(
+                'Le client ne paie rien : l’autorisation sur sa carte est libérée. Il voit « Movi-K a annulé cette demande ».',
+                'The customer pays nothing: the card hold is released. They see “Movi-K cancelled this request”.',
+              ),
+            ),
+            if (assigned) ...[
+              const SizedBox(height: 8),
+              Text(
+                _tr(
+                  'Le chauffeur assigné est libéré et repasse en ligne.',
+                  'The assigned driver is released and back online.',
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: note,
+              maxLength: 500,
+              decoration: InputDecoration(
+                labelText: _tr(
+                  'Raison (interne, facultative)',
+                  'Reason (internal, optional)',
+                ),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_tr('Retour', 'Back')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr('Annuler la mission', 'Cancel the job')),
+          ),
+        ],
+      ),
+    );
+    final reason = note.text.trim();
+    note.dispose();
+    if (confirmed != true || !context.mounted) return;
+    await _run(
+      context,
+      {'action': 'cancel', 'missionId': mission.id, 'reason': reason},
+      _tr('Mission annulée.', 'Job cancelled.'),
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const Key('admin-delete-dialog'),
+        title: Text(_tr('Effacer cette mission ?', 'Delete this job?')),
+        content: Text(
+          _tr(
+            'Elle disparaît des listes de l’admin. Son dossier est conservé (paiements, reçus, comptabilité).',
+            'It disappears from the admin lists. Its record is kept (payments, receipts, accounting).',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_tr('Retour', 'Back')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_tr('Effacer', 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await _run(
+      context,
+      {'action': 'delete', 'missionId': mission.id},
+      _tr('Mission effacée.', 'Job deleted.'),
+    );
+  }
+
+  Future<void> _run(
+    BuildContext context,
+    Map<String, dynamic> data,
+    String done,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await FirebaseFunctions.instance
+          .httpsCallable('adminMissionActions')
+          .call(data);
+      messenger.showSnackBar(SnackBar(content: Text(done)));
+    } on FirebaseFunctionsException catch (error) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? _tr('Action impossible.', 'Action failed.')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(_tr('Action impossible.', 'Action failed.')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Widget _line(IconData icon, String text) => Padding(
@@ -238,6 +430,10 @@ class _MissionCard extends StatelessWidget {
       MissionStatus.arrivedAtDropoff: 'Arrivé à destination',
       MissionStatus.delivered: 'Livrée',
       MissionStatus.completed: 'Terminée',
+      MissionStatus.cancelled: 'Annulée',
+      MissionStatus.paymentFailed: 'Paiement refusé',
+      MissionStatus.refunded: 'Remboursée',
+      MissionStatus.disputed: 'Litige',
     };
     if (fr) return frLabels[status] ?? status.firestoreValue;
     return status.firestoreValue.replaceAll('_', ' ');
