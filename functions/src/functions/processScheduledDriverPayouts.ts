@@ -26,6 +26,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { admin, db } from "../lib/admin";
 import { writeAuditLog } from "../lib/audit";
 import { DriverPayoutDoc, DriverProfileDoc, PayoutModes, PayoutStatuses } from "../lib/types";
+import { driverConnectedAccountFor } from "../lib/stripeAccounts";
 import { readPayoutMode } from "../lib/payoutMode";
 import { submitDriverPayout } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
@@ -86,10 +87,15 @@ export const processScheduledDriverPayouts = onSchedule(
         // (peut avoir été complété après la création du payout).
         const driverSnap = await db.collection("driver_profiles").doc(payout.driver_id).get();
         const driver = driverSnap.data() as DriverProfileDoc | undefined;
-        if (driver?.stripe_connected_account_id) {
+        // The payout keeps its own environment tag; only an account of that
+        // environment can receive it (2026-10-30).
+        const refreshedAccountId = payout.stripe_environment
+          ? driverConnectedAccountFor(driver, payout.stripe_environment)
+          : null;
+        if (refreshedAccountId) {
           await docSnap.ref.update({
             status: PayoutStatuses.ELIGIBLE,
-            connected_account_id: driver.stripe_connected_account_id,
+            connected_account_id: refreshedAccountId,
           });
           promotedPayoutIds.push(docSnap.id);
         }

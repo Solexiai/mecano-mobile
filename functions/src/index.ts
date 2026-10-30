@@ -30,6 +30,7 @@ export { getPaymentReceipt } from "./functions/getPaymentReceipt";
 export { adminItemTypes } from "./functions/adminItemTypes";
 export { adminServiceSettings } from "./functions/adminServiceSettings";
 export { adminSpecialConditions } from "./functions/adminSpecialConditions";
+export { adminStripeEnvironment } from "./functions/adminStripeEnvironment";
 export { adminMissionActions } from "./functions/adminMissionActions";
 export { completeDelivery } from "./functions/completeDelivery";
 export { updateMissionTrackingStatus } from "./functions/updateMissionTrackingStatus";

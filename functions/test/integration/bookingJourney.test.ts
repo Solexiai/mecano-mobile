@@ -1,9 +1,9 @@
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 import { startBookingCardSetup, getBookingCardStatus } from '../../src/functions/bookingCardSetup';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
-import { FakePaymentProvider } from '../testUtils/fakePaymentProvider';
+import { FakePaymentProvider, FakeLivePaymentProvider } from '../testUtils/fakePaymentProvider';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import { admin, db } from '../../src/lib/admin';
+import { admin, authAdmin, db } from '../../src/lib/admin';
 import { normalizeLoad } from '../../src/lib/booking';
 import { findCompatibleVehicle } from '../../src/lib/bookingServer';
 import { createDeliveryRequest } from '../../src/functions/createDeliveryRequest';
@@ -129,4 +129,29 @@ test('expired photo cleanup is isolated by account and retries a temporary Stora
  } finally {
   bucket.mockRestore();await otherGrant.delete();await db.doc(`booking_photo_grants/${uid}_cleanup-test`).delete();
  }
+});
+
+test('passage au vrai argent: a test payment profile is archived and a live customer is created; the card is asked again',async()=>{
+ const provider=new FakeLivePaymentProvider();setPaymentProviderForTesting(provider);
+ const getUser=jest.spyOn(authAdmin,'getUser').mockResolvedValue({uid,email:'test@example.invalid',displayName:'Test'} as any);
+ const create=jest.spyOn(provider,'createCardSetup').mockImplementation(async p=>({id:'cs_live_booking',url:'https://checkout.stripe.com/live',complete:false,customerId:p.customerId,paymentMethodId:null,livemode:true,quoteId:id,userId:uid}));
+ try{
+  const old=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
+  expect(old.stripe_environment).toBe('test');
+  // Status first: the saved test card is not usable in live.
+  expect((await getBookingCardStatus.run(request({quoteId:id}))).ready).toBe(false);
+  const started=await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
+  expect(started.ready).toBe(false);expect(started.url).toBe('https://checkout.stripe.com/live');
+  const fresh=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
+  expect(fresh.stripe_environment).toBe('live');expect(fresh.default_payment_method_id).toBeNull();
+  expect(fresh.provider_customer_id).not.toBe(old.provider_customer_id);
+  expect(create.mock.calls[0][0].customerId).toBe(fresh.provider_customer_id);
+  const archived=await db.collection(`payment_profiles/${uid}/archived`).get();
+  expect(archived.size).toBe(1);
+  expect(archived.docs[0].data()).toMatchObject({provider_customer_id:old.provider_customer_id,stripe_environment:'test',archived_reason:'stripe_environment_changed'});
+  // Calling again keeps the live profile (no second customer).
+  await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
+  expect((await db.doc(`payment_profiles/${uid}`).get()).data()!.provider_customer_id).toBe(fresh.provider_customer_id);
+  expect((await db.collection(`payment_profiles/${uid}/archived`).get()).size).toBe(1);
+ }finally{getUser.mockRestore();await db.recursiveDelete(db.doc(`payment_profiles/${uid}`));}
 });

@@ -14,6 +14,7 @@ import { admin, authAdmin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, internal, permissionDenied } from "../lib/errors";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
+import { isDriverAccountStale, storedAccountEnvironment } from "../lib/stripeAccounts";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { DriverProfileDoc, DriverStatuses, PlatformRoles } from "../lib/types";
 
@@ -33,7 +34,11 @@ export const createDriverStripeAccount = onCall(
     if (!driver || driver.status !== DriverStatuses.APPROVED) {
       throw failedPrecondition("Votre dossier chauffeur doit d'abord être approuvé par Movi-K.");
     }
-    if (driver.stripe_connected_account_id) {
+    const provider = getPaymentProvider();
+    // Passage au vrai argent (2026-10-30): an account of another environment
+    // is archived below and a new one is created in the active one.
+    const stale = isDriverAccountStale(driver, provider.environment);
+    if (driver.stripe_connected_account_id && !stale) {
       const accountId = driver.stripe_connected_account_id;
       if (driver.stripe_charges_enabled === true && driver.stripe_payouts_enabled === true) {
         return { success: true, connectedAccountId: accountId, onboardingUrl: null, alreadyExisted: true, active: true };
@@ -41,7 +46,6 @@ export const createDriverStripeAccount = onCall(
       // Stripe onboarding links expire after a few minutes and work once:
       // never hand back the stored one, always make a fresh link so a driver
       // who stopped halfway can resume (2026-10-23).
-      const provider = getPaymentProvider();
       let freshUrl: string | null;
       try {
         freshUrl = await provider.createDriverOnboardingLink(accountId);
@@ -57,7 +61,6 @@ export const createDriverStripeAccount = onCall(
     const userRecord = await authAdmin.getUser(ctx.uid).catch(() => null);
     const email = userRecord?.email ?? `${ctx.uid}@no-email.movik.ca`;
 
-    const provider = getPaymentProvider();
     let created;
     try {
       created = await provider.createDriverAccount({ driverId: ctx.uid, email, country: "CA" });
@@ -72,9 +75,20 @@ export const createDriverStripeAccount = onCall(
     await driverRef.set(
       {
         stripe_connected_account_id: created.connectedAccountId,
+        stripe_connected_account_environment: provider.environment,
         stripe_onboarding_url: created.onboardingUrl,
         stripe_charges_enabled: false,
         stripe_payouts_enabled: false,
+        ...(stale
+          ? {
+              stripe_previous_accounts: admin.firestore.FieldValue.arrayUnion({
+                account_id: driver.stripe_connected_account_id,
+                environment: storedAccountEnvironment(driver),
+                archived_at: admin.firestore.Timestamp.now(),
+                archived_by: "driver",
+              }),
+            }
+          : {}),
         updated_at: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }

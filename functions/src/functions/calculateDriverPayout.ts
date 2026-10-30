@@ -59,6 +59,7 @@ import {
 import { readPayoutPolicyConfig, resolveHoldPeriodHours } from "./updatePayoutPolicyConfiguration";
 import { submitDriverPayout } from "../payment/paymentOrchestration";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
+import { driverConnectedAccountFor } from "../lib/stripeAccounts";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 export interface CalculateDriverPayoutRequest {
@@ -139,7 +140,6 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(
 
   const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
   const driver = driverSnap.data() as DriverProfileDoc | undefined;
-  const connectedAccountId = driver?.stripe_connected_account_id ?? null;
 
   // 🔒 Phase 8B (item f) — `provider` obtenu ICI, AVANT la transaction de
   // création : ce NOUVEAU DriverPayoutDoc doit être tagué avec
@@ -149,6 +149,7 @@ export const calculateDriverPayout = onCall<CalculateDriverPayoutRequest>(
   // `submitDriverPayout()` (paymentOrchestration.ts) à chaque soumission
   // réelle de ce payout.
   const provider = getPaymentProvider();
+  const connectedAccountId = driverConnectedAccountFor(driver, provider.environment);
 
   const policy = await readPayoutPolicyConfig();
   const holdPeriodHours = resolveHoldPeriodHours(policy, driver);
