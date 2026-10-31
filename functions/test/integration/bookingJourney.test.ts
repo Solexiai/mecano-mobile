@@ -1,9 +1,9 @@
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 import { startBookingCardSetup, getBookingCardStatus } from '../../src/functions/bookingCardSetup';
 import { setPaymentProviderForTesting } from '../../src/payment/paymentProviderFactory';
-import { FakePaymentProvider } from '../testUtils/fakePaymentProvider';
+import { FakePaymentProvider, FakeLivePaymentProvider } from '../testUtils/fakePaymentProvider';
 import type { CallableRequest } from 'firebase-functions/v2/https';
-import { admin, db } from '../../src/lib/admin';
+import { admin, authAdmin, db } from '../../src/lib/admin';
 import { normalizeLoad } from '../../src/lib/booking';
 import { findCompatibleVehicle } from '../../src/lib/bookingServer';
 import { createDeliveryRequest } from '../../src/functions/createDeliveryRequest';
@@ -129,4 +129,32 @@ test('expired photo cleanup is isolated by account and retries a temporary Stora
  } finally {
   bucket.mockRestore();await otherGrant.delete();await db.doc(`booking_photo_grants/${uid}_cleanup-test`).delete();
  }
+});
+
+test('passage au vrai argent: a test payment profile is archived and a live customer is created; the card is asked again',async()=>{
+ const provider=new FakeLivePaymentProvider();setPaymentProviderForTesting(provider);
+ const getUser=jest.spyOn(authAdmin,'getUser').mockResolvedValue({uid,email:'test@example.invalid',displayName:'Test'} as any);
+ const session=(customerId:string)=>({id:'cs_live_booking',url:'https://checkout.stripe.com/live',complete:false,customerId,paymentMethodId:null,livemode:true,quoteId:id,userId:uid});
+ const create=jest.spyOn(provider,'createCardSetup').mockImplementation(async p=>session(p.customerId));
+ const retrieve=jest.spyOn(provider,'getCardSetup').mockImplementation(async()=>session(`fake_cus_${uid}`));
+ try{
+  await db.doc(`payment_profiles/${uid}`).update({stripe_environment:'test'});
+  const old=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
+  // Status first: the saved test card is not usable in live.
+  expect((await getBookingCardStatus.run(request({quoteId:id}))).ready).toBe(false);
+  const started=await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
+  expect(started.ready).toBe(false);expect(started.url).toBe('https://checkout.stripe.com/live');
+  const fresh=(await db.doc(`payment_profiles/${uid}`).get()).data()!;
+  expect(fresh.stripe_environment).toBe('live');expect(fresh.default_payment_method_id).toBeNull();
+  expect(fresh.created_at.toMillis()).toBeGreaterThan(old.created_at.toMillis()-1);
+  expect(fresh.default_payment_method_id).toBeNull();
+  expect(create.mock.calls[0][0].customerId).toBe(fresh.provider_customer_id);
+  const archived=await db.collection(`payment_profiles/${uid}/archived`).get();
+  expect(archived.size).toBe(1);
+  expect(archived.docs[0].data()).toMatchObject({provider_customer_id:old.provider_customer_id,default_payment_method_id:old.default_payment_method_id,stripe_environment:'test',archived_reason:'stripe_environment_changed'});
+  // Calling again keeps the live profile (no second customer).
+  await startBookingCardSetup.run(request({quoteId:id,consent:testBookingConsent(),locale:'fr'}));
+  expect((await db.doc(`payment_profiles/${uid}`).get()).data()!.provider_customer_id).toBe(fresh.provider_customer_id);
+  expect((await db.collection(`payment_profiles/${uid}/archived`).get()).size).toBe(1);
+ }finally{getUser.mockRestore();create.mockRestore();retrieve.mockRestore();await db.recursiveDelete(db.doc(`payment_profiles/${uid}`));}
 });

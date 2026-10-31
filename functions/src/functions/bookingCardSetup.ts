@@ -15,6 +15,34 @@ function quoteId(value: unknown): string {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(value)) throw invalidArgument('Devis invalide.');
   return value;
 }
+/**
+ * The customer's payment profile in the ACTIVE Stripe environment. Passage au
+ * vrai argent (2026-10-30): a profile of another environment (a test
+ * customer once live is active) is archived under `archived/` and a new
+ * Stripe customer is created; the customer simply enters a card again. The
+ * old profile is never reused (fail closed, see stripeEnvironment.ts).
+ */
+async function ensurePaymentProfile(uid: string, provider: ReturnType<typeof getPaymentProvider>): Promise<FirebaseFirestore.DocumentData> {
+  const profileRef = db.doc(`payment_profiles/${uid}`);
+  const existing = (await profileRef.get()).data();
+  if (existing && existing.stripe_environment === provider.environment) return existing;
+  const user = await authAdmin.getUser(uid);
+  const customer = await provider.createCustomer({ userId: uid, email: user.email ?? `${uid}@no-email.movik.ca`, displayName: user.displayName ?? 'Client Movi-K' });
+  return db.runTransaction(async tx => {
+    const current = (await tx.get(profileRef)).data();
+    if (current && current.stripe_environment === provider.environment) return current;
+    const now = admin.firestore.Timestamp.now();
+    if (current) {
+      tx.set(profileRef.collection('archived').doc(`${current.stripe_environment ?? 'untagged'}_${now.toMillis()}`),
+        { ...current, archived_at: now, archived_reason: 'stripe_environment_changed', archived_from_environment: current.stripe_environment ?? null });
+    }
+    const created = { customer_id: uid, provider: 'stripe', provider_customer_id: customer.providerCustomerId,
+      default_payment_method_id: null, stripe_environment: provider.environment,
+      created_at: now, updated_at: now };
+    tx.set(profileRef, created); return created;
+  });
+}
+
 export const startBookingCardSetup = onCall(options, async request => {
   const ctx = requireSignedIn(request); const id = quoteId(request.data.quoteId);
   const policy = await getBookingPolicy();
@@ -28,19 +56,7 @@ export const startBookingCardSetup = onCall(options, async request => {
   // (owner decision 2026-10-22); the card is only authorized at acceptance.
   if (!(locked.pricingSnapshot?.booking || locked.pricingSnapshot?.pre_assignment) || quote.is_consumed || quote.status === 'cancelled' || quote.expires_at.toMillis() <= Date.now()) throw failedPrecondition('Recalculez le devis avant d’enregistrer votre carte.');
   const provider = getPaymentProvider();
-  const profileRef = db.doc(`payment_profiles/${ctx.uid}`);
-  let profile = (await profileRef.get()).data();
-  if (!profile) {
-    const user = await authAdmin.getUser(ctx.uid);
-    const customer = await provider.createCustomer({ userId: ctx.uid, email: user.email ?? `${ctx.uid}@no-email.movik.ca`, displayName: user.displayName ?? 'Client Movi-K' });
-    profile = await db.runTransaction(async tx => {
-      const current = (await tx.get(profileRef)).data(); if (current) return current;
-      const created = { customer_id: ctx.uid, provider: 'stripe', provider_customer_id: customer.providerCustomerId,
-        default_payment_method_id: null, stripe_environment: provider.environment,
-        created_at: admin.firestore.Timestamp.now(), updated_at: admin.firestore.Timestamp.now() };
-      tx.set(profileRef, created); return created;
-    });
-  }
+  const profile = await ensurePaymentProfile(ctx.uid, provider);
   if (profile.stripe_environment !== provider.environment) throw failedPrecondition('Le profil de paiement appartient à un autre environnement.');
   if (profile.default_payment_method_id && request.data.replace !== true) return { ready: true, url: null };
   const ref = db.doc(`booking_payment_setups/${id}`);
@@ -49,7 +65,7 @@ export const startBookingCardSetup = onCall(options, async request => {
     const locale = ['fr','en','es'].includes(request.data.locale) ? request.data.locale : 'fr';
     const base = new URL(APP_PUBLIC_BASE_URL.value());
     if (base.protocol !== 'https:' || base.username || base.password || base.search || base.hash) throw failedPrecondition('Le domaine de retour de paiement doit être configuré en HTTPS.');
-    const row = { user_id: ctx.uid, quote_id: id, customer_id: profile!.provider_customer_id,
+    const row = { user_id: ctx.uid, quote_id: id, customer_id: profile.provider_customer_id,
       stripe_environment: provider.environment, locale,
       return_url: `${base.origin}/${locale}/livraison/demande`, created_at: admin.firestore.Timestamp.now() };
     tx.create(ref, row); return row;

@@ -13,6 +13,7 @@ import 'conditions_panel.dart';
 import 'price_simulator.dart';
 import 'runtime_flags_panel.dart';
 import 'service_settings_panel.dart';
+import 'stripe_environment_card.dart';
 import 'share_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
@@ -35,6 +36,7 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.serviceApi,
     this.conditionsApi,
     this.runtimeFlagsApi,
+    this.stripeEnvironmentApi,
     this.canEditRuntimeFlags = true,
     this.loadActive,
     this.preview,
@@ -49,6 +51,7 @@ class AdminCommandCenterScreen extends StatefulWidget {
 
   /// ADM-02 : interrupteurs d'urgence (test seam + droit d'écriture).
   final RuntimeFlagsApi? runtimeFlagsApi;
+  final StripeEnvironmentApi? stripeEnvironmentApi;
   final bool canEditRuntimeFlags;
 
   /// Test seams for the simulator (active grid, server preview).
@@ -119,7 +122,11 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           preview: widget.preview,
         ),
         ConditionsPanel(api: widget.conditionsApi),
-        RuntimeFlagsPanel(api: widget.runtimeFlagsApi, canEdit: widget.canEditRuntimeFlags),
+        RuntimeFlagsPanel(
+          api: widget.runtimeFlagsApi,
+          stripeApi: widget.stripeEnvironmentApi,
+          canEdit: widget.canEditRuntimeFlags,
+        ),
       ],
     ),
   );

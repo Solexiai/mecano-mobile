@@ -7,6 +7,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/app_colors.dart';
+import 'stripe_environment_card.dart';
 
 /// Les 4 clés serveur, dans l'ordre d'affichage. Alignées sur
 /// `ALL_RUNTIME_FLAG_KEYS` (functions/src/lib/runtimeFlags.ts).
@@ -45,8 +46,11 @@ class FirebaseRuntimeFlagsApi implements RuntimeFlagsApi {
 }
 
 class RuntimeFlagsPanel extends StatefulWidget {
-  const RuntimeFlagsPanel({super.key, this.api, this.canEdit = true});
+  const RuntimeFlagsPanel({super.key, this.api, this.canEdit = true, this.stripeApi});
   final RuntimeFlagsApi? api;
+
+  /// Test seam for the « Paiements Stripe » card (adminStripeEnvironment).
+  final StripeEnvironmentApi? stripeApi;
 
   /// Analyste : lecture seule (le serveur refuserait de toute façon).
   final bool canEdit;
@@ -145,6 +149,7 @@ class _RuntimeFlagsPanelState extends State<RuntimeFlagsPanel> {
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 12),
+              StripeEnvironmentCard(api: widget.stripeApi, canEdit: widget.canEdit),
               if (snapshot.hasError)
                 Text(
                   'Lecture impossible (réservée aux administrateurs).',

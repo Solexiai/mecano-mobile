@@ -40,6 +40,8 @@ import {
 import { createAndAuthorizeMissionPayment } from "../payment/paymentOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { RuntimeFlagKeys, isRuntimeFlagEnabledFor, killSwitchRefusal } from "../lib/runtimeFlags";
+import { getPaymentProvider } from "../payment/paymentProviderFactory";
+import { DRIVER_PAYOUT_NOT_READY_MESSAGE, isDriverPayoutReady } from "../lib/stripeAccounts";
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMinorUnits } from "../lib/money";
 import { driverServesMissionCategory } from "../lib/vehicleCategory";
@@ -216,6 +218,16 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
     }
 
     const isInternalTest = isAuthorizedInternalTestMission(mission);
+    // Vrai argent (2026-10-30, option A : Stripe verse le chauffeur
+    // directement). En live, un chauffeur sans compte de versement live
+    // actif ne peut pas accepter : personne ne travaille sans pouvoir être
+    // payé. En test, comportement inchangé.
+    if (!isInternalTest) {
+      const paymentEnvironment = getPaymentProvider().environment;
+      if (paymentEnvironment === "live" && !isDriverPayoutReady(driver, "live")) {
+        throw failedPrecondition(DRIVER_PAYOUT_NOT_READY_MESSAGE);
+      }
+    }
     if (isInternalTest) {
       const now = admin.firestore.Timestamp.now();
       writeSchedule();

@@ -49,6 +49,7 @@ import {
   RefundStatuses,
 } from "../lib/types";
 import { getPaymentProvider } from "./paymentProviderFactory";
+import { driverConnectedAccountFor } from "../lib/stripeAccounts";
 import { addMinor, subtractMinor, toMinorUnits, DEFAULT_CURRENCY } from "../lib/money";
 import { recalculateMissionFinancialBalance } from "../lib/missionFinancialBalance";
 import { writeAuditLog, writeAuditLogInTransaction } from "../lib/audit";
@@ -163,9 +164,22 @@ export async function createAndAuthorizeMissionPayment(
     );
   }
 
+  // 🔒 Phase 8B (item f) — `provider` est obtenu ICI, AVANT l'étape 1,
+  // plutôt qu'à l'étape 2 comme dans une version antérieure de ce fichier :
+  // ce paiement est un NOUVEAU document, sa création doit être TAGUÉE avec
+  // l'environnement Stripe RÉELLEMENT actif au moment de sa création
+  // (`stripe_environment`, voir lib/types.ts) — nécessite de connaître
+  // `provider.environment` avant même d'écrire le PaymentDoc. Un SEUL appel
+  // à `getPaymentProvider()` pour toute la fonction (jamais un second appel
+  // à l'étape 2) — évite toute divergence entre le provider qui a tagué le
+  // document et celui qui exécute réellement l'appel Stripe.
+  const provider = getPaymentProvider();
+
   const driverSnap = await db.collection("driver_profiles").doc(driverId).get();
   const driver = driverSnap.data() as DriverProfileDoc | undefined;
-  const connectedAccountId = driver?.stripe_connected_account_id ?? null;
+  // Only an account of the active environment is a transfer destination
+  // (2026-10-30, see lib/stripeAccounts.ts).
+  const connectedAccountId = driverConnectedAccountFor(driver, provider.environment);
 
   // Ces montants sont dérivés dans la transaction ci-dessous à partir du
   // devis officiel et du snapshot financier. L'appelant ne peut plus fournir
@@ -178,17 +192,6 @@ export async function createAndAuthorizeMissionPayment(
   let feePolicy: MissionFeePolicy | null = null;
   let applicationFeeMinor = 0;
   let quoteIntegrityHash: string | null = null;
-
-  // 🔒 Phase 8B (item f) — `provider` est obtenu ICI, AVANT l'étape 1,
-  // plutôt qu'à l'étape 2 comme dans une version antérieure de ce fichier :
-  // ce paiement est un NOUVEAU document, sa création doit être TAGUÉE avec
-  // l'environnement Stripe RÉELLEMENT actif au moment de sa création
-  // (`stripe_environment`, voir lib/types.ts) — nécessite de connaître
-  // `provider.environment` avant même d'écrire le PaymentDoc. Un SEUL appel
-  // à `getPaymentProvider()` pour toute la fonction (jamais un second appel
-  // à l'étape 2) — évite toute divergence entre le provider qui a tagué le
-  // document et celui qui exécute réellement l'appel Stripe.
-  const provider = getPaymentProvider();
 
   // ---- Étape 1 : Transaction Firestore — crée payments/{id} en CREATED ----
   const paymentRef = db.collection("payments").doc();

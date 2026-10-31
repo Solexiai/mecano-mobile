@@ -497,6 +497,15 @@ export interface DriverProfileDoc {
   stripe_onboarding_url?: string | null;
   stripe_charges_enabled?: boolean;
   stripe_payouts_enabled?: boolean;
+  /** Environment the account was created in (2026-10-30). Absent = test. */
+  stripe_connected_account_environment?: StripeEnvironment | null;
+  /** Accounts of a previous environment, kept for the books (never reused). */
+  stripe_previous_accounts?: Array<{
+    account_id: string;
+    environment: StripeEnvironment;
+    archived_at: admin_Timestamp;
+    archived_by: "driver" | "admin";
+  }> | null;
 }
 
 /**

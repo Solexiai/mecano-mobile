@@ -57,6 +57,9 @@ Widget _app(String tab) => MaterialApp(
   home: AdminCommandCenterScreen(
     initialTab: tab,
     runtimeFlagsApi: _FakeFlagsApi(),
+    stripeEnvironmentApi: (_) async => {
+      'configured': true, 'environment': 'test', 'stale_drivers': [], 'open_payments_other_environment': [],
+    },
     itemTypesApi: (_) async => _types(),
     pricingTab: const Center(child: Text('PRICING TAB')),
     loadActive: () async => _version,
