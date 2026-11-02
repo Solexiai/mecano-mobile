@@ -1,0 +1,51 @@
+# Codemagic (CD) — builds signed and sent to the stores. CI (analysis and
+# tests on each PR) stays on GitHub Actions (.github/workflows).
+#
+# Workflows:
+#   android-test-apk  : an APK installable on a phone for trying the app
+#                       (debug signing, no secret needed). Manual start.
+#   android-release   : the .aab for Google Play. Needs the upload keystore
+#                       (group `movik_android_signing`) — added once the
+#                       keystore exists; disabled until then.
+# Flutter version pinned like the GitHub CI (flutter-validation.yml).
+workflows:
+  android-test-apk:
+    name: Android — APK de test (installable sur un téléphone)
+    max_build_duration: 45
+    instance_type: linux_x2
+    environment:
+      # Group `movik_android_env` (Codemagic > Environment variables), optional:
+      #   GOOGLE_MAPS_API_KEY  — public Places key restricted to the Android
+      #                          app (package + SHA-1); address autocomplete
+      #                          falls back to manual entry without it.
+      groups:
+        - movik_android_env
+      vars:
+        ENABLE_PHOTO_INTAKE: "true"
+      flutter: 3.47.1
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.pub-cache
+        - $HOME/.gradle/caches
+    scripts:
+      - name: Dépendances
+        script: flutter pub get
+      - name: Analyse
+        script: flutter analyze --no-fatal-infos
+      - name: APK (release, signature debug — essai seulement)
+        script: |
+          flutter build apk --release \
+            --build-name=1.0.0 \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --dart-define=ENABLE_PHOTO_INTAKE=$ENABLE_PHOTO_INTAKE \
+            --dart-define=GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - info@movi-k.com
+        notify:
+          success: true
+          failure: true
