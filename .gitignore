@@ -49,3 +49,9 @@ app.*.map.json
 /android/app/release
 .vercel
 .env*
+
+# Android release signing — never committed (Codemagic writes them from secure variables)
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+*.jks

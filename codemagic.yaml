@@ -8,32 +8,61 @@
 #                       (group `movik_android_signing`) — added once the
 #                       keystore exists; disabled until then.
 # Flutter version pinned like the GitHub CI (flutter-validation.yml).
+# Signing (group `movik_android_signing`, secure variables, set once by the
+# owner — never in Git):
+#   CM_KEYSTORE           the upload keystore (.jks) encoded in base64
+#   CM_KEYSTORE_PASSWORD  its password
+#   CM_KEY_ALIAS          the key alias (movik)
+#   CM_KEY_PASSWORD       the key password
+# When the group is missing the APK is signed with a throwaway debug key.
+definitions:
+  env: &env
+    groups:
+      - movik_android_env
+      - movik_android_signing
+    vars:
+      ENABLE_PHOTO_INTAKE: "true"
+    flutter: 3.47.1
+    java: 17
+  cache: &cache
+    cache_paths:
+      - $HOME/.pub-cache
+      - $HOME/.gradle/caches
+  scripts:
+    - &deps
+      name: Dépendances
+      script: flutter pub get
+    - &analyze
+      name: Analyse
+      script: flutter analyze --no-fatal-infos
+    - &signing
+      name: Clé de signature (si fournie)
+      script: |
+        if [ -n "${CM_KEYSTORE:-}" ]; then
+          echo "$CM_KEYSTORE" | base64 --decode > "$CM_BUILD_DIR/android/app/upload.jks"
+          cat > "$CM_BUILD_DIR/android/key.properties" <<EOF
+        storeFile=upload.jks
+        storePassword=$CM_KEYSTORE_PASSWORD
+        keyAlias=$CM_KEY_ALIAS
+        keyPassword=$CM_KEY_PASSWORD
+        EOF
+          echo "Signature : clé de téléversement Movi-K."
+        else
+          echo "Signature : clé debug temporaire (aucune variable CM_KEYSTORE)."
+        fi
+
 workflows:
   android-test-apk:
     name: Android — APK de test (installable sur un téléphone)
     max_build_duration: 45
     instance_type: mac_mini_m2
-    environment:
-      # Group `movik_android_env` (Codemagic > Environment variables), optional:
-      #   GOOGLE_MAPS_API_KEY  — public Places key restricted to the Android
-      #                          app (package + SHA-1); address autocomplete
-      #                          falls back to manual entry without it.
-      groups:
-        - movik_android_env
-      vars:
-        ENABLE_PHOTO_INTAKE: "true"
-      flutter: 3.47.1
-      java: 17
-    cache:
-      cache_paths:
-        - $HOME/.pub-cache
-        - $HOME/.gradle/caches
+    environment: *env
+    cache: *cache
     scripts:
-      - name: Dépendances
-        script: flutter pub get
-      - name: Analyse
-        script: flutter analyze --no-fatal-infos
-      - name: APK (release, signature debug — essai seulement)
+      - *deps
+      - *analyze
+      - *signing
+      - name: APK (release)
         script: |
           flutter build apk --release \
             --build-name=1.0.0 \
@@ -42,6 +71,37 @@ workflows:
             --dart-define=GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - infos@movi-k.com
+        notify:
+          success: true
+          failure: true
+
+  android-release:
+    name: Android — paquet pour Google Play (.aab)
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    environment: *env
+    cache: *cache
+    scripts:
+      - *deps
+      - *analyze
+      - *signing
+      - name: Vérification de la clé
+        script: |
+          test -n "${CM_KEYSTORE:-}" || { echo "CM_KEYSTORE manquante : un paquet Google Play doit être signé avec la clé de téléversement."; exit 1; }
+      - name: App Bundle (release, signé)
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --dart-define=ENABLE_PHOTO_INTAKE=$ENABLE_PHOTO_INTAKE \
+            --dart-define=GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+      - build/app/outputs/mapping/release/mapping.txt
     publishing:
       email:
         recipients:
