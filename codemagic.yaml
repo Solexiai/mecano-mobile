@@ -45,7 +45,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - info@movi-k.com
+          - infos@movi-k.com
         notify:
           success: true
           failure: true
