@@ -12,7 +12,7 @@ workflows:
   android-test-apk:
     name: Android — APK de test (installable sur un téléphone)
     max_build_duration: 45
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     environment:
       # Group `movik_android_env` (Codemagic > Environment variables), optional:
       #   GOOGLE_MAPS_API_KEY  — public Places key restricted to the Android
