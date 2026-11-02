@@ -36,7 +36,7 @@ class ContactScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              const SelectableText('info@movi-k.com'),
+              const SelectableText('infos@movi-k.com'),
               const SizedBox(height: 12),
               Text(
                 tr(
@@ -48,7 +48,7 @@ class ContactScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Link(
-                uri: Uri(scheme: 'mailto', path: 'info@movi-k.com'),
+                uri: Uri(scheme: 'mailto', path: 'infos@movi-k.com'),
                 builder: (context, followLink) => OutlinedButton.icon(
                   onPressed: followLink,
                   icon: const Icon(Icons.email_outlined),

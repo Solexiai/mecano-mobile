@@ -4955,7 +4955,7 @@ Preuves : artifacts/driver-vehicle-rollout-20261015-1648-7b62e3/ ; guide docs/DR
 
 
 ### 2026-10-16 — Raccordement réel de l'analyse photo
-Preuves: artifacts/ai-rollout-20261016-0940/. Fonction analyzeBookingPhoto publiée, secret serveur lié, quotas et accès authentifié configurés. Un essai réel sous compte ordinaire a réussi (photo privée → suggestion fauteuil); refus non authentifié contrôlé. Nouvelle version Web photo et contact info@movi-k.com publiés. Fonctions reviewDriverVehicle et declineDeliveryOffer et protection des métadonnées de véhicule publiées après comparaison des sources testées.
+Preuves: artifacts/ai-rollout-20261016-0940/. Fonction analyzeBookingPhoto publiée, secret serveur lié, quotas et accès authentifié configurés. Un essai réel sous compte ordinaire a réussi (photo privée → suggestion fauteuil); refus non authentifié contrôlé. Nouvelle version Web photo et contact infos@movi-k.com publiés. Fonctions reviewDriverVehicle et declineDeliveryOffer et protection des métadonnées de véhicule publiées après comparaison des sources testées.
 Aucune fermeture automatique supplémentaire: la configuration complète des réservations, les capacités des véhicules réels, les modalités du pilote et la réception du contact restent distinctes. Conserver les 31 fiches et le décompte précédent P0=0/P1=1/P2=2 tant que leurs critères ne sont pas démontrés.
 Les tarifs, commissions, montants Stripe, snapshots et ledger n'ont pas été modifiés par ce raccordement. Aucun paiement ni mission réelle créé pendant les essais IA. 1.3L reste bloqué/reporté.
 
@@ -4963,7 +4963,7 @@ Les tarifs, commissions, montants Stripe, snapshots et ledger n'ont pas été mo
 ### 2026-10-16, 14:10 UTC — Contrôle public final de l'IA
 Après retour temporaire à l'ancien déploiement pendant le diagnostic, le bundle photo a été republié et vérifié directement sur movi-k.com. Chrome réel : connexion client temporaire, téléversement/aperçu privé, analyse HTTP 200, suggestion fauteuil, application et sauvegarde de la catégorie armchair et de la description; poids/dimensions null conservés. Aucune erreur JS/réseau lors de cette exécution finale. Aucun paiement ni mission réelle. Données et compte de test nettoyés.
 Le premier affichage « Synchronisation en attente » n'a pas été reproduit lors du contrôle final; sa cause initiale exacte n'est pas affirmée. Les erreurs de saisie et l'attente de texte du harnais ont été diagnostiquées séparément, sans correction arbitraire du produit. Aucune règle Storage assouplie pour le localhost. Historique complet conservé.
-45 tests Flutter et 72 tests TypeScript réussis dans le raccordement; build Web, analyse ciblée, lint et diff check réussis. Contact info@movi-k.com publié, réception non vérifiée. Référence : artifacts/ai-rollout-20261016-0940/CHECKPOINT_RACCORDEMENT_IA_SITE_20261016.md.
+45 tests Flutter et 72 tests TypeScript réussis dans le raccordement; build Web, analyse ciblée, lint et diff check réussis. Contact infos@movi-k.com publié, réception non vérifiée. Référence : artifacts/ai-rollout-20261016-0940/CHECKPOINT_RACCORDEMENT_IA_SITE_20261016.md.
 Aucune clôture supplémentaire. Tableau inchangé : 31 fiches, P0 0 / P1 1 / P2 2. P1-BOOKING-CONFIG-01 demeure bloqué pour l'ouverture commerciale; IA active ne signifie pas réservation/paiement activés. 1.3L reporté.
 
 

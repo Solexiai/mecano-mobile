@@ -62,7 +62,7 @@ Le compte client de recette a été identifié lors de la préparation précéde
 - Un compte client temporaire sans privilèges a réellement téléversé un JPEG privé et reçu une suggestion « fauteuil » via la fonction publiée. Refus UNAUTHENTICATED vérifié; compte, photo et brouillon de cet essai nettoyés. Pas de mission ni de paiement.
 - La version Web photo a été compilée avec la clé Maps publique déjà configurée sur Vercel, puis publiée sous dpl_HL6SUteTr7ySAEK2TLRsVU5NZu3D. movi-k.com et www.movi-k.com servent le bundle SHA256 0b7cdab8e8203b437ded736a53d29c470865056e892b3dfb3e2ef094fe6401b6.
 - ENABLE_PHOTO_INTAKE=true est aussi enregistré dans l'environnement Vercel Production pour les prochaines compilations utilisant scripts/vercel_build.sh.
-- Contact approuvé par Daniel: info@movi-k.com, affiché avec un lien mailto. Aucune réception de courriel vérifiée.
+- Contact approuvé par Daniel: infos@movi-k.com, affiché avec un lien mailto. Aucune réception de courriel vérifiée.
 - Réservations, paiements, capacités réelles et conditions du pilote restent des prérequis distincts. L'ouverture de l'analyse ne prouve pas l'ouverture des ventes.
 - Le test cartographique autonome 1.3L reste reporté; aucune validation GPS terrain ajoutée.
 
