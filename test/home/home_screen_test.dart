@@ -297,7 +297,7 @@ void main() {
       // visitor's own email app (contact page since 2026-10-19).
       expect(find.byType(TextFormField), findsNothing);
       expect(find.textContaining('support@movi-k.demo'), findsNothing);
-      expect(find.text('info@movi-k.com'), findsWidgets);
+      expect(find.text('infos@movi-k.com'), findsWidgets);
       expect(find.text('Ouvrir mon courriel'), findsOneWidget);
     },
   );

@@ -20,10 +20,10 @@ void main() {
         AppRouter.router.go('/$locale/contact');
         await tester.pumpWidget(wrapPublicPage(auth, textScale: scale));
         await tester.pumpAndSettle();
-        expect(find.text('info@movi-k.com'), findsOneWidget);
+        expect(find.text('infos@movi-k.com'), findsOneWidget);
         final links = tester.widgetList<Link>(find.byType(Link));
         expect(
-          links.any((link) => link.uri.toString() == 'mailto:info@movi-k.com'),
+          links.any((link) => link.uri.toString() == 'mailto:infos@movi-k.com'),
           isTrue,
         );
         expect(tester.takeException(), isNull);

@@ -94,9 +94,9 @@ class _DriverSearchStatusState extends State<DriverSearchStatus> {
           if (review || unavailable)
             SelectableText(
               tr(
-                'Pour modifier le rendez-vous, contactez info@movi-k.com ou préparez une demande révisée.',
-                'To change the appointment, contact info@movi-k.com or prepare a revised request.',
-                'Para cambiar la cita, contacta con info@movi-k.com o prepara una solicitud revisada.',
+                'Pour modifier le rendez-vous, contactez infos@movi-k.com ou préparez une demande révisée.',
+                'To change the appointment, contact infos@movi-k.com or prepare a revised request.',
+                'Para cambiar la cita, contacta con infos@movi-k.com o prepara una solicitud revisada.',
               ),
             ),
           if (_busy) const LinearProgressIndicator(),
