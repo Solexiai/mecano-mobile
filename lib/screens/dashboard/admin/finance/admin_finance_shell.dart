@@ -23,7 +23,6 @@ import 'tabs/admin_finance_ledger_tab.dart';
 import 'tabs/admin_finance_reconciliation_tab.dart';
 import 'tabs/admin_finance_taxes_tab.dart';
 import 'tabs/admin_finance_payout_policy_tab.dart';
-import 'tabs/admin_finance_pricing_tab.dart';
 
 class _FinanceSection {
   final IconData icon;
@@ -80,12 +79,10 @@ final List<_FinanceSection> _kSections = [
     titleKey: 'admin_finance_tab_taxes',
     builder: () => const AdminFinanceTaxesTab(),
   ),
-  // Réglages : la grille de tarifs (prix client, part Movi-K, frais).
-  _FinanceSection(
-    icon: Icons.tune_outlined,
-    titleKey: 'admin_finance_tab_pricing',
-    builder: () => const AdminFinancePricingTab(),
-  ),
+  // 2026-11-03 : la grille de tarifs ne vit plus ici. Elle est dans le
+  // Centre de commande › 2 · Combien ? (même écran, AdminFinancePricingTab),
+  // pour qu'il n'y ait qu'un seul endroit où changer les prix. Le Centre
+  // financier ne montre que l'argent qui a réellement bougé.
 ];
 
 int _sectionIndex(String titleKey) =>
