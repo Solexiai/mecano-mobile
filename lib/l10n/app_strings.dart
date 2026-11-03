@@ -2810,11 +2810,6 @@ class AppStrings {
       'es': 'Expedientes de conductores',
     },
     'admin_drivers_filter_all': {'fr': 'Tous', 'en': 'All', 'es': 'Todos'},
-    'admin_drivers_filter_readiness_all': {
-      'fr': 'Tous les versements',
-      'en': 'All payout states',
-      'es': 'Todos los pagos',
-    },
     'admin_drivers_filter_ready_to_deliver': {
       'fr': 'Prêts à livrer',
       'en': 'Ready to deliver',

@@ -199,6 +199,24 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                     selected: _presence == entry.$1,
                     onSelected: (_) => setState(() => _presence = entry.$1),
                   ),
+                // Versements Stripe (2026-11-03) : « Prêts à livrer » =
+                // approuvé + documents validés + Stripe prêt (règle serveur).
+                for (final entry in [
+                  ('ready', t('admin_drivers_filter_ready_to_deliver')),
+                  ('not_ready', t('admin_drivers_filter_not_ready')),
+                ])
+                  Tooltip(
+                    message: t('admin_drivers_filter_ready_hint'),
+                    child: ChoiceChip(
+                      key: ValueKey('admin-drivers-readiness-${entry.$1}'),
+                      avatar: const Icon(Icons.account_balance_outlined, size: 16),
+                      label: Text(entry.$2),
+                      selected: _readiness == entry.$1,
+                      onSelected: (selected) => setState(
+                        () => _readiness = selected ? entry.$1 : 'all',
+                      ),
+                    ),
+                  ),
               ],
             ),
             Text(
@@ -213,31 +231,6 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                       'Connected = app in foreground, signal received within 90 s. This does not mean available for a job.',
                       'Conectado = aplicación en primer plano, señal de menos de 90 s. No significa disponible para un servicio.',
                     ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final entry in [
-                  ('all', t('admin_drivers_filter_readiness_all')),
-                  ('ready', t('admin_drivers_filter_ready_to_deliver')),
-                  ('not_ready', t('admin_drivers_filter_not_ready')),
-                ])
-                  ChoiceChip(
-                    key: ValueKey('admin-drivers-readiness-${entry.$1}'),
-                    label: Text(entry.$2),
-                    selected: _readiness == entry.$1,
-                    onSelected: (_) => setState(() => _readiness = entry.$1),
-                  ),
-              ],
-            ),
-            Text(
-              t('admin_drivers_filter_ready_hint'),
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: AppColors.textSecondary,
-              ),
             ),
             const SizedBox(height: 20),
             StreamBuilder<List<DriverProfileV2>>(
