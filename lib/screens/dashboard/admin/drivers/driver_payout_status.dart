@@ -91,13 +91,17 @@ class DriverPayoutBadge extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          Text(
-            t(driverPayoutReadinessKey(r)),
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: AppColors.statusBadgeTextColor(
-                color,
-                Theme.of(context).brightness,
+          // Flexible : à 200 % de taille de police sur un téléphone, le
+          // libellé passe sur deux lignes au lieu de déborder.
+          Flexible(
+            child: Text(
+              t(driverPayoutReadinessKey(r)),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.statusBadgeTextColor(
+                  color,
+                  Theme.of(context).brightness,
+                ),
               ),
             ),
           ),
