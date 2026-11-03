@@ -25,8 +25,8 @@ void main() {
     });
     expect(doc.status, DriverDocumentStatus.approved);
     expect(doc.uploadedAt, DateTime.parse('2026-11-03T12:33:22.126'));
-    expect(doc.reviewedAt, reviewed);
-    expect(doc.expiresAt, DateTime.utc(2027, 11, 3));
+    expect(doc.reviewedAt!.isAtSameMomentAs(reviewed), isTrue);
+    expect(doc.expiresAt!.isAtSameMomentAs(DateTime.utc(2027, 11, 3)), isTrue);
   });
 
   test('DriverDocument.fromJson accepte toujours les dates en chaîne ISO', () {
@@ -50,13 +50,13 @@ void main() {
       'action': 'approveDriver',
       'created_at': Timestamp.fromDate(reviewed),
     });
-    expect(log.createdAt, reviewed);
+    expect(log.createdAt.isAtSameMomentAs(reviewed), isTrue);
     final user = AppUserV2.fromJson('u-1', {
       'email': 'x@example.com',
       'full_name': 'X',
       'roles': ['driver'],
       'created_at': Timestamp.fromDate(reviewed),
     });
-    expect(user.createdAt, reviewed);
+    expect(user.createdAt.isAtSameMomentAs(reviewed), isTrue);
   });
 }
