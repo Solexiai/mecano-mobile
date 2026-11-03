@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
+import 'firestore_date.dart';
 
 class DriverDocument {
   final String id;
@@ -68,14 +69,15 @@ class DriverDocument {
       type: DriverDocumentTypeX.fromFirestoreValue(json['type'] as String?),
       status: DriverDocumentStatusX.fromFirestoreValue(json['status'] as String?),
       storageBucketPath: json['storage_bucket_path'] as String? ?? '',
-      uploadedAt: json['uploaded_at'] != null
-          ? DateTime.parse(json['uploaded_at'] as String)
-          : DateTime.now(),
-      reviewedAt:
-          json['reviewed_at'] != null ? DateTime.parse(json['reviewed_at'] as String) : null,
+      // 2026-11-03 : le serveur (validateDriverDocument, detectExpiringDocuments)
+      // écrit ces dates en Timestamp Firestore, l'app en chaîne ISO. Les deux
+      // formes sont acceptées, sinon le premier document approuvé faisait
+      // planter toute la liste des documents de l'écran admin.
+      uploadedAt: parseFirestoreDate(json['uploaded_at']) ?? DateTime.now(),
+      reviewedAt: parseFirestoreDate(json['reviewed_at']),
       reviewedByUserId: json['reviewed_by_user_id'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
-      expiresAt: json['expires_at'] != null ? DateTime.parse(json['expires_at'] as String) : null,
+      expiresAt: parseFirestoreDate(json['expires_at']),
     );
   }
 }
