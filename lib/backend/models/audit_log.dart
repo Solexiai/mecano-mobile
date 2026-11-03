@@ -7,6 +7,8 @@
 // les Cloud Functions ; jamais modifiable après création.
 // ---------------------------------------------------------------------------
 
+import 'firestore_date.dart';
+
 class AuditLog {
   final String id;
   final String actorUserId;
@@ -44,9 +46,7 @@ class AuditLog {
       action: json['action'] as String? ?? '',
       targetId: json['target_id'] as String?,
       metadata: (json['metadata'] as Map?)?.cast<String, dynamic>() ?? const {},
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
     );
   }
 }

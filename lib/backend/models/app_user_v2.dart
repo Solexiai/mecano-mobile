@@ -14,6 +14,7 @@
 // ---------------------------------------------------------------------------
 
 import '../../models/enums.dart';
+import 'firestore_date.dart';
 
 class AppUserV2 {
   final String uid; // Firebase Auth UID
@@ -73,9 +74,7 @@ class AppUserV2 {
           .map(PlatformRoleX.tryFromClaim)
           .whereType<PlatformRole>()
           .toList(),
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
+      createdAt: parseFirestoreDate(json['created_at']) ?? DateTime.now(),
       isDisabled: json['is_disabled'] as bool? ?? false,
       emailVerified: json['email_verified'] as bool? ?? false,
     );

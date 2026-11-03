@@ -396,6 +396,15 @@ class _DocumentsSection extends StatelessWidget {
               child: LinearProgressIndicator(),
             );
           }
+          if (snap.hasError) {
+            // Ne jamais afficher « aucun document » quand la lecture a
+            // échoué : l'admin croirait le dossier vide.
+            return Text(
+              t('admin_driver_doc_load_error'),
+              key: const ValueKey('admin-driver-documents-error'),
+              style: const TextStyle(color: AppColors.error),
+            );
+          }
           final docs = snap.data ?? const <DriverDocument>[];
           if (docs.isEmpty) {
             return Text(

@@ -3003,6 +3003,11 @@ class AppStrings {
       'en': 'No documents uploaded.',
       'es': 'No se han cargado documentos.',
     },
+    'admin_driver_doc_load_error': {
+      'fr': 'Les documents n’ont pas pu être chargés. Actualisez la page ; si l’erreur persiste, contactez le soutien technique.',
+      'en': 'The documents could not be loaded. Refresh the page; if the error persists, contact technical support.',
+      'es': 'No se pudieron cargar los documentos. Actualice la página; si el error persiste, contacte al soporte técnico.',
+    },
     // SEC-05 (2026-10-28) : validation document par document.
     'admin_driver_doc_approve': {
       'fr': 'Approuver',
