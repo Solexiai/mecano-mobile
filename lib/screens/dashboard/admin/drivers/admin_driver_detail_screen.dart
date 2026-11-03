@@ -27,6 +27,7 @@ import '../../../../providers/locale_provider.dart';
 import 'driver_document_display.dart';
 import '../../../../widgets/driver_vehicle_review_card.dart';
 import '../../../../l10n/vehicle_review_copy.dart';
+import 'driver_payout_status.dart';
 
 class AdminDriverDetailScreen extends StatefulWidget {
   final String driverId;
@@ -91,6 +92,8 @@ class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
                 _VehicleSection(driverId: widget.driverId, t: t),
                 const SizedBox(height: 20),
                 _DocumentsSection(driverId: widget.driverId, t: t),
+                const SizedBox(height: 20),
+                _PayoutSection(profile: profile, t: t),
                 const SizedBox(height: 20),
                 _NotesSection(driverId: widget.driverId, t: t),
                 const SizedBox(height: 24),
@@ -706,6 +709,80 @@ class _DocumentTileState extends State<_DocumentTile> {
                 style: const TextStyle(fontSize: 12),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Versements Stripe (2026-11-03) : ce que le serveur exige avant qu'un
+/// chauffeur puisse accepter une livraison en vrai argent. Lecture seule ;
+/// les valeurs viennent du profil, mises à jour par le webhook Stripe.
+class _PayoutSection extends StatelessWidget {
+  final DriverProfileV2 profile;
+  final String Function(String) t;
+  const _PayoutSection({required this.profile, required this.t});
+
+  Widget _row(bool ok, String label, {Key? key}) => Padding(
+    key: key,
+    padding: const EdgeInsets.only(top: 6),
+    child: Row(
+      children: [
+        Icon(
+          ok ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 18,
+          color: ok ? AppColors.success : AppColors.textSecondary,
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label)),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final r = driverPayoutReadiness(profile);
+    final hasAccount = (profile.stripeConnectedAccountId ?? '').isNotEmpty;
+    final live = profile.stripeConnectedAccountEnvironment == 'live';
+    return _SectionCard(
+      title: t('admin_driver_section_payouts'),
+      child: Column(
+        key: const ValueKey('admin-driver-payout-section'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DriverPayoutBadge(profile: profile, t: t),
+          const SizedBox(height: 6),
+          _row(
+            hasAccount && live,
+            hasAccount && !live
+                ? t('admin_driver_payout_row_account_test')
+                : t('admin_driver_payout_row_account'),
+            key: const ValueKey('admin-driver-payout-row-account'),
+          ),
+          _row(
+            live && profile.stripeChargesEnabled,
+            t('admin_driver_payout_row_identity'),
+            key: const ValueKey('admin-driver-payout-row-identity'),
+          ),
+          _row(
+            live && profile.stripePayoutsEnabled,
+            t('admin_driver_payout_row_bank'),
+            key: const ValueKey('admin-driver-payout-row-bank'),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            switch (r) {
+              DriverPayoutReadiness.ready => t('admin_driver_payout_verdict_ready'),
+              DriverPayoutReadiness.incomplete =>
+                t('admin_driver_payout_verdict_incomplete'),
+              DriverPayoutReadiness.testAccount =>
+                t('admin_driver_payout_verdict_test_account'),
+              DriverPayoutReadiness.notStarted =>
+                t('admin_driver_payout_verdict_not_started'),
+            },
+            key: const ValueKey('admin-driver-payout-verdict'),
+            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
           ),
         ],
       ),

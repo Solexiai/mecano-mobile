@@ -21,6 +21,7 @@ import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
 import '../../../../services/driver_presence.dart';
 import 'admin_driver_activity_summary.dart';
+import 'driver_payout_status.dart';
 
 DriverStatus? adminDriverInitialFilter(String value) => switch (value) {
   'all' || 'connected' || 'offline' => null,
@@ -85,6 +86,8 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   late DriverStatus? _filter;
   String _city = '';
   late String _presence;
+  /// 'all' | 'ready' (approuvé + documents OK + Stripe OK) | 'not_ready'.
+  String _readiness = 'all';
   String _copy(String fr, String en, String es) =>
       switch (context.read<LocaleProvider>().locale) {
         'fr' => fr,
@@ -196,6 +199,24 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                     selected: _presence == entry.$1,
                     onSelected: (_) => setState(() => _presence = entry.$1),
                   ),
+                // Versements Stripe (2026-11-03) : « Prêts à livrer » =
+                // approuvé + documents validés + Stripe prêt (règle serveur).
+                for (final entry in [
+                  ('ready', t('admin_drivers_filter_ready_to_deliver')),
+                  ('not_ready', t('admin_drivers_filter_not_ready')),
+                ])
+                  Tooltip(
+                    message: t('admin_drivers_filter_ready_hint'),
+                    child: ChoiceChip(
+                      key: ValueKey('admin-drivers-readiness-${entry.$1}'),
+                      avatar: const Icon(Icons.account_balance_outlined, size: 16),
+                      label: Text(entry.$2),
+                      selected: _readiness == entry.$1,
+                      onSelected: (selected) => setState(
+                        () => _readiness = selected ? entry.$1 : 'all',
+                      ),
+                    ),
+                  ),
               ],
             ),
             Text(
@@ -263,6 +284,7 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                             _city,
                             _presence,
                             connected,
+                            readiness: _readiness,
                           ),
                         )
                         .toList()
@@ -312,8 +334,11 @@ bool matchesDriverDirectory(
   DriverProfileV2 driver,
   String city,
   String presence,
-  Set<String>? connected,
-) {
+  Set<String>? connected, {
+  String readiness = 'all',
+}) {
+  if (readiness == 'ready' && !isDriverReadyToDeliver(driver)) return false;
+  if (readiness == 'not_ready' && isDriverReadyToDeliver(driver)) return false;
   String normalize(String s) {
     var v = s.toLowerCase().trim();
     const accents = {
@@ -477,6 +502,7 @@ class _DriverRow extends StatelessWidget {
                   ),
                 ),
               ),
+              DriverPayoutBadge(profile: driver, t: t),
               Text(driver.city.isEmpty ? '—' : driver.city),
               Text(
                 connected == null
