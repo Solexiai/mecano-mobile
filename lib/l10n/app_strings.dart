@@ -2810,6 +2810,91 @@ class AppStrings {
       'es': 'Expedientes de conductores',
     },
     'admin_drivers_filter_all': {'fr': 'Tous', 'en': 'All', 'es': 'Todos'},
+    'admin_drivers_filter_readiness_all': {
+      'fr': 'Tous les versements',
+      'en': 'All payout states',
+      'es': 'Todos los pagos',
+    },
+    'admin_drivers_filter_ready_to_deliver': {
+      'fr': 'Prêts à livrer',
+      'en': 'Ready to deliver',
+      'es': 'Listos para entregar',
+    },
+    'admin_drivers_filter_not_ready': {
+      'fr': 'Pas encore prêts',
+      'en': 'Not ready yet',
+      'es': 'Aún no listos',
+    },
+    'admin_drivers_filter_ready_hint': {
+      'fr': 'Prêt à livrer = approuvé, documents validés et versements Stripe terminés (compte réel, identité et banque validées). Le serveur refuse toute livraison tant que ce n’est pas le cas.',
+      'en': 'Ready to deliver = approved, documents validated and Stripe payouts complete (live account, identity and bank verified). The server refuses any delivery until then.',
+      'es': 'Listo para entregar = aprobado, documentos validados y pagos Stripe completos (cuenta real, identidad y banco verificados). El servidor rechaza cualquier entrega hasta entonces.',
+    },
+    'admin_driver_payout_ready': {
+      'fr': 'Versements OK',
+      'en': 'Payouts OK',
+      'es': 'Pagos OK',
+    },
+    'admin_driver_payout_incomplete': {
+      'fr': 'Stripe incomplet',
+      'en': 'Stripe incomplete',
+      'es': 'Stripe incompleto',
+    },
+    'admin_driver_payout_test_account': {
+      'fr': 'Compte Stripe en mode test',
+      'en': 'Stripe account in test mode',
+      'es': 'Cuenta Stripe en modo de prueba',
+    },
+    'admin_driver_payout_not_started': {
+      'fr': 'Stripe pas commencé',
+      'en': 'Stripe not started',
+      'es': 'Stripe no iniciado',
+    },
+    'admin_driver_section_payouts': {
+      'fr': 'Versements Stripe',
+      'en': 'Stripe payouts',
+      'es': 'Pagos Stripe',
+    },
+    'admin_driver_payout_row_account': {
+      'fr': 'Compte Stripe créé en mode réel',
+      'en': 'Stripe account created in live mode',
+      'es': 'Cuenta Stripe creada en modo real',
+    },
+    'admin_driver_payout_row_account_test': {
+      'fr': 'Compte Stripe créé en mode test seulement : à refaire en mode réel',
+      'en': 'Stripe account created in test mode only: must be redone in live mode',
+      'es': 'Cuenta Stripe creada solo en modo de prueba: debe rehacerse en modo real',
+    },
+    'admin_driver_payout_row_identity': {
+      'fr': 'Identité validée par Stripe',
+      'en': 'Identity verified by Stripe',
+      'es': 'Identidad verificada por Stripe',
+    },
+    'admin_driver_payout_row_bank': {
+      'fr': 'Compte bancaire validé par Stripe',
+      'en': 'Bank account verified by Stripe',
+      'es': 'Cuenta bancaria verificada por Stripe',
+    },
+    'admin_driver_payout_verdict_ready': {
+      'fr': 'Stripe peut le payer : il peut accepter des livraisons (si son dossier est approuvé).',
+      'en': 'Stripe can pay this driver: deliveries can be accepted (if the file is approved).',
+      'es': 'Stripe puede pagarle: puede aceptar entregas (si su expediente está aprobado).',
+    },
+    'admin_driver_payout_verdict_incomplete': {
+      'fr': 'Stripe attend encore une pièce ou le compte bancaire. Le serveur refuse ses livraisons jusque-là. Le chauffeur termine via « Configurer les versements » dans son tableau de bord.',
+      'en': 'Stripe is still waiting for a document or the bank account. The server refuses deliveries until then. The driver finishes via “Set up payouts” in their dashboard.',
+      'es': 'Stripe aún espera un documento o la cuenta bancaria. El servidor rechaza sus entregas hasta entonces. El conductor termina en «Configurar pagos» de su panel.',
+    },
+    'admin_driver_payout_verdict_test_account': {
+      'fr': 'Ce compte a été créé pendant les tests : il n’existe pas en vrai argent. Archivez-le dans Centre de commande › Paiements Stripe, puis le chauffeur refait « Configurer les versements ».',
+      'en': 'This account was created during testing: it does not exist in live mode. Archive it in Command center › Stripe payments, then the driver redoes “Set up payouts”.',
+      'es': 'Esta cuenta se creó durante las pruebas: no existe en modo real. Archívela en Centro de mando › Pagos Stripe y el conductor vuelve a «Configurar pagos».',
+    },
+    'admin_driver_payout_verdict_not_started': {
+      'fr': 'Le chauffeur n’a pas encore commencé l’inscription Stripe. Il ne pourra accepter aucune livraison tant que ce n’est pas terminé.',
+      'en': 'The driver has not started the Stripe setup yet. No delivery can be accepted until it is complete.',
+      'es': 'El conductor aún no ha comenzado el registro en Stripe. No podrá aceptar ninguna entrega hasta completarlo.',
+    },
     'admin_drivers_filter_pending_review': {
       'fr': 'En attente',
       'en': 'Pending review',

@@ -21,6 +21,7 @@ import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
 import '../../../../services/driver_presence.dart';
 import 'admin_driver_activity_summary.dart';
+import 'driver_payout_status.dart';
 
 DriverStatus? adminDriverInitialFilter(String value) => switch (value) {
   'all' || 'connected' || 'offline' => null,
@@ -85,6 +86,8 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
   late DriverStatus? _filter;
   String _city = '';
   late String _presence;
+  /// 'all' | 'ready' (approuvé + documents OK + Stripe OK) | 'not_ready'.
+  String _readiness = 'all';
   String _copy(String fr, String en, String es) =>
       switch (context.read<LocaleProvider>().locale) {
         'fr' => fr,
@@ -211,6 +214,31 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                       'Conectado = aplicación en primer plano, señal de menos de 90 s. No significa disponible para un servicio.',
                     ),
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in [
+                  ('all', t('admin_drivers_filter_readiness_all')),
+                  ('ready', t('admin_drivers_filter_ready_to_deliver')),
+                  ('not_ready', t('admin_drivers_filter_not_ready')),
+                ])
+                  ChoiceChip(
+                    key: ValueKey('admin-drivers-readiness-${entry.$1}'),
+                    label: Text(entry.$2),
+                    selected: _readiness == entry.$1,
+                    onSelected: (_) => setState(() => _readiness = entry.$1),
+                  ),
+              ],
+            ),
+            Text(
+              t('admin_drivers_filter_ready_hint'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 20),
             StreamBuilder<List<DriverProfileV2>>(
               stream: _stream,
@@ -263,6 +291,7 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                             _city,
                             _presence,
                             connected,
+                            readiness: _readiness,
                           ),
                         )
                         .toList()
@@ -312,8 +341,11 @@ bool matchesDriverDirectory(
   DriverProfileV2 driver,
   String city,
   String presence,
-  Set<String>? connected,
-) {
+  Set<String>? connected, {
+  String readiness = 'all',
+}) {
+  if (readiness == 'ready' && !isDriverReadyToDeliver(driver)) return false;
+  if (readiness == 'not_ready' && isDriverReadyToDeliver(driver)) return false;
   String normalize(String s) {
     var v = s.toLowerCase().trim();
     const accents = {
@@ -477,6 +509,7 @@ class _DriverRow extends StatelessWidget {
                   ),
                 ),
               ),
+              DriverPayoutBadge(profile: driver, t: t),
               Text(driver.city.isEmpty ? '—' : driver.city),
               Text(
                 connected == null

@@ -61,6 +61,11 @@ class DriverProfileV2 {
   final bool stripeChargesEnabled;
   final bool stripePayoutsEnabled;
 
+  /// Mode Stripe du compte de versement ('live' ou 'test'). Null = compte
+  /// créé avant l'étiquetage (2026-10-30), donc en mode test (même
+  /// convention que `stripeAccounts.ts` côté serveur).
+  final String? stripeConnectedAccountEnvironment;
+
   const DriverProfileV2({
     required this.uid,
     required this.fullName,
@@ -101,6 +106,7 @@ class DriverProfileV2 {
     this.stripeOnboardingUrl,
     this.stripeChargesEnabled = false,
     this.stripePayoutsEnabled = false,
+    this.stripeConnectedAccountEnvironment,
   });
 
   bool get canGoOnline => status.canGoOnline;
@@ -159,6 +165,7 @@ class DriverProfileV2 {
     'stripe_onboarding_url': stripeOnboardingUrl,
     'stripe_charges_enabled': stripeChargesEnabled,
     'stripe_payouts_enabled': stripePayoutsEnabled,
+    'stripe_connected_account_environment': stripeConnectedAccountEnvironment,
   };
 
   static int _validatedTeamSize(int size) {
@@ -242,6 +249,8 @@ class DriverProfileV2 {
       stripeOnboardingUrl: json['stripe_onboarding_url'] as String?,
       stripeChargesEnabled: json['stripe_charges_enabled'] as bool? ?? false,
       stripePayoutsEnabled: json['stripe_payouts_enabled'] as bool? ?? false,
+      stripeConnectedAccountEnvironment:
+          json['stripe_connected_account_environment'] as String?,
     );
   }
 }
