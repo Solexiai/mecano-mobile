@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
-// AdminFinancePricingTab — Centre financier > Tarifs.
+// AdminFinancePricingTab — Centre de commande › 2 · Combien ? (seul endroit
+// où les prix se changent depuis le 2026-11-03 ; retiré du Centre financier).
 //
 // Grille de tarifs modifiable par Movi-K, sans passer par un script :
 //   1. la grille s'ouvre sur la version ACTIVE (`pricing_versions/{v}`) ;
