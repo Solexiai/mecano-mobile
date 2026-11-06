@@ -36,7 +36,7 @@ import '../../backend/backend_locator.dart';
 import '../../backend/models/delivery_mission.dart';
 import '../../backend/models/mission_rating.dart';
 import '../../core/app_colors.dart';
-import '../../finance/presentation/money_format.dart';
+import '../../finance/presentation/money_format.dart' as money;
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -2037,9 +2037,9 @@ class _DepositLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final deposit = (mission.depositAmountMinor ?? 0) / 100;
-    final depositText = formatMajorAmount(deposit, locale: locale, currencySymbol: r'$');
+    final depositText = money.formatMajorAmount(deposit, locale: locale, currencySymbol: r'$');
     final balance = mission.customerTotal - deposit;
-    final balanceText = formatMajorAmount(balance < 0 ? 0 : balance, locale: locale, currencySymbol: r'$');
+    final balanceText = money.formatMajorAmount(balance < 0 ? 0 : balance, locale: locale, currencySymbol: r'$');
     final String text;
     switch (mission.depositStatus) {
       case 'refunded':
