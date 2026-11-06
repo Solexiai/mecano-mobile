@@ -7,6 +7,11 @@
 // en place : ce widget appelle exactement la même bascule
 // (`setDriverOnlineStatus`), il n'ajoute aucune règle.
 //
+// Phase 3 (2026-11-06) : quand le profil a une adresse de base géolocalisée,
+// la carte OpenStreetMap de la zone de service (rayon du chauffeur) sert de
+// fond, comme sur Uber. Carte figée (pas de zoom/déplacement) : c'est un
+// décor qui situe le chauffeur, pas un outil de navigation.
+//
 // Pas de ElevatedButton ici : les tests de l'onglet Accueil comptent les
 // ElevatedButton pour retrouver le bouton « Accepter » d'une offre. Pas de
 // CircularProgressIndicator non plus : une animation infinie empêcherait
@@ -14,6 +19,8 @@
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
@@ -65,6 +72,36 @@ class DriverHomeHero extends StatelessWidget {
         ? AppColors.glowGreen
         : AppColors.textOnDarkSecondary;
 
+    final Widget action = onMission
+        ? const SizedBox.shrink()
+        : online
+        ? _OfflinePill(
+            label: t('driver_home_go_offline'),
+            busy: toggling,
+            onTap: toggling ? null : () => onToggle(false),
+          )
+        : _GoButton(
+            label: t('driver_home_go'),
+            busy: toggling,
+            onTap: (toggling || !canGoOnline) ? null : () => onToggle(true),
+          );
+
+    final base = (p?.baseLat != null && p?.baseLng != null)
+        ? ll.LatLng(p!.baseLat!, p.baseLng!)
+        : null;
+
+    if (base != null) {
+      return _MapHero(
+        center: base,
+        radiusKm: p!.serviceRadiusKm,
+        online: online,
+        dotColor: dotColor,
+        title: title,
+        subtitle: subtitle,
+        action: action,
+      );
+    }
+
     return Container(
       key: const ValueKey('driver-home-hero'),
       width: double.infinity,
@@ -76,59 +113,182 @@ class DriverHomeHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  key: const ValueKey('driver-home-hero-title'),
-                  style: const TextStyle(
-                    color: AppColors.textOnDark,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: AppColors.textOnDarkSecondary,
-              fontSize: 13.5,
-              height: 1.35,
-            ),
-          ),
+          _StatusLine(dotColor: dotColor, title: title, subtitle: subtitle),
           const SizedBox(height: 18),
-          Center(
-            child: onMission
-                ? const SizedBox.shrink()
-                : online
-                ? _OfflinePill(
-                    label: t('driver_home_go_offline'),
-                    busy: toggling,
-                    onTap: toggling ? null : () => onToggle(false),
-                  )
-                : _GoButton(
-                    label: t('driver_home_go'),
-                    busy: toggling,
-                    onTap: (toggling || !canGoOnline)
-                        ? null
-                        : () => onToggle(true),
-                  ),
-          ),
+          Center(child: action),
         ],
       ),
+    );
+  }
+}
+
+/// Carte de la zone de service en fond, état et bouton par-dessus.
+class _MapHero extends StatelessWidget {
+  const _MapHero({
+    required this.center,
+    required this.radiusKm,
+    required this.online,
+    required this.dotColor,
+    required this.title,
+    required this.subtitle,
+    required this.action,
+  });
+
+  final ll.LatLng center;
+  final double radiusKm;
+  final bool online;
+  final Color dotColor;
+  final String title;
+  final String subtitle;
+  final Widget action;
+
+  /// Zoom qui montre à peu près le rayon de service.
+  double get _zoom => radiusKm <= 10
+      ? 11
+      : radiusKm <= 20
+      ? 10
+      : radiusKm <= 45
+      ? 9
+      : 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final zoneColor = online ? AppColors.success : AppColors.primary;
+    return ClipRRect(
+      key: const ValueKey('driver-home-hero'),
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        height: 300,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            FlutterMap(
+              key: const ValueKey('driver-home-map'),
+              options: MapOptions(
+                initialCenter: center,
+                initialZoom: _zoom,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.none,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.movik.movik_connect',
+                ),
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: center,
+                      radius: radiusKm * 1000,
+                      useRadiusInMeter: true,
+                      color: zoneColor.withValues(alpha: 0.12),
+                      borderColor: zoneColor.withValues(alpha: 0.55),
+                      borderStrokeWidth: 2,
+                    ),
+                  ],
+                ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: center,
+                      width: 22,
+                      height: 22,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: zoneColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            // État en haut, sur un bandeau lisible quelle que soit la carte.
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.primaryDark.withValues(alpha: 0.92),
+                      AppColors.primaryDark.withValues(alpha: 0.0),
+                    ],
+                  ),
+                ),
+                child: _StatusLine(
+                  dotColor: dotColor,
+                  title: title,
+                  subtitle: subtitle,
+                ),
+              ),
+            ),
+            Positioned(left: 0, right: 0, bottom: 18, child: Center(child: action)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Point d'état + titre + sous-titre, sur fond sombre.
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({
+    required this.dotColor,
+    required this.title,
+    required this.subtitle,
+  });
+  final Color dotColor;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: dotColor,
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                key: const ValueKey('driver-home-hero-title'),
+                style: const TextStyle(
+                  color: AppColors.textOnDark,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: AppColors.textOnDarkSecondary,
+            fontSize: 13.5,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 }

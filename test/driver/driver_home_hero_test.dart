@@ -9,11 +9,16 @@ import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/screens/dashboard/provider/widgets/driver_home_hero.dart';
 
+import '../helpers/gps_offline_transport.dart';
+
 DriverProfileV2 _profile({
   DriverStatus status = DriverStatus.approved,
   DriverOnlineStatus online = DriverOnlineStatus.offline,
+  bool located = false,
 }) => DriverProfileV2(
   uid: 'driver-1',
+  baseLat: located ? 45.4 : null,
+  baseLng: located ? -72.73 : null,
   fullName: 'Chauffeur Test',
   city: 'Granby',
   status: status,
@@ -97,6 +102,19 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
     await tester.tap(find.byKey(const ValueKey('driver-home-go-button')));
     expect(calls, isEmpty);
+  });
+
+  // Les tuiles OpenStreetMap passent par le transport hors ligne des tests
+  // (aucune requête réseau réelle), comme pour la carte du suivi GPS.
+  offlineWidgetTest('adresse de base géolocalisée : carte de zone en fond, GO dessus', (
+    tester,
+  ) async {
+    final calls = await _pump(tester, profile: _profile(located: true));
+    expect(find.byKey(const ValueKey('driver-home-map')), findsOneWidget);
+    expect(find.text(_t('driver_home_offline_title')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('driver-home-go-button')));
+    expect(calls, [true]);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('profil inconnu : GO désactivé sans erreur', (tester) async {

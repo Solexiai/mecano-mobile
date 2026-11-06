@@ -366,7 +366,11 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
             'Tell us when you’re usually available. For now, your availability does not yet filter offers: you receive requests while you’re “On duty”.',
             'Indique cuándo suele estar disponible. Por ahora, su disponibilidad todavía no filtra las ofertas: recibe solicitudes mientras está «En servicio».',
           ),
-    style: const TextStyle(color: AppColors.textSecondary),
+    style: const TextStyle(
+      color: AppColors.textOnDarkSecondary,
+      fontSize: 13.5,
+      height: 1.35,
+    ),
   );
 
   Widget _missionsSection() => StreamBuilder<List<DeliveryMission>>(
@@ -629,15 +633,32 @@ class _ProviderCalendarTabState extends State<ProviderCalendarTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  tr('Mon agenda', 'My calendar', 'Mi calendario'),
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
+                // Phase 3 « style Uber » (2026-11-06) : même en-tête bleu
+                // marine que l'accueil et les revenus.
+                Container(
+                  key: const ValueKey('driver-agenda-header'),
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('Mon agenda', 'My calendar', 'Mi calendario'),
+                        style: const TextStyle(
+                          color: AppColors.textOnDark,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      _intro(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                _intro(),
                 const SizedBox(height: 16),
                 if (_loading) const LinearProgressIndicator(),
                 // The « Mon horaire habituel » card was removed at Daniel's
