@@ -1,3 +1,4 @@
+import { BOOKING_DEPOSIT_POLICY } from '../../src/lib/bookingDeposit';
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications', () => ({ sendDeliveryOfferPush: jest.fn(async () => ({attempted:0,sent:0})) }));
 jest.mock('../../src/lib/openAiPhotoAnalyzer', () => ({ analyzeWithOpenAi: jest.fn() }));
@@ -154,7 +155,7 @@ test.each([
  expect(visible.customer_total_minor).toBe(official.customer_total_minor);
  expect(snapshot.customer_total_minor).toBe(official.customer_total_minor);
  expect(provider.createdPaymentParams).toHaveLength(1);
- expect(provider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(official.customer_total_minor));
+ expect(provider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(official.customer_total_minor-BOOKING_DEPOSIT_POLICY.amount_minor));
  expect((await mref.get()).data()?.booking_snapshot.load.items[0].weight_kg).toBeNull();
  evidence('assignment-visible-to-client',{missionId:created.missionId,vehicleId:vehicle,amountMinor:official.customer_total_minor,provider:'FAKE',externalPayment:false});
 });

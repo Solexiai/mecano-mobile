@@ -98,6 +98,19 @@ async function assertOpenMissionsBelowCap(customerId: string): Promise<void> {
   }
 }
 
+/** Dépôt débité sans mission créée : remboursé tout de suite (idempotent). */
+async function refundOrphanDeposit(paymentId: string): Promise<void> {
+  await refundPayment({
+    paymentId,
+    amountMinor: BOOKING_DEPOSIT_POLICY.amount_minor,
+    reason: RefundReasons.PAYMENT_ERROR,
+    initiatedByUserId: "system",
+    initiatedByRole: "system",
+    isAdminInitiated: false,
+    requestKey: `deposit_refund_orphan_${paymentId}`,
+  }).catch(() => undefined);
+}
+
 // Dépôt de réservation (2026-11-06) : la fonction débite Stripe, donc elle
 // déclare les secrets comme les autres fonctions de paiement.
 export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
@@ -257,18 +270,35 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
         quoteBefore.expires_at.toMillis() < Date.now()) {
       throw failedPrecondition("Ce devis a expiré. Merci de recalculer un nouveau devis.");
     }
-    // Une réservation commerciale (devis « réservation » ou « prix d'abord ») ;
-    // les anciens devis sans description complète restent sans dépôt.
-    const commercialBooking = !!(quoteBefore.pricing_snapshot?.booking || quoteBefore.pricing_snapshot?.pre_assignment);
+    // Une réservation commerciale (devis « réservation » ou « prix d'abord »)
+    // dont le prix dépasse le dépôt ; les anciens devis sans description
+    // complète restent sans dépôt.
+    const bookingSnapshot = quoteBefore.pricing_snapshot?.booking ?? quoteBefore.pricing_snapshot?.pre_assignment ?? null;
+    const commercialBooking = !!bookingSnapshot &&
+      Number.isSafeInteger(quoteBefore.customer_total_minor) &&
+      quoteBefore.customer_total_minor > BOOKING_DEPOSIT_POLICY.amount_minor;
+    let depositAlreadyBooked = false;
     if (commercialBooking) {
+      // Tout ce qui peut refuser la réservation sans toucher à la base est
+      // vérifié ICI, avant de débiter : courriel, conditions acceptées,
+      // chargement inchangé, demande déjà confirmée pour ce brouillon.
       if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel avant de confirmer.');
+      if (!input.booking || JSON.stringify(normalizeLoad(input.booking)) !== JSON.stringify(bookingSnapshot.load)) {
+        throw failedPrecondition('La livraison a changé. Recalculez le devis.');
+      }
+      requireBookingConsent(parseBookingPolicy((await db.doc('system_config/booking_policy').get()).data()), input.consent);
+      const draftId = bookingSnapshot.load?.draft_id;
+      if (typeof draftId === "string" && draftId) {
+        const attempt = (await db.doc(`booking_attempts/${ctx.uid}_${draftId}`).get()).data();
+        depositAlreadyBooked = typeof attempt?.mission_id === "string" && !!attempt.mission_id;
+      }
       const provider = getPaymentProvider();
       assertStripeReferenceEnvironmentConsistency({
         activeEnvironment: provider.environment,
         storedEnvironment: paymentProfile!.stripe_environment ?? null,
       });
     }
-    const deposit = !commercialBooking ? null : await collectBookingDeposit({
+    const deposit = !commercialBooking || depositAlreadyBooked ? null : await collectBookingDeposit({
       customerId: ctx.uid,
       quoteId: input.quoteId,
       providerCustomerId: paymentProfile!.provider_customer_id as string,
@@ -567,20 +597,19 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
 
   try {
     await runMissionTransaction();
+    if (depositPaymentId && resolvedMissionId !== missionRef.id) {
+      // La transaction a renvoyé une mission déjà confirmée (autre devis du
+      // même brouillon) : ce dépôt-ci n'a pas de mission, on le rembourse.
+      const existing = (await db.doc(`delivery_requests/${resolvedMissionId}`).get()).data();
+      if (existing?.deposit?.payment_id !== depositPaymentId) {
+        await refundOrphanDeposit(depositPaymentId);
+        depositPaymentId = existing?.deposit?.payment_id ?? null;
+      }
+    }
   } catch (error) {
     // La mission n'a pas pu être créée après le débit du dépôt : on le
     // rembourse tout de suite (idempotent par dépôt), puis on remonte l'erreur.
-    if (depositPaymentId) {
-      await refundPayment({
-        paymentId: depositPaymentId,
-        amountMinor: BOOKING_DEPOSIT_POLICY.amount_minor,
-        reason: RefundReasons.PAYMENT_ERROR,
-        initiatedByUserId: "system",
-        initiatedByRole: "system",
-        isAdminInitiated: false,
-        requestKey: `deposit_refund_orphan_${depositPaymentId}`,
-      }).catch(() => undefined);
-    }
+    if (depositPaymentId) await refundOrphanDeposit(depositPaymentId);
     throw error;
   }
 

@@ -1,3 +1,5 @@
+import { cardHoldMinor } from '../../src/lib/missionFees';
+import { BOOKING_DEPOSIT_POLICY } from '../../src/lib/bookingDeposit';
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications',()=>({sendDeliveryOfferPush:jest.fn(async()=>({attempted:0,sent:0}))}));
 jest.mock('../../src/lib/openAiPhotoAnalyzer',()=>({analyzeWithOpenAi:jest.fn()}));
@@ -85,7 +87,8 @@ test.each(['immediate','scheduled'] as const)('%s photo -> AI suggestion -> quot
  expect(snapshot.customer_total_minor).toBe(quote.customer_total_minor);
  expect(snapshot.pricing_snapshot).toEqual(quote.pricing_snapshot);
  expect(provider.createdPaymentParams).toHaveLength(1);
- expect(provider.createdPaymentParams[0].amountMinor).toBe(quote.customer_total_minor);
+ // Dépôt de 25 $ déjà encaissé à la réservation : le blocage porte sur le solde.
+ expect(provider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor-BOOKING_DEPOSIT_POLICY.amount_minor));
  expect(finalMission.booking_snapshot.load.items[0].length_cm).toBeNull();
 });
 test('special-item details reach the driver snapshot without inventing unknown weight',async()=>{

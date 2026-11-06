@@ -51,10 +51,17 @@ export const BOOKING_DEPOSIT_POLICY = Object.freeze({
   refund_window_ms: 48 * 60 * 60 * 1000,
 });
 
-/** Un seul dépôt par devis : l'identifiant du paiement en découle. */
-export function depositPaymentId(quoteId: string): string {
-  return `deposit_${quoteId}`;
+/** Un dépôt par devis : l'identifiant du paiement en découle. */
+export function depositPaymentId(quoteId: string, sequence = 1): string {
+  return sequence <= 1 ? `deposit_${quoteId}` : `deposit_${quoteId}_${sequence}`;
 }
+
+/** Un dépôt déjà remboursé ou annulé ne se réutilise jamais : le suivant prend un nouvel identifiant. */
+const TERMINAL_DEPOSIT_STATUSES: ReadonlySet<string> = new Set([
+  PaymentStatuses.REFUNDED, PaymentStatuses.PARTIALLY_REFUNDED, PaymentStatuses.CANCELLED,
+  PaymentStatuses.FAILED, PaymentStatuses.DISPUTED, PaymentStatuses.CHARGEBACK,
+]);
+const MAX_DEPOSIT_SEQUENCE = 5;
 
 export interface CollectDepositInput {
   customerId: string;
@@ -80,14 +87,20 @@ export interface CollectDepositOutcome {
  */
 export async function collectBookingDeposit(input: CollectDepositInput): Promise<CollectDepositOutcome> {
   const provider = getPaymentProvider();
-  const paymentId = depositPaymentId(input.quoteId);
-  const payRef = db.collection("payments").doc(paymentId);
   const amountMinor = BOOKING_DEPOSIT_POLICY.amount_minor;
+  let paymentId = depositPaymentId(input.quoteId);
 
   // ---- 1. Réservation de la tentative ---------------------------------------
   const prepared = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(payRef);
-    const existing = snap.data() as PaymentDoc | undefined;
+    let existing: PaymentDoc | undefined;
+    let sequence = 1;
+    for (; sequence <= MAX_DEPOSIT_SEQUENCE; sequence += 1) {
+      paymentId = depositPaymentId(input.quoteId, sequence);
+      existing = (await tx.get(db.collection("payments").doc(paymentId))).data() as PaymentDoc | undefined;
+      if (!existing || !TERMINAL_DEPOSIT_STATUSES.has(existing.status)) break;
+    }
+    if (sequence > MAX_DEPOSIT_SEQUENCE) throw failedPrecondition("Ce devis n'est plus utilisable. Recalculez le devis pour réserver.");
+    const payRef = db.collection("payments").doc(paymentId);
     const now = admin.firestore.Timestamp.now();
     if (existing) {
       if (existing.customer_id !== input.customerId) throw failedPrecondition("Dépôt d'un autre client.");
@@ -99,9 +112,7 @@ export async function collectBookingDeposit(input: CollectDepositInput): Promise
         return { kind: "charge" as const, attempt: existing.capture_attempt_count ?? 1 };
       }
       if (existing.status !== PaymentStatuses.CAPTURE_FAILED) {
-        // Dépôt déjà remboursé (réservation échouée après le débit) : un
-        // nouveau devis donne un nouveau dépôt, jamais le même document.
-        throw failedPrecondition("Ce devis n'est plus utilisable. Recalculez le devis pour réserver.");
+        throw failedPrecondition("Le dépôt de cette réservation est dans un état inattendu. Recalculez le devis.");
       }
       // Refus précédent (capture_failed) : nouvelle tentative, nouvelle clé.
       const attempt = (existing.capture_attempt_count ?? 1) + 1;
@@ -148,6 +159,7 @@ export async function collectBookingDeposit(input: CollectDepositInput): Promise
   }
 
   // ---- 2. Débit, hors transaction ------------------------------------------
+  const payRef = db.collection("payments").doc(paymentId);
   const idempotencyKey = buildIdempotencyKey("bookingDeposit", paymentId, String(prepared.attempt));
   const result = await provider.chargeSavedPaymentMethod({
     providerCustomerId: input.providerCustomerId,

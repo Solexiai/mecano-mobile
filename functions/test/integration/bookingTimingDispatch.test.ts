@@ -1,3 +1,4 @@
+import { BOOKING_DEPOSIT_POLICY } from '../../src/lib/bookingDeposit';
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications', () => ({
   sendDeliveryOfferPush: jest.fn(async () => ({ attempted: 0, sent: 0 })),
@@ -139,7 +140,7 @@ test.each(['immediate','scheduled'] as const)('%s complete local quote -> dispat
   expect(after.customer_total_minor).toBe(quote.customer_total_minor);
   expect(snapshot.customer_total_minor).toBe(quote.customer_total_minor);
   expect(fake.createdPaymentParams).toHaveLength(1);
-  expect(fake.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor));
+  expect(fake.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor - BOOKING_DEPOSIT_POLICY.amount_minor));
   expect((await db.doc('driver_agendas/'+driver+'/reservations/'+created.missionId).get()).data()!.active).toBe(true);
   expect(after.duration_confirmation.driver_id).toBe(driver);
   expect(after.duration_confirmation.confirmed_at.toMillis()).toBeGreaterThan(0);
