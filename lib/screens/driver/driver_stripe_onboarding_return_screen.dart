@@ -99,6 +99,13 @@ class _DriverStripeOnboardingReturnScreenState
     String Function(String) t,
     FirebaseAuthProvider auth,
   ) {
+    if (!auth.authResolved) {
+      // 2026-11-06 : Stripe ramène le chauffeur ici dans une page chargée à
+      // froid ; Firebase Auth met quelques centaines de ms à restaurer la
+      // session. Rediriger avant ça envoyait un chauffeur connecté sur la
+      // page de connexion (« Connecté en tant que… ») au lieu de cet écran.
+      return const Center(child: CircularProgressIndicator());
+    }
     if (!auth.isSignedIn || auth.effectiveUid == null) {
       // Pas de session (ex. lien Stripe ouvert dans un navigateur/onglet où
       // la session Movi-K n'a pas persisté) : redirection discrète vers la

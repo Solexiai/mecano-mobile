@@ -5831,10 +5831,11 @@ class AppStrings {
     },
     'driver_onboarding_return_status_pending': {
       'fr':
-          'Onboarding pas encore terminé. Ouvrez votre profil pour le compléter.',
-      'en': 'Onboarding is not complete yet. Open your profile to finish it.',
+          'Stripe examine vos informations : c’est souvent réglé en quelques minutes, parfois en 1 ou 2 jours ouvrables. Vous n’avez rien d’autre à faire. Dès que c’est validé, votre tableau de bord affichera « Versements actifs » et vous pourrez accepter des livraisons. Si Stripe a besoin d’un document de plus, un bouton « Reprendre » apparaîtra dans votre profil.',
+      'en':
+          'Stripe is reviewing your information: this is often done in a few minutes, sometimes within 1 or 2 business days. There is nothing else to do. Once validated, your dashboard will show “Payouts active” and you will be able to accept deliveries. If Stripe needs one more document, a “Resume” button will appear in your profile.',
       'es':
-          'La incorporación aún no está completa. Abra su perfil para finalizarla.',
+          'Stripe está revisando su información: suele resolverse en unos minutos, a veces en 1 o 2 días hábiles. No tiene nada más que hacer. En cuanto se valide, su panel mostrará «Pagos activos» y podrá aceptar entregas. Si Stripe necesita un documento más, aparecerá un botón «Reanudar» en su perfil.',
     },
     'driver_onboarding_return_go_to_profile': {
       'fr': 'Retour à mon profil',
