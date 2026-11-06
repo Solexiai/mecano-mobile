@@ -51,6 +51,7 @@ import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
 import { cancelMissionPaymentAuthorization } from "../payment/paymentOrchestration";
 import { chargeMissionFee } from "../payment/missionFeeOrchestration";
 import { refundBookingDeposit } from "../lib/bookingDeposit";
+import { settleKeptDeposit } from "../payment/depositTransferOrchestration";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
@@ -114,6 +115,9 @@ export const onMissionEndedClearTracking = onDocumentUpdated(
           actorUserId: "system",
           actorRole: "system",
         });
+      } else if (deposit?.status === "kept") {
+        // 20 $ au chauffeur, 5 $ à Movi-K (depositTransferOrchestration.ts).
+        await settleKeptDeposit(missionId);
       }
     }
 

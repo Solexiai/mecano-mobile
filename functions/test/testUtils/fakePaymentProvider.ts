@@ -33,6 +33,8 @@ import {
   CreateDriverAccountResult,
   CreateDriverPayoutParams,
   CreateDriverPayoutResult,
+  CreateTransferParams,
+  CreateTransferResult,
   CreatePaymentParams,
   CreatePaymentResult,
   ListProviderPaymentsResult,
@@ -73,6 +75,8 @@ export interface FakePaymentProviderOptions {
   forceRefundFailure?: boolean;
   /** Si vrai, `createDriverPayout()` renvoie un échec déterministe (versement refusé simulé, ex: compte connecté invalide côté Stripe). */
   forceCreateDriverPayoutFailure?: boolean;
+  /** Dépôt (2026-11-06) : si vrai, `createTransfer()` renvoie un échec déterministe. */
+  forceTransferFailure?: boolean;
   /** Code d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure`/`forceCreateDriverPayoutFailure` est actif. */
   failureCode?: string;
   /** Message d'échec renvoyé quand `forceAuthorizeFailure`/`forceCaptureFailure`/`forceRefundFailure` est actif. */
@@ -277,6 +281,16 @@ export class FakePaymentProvider extends PaymentProvider {
       };
     }
     return { success: true, providerPayoutId: nextId("po"), status: "paid" };
+  }
+
+  readonly createdTransferParams: CreateTransferParams[] = [];
+  async createTransfer(params: CreateTransferParams): Promise<CreateTransferResult> {
+    this.createdTransferParams.push(params);
+    if (this.options.forceTransferFailure) {
+      return { success: false, providerTransferId: null, status: "failed",
+        failureCode: this.options.failureCode ?? "balance_insufficient", failureMessage: this.options.failureMessage ?? "Virement refusé (simulation)." };
+    }
+    return { success: true, providerTransferId: nextId("tr"), status: "succeeded" };
   }
 
   async getPaymentStatus(_providerPaymentIntentId: string): Promise<PaymentStatusResult> {

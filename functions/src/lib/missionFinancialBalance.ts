@@ -50,11 +50,13 @@ import { connectTransferShare } from "./payoutMode";
 export async function computeMissionFinancialBalance(
   missionId: string
 ): Promise<MissionFinancialBalanceDoc> {
-  const [paymentsQuery, refundsQuery, ledgerQuery, snapshotsQuery] = await Promise.all([
+  const [paymentsQuery, refundsQuery, ledgerQuery, snapshotsQuery, depositTransfersQuery] = await Promise.all([
     db.collection("payments").where("mission_id", "==", missionId).get(),
     db.collection("refunds").where("mission_id", "==", missionId).get(),
     db.collection("transaction_ledger").where("mission_id", "==", missionId).get(),
     db.collection("financial_snapshots").where("mission_id", "==", missionId).get(),
+    // Dépôt de réservation (2026-11-06) : virements au chauffeur financés par le dépôt.
+    db.collection("deposit_transfers").where("mission_id", "==", missionId).get(),
   ]);
 
   // ---- Paiement : customer_charged (capturé), driver_paid dérivé du payout ----
@@ -84,6 +86,14 @@ export async function computeMissionFinancialBalance(
         platformFeeRefundedMinor,
         Math.min(fee, Math.max(0, refunded - share.reversedMinor))
       );
+    }
+  }
+
+  // ---- Dépôt (2026-11-06) : virements complémentaires au chauffeur réussis ----
+  for (const doc of depositTransfersQuery.docs) {
+    const t = doc.data();
+    if (t.status === "succeeded") {
+      driverTransferredMinor = addMinor(driverTransferredMinor, (t.amount_minor as number) ?? 0);
     }
   }
 

@@ -537,6 +537,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Dépôt de réservation (2026-11-06) : virements au chauffeur financés par
+    // le dépôt (part non couverte par le solde, dépôt gardé). Écrits par les
+    // fonctions seulement ; lisibles par le chauffeur concerné et l'admin.
+    match /deposit_transfers/{transferId} {
+      allow read: if isSignedIn() &&
+        (resource.data.driver_id == uid() || isAnalystOrAbove());
+      allow write: if false;
+    }
+
     // -------------------------------------------------------------------
     // PHASE 6 — collections financières additionnelles, toutes
     // Cloud-Functions-only en écriture (le SDK Admin contourne les Rules ;
