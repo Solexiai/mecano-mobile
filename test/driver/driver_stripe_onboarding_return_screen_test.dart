@@ -49,6 +49,8 @@ DriverProfileV2 _profile({
     acceptedItemCategoryKeys: const [],
     createdAt: DateTime(2026, 1, 1),
     stripeConnectedAccountId: 'acct_test_001',
+    // 2026-11-06 : compte réel (un compte de test n'est jamais « actif »).
+    stripeConnectedAccountEnvironment: 'live',
     stripeChargesEnabled: stripeChargesEnabled,
     stripePayoutsEnabled: stripePayoutsEnabled,
   );
