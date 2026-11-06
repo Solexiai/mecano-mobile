@@ -10,41 +10,11 @@
 // ---------------------------------------------------------------------------
 import 'package:flutter/material.dart';
 
+import '../../../../backend/models/driver_payout_readiness.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
-import '../../../../models/enums.dart';
 
-enum DriverPayoutReadiness {
-  /// Compte réel, identité et banque validées : Stripe peut le payer.
-  ready,
-
-  /// Compte réel créé, mais Stripe attend encore une pièce ou la banque.
-  incomplete,
-
-  /// Compte créé en mode test : à refaire (bouton « Configurer les
-  /// versements » du chauffeur, après archivage par l'admin).
-  testAccount,
-
-  /// Jamais commencé.
-  notStarted,
-}
-
-DriverPayoutReadiness driverPayoutReadiness(DriverProfileV2 p) {
-  final id = (p.stripeConnectedAccountId ?? '').trim();
-  if (id.isEmpty) return DriverPayoutReadiness.notStarted;
-  if (p.stripeConnectedAccountEnvironment != 'live') {
-    return DriverPayoutReadiness.testAccount;
-  }
-  return p.stripeChargesEnabled && p.stripePayoutsEnabled
-      ? DriverPayoutReadiness.ready
-      : DriverPayoutReadiness.incomplete;
-}
-
-/// Approuvé + documents validés + Stripe prêt : peut réellement livrer.
-bool isDriverReadyToDeliver(DriverProfileV2 p) =>
-    p.status == DriverStatus.approved &&
-    p.documentsAllValid &&
-    driverPayoutReadiness(p) == DriverPayoutReadiness.ready;
+export '../../../../backend/models/driver_payout_readiness.dart';
 
 String driverPayoutReadinessKey(DriverPayoutReadiness r) => switch (r) {
   DriverPayoutReadiness.ready => 'admin_driver_payout_ready',

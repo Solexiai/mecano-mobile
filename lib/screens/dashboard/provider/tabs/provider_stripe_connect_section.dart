@@ -51,6 +51,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
+import '../../../../backend/models/driver_payout_readiness.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
 
@@ -149,10 +150,17 @@ class _ProviderStripeConnectSectionState
     final t = widget.t;
     final profile = widget.profile;
     final accountId = profile?.stripeConnectedAccountId;
-    final chargesEnabled = profile?.stripeChargesEnabled ?? false;
-    final payoutsEnabled = profile?.stripePayoutsEnabled ?? false;
+    // 2026-11-06 : même règle que le serveur (isDriverPayoutReady en mode
+    // réel). Un compte créé pendant les tests affichait « Actif » alors que
+    // le serveur refusait toute livraison : il est maintenant « À refaire ».
+    final readiness = driverPayoutReadiness(profile);
+    final isTestAccount = readiness == DriverPayoutReadiness.testAccount;
+    final chargesEnabled =
+        !isTestAccount && (profile?.stripeChargesEnabled ?? false);
+    final payoutsEnabled =
+        !isTestAccount && (profile?.stripePayoutsEnabled ?? false);
     final hasAccount = accountId != null && accountId.isNotEmpty;
-    final isActive = hasAccount && chargesEnabled && payoutsEnabled;
+    final isActive = readiness == DriverPayoutReadiness.ready;
 
     return Container(
       width: double.infinity,
@@ -185,6 +193,7 @@ class _ProviderStripeConnectSectionState
                   t,
                   hasAccount: hasAccount,
                   isActive: isActive,
+                  isTestAccount: isTestAccount,
                 ),
                 color: isActive
                     ? AppColors.success
@@ -196,7 +205,12 @@ class _ProviderStripeConnectSectionState
           ),
           const SizedBox(height: 8),
           Text(
-            _statusDescription(t, hasAccount: hasAccount, isActive: isActive),
+            _statusDescription(
+              t,
+              hasAccount: hasAccount,
+              isActive: isActive,
+              isTestAccount: isTestAccount,
+            ),
             style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 13,
@@ -257,6 +271,8 @@ class _ProviderStripeConnectSectionState
                   label: Text(
                     _loading
                         ? t('provider_stripe_connect_loading')
+                        : isTestAccount
+                        ? t('provider_stripe_connect_redo')
                         : (hasAccount
                               ? t('provider_stripe_connect_resume')
                               : t('provider_stripe_connect_start')),
@@ -298,8 +314,10 @@ class _ProviderStripeConnectSectionState
     String Function(String) t, {
     required bool hasAccount,
     required bool isActive,
+    required bool isTestAccount,
   }) {
     if (isActive) return t('provider_stripe_connect_status_active');
+    if (isTestAccount) return t('provider_stripe_connect_status_redo');
     if (hasAccount) return t('provider_stripe_connect_status_pending');
     return t('provider_stripe_connect_status_none');
   }
@@ -308,8 +326,10 @@ class _ProviderStripeConnectSectionState
     String Function(String) t, {
     required bool hasAccount,
     required bool isActive,
+    required bool isTestAccount,
   }) {
     if (isActive) return t('provider_stripe_connect_description_active');
+    if (isTestAccount) return t('provider_stripe_connect_description_redo');
     if (hasAccount) return t('provider_stripe_connect_description_pending');
     return t('provider_stripe_connect_description_none');
   }

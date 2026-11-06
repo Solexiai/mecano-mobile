@@ -34,6 +34,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../backend/backend_locator.dart';
+import '../../backend/models/driver_payout_readiness.dart';
 import '../../backend/models/driver_profile_v2.dart';
 import '../../core/app_colors.dart';
 import '../../providers/firebase_auth_provider.dart';
@@ -115,9 +116,10 @@ class _DriverStripeOnboardingReturnScreenState
       stream: _ensureDriverProfileStream(uid),
       builder: (context, snap) {
         final profile = snap.data;
-        final chargesEnabled = profile?.stripeChargesEnabled ?? false;
-        final payoutsEnabled = profile?.stripePayoutsEnabled ?? false;
-        final isActive = chargesEnabled && payoutsEnabled;
+        // 2026-11-06 : même règle que le serveur (compte réel + identité +
+        // banque) ; un compte de test n'est jamais « actif ».
+        final isActive =
+            driverPayoutReadiness(profile) == DriverPayoutReadiness.ready;
 
         return Column(
           mainAxisSize: MainAxisSize.min,

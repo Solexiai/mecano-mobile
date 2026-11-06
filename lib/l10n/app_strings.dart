@@ -3593,6 +3593,11 @@ class AppStrings {
       'es':
           'Tu expediente está aprobado. Configura tus pagos para cobrar: regístrate en Stripe (identidad y cuenta bancaria). Movi-K nunca ve esta información.',
     },
+    'driver_payout_setup_banner_redo': {
+      'fr': 'Votre inscription Stripe date de la période de test : elle doit être refaite en mode réel avant d’accepter une livraison.',
+      'en': 'Your Stripe registration dates from the test period: it must be redone in live mode before you can accept a delivery.',
+      'es': 'Su registro en Stripe es del período de prueba: debe rehacerse en modo real antes de aceptar una entrega.',
+    },
     'driver_payout_setup_banner_pending': {
       'fr':
           'Terminez votre inscription Stripe pour recevoir vos gains. Vous pouvez la reprendre là où vous l’avez laissée.',
@@ -5690,6 +5695,21 @@ class AppStrings {
       'fr': 'Actif',
       'en': 'Active',
       'es': 'Activo',
+    },
+    'provider_stripe_connect_status_redo': {
+      'fr': 'À refaire',
+      'en': 'To redo',
+      'es': 'Por rehacer',
+    },
+    'provider_stripe_connect_description_redo': {
+      'fr': 'Votre compte Stripe a été créé pendant la période de test : il n’existe pas en vrai argent. Refaites la configuration (5 à 10 minutes, pièce d’identité et compte bancaire) pour pouvoir accepter des livraisons et recevoir vos versements.',
+      'en': 'Your Stripe account was created during the test period: it does not exist in live mode. Redo the setup (5 to 10 minutes, ID and bank account) to accept deliveries and receive your payouts.',
+      'es': 'Su cuenta Stripe se creó durante el período de prueba: no existe en modo real. Vuelva a hacer la configuración (5 a 10 minutos, identificación y cuenta bancaria) para aceptar entregas y recibir sus pagos.',
+    },
+    'provider_stripe_connect_redo': {
+      'fr': 'Refaire la configuration des versements',
+      'en': 'Redo payout setup',
+      'es': 'Rehacer la configuración de pagos',
     },
     'provider_stripe_connect_description_none': {
       'fr':

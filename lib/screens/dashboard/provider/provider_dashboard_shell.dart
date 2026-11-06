@@ -8,6 +8,7 @@ import '../../../providers/locale_provider.dart';
 import '../../../widgets/language_selector.dart';
 import '../../../widgets/notification_bell.dart';
 import '../../../backend/backend_locator.dart';
+import '../../../backend/models/driver_payout_readiness.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
 import '../../../services/driver_location_reporter.dart';
@@ -389,12 +390,16 @@ class _PayoutSetupBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = profile;
+    // 2026-11-06 : même règle que le serveur (compte réel + identité +
+    // banque). Un compte créé pendant les tests n'est pas « prêt ».
+    final readiness = driverPayoutReadiness(p);
     if (p == null ||
         p.status != DriverStatus.approved ||
-        (p.stripeChargesEnabled && p.stripePayoutsEnabled)) {
+        readiness == DriverPayoutReadiness.ready) {
       return const SizedBox.shrink();
     }
-    final pending = (p.stripeConnectedAccountId ?? '').isNotEmpty;
+    final pending = readiness == DriverPayoutReadiness.incomplete;
+    final redo = readiness == DriverPayoutReadiness.testAccount;
     return Container(
       key: const ValueKey('driver-payout-setup-banner'),
       width: double.infinity,
@@ -411,7 +416,9 @@ class _PayoutSetupBanner extends StatelessWidget {
         children: [
           Text(
             t(
-              pending
+              redo
+                  ? 'driver_payout_setup_banner_redo'
+                  : pending
                   ? 'driver_payout_setup_banner_pending'
                   : 'driver_payout_setup_banner',
             ),
