@@ -79,7 +79,7 @@ afterEach(async () => {
   for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers', 'financial_snapshots', 'payments', 'audit_logs',
     'booking_attempts', 'booking_photo_grants', 'users', 'driver_locations', 'driver_profiles', 'driver_vehicles', 'payment_profiles',
     'pricing_configs', 'pricing_versions', 'system_config', 'routing_rate_limits', 'transaction_ledger', 'mission_financial_balance',
-    'mission_outcome_reviews']) await db.recursiveDelete(db.collection(collection));
+    'mission_outcome_reviews', 'refunds']) await db.recursiveDelete(db.collection(collection));
 });
 
 /** Books a price-first request and has the driver accept it (card hold placed). */
@@ -99,49 +99,31 @@ async function bookAndAccept(requestedAt: string | null, accept = true) {
   return id;
 }
 
-test('late cancellation (immediate delivery, driver accepted): fee shown, confirmed, then captured 30 $ = 25 $ driver + 5 $ Movi-K', async () => {
+test('late cancellation (immediate delivery, driver accepted): the 25 $ deposit is kept, no fee on the card hold, hold released', async () => {
+  // Dépôt de réservation (2026-11-06) : remplace les frais d'annulation
+  // tardive pris sur le blocage. Le dépôt est gardé ; le blocage est libéré.
   const id = await bookAndAccept(null);
   const before = (await missionRef(id).get()).data()!;
+  expect(before.deposit).toMatchObject({ status: 'captured', amount_minor: 2500 });
 
   const preview = await cancelDeliveryRequest.run(asCustomer({ missionId: id, dryRun: true }));
-  expect(preview).toMatchObject({ feeMinor: 3000, feeKind: 'late_cancellation', cancelled: false });
+  expect(preview).toMatchObject({ feeMinor: 0, feeKind: null, cancelled: false, depositMinor: 2500, depositKept: true, depositRefundMinor: 0 });
   expect((await missionRef(id).get()).data()!.status).toBe('assigned');
 
-  // Never charged without the customer confirming that exact amount.
-  await expect(cancelDeliveryRequest.run(asCustomer({ missionId: id })))
-    .rejects.toMatchObject({ code: 'failed-precondition', details: { reason: 'fee_confirmation_required', fee_minor: 3000 } });
-  await expect(cancelDeliveryRequest.run(asCustomer({ missionId: id, acceptedFeeMinor: 2000 })))
-    .rejects.toMatchObject({ code: 'failed-precondition' });
-  await expect(cancelDeliveryRequest.run(call({ missionId: id, acceptedFeeMinor: 3000 }, 'someone_else', ['customer'])))
+  await expect(cancelDeliveryRequest.run(call({ missionId: id }, 'someone_else', ['customer'])))
     .rejects.toMatchObject({ code: 'permission-denied' });
 
-  const done = await cancelDeliveryRequest.run(asCustomer({ missionId: id, acceptedFeeMinor: 3000 }));
-  expect(done).toMatchObject({ cancelled: true, feeMinor: 3000 });
+  const done = await cancelDeliveryRequest.run(asCustomer({ missionId: id }));
+  expect(done).toMatchObject({ cancelled: true, feeMinor: 0, depositKept: true });
   const cancelled = (await missionRef(id).get()).data()!;
-  expect(cancelled).toMatchObject({ status: 'cancelled', cancelled_by: 'customer',
-    cancellation_fee: { kind: 'late_cancellation', status: 'pending', total_minor: 3000, driver_minor: 2500, platform_minor: 500 } });
+  expect(cancelled).toMatchObject({ status: 'cancelled', cancelled_by: 'customer', cancellation_fee: null,
+    deposit: { status: 'kept', kept_reason: 'customer_late_cancellation' } });
 
   await runCancelTrigger(id, before);
-  expect(provider.cancelledAuthorizationCount).toBe(0);
-  expect(provider.capturedPaymentParams).toHaveLength(1);
-  expect(provider.capturedPaymentParams[0]).toMatchObject({ amountToCaptureMinor: 3000, applicationFeeMinor: 500 });
-
-  const payment = (await db.doc('payments/' + cancelled.active_payment_id).get()).data()!;
-  expect(payment).toMatchObject({ status: 'captured', amount_captured_minor: 3000, application_fee_minor: 500, capture_purpose: 'mission_fee' });
-  expect((await missionRef(id).get()).data()!.cancellation_fee).toMatchObject({ status: 'captured', captured_minor: 3000 });
-
-  const feeSnapshot = (await db.doc('financial_snapshots/' + missionFeeSnapshotId(id)).get()).data()!;
-  expect(feeSnapshot).toMatchObject({ snapshot_kind: 'mission_fee', status: 'confirmed', driver_id: driver,
-    driver_net_mission_earnings: 25, platform_commission_amount: 5, customer_total_minor: 3000 });
-  const ledger = await db.collection('transaction_ledger').where('mission_id', '==', id).get();
-  expect(ledger.docs.map(d => [d.data().type, d.data().amount_minor]).sort()).toEqual(
-    [['customer_charge', 3000], ['driver_earning', 2500], ['platform_commission', 500]].sort());
-  const balance = await computeMissionFinancialBalance(id);
-  expect(balance).toMatchObject({ customer_charged_minor: 3000, driver_earned_minor: 2500, platform_commission_minor: 500 });
-
-  // A replayed trigger never captures twice.
-  await runCancelTrigger(id, before);
-  expect(provider.capturedPaymentParams).toHaveLength(1);
+  expect(provider.capturedPaymentParams).toHaveLength(0);
+  expect(provider.cancelledAuthorizationCount).toBe(1);
+  expect((await db.doc('payments/' + cancelled.active_payment_id).get()).data()!.status).toBe('cancelled');
+  expect((await missionRef(id).get()).data()!.deposit.status).toBe('kept');
 });
 
 test('cancellation more than 2 hours before a scheduled pickup is free and releases the card hold', async () => {
@@ -149,10 +131,23 @@ test('cancellation more than 2 hours before a scheduled pickup is free and relea
   const before = (await missionRef(id).get()).data()!;
   expect(await cancelDeliveryRequest.run(asCustomer({ missionId: id, dryRun: true }))).toMatchObject({ feeMinor: 0 });
   await cancelDeliveryRequest.run(asCustomer({ missionId: id }));
-  expect((await missionRef(id).get()).data()!).toMatchObject({ status: 'cancelled', cancellation_fee: null });
+  // Dépôt (2026-11-06) : ramassage dans 24 h, donc à moins de 48 h → gardé.
+  expect((await missionRef(id).get()).data()!).toMatchObject({ status: 'cancelled', cancellation_fee: null, deposit: { status: 'kept' } });
   await runCancelTrigger(id, before);
   expect(provider.capturedPaymentParams).toHaveLength(0);
   expect(provider.cancelledAuthorizationCount).toBe(1);
+});
+
+test('cancellation more than 48 hours before a scheduled pickup refunds the deposit', async () => {
+  const id = await bookAndAccept(new Date(Date.now() + 72 * 3600000).toISOString());
+  const before = (await missionRef(id).get()).data()!;
+  expect(await cancelDeliveryRequest.run(asCustomer({ missionId: id, dryRun: true }))).toMatchObject({ feeMinor: 0, depositKept: false, depositRefundMinor: 2500 });
+  await cancelDeliveryRequest.run(asCustomer({ missionId: id }));
+  await runCancelTrigger(id, before);
+  expect(provider.cancelledAuthorizationCount).toBe(1);
+  const mission = (await missionRef(id).get()).data()!;
+  expect(mission.deposit.status).toBe('refunded');
+  expect((await db.doc('payments/' + mission.deposit.payment_id).get()).data()).toMatchObject({ purpose: 'deposit', status: 'refunded' });
 });
 
 test('cancellation before any driver accepts is free', async () => {
@@ -184,9 +179,12 @@ test('travel fee: only an admin, only after the failed pickup is confirmed, then
 });
 
 test('a refused fee capture is recorded for follow-up and never retried silently', async () => {
-  const id = await bookAndAccept(null);
+  // Frais « déplacement inutile » (admin) : toujours pris sur le blocage.
+  const id = await bookAndAccept(new Date(Date.now() + 24 * 3600000).toISOString());
   const before = (await missionRef(id).get()).data()!;
-  await cancelDeliveryRequest.run(asCustomer({ missionId: id, acceptedFeeMinor: 3000 }));
+  await db.doc('mission_outcome_reviews/' + id).set({ mission_id: id, confirmed: true, revision: 1 });
+  expect(await chargeWastedTripFee.run(call({ missionId: id, expectedStatus: 'assigned', reason: 'Client absent' }, staff, ['admin'])))
+    .toMatchObject({ success: true, feeMinor: 3000 });
   setPaymentProviderForTesting(new FakePaymentProvider({ forceCaptureFailure: true }));
   await runCancelTrigger(id, before);
   const mission = (await missionRef(id).get()).data()!;

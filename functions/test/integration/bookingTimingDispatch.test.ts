@@ -1,3 +1,4 @@
+import { BOOKING_DEPOSIT_POLICY } from '../../src/lib/bookingDeposit';
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications', () => ({
   sendDeliveryOfferPush: jest.fn(async () => ({ attempted: 0, sent: 0 })),
@@ -74,7 +75,7 @@ afterEach(async () => {
     'booking_attempts/' + uid + '_timing-immediate', 'booking_attempts/' + uid + '_timing-scheduled',
     'driver_agendas/'+driver,'driver_locations/'+driver,'driver_calendar_busy/'+driver,'system_config/driver_scheduling',
     'users/' + uid, 'users/' + driver]) await db.recursiveDelete(db.doc(path));
-  for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers']) {
+  for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers', 'payments']) {
     const field = collection === 'delivery_offers' ? 'driver_id' : 'customer_id';
     const value = collection === 'delivery_offers' ? driver : uid;
     const docs = await db.collection(collection).where(field, '==', value).get();
@@ -139,7 +140,7 @@ test.each(['immediate','scheduled'] as const)('%s complete local quote -> dispat
   expect(after.customer_total_minor).toBe(quote.customer_total_minor);
   expect(snapshot.customer_total_minor).toBe(quote.customer_total_minor);
   expect(fake.createdPaymentParams).toHaveLength(1);
-  expect(fake.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor));
+  expect(fake.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quote.customer_total_minor - BOOKING_DEPOSIT_POLICY.amount_minor));
   expect((await db.doc('driver_agendas/'+driver+'/reservations/'+created.missionId).get()).data()!.active).toBe(true);
   expect(after.duration_confirmation.driver_id).toBe(driver);
   expect(after.duration_confirmation.confirmed_at.toMillis()).toBeGreaterThan(0);

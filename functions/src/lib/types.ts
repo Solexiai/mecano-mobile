@@ -540,8 +540,34 @@ export interface PaymentProfileDoc {
   stripe_environment?: StripeEnvironment;
 }
 
+/**
+ * delivery_requests/{id}.deposit — dépôt de réservation (2026-11-06).
+ * Le montant est figé à la réservation (politique de l'époque).
+ */
+export interface BookingDepositDoc {
+  policy_version: string;
+  amount_minor: number;
+  currency: string;
+  payment_id: string;
+  /**
+   * captured : encaissé, déduit du solde à la livraison ;
+   * refund_pending / refunded / refund_failed : remboursement automatique
+   * (aucun chauffeur, annulation > 48 h, chauffeur ou Movi-K annule) ;
+   * kept : annulation tardive du client, dépôt conservé.
+   */
+  status: "captured" | "refund_pending" | "refunded" | "refund_failed" | "kept";
+  captured_at: admin_Timestamp;
+  updated_at: admin_Timestamp;
+  refund_id?: string | null;
+  refunded_at?: admin_Timestamp | null;
+  refund_reason?: string | null;
+  kept_at?: admin_Timestamp | null;
+  kept_reason?: string | null;
+}
+
 export interface DeliveryMissionDoc {
   booking_snapshot?: BookingSnapshot;
+  deposit?: BookingDepositDoc | null;
   customer_id: string;
   customer_display_name: string;
   driver_id?: string | null;
@@ -629,6 +655,15 @@ export interface PaymentDoc {
   // price (missionFeeOrchestration.ts). Lets the admin finance page label the
   // payment ("Frais d'annulation tardive", "Déplacement inutile").
   capture_purpose?: "mission_fee";
+  // Dépôt de réservation (décision Daniel 2026-11-06, lib/bookingDeposit.ts) :
+  // 25 $ débités à la réservation, AVANT la création de la mission, déduits du
+  // prix total. Absent = paiement de livraison ordinaire. `quote_id` porte le
+  // devis ; `mission_id` est renseigné dès que la mission est créée.
+  purpose?: "deposit";
+  /** Paiement de livraison : part du dépôt déduite du solde (cents). */
+  deposit_applied_minor?: number;
+  /** Part de la rémunération du chauffeur que le solde ne couvre pas, à verser depuis le dépôt (cents). */
+  deposit_driver_shortfall_minor?: number;
   fee_kind?: "late_cancellation" | "customer_failed_delivery";
   // Fee amounts frozen when the card hold was placed (lib/missionFees.ts).
   mission_fee_policy?: MissionFeePolicyDoc;

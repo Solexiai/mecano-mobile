@@ -192,6 +192,9 @@ export async function createAndAuthorizeMissionPayment(
   let feePolicy: MissionFeePolicy | null = null;
   let applicationFeeMinor = 0;
   let quoteIntegrityHash: string | null = null;
+  // Dépôt de réservation déduit de ce paiement (0 sans dépôt).
+  let depositAppliedMinor = 0;
+  let depositDriverShortfallMinor = 0;
 
   // ---- Étape 1 : Transaction Firestore — crée payments/{id} en CREATED ----
   const paymentRef = db.collection("payments").doc();
@@ -282,6 +285,20 @@ export async function createAndAuthorizeMissionPayment(
     if (!Number.isInteger(applicationFeeMinor) || applicationFeeMinor < 0 || applicationFeeMinor > amountMinor) {
       throw failedPrecondition("Autorisation refusée : frais de plateforme invalides.");
     }
+    // Dépôt de réservation (2026-11-06, lib/bookingDeposit.ts) : déjà
+    // encaissé par Movi-K à la réservation, il est déduit du solde bloqué
+    // puis capturé à la livraison. Movi-K le tient : ses frais de plateforme
+    // sur ce paiement baissent d'autant, pour que le virement au chauffeur
+    // (capturé − frais) reste identique. Quand les frais de plateforme sont
+    // inférieurs au dépôt, la différence (`deposit_driver_shortfall_minor`)
+    // est versée au chauffeur depuis le dépôt (virement complémentaire).
+    const deposit = mission.deposit;
+    if (deposit && deposit.status === "captured" && Number.isSafeInteger(deposit.amount_minor) && deposit.amount_minor > 0) {
+      depositAppliedMinor = Math.min(deposit.amount_minor as number, amountMinor);
+      amountMinor -= depositAppliedMinor;
+      depositDriverShortfallMinor = Math.max(0, depositAppliedMinor - applicationFeeMinor);
+      applicationFeeMinor = Math.max(0, applicationFeeMinor - depositAppliedMinor);
+    }
     quoteIntegrityHash = lockedQuote.integrityHash;
     // Fee amounts of the quote's own pricing version (admin pricing grid),
     // frozen on the payment: a later grid change never alters this booking.
@@ -311,6 +328,9 @@ export async function createAndAuthorizeMissionPayment(
       quote_integrity_hash: quoteIntegrityHash,
       amount_requested_minor: holdMinor,
       service_amount_minor: amountMinor,
+      ...(depositAppliedMinor > 0
+        ? { deposit_applied_minor: depositAppliedMinor, deposit_driver_shortfall_minor: depositDriverShortfallMinor }
+        : {}),
       ...(feePolicy ? { mission_fee_policy: feePolicy } : {}),
       customer_id: customerId,
       driver_id: driverId,

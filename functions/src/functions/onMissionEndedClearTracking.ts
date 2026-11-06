@@ -50,6 +50,7 @@ import { db } from "../lib/admin";
 import { DeliveryMissionDoc, MissionStatuses } from "../lib/types";
 import { cancelMissionPaymentAuthorization } from "../payment/paymentOrchestration";
 import { chargeMissionFee } from "../payment/missionFeeOrchestration";
+import { refundBookingDeposit } from "../lib/bookingDeposit";
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 const TERMINAL_STATUSES_CLEARING_TRACKING: string[] = [
@@ -102,6 +103,17 @@ export const onMissionEndedClearTracking = onDocumentUpdated(
         await chargeMissionFee(missionId);
       } else if (paymentId) {
         await cancelMissionPaymentAuthorization(missionId, paymentId);
+      }
+      // Dépôt de réservation (2026-11-06) : remboursé automatiquement sur
+      // toute annulation où il n'a pas été expressément gardé (annulation
+      // tardive du client, marquée « kept » par cancelDeliveryRequest).
+      const deposit = (after as Record<string, any>).deposit;
+      if (deposit?.status === "captured" || deposit?.status === "refund_failed") {
+        await refundBookingDeposit(missionId, {
+          reason: String((after as Record<string, any>).cancellation_reason ?? "cancelled"),
+          actorUserId: "system",
+          actorRole: "system",
+        });
       }
     }
 

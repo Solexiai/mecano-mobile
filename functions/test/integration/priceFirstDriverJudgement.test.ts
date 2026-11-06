@@ -1,6 +1,8 @@
 // Owner decision 2026-10-22: a price-before-assignment quote becomes a
 // commercial booking judged by drivers. No booking_capacity, no measured
 // vehicle, no service_zones document (Granby 40 km default applies).
+import { cardHoldMinor } from '../../src/lib/missionFees';
+import { BOOKING_DEPOSIT_POLICY } from '../../src/lib/bookingDeposit';
 import { testBookingPolicy, testBookingConsent } from '../testUtils/bookingPolicyFixture';
 jest.mock('../../src/lib/pushNotifications', () => ({ sendDeliveryOfferPush: jest.fn(async () => ({ attempted: 0, sent: 0 })) }));
 import { admin, db } from '../../src/lib/admin';
@@ -106,7 +108,8 @@ test('price-first request: booking -> offer -> driver confirms fit -> card autho
   expect(final).toMatchObject({ driver_id: driver, assigned_vehicle_id: vehicle, assigned_capacity_version: 'driver_judgement' });
   const quoteDoc = (await db.doc('delivery_quotes/' + quote.quoteId).get()).data()!;
   expect(provider.createdPaymentParams).toHaveLength(1);
-  expect(provider.createdPaymentParams[0].amountMinor).toBe(quoteDoc.customer_total_minor);
+  // Dépôt de 25 $ déjà encaissé à la réservation : le blocage porte sur le solde.
+  expect(provider.createdPaymentParams[0].amountMinor).toBe(cardHoldMinor(quoteDoc.customer_total_minor - BOOKING_DEPOSIT_POLICY.amount_minor));
 });
 
 test('SEC-S4: a driver without a live offer cannot accept a booking', async () => {

@@ -108,10 +108,19 @@ export const completeDelivery = onCall<CompleteDeliveryRequest>(
       tx.update(snapshotRef, { status: "confirmed", confirmed_at: now });
 
       // 3. Entrées comptables pour une mission réelle seulement.
+      // Dépôt de réservation (2026-11-06) : déjà inscrit au registre à la
+      // réservation ; ici seul le solde est débité au client.
+      const depositMinor = mission.deposit?.status === "captured" && Number.isSafeInteger(mission.deposit?.amount_minor)
+        ? (mission.deposit.amount_minor as number)
+        : 0;
+      const customerChargeAmount = depositMinor > 0
+        ? Math.max(0, Math.round(((snapshot.customer_total as number) * 100) - depositMinor)) / 100
+        : snapshot.customer_total;
       const ledgerEntries: Array<Record<string, unknown>> = [
         {
           type: LedgerEntryTypes.CUSTOMER_CHARGE,
-          amount: snapshot.customer_total,
+          amount: customerChargeAmount,
+          ...(depositMinor > 0 ? { deposit_applied_minor: depositMinor } : {}),
           direction: LedgerDirections.DEBIT,
           party: LedgerParties.CUSTOMER,
         },
