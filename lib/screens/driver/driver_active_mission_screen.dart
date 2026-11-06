@@ -539,6 +539,24 @@ class _MissionCard extends StatelessWidget {
     required this.onCompleteDelivery,
   });
 
+  /// Note de paiement (affichage seulement) : solde du client déjà réservé,
+  /// réservé 4 jours avant le ramassage, ou carte refusée (relance en cours).
+  String? get _paymentNoteKey {
+    if (mission.isInternalTest) return null;
+    if (mission.scheduledHoldStatus == 'failed') {
+      return 'driver_mission_payment_hold_failed';
+    }
+    if (mission.paymentStatus == 'hold_scheduled' ||
+        mission.scheduledHoldStatus == 'scheduled') {
+      return 'driver_mission_payment_hold_scheduled';
+    }
+    if (mission.paymentStatus == 'authorized' ||
+        mission.paymentStatus == 'captured') {
+      return 'driver_mission_payment_secured';
+    }
+    return null;
+  }
+
   /// Étape visible (1 ramassage, 2 route, 3 livraison) — affichage
   /// seulement ; les transitions autorisées restent côté serveur.
   int get _step {
@@ -652,6 +670,35 @@ class _MissionCard extends StatelessWidget {
                   ],
                 ],
               ),
+              // Dépôt / blocage à J-4 (2026-11-06) : le chauffeur sait si le
+              // paiement du client est déjà sécurisé.
+              if (_paymentNoteKey != null) ...[
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      _paymentNoteKey == 'driver_mission_payment_hold_failed'
+                          ? Icons.warning_amber_rounded
+                          : _paymentNoteKey == 'driver_mission_payment_secured'
+                          ? Icons.verified_outlined
+                          : Icons.schedule_outlined,
+                      size: 16,
+                      color: AppColors.textOnDarkSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        t(_paymentNoteKey!),
+                        key: const ValueKey('driver-mission-payment-note'),
+                        style: const TextStyle(
+                          color: AppColors.textOnDarkSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

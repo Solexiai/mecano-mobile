@@ -60,8 +60,13 @@ class _CancelMissionButtonState extends State<CancelMissionButton> {
         'dryRun': true,
       });
       final fee = (preview['feeMinor'] as num?)?.toInt() ?? 0;
+      // Dépôt de réservation (2026-11-06) : remboursé si l'annulation est à
+      // plus de 48 h du ramassage (ou sans chauffeur), gardé sinon.
+      final depositMinor = (preview['depositMinor'] as num?)?.toInt() ?? 0;
+      final depositKept = preview['depositKept'] == true;
       if (!mounted) return;
       final amount = formatFeeMinor(fee, widget.locale);
+      final deposit = formatFeeMinor(depositMinor, widget.locale);
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -73,7 +78,19 @@ class _CancelMissionButtonState extends State<CancelMissionButton> {
             ),
           ),
           content: Text(
-            fee > 0
+            depositMinor > 0 && depositKept
+                ? tr(
+                    'Un chauffeur a accepté et le ramassage est dans moins de 48 heures (ou le chauffeur est en route). Votre dépôt de $deposit est conservé. Aucun autre montant ne sera débité.',
+                    'A driver accepted and pickup is less than 48 hours away (or the driver is on the way). Your $deposit deposit is kept. Nothing else will be charged.',
+                    'Un conductor aceptó y la recogida es en menos de 48 horas (o el conductor está en camino). Su depósito de $deposit se conserva. No se cobrará nada más.',
+                  )
+                : depositMinor > 0
+                ? tr(
+                    'L’annulation est gratuite : votre dépôt de $deposit vous sera remboursé sur votre carte (quelques jours selon votre banque).',
+                    'Cancellation is free: your $deposit deposit will be refunded to your card (a few days depending on your bank).',
+                    'La cancelación es gratuita: su depósito de $deposit se reembolsará a su tarjeta (unos días según su banco).',
+                  )
+                : fee > 0
                 ? tr(
                     'Un chauffeur a accepté et le ramassage est dans moins de 2 heures (ou le chauffeur est en route). Des frais d’annulation de $amount seront débités de votre carte.',
                     'A driver accepted and pickup is less than 2 hours away (or the driver is on the way). A cancellation fee of $amount will be charged to your card.',
@@ -95,7 +112,13 @@ class _CancelMissionButtonState extends State<CancelMissionButton> {
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: Text(
-                fee > 0
+                depositMinor > 0 && depositKept
+                    ? tr(
+                        'Annuler (dépôt conservé)',
+                        'Cancel (deposit kept)',
+                        'Cancelar (depósito conservado)',
+                      )
+                    : fee > 0
                     ? tr(
                         'Annuler et payer $amount',
                         'Cancel and pay $amount',
