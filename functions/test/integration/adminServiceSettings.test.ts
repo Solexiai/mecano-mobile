@@ -44,8 +44,8 @@ test.each([
   { zones: [{ name: 'X', center_lat: 95, center_lng: -72, radius_km: 10 }] },
   { zones: [{ name: 'X', center_lat: 45, center_lng: -72, radius_km: 0 }] },
   { hours: { slot_hours: [], lead_minutes: 60, days_ahead: 4, open_weekdays: [1] } },
-  // PAY-08 (2026-10-27) : fenêtre de réservation plafonnée à 5 jours.
-  { hours: { slot_hours: [9, 11], lead_minutes: 60, days_ahead: 6, open_weekdays: [1] } },
+  // 2026-11-06 : fenêtre de réservation plafonnée à 30 jours (avant : 5).
+  { hours: { slot_hours: [9, 11], lead_minutes: 60, days_ahead: 31, open_weekdays: [1] } },
   {},
 ])('invalid save refused, nothing written: %p', async (payload) => {
   await expect(adminServiceSettings.run(call({ action: 'save', ...payload }))).rejects.toMatchObject({ code: 'invalid-argument' });
