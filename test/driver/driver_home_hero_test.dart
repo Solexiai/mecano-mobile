@@ -9,6 +9,8 @@ import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
 import 'package:movik_connect/screens/dashboard/provider/widgets/driver_home_hero.dart';
 
+import '../helpers/gps_offline_transport.dart';
+
 DriverProfileV2 _profile({
   DriverStatus status = DriverStatus.approved,
   DriverOnlineStatus online = DriverOnlineStatus.offline,
@@ -102,7 +104,9 @@ void main() {
     expect(calls, isEmpty);
   });
 
-  testWidgets('adresse de base géolocalisée : carte de zone en fond, GO dessus', (
+  // Les tuiles OpenStreetMap passent par le transport hors ligne des tests
+  // (aucune requête réseau réelle), comme pour la carte du suivi GPS.
+  offlineWidgetTest('adresse de base géolocalisée : carte de zone en fond, GO dessus', (
     tester,
   ) async {
     final calls = await _pump(tester, profile: _profile(located: true));
