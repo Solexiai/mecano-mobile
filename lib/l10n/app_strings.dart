@@ -5808,11 +5808,10 @@ class AppStrings {
     },
     'driver_onboarding_return_complete_message': {
       'fr':
-          "Merci ! Nous vérifions l'état de votre compte de versement Stripe.",
-      'en':
-          "Thank you! We're checking the status of your Stripe payout account.",
+          'Merci ! Votre demande a été envoyée à Stripe.',
+      'en': 'Thank you! Your request has been sent to Stripe.',
       'es':
-          '¡Gracias! Estamos verificando el estado de su cuenta de pagos de Stripe.',
+          '¡Gracias! Su solicitud se ha enviado a Stripe.',
     },
     'driver_onboarding_return_refresh_message': {
       'fr':
@@ -5831,16 +5830,21 @@ class AppStrings {
     },
     'driver_onboarding_return_status_pending': {
       'fr':
-          'Stripe examine vos informations : c’est souvent réglé en quelques minutes, parfois en 1 ou 2 jours ouvrables. Vous n’avez rien d’autre à faire. Dès que c’est validé, votre tableau de bord affichera « Versements actifs » et vous pourrez accepter des livraisons. Si Stripe a besoin d’un document de plus, un bouton « Reprendre » apparaîtra dans votre profil.',
+          'L’indicateur Stripe de votre tableau de bord passera au vert dès que Stripe aura accepté votre demande (souvent en quelques minutes, parfois en 1 ou 2 jours ouvrables). Vous n’avez rien d’autre à faire ; vous pourrez ensuite accepter des livraisons. Si Stripe a besoin d’un document de plus, un bouton « Reprendre » apparaîtra dans votre profil.',
       'en':
-          'Stripe is reviewing your information: this is often done in a few minutes, sometimes within 1 or 2 business days. There is nothing else to do. Once validated, your dashboard will show “Payouts active” and you will be able to accept deliveries. If Stripe needs one more document, a “Resume” button will appear in your profile.',
+          'The Stripe indicator on your dashboard will turn green as soon as Stripe accepts your request (often within minutes, sometimes 1 or 2 business days). There is nothing else to do; you will then be able to accept deliveries. If Stripe needs one more document, a “Resume” button will appear in your profile.',
       'es':
-          'Stripe está revisando su información: suele resolverse en unos minutos, a veces en 1 o 2 días hábiles. No tiene nada más que hacer. En cuanto se valide, su panel mostrará «Pagos activos» y podrá aceptar entregas. Si Stripe necesita un documento más, aparecerá un botón «Reanudar» en su perfil.',
+          'El indicador de Stripe en su panel se pondrá verde en cuanto Stripe acepte su solicitud (a menudo en minutos, a veces en 1 o 2 días hábiles). No tiene nada más que hacer; después podrá aceptar entregas. Si Stripe necesita un documento más, aparecerá un botón «Reanudar» en su perfil.',
+    },
+    'driver_onboarding_return_auto_redirect': {
+      'fr': 'Vous allez être redirigé vers votre tableau de bord dans quelques secondes.',
+      'en': 'You will be redirected to your dashboard in a few seconds.',
+      'es': 'Será redirigido a su panel en unos segundos.',
     },
     'driver_onboarding_return_go_to_profile': {
-      'fr': 'Retour à mon profil',
-      'en': 'Back to my profile',
-      'es': 'Volver a mi perfil',
+      'fr': 'Aller à mon tableau de bord maintenant',
+      'en': 'Go to my dashboard now',
+      'es': 'Ir a mi panel ahora',
     },
     'driver_onboarding_return_refresh_state': {
       'fr': "Actualiser l'état",

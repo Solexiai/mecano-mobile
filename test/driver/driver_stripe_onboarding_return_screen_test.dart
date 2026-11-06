@@ -84,6 +84,9 @@ FirebaseAuthProvider _signedInDriver() {
 Widget _wrapScreen({
   required DriverStripeOnboardingReturnMode mode,
   String locale = 'fr',
+  // 2026-11-06 : pas de redirection automatique dans les tests sans
+  // GoRouter (sinon un Timer de 8 s reste en attente).
+  Duration? autoRedirectAfter,
 }) {
   return MultiProvider(
     providers: [
@@ -93,7 +96,11 @@ Widget _wrapScreen({
       ChangeNotifierProvider<FirebaseAuthProvider>.value(value: _signedInDriver()),
     ],
     child: MaterialApp(
-      home: DriverStripeOnboardingReturnScreen(locale: locale, mode: mode),
+      home: DriverStripeOnboardingReturnScreen(
+        locale: locale,
+        mode: mode,
+        autoRedirectAfter: autoRedirectAfter,
+      ),
     ),
   );
 }
@@ -155,14 +162,40 @@ void main() {
         );
         BackendLocator.driverRepositoryOverride = fakeRepo;
 
+        // 2026-11-06 : le bouton « Actualiser l'état » n'existe plus qu'en
+        // mode refresh ; en mode complete, le chauffeur est redirigé.
         await tester.pumpWidget(
-          _wrapScreen(mode: DriverStripeOnboardingReturnMode.complete),
+          _wrapScreen(mode: DriverStripeOnboardingReturnMode.refresh),
         );
         await tester.pumpAndSettle();
 
         await tester.tap(find.text(_t('driver_onboarding_return_refresh_state')));
         await tester.pumpAndSettle();
 
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'mode complete : merci + redirection annoncée + bouton tableau de bord, sans bouton Actualiser',
+      (tester) async {
+        BackendLocator.driverRepositoryOverride = _FakeDriverRepository(
+          _profile(stripeChargesEnabled: false, stripePayoutsEnabled: false),
+        );
+        await tester.pumpWidget(
+          _wrapScreen(
+            mode: DriverStripeOnboardingReturnMode.complete,
+            autoRedirectAfter: const Duration(seconds: 8),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(_t('driver_onboarding_return_complete_message')), findsOneWidget);
+        expect(find.byKey(const ValueKey('driver-onboarding-return-redirect')), findsOneWidget);
+        expect(find.byKey(const ValueKey('driver-onboarding-return-dashboard')), findsOneWidget);
+        expect(find.text(_t('driver_onboarding_return_refresh_state')), findsNothing);
+        // Sans GoRouter, la redirection automatique est ignorée sans erreur.
+        await tester.pump(const Duration(seconds: 9));
         expect(tester.takeException(), isNull);
       },
     );
