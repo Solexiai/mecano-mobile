@@ -173,6 +173,31 @@ export interface CreateDriverPayoutParams {
   currency: Currency;
   idempotencyKey: string;
 }
+
+/**
+ * Dépôt de réservation (2026-11-06) — virement complémentaire au chauffeur,
+ * financé par le paiement du dépôt (Stripe `transfers.create` avec
+ * `source_transaction` = la charge du dépôt, `transfer_group` = la mission).
+ * Sert quand le solde capturé ne couvre pas toute la part du chauffeur
+ * (petite livraison) et pour les 20 $ d'un dépôt gardé.
+ */
+export interface CreateTransferParams {
+  connectedAccountId: string;
+  amountMinor: number;
+  currency: Currency;
+  /** Charge Stripe (ch_…) dont les fonds financent le virement. */
+  sourceChargeId: string;
+  transferGroup: string;
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
+export interface CreateTransferResult {
+  success: boolean;
+  providerTransferId: string | null;
+  status: string;
+  failureCode?: string | null;
+  failureMessage?: string | null;
+}
 export interface CreateDriverPayoutResult {
   success: boolean;
   providerPayoutId: string | null;
@@ -361,6 +386,13 @@ export abstract class PaymentProvider {
   abstract createDriverPayout(
     params: CreateDriverPayoutParams
   ): Promise<CreateDriverPayoutResult>;
+
+  /** Virement complémentaire financé par le dépôt (voir CreateTransferParams).
+   *  Non abstraite pour ne pas casser les doubles de test ; StripeProvider l'implémente. */
+  async createTransfer(_params: CreateTransferParams): Promise<CreateTransferResult> {
+    void _params;
+    throw new PaymentProviderNotConfiguredError();
+  }
 
   abstract getPaymentStatus(providerPaymentIntentId: string): Promise<PaymentStatusResult>;
 

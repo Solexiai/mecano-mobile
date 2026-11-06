@@ -37,6 +37,8 @@ import {
   CreateDriverAccountResult,
   CreateDriverPayoutParams,
   CreateDriverPayoutResult,
+  CreateTransferParams,
+  CreateTransferResult,
   CreatePaymentParams,
   CreatePaymentResult,
   ListProviderPaymentsResult,
@@ -495,6 +497,36 @@ export class StripeProvider extends PaymentProvider {
         providerPayoutId: null,
         status: "failed",
         failureCode: stripeErr.code ?? "unknown_error",
+      };
+    }
+  }
+
+  // ---- 9b. createTransfer (dépôt de réservation, 2026-11-06) ----
+  // Virement au compte connecté financé par la charge du dépôt :
+  // `source_transaction` limite le montant à cette charge et permet le
+  // virement avant que les fonds ne soient disponibles sur la plateforme.
+  async createTransfer(params: CreateTransferParams): Promise<CreateTransferResult> {
+    try {
+      const transfer = await this.stripe.transfers.create(
+        {
+          amount: params.amountMinor,
+          currency: params.currency.toLowerCase(),
+          destination: params.connectedAccountId,
+          source_transaction: params.sourceChargeId,
+          transfer_group: params.transferGroup,
+          metadata: params.metadata,
+        },
+        { idempotencyKey: params.idempotencyKey }
+      );
+      return { success: true, providerTransferId: transfer.id, status: "succeeded" };
+    } catch (err) {
+      const stripeErr = err as Stripe.errors.StripeError;
+      return {
+        success: false,
+        providerTransferId: null,
+        status: "failed",
+        failureCode: stripeErr.code ?? "unknown_error",
+        failureMessage: stripeErr.message ?? null,
       };
     }
   }
