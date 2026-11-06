@@ -497,7 +497,7 @@ void main() {
     );
 
     testWidgets(
-      'refresh/retry : le bouton "Réessayer" efface l\'erreur locale sans planter',
+      'refresh/retry : « Vérifier l\'état chez Stripe » efface l\'erreur locale et appelle l\'API sans planter',
       (tester) async {
         final fakeRepo = _FakeDriverRepository();
         fakeRepo.nextResult = const DriverStripeAccountResult(success: false);
@@ -523,8 +523,13 @@ void main() {
           findsOneWidget,
         );
 
+        // 2026-11-06 : le bouton relit l'état chez Stripe (API injectée
+        // ici via _TestHost : succès sans changement) et efface l'erreur.
         await tester.tap(
-          find.widgetWithText(OutlinedButton, _t('common_retry')),
+          find.widgetWithText(
+            OutlinedButton,
+            _t('provider_stripe_connect_check_status'),
+          ),
         );
         await tester.pumpAndSettle();
 
@@ -588,6 +593,10 @@ class _TestHostState extends State<_TestHost> {
 
   @override
   Widget build(BuildContext context) {
-    return ProviderStripeConnectSection(profile: widget.profile, t: _t);
+    return ProviderStripeConnectSection(
+      profile: widget.profile,
+      t: _t,
+      syncApi: () async => {'success': true, 'updated': false},
+    );
   }
 }
