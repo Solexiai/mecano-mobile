@@ -1088,6 +1088,21 @@ class AppStrings {
       'en': 'Step 3 of 3 · Drop-off',
       'es': 'Paso 3 de 3 · Entrega',
     },
+    'driver_mission_payment_secured': {
+      'fr': 'Paiement du client sécurisé',
+      'en': 'Customer payment secured',
+      'es': 'Pago del cliente asegurado',
+    },
+    'driver_mission_payment_hold_scheduled': {
+      'fr': 'Dépôt reçu · le solde du client est réservé sur sa carte 4 jours avant le ramassage',
+      'en': 'Deposit received · the customer’s balance is held on their card 4 days before pickup',
+      'es': 'Depósito recibido · el saldo del cliente se reserva en su tarjeta 4 días antes de la recogida',
+    },
+    'driver_mission_payment_hold_failed': {
+      'fr': 'Carte du client refusée · Movi-K relance le client ; la livraison sera annulée si rien ne change la veille',
+      'en': 'Customer’s card declined · Movi-K is following up; the delivery will be cancelled if nothing changes the day before',
+      'es': 'Tarjeta del cliente rechazada · Movi-K insiste con el cliente; la entrega se cancelará si nada cambia la víspera',
+    },
     'driver_mission_your_share': {
       'fr': 'Votre part',
       'en': 'Your share',
@@ -1735,6 +1750,38 @@ class AppStrings {
       'fr': 'Aucun chauffeur n\'a accepté votre livraison pour le moment. Relancez la recherche ou changez l\'heure.',
       'en': 'No driver has accepted your delivery yet. Search again or change the time.',
       'es': 'Ningún conductor ha aceptado su entrega por ahora. Vuelva a buscar o cambie la hora.',
+    },
+    // Réservation lointaine (2026-11-06) : blocage du solde refusé à J-4,
+    // puis annulation la veille si la carte refuse encore.
+    'notif_payment_hold_failed_title': {
+      'fr': 'Carte refusée',
+      'en': 'Card declined',
+      'es': 'Tarjeta rechazada',
+    },
+    'notif_payment_hold_failed_body': {
+      'fr': 'Votre carte a été refusée pour le solde de votre livraison. Mettez-la à jour avant la veille, sinon la livraison sera annulée.',
+      'en': 'Your card was declined for the balance of your delivery. Update it before the day before, or the delivery will be cancelled.',
+      'es': 'Su tarjeta fue rechazada para el saldo de su entrega. Actualícela antes de la víspera o la entrega será cancelada.',
+    },
+    'notif_cancelled_payment_hold_failed_title': {
+      'fr': 'Livraison annulée',
+      'en': 'Delivery cancelled',
+      'es': 'Entrega cancelada',
+    },
+    'notif_cancelled_payment_hold_failed_body': {
+      'fr': 'Votre carte a été refusée malgré nos rappels : la livraison est annulée et le dépôt est conservé.',
+      'en': 'Your card was declined despite our reminders: the delivery is cancelled and the deposit is kept.',
+      'es': 'Su tarjeta fue rechazada pese a nuestros recordatorios: la entrega se cancela y el depósito se conserva.',
+    },
+    'notif_driver_mission_cancelled_payment_title': {
+      'fr': 'Livraison annulée',
+      'en': 'Delivery cancelled',
+      'es': 'Entrega cancelada',
+    },
+    'notif_driver_mission_cancelled_payment_body': {
+      'fr': 'La carte du client a été refusée : cette livraison est annulée. Vous recevez 20 \$ du dépôt.',
+      'en': 'The customer’s card was declined: this delivery is cancelled. You receive 20 \$ from the deposit.',
+      'es': 'La tarjeta del cliente fue rechazada: esta entrega se cancela. Usted recibe 20 \$ del depósito.',
     },
     'notif_document_expiring_soon_title': {
       'fr': 'Document bientôt expiré',
@@ -4245,6 +4292,16 @@ class AppStrings {
       'fr': 'Frais de déplacement inutile',
       'en': 'Wasted trip fee',
       'es': 'Cargo por viaje inútil',
+    },
+    'admin_payments_deposit_explained': {
+      'fr': 'Dépôt de réservation encaissé à la confirmation et déduit du solde. Remboursé automatiquement si aucun chauffeur n’accepte ou si le client annule plus de 48 h avant ; conservé sur annulation tardive (20 \$ au chauffeur, 5 \$ Movi-K).',
+      'en': 'Booking deposit charged at confirmation and deducted from the balance. Refunded automatically if no driver accepts or the customer cancels more than 48 h before; kept on a late cancellation (20 \$ to the driver, 5 \$ Movi-K).',
+      'es': 'Depósito de reserva cobrado al confirmar y descontado del saldo. Reembolsado automáticamente si ningún conductor acepta o si el cliente cancela con más de 48 h; conservado en una cancelación tardía (20 \$ al conductor, 5 \$ Movi-K).',
+    },
+    'admin_payments_kind_deposit': {
+      'fr': 'Dépôt de réservation',
+      'en': 'Booking deposit',
+      'es': 'Depósito de reserva',
     },
     'admin_payments_kind_mission_fee': {
       'fr': 'Frais d\'annulation ou de déplacement',

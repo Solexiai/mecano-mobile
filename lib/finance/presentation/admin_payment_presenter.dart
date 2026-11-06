@@ -21,7 +21,7 @@ import '../models/payment_info.dart';
 /// flux.
 const int kAdminPaymentsLimit = 200;
 
-enum AdminPaymentKind { delivery, lateCancellation, failedDelivery, missionFee }
+enum AdminPaymentKind { delivery, lateCancellation, failedDelivery, missionFee, deposit }
 
 /// Filtre « type » de la page Paiements.
 enum AdminPaymentKindFilter { all, deliveries, fees }
@@ -32,6 +32,9 @@ class AdminPaymentView {
   final PaymentInfo payment;
 
   AdminPaymentKind get kind {
+    // Dépôt de réservation (2026-11-06) : encaissé à la réservation, déduit
+    // du solde ; ni une livraison ni des frais.
+    if (payment.purpose == 'deposit') return AdminPaymentKind.deposit;
     if (payment.capturePurpose != 'mission_fee') {
       return AdminPaymentKind.delivery;
     }
@@ -45,7 +48,8 @@ class AdminPaymentView {
     }
   }
 
-  bool get isFee => kind != AdminPaymentKind.delivery;
+  bool get isFee => kind != AdminPaymentKind.delivery && kind != AdminPaymentKind.deposit;
+  bool get isDeposit => kind == AdminPaymentKind.deposit;
 
   bool matches(AdminPaymentKindFilter filter) {
     switch (filter) {
@@ -306,5 +310,7 @@ String adminPaymentKindKey(AdminPaymentKind kind) {
       return 'admin_payments_kind_failed_delivery';
     case AdminPaymentKind.missionFee:
       return 'admin_payments_kind_mission_fee';
+    case AdminPaymentKind.deposit:
+      return 'admin_payments_kind_deposit';
   }
 }

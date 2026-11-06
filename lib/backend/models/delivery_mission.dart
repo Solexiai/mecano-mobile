@@ -33,6 +33,15 @@ class DeliveryMission {
   final String? scheduleState;
   final String? dispatchState;
   final String? paymentStatus;
+  // Dépôt de réservation (2026-11-06, serveur lib/bookingDeposit.ts) :
+  // montant en cents et état (captured / refund_pending / refunded /
+  // refund_failed / kept). Null sans dépôt (test interne, ancienne demande).
+  final int? depositAmountMinor;
+  final String? depositStatus;
+  // Blocage du solde posé à J-4 (lib/scheduledPaymentHold.ts) : état
+  // (scheduled / failed / placed / cancelled) et échéance.
+  final String? scheduledHoldStatus;
+  final DateTime? scheduledHoldDueAt;
   final DateTime? offerExpiresAt;
   final String id;
   final String customerId;
@@ -91,6 +100,10 @@ class DeliveryMission {
     this.scheduleState,
     this.dispatchState,
     this.paymentStatus,
+    this.depositAmountMinor,
+    this.depositStatus,
+    this.scheduledHoldStatus,
+    this.scheduledHoldDueAt,
     this.offerExpiresAt,
     required this.id,
     required this.customerId,
@@ -138,6 +151,13 @@ class DeliveryMission {
     'schedule_state': scheduleState,
     'dispatch_state': dispatchState,
     'payment_status': paymentStatus,
+    if (depositAmountMinor != null)
+      'deposit': {'amount_minor': depositAmountMinor, 'status': depositStatus},
+    if (scheduledHoldStatus != null)
+      'scheduled_hold': {
+        'status': scheduledHoldStatus,
+        'due_at': scheduledHoldDueAt?.toIso8601String(),
+      },
     'offered_until': offerExpiresAt?.toIso8601String(),
     'customer_id': customerId,
     'customer_display_name': customerDisplayName,
@@ -182,6 +202,18 @@ class DeliveryMission {
       scheduleState: json['schedule_state'] as String?,
       dispatchState: json['dispatch_state'] as String?,
       paymentStatus: json['payment_status'] as String?,
+      depositAmountMinor: json['deposit'] is Map
+          ? (json['deposit']['amount_minor'] as num?)?.toInt()
+          : null,
+      depositStatus: json['deposit'] is Map
+          ? json['deposit']['status'] as String?
+          : null,
+      scheduledHoldStatus: json['scheduled_hold'] is Map
+          ? json['scheduled_hold']['status'] as String?
+          : null,
+      scheduledHoldDueAt: json['scheduled_hold'] is Map
+          ? parseFirestoreDate(json['scheduled_hold']['due_at'])
+          : null,
       offerExpiresAt: parseFirestoreDate(json['offered_until']),
       id: id,
       customerId: json['customer_id'] as String? ?? '',

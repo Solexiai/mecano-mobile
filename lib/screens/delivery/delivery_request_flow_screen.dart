@@ -682,6 +682,17 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     currencySymbol: tr(r'$ CA', r'CA$', r'CA$'),
   );
 
+  /// Dépôt de réservation (2026-11-06) : 25 $, déduit du prix. Même montant
+  /// que `BOOKING_DEPOSIT_POLICY` côté serveur ; affichage seulement.
+  static const double _depositAmount = 25;
+  String _depositText() => _moneyText(_depositAmount);
+  String _balanceText() {
+    final total = _draft.quote?['customerTotal'];
+    if (total is! num) return _moneyText(null);
+    final balance = total - _depositAmount;
+    return _moneyText(balance < 0 ? 0 : balance);
+  }
+
   /// An expired price is recalculated automatically (2026-10-23). Returns
   /// true when the price is valid and unchanged; when the total changed, the
   /// customer sees the new price and must accept again before continuing.
@@ -2291,9 +2302,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _note(
           _assignmentPending || _photoMode
               ? tr(
-                  'Après votre réservation, un chauffeur de la région voit vos photos et accepte la livraison. Votre carte n’est utilisée qu’à ce moment.',
-                  'After you book, a driver in the area sees your photos and accepts the delivery. Your card is only used at that point.',
-                  'Después de reservar, un conductor de la zona ve tus fotos y acepta la entrega. Tu tarjeta solo se usa en ese momento.',
+                  'Après votre réservation, un chauffeur de la région voit vos photos et accepte la livraison. Un dépôt de ${_depositText()} est débité à la réservation et déduit du prix ; le reste est débité le jour de la livraison.',
+                  'After you book, a driver in the area sees your photos and accepts the delivery. A ${_depositText()} deposit is charged when you book and deducted from the price; the rest is charged on delivery day.',
+                  'Después de reservar, un conductor de la zona ve tus fotos y acepta la entrega. Se cobra un depósito de ${_depositText()} al reservar, descontado del precio; el resto se cobra el día de la entrega.',
                 )
               : tr(
                   'Le chauffeur vérifie que tout entre dans son véhicule quand il accepte.',
@@ -3185,6 +3196,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
       ),
     ],
+    // Dépôt de réservation (2026-11-06) : dit clairement ce qui est débité
+    // maintenant et ce qui le sera à la livraison.
+    if (_cardReady && _draft.quote?['customerTotal'] is num)
+      Container(
+        key: const ValueKey('booking-deposit-note'),
+        child: _note(
+          tr(
+            'En confirmant, un dépôt de ${_depositText()} est débité maintenant sur votre carte et déduit du prix. Le solde de ${_balanceText()} est débité le jour de la livraison. Dépôt remboursé si vous annulez plus de 48 h avant le ramassage, ou si aucun chauffeur n’accepte.',
+            'By confirming, a ${_depositText()} deposit is charged to your card now and deducted from the price. The ${_balanceText()} balance is charged on delivery day. The deposit is refunded if you cancel more than 48 hours before pickup, or if no driver accepts.',
+            'Al confirmar, se cobra ahora un depósito de ${_depositText()} en su tarjeta, descontado del precio. El saldo de ${_balanceText()} se cobra el día de la entrega. El depósito se reembolsa si cancela más de 48 horas antes de la recogida o si ningún conductor acepta.',
+          ),
+        ),
+      ),
     if (_confirmBlockers(auth).isNotEmpty)
       Container(
         key: const ValueKey('booking-confirm-blockers'),

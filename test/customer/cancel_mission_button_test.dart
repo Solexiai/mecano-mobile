@@ -4,8 +4,11 @@ import 'package:movik_connect/services/booking/booking_api.dart';
 import 'package:movik_connect/widgets/cancel_mission_button.dart';
 
 class CancelApi implements BookingApi {
-  CancelApi(this.feeMinor);
+  CancelApi(this.feeMinor, {this.depositMinor = 0, this.depositKept = false});
   final int feeMinor;
+  // Dépôt de réservation (2026-11-06).
+  final int depositMinor;
+  final bool depositKept;
   final List<Map<String, dynamic>> payloads = [];
   @override
   Future<Map<String, dynamic>?> profile() async => null;
@@ -16,7 +19,13 @@ class CancelApi implements BookingApi {
   ]) async {
     expect(name, 'cancelDeliveryRequest');
     payloads.add(data);
-    return {'feeMinor': feeMinor, 'cancelled': data['dryRun'] != true};
+    return {
+      'feeMinor': feeMinor,
+      'cancelled': data['dryRun'] != true,
+      if (depositMinor > 0) 'depositMinor': depositMinor,
+      if (depositMinor > 0) 'depositKept': depositKept,
+      if (depositMinor > 0) 'depositRefundMinor': depositKept ? 0 : depositMinor,
+    };
   }
 }
 
@@ -80,5 +89,32 @@ void main() {
       'Travel fee: \$30.00 (processing)',
     );
     expect(cancellationFeeSummary(null, 'fr'), isNull);
+  });
+
+  testWidgets('dépôt remboursé : annulation gratuite, dépôt annoncé remboursé', (
+    t,
+  ) async {
+    final api = CancelApi(0, depositMinor: 2500);
+    await pump(t, api);
+    await t.tap(find.byKey(const ValueKey('cancel-mission')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('dépôt de 25,00 \$ vous sera remboursé'), findsOneWidget);
+    await t.tap(find.text('Annuler la demande'));
+    await t.pumpAndSettle();
+    expect(api.payloads.last, {'missionId': 'm1'});
+  });
+
+  testWidgets('dépôt gardé : moins de 48 h, aucun autre montant débité', (
+    t,
+  ) async {
+    final api = CancelApi(0, depositMinor: 2500, depositKept: true);
+    await pump(t, api);
+    await t.tap(find.byKey(const ValueKey('cancel-mission')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('dépôt de 25,00 \$ est conservé'), findsOneWidget);
+    expect(find.textContaining('Aucun autre montant'), findsOneWidget);
+    await t.tap(find.text('Annuler (dépôt conservé)'));
+    await t.pumpAndSettle();
+    expect(api.payloads.last, {'missionId': 'm1'});
   });
 }
