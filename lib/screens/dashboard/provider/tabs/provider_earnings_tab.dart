@@ -11,6 +11,7 @@ import '../../../../finance/presentation/driver_earnings_totals.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import '../widgets/driver_earnings_header.dart';
 import 'provider_payouts_section.dart';
 
 /// Onglet "Revenus" du fournisseur (chauffeur).
@@ -167,23 +168,14 @@ class _EarningsBodyState extends State<_EarningsBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                t('earnings_title'),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              // Phase 2 « style Uber » (2026-11-06) : la semaine en gros
+              // avec son graphique ; mois, total et en attente en dessous.
+              DriverEarningsHeader(totals: totals, t: t, locale: locale),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _MetricCard(
-                    label: t('earnings_week_label'),
-                    value: driverMoney(totals.week, locale),
-                    color: AppColors.primary,
-                  ),
                   _MetricCard(
                     label: t('earnings_month_label'),
                     value: driverMoney(totals.month, locale),

@@ -506,20 +506,6 @@ class _DriverActiveMissionScreenState extends State<DriverActiveMissionScreen> {
   }
 }
 
-/// Ordre canonique des statuts de trajet — utilisé uniquement pour calculer
-/// une progression visuelle (0.0 -> 1.0), jamais pour décider des
-/// transitions autorisées (celles-ci restent server-side, voir
-/// `updateMissionTrackingStatus.ts`).
-const List<MissionStatus> _kTripStatusOrder = [
-  MissionStatus.assigned,
-  MissionStatus.driverToPickup,
-  MissionStatus.arrivedAtPickup,
-  MissionStatus.pickedUp,
-  MissionStatus.inTransit,
-  MissionStatus.arrivedAtDropoff,
-  MissionStatus.completed,
-];
-
 class _MissionCard extends StatelessWidget {
   final DeliveryMission mission;
   final String Function(String) t;
@@ -553,10 +539,20 @@ class _MissionCard extends StatelessWidget {
     required this.onCompleteDelivery,
   });
 
-  double get _progress {
-    final idx = _kTripStatusOrder.indexOf(mission.status);
-    if (idx < 0) return 0;
-    return idx / (_kTripStatusOrder.length - 1);
+  /// Étape visible (1 ramassage, 2 route, 3 livraison) — affichage
+  /// seulement ; les transitions autorisées restent côté serveur.
+  int get _step {
+    switch (mission.status) {
+      case MissionStatus.pickedUp:
+      case MissionStatus.inTransit:
+        return 2;
+      case MissionStatus.arrivedAtDropoff:
+      case MissionStatus.delivered:
+      case MissionStatus.completed:
+        return 3;
+      default:
+        return 1;
+    }
   }
 
   @override
@@ -574,37 +570,122 @@ class _MissionCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
         ],
-        // --- Statut + progression ---------------------------------------
+        // --- Étape en cours (phase 2 « style Uber », 2026-11-06) ---------
+        // Trois étapes lisibles (ramassage, route, livraison) au lieu d'une
+        // barre continue ; le statut exact du serveur reste affiché en titre.
+        // L'action principale suit immédiatement : plus besoin de défiler
+        // sous la carte pour avancer.
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
           decoration: BoxDecoration(
-            gradient: AppColors.deliveryGradient,
-            borderRadius: BorderRadius.circular(20),
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(22),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  for (var i = 0; i < 3; i++) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    Expanded(
+                      child: Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: i < _step
+                              ? AppColors.glowGreen
+                              : Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 14),
               Text(
-                t(mission.status.key),
+                t('driver_mission_step_$_step'),
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
+                  color: AppColors.textOnDarkSecondary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  letterSpacing: 0.4,
                 ),
               ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  minHeight: 8,
-                  backgroundColor: Colors.white.withValues(alpha: 0.25),
-                  valueColor: const AlwaysStoppedAnimation(Colors.white),
-                ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      t(mission.status.key),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                  if (mission.driverOfferAmount > 0) ...[
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${mission.driverOfferAmount.toStringAsFixed(2)}\$',
+                          style: const TextStyle(
+                            color: AppColors.glowGreen,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 20,
+                          ),
+                        ),
+                        Text(
+                          t('driver_mission_your_share'),
+                          style: const TextStyle(
+                            color: AppColors.textOnDarkSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        ..._buildActions(context),
+        if (errorKey != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t(errorKey!),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 18),
 
         // --- Détails mission ---------------------------------------------
@@ -667,14 +748,7 @@ class _MissionCard extends StatelessWidget {
                 label: t('driver_active_mission_vehicle'),
                 value: t(mission.requiredVehicleCategory.key),
               ),
-              const SizedBox(height: 10),
-              _DetailRow(
-                icon: Icons.attach_money,
-                label: t('driver_active_mission_expected_pay'),
-                value: '${mission.driverOfferAmount.toStringAsFixed(2)}\$',
-                valueColor: AppColors.primary,
-                valueBold: true,
-              ),
+              // « Gain attendu » est affiché dans l'en-tête d'étape.
             ],
           ),
         ),
@@ -736,38 +810,6 @@ class _MissionCard extends StatelessWidget {
           ),
         ],
 
-        if (errorKey != null) ...[
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: AppColors.error,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t(errorKey!),
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.error,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-
-        const SizedBox(height: 20),
-        ..._buildActions(context),
       ],
     );
   }
@@ -779,7 +821,19 @@ class _MissionCard extends StatelessWidget {
       bool disabled = false,
     }) => SizedBox(
       width: double.infinity,
+      height: 56,
       child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.success,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
         onPressed: (busy || disabled) ? null : onPressed,
         child: busy
             ? const SizedBox(

@@ -1072,6 +1072,43 @@ class AppStrings {
       'en': 'Drop-off',
       'es': 'Entrega',
     },
+    // Livraison en cours en 3 étapes (phase 2, 2026-11-06).
+    'driver_mission_step_1': {
+      'fr': 'Étape 1 de 3 · Ramassage',
+      'en': 'Step 1 of 3 · Pickup',
+      'es': 'Paso 1 de 3 · Recogida',
+    },
+    'driver_mission_step_2': {
+      'fr': 'Étape 2 de 3 · En route vers le client',
+      'en': 'Step 2 of 3 · On the way to the customer',
+      'es': 'Paso 2 de 3 · En camino al cliente',
+    },
+    'driver_mission_step_3': {
+      'fr': 'Étape 3 de 3 · Livraison',
+      'en': 'Step 3 of 3 · Drop-off',
+      'es': 'Paso 3 de 3 · Entrega',
+    },
+    'driver_mission_your_share': {
+      'fr': 'Votre part',
+      'en': 'Your share',
+      'es': 'Su parte',
+    },
+    // Onglet Revenus (phase 2).
+    'earnings_week_deliveries_one': {
+      'fr': 'Cette semaine · 1 livraison payée',
+      'en': 'This week · 1 delivery paid',
+      'es': 'Esta semana · 1 entrega pagada',
+    },
+    'earnings_week_deliveries_many': {
+      'fr': 'Cette semaine · {n} livraisons payées',
+      'en': 'This week · {n} deliveries paid',
+      'es': 'Esta semana · {n} entregas pagadas',
+    },
+    'earnings_week_deliveries_none': {
+      'fr': 'Cette semaine · aucune livraison payée pour l’instant',
+      'en': 'This week · no delivery paid yet',
+      'es': 'Esta semana · ninguna entrega pagada todavía',
+    },
     'driver_offer_addresses_pending': {
       'fr': 'Adresses communiquées après acceptation',
       'en': 'Addresses shared after acceptance',
