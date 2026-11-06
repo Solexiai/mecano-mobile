@@ -8,7 +8,9 @@
 // (`setDriverOnlineStatus`), il n'ajoute aucune règle.
 //
 // Pas de ElevatedButton ici : les tests de l'onglet Accueil comptent les
-// ElevatedButton pour retrouver le bouton « Accepter » d'une offre.
+// ElevatedButton pour retrouver le bouton « Accepter » d'une offre. Pas de
+// CircularProgressIndicator non plus : une animation infinie empêcherait
+// `pumpAndSettle` de se stabiliser pendant une bascule en cours.
 // ---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
@@ -159,14 +161,15 @@ class _GoButton extends StatelessWidget {
             width: 96,
             height: 96,
             child: Center(
+              // Pas de spinner animé : pendant la bascule, le bouton est
+              // simplement désactivé (les tests du shell attendent que
+              // l'écran se stabilise après un tap sur le Switch).
               child: busy
-                  ? const SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: Colors.white,
-                      ),
+                  ? const Icon(
+                      Icons.hourglass_top,
+                      key: ValueKey('driver-home-go-busy'),
+                      color: Colors.white,
+                      size: 30,
                     )
                   : Text(
                       label,
@@ -213,10 +216,10 @@ class _OfflinePill extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (busy)
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                const Icon(
+                  Icons.hourglass_top,
+                  size: 18,
+                  color: AppColors.textSecondary,
                 )
               else
                 const Icon(

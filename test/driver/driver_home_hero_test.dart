@@ -89,11 +89,12 @@ void main() {
     expect(find.byKey(const ValueKey('driver-home-offline-button')), findsNothing);
   });
 
-  testWidgets('bascule en cours : GO montre un spinner et ignore le tap', (
+  testWidgets('bascule en cours : GO désactivé (sablier) et ignore le tap', (
     tester,
   ) async {
     final calls = await _pump(tester, profile: _profile(), toggling: true);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-home-go-busy')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     await tester.tap(find.byKey(const ValueKey('driver-home-go-button')));
     expect(calls, isEmpty);
   });
