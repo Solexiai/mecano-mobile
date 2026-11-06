@@ -514,9 +514,11 @@ class _PaymentRow extends StatelessWidget {
     final driverShare = view.driverShareMinor;
 
     final amounts = <String>[
-      if (!view.isFee)
+      // Dépôt (2026-11-06) : encaissé tout de suite, jamais bloqué.
+      if (!view.isFee && !view.isDeposit)
         '${t('admin_payments_price')} ${_money(view.deliveryPriceMinor, locale)}',
-      '${t('admin_payments_hold')} ${_money(view.holdMinor, locale)}',
+      if (!view.isDeposit)
+        '${t('admin_payments_hold')} ${_money(view.holdMinor, locale)}',
       if (view.captureDone)
         '${t('admin_payments_col_captured')} ${_money(payment.amountCapturedMinor, locale)}',
       if (view.releasedMinor > 0)

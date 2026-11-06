@@ -74,10 +74,13 @@ class _ScheduledMissionPanelState extends State<ScheduledMissionPanel> {
     final start = DateTime.parse(s['start'] as String).toLocal(),
         end = DateTime.parse(s['end'] as String).toLocal();
     final now = DateTime.now();
-    final paymentReady =
+    final paymentSecured =
         m.isInternalTest ||
         ['authorized', 'captured'].contains(m.paymentStatus);
-    final canStart = paymentReady && !now.isBefore(start) && now.isBefore(end);
+    // Dépôt / blocage à J-4 (2026-11-06) : une réservation lointaine est bien
+    // programmée même si le solde n'est réservé que 4 jours avant.
+    final paymentReady = paymentSecured || m.paymentStatus == 'hold_scheduled';
+    final canStart = paymentSecured && !now.isBefore(start) && now.isBefore(end);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(

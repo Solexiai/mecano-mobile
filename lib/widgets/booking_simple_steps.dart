@@ -95,8 +95,9 @@ class BookingHours {
       lead: lead is int && lead >= 0 && lead <= 1440
           ? Duration(minutes: lead)
           : bookingSlotLead,
-      // PAY-08 : plafond 5 jours (fenêtre d'autorisation Stripe), voir serveur.
-      daysAhead: ahead is int && ahead >= 1 && ahead <= 5 ? ahead : 4,
+      // 2026-11-06 : jusqu'à 30 jours (dépôt à la réservation, solde bloqué à
+      // J-4) ; avant, plafond 5 jours (fenêtre d'autorisation Stripe).
+      daysAhead: ahead is int && ahead >= 1 && ahead <= 30 ? ahead : 4,
       openWeekdays: days ?? const [1, 2, 3, 4, 5, 6, 7],
     );
   }
@@ -149,6 +150,204 @@ String slotDayLabel(DateTime day, DateTime now, String locale) {
 
 String slotHourLabel(int hour, String locale) =>
     locale == 'en' ? '$hour:00' : '$hour h';
+
+const _monthsFr = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const _monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const _monthsEs = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+String slotMonthLabel(int month, String locale) =>
+    (locale == 'en' ? _monthsEn : locale == 'es' ? _monthsEs : _monthsFr)[month - 1];
+
+/// Calendrier de réservation (2026-11-06) : une grille de semaines, du lundi
+/// de cette semaine jusqu'au dernier jour réservable (« Jours à l'avance »,
+/// jusqu'à 30). Pas de navigation par mois : tout est visible d'un coup.
+/// Jours fermés, passés ou sans heure disponible : grisés. Les cellules
+/// portent la clé `slot-day-<AAAA-MM-JJ>` comme les anciennes pastilles.
+class BookingCalendar extends StatelessWidget {
+  const BookingCalendar({
+    super.key,
+    required this.now,
+    required this.hours,
+    required this.locale,
+    required this.selectedKey,
+    required this.onSelected,
+    this.keyPrefix = 'slot-day',
+  });
+
+  final DateTime now;
+  final BookingHours hours;
+  final String locale;
+  final String? selectedKey;
+  final ValueChanged<String> onSelected;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime(now.year, now.month, now.day);
+    final first = DateTime(today.year, today.month, today.day - (today.weekday - 1));
+    final last = DateTime(today.year, today.month, today.day + hours.daysAhead - 1);
+    final open = {for (final d in bookingSlotDays(now, hours)) slotDayKey(d)};
+    final weeks = ((last.difference(first).inDays + 1) / 7).ceil();
+    final scheme = Theme.of(context).colorScheme;
+    const fr = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+    const en = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const es = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    final names = locale == 'en' ? en : locale == 'es' ? es : fr;
+    final monthTitle = today.month == last.month
+        ? '${slotMonthLabel(today.month, locale)} ${today.year}'
+        : '${slotMonthLabel(today.month, locale)} – ${slotMonthLabel(last.month, locale)} ${last.year}';
+
+    return Semantics(
+      container: true,
+      label: _tr(locale, 'Calendrier des jours de livraison', 'Delivery day calendar', 'Calendario de días de entrega'),
+      child: Container(
+        key: const ValueKey('booking-calendar'),
+        padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: scheme.outlineVariant),
+        ),
+        child: Column(
+          children: [
+            Text(
+              monthTitle[0].toUpperCase() + monthTitle.substring(1),
+              key: const ValueKey('booking-calendar-title'),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                for (var i = 0; i < 7; i++)
+                  Expanded(
+                    child: Text(
+                      names[i],
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            for (var w = 0; w < weeks; w++)
+              Row(
+                children: [
+                  for (var i = 0; i < 7; i++)
+                    Expanded(
+                      child: _CalendarCell(
+                        day: DateTime(first.year, first.month, first.day + w * 7 + i),
+                        today: today,
+                        last: last,
+                        open: open,
+                        locale: locale,
+                        selectedKey: selectedKey,
+                        keyPrefix: keyPrefix,
+                        onSelected: onSelected,
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CalendarCell extends StatelessWidget {
+  const _CalendarCell({
+    required this.day,
+    required this.today,
+    required this.last,
+    required this.open,
+    required this.locale,
+    required this.selectedKey,
+    required this.keyPrefix,
+    required this.onSelected,
+  });
+  final DateTime day, today, last;
+  final Set<String> open;
+  final String locale;
+  final String? selectedKey;
+  final String keyPrefix;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final key = slotDayKey(day);
+    final inWindow = !day.isBefore(today) && !day.isAfter(last);
+    final enabled = inWindow && open.contains(key);
+    final selected = key == selectedKey;
+    final isToday = day == today;
+    final showMonth = day.day == 1 || day == today;
+    final label = _tr(
+      locale,
+      '${day.day} ${slotMonthLabel(day.month, locale)}',
+      '${slotMonthLabel(day.month, locale)} ${day.day}',
+      '${day.day} de ${slotMonthLabel(day.month, locale)}',
+    );
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        selected: selected,
+        label: label,
+        child: Material(
+          color: selected
+              ? scheme.primary
+              : enabled
+              ? scheme.primary.withValues(alpha: 0.06)
+              : Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: isToday && !selected
+                ? BorderSide(color: scheme.primary, width: 1.5)
+                : BorderSide.none,
+          ),
+          child: InkWell(
+            key: ValueKey('$keyPrefix-$key'),
+            borderRadius: BorderRadius.circular(10),
+            onTap: enabled ? () => onSelected(key) : null,
+            child: SizedBox(
+              height: 46,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${day.day}',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: enabled || selected ? FontWeight.w700 : FontWeight.w400,
+                      color: selected
+                          ? scheme.onPrimary
+                          : enabled
+                          ? scheme.onSurface
+                          : scheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  if (showMonth)
+                    Text(
+                      slotMonthLabel(day.month, locale).substring(0, 3),
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// "Étape 2 sur 7" and a segmented progress bar.
 class BookingStepHeader extends StatelessWidget {

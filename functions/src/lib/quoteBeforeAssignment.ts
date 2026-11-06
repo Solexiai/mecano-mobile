@@ -55,7 +55,9 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
   if (load.timing_mode !== 'immediate' && !load.requested_at) refuse('requested_time_missing');
   // Hours saved by the admin (Où et quand ?, 2026-10-26) also apply.
   const savedHours = await getSavedBookingHours();
-  const timeReason = requestedTimeReason(load.requested_at) ??
+  // La fenêtre enregistrée par l'admin (jusqu'à 30 jours) remplace le défaut de 4 jours.
+  const windowMs = savedHours ? savedHours.days_ahead * 24 * 60 * 60 * 1000 : undefined;
+  const timeReason = requestedTimeReason(load.requested_at, Date.now(), windowMs) ??
     (savedHours ? bookingHoursReason(load.requested_at, savedHours) : null);
   if (timeReason) refuse(timeReason);
   return load;

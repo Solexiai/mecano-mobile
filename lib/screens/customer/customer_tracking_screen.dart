@@ -36,6 +36,7 @@ import '../../backend/backend_locator.dart';
 import '../../backend/models/delivery_mission.dart';
 import '../../backend/models/mission_rating.dart';
 import '../../core/app_colors.dart';
+import '../../finance/presentation/money_format.dart' as money;
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -981,6 +982,11 @@ class _CompletedMissionView extends StatelessWidget {
                 ),
               ],
             ),
+                // Dépôt de réservation (2026-11-06) : ce qui est déjà payé,
+                // ce qui reste, et quand le solde est réservé sur la carte.
+                if (mission.depositAmountMinor != null &&
+                    mission.depositStatus != null)
+                  _DepositLine(mission: mission, locale: locale),
                 if (!mission.isInternalTest && mission.customerTotal > 0)
                   _ReceiptButton(missionId: mission.id, locale: locale, api: api),
               ],
@@ -2010,6 +2016,95 @@ class _CenteredMessage extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+/// Dépôt de réservation (2026-11-06) : état lisible pour le client.
+class _DepositLine extends StatelessWidget {
+  const _DepositLine({required this.mission, required this.locale});
+  final DeliveryMission mission;
+  final String locale;
+
+  String tr(String fr, String en, String es) => locale == 'en'
+      ? en
+      : locale == 'es'
+      ? es
+      : fr;
+
+  @override
+  Widget build(BuildContext context) {
+    final deposit = (mission.depositAmountMinor ?? 0) / 100;
+    final depositText = money.formatMajorAmount(deposit, locale: locale, currencySymbol: r'$');
+    final balance = mission.customerTotal - deposit;
+    final balanceText = money.formatMajorAmount(balance < 0 ? 0 : balance, locale: locale, currencySymbol: r'$');
+    final String text;
+    switch (mission.depositStatus) {
+      case 'refunded':
+        text = tr(
+          'Dépôt de $depositText remboursé sur votre carte.',
+          '$depositText deposit refunded to your card.',
+          'Depósito de $depositText reembolsado a su tarjeta.',
+        );
+      case 'refund_pending':
+      case 'refund_failed':
+        text = tr(
+          'Dépôt de $depositText : remboursement en cours.',
+          '$depositText deposit: refund in progress.',
+          'Depósito de $depositText: reembolso en curso.',
+        );
+      case 'kept':
+        text = tr(
+          'Dépôt de $depositText conservé (annulation à moins de 48 h ou carte refusée).',
+          '$depositText deposit kept (cancellation within 48 hours or card declined).',
+          'Depósito de $depositText conservado (cancelación con menos de 48 h o tarjeta rechazada).',
+        );
+      default:
+        final completed = mission.status == MissionStatus.completed;
+        if (completed) {
+          text = tr(
+            'Dépôt de $depositText reçu et déduit · solde de $balanceText débité à la livraison.',
+            '$depositText deposit received and deducted · $balanceText balance charged at delivery.',
+            'Depósito de $depositText recibido y descontado · saldo de $balanceText cobrado en la entrega.',
+          );
+        } else if (mission.paymentStatus == 'hold_scheduled' ||
+            mission.scheduledHoldStatus == 'scheduled' ||
+            mission.scheduledHoldStatus == 'failed') {
+          final due = mission.scheduledHoldDueAt;
+          final when = due == null
+              ? tr('4 jours avant le ramassage', '4 days before pickup', '4 días antes de la recogida')
+              : tr(
+                  'le ${due.day}/${due.month}',
+                  'on ${due.month}/${due.day}',
+                  'el ${due.day}/${due.month}',
+                );
+          text = mission.scheduledHoldStatus == 'failed'
+              ? tr(
+                  'Dépôt de $depositText reçu. Votre carte a été refusée pour le solde de $balanceText : mettez-la à jour avant la veille, sinon la livraison sera annulée.',
+                  '$depositText deposit received. Your card was declined for the $balanceText balance: update it before the day before, or the delivery will be cancelled.',
+                  'Depósito de $depositText recibido. Su tarjeta fue rechazada para el saldo de $balanceText: actualícela antes de la víspera o la entrega será cancelada.',
+                )
+              : tr(
+                  'Dépôt de $depositText reçu. Le solde de $balanceText sera réservé sur votre carte $when et débité à la livraison.',
+                  '$depositText deposit received. The $balanceText balance will be held on your card $when and charged at delivery.',
+                  'Depósito de $depositText recibido. El saldo de $balanceText se reservará en su tarjeta $when y se cobrará en la entrega.',
+                );
+        } else {
+          text = tr(
+            'Dépôt de $depositText reçu et déduit · solde de $balanceText débité le jour de la livraison.',
+            '$depositText deposit received and deducted · $balanceText balance charged on delivery day.',
+            'Depósito de $depositText recibido y descontado · saldo de $balanceText cobrado el día de la entrega.',
+          );
+        }
+    }
+    return Padding(
+      key: const ValueKey('detail-deposit'),
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
     );
   }

@@ -202,23 +202,26 @@ class _PaymentSummaryCard extends StatelessWidget {
             spacing: 24,
             runSpacing: 10,
             children: [
-              if (!view.isFee)
+              if (!view.isFee && !view.isDeposit)
                 _AmountBlock(
                   label: t('admin_payments_price'),
                   minor: view.deliveryPriceMinor,
                 ),
-              _AmountBlock(
-                label: t('admin_payments_hold'),
-                minor: view.holdMinor,
-              ),
+              // Dépôt (2026-11-06) : encaissé tout de suite, jamais bloqué.
+              if (!view.isDeposit)
+                _AmountBlock(
+                  label: t('admin_payments_hold'),
+                  minor: view.holdMinor,
+                ),
               _AmountBlock(
                 label: t('admin_payments_col_captured'),
                 minor: payment.amountCapturedMinor,
               ),
-              _AmountBlock(
-                label: t('admin_payments_released'),
-                minor: view.releasedMinor,
-              ),
+              if (!view.isDeposit)
+                _AmountBlock(
+                  label: t('admin_payments_released'),
+                  minor: view.releasedMinor,
+                ),
               _AmountBlock(
                 label: t('admin_payments_col_refunded'),
                 minor: payment.amountRefundedMinor,
@@ -235,7 +238,17 @@ class _PaymentSummaryCard extends StatelessWidget {
                 ),
             ],
           ),
-          if (view.holdExceedsPrice && !view.isFee) ...[
+          if (view.isDeposit) ...[
+            const SizedBox(height: 10),
+            Text(
+              t('admin_payments_deposit_explained'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          if (view.holdExceedsPrice && !view.isFee && !view.isDeposit) ...[
             const SizedBox(height: 10),
             Text(
               t('admin_payments_hold_explained'),

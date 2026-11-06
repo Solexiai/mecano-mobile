@@ -70,17 +70,20 @@ export function isDriverJudgement(snapshot: unknown): snapshot is DriverJudgemen
     Array.isArray((snapshot as BookingSnapshot).eligible_categories) &&
     (snapshot as BookingSnapshot).eligible_categories!.length > 0;
 }
-// Owner decision 2026-10-22: bookings at most 4 days ahead. The card is
-// authorized when a driver accepts, without the customer present; Stripe
-// keeps such a Visa hold only 4 days 18 hours (Mastercard/Amex: 7 days), so a
-// later pickup could no longer be captured at delivery.
+// Owner decision 2026-10-22: bookings at most 4 days ahead by default (the
+// card hold placed at acceptance expires after ~5-7 days). Since 2026-11-06 the
+// admin can open the window up to 30 days (« Jours à l'avance », see
+// bookingHours.ts): a 25 $ deposit is collected at booking and the balance
+// hold is placed 4 days before pickup (scheduledPaymentHold.ts). Callers pass
+// the saved window; without saved hours the 4-day default applies.
 export const MAX_BOOKING_ADVANCE_MS = 4 * 24 * 60 * 60 * 1000;
-export function requestedTimeReason(requestedAt: string | null | undefined, now = Date.now()):
+export function requestedTimeReason(requestedAt: string | null | undefined, now = Date.now(),
+    maxAdvanceMs = MAX_BOOKING_ADVANCE_MS):
     'requested_time_past' | 'requested_time_too_far' | null {
   if (!requestedAt) return null;
   const at = Date.parse(requestedAt);
   if (!Number.isFinite(at) || at <= now) return 'requested_time_past';
-  return at - now > MAX_BOOKING_ADVANCE_MS ? 'requested_time_too_far' : null;
+  return at - now > maxAdvanceMs ? 'requested_time_too_far' : null;
 }
 export type ReviewReason = 'dimensions_unknown' | 'weight_unknown' | 'approximate_measurements' |
   'capacity_unconfigured' | 'no_verified_fit' | 'requested_time_missing' |

@@ -26,13 +26,17 @@ test('admin values are validated', () => {
   expect(parseBookingHours({ slot_hours: [17, 9, 9], lead_minutes: 30, days_ahead: 5, open_weekdays: [6, 7] }, ok))
     .toEqual({ slot_hours: [9, 17], lead_minutes: 30, days_ahead: 5, open_weekdays: [6, 7] });
   expect(ok).toEqual([]);
-  // PAY-08 (2026-10-27) : jamais au-delà de 5 jours (fenêtre d'autorisation Stripe).
-  expect(MAX_BOOKING_DAYS_AHEAD).toBe(5);
+  // 2026-11-06 : jusqu'à 30 jours (dépôt à la réservation, blocage du solde à
+  // J-4). Avant : 5 jours (fenêtre d'autorisation Stripe, PAY-08).
+  expect(MAX_BOOKING_DAYS_AHEAD).toBe(30);
   const tooFar: string[] = [];
-  parseBookingHours({ ...DEFAULT_BOOKING_HOURS, days_ahead: 7 }, tooFar);
+  parseBookingHours({ ...DEFAULT_BOOKING_HOURS, days_ahead: 31 }, tooFar);
   expect(tooFar.length).toBeGreaterThan(0);
+  const thirty: string[] = [];
+  expect(parseBookingHours({ ...DEFAULT_BOOKING_HOURS, days_ahead: 30 }, thirty).days_ahead).toBe(30);
+  expect(thirty).toEqual([]);
   for (const bad of [null, { ...DEFAULT_BOOKING_HOURS, slot_hours: [] }, { ...DEFAULT_BOOKING_HOURS, slot_hours: [23] },
-    { ...DEFAULT_BOOKING_HOURS, lead_minutes: -1 }, { ...DEFAULT_BOOKING_HOURS, days_ahead: 30 }, { ...DEFAULT_BOOKING_HOURS, open_weekdays: [0] }]) {
+    { ...DEFAULT_BOOKING_HOURS, lead_minutes: -1 }, { ...DEFAULT_BOOKING_HOURS, days_ahead: 31 }, { ...DEFAULT_BOOKING_HOURS, open_weekdays: [0] }]) {
     const e: string[] = [];
     parseBookingHours(bad, e);
     expect(e.length).toBeGreaterThan(0);

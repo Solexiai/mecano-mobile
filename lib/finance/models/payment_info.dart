@@ -59,6 +59,10 @@ class PaymentInfo {
   /// déplacement plutôt que le prix de la livraison.
   final String? capturePurpose;
 
+  /// `"deposit"` pour le dépôt de réservation de 25 \$ encaissé à la
+  /// réservation (2026-11-06, serveur lib/bookingDeposit.ts). Null sinon.
+  final String? purpose;
+
   /// Type de frais prélevés (`late_cancellation`,
   /// `customer_failed_delivery`), absent sur les paiements antérieurs au
   /// 24 octobre 2026.
@@ -113,6 +117,7 @@ class PaymentInfo {
     required this.applicationFeeMinor,
     this.serviceAmountMinor,
     this.capturePurpose,
+    this.purpose,
     this.feeKind,
     this.stripeEnvironment,
     this.connectedAccountId,
@@ -161,6 +166,7 @@ class PaymentInfo {
         applicationFeeMinor: applicationFeeMinor,
         serviceAmountMinor: serviceAmountMinor,
         capturePurpose: capturePurpose,
+        purpose: purpose,
         feeKind: feeKind,
         stripeEnvironment: stripeEnvironment,
         connectedAccountId: connectedAccountId,
@@ -197,6 +203,7 @@ class PaymentInfo {
         'application_fee_minor': applicationFeeMinor,
         'service_amount_minor': serviceAmountMinor,
         'capture_purpose': capturePurpose,
+        'purpose': purpose,
         'fee_kind': feeKind,
         'stripe_environment': stripeEnvironment,
         'connected_account_id': connectedAccountId,
@@ -243,6 +250,7 @@ class PaymentInfo {
       applicationFeeMinor: (json['application_fee_minor'] as num? ?? 0).toInt(),
       serviceAmountMinor: (json['service_amount_minor'] as num?)?.toInt(),
       capturePurpose: json['capture_purpose'] as String?,
+      purpose: json['purpose'] as String?,
       feeKind: json['fee_kind'] as String?,
       stripeEnvironment: json['stripe_environment'] as String?,
       connectedAccountId: json['connected_account_id'] as String?,

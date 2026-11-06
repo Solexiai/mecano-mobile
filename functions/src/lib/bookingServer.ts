@@ -27,7 +27,9 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
   const zoneReason = !zones.enabled || !zones.zones.length ? 'service_area_unconfigured' :
     stops.some(s => !isWithinServiceZones(s.address.lat,s.address.lng,zones)) ? 'outside_service_area' : null;
   const savedHours = await getSavedBookingHours();
-  const timeReason = requestedTimeReason(load.requested_at) ??
+  // La fenêtre enregistrée par l'admin (jusqu'à 30 jours) remplace le défaut de 4 jours.
+  const windowMs = savedHours ? savedHours.days_ahead * 24 * 60 * 60 * 1000 : undefined;
+  const timeReason = requestedTimeReason(load.requested_at, Date.now(), windowMs) ??
     (savedHours ? bookingHoursReason(load.requested_at, savedHours) : null);
   const reasons = [...review.reasons, ...(zoneReason ? [zoneReason] : []), ...(timeReason ? [timeReason] : [])];
   return { review: { ...review, status: reasons.length ? 'review_required' : 'ready', reasons, snapshot: reasons.length ? null : review.snapshot }, rules };
