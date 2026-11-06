@@ -64,6 +64,7 @@ import type { Response } from "express";
 import Stripe from "stripe";
 import { admin, db } from "../lib/admin";
 import { writeAuditLog } from "../lib/audit";
+import { applyDriverAccountStatus, type DriverAccountStatus } from "../lib/stripeAccountSync";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { StripeProvider } from "../payment/stripeProvider";
 import { DriverProfileDoc, WebhookProcessingStatuses } from "../lib/types";
@@ -442,53 +443,37 @@ async function dispatchStripeEvent(
           // falsifié/obsolète pointant vers le mauvais profil).
           if (driver.stripe_connected_account_id === account.id) {
             relatedDriverId = driverId;
-            const chargesEnabled = account.charges_enabled === true;
-            const payoutsEnabled = account.payouts_enabled === true;
-            // 2026-11-06: also keep what lets the app say "under review"
-            // instead of "incomplete" once the driver finished the form.
-            const detailsSubmitted = account.details_submitted === true;
-            const currentlyDue = account.requirements?.currently_due?.length ?? 0;
-            const disabledReason = account.requirements?.disabled_reason ?? null;
-            if (
-              driver.stripe_charges_enabled !== chargesEnabled ||
-              driver.stripe_payouts_enabled !== payoutsEnabled ||
-              (driver.stripe_details_submitted ?? false) !== detailsSubmitted ||
-              (driver.stripe_requirements_currently_due ?? 0) !== currentlyDue ||
-              (driver.stripe_requirements_disabled_reason ?? null) !== disabledReason
-            ) {
-              await driverRef.update({
-                stripe_charges_enabled: chargesEnabled,
-                stripe_payouts_enabled: payoutsEnabled,
-                stripe_details_submitted: detailsSubmitted,
-                stripe_requirements_currently_due: currentlyDue,
-                stripe_requirements_disabled_reason: disabledReason,
-                stripe_account_synced_at: admin.firestore.FieldValue.serverTimestamp(),
-                updated_at: admin.firestore.FieldValue.serverTimestamp(),
-              });
-              await writeAuditLog({
-                actorUserId: "system",
-                actorRole: "system",
-                action: "driver_stripe_account_status_synced",
-                sourceFunction: sourceFunctionName,
-                targetId: driverId,
-                metadata: {
-                  connectedAccountId: account.id,
-                  chargesEnabled,
-                  payoutsEnabled,
-                  detailsSubmitted,
-                  currentlyDue,
-                  disabledReason,
-                  previousChargesEnabled: driver.stripe_charges_enabled ?? false,
-                  previousPayoutsEnabled: driver.stripe_payouts_enabled ?? false,
-                },
-              });
+            const status: DriverAccountStatus = {
+              chargesEnabled: account.charges_enabled === true,
+              payoutsEnabled: account.payouts_enabled === true,
+              // 2026-11-06: also what lets the app say "under review"
+              // instead of "incomplete" once the driver finished the form.
+              detailsSubmitted: account.details_submitted === true,
+              currentlyDue: account.requirements?.currently_due?.length ?? 0,
+              disabledReason: account.requirements?.disabled_reason ?? null,
+            };
+            const updated = await applyDriverAccountStatus({
+              driverId,
+              driver,
+              connectedAccountId: account.id,
+              status,
+              actorUserId: "system",
+              actorRole: "system",
+              sourceFunction: sourceFunctionName,
+            });
+            if (updated) {
               logFinancialSuccess(
                 "driver_stripe_account_status_synced",
                 branchStartedAt,
                 { providerEventId: event.id },
                 {
                   correlationId: event.id,
-                  metadata: { driverId, connectedAccountId: account.id, chargesEnabled, payoutsEnabled },
+                  metadata: {
+                    driverId,
+                    connectedAccountId: account.id,
+                    chargesEnabled: status.chargesEnabled,
+                    payoutsEnabled: status.payoutsEnabled,
+                  },
                 }
               );
             }

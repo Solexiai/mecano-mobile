@@ -29,9 +29,25 @@ import '../../../../widgets/driver_vehicle_review_card.dart';
 import '../../../../l10n/vehicle_review_copy.dart';
 import 'driver_payout_status.dart';
 
+/// 2026-11-06 : « Actualiser depuis Stripe » — `syncDriverStripeAccount`
+/// avec `driverId` (admin). Injectable pour les tests.
+typedef AdminStripeSyncApi = Future<Map<String, dynamic>> Function(String driverId);
+
+Future<Map<String, dynamic>> _firebaseAdminStripeSync(String driverId) async {
+  final result = await FirebaseFunctions.instance
+      .httpsCallable('syncDriverStripeAccount')
+      .call({'driverId': driverId});
+  return Map<String, dynamic>.from(result.data as Map);
+}
+
 class AdminDriverDetailScreen extends StatefulWidget {
   final String driverId;
-  const AdminDriverDetailScreen({super.key, required this.driverId});
+  final AdminStripeSyncApi? stripeSyncApi;
+  const AdminDriverDetailScreen({
+    super.key,
+    required this.driverId,
+    this.stripeSyncApi,
+  });
 
   @override
   State<AdminDriverDetailScreen> createState() =>
@@ -93,7 +109,12 @@ class _AdminDriverDetailScreenState extends State<AdminDriverDetailScreen> {
                 const SizedBox(height: 20),
                 _DocumentsSection(driverId: widget.driverId, t: t),
                 const SizedBox(height: 20),
-                _PayoutSection(profile: profile, t: t),
+                _PayoutSection(
+                  profile: profile,
+                  t: t,
+                  driverId: widget.driverId,
+                  syncApi: widget.stripeSyncApi ?? _firebaseAdminStripeSync,
+                ),
                 const SizedBox(height: 20),
                 _NotesSection(driverId: widget.driverId, t: t),
                 const SizedBox(height: 24),
@@ -719,10 +740,40 @@ class _DocumentTileState extends State<_DocumentTile> {
 /// Versements Stripe (2026-11-03) : ce que le serveur exige avant qu'un
 /// chauffeur puisse accepter une livraison en vrai argent. Lecture seule ;
 /// les valeurs viennent du profil, mises à jour par le webhook Stripe.
-class _PayoutSection extends StatelessWidget {
+class _PayoutSection extends StatefulWidget {
   final DriverProfileV2 profile;
   final String Function(String) t;
-  const _PayoutSection({required this.profile, required this.t});
+  final String driverId;
+  final AdminStripeSyncApi syncApi;
+  const _PayoutSection({
+    required this.profile,
+    required this.t,
+    required this.driverId,
+    required this.syncApi,
+  });
+
+  @override
+  State<_PayoutSection> createState() => _PayoutSectionState();
+}
+
+class _PayoutSectionState extends State<_PayoutSection> {
+  bool _syncing = false;
+  String? _syncError;
+
+  Future<void> _sync() async {
+    setState(() {
+      _syncing = true;
+      _syncError = null;
+    });
+    try {
+      await widget.syncApi(widget.driverId);
+    } on FirebaseFunctionsException catch (e) {
+      _syncError = e.message ?? widget.t('admin_driver_payout_sync_error');
+    } catch (_) {
+      _syncError = widget.t('admin_driver_payout_sync_error');
+    }
+    if (mounted) setState(() => _syncing = false);
+  }
 
   Widget _row(bool ok, String label, {Key? key}) => Padding(
     key: key,
@@ -742,6 +793,8 @@ class _PayoutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final profile = widget.profile;
+    final t = widget.t;
     final r = driverPayoutReadiness(profile);
     final hasAccount = (profile.stripeConnectedAccountId ?? '').isNotEmpty;
     final live = profile.stripeConnectedAccountEnvironment == 'live';
@@ -786,6 +839,33 @@ class _PayoutSection extends StatelessWidget {
             key: const ValueKey('admin-driver-payout-verdict'),
             style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
           ),
+          if (hasAccount && live && r != DriverPayoutReadiness.ready) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                key: const ValueKey('admin-driver-payout-sync'),
+                onPressed: _syncing ? null : _sync,
+                icon: _syncing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.sync, size: 18),
+                label: Text(t('admin_driver_payout_sync')),
+              ),
+            ),
+            if (_syncError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  _syncError!,
+                  key: const ValueKey('admin-driver-payout-sync-error'),
+                  style: const TextStyle(color: AppColors.error, fontSize: 12.5),
+                ),
+              ),
+          ],
         ],
       ),
     );

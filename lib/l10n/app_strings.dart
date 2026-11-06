@@ -2830,6 +2830,16 @@ class AppStrings {
       'en': 'Payouts OK',
       'es': 'Pagos OK',
     },
+    'admin_driver_payout_sync': {
+      'fr': 'Actualiser depuis Stripe',
+      'en': 'Refresh from Stripe',
+      'es': 'Actualizar desde Stripe',
+    },
+    'admin_driver_payout_sync_error': {
+      'fr': 'Impossible de lire le compte chez Stripe pour le moment. Réessayez.',
+      'en': 'Could not read the account at Stripe right now. Try again.',
+      'es': 'No se pudo leer la cuenta en Stripe por ahora. Inténtelo de nuevo.',
+    },
     'admin_driver_payout_under_review': {
       'fr': 'En examen chez Stripe',
       'en': 'Under review by Stripe',
@@ -5710,6 +5720,11 @@ class AppStrings {
       'fr': 'Actif',
       'en': 'Active',
       'es': 'Activo',
+    },
+    'provider_stripe_connect_check_status': {
+      'fr': 'Vérifier l’état chez Stripe',
+      'en': 'Check status with Stripe',
+      'es': 'Verificar el estado en Stripe',
     },
     'provider_stripe_connect_status_review': {
       'fr': 'En examen chez Stripe',

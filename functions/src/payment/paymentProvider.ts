@@ -1,3 +1,4 @@
+import type { DriverAccountStatus } from "../lib/stripeAccountSync";
 import type { CardSetup } from "../lib/bookingPayment";
 // -----------------------------------------------------------------------------
 // paymentProvider.ts — Abstraction PaymentProvider CÔTÉ SERVEUR (point 2 du
@@ -353,6 +354,10 @@ export abstract class PaymentProvider {
    *  never be reused (2026-10-23). Null when the provider cannot make one. */
   abstract createDriverOnboardingLink(connectedAccountId: string): Promise<string | null>;
 
+  /** Current state of a connected account as the provider reports it
+   *  (2026-11-06). Null when the account cannot be read. */
+  abstract getDriverAccountStatus(connectedAccountId: string): Promise<DriverAccountStatus | null>;
+
   abstract createDriverPayout(
     params: CreateDriverPayoutParams
   ): Promise<CreateDriverPayoutResult>;
@@ -427,6 +432,9 @@ export class NotConfiguredPaymentProvider extends PaymentProvider {
     throw new PaymentProviderNotConfiguredError();
   }
   async createDriverOnboardingLink(): Promise<string | null> {
+    throw new PaymentProviderNotConfiguredError();
+  }
+  async getDriverAccountStatus(): Promise<DriverAccountStatus | null> {
     throw new PaymentProviderNotConfiguredError();
   }
   async createDriverPayout(): Promise<CreateDriverPayoutResult> {
