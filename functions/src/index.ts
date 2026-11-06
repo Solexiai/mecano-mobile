@@ -70,6 +70,7 @@ export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 export { createCustomerPaymentProfile } from "./functions/createCustomerPaymentProfile";
 export { attachCustomerPaymentMethod } from "./functions/attachCustomerPaymentMethod";
 export { createDriverStripeAccount } from "./functions/createDriverStripeAccount";
+export { syncDriverStripeAccount } from "./functions/syncDriverStripeAccount";
 export { updatePayoutPolicyConfiguration } from "./functions/updatePayoutPolicyConfiguration";
 export { processScheduledDriverPayouts } from "./functions/processScheduledDriverPayouts";
 // Option A (2026-10-27) : miroir, pour le chauffeur, de la part virée par

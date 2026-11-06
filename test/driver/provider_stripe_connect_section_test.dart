@@ -236,7 +236,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(OutlinedButton, _t('common_retry')),
+        find.widgetWithText(OutlinedButton, _t('provider_stripe_connect_check_status')),
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
@@ -323,6 +323,22 @@ void main() {
         expect(find.text(_t('provider_stripe_connect_description_review')), findsOneWidget);
         expect(find.text(_t('provider_stripe_connect_status_pending')), findsNothing);
         expect(find.byType(ElevatedButton), findsNothing);
+        // « Vérifier l'état chez Stripe » reste disponible et appelle l'API.
+        var calls = 0;
+        await tester.pumpWidget(
+          _wrap(ProviderStripeConnectSection(
+            profile: profile,
+            t: _t,
+            syncApi: () async {
+              calls++;
+              return {'success': true, 'updated': false};
+            },
+          )),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('provider-stripe-sync')));
+        await tester.pumpAndSettle();
+        expect(calls, 1);
         expect(tester.takeException(), isNull);
       },
     );

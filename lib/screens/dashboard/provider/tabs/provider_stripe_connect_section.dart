@@ -46,6 +46,7 @@
 // opaque et une URL déjà signée par Stripe côté serveur.
 // ---------------------------------------------------------------------------
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -55,14 +56,28 @@ import '../../../../backend/models/driver_payout_readiness.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../core/app_colors.dart';
 
+/// 2026-11-06 : « Vérifier l'état chez Stripe » — appelle
+/// `syncDriverStripeAccount`, qui relit le compte chez Stripe et met le
+/// profil à jour (le flux Firestore rafraîchit ensuite la carte).
+typedef StripeSyncApi = Future<Map<String, dynamic>> Function();
+
+Future<Map<String, dynamic>> _firebaseStripeSync() async {
+  final result = await FirebaseFunctions.instance
+      .httpsCallable('syncDriverStripeAccount')
+      .call();
+  return Map<String, dynamic>.from(result.data as Map);
+}
+
 class ProviderStripeConnectSection extends StatefulWidget {
   final DriverProfileV2? profile;
   final String Function(String) t;
+  final StripeSyncApi? syncApi;
 
   const ProviderStripeConnectSection({
     super.key,
     required this.profile,
     required this.t,
+    this.syncApi,
   });
 
   @override
@@ -116,6 +131,25 @@ class _ProviderStripeConnectSectionState
         _error = widget.t('provider_stripe_connect_error_generic');
       });
     }
+  }
+
+  bool _syncing = false;
+
+  Future<void> _syncFromStripe() async {
+    setState(() {
+      _syncing = true;
+      _error = null;
+    });
+    try {
+      await (widget.syncApi ?? _firebaseStripeSync)();
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.message ?? widget.t('provider_stripe_connect_error_generic'));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = widget.t('provider_stripe_connect_error_generic'));
+    }
+    if (mounted) setState(() => _syncing = false);
   }
 
   Future<void> _openOnboardingUrl(String url) async {
@@ -291,24 +325,18 @@ class _ProviderStripeConnectSectionState
                   icon: const Icon(Icons.link, size: 18),
                   label: Text(t('provider_stripe_connect_reopen_link')),
                 ),
-              if (hasAccount && !isActive)
+              if (hasAccount && !isActive && !isTestAccount)
                 OutlinedButton.icon(
-                  onPressed: _loading
-                      ? null
-                      : () {
-                          // Bloc 8B — "Actualiser" : `watchDriverProfile` est
-                          // déjà un flux Firestore temps réel (voir
-                          // `provider_profile_tab.dart::StreamBuilder`), donc
-                          // aucune relecture manuelle n'est nécessaire ici.
-                          // Ce bouton existe pour l'état "refresh/retry"
-                          // explicitement requis par la directive : il
-                          // efface juste l'erreur locale éventuelle et force
-                          // un `setState` pour rassurer visuellement le
-                          // chauffeur qu'une vérification a bien eu lieu.
-                          setState(() => _error = null);
-                        },
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: Text(t('common_retry')),
+                  key: const ValueKey('provider-stripe-sync'),
+                  onPressed: (_loading || _syncing) ? null : _syncFromStripe,
+                  icon: _syncing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.sync, size: 18),
+                  label: Text(t('provider_stripe_connect_check_status')),
                 ),
             ],
           ),

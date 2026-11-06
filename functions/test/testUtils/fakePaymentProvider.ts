@@ -15,6 +15,7 @@
 // permettre des tests négatifs ciblés (Phase 6, points 5 et 22).
 // -----------------------------------------------------------------------------
 
+import type { DriverAccountStatus } from "../../src/lib/stripeAccountSync";
 import {
   AttachPaymentMethodParams,
   AttachPaymentMethodResult,
@@ -244,6 +245,18 @@ export class FakePaymentProvider extends PaymentProvider {
       connectedAccountId: `fake_acct_${params.driverId}`,
       onboardingUrl: await this.createDriverOnboardingLink(`fake_acct_${params.driverId}`),
     };
+  }
+
+  /** 2026-11-06: what getDriverAccountStatus returns (null = unreadable). */
+  driverAccountStatus: DriverAccountStatus | null = {
+    chargesEnabled: false,
+    payoutsEnabled: false,
+    detailsSubmitted: true,
+    currentlyDue: 0,
+    disabledReason: null,
+  };
+  async getDriverAccountStatus(_connectedAccountId: string): Promise<DriverAccountStatus | null> {
+    return this.driverAccountStatus;
   }
 
   onboardingLinkCount = 0;

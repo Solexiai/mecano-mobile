@@ -1,3 +1,4 @@
+import type { DriverAccountStatus } from "../lib/stripeAccountSync";
 import type { CardSetup } from "../lib/bookingPayment";
 // -----------------------------------------------------------------------------
 // stripeProvider.ts — Implémentation RÉELLE de PaymentProvider via Stripe
@@ -430,6 +431,22 @@ export class StripeProvider extends PaymentProvider {
     });
 
     return { connectedAccountId: account.id, onboardingUrl: await this.createDriverOnboardingLink(account.id) };
+  }
+
+  // 2026-11-06: read the connected account (used by syncDriverStripeAccount).
+  async getDriverAccountStatus(connectedAccountId: string): Promise<DriverAccountStatus | null> {
+    try {
+      const account = await this.stripe.accounts.retrieve(connectedAccountId);
+      return {
+        chargesEnabled: account.charges_enabled === true,
+        payoutsEnabled: account.payouts_enabled === true,
+        detailsSubmitted: account.details_submitted === true,
+        currentlyDue: account.requirements?.currently_due?.length ?? 0,
+        disabledReason: account.requirements?.disabled_reason ?? null,
+      };
+    } catch {
+      return null;
+    }
   }
 
   // Fresh hosted onboarding link (links expire and work once).
