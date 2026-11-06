@@ -62,8 +62,10 @@ beforeEach(async () => {
 afterEach(async () => {
   setPaymentProviderForTesting(null);
   for (const path of ['system_config/booking_policy', 'system_config/booking_capacity', 'system_config/service_zones', `payment_profiles/${uid}`, `booking_attempts/${uid}_deposit-test`, `delivery_quotes/${id}`, `payments/${depositPaymentId(id)}`, `users/${uid}`]) await db.doc(path).delete();
-  const missions = await db.collection('delivery_requests').where('customer_id', '==', uid).get();
-  for (const m of missions.docs) await db.recursiveDelete(m.ref);
+  for (const collection of ['delivery_requests', 'payments']) {
+    const rows = await db.collection(collection).where('customer_id', '==', uid).get();
+    for (const r of rows.docs) await db.recursiveDelete(r.ref);
+  }
   const ledger = await db.collection('transaction_ledger').where('transaction_id', '==', depositPaymentId(id)).get();
   for (const r of ledger.docs) await r.ref.delete();
   const refunds = await db.collection('refunds').where('payment_id', '==', depositPaymentId(id)).get();

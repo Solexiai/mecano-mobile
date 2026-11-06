@@ -75,7 +75,7 @@ afterEach(async () => {
     'booking_attempts/' + uid + '_timing-immediate', 'booking_attempts/' + uid + '_timing-scheduled',
     'driver_agendas/'+driver,'driver_locations/'+driver,'driver_calendar_busy/'+driver,'system_config/driver_scheduling',
     'users/' + uid, 'users/' + driver]) await db.recursiveDelete(db.doc(path));
-  for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers']) {
+  for (const collection of ['delivery_quotes', 'delivery_requests', 'delivery_offers', 'payments']) {
     const field = collection === 'delivery_offers' ? 'driver_id' : 'customer_id';
     const value = collection === 'delivery_offers' ? driver : uid;
     const docs = await db.collection(collection).where(field, '==', value).get();
