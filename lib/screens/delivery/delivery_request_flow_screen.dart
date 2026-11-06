@@ -1581,6 +1581,16 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _changed();
     }
 
+    void pickDay(String key) {
+      _draft.data['slot_day'] = key;
+      final d = slotDayFromKey(key);
+      final h = (_draft.data['slot_hour'] as num?)?.toInt();
+      if (d != null && h != null && !slotOpen(d, h, DateTime.now(), _hours)) {
+        _draft.data['slot_hour'] = null;
+      }
+      applySlot();
+    }
+
     final ready =
         _draft.items.isNotEmpty &&
         _addressesValid &&
@@ -1625,23 +1635,38 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         const SizedBox(height: 8),
-        BookingPills(
-          keyPrefix: 'slot-day',
-          selected: dayKey,
-          options: [
-            for (final d in days)
-              (slotDayKey(d), slotDayLabel(d, now, widget.locale)),
-          ],
-          onSelected: (key) {
-            _draft.data['slot_day'] = key;
-            final d = slotDayFromKey(key);
-            final h = (_draft.data['slot_hour'] as num?)?.toInt();
-            if (d != null && h != null && !slotOpen(d, h, DateTime.now(), _hours)) {
-              _draft.data['slot_hour'] = null;
-            }
-            applySlot();
-          },
+        // Calendrier (2026-11-06) : raccourcis Aujourd'hui / Demain quand ils
+        // sont ouverts, puis la grille des semaines jusqu'au dernier jour
+        // réservable (jusqu'à 30 jours).
+        if (days.any((d) => d.difference(DateTime(now.year, now.month, now.day)).inDays <= 1)) ...[
+          BookingPills(
+            keyPrefix: 'slot-quick',
+            selected: dayKey,
+            columns: 2,
+            options: [
+              for (final d in days)
+                if (d.difference(DateTime(now.year, now.month, now.day)).inDays <= 1)
+                  (slotDayKey(d), slotDayLabel(d, now, widget.locale)),
+            ],
+            onSelected: pickDay,
+          ),
+          const SizedBox(height: 8),
+        ],
+        BookingCalendar(
+          now: now,
+          hours: _hours,
+          locale: widget.locale,
+          selectedKey: dayKey,
+          onSelected: pickDay,
         ),
+        if (day != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            '${tr('Jour choisi', 'Chosen day', 'Día elegido')} : ${slotDayLabel(day, now, widget.locale)}${day.difference(DateTime(now.year, now.month, now.day)).inDays > 1 ? ' ${slotMonthLabel(day.month, widget.locale)}' : ''}',
+            key: const ValueKey('slot-day-chosen'),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ],
         if (day != null) ...[
           const SizedBox(height: 16),
           Text(
