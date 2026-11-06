@@ -29,6 +29,8 @@
 // webhook `account.updated`, GAP-8B-01) via le repository existant.
 // ---------------------------------------------------------------------------
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -47,10 +49,16 @@ class DriverStripeOnboardingReturnScreen extends StatefulWidget {
   final String locale;
   final DriverStripeOnboardingReturnMode mode;
 
+  /// 2026-11-06 : après « Compte inscrit » chez Stripe, le chauffeur est
+  /// ramené automatiquement à son tableau de bord au bout de ce délai
+  /// (mode `complete` seulement). Null = pas de redirection automatique.
+  final Duration? autoRedirectAfter;
+
   const DriverStripeOnboardingReturnScreen({
     super.key,
     required this.locale,
     required this.mode,
+    this.autoRedirectAfter = const Duration(seconds: 8),
   });
 
   @override
@@ -65,6 +73,34 @@ class _DriverStripeOnboardingReturnScreenState
   // chaque `setState()` du bouton "Actualiser l'état".
   String? _cachedUid;
   Stream<DriverProfileV2?>? _driverProfileStream;
+  Timer? _redirectTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    final delay = widget.autoRedirectAfter;
+    if (widget.mode == DriverStripeOnboardingReturnMode.complete &&
+        delay != null) {
+      _redirectTimer = Timer(delay, _goToDashboard);
+    }
+  }
+
+  @override
+  void dispose() {
+    _redirectTimer?.cancel();
+    super.dispose();
+  }
+
+  void _goToDashboard() {
+    if (!mounted) return;
+    // Onglet Profil (index 3) : c'est là que vit la carte Stripe dont
+    // l'indicateur passe au vert.
+    if (GoRouter.maybeOf(context) == null) return;
+    context.go(
+      '/${widget.locale}/fournisseur/tableau-de-bord',
+      extra: const {'initialTabIndex': 3},
+    );
+  }
 
   Stream<DriverProfileV2?> _ensureDriverProfileStream(String uid) {
     if (_cachedUid != uid || _driverProfileStream == null) {
@@ -174,18 +210,36 @@ class _DriverStripeOnboardingReturnScreenState
                         ? t('driver_onboarding_return_refresh_message')
                         : t('driver_onboarding_return_complete_message'),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textSecondary, height: 1.5),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      height: 1.5,
+                    ),
                   ),
                   if (snap.connectionState != ConnectionState.waiting) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
                       isActive
                           ? t('driver_onboarding_return_status_active')
                           : t('driver_onboarding_return_status_pending'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: isActive ? AppColors.success : AppColors.warning,
+                        color: isActive
+                            ? AppColors.success
+                            : AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                  if (widget.mode == DriverStripeOnboardingReturnMode.complete &&
+                      widget.autoRedirectAfter != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      t('driver_onboarding_return_auto_redirect'),
+                      key: const ValueKey('driver-onboarding-return-redirect'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -195,17 +249,22 @@ class _DriverStripeOnboardingReturnScreenState
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      OutlinedButton.icon(
-                        onPressed: () => setState(() {}),
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: Text(t('driver_onboarding_return_refresh_state')),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => context.go(
-                          '/${widget.locale}/fournisseur/tableau-de-bord',
-                          extra: const {'initialTabIndex': 3},
+                      if (widget.mode == DriverStripeOnboardingReturnMode.refresh)
+                        OutlinedButton.icon(
+                          onPressed: () => setState(() {}),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: Text(t('driver_onboarding_return_refresh_state')),
                         ),
-                        icon: const Icon(Icons.person_outline, size: 18),
+                      ElevatedButton.icon(
+                        key: const ValueKey('driver-onboarding-return-dashboard'),
+                        onPressed: () {
+                          _redirectTimer?.cancel();
+                          context.go(
+                            '/${widget.locale}/fournisseur/tableau-de-bord',
+                            extra: const {'initialTabIndex': 3},
+                          );
+                        },
+                        icon: const Icon(Icons.dashboard_outlined, size: 18),
                         label: Text(t('driver_onboarding_return_go_to_profile')),
                       ),
                     ],
