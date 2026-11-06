@@ -63,6 +63,8 @@ export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 // ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
 export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";
+// Réservation lointaine (2026-11-06) : blocage du solde à J-4.
+export { placeScheduledPaymentHolds } from "./functions/scheduledPaymentHolds";
 export { createLedgerEntry } from "./functions/createLedgerEntry";
 export { calculateDriverPayout } from "./functions/calculateDriverPayout";
 

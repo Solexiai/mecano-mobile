@@ -103,6 +103,13 @@ export interface CreateAndAuthorizePaymentInput {
   driverId: string;
   quoteId: string;
   financialSnapshotId: string;
+  /**
+   * Blocage posé à J-4 par la tâche planifiée (lib/scheduledPaymentHold.ts,
+   * 2026-11-06) : un refus NE désassigne PAS la mission (relance le
+   * lendemain, annulation la veille seulement). Le paiement passe en FAILED,
+   * la mission garde son chauffeur et son statut.
+   */
+  keepMissionOnFailure?: boolean;
 }
 
 export interface CreateAndAuthorizePaymentOutcome {
@@ -124,6 +131,7 @@ export async function createAndAuthorizeMissionPayment(
   input: CreateAndAuthorizePaymentInput
 ): Promise<CreateAndAuthorizePaymentOutcome> {
   const { missionId, customerId, driverId, quoteId, financialSnapshotId } = input;
+  const keepMission = input.keepMissionOnFailure === true;
   // 🔒 BLOC I (observabilité) — un SEUL correlation_id pour toute l'opération
   // "création + autorisation" (create payment ET authorize payment), généré
   // ici car aucun correlationId entrant n'existe à ce point de la chaîne
@@ -152,7 +160,7 @@ export async function createAndAuthorizeMissionPayment(
   if (!paymentProfileSnap.exists) {
     // Ne devrait jamais arriver si createDeliveryRequest() a bien validé le
     // profil de paiement — filet de sécurité défensif.
-    return await failMissionPayment(missionId, null, "missing_payment_profile", "Aucun profil de paiement client.");
+    return await failMissionPayment(missionId, null, "missing_payment_profile", "Aucun profil de paiement client.", null, undefined, keepMission);
   }
   const paymentProfile = paymentProfileSnap.data()!;
   if (!paymentProfile.default_payment_method_id) {
@@ -160,7 +168,10 @@ export async function createAndAuthorizeMissionPayment(
       missionId,
       null,
       "missing_default_payment_method",
-      "Aucun moyen de paiement par défaut enregistré."
+      "Aucun moyen de paiement par défaut enregistré.",
+      null,
+      undefined,
+      keepMission
     );
   }
 
@@ -439,7 +450,8 @@ export async function createAndAuthorizeMissionPayment(
         authorized.failureCode ?? "authorization_failed",
         authorized.failureMessage ?? "Autorisation refusée par le fournisseur de paiement.",
         created.providerPaymentIntentId,
-        { correlationId, operationStartedAt, operation: "authorize_payment" }
+        { correlationId, operationStartedAt, operation: "authorize_payment" },
+        keepMission
       );
     }
 
@@ -521,7 +533,7 @@ export async function createAndAuthorizeMissionPayment(
       correlationId,
       operationStartedAt,
       operation: "create_payment",
-    });
+    }, keepMission);
   }
 }
 
@@ -542,7 +554,8 @@ async function failMissionPayment(
   failureCode: string,
   failureMessage: string,
   providerPaymentIntentId: string | null = null,
-  observability?: { correlationId: string; operationStartedAt: number; operation: string }
+  observability?: { correlationId: string; operationStartedAt: number; operation: string },
+  keepMission = false
 ): Promise<CreateAndAuthorizePaymentOutcome> {
   const obs = observability ?? {
     correlationId: resolveCorrelationId(undefined),
@@ -596,7 +609,11 @@ async function failMissionPayment(
     // A payment failure must never resurrect a cancelled mission as
     // payment_failed. The cancellation remains the authoritative terminal
     // state even if the provider fails while the customer cancels.
-    if (!cancelledInsteadOfFailed) {
+    if (!cancelledInsteadOfFailed && keepMission) {
+      // Blocage planifié (J-4) refusé : la mission garde chauffeur et statut ;
+      // la tâche planifiée décide de la relance ou de l'annulation.
+      tx.update(missionRef, { payment_status: PaymentStatuses.FAILED });
+    } else if (!cancelledInsteadOfFailed) {
       tx.update(missionRef, {
         status: MissionStatuses.PAYMENT_FAILED,
         payment_status: PaymentStatuses.FAILED,
@@ -611,7 +628,7 @@ async function failMissionPayment(
       });
     }
 
-    if (!cancelledInsteadOfFailed && driverId && driverLocationRef && releasesDriver) {
+    if (!cancelledInsteadOfFailed && !keepMission && driverId && driverLocationRef && releasesDriver) {
       const driverRef = db.collection("driver_profiles").doc(driverId);
       tx.update(driverRef, { online_status: "online" });
       tx.set(driverLocationRef, { active_delivery_id: null }, { merge: true });

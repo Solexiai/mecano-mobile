@@ -48,7 +48,11 @@ export type CustomerMissionPushType =
   // Autorisation refusée à l'acceptation (DISP-02) : refaire une demande avec une autre carte.
   | "payment_authorization_failed"
   // DISP-02 (2026-10-28) : aucun chauffeur n'a accepté après les rondes de recherche.
-  | "no_driver_available";
+  | "no_driver_available"
+  // Réservation lointaine (2026-11-06) : blocage du solde refusé à J-4, carte à mettre à jour.
+  | "payment_hold_failed"
+  // Carte toujours refusée la veille : livraison annulée, dépôt conservé.
+  | "cancelled_payment_hold_failed";
 
 const CUSTOMER_MISSION_PUSH_COPY: Record<
   CustomerMissionPushType,
@@ -206,6 +210,34 @@ const CUSTOMER_MISSION_PUSH_COPY: Record<
     es: {
       title: "Tarjeta rechazada",
       body: "Su tarjeta fue rechazada. Actual\u00edcela y vuelva a reservar.",
+    },
+  },
+  payment_hold_failed: {
+    fr: {
+      title: "Carte refus\u00e9e",
+      body: "Votre carte a \u00e9t\u00e9 refus\u00e9e pour le solde de votre livraison. Mettez-la \u00e0 jour avant la veille, sinon la livraison sera annul\u00e9e.",
+    },
+    en: {
+      title: "Card declined",
+      body: "Your card was declined for the balance of your delivery. Update it before the day before, or the delivery will be cancelled.",
+    },
+    es: {
+      title: "Tarjeta rechazada",
+      body: "Su tarjeta fue rechazada para el saldo de su entrega. Actual\u00edcela antes de la v\u00edspera o la entrega ser\u00e1 cancelada.",
+    },
+  },
+  cancelled_payment_hold_failed: {
+    fr: {
+      title: "Livraison annul\u00e9e",
+      body: "Votre carte a \u00e9t\u00e9 refus\u00e9e malgr\u00e9 nos rappels : la livraison est annul\u00e9e et le d\u00e9p\u00f4t est conserv\u00e9.",
+    },
+    en: {
+      title: "Delivery cancelled",
+      body: "Your card was declined despite our reminders: the delivery is cancelled and the deposit is kept.",
+    },
+    es: {
+      title: "Entrega cancelada",
+      body: "Su tarjeta fue rechazada pese a nuestros recordatorios: la entrega se cancela y el dep\u00f3sito se conserva.",
     },
   },
   no_driver_available: {
