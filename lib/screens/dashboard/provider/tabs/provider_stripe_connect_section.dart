@@ -155,6 +155,9 @@ class _ProviderStripeConnectSectionState
     // le serveur refusait toute livraison : il est maintenant « À refaire ».
     final readiness = driverPayoutReadiness(profile);
     final isTestAccount = readiness == DriverPayoutReadiness.testAccount;
+    // 2026-11-06 : formulaire terminé, Stripe vérifie → « En examen »,
+    // rien à faire, pas de bouton « Continuer » qui ferait tout recommencer.
+    final isUnderReview = readiness == DriverPayoutReadiness.underReview;
     final chargesEnabled =
         !isTestAccount && (profile?.stripeChargesEnabled ?? false);
     final payoutsEnabled =
@@ -194,9 +197,12 @@ class _ProviderStripeConnectSectionState
                   hasAccount: hasAccount,
                   isActive: isActive,
                   isTestAccount: isTestAccount,
+                  isUnderReview: isUnderReview,
                 ),
                 color: isActive
                     ? AppColors.success
+                    : isUnderReview
+                    ? AppColors.primary
                     : (hasAccount
                           ? AppColors.warning
                           : AppColors.textSecondary),
@@ -210,6 +216,7 @@ class _ProviderStripeConnectSectionState
               hasAccount: hasAccount,
               isActive: isActive,
               isTestAccount: isTestAccount,
+              isUnderReview: isUnderReview,
             ),
             style: const TextStyle(
               color: AppColors.textSecondary,
@@ -255,7 +262,7 @@ class _ProviderStripeConnectSectionState
             spacing: 10,
             runSpacing: 10,
             children: [
-              if (!isActive)
+              if (!isActive && !isUnderReview)
                 ElevatedButton.icon(
                   onPressed: _loading ? null : _startOrResumeOnboarding,
                   icon: _loading
@@ -278,7 +285,7 @@ class _ProviderStripeConnectSectionState
                               : t('provider_stripe_connect_start')),
                   ),
                 ),
-              if (!isActive && _lastOnboardingUrl != null && !_loading)
+              if (!isActive && !isUnderReview && _lastOnboardingUrl != null && !_loading)
                 OutlinedButton.icon(
                   onPressed: () => _openOnboardingUrl(_lastOnboardingUrl!),
                   icon: const Icon(Icons.link, size: 18),
@@ -315,8 +322,10 @@ class _ProviderStripeConnectSectionState
     required bool hasAccount,
     required bool isActive,
     required bool isTestAccount,
+    required bool isUnderReview,
   }) {
     if (isActive) return t('provider_stripe_connect_status_active');
+    if (isUnderReview) return t('provider_stripe_connect_status_review');
     if (isTestAccount) return t('provider_stripe_connect_status_redo');
     if (hasAccount) return t('provider_stripe_connect_status_pending');
     return t('provider_stripe_connect_status_none');
@@ -327,8 +336,10 @@ class _ProviderStripeConnectSectionState
     required bool hasAccount,
     required bool isActive,
     required bool isTestAccount,
+    required bool isUnderReview,
   }) {
     if (isActive) return t('provider_stripe_connect_description_active');
+    if (isUnderReview) return t('provider_stripe_connect_description_review');
     if (isTestAccount) return t('provider_stripe_connect_description_redo');
     if (hasAccount) return t('provider_stripe_connect_description_pending');
     return t('provider_stripe_connect_description_none');

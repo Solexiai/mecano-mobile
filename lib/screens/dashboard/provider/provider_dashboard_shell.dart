@@ -400,6 +400,7 @@ class _PayoutSetupBanner extends StatelessWidget {
     }
     final pending = readiness == DriverPayoutReadiness.incomplete;
     final redo = readiness == DriverPayoutReadiness.testAccount;
+    final review = readiness == DriverPayoutReadiness.underReview;
     return Container(
       key: const ValueKey('driver-payout-setup-banner'),
       width: double.infinity,
@@ -416,19 +417,23 @@ class _PayoutSetupBanner extends StatelessWidget {
         children: [
           Text(
             t(
-              redo
+              review
+                  ? 'driver_payout_setup_banner_review'
+                  : redo
                   ? 'driver_payout_setup_banner_redo'
                   : pending
                   ? 'driver_payout_setup_banner_pending'
                   : 'driver_payout_setup_banner',
             ),
           ),
-          FilledButton.icon(
-            key: const ValueKey('driver-payout-setup-open'),
-            onPressed: onOpen,
-            icon: const Icon(Icons.account_balance_outlined, size: 18),
-            label: Text(t('driver_payout_setup_action')),
-          ),
+          // En examen chez Stripe : rien à faire, donc pas de bouton.
+          if (!review)
+            FilledButton.icon(
+              key: const ValueKey('driver-payout-setup-open'),
+              onPressed: onOpen,
+              icon: const Icon(Icons.account_balance_outlined, size: 18),
+              label: Text(t('driver_payout_setup_action')),
+            ),
         ],
       ),
     );

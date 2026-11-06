@@ -16,7 +16,12 @@ enum DriverPayoutReadiness {
   /// Compte réel, identité et banque validées : Stripe peut le payer.
   ready,
 
-  /// Compte réel créé, mais Stripe attend encore une pièce ou la banque.
+  /// Compte réel, formulaire Stripe terminé, rien de demandé au chauffeur :
+  /// Stripe vérifie (quelques minutes à 1–2 jours). Rien à faire.
+  underReview,
+
+  /// Compte réel créé, mais le formulaire n'est pas terminé ou Stripe
+  /// demande encore une pièce : le chauffeur doit reprendre.
   incomplete,
 
   /// Compte créé en mode test : à refaire. Le chauffeur relance
@@ -34,9 +39,15 @@ DriverPayoutReadiness driverPayoutReadiness(DriverProfileV2? p) {
   if (p.stripeConnectedAccountEnvironment != 'live') {
     return DriverPayoutReadiness.testAccount;
   }
-  return p.stripeChargesEnabled && p.stripePayoutsEnabled
-      ? DriverPayoutReadiness.ready
-      : DriverPayoutReadiness.incomplete;
+  if (p.stripeChargesEnabled && p.stripePayoutsEnabled) {
+    return DriverPayoutReadiness.ready;
+  }
+  if (p.stripeDetailsSubmitted &&
+      p.stripeRequirementsCurrentlyDue == 0 &&
+      p.stripeRequirementsDisabledReason == null) {
+    return DriverPayoutReadiness.underReview;
+  }
+  return DriverPayoutReadiness.incomplete;
 }
 
 /// Approuvé + documents validés + Stripe prêt : peut réellement livrer.

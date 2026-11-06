@@ -2830,6 +2830,16 @@ class AppStrings {
       'en': 'Payouts OK',
       'es': 'Pagos OK',
     },
+    'admin_driver_payout_under_review': {
+      'fr': 'En examen chez Stripe',
+      'en': 'Under review by Stripe',
+      'es': 'En revisión por Stripe',
+    },
+    'admin_driver_payout_verdict_under_review': {
+      'fr': 'Le chauffeur a terminé son formulaire Stripe ; Stripe vérifie (souvent quelques minutes, parfois 1 ou 2 jours ouvrables). Rien à faire de votre côté ni du sien : la fiche passera à « Versements OK » automatiquement.',
+      'en': 'The driver completed the Stripe form; Stripe is verifying (often minutes, sometimes 1 or 2 business days). Nothing to do on either side: the file will switch to “Payouts OK” automatically.',
+      'es': 'El conductor completó el formulario de Stripe; Stripe verifica (a menudo minutos, a veces 1 o 2 días hábiles). Nada que hacer por ninguna de las partes: la ficha pasará a «Pagos OK» automáticamente.',
+    },
     'admin_driver_payout_incomplete': {
       'fr': 'Stripe incomplet',
       'en': 'Stripe incomplete',
@@ -3592,6 +3602,11 @@ class AppStrings {
           'Your file is approved. Set up your payouts to get paid: register with Stripe (identity and bank account). Movi-K never sees this information.',
       'es':
           'Tu expediente está aprobado. Configura tus pagos para cobrar: regístrate en Stripe (identidad y cuenta bancaria). Movi-K nunca ve esta información.',
+    },
+    'driver_payout_setup_banner_review': {
+      'fr': 'Stripe examine votre inscription. Rien à faire : vous pourrez accepter des livraisons dès qu’elle est validée.',
+      'en': 'Stripe is reviewing your registration. Nothing to do: you will be able to accept deliveries as soon as it is validated.',
+      'es': 'Stripe está revisando su registro. Nada que hacer: podrá aceptar entregas en cuanto se valide.',
     },
     'driver_payout_setup_banner_redo': {
       'fr': 'Votre inscription Stripe date de la période de test : elle doit être refaite en mode réel avant d’accepter une livraison.',
@@ -5695,6 +5710,16 @@ class AppStrings {
       'fr': 'Actif',
       'en': 'Active',
       'es': 'Activo',
+    },
+    'provider_stripe_connect_status_review': {
+      'fr': 'En examen chez Stripe',
+      'en': 'Under review by Stripe',
+      'es': 'En revisión por Stripe',
+    },
+    'provider_stripe_connect_description_review': {
+      'fr': 'Votre dossier est complet et Stripe vérifie vos informations (souvent quelques minutes, parfois 1 ou 2 jours ouvrables). Vous n’avez rien à faire : les deux coches passeront au vert automatiquement et vous pourrez alors accepter des livraisons. Si Stripe a besoin d’un document de plus, un bouton « Reprendre » apparaîtra ici.',
+      'en': 'Your file is complete and Stripe is verifying your information (often a few minutes, sometimes 1 or 2 business days). There is nothing to do: both checks will turn green automatically and you will then be able to accept deliveries. If Stripe needs one more document, a “Resume” button will appear here.',
+      'es': 'Su expediente está completo y Stripe verifica su información (a menudo unos minutos, a veces 1 o 2 días hábiles). No tiene nada que hacer: ambas marcas se pondrán verdes automáticamente y entonces podrá aceptar entregas. Si Stripe necesita un documento más, aparecerá aquí un botón «Reanudar».',
     },
     'provider_stripe_connect_status_redo': {
       'fr': 'À refaire',

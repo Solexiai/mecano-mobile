@@ -1224,6 +1224,33 @@ describe("processStripeWebhook", () => {
     await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
   });
 
+  test("account.updated => 'dossier soumis, en examen' (details_submitted, requirements) synchronisé même sans capacité active (2026-11-06)", async () => {
+    const driverId = "webhook_driver_account_review_001";
+    const connectedAccountId = "acct_webhook_account_review_001";
+    await seedDriverProfile(driverId, connectedAccountId, { chargesEnabled: false, payoutsEnabled: false });
+
+    const eventId = "evt_account_review_001";
+    const payload = buildStripeEventPayload(eventId, "account.updated", {
+      id: connectedAccountId,
+      charges_enabled: false,
+      payouts_enabled: false,
+      details_submitted: true,
+      requirements: { currently_due: [], pending_verification: ["individual.id_number"], disabled_reason: null },
+      metadata: { movik_driver_id: driverId },
+    });
+    const { status } = await invokeConnectWebhook(payload, signConnectPayload(payload));
+    expect(status).toBe(200);
+
+    const data = (await db.collection("driver_profiles").doc(driverId).get()).data()!;
+    expect(data.stripe_charges_enabled).toBe(false);
+    expect(data.stripe_details_submitted).toBe(true);
+    expect(data.stripe_requirements_currently_due).toBe(0);
+    expect(data.stripe_requirements_disabled_reason).toBeNull();
+    expect(data.stripe_account_synced_at).toBeTruthy();
+
+    await cleanupAll({ eventIds: [eventId], driverProfileIds: [driverId] });
+  });
+
   test("account.updated (endpoint Connect) rejoué (même event.id) => idempotent, aucune double écriture/audit", async () => {
     const driverId = "webhook_driver_account_updated_002";
     const connectedAccountId = "acct_webhook_account_updated_002";

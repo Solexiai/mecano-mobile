@@ -444,13 +444,25 @@ async function dispatchStripeEvent(
             relatedDriverId = driverId;
             const chargesEnabled = account.charges_enabled === true;
             const payoutsEnabled = account.payouts_enabled === true;
+            // 2026-11-06: also keep what lets the app say "under review"
+            // instead of "incomplete" once the driver finished the form.
+            const detailsSubmitted = account.details_submitted === true;
+            const currentlyDue = account.requirements?.currently_due?.length ?? 0;
+            const disabledReason = account.requirements?.disabled_reason ?? null;
             if (
               driver.stripe_charges_enabled !== chargesEnabled ||
-              driver.stripe_payouts_enabled !== payoutsEnabled
+              driver.stripe_payouts_enabled !== payoutsEnabled ||
+              (driver.stripe_details_submitted ?? false) !== detailsSubmitted ||
+              (driver.stripe_requirements_currently_due ?? 0) !== currentlyDue ||
+              (driver.stripe_requirements_disabled_reason ?? null) !== disabledReason
             ) {
               await driverRef.update({
                 stripe_charges_enabled: chargesEnabled,
                 stripe_payouts_enabled: payoutsEnabled,
+                stripe_details_submitted: detailsSubmitted,
+                stripe_requirements_currently_due: currentlyDue,
+                stripe_requirements_disabled_reason: disabledReason,
+                stripe_account_synced_at: admin.firestore.FieldValue.serverTimestamp(),
                 updated_at: admin.firestore.FieldValue.serverTimestamp(),
               });
               await writeAuditLog({
@@ -463,6 +475,9 @@ async function dispatchStripeEvent(
                   connectedAccountId: account.id,
                   chargesEnabled,
                   payoutsEnabled,
+                  detailsSubmitted,
+                  currentlyDue,
+                  disabledReason,
                   previousChargesEnabled: driver.stripe_charges_enabled ?? false,
                   previousPayoutsEnabled: driver.stripe_payouts_enabled ?? false,
                 },

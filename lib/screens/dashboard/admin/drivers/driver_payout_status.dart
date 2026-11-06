@@ -18,6 +18,7 @@ export '../../../../backend/models/driver_payout_readiness.dart';
 
 String driverPayoutReadinessKey(DriverPayoutReadiness r) => switch (r) {
   DriverPayoutReadiness.ready => 'admin_driver_payout_ready',
+  DriverPayoutReadiness.underReview => 'admin_driver_payout_under_review',
   DriverPayoutReadiness.incomplete => 'admin_driver_payout_incomplete',
   DriverPayoutReadiness.testAccount => 'admin_driver_payout_test_account',
   DriverPayoutReadiness.notStarted => 'admin_driver_payout_not_started',
@@ -25,6 +26,7 @@ String driverPayoutReadinessKey(DriverPayoutReadiness r) => switch (r) {
 
 Color driverPayoutReadinessColor(DriverPayoutReadiness r) => switch (r) {
   DriverPayoutReadiness.ready => AppColors.success,
+  DriverPayoutReadiness.underReview => AppColors.primary,
   DriverPayoutReadiness.incomplete => AppColors.warning,
   DriverPayoutReadiness.testAccount => AppColors.warning,
   DriverPayoutReadiness.notStarted => AppColors.textSecondary,

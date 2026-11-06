@@ -50,6 +50,7 @@ DriverProfileV2 _profile({
   // 2026-11-06 : par défaut un compte réel ; les cas « compte de test »
   // passent explicitement 'test' ou null.
   String? stripeConnectedAccountEnvironment = 'live',
+  bool stripeDetailsSubmitted = false,
 }) {
   return DriverProfileV2(
     uid: _driverId,
@@ -65,6 +66,7 @@ DriverProfileV2 _profile({
     stripeChargesEnabled: stripeChargesEnabled,
     stripePayoutsEnabled: stripePayoutsEnabled,
     stripeConnectedAccountEnvironment: stripeConnectedAccountEnvironment,
+    stripeDetailsSubmitted: stripeDetailsSubmitted,
   );
 }
 
@@ -301,6 +303,26 @@ void main() {
           find.widgetWithText(ElevatedButton, _t('provider_stripe_connect_redo')),
           findsOneWidget,
         );
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'en examen : formulaire terminé, Stripe vérifie → aucun bouton Continuer, texte « rien à faire »',
+      (tester) async {
+        final profile = _profile(
+          stripeConnectedAccountId: 'acct_live_review',
+          stripeDetailsSubmitted: true,
+        );
+        await tester.pumpWidget(
+          _wrap(ProviderStripeConnectSection(profile: profile, t: _t)),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text(_t('provider_stripe_connect_status_review')), findsOneWidget);
+        expect(find.text(_t('provider_stripe_connect_description_review')), findsOneWidget);
+        expect(find.text(_t('provider_stripe_connect_status_pending')), findsNothing);
+        expect(find.byType(ElevatedButton), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );

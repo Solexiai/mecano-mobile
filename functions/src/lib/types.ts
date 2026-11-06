@@ -497,6 +497,17 @@ export interface DriverProfileDoc {
   stripe_onboarding_url?: string | null;
   stripe_charges_enabled?: boolean;
   stripe_payouts_enabled?: boolean;
+  /**
+   * 2026-11-06 — synced from `account.updated` so the app can tell
+   * "finished the Stripe form, under review" from "stopped halfway":
+   * `details_submitted`, the number of requirements Stripe still asks the
+   * driver for (`requirements.currently_due`), and the reason the account
+   * is disabled, if any (`requirements.disabled_reason`).
+   */
+  stripe_details_submitted?: boolean;
+  stripe_requirements_currently_due?: number;
+  stripe_requirements_disabled_reason?: string | null;
+  stripe_account_synced_at?: admin_Timestamp | null;
   /** Environment the account was created in (2026-10-30). Absent = test. */
   stripe_connected_account_environment?: StripeEnvironment | null;
   /** Accounts of a previous environment, kept for the books (never reused). */
