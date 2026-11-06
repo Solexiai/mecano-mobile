@@ -115,7 +115,10 @@ void main() {
     expect(find.text('Prochaine mission'), findsOneWidget);
     expect(find.text('Granby → Bromont'), findsOneWidget);
     expect(find.text('42,50 \$'), findsOneWidget);
-    expect(find.text('21,25 \$'), findsOneWidget);
+    // Écriture datée de maintenant : visible dans « Aujourd'hui » ET dans
+    // « Gagné cette semaine » (accueil style Uber, 2026-11-06).
+    expect(find.text('21,25 \$'), findsNWidgets(2));
+    expect(find.byKey(const ValueKey('home-today-earnings')), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
     expect(t.takeException(), isNull);
   });

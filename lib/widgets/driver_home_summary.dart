@@ -121,31 +121,49 @@ class _DriverHomeSummaryState extends State<DriverHomeSummary> {
                     ),
                     const SizedBox(height: 12),
                   ],
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
+                  // Trois chiffres, comme sur un tableau de bord Uber :
+                  // aujourd'hui, la semaine, les missions à venir.
+                  IntrinsicHeight(
+                    child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (totals != null)
-                        _Tile(
-                          key: const ValueKey('home-week-earnings'),
-                          label: tr(
-                            'Gagné cette semaine',
-                            'Earned this week',
-                            'Ganado esta semana',
+                      if (totals != null) ...[
+                        Expanded(
+                          child: _Tile(
+                            key: const ValueKey('home-today-earnings'),
+                            label: tr('Aujourd’hui', 'Today', 'Hoy'),
+                            value: driverMoney(totals.today, widget.locale),
                           ),
-                          value: driverMoney(totals.week, widget.locale),
                         ),
-                      if (upcoming != null)
-                        _Tile(
-                          key: const ValueKey('home-upcoming-count'),
-                          label: tr(
-                            'Missions à venir',
-                            'Upcoming jobs',
-                            'Misiones próximas',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _Tile(
+                            key: const ValueKey('home-week-earnings'),
+                            label: tr(
+                              'Gagné cette semaine',
+                              'Earned this week',
+                              'Ganado esta semana',
+                            ),
+                            value: driverMoney(totals.week, widget.locale),
                           ),
-                          value: '${upcoming.length}',
+                        ),
+                      ],
+                      if (totals != null && upcoming != null)
+                        const SizedBox(width: 10),
+                      if (upcoming != null)
+                        Expanded(
+                          child: _Tile(
+                            key: const ValueKey('home-upcoming-count'),
+                            label: tr(
+                              'Missions à venir',
+                              'Upcoming jobs',
+                              'Misiones próximas',
+                            ),
+                            value: '${upcoming.length}',
+                          ),
                         ),
                     ],
+                    ),
                   ),
                 ],
               ),
@@ -255,8 +273,7 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minWidth: 150),
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: Theme.of(context).cardTheme.color,
       borderRadius: BorderRadius.circular(14),
@@ -268,11 +285,16 @@ class _Tile extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
         ),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
         ),
       ],
     ),

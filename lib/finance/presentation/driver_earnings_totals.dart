@@ -13,8 +13,11 @@ class DriverEarningsTotals {
     required this.month,
     required this.total,
     required this.pending,
+    this.today = 0,
   });
 
+  /// Gains confirmés depuis minuit (heure locale) — accueil chauffeur.
+  final double today;
   final double week;
   final double month;
   final double total;
@@ -24,7 +27,8 @@ class DriverEarningsTotals {
     final weekStart = driverWeekStart(now);
     final local = now.toLocal();
     final monthStart = DateTime(local.year, local.month);
-    double week = 0, month = 0, total = 0, pending = 0;
+    final dayStart = DateTime(local.year, local.month, local.day);
+    double week = 0, month = 0, total = 0, pending = 0, today = 0;
     for (final e in entries) {
       final signed = e.direction == LedgerDirection.credit
           ? e.amount
@@ -38,12 +42,14 @@ class DriverEarningsTotals {
       final at = e.createdAt.toLocal();
       if (!at.isBefore(weekStart)) week += signed;
       if (!at.isBefore(monthStart)) month += signed;
+      if (!at.isBefore(dayStart)) today += signed;
     }
     return DriverEarningsTotals(
       week: week,
       month: month,
       total: total,
       pending: pending,
+      today: today,
     );
   }
 }

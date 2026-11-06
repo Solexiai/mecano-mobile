@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
-import '../../../../widgets/coming_soon_badge.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../models/enums.dart';
@@ -127,19 +126,21 @@ class ProviderProfileTab extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.local_shipping_outlined),
                     title: Text(t('provider_profile_accepted_vehicles')),
-                    trailing: Text(
-                      (profile?.acceptedVehicleCategories.isNotEmpty ?? false)
-                          ? profile!.acceptedVehicleCategories
-                                .map((c) => c.name)
-                                .join(', ')
-                          : '—',
+                    // 2026-11-06 : libellé traduit (« Camionnette ») au lieu
+                    // du nom interne (« pickupTruck »). Flexible : une liste
+                    // de plusieurs véhicules passe à la ligne sur téléphone.
+                    trailing: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: Text(
+                        (profile?.acceptedVehicleCategories.isNotEmpty ??
+                                false)
+                            ? profile!.acceptedVehicleCategories
+                                  .map((c) => t(c.key))
+                                  .join(', ')
+                            : '—',
+                        textAlign: TextAlign.end,
+                      ),
                     ),
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.attach_money),
-                    title: Text(t('provider_profile_pricing')),
-                    trailing: const ComingSoonBadge(small: true),
                   ),
                 ],
               ),
@@ -201,16 +202,16 @@ class ProviderProfileTab extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t('provider_profile_support'),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const ComingSoonBadge(small: true),
-                ],
+              // 2026-11-06 : plus de « Bientôt disponible » — le support
+              // existe (infos@movi-k.com).
+              Text(
+                t('provider_profile_support'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              SelectableText(
+                t('provider_profile_support_hint'),
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
               OutlinedButton.icon(

@@ -13,12 +13,15 @@ import 'package:provider/provider.dart';
 import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
+import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../finance/models/transaction_ledger.dart';
+import '../../../../finance/presentation/driver_display_format.dart';
 import '../../../../widgets/driver_home_summary.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import '../widgets/driver_home_hero.dart';
 
 /// Onglet "Accueil" du chauffeur : résumé (prochaine mission, gains de la
 /// semaine) puis les demandes disponibles.
@@ -35,9 +38,19 @@ class ProviderJobsTab extends StatefulWidget {
     this.photoLoader,
     this.homeMissions,
     this.homeLedger,
+    this.profile,
+    this.onToggleOnline,
+    this.togglingOnline = false,
   });
   final BookingApi? bookingApi;
   final BookingPhotoLoader? photoLoader;
+
+  /// Accueil « style Uber » (2026-11-06) : le bouton GO vit dans l'onglet.
+  /// Le shell fournit le profil courant et la MÊME bascule que le Switch de
+  /// l'AppBar ; sans `onToggleOnline` (tests), l'en-tête n'est pas affiché.
+  final DriverProfileV2? profile;
+  final ValueChanged<bool>? onToggleOnline;
+  final bool togglingOnline;
 
   /// Injection pour les tests du résumé d'accueil (missions, gains).
   final Stream<List<DeliveryMission>>? homeMissions;
@@ -406,6 +419,16 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (widget.onToggleOnline != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: DriverHomeHero(
+                profile: widget.profile,
+                t: t,
+                onToggle: widget.onToggleOnline!,
+                toggling: widget.togglingOnline,
+              ),
+            ),
           // Bannière de reprise : si ce chauffeur a déjà une mission en
           // trajet (assigned -> arrived_at_dropoff), on lui permet d'y
           // revenir directement plutôt que de la laisser invisible parmi
@@ -584,6 +607,10 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
   }
 }
 
+/// Carte d'offre « style Uber » (2026-11-06) : la part du chauffeur en gros,
+/// les trois chiffres qui comptent (trajet, conduite, véhicule), le
+/// ramassage et la livraison, puis Accepter / Refuser. La logique
+/// d'acceptation (dialogues, serveur, erreurs) est inchangée.
 class _JobCard extends StatelessWidget {
   final DeliveryMission mission;
   final String Function(String) t;
@@ -613,17 +640,35 @@ class _JobCard extends StatelessWidget {
         : fr;
     final pickup = mission.pickupAddress;
     final dropoff = mission.dropoffAddress;
+    final hasOffer = mission.driverOfferAmount > 0;
+    final category = mission.itemCategoryKey.isEmpty
+        ? t('delivery_item_category')
+        : t(mission.itemCategoryKey);
+    final requestedAtRaw = mission.bookingSnapshot?['load']?['requested_at'];
+    final requestedAt = requestedAtRaw is String
+        ? DateTime.tryParse(requestedAtRaw)?.toLocal()
+        : null;
+
     return Container(
+      key: ValueKey('driver-offer-card-${mission.id}'),
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // En-tête : « Nouvelle demande » + catégorie.
           Row(
             children: [
               Container(
@@ -638,95 +683,154 @@ class _JobCard extends StatelessWidget {
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
-                flex: 3,
                 child: Text(
-                  mission.itemCategoryKey.isEmpty
-                      ? t('delivery_item_category')
-                      : t(mission.itemCategoryKey),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  t('driver_offer_new'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              // Flexible: large text sizes on narrow phones must wrap, not overflow.
               Flexible(
-                flex: 2,
-                child: Text(
-                  mission.driverOfferAmount > 0
-                      ? '${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
-                      : tr('Voir l’offre', 'View offer', 'Ver oferta'),
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
-                    fontSize: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          // Montant : la part du chauffeur, en gros et au centre.
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  hasOffer
+                      ? '${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
+                      : tr('Voir l’offre', 'View offer', 'Ver oferta'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    fontSize: 34,
+                    height: 1.1,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  hasOffer
+                      ? t('driver_offer_your_share')
+                      : t('driver_offer_share_on_accept'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Les trois chiffres qui comptent (même hauteur).
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+              Expanded(
+                child: _StatTile(
+                  label: t('driver_offer_trip'),
+                  value: mission.distanceKm != null
+                      ? '${mission.distanceKm!.toStringAsFixed(1)} km'
+                      : '—',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StatTile(
+                  label: t('driver_offer_duration'),
+                  value: mission.estimatedDurationMinutes != null
+                      ? '~${mission.estimatedDurationMinutes!.round()} min'
+                      : '—',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _StatTile(
+                  label: t('driver_offer_vehicle'),
+                  value: t(mission.requiredVehicleCategory.key),
+                ),
+              ),
+            ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          // Ramassage → livraison.
           if (pickup != null && dropoff != null)
-            _InfoRow(
-              icon: Icons.route_outlined,
-              text:
-                  '${pickup.line1}, ${pickup.city} → ${dropoff.line1}, ${dropoff.city}',
+            _RouteTimeline(
+              pickupLabel: t('driver_offer_pickup'),
+              pickup: '${pickup.line1}, ${pickup.city}',
+              dropoffLabel: t('driver_offer_dropoff'),
+              dropoff: '${dropoff.line1}, ${dropoff.city}',
             )
           else
             _InfoRow(
               icon: Icons.place_outlined,
-              text: t('delivery_step_addresses_title'),
+              text: t('driver_offer_addresses_pending'),
             ),
-          _InfoRow(
-            icon: Icons.local_shipping,
-            text: t(mission.requiredVehicleCategory.key),
-          ),
-          if (mission.distanceKm != null)
-            _InfoRow(
-              icon: Icons.social_distance,
-              text:
-                  '${t('driver_jobs_distance')} : ${mission.distanceKm!.toStringAsFixed(1)} km',
-            ),
-          if (mission.bookingSnapshot?['load']?['requested_at'] is String)
+          const SizedBox(height: 10),
+          if (requestedAt != null)
             _InfoRow(
               icon: Icons.event,
               text:
-                  '${tr('Ramassage prévu', 'Requested pickup', 'Recogida prevista')} : ${DateTime.parse(mission.bookingSnapshot!['load']['requested_at'] as String).toLocal()}',
+                  '${tr('Ramassage prévu', 'Requested pickup', 'Recogida prevista')} : ${driverDayLabel(requestedAt, locale)} · ${driverTime(requestedAt, locale)}',
             ),
           if (mission.offerExpiresAt != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: OfferCountdown(
                 expiresAt: mission.offerExpiresAt!,
-                locale: context.read<LocaleProvider>().locale,
+                locale: locale,
               ),
             ),
           if (mission.estimatedDurationMinutes != null)
             _InfoRow(
               icon: Icons.schedule,
-              text:
-                  '${tr('Trajet seul, durée complète à confirmer', 'Driving only, full duration to confirm', 'Solo trayecto, duración completa por confirmar')} : ${mission.estimatedDurationMinutes!.round()} min',
+              text: tr(
+                'Conduite seulement : la durée complète est à confirmer.',
+                'Driving only: full duration to confirm.',
+                'Solo trayecto: duración completa por confirmar.',
+              ),
             ),
-          _InfoRow(
-            icon: Icons.attach_money,
-            text: mission.driverOfferAmount > 0
-                ? '${t('driver_jobs_offer_amount')} : ${mission.driverOfferAmount.toStringAsFixed(2)} CAD'
-                : tr(
-                    'Rémunération officielle présentée avant acceptation.',
-                    'Official compensation shown before acceptance.',
-                    'Remuneración oficial antes de aceptar.',
-                  ),
-          ),
           if (mission.bookingSnapshot != null)
             BookingLoadSummary(
               snapshot: mission.bookingSnapshot!,
               photoLoader: photoLoader,
-              locale: context.read<LocaleProvider>().locale,
+              locale: locale,
             ),
           if (mission.description.isNotEmpty)
             _InfoRow(icon: Icons.info_outline, text: mission.description),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           if (errorCode != null) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -739,18 +843,26 @@ class _JobCard extends StatelessWidget {
               // FirebaseMissionRepository.acceptMission() pour le mapping
               // errorCode == kKillSwitchErrorCode.
               child: Text(
-                driverAcceptFailureText(
-                  errorCode!,
-                  context.read<LocaleProvider>().locale,
-                  t,
-                ),
+                driverAcceptFailureText(errorCode!, locale, t),
                 style: const TextStyle(color: AppColors.error, fontSize: 12.5),
               ),
             ),
           ],
           SizedBox(
             width: double.infinity,
+            height: 52,
             child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
               onPressed: isAccepting ? null : onAccept,
               child: isAccepting && !isDeclining
                   ? Row(
@@ -771,10 +883,18 @@ class _JobCard extends StatelessWidget {
                   : Text(t('driver_jobs_accept')),
             ),
           ),
+          const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
+            height: 46,
             child: OutlinedButton(
               key: ValueKey('decline-offer-${mission.id}'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textSecondary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
               onPressed: isAccepting ? null : onDecline,
               child: Text(
                 isDeclining
@@ -788,6 +908,131 @@ class _JobCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Petite tuile chiffrée (trajet / conduite / véhicule) d'une offre.
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14.5,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ramassage (point bleu) → livraison (carré vert), reliés par un trait.
+class _RouteTimeline extends StatelessWidget {
+  const _RouteTimeline({
+    required this.pickupLabel,
+    required this.pickup,
+    required this.dropoffLabel,
+    required this.dropoff,
+  });
+  final String pickupLabel, pickup, dropoffLabel, dropoff;
+
+  @override
+  Widget build(BuildContext context) {
+    const labelStyle = TextStyle(
+      fontSize: 11,
+      color: AppColors.textSecondary,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+    );
+    const valueStyle = TextStyle(
+      fontSize: 13.5,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textPrimary,
+    );
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Column(
+            children: [
+              const SizedBox(height: 4),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFD8E3F5), width: 2),
+                ),
+              ),
+              Expanded(
+                child: Container(width: 2, color: AppColors.border),
+              ),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.success,
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: const Color(0xFFD5F2E4), width: 2),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(pickupLabel.toUpperCase(), style: labelStyle),
+                Text(pickup, style: valueStyle),
+                const SizedBox(height: 10),
+                Text(dropoffLabel.toUpperCase(), style: labelStyle),
+                Text(dropoff, style: valueStyle),
+              ],
+            ),
+          ),
+        ],
+        ),
       ),
     );
   }
