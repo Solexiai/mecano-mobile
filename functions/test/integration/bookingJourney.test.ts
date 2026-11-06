@@ -25,6 +25,8 @@ const stops=[{type:'pickup',address:{line1:'Test pickup',city:'Test city',postal
 const contacts={pickup_name:'Test pickup',pickup_phone:'+15145550100',dropoff_name:'Test recipient',dropoff_phone:'+15145550101',instructions:''};
 const input={quoteId:id,booking:load,contacts,consent:testBookingConsent('TEST-ONLY'),requiredVehicleCategory:'cargo_van',stops,itemCategoryKey:'forged',description:'forged',customerDisplayName:'Test'};
 beforeEach(async()=>{
+ // Dépôt de réservation (2026-11-06) : la confirmation débite 25 $ via le fournisseur de paiement.
+ setPaymentProviderForTesting(new FakePaymentProvider());
  process.env.APP_PUBLIC_BASE_URL='https://booking-test.example.invalid';
  await seedDefaultRuntimeFlagsEnabled();
  await db.doc('system_config/booking_policy').set(testBookingPolicy('TEST-ONLY'));

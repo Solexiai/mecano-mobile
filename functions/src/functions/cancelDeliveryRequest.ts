@@ -30,6 +30,7 @@ import {
   MissionFeeAmounts,
 } from "../lib/missionFees";
 import { MissionStatuses, PaymentStatuses } from "../lib/types";
+import { customerCancellationKeepsDeposit, keepDepositInTransaction } from "../lib/bookingDeposit";
 
 export interface CancelDeliveryRequestInput {
   missionId: string;
@@ -69,7 +70,15 @@ export const cancelDeliveryRequest = onCall(async (request) => {
     let amounts: MissionFeeAmounts = missionFeeAmounts(0);
     let policy: MissionFeePolicy = DEFAULT_MISSION_FEE_POLICY;
     let paymentId: string | null = null;
-    if (isLateCancellation(mission, now.toMillis()) && typeof mission.active_payment_id === "string") {
+    // Dépôt de réservation (2026-11-06) : il remplace les frais d'annulation
+    // tardive pris sur le blocage. Gardé si un chauffeur avait accepté et que
+    // le ramassage est à moins de 48 h ; remboursé sinon (par
+    // onMissionEndedClearTracking, après le passage à « annulée »).
+    const deposit = mission.deposit;
+    const hasDeposit = !!deposit && deposit.status === "captured";
+    const depositKept = hasDeposit && customerCancellationKeepsDeposit(mission, now.toMillis());
+    const depositMinor = hasDeposit ? (deposit.amount_minor as number) : 0;
+    if (!hasDeposit && isLateCancellation(mission, now.toMillis()) && typeof mission.active_payment_id === "string") {
       const paySnap = await tx.get(db.collection("payments").doc(mission.active_payment_id));
       const payment = paySnap.data();
       // Only an active card hold can carry a fee; otherwise nothing can be collected.
@@ -84,13 +93,15 @@ export const cancelDeliveryRequest = onCall(async (request) => {
 
     if (input.dryRun) {
       return { missionId: input.missionId, feeMinor, feeKind: feeMinor > 0 ? "late_cancellation" : null,
-        policyVersion: policy.version, cancelled: false };
+        policyVersion: policy.version, cancelled: false,
+        depositMinor, depositKept, depositRefundMinor: hasDeposit && !depositKept ? depositMinor : 0 };
     }
     if (feeMinor > 0 && input.acceptedFeeMinor !== feeMinor) {
       throw new HttpsError("failed-precondition", "Les frais d'annulation doivent être confirmés.",
         { reason: "fee_confirmation_required", fee_minor: feeMinor });
     }
 
+    if (depositKept) keepDepositInTransaction(tx, missionRef, now, "customer_late_cancellation");
     tx.update(missionRef, {
       status: MissionStatuses.CANCELLED,
       cancelled_at: now,
@@ -115,9 +126,11 @@ export const cancelDeliveryRequest = onCall(async (request) => {
       action: feeMinor > 0 ? "mission_cancelled_with_fee" : "mission_cancelled",
       sourceFunction: "cancelDeliveryRequest",
       targetId: input.missionId,
-      metadata: { previousStatus: mission.status, feeMinor, policyVersion: policy.version },
+      metadata: { previousStatus: mission.status, feeMinor, policyVersion: policy.version,
+        depositMinor, depositKept },
     });
     return { missionId: input.missionId, feeMinor, feeKind: feeMinor > 0 ? "late_cancellation" : null,
-      policyVersion: policy.version, cancelled: true };
+      policyVersion: policy.version, cancelled: true,
+      depositMinor, depositKept, depositRefundMinor: hasDeposit && !depositKept ? depositMinor : 0 };
   });
 });

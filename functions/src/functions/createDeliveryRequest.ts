@@ -24,6 +24,12 @@ import { getServiceZonesConfig, isWithinServiceZones } from "../lib/serviceZones
 import { resolveLockedQuote } from "../lib/quoteIntegrity";
 import { toMajorUnits } from "../lib/money";
 import { normalizeVehicleCategory } from "../lib/vehicleCategory";
+import { BOOKING_DEPOSIT_POLICY, buildMissionDeposit, collectBookingDeposit, writeDepositLedgerEntry } from "../lib/bookingDeposit";
+import { assertStripeReferenceEnvironmentConsistency } from "../lib/stripeEnvironment";
+import { refundPayment } from "../payment/paymentOrchestration";
+import { RefundReasons } from "../lib/types";
+import { getPaymentProvider } from "../payment/paymentProviderFactory";
+import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 
 export interface StopInput {
   type: "pickup" | "dropoff";
@@ -92,7 +98,11 @@ async function assertOpenMissionsBelowCap(customerId: string): Promise<void> {
   }
 }
 
-export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async (request) => {
+// Dépôt de réservation (2026-11-06) : la fonction débite Stripe, donc elle
+// déclare les secrets comme les autres fonctions de paiement.
+export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
+  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (request) => {
   const ctx = requireSignedIn(request);
   // Seuls les super_admin et les comptes porteurs du claim
   // `internal_tester` (SEC-02, posé par setUserRole) créent une mission
@@ -215,6 +225,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
   // UI, typiquement à l'écran de devis). Ceci NE déclenche PAS encore
   // l'autorisation réelle — celle-ci n'a lieu qu'à acceptDelivery(), une
   // fois le chauffeur connu et le montant final recalculé serveur.
+  let paymentProfile: FirebaseFirestore.DocumentData | null = null;
   if (!isInternalTest) {
     const paymentProfileSnap = await db.collection("payment_profiles").doc(ctx.uid).get();
     if (!paymentProfileSnap.exists || !paymentProfileSnap.data()?.default_payment_method_id) {
@@ -222,14 +233,60 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
         "Aucun moyen de paiement enregistré. Veuillez ajouter une carte avant de créer une demande de livraison."
       );
     }
+    paymentProfile = paymentProfileSnap.data()!;
   }
 
   const quoteRef = db.collection("delivery_quotes").doc(input.quoteId);
 
+  // ---- Dépôt de réservation (décision Daniel 2026-11-06) ------------------
+  // 25 $ débités AVANT la création de la mission : une mission n'existe que
+  // si le dépôt est passé. Les vérifications peu coûteuses du devis sont
+  // faites ici d'abord pour ne pas débiter un client dont la demande serait
+  // refusée juste après ; si la transaction échoue malgré tout, le dépôt
+  // est remboursé aussitôt.
+  let depositPaymentId: string | null = null;
+  if (!isInternalTest) {
+    const quoteBefore = (await quoteRef.get()).data();
+    if (!quoteBefore) throw notFound(`delivery_quotes/${input.quoteId} introuvable.`);
+    if (quoteBefore.customer_id !== ctx.uid) throw permissionDenied("Ce devis n'appartient pas à l'utilisateur courant.");
+    if (quoteBefore.is_consumed && !quoteBefore.mission_id) {
+      throw failedPrecondition("Ce devis a déjà été consommé par une autre mission.");
+    }
+    if (quoteBefore.status === "cancelled" || quoteBefore.cancelled_at) throw failedPrecondition("Ce devis a été annulé.");
+    if (!quoteBefore.mission_id && typeof quoteBefore.expires_at?.toMillis === "function" &&
+        quoteBefore.expires_at.toMillis() < Date.now()) {
+      throw failedPrecondition("Ce devis a expiré. Merci de recalculer un nouveau devis.");
+    }
+    // Une réservation commerciale (devis « réservation » ou « prix d'abord ») ;
+    // les anciens devis sans description complète restent sans dépôt.
+    const commercialBooking = !!(quoteBefore.pricing_snapshot?.booking || quoteBefore.pricing_snapshot?.pre_assignment);
+    if (commercialBooking) {
+      if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel avant de confirmer.');
+      const provider = getPaymentProvider();
+      assertStripeReferenceEnvironmentConsistency({
+        activeEnvironment: provider.environment,
+        storedEnvironment: paymentProfile!.stripe_environment ?? null,
+      });
+    }
+    const deposit = !commercialBooking ? null : await collectBookingDeposit({
+      customerId: ctx.uid,
+      quoteId: input.quoteId,
+      providerCustomerId: paymentProfile!.provider_customer_id as string,
+      providerPaymentMethodId: paymentProfile!.default_payment_method_id as string,
+    });
+    if (deposit && !deposit.success) {
+      throw failedPrecondition(
+        `Le dépôt de 25 $ a été refusé par votre banque${deposit.failureMessage ? ` (${deposit.failureMessage})` : ""}. ` +
+          "Vérifiez votre carte ou utilisez-en une autre, puis réessayez."
+      );
+    }
+    depositPaymentId = deposit?.paymentId ?? null;
+  }
+
   const missionRef = db.collection("delivery_requests").doc();
   let resolvedMissionId = missionRef.id;
 
-  await db.runTransaction(async (tx) => {
+  const runMissionTransaction = () => db.runTransaction(async (tx) => {
     const quoteSnap = await tx.get(quoteRef);
     if (!quoteSnap.exists) {
       throw notFound(`delivery_quotes/${input.quoteId} introuvable.`);
@@ -412,6 +469,8 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       quote_schema_version: lockedQuote.pricingSnapshot?.schema_version ?? 0,
       tax_snapshot: lockedQuote.pricingSnapshot?.tax_snapshot ?? quote.tax_snapshot ?? null,
       payment_status: "pending",
+      // Dépôt de réservation (2026-11-06) : null pour les missions de test interne.
+      deposit: depositPaymentId ? buildMissionDeposit(depositPaymentId, now) : null,
       assignment_mode: isInternalTest
         ? MissionAssignmentModes.INTERNAL_TEST
         : MissionAssignmentModes.STANDARD,
@@ -492,15 +551,39 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(async 
       status: "consumed",
       consumed_at: now,
     });
+    if (depositPaymentId) {
+      tx.update(db.collection("payments").doc(depositPaymentId), { mission_id: missionRef.id, updated_at: now });
+      writeDepositLedgerEntry(tx, missionRef.id, depositPaymentId, now);
+    }
 
     const eventRef = missionRef.collection("tracking_events").doc();
     tx.set(eventRef, {
       event_type: "mission_created",
       actor_uid: ctx.uid,
       occurred_at: now,
-      metadata: { internal_test: isInternalTest },
+      metadata: { internal_test: isInternalTest, deposit_payment_id: depositPaymentId },
     });
   });
 
-  return { missionId: resolvedMissionId, internalTest: isInternalTest };
-});
+  try {
+    await runMissionTransaction();
+  } catch (error) {
+    // La mission n'a pas pu être créée après le débit du dépôt : on le
+    // rembourse tout de suite (idempotent par dépôt), puis on remonte l'erreur.
+    if (depositPaymentId) {
+      await refundPayment({
+        paymentId: depositPaymentId,
+        amountMinor: BOOKING_DEPOSIT_POLICY.amount_minor,
+        reason: RefundReasons.PAYMENT_ERROR,
+        initiatedByUserId: "system",
+        initiatedByRole: "system",
+        isAdminInitiated: false,
+        requestKey: `deposit_refund_orphan_${depositPaymentId}`,
+      }).catch(() => undefined);
+    }
+    throw error;
+  }
+
+  return { missionId: resolvedMissionId, internalTest: isInternalTest, depositPaymentId };
+  }
+);
