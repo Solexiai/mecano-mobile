@@ -118,9 +118,6 @@ class _DriverStripeOnboardingReturnScreenState
         final profile = snap.data;
         // 2026-11-06 : même règle que le serveur (compte réel + identité +
         // banque) ; un compte de test n'est jamais « actif ».
-        final live = profile?.stripeConnectedAccountEnvironment == 'live';
-        final chargesEnabled = live && (profile?.stripeChargesEnabled ?? false);
-        final payoutsEnabled = live && (profile?.stripePayoutsEnabled ?? false);
         final isActive =
             driverPayoutReadiness(profile) == DriverPayoutReadiness.ready;
 
