@@ -205,7 +205,21 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     // de façon accessible même sans le texte.
     final isNarrowPhone = screenWidth < 480;
     final tabs = <Widget>[
-      if (_visitedTabs[0]) const ProviderJobsTab() else const SizedBox.shrink(),
+      // Accueil « style Uber » (2026-11-06) : le bouton GO de l'onglet
+      // appelle la même bascule que le Switch de l'AppBar.
+      if (_visitedTabs[0])
+        StreamBuilder<DriverProfileV2?>(
+          stream: _ensureDriverProfileStream(driverId),
+          initialData: _lastProfile,
+          builder: (context, snap) => ProviderJobsTab(
+            profile: snap.data,
+            togglingOnline: _togglingAvailability,
+            onToggleOnline: (goOnline) =>
+                _toggleAvailability(driverId, goOnline, t),
+          ),
+        )
+      else
+        const SizedBox.shrink(),
       if (_visitedTabs[1])
         const ProviderCalendarTab()
       else

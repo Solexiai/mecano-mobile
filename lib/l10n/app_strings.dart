@@ -988,6 +988,95 @@ class AppStrings {
       'en': 'Estimated distance',
       'es': 'Distancia estimada',
     },
+    // Accueil chauffeur « style Uber » (2026-11-06) : bouton GO, état de
+    // service et cartes d'offre avec la part du chauffeur en évidence.
+    'driver_home_go': {'fr': 'GO', 'en': 'GO', 'es': 'GO'},
+    'driver_home_offline_title': {
+      'fr': 'Vous êtes hors service',
+      'en': 'You are off duty',
+      'es': 'Está fuera de servicio',
+    },
+    'driver_home_offline_subtitle': {
+      'fr': 'Appuyez sur GO pour recevoir des demandes de livraison.',
+      'en': 'Tap GO to receive delivery requests.',
+      'es': 'Pulse GO para recibir solicitudes de entrega.',
+    },
+    'driver_home_online_title': {
+      'fr': 'Vous êtes en service',
+      'en': 'You are on duty',
+      'es': 'Está en servicio',
+    },
+    'driver_home_online_subtitle': {
+      'fr': 'Les demandes de votre zone apparaissent ci-dessous et vous recevez une notification.',
+      'en': 'Requests in your area appear below and you get a notification.',
+      'es': 'Las solicitudes de su zona aparecen abajo y recibe una notificación.',
+    },
+    'driver_home_on_mission_title': {
+      'fr': 'Mission en cours',
+      'en': 'Mission in progress',
+      'es': 'Misión en curso',
+    },
+    'driver_home_on_mission_subtitle': {
+      'fr': 'Terminez votre livraison pour recevoir de nouvelles demandes.',
+      'en': 'Finish your delivery to receive new requests.',
+      'es': 'Termine su entrega para recibir nuevas solicitudes.',
+    },
+    'driver_home_not_approved_subtitle': {
+      'fr': 'Votre dossier doit être approuvé avant de passer en service.',
+      'en': 'Your file must be approved before you can go on duty.',
+      'es': 'Su expediente debe ser aprobado antes de ponerse en servicio.',
+    },
+    'driver_home_go_offline': {
+      'fr': 'Passer hors service',
+      'en': 'Go off duty',
+      'es': 'Salir de servicio',
+    },
+    'driver_home_today_earnings': {
+      'fr': 'Aujourd’hui',
+      'en': 'Today',
+      'es': 'Hoy',
+    },
+    'driver_offer_new': {
+      'fr': 'Nouvelle demande',
+      'en': 'New request',
+      'es': 'Nueva solicitud',
+    },
+    'driver_offer_your_share': {
+      'fr': 'Votre part, versée par Stripe',
+      'en': 'Your share, paid out by Stripe',
+      'es': 'Su parte, pagada por Stripe',
+    },
+    'driver_offer_share_on_accept': {
+      'fr': 'Votre part exacte s’affiche avant de confirmer',
+      'en': 'Your exact share is shown before you confirm',
+      'es': 'Su parte exacta se muestra antes de confirmar',
+    },
+    'driver_offer_trip': {'fr': 'Trajet', 'en': 'Trip', 'es': 'Trayecto'},
+    'driver_offer_duration': {
+      'fr': 'Conduite',
+      'en': 'Driving',
+      'es': 'Conducción',
+    },
+    'driver_offer_vehicle': {
+      'fr': 'Véhicule',
+      'en': 'Vehicle',
+      'es': 'Vehículo',
+    },
+    'driver_offer_pickup': {
+      'fr': 'Ramassage',
+      'en': 'Pickup',
+      'es': 'Recogida',
+    },
+    'driver_offer_dropoff': {
+      'fr': 'Livraison',
+      'en': 'Drop-off',
+      'es': 'Entrega',
+    },
+    'driver_offer_addresses_pending': {
+      'fr': 'Adresses communiquées après acceptation',
+      'en': 'Addresses shared after acceptance',
+      'es': 'Direcciones comunicadas tras aceptar',
+    },
     'driver_active_mission_title': {
       'fr': 'Mission active',
       'en': 'Active mission',
@@ -2709,6 +2798,11 @@ class AppStrings {
       'fr': 'Support technique',
       'en': 'Technical support',
       'es': 'Soporte técnico',
+    },
+    'provider_profile_support_hint': {
+      'fr': 'Une question ? Écrivez-nous à infos@movi-k.com',
+      'en': 'A question? Write to us at infos@movi-k.com',
+      'es': '¿Una pregunta? Escríbanos a infos@movi-k.com',
     },
 
     // ---------- Messagerie client (CustomerMessagesTab, Bloc K) ----------
