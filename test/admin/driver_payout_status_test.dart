@@ -14,6 +14,9 @@ DriverProfileV2 profile({
   bool payouts = false,
   DriverStatus status = DriverStatus.approved,
   bool documents = true,
+  bool detailsSubmitted = false,
+  int currentlyDue = 0,
+  String? disabledReason,
 }) => DriverProfileV2(
   uid: 'd',
   fullName: 'Test',
@@ -28,6 +31,9 @@ DriverProfileV2 profile({
   stripeConnectedAccountEnvironment: environment,
   stripeChargesEnabled: charges,
   stripePayoutsEnabled: payouts,
+  stripeDetailsSubmitted: detailsSubmitted,
+  stripeRequirementsCurrentlyDue: currentlyDue,
+  stripeRequirementsDisabledReason: disabledReason,
 );
 
 void main() {
@@ -62,6 +68,36 @@ void main() {
       driverPayoutReadiness(
         profile(account: 'acct_1', environment: 'live', charges: true, payouts: true),
       ),
+      DriverPayoutReadiness.ready,
+    );
+  });
+
+  test('formulaire terminé, rien demandé → en examen ; une pièce demandée → incomplet', () {
+    expect(
+      driverPayoutReadiness(profile(account: 'acct_1', environment: 'live', detailsSubmitted: true)),
+      DriverPayoutReadiness.underReview,
+    );
+    expect(
+      driverPayoutReadiness(
+        profile(account: 'acct_1', environment: 'live', detailsSubmitted: true, currentlyDue: 1),
+      ),
+      DriverPayoutReadiness.incomplete,
+    );
+    expect(
+      driverPayoutReadiness(
+        profile(account: 'acct_1', environment: 'live', detailsSubmitted: true,
+            disabledReason: 'requirements.past_due'),
+      ),
+      DriverPayoutReadiness.incomplete,
+    );
+    // Un compte de test « soumis » reste un compte de test.
+    expect(
+      driverPayoutReadiness(profile(account: 'acct_1', detailsSubmitted: true)),
+      DriverPayoutReadiness.testAccount,
+    );
+    // Validé par Stripe : prêt, même si details_submitted n'est pas encore synchronisé.
+    expect(
+      driverPayoutReadiness(profile(account: 'acct_1', environment: 'live', charges: true, payouts: true)),
       DriverPayoutReadiness.ready,
     );
   });

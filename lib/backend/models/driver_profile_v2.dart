@@ -66,6 +66,13 @@ class DriverProfileV2 {
   /// convention que `stripeAccounts.ts` côté serveur).
   final String? stripeConnectedAccountEnvironment;
 
+  /// 2026-11-06 : synchronisés par le webhook `account.updated`. Permettent
+  /// de distinguer « formulaire Stripe terminé, en examen » (details
+  /// soumis, rien de demandé) de « inscription arrêtée à moitié ».
+  final bool stripeDetailsSubmitted;
+  final int stripeRequirementsCurrentlyDue;
+  final String? stripeRequirementsDisabledReason;
+
   const DriverProfileV2({
     required this.uid,
     required this.fullName,
@@ -107,6 +114,9 @@ class DriverProfileV2 {
     this.stripeChargesEnabled = false,
     this.stripePayoutsEnabled = false,
     this.stripeConnectedAccountEnvironment,
+    this.stripeDetailsSubmitted = false,
+    this.stripeRequirementsCurrentlyDue = 0,
+    this.stripeRequirementsDisabledReason,
   });
 
   bool get canGoOnline => status.canGoOnline;
@@ -166,6 +176,9 @@ class DriverProfileV2 {
     'stripe_charges_enabled': stripeChargesEnabled,
     'stripe_payouts_enabled': stripePayoutsEnabled,
     'stripe_connected_account_environment': stripeConnectedAccountEnvironment,
+    'stripe_details_submitted': stripeDetailsSubmitted,
+    'stripe_requirements_currently_due': stripeRequirementsCurrentlyDue,
+    'stripe_requirements_disabled_reason': stripeRequirementsDisabledReason,
   };
 
   static int _validatedTeamSize(int size) {
@@ -251,6 +264,11 @@ class DriverProfileV2 {
       stripePayoutsEnabled: json['stripe_payouts_enabled'] as bool? ?? false,
       stripeConnectedAccountEnvironment:
           json['stripe_connected_account_environment'] as String?,
+      stripeDetailsSubmitted: json['stripe_details_submitted'] as bool? ?? false,
+      stripeRequirementsCurrentlyDue:
+          (json['stripe_requirements_currently_due'] as num?)?.toInt() ?? 0,
+      stripeRequirementsDisabledReason:
+          json['stripe_requirements_disabled_reason'] as String?,
     );
   }
 }

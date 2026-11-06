@@ -774,6 +774,8 @@ class _PayoutSection extends StatelessWidget {
           Text(
             switch (r) {
               DriverPayoutReadiness.ready => t('admin_driver_payout_verdict_ready'),
+              DriverPayoutReadiness.underReview =>
+                t('admin_driver_payout_verdict_under_review'),
               DriverPayoutReadiness.incomplete =>
                 t('admin_driver_payout_verdict_incomplete'),
               DriverPayoutReadiness.testAccount =>
