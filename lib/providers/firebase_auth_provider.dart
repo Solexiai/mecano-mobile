@@ -101,6 +101,16 @@ class FirebaseAuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
 
+  /// 2026-11-06 : true dès que Firebase Auth a émis son premier état
+  /// (connecté ou non) après le chargement de la page. Avant ça, `isSignedIn`
+  /// vaut false même pour un chauffeur connecté : un écran ouvert à froid
+  /// (retour de Stripe, lien reçu par courriel) ne doit pas rediriger vers
+  /// la connexion tant que ce n'est pas résolu. Sans backend ou en test
+  /// forcé, considéré résolu d'emblée.
+  bool get authResolved =>
+      _authResolved || !_backendConfigured || debugForceSignedIn;
+  bool _authResolved = false;
+
   /// true une fois que les custom claims ont été chargés au moins une fois
   /// pour l'utilisateur courant (évite un flash "accès refusé" pendant le
   /// court instant où les claims sont encore en cours de lecture après
@@ -127,6 +137,7 @@ class FirebaseAuthProvider extends ChangeNotifier {
   bool get isAnalystOrAbove => hasRole(PlatformRole.analyst) || isAdminOrAbove;
 
   Future<void> _onAuthChanged(fb.User? user) async {
+    _authResolved = true;
     _user = user;
     _claimsLoaded = false;
     if (user == null) {
