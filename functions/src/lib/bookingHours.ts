@@ -8,13 +8,15 @@
 import { db } from "./admin";
 
 /**
- * PAY-08 (2026-10-27) — borne dure sur la fenêtre de réservation. La carte
- * est autorisée à l'acceptation et débitée à la livraison ; une autorisation
- * Stripe expire après ~7 jours (Visa ~5). Au-delà de 5 jours, la capture
- * échouerait systématiquement. Décision de Daniel : 4 jours par défaut, 5 au
- * maximum, sans tâche de ré-autorisation.
+ * PAY-08 (2026-10-27) — borne dure sur la fenêtre de réservation. Une
+ * autorisation Stripe expire après ~7 jours (Visa ~5) ; jusqu'au 6 nov. 2026
+ * la limite était donc 5 jours. Décision de Daniel (2026-11-06) : réservation
+ * jusqu'à 30 jours, avec un dépôt de 25 $ encaissé à la réservation
+ * (lib/bookingDeposit.ts) et le blocage du solde posé 4 jours avant le
+ * ramassage par une tâche planifiée (lib/scheduledPaymentHold.ts). Le
+ * défaut reste 4 jours tant que l'admin ne change pas « Jours à l'avance ».
  */
-export const MAX_BOOKING_DAYS_AHEAD = 5;
+export const MAX_BOOKING_DAYS_AHEAD = 30;
 
 export interface BookingHours {
   /** Hours offered, local Québec time (6 to 21). */

@@ -28,6 +28,7 @@ import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
+import { buildScheduledHold, holdPickupAtMs, PAYMENT_STATUS_HOLD_SCHEDULED, shouldScheduleHold } from "../lib/scheduledPaymentHold";
 import { readDriverOfferCompensation } from "../lib/driverOfferCompensation";
 import {
   DriverProfileDoc,
@@ -404,8 +405,20 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
 
     tx.update(missionRef, { active_financial_snapshot_id: snapshotRef.id });
 
+    // Réservation lointaine (2026-11-06) : le blocage du solde est posé à
+    // J-4 par la tâche planifiée (lib/scheduledPaymentHold.ts) ; une
+    // autorisation posée maintenant expirerait avant la livraison.
+    const pickupAtMs = holdPickupAtMs(mission, reservedSlot?.pickup_at ?? null);
+    const holdScheduled = shouldScheduleHold(pickupAtMs, now.toMillis());
+    if (holdScheduled) {
+      tx.update(missionRef, {
+        payment_status: PAYMENT_STATUS_HOLD_SCHEDULED,
+        scheduled_hold: buildScheduledHold(pickupAtMs!, now),
+      });
+    }
+
     const eventRef = missionRef.collection("tracking_events").doc();
-    tx.set(eventRef, { event_type: "driver_assigned", actor_uid: driverId, occurred_at: now, metadata: { driverId } });
+    tx.set(eventRef, { event_type: "driver_assigned", actor_uid: driverId, occurred_at: now, metadata: { driverId, hold_scheduled: holdScheduled } });
 
     writeAuditLogInTransaction(tx, {
       actorUserId: driverId,
@@ -426,6 +439,7 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
       applicationFee: compensation.platformCommissionAmount + pricingResult.customerServiceFee,
       quoteId: mission.active_quote_id as string,
       internalTest: false,
+      holdScheduled,
     };
   });
 
@@ -441,10 +455,22 @@ export const acceptDelivery = onCall<AcceptDeliveryRequest>(
   }
 
   if('replayed' in result && result.replayed){
-    const success=[PaymentStatuses.AUTHORIZED,PaymentStatuses.CAPTURED].includes(result.paymentStatus);
+    const success=[PaymentStatuses.AUTHORIZED,PaymentStatuses.CAPTURED,PAYMENT_STATUS_HOLD_SCHEDULED].includes(result.paymentStatus);
     return {success,pending:!success,errorCode:success?null:'acceptance_pending',missionId:result.missionId,
       driverOfferAmount:result.driverOfferAmount,snapshotId:result.snapshotId,paymentId:result.paymentId??null};
   }
+  if ('holdScheduled' in result && result.holdScheduled) {
+    // Le blocage sera posé à J-4 ; l'acceptation est acquise.
+    return {
+      success: true,
+      missionId: result.missionId,
+      driverOfferAmount: result.driverOfferAmount,
+      snapshotId: result.snapshotId,
+      paymentId: null,
+      holdScheduled: true,
+    };
+  }
+
   // ---- PHASE 6, point 1/5 : sécurisation RÉELLE du paiement -----------------
   // Exécuté APRÈS le commit de la transaction ci-dessus (jamais À L'INTÉRIEUR
   // — voir paymentOrchestration.ts pour la justification : un appel Stripe

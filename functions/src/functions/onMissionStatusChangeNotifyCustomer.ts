@@ -120,6 +120,19 @@ const NO_DRIVER_AVAILABLE_SPEC: NotificationSpec = {
   bodyKey: "notif_no_driver_available_body",
 };
 
+// Réservation lointaine (2026-11-06, lib/scheduledPaymentHold.ts) : blocage
+// du solde refusé à J-4 (rappel à chaque refus), puis annulation la veille.
+const PAYMENT_HOLD_FAILED_SPEC: NotificationSpec = {
+  type: "payment_hold_failed",
+  titleKey: "notif_payment_hold_failed_title",
+  bodyKey: "notif_payment_hold_failed_body",
+};
+const CANCELLED_PAYMENT_HOLD_FAILED_SPEC: NotificationSpec = {
+  type: "cancelled_payment_hold_failed",
+  titleKey: "notif_cancelled_payment_hold_failed_title",
+  bodyKey: "notif_cancelled_payment_hold_failed_body",
+};
+
 export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
   "delivery_requests/{missionId}",
   async (event) => {
@@ -130,8 +143,18 @@ export const onMissionStatusChangeNotifyCustomer = onDocumentUpdated(
     const missionId = event.params.missionId;
 
     let spec: NotificationSpec | undefined;
+    const holdOf = (doc?: DeliveryMissionDoc) => (doc as unknown as { scheduled_hold?: { status?: string; attempts?: number } } | undefined)?.scheduled_hold;
     if (!before || before.status !== after.status) {
       spec = NOTIFICATION_BY_STATUS[after.status];
+      if (after.status === MissionStatuses.CANCELLED &&
+          (after as unknown as { cancellation_reason?: string }).cancellation_reason === "payment_hold_failed") {
+        spec = CANCELLED_PAYMENT_HOLD_FAILED_SPEC;
+      }
+    } else if (
+      holdOf(after)?.status === "failed" &&
+      (holdOf(before)?.status !== "failed" || (holdOf(before)?.attempts ?? 0) !== (holdOf(after)?.attempts ?? 0))
+    ) {
+      spec = PAYMENT_HOLD_FAILED_SPEC;
     } else if (
       after.status === MissionStatuses.COMPLETED &&
       before.payment_status !== after.payment_status &&
