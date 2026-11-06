@@ -985,15 +985,11 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final Color? valueColor;
-  final bool valueBold;
 
   const _DetailRow({
     required this.icon,
     required this.label,
     required this.value,
-    this.valueColor,
-    this.valueBold = false,
   });
 
   @override
@@ -1018,10 +1014,9 @@ class _DetailRow extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 value,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: valueColor,
-                  fontWeight: valueBold ? FontWeight.w800 : FontWeight.w500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
