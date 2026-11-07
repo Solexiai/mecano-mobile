@@ -243,8 +243,8 @@ class _MapHero extends StatelessWidget {
                     if (live != null)
                       Marker(
                         point: live,
-                        width: 120,
-                        height: 52,
+                        width: 140,
+                        height: 64,
                         alignment: Alignment.topCenter,
                         child: Column(
                           key: const ValueKey('driver-home-live-dot'),
@@ -271,8 +271,11 @@ class _MapHero extends StatelessWidget {
                               ),
                               child: Text(
                                 youAreHere,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 11,
+                                  height: 1.2,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.primaryDark,
                                 ),
