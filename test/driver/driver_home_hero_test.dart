@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:movik_connect/backend/models/driver_profile_v2.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
@@ -35,6 +36,7 @@ Future<List<bool>> _pump(
   WidgetTester tester, {
   required DriverProfileV2? profile,
   bool toggling = false,
+  ll.LatLng? livePosition,
 }) async {
   final calls = <bool>[];
   await tester.pumpWidget(
@@ -45,6 +47,7 @@ Future<List<bool>> _pump(
           t: _t,
           toggling: toggling,
           onToggle: calls.add,
+          livePosition: livePosition,
         ),
       ),
     ),
@@ -115,6 +118,29 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('driver-home-go-button')));
     expect(calls, [true]);
     expect(tester.takeException(), isNull);
+  });
+
+  // 2026-11-07 : point « Vous êtes ici » = dernière position GPS.
+  offlineWidgetTest('position connue dans la zone : point bleu, carte centrée sur la zone', (tester) async {
+    await _pump(tester, profile: _profile(located: true), livePosition: const ll.LatLng(45.41, -72.72));
+    expect(find.byKey(const ValueKey('driver-home-live-dot')), findsOneWidget);
+    expect(find.text(_t('driver_home_you_are_here')), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-home-map')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  offlineWidgetTest('position hors zone (Terrebonne, base Granby) : la carte s’élargit pour montrer les deux', (tester) async {
+    await _pump(tester, profile: _profile(located: true), livePosition: const ll.LatLng(45.6987, -73.6603));
+    expect(find.byKey(const ValueKey('driver-home-live-dot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-home-map-wide')), findsOneWidget);
+    expect(find.byKey(const ValueKey('driver-home-map')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  offlineWidgetTest('position inconnue : pas de point, carte inchangée', (tester) async {
+    await _pump(tester, profile: _profile(located: true));
+    expect(find.byKey(const ValueKey('driver-home-live-dot')), findsNothing);
+    expect(find.byKey(const ValueKey('driver-home-map')), findsOneWidget);
   });
 
   testWidgets('profil inconnu : GO désactivé sans erreur', (tester) async {

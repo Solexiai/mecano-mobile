@@ -12,6 +12,13 @@
 // fond, comme sur Uber. Carte figée (pas de zoom/déplacement) : c'est un
 // décor qui situe le chauffeur, pas un outil de navigation.
 //
+// 2026-11-07 (demande de Daniel, « comme Uber ») : point bleu « Vous êtes
+// ici » = dernière position GPS connue (driver_locations/{uid}). Quand le
+// chauffeur est hors de sa zone (à Terrebonne avec une base à Granby), la
+// carte s'élargit pour montrer la zone ET le chauffeur, sinon elle reste
+// centrée sur la zone. La position n'est pas une règle : le serveur décide
+// seul du dispatch (GPS frais, sinon adresse de base).
+//
 // Pas de ElevatedButton ici : les tests de l'onglet Accueil comptent les
 // ElevatedButton pour retrouver le bouton « Accepter » d'une offre. Pas de
 // CircularProgressIndicator non plus : une animation infinie empêcherait
@@ -33,7 +40,11 @@ class DriverHomeHero extends StatelessWidget {
     required this.t,
     required this.onToggle,
     this.toggling = false,
+    this.livePosition,
   });
+
+  /// Dernière position GPS connue (null = inconnue ou trop ancienne).
+  final ll.LatLng? livePosition;
 
   /// Profil courant (null tant que le flux n'a rien émis).
   final DriverProfileV2? profile;
@@ -93,6 +104,8 @@ class DriverHomeHero extends StatelessWidget {
     if (base != null) {
       return _MapHero(
         center: base,
+        livePosition: livePosition,
+        youAreHere: t('driver_home_you_are_here'),
         radiusKm: p!.serviceRadiusKm,
         online: online,
         dotColor: dotColor,
@@ -126,6 +139,8 @@ class DriverHomeHero extends StatelessWidget {
 class _MapHero extends StatelessWidget {
   const _MapHero({
     required this.center,
+    required this.livePosition,
+    required this.youAreHere,
     required this.radiusKm,
     required this.online,
     required this.dotColor,
@@ -135,6 +150,8 @@ class _MapHero extends StatelessWidget {
   });
 
   final ll.LatLng center;
+  final ll.LatLng? livePosition;
+  final String youAreHere;
   final double radiusKm;
   final bool online;
   final Color dotColor;
@@ -151,9 +168,23 @@ class _MapHero extends StatelessWidget {
       ? 9
       : 8;
 
+  /// Hors zone = plus loin que le rayon de service (vol d'oiseau).
+  bool get _outsideZone {
+    final live = livePosition;
+    if (live == null) return false;
+    return const ll.Distance().as(ll.LengthUnit.Kilometer, center, live) > radiusKm;
+  }
+
+  /// La carte est figée : on ne la recadre qu'en changeant sa clé, et
+  /// seulement quand le chauffeur entre ou sort de sa zone (pas à chaque
+  /// relevé GPS, qui ferait clignoter les tuiles).
+  String get _mapKey => _outsideZone ? 'driver-home-map-wide' : 'driver-home-map';
+
   @override
   Widget build(BuildContext context) {
     final zoneColor = online ? AppColors.success : AppColors.primary;
+    final live = livePosition;
+    final outside = _outsideZone;
     return ClipRRect(
       key: const ValueKey('driver-home-hero'),
       borderRadius: BorderRadius.circular(24),
@@ -163,10 +194,17 @@ class _MapHero extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             FlutterMap(
-              key: const ValueKey('driver-home-map'),
+              key: ValueKey(_mapKey),
               options: MapOptions(
                 initialCenter: center,
                 initialZoom: _zoom,
+                // Hors zone : on montre la zone et le chauffeur ensemble.
+                initialCameraFit: outside && live != null
+                    ? CameraFit.bounds(
+                        bounds: LatLngBounds(center, live),
+                        padding: const EdgeInsets.fromLTRB(40, 110, 40, 90),
+                      )
+                    : null,
                 interactionOptions: const InteractionOptions(
                   flags: InteractiveFlag.none,
                 ),
@@ -202,6 +240,50 @@ class _MapHero extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (live != null)
+                      Marker(
+                        point: live,
+                        width: 140,
+                        height: 64,
+                        alignment: Alignment.topCenter,
+                        child: Column(
+                          key: const ValueKey('driver-home-live-dot'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppColors.info,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                youAreHere,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  height: 1.2,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ],

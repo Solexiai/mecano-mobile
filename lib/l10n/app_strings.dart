@@ -6121,6 +6121,11 @@ class AppStrings {
       'en': 'Restart',
       'es': 'Reiniciar',
     },
+    'driver_home_you_are_here': {
+      'fr': 'Vous êtes ici',
+      'en': 'You are here',
+      'es': 'Usted está aquí',
+    },
     'app_update_later_button': {
       'fr': 'Plus tard',
       'en': 'Later',

@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import '../../../../backend/backend_exceptions.dart';
 import '../../../../backend/backend_locator.dart';
 import '../../../../backend/models/delivery_mission.dart';
+import '../../../../backend/models/driver_location.dart';
 import '../../../../backend/models/driver_profile_v2.dart';
 import '../../../../finance/models/transaction_ledger.dart';
 import '../../../../finance/presentation/driver_display_format.dart';
@@ -21,6 +22,7 @@ import '../../../../core/app_colors.dart';
 import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import '../../../../services/driver_live_position.dart';
 import '../widgets/driver_home_hero.dart';
 
 /// Onglet "Accueil" du chauffeur : résumé (prochaine mission, gains de la
@@ -81,6 +83,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
   String? _cachedDriverId;
   Stream<List<DeliveryMission>>? _availableMissionsStream;
   Stream<DeliveryMission?>? _activeMissionStream;
+  Stream<DriverLocation?>? _locationStream;
 
   void _ensureStreams(String driverId) {
     if (_cachedDriverId == driverId && _availableMissionsStream != null) {
@@ -96,6 +99,9 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
     _activeMissionStream = BackendLocator.missionRepository
         .watchActiveMissionForDriver(driverId)
         .asBroadcastStream();
+    // 2026-11-07 : dernière position GPS du chauffeur, pour le point
+    // « Vous êtes ici » de la carte d'accueil (lecture seule, propre doc).
+    _locationStream = BackendLocator.locationRepository.watchDriverLocation(driverId);
   }
 
   Future<void> _accept(DeliveryMission mission, String driverId) async {
@@ -422,11 +428,15 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           if (widget.onToggleOnline != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: DriverHomeHero(
-                profile: widget.profile,
-                t: t,
-                onToggle: widget.onToggleOnline!,
-                toggling: widget.togglingOnline,
+              child: StreamBuilder<DriverLocation?>(
+                stream: _locationStream,
+                builder: (context, locSnap) => DriverHomeHero(
+                  profile: widget.profile,
+                  t: t,
+                  onToggle: widget.onToggleOnline!,
+                  toggling: widget.togglingOnline,
+                  livePosition: livePositionFor(locSnap.data, DateTime.now()),
+                ),
               ),
             ),
           // Bannière de reprise : si ce chauffeur a déjà une mission en
