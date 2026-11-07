@@ -187,7 +187,7 @@ class _AppVersionPolicyCardState extends State<AppVersionPolicyCard> {
                       maxLength: 200,
                       decoration: const InputDecoration(
                         labelText: 'Note (pour vous)',
-                        hintText: 'ex. dépôt de 25 $ requis',
+                        hintText: 'ex. dépôt de 25 \$ requis',
                         isDense: true,
                         counterText: '',
                       ),
