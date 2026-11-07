@@ -28,15 +28,28 @@ import 'package:http/http.dart' as http;
 
 import 'address_autocomplete_provider.dart';
 import 'address_provider_config.dart';
+import 'android_app_identity.dart';
 import 'address_suggestion.dart';
 
 class GooglePlacesAddressProvider implements AddressAutocompleteProvider {
   final http.Client _client;
   final String _apiKey;
 
-  GooglePlacesAddressProvider({http.Client? client, String? apiKey})
-      : _client = client ?? http.Client(),
-        _apiKey = apiKey ?? AddressProviderConfig.googleMapsApiKey;
+  /// En-têtes d'identité de l'app Android (`X-Android-Package`,
+  /// `X-Android-Cert`), exigés par Google quand la clé est restreinte
+  /// « Applications Android » (2026-11-07). Null = aucun (web, tests).
+  final Future<Map<String, String>?> Function() _appHeaders;
+
+  GooglePlacesAddressProvider({
+    http.Client? client,
+    String? apiKey,
+    Future<Map<String, String>?> Function()? appHeaders,
+  })  : _client = client ?? http.Client(),
+        _apiKey = apiKey ?? AddressProviderConfig.googleMapsApiKey,
+        _appHeaders = appHeaders ?? _androidHeaders;
+
+  static Future<Map<String, String>?> _androidHeaders() async =>
+      (await AndroidAppIdentity.load())?.placesHeaders;
 
   static const String _autocompleteUrl = 'https://places.googleapis.com/v1/places:autocomplete';
   String _detailsUrl(String placeId) => 'https://places.googleapis.com/v1/places/$placeId';
@@ -48,12 +61,14 @@ class GooglePlacesAddressProvider implements AddressAutocompleteProvider {
 
     http.Response response;
     try {
+      final appHeaders = await _appHeaders();
       response = await _client
           .post(
             Uri.parse(_autocompleteUrl),
             headers: {
               'Content-Type': 'application/json',
               'X-Goog-Api-Key': _apiKey,
+              ...?appHeaders,
             },
             body: jsonEncode({'input': trimmed}),
           )
@@ -87,11 +102,13 @@ class GooglePlacesAddressProvider implements AddressAutocompleteProvider {
   Future<ResolvedAddress> resolvePlace(String placeId) async {
     http.Response response;
     try {
+      final appHeaders = await _appHeaders();
       response = await _client.get(
         Uri.parse(_detailsUrl(placeId)),
         headers: {
           'X-Goog-Api-Key': _apiKey,
           'X-Goog-FieldMask': 'id,formattedAddress,addressComponents,location',
+          ...?appHeaders,
         },
       ).timeout(const Duration(seconds: 8));
     } catch (e) {

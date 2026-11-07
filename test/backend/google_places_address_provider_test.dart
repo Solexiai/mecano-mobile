@@ -135,4 +135,48 @@ void main() {
       expect(capturedApiKeyHeader, isEmpty);
     });
   });
+
+  group('2026-11-07 — clé restreinte « Applications Android »', () {
+    test('les en-têtes X-Android-Package / X-Android-Cert sont envoyés sur les deux appels quand l’identité est connue', () async {
+      final seen = <Map<String, String>>[];
+      final mockClient = MockClient((request) async {
+        seen.add(Map.of(request.headers));
+        if (request.method == 'POST') return http.Response(jsonEncode({'suggestions': []}), 200);
+        return http.Response(
+          jsonEncode({
+            'id': 'p1',
+            'formattedAddress': '646 Rue Dorion, Granby, QC',
+            'addressComponents': [],
+            'location': {'latitude': 45.4, 'longitude': -72.7},
+          }),
+          200,
+        );
+      });
+      final provider = GooglePlacesAddressProvider(
+        client: mockClient,
+        apiKey: fakeKey,
+        appHeaders: () async => {'X-Android-Package': 'com.movik.movik_connect', 'X-Android-Cert': 'ABCDEF'},
+      );
+      await provider.searchSuggestions('646 rue Dorion');
+      await provider.resolvePlace('p1');
+      expect(seen, hasLength(2));
+      for (final h in seen) {
+        expect(h['X-Android-Package'], 'com.movik.movik_connect');
+        expect(h['X-Android-Cert'], 'ABCDEF');
+        expect(h['X-Goog-Api-Key'], fakeKey);
+      }
+    });
+
+    test('sans identité (web) : aucun en-tête Android, comportement inchangé', () async {
+      Map<String, String>? headers;
+      final mockClient = MockClient((request) async {
+        headers = request.headers;
+        return http.Response(jsonEncode({'suggestions': []}), 200);
+      });
+      final provider = GooglePlacesAddressProvider(client: mockClient, apiKey: fakeKey, appHeaders: () async => null);
+      await provider.searchSuggestions('646 rue Dorion');
+      expect(headers!.containsKey('X-Android-Package'), isFalse);
+      expect(headers!.containsKey('X-Android-Cert'), isFalse);
+    });
+  });
 }
