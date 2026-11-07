@@ -642,6 +642,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // app_config/{docId} — réglages PUBLICS de l'application (2026-11-06) :
+    // `app_versions` (version minimale de l'app Android, voir
+    // functions/src/lib/appVersionPolicy.ts). Aucune donnée sensible : un
+    // numéro de build et une note. Lisible sans connexion — l'app doit
+    // savoir dès le démarrage si une mise à jour est obligatoire. Écriture
+    // STRICTEMENT via la Cloud Function updateAppVersionPolicy (audit).
+    match /app_config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // mission_financial_balance/{missionId} — état financier dérivé du
     // ledger (point 7, directive 38 points). Lisible par le client et le
     // chauffeur de LEUR PROPRE mission (UI client/chauffeur, points 22/24),

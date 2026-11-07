@@ -67,6 +67,17 @@ dependencies:
   # lib/services/address/address_provider_config.dart.
   http: ^1.5.0
 
+  # --- Mise à jour dans l'app (2026-11-06) --- Android n'autorise aucune
+  # app à se réinstaller seule ; `in_app_update` est l'API officielle Google
+  # Play (In-App Updates) : mise à jour immédiate (écran bloquant) quand le
+  # build installé est sous le minimum réglé dans le Centre de commande
+  # (app_config/app_versions), souple (téléchargement en arrière-plan +
+  # bandeau « Redémarrer ») sinon. Android seulement ; no-op web/tests.
+  in_app_update: ^4.2.3
+  # Numéro de build installé (versionCode), pour comparer au minimum et
+  # l'afficher dans l'admin (« Cette installation : 1.0.0 (10) »).
+  package_info_plus: ^8.3.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

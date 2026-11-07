@@ -124,6 +124,8 @@ export { cleanupExpiredTrackingHistory } from "./functions/cleanupExpiredTrackin
 
 // ---- Feature flags / kill switches (Phase 7, Bloc X) ----
 export { updateRuntimeFlags } from "./functions/updateRuntimeFlags";
+// 2026-11-06 : version minimale de l'app Android (mise à jour dans l'app).
+export { updateAppVersionPolicy } from "./functions/updateAppVersionPolicy";
 
 export { getBookingVehicleForAcceptance, requestBookingReview, getBookingQuote, getBookingConfiguration, reviewDeliveryLoad, saveBookingDraft, getBookingDraft, clearBookingDraft, cleanupBookingDrafts } from "./functions/bookingJourney";
 export { startBookingCardSetup, getBookingCardStatus } from './functions/bookingCardSetup';

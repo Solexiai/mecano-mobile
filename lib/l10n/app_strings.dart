@@ -6095,6 +6095,37 @@ class AppStrings {
       'es':
           'Movi-K prepara su lanzamiento en Granby y alrededores. Prepara tu solicitud de entrega y consulta la información del lanzamiento.',
     },
+    // Mise à jour dans l'app (2026-11-06).
+    'app_update_required_title': {
+      'fr': 'Mise à jour requise',
+      'en': 'Update required',
+      'es': 'Actualización necesaria',
+    },
+    'app_update_required_body': {
+      'fr': 'Cette version de Movi-K n’est plus prise en charge. Mettez l’app à jour pour continuer.',
+      'en': 'This version of Movi-K is no longer supported. Update the app to continue.',
+      'es': 'Esta versión de Movi-K ya no es compatible. Actualiza la app para continuar.',
+    },
+    'app_update_required_button': {
+      'fr': 'Mettre à jour',
+      'en': 'Update',
+      'es': 'Actualizar',
+    },
+    'app_update_ready_banner': {
+      'fr': 'Une nouvelle version de Movi-K est prête.',
+      'en': 'A new version of Movi-K is ready.',
+      'es': 'Una nueva versión de Movi-K está lista.',
+    },
+    'app_update_restart_button': {
+      'fr': 'Redémarrer',
+      'en': 'Restart',
+      'es': 'Reiniciar',
+    },
+    'app_update_later_button': {
+      'fr': 'Plus tard',
+      'en': 'Later',
+      'es': 'Más tarde',
+    },
   };
 
   static String t(String key, String locale) {

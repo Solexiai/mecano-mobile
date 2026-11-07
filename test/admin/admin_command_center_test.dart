@@ -60,6 +60,8 @@ Widget _app(String tab) => MaterialApp(
     stripeEnvironmentApi: (_) async => {
       'configured': true, 'environment': 'test', 'stale_drivers': [], 'open_payments_other_environment': [],
     },
+    appVersionApi: (_) async => {'android_min_build': 0, 'note': ''},
+    installedVersion: () async => null,
     itemTypesApi: (_) async => _types(),
     pricingTab: const Center(child: Text('PRICING TAB')),
     loadActive: () async => _version,
