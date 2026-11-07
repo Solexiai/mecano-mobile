@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/driver_location.dart';
+import 'package:movik_connect/backend/models/driver_location_history_point.dart';
 import 'package:movik_connect/backend/repositories/location_repository.dart';
 import 'package:movik_connect/services/driver_online_location_service.dart';
 
