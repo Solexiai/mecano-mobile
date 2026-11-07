@@ -48,6 +48,8 @@ const _newer = AppUpdateAvailability(
 
 Widget _app(AppUpdateChecker? checker, {int minBuild = 0, int? installed = 10}) => MaterialApp(
   home: AppUpdateGate(
+    // Clé unique : un second pumpWidget dans le même test doit recréer l'état.
+    key: ValueKey(checker),
     checker: checker,
     loadPolicy: () async => AppVersionPolicy(androidMinBuild: minBuild),
     installedBuild: () async => installed,
@@ -80,10 +82,13 @@ void main() {
     expect(c.flexibles, 1);
     expect(c.immediates, 0);
     expect(find.byKey(const ValueKey('app-update-banner')), findsNothing);
+    // L'évènement est livré dans une microtâche : deux pumps (livraison, puis image).
     c.steps.add(AppUpdateInstallStep.downloading);
+    await t.pump();
     await t.pump();
     expect(find.byKey(const ValueKey('app-update-banner')), findsNothing);
     c.steps.add(AppUpdateInstallStep.downloaded);
+    await t.pump();
     await t.pump();
     expect(find.byKey(const ValueKey('app-update-banner')), findsOneWidget);
     expect(find.text('Une nouvelle version de Movi-K est prête.'), findsOneWidget);
