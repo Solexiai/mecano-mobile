@@ -6121,6 +6121,16 @@ class AppStrings {
       'en': 'Restart',
       'es': 'Reiniciar',
     },
+    'driver_online_notification_title': {
+      'fr': 'Movi-K — En service',
+      'en': 'Movi-K — On duty',
+      'es': 'Movi-K — En servicio',
+    },
+    'driver_online_notification_text': {
+      'fr': 'Votre position est partagée pour recevoir les demandes de votre zone.',
+      'en': 'Your location is shared to receive requests in your area.',
+      'es': 'Se comparte su ubicación para recibir solicitudes de su zona.',
+    },
     'driver_home_you_are_here': {
       'fr': 'Vous êtes ici',
       'en': 'You are here',

@@ -6,6 +6,17 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 2026-11-07 (« comme Uber ») — position tant que le chauffeur est EN
+         SERVICE, même téléphone rangé : service au premier plan Android
+         (geolocator) avec notification persistante « Movi-K — En service ».
+         Toujours PAS d'ACCESS_BACKGROUND_LOCATION : un service au premier
+         plan démarré pendant que l'app est ouverte garde l'accès à la
+         position avec la seule permission « lorsque l'app est utilisée ».
+         Le service s'arrête dès le passage hors service ou la déconnexion.
+         Google Play : déclarer le type de service au premier plan
+         « location » dans Play Console (Contenu de l'appli). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <!-- Phase 8D — requis sur Android 13+ pour afficher les notifications
          FCM lorsque le chauffeur a choisi de passer en mode Disponible. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

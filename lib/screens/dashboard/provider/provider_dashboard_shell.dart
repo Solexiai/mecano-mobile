@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/app_colors.dart';
 import '../../../providers/firebase_auth_provider.dart';
+import '../../../l10n/app_strings.dart';
 import '../../../providers/locale_provider.dart';
 import '../../../widgets/language_selector.dart';
 import '../../../widgets/notification_bell.dart';
@@ -14,6 +15,7 @@ import '../../../backend/models/driver_payout_readiness.dart';
 import '../../../backend/models/driver_profile_v2.dart';
 import '../../../models/enums.dart';
 import '../../../services/driver_location_reporter.dart';
+import '../../../services/driver_online_location_service.dart';
 import '../../../services/push_notification_service.dart';
 import 'tabs/provider_jobs_tab.dart';
 import 'tabs/provider_calendar_tab.dart';
@@ -80,7 +82,26 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _locationTimer?.cancel();
+    DriverOnlineLocationService.instance.stop();
     super.dispose();
+  }
+
+  /// 2026-11-07 (« comme Uber ») : en service ou en mission, le suivi de
+  /// position continue téléphone rangé (service Android au premier plan avec
+  /// notification « Movi-K — En service ») ; hors service, il s'arrête.
+  void _syncOnlineLocation(DriverProfileV2? profile) {
+    final status = profile?.onlineStatus ?? DriverOnlineStatus.offline;
+    final active = status == DriverOnlineStatus.online || status == DriverOnlineStatus.onMission;
+    final service = DriverOnlineLocationService.instance;
+    if (active && !service.isRunning) {
+      final locale = mounted ? context.read<LocaleProvider>().locale : 'fr';
+      service.start(
+        title: AppStrings.t('driver_online_notification_title', locale),
+        text: AppStrings.t('driver_online_notification_text', locale),
+      );
+    } else if (!active && service.isRunning) {
+      service.stop();
+    }
   }
 
   @override
@@ -122,7 +143,11 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell>
       _lastProfile = null;
       _driverProfileStream = BackendLocator.driverRepository
           .watchDriverProfile(driverId)
-          .map((p) => _lastProfile = p)
+          .map((p) {
+            _lastProfile = p;
+            _syncOnlineLocation(p);
+            return p;
+          })
           .asBroadcastStream();
     }
     return _driverProfileStream!;
