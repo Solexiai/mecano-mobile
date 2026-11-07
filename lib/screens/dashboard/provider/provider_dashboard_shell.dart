@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -35,8 +37,19 @@ class ProviderDashboardShell extends StatefulWidget {
   State<ProviderDashboardShell> createState() => _ProviderDashboardShellState();
 }
 
-class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
+class _ProviderDashboardShellState extends State<ProviderDashboardShell>
+    with WidgetsBindingObserver {
   late int _index = widget.initialTabIndex.clamp(0, 3).toInt();
+
+  // 2026-11-07 (« comme Uber ») : tant que le chauffeur est en service, sa
+  // position est renvoyée au serveur au retour de l'app au premier plan et
+  // toutes les `locationRefreshEvery`. Avant, elle n'était envoyée qu'au GO :
+  // après 30 min le dispatch retombait sur l'adresse de base, même si le
+  // chauffeur s'était déplacé. Premier plan seulement (pas de permission
+  // « toujours ») ; l'arrière-plan est l'étape suivante.
+  static const Duration locationRefreshEvery = Duration(minutes: 5);
+  Timer? _locationTimer;
+  DateTime? _lastLocationRefresh;
   // Each tab is mounted only on its first visit, then retained in place.
   // Initial route to Stripe Connect profile (index 3) stays supported.
   late final List<bool> _visitedTabs;
@@ -59,6 +72,36 @@ class _ProviderDashboardShellState extends State<ProviderDashboardShell> {
     super.initState();
     _visitedTabs = List<bool>.filled(4, false);
     _visitedTabs[_index] = true;
+    WidgetsBinding.instance.addObserver(this);
+    _locationTimer = Timer.periodic(locationRefreshEvery, (_) => _refreshLocationIfOnline());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    final last = _lastLocationRefresh;
+    if (last == null || DateTime.now().difference(last) >= const Duration(minutes: 1)) {
+      _refreshLocationIfOnline();
+    }
+  }
+
+  /// Renvoie la position seulement en service ; toute erreur (permission,
+  /// GPS éteint, réseau) est ignorée ici — le GO l'a déjà signalée.
+  Future<void> _refreshLocationIfOnline() async {
+    if (!mounted || _lastProfile?.onlineStatus != DriverOnlineStatus.online) return;
+    _lastLocationRefresh = DateTime.now();
+    try {
+      await DriverLocationReporter().reportCurrentLocationOnce();
+    } catch (_) {
+      // Fail-soft : l'adresse de base reste le repli serveur.
+    }
   }
 
   void _selectTab(int index) {
