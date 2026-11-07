@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/app_colors.dart';
 import '../admin_item_types_screen.dart';
 import '../finance/tabs/admin_finance_pricing_tab.dart';
+import 'app_version_policy_card.dart';
 import 'conditions_panel.dart';
 import 'price_simulator.dart';
 import 'runtime_flags_panel.dart';
@@ -37,6 +38,8 @@ class AdminCommandCenterScreen extends StatefulWidget {
     this.conditionsApi,
     this.runtimeFlagsApi,
     this.stripeEnvironmentApi,
+    this.appVersionApi,
+    this.installedVersion,
     this.canEditRuntimeFlags = true,
     this.loadActive,
     this.preview,
@@ -52,6 +55,10 @@ class AdminCommandCenterScreen extends StatefulWidget {
   /// ADM-02 : interrupteurs d'urgence (test seam + droit d'écriture).
   final RuntimeFlagsApi? runtimeFlagsApi;
   final StripeEnvironmentApi? stripeEnvironmentApi;
+
+  /// Mise à jour de l'app (2026-11-06) : test seams de la carte.
+  final AppVersionPolicyApi? appVersionApi;
+  final Future<String?> Function()? installedVersion;
   final bool canEditRuntimeFlags;
 
   /// Test seams for the simulator (active grid, server preview).
@@ -125,6 +132,8 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
         RuntimeFlagsPanel(
           api: widget.runtimeFlagsApi,
           stripeApi: widget.stripeEnvironmentApi,
+          appVersionApi: widget.appVersionApi,
+          installedVersion: widget.installedVersion,
           canEdit: widget.canEditRuntimeFlags,
         ),
       ],

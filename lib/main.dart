@@ -11,7 +11,10 @@ import 'core/url_strategy_stub.dart'
 import 'l10n/app_strings.dart';
 import 'seo/page_meta.dart';
 import 'seo/page_meta_sync.dart';
+import 'services/app_update/app_update_checker.dart';
+import 'services/app_update/app_version_policy.dart';
 import 'services/driver_presence.dart';
+import 'widgets/app_update_gate.dart';
 import 'core/app_theme.dart';
 import 'providers/locale_provider.dart';
 import 'providers/theme_provider.dart';
@@ -110,8 +113,18 @@ class MovikApp extends StatelessWidget {
             title: kIsWeb
                 ? AppStrings.t('seo_default_title', localeProvider.locale)
                 : 'Movi-k',
-            builder: (context, child) =>
-                DriverPresenceScope(child: child ?? const SizedBox.shrink()),
+            // Mise à jour dans l'app (2026-11-06) : Android seulement, voir
+            // widgets/app_update_gate.dart ; no-op sur le web.
+            builder: (context, child) => AppUpdateGate(
+              checker: PlayAppUpdateChecker.supported
+                  ? const PlayAppUpdateChecker()
+                  : null,
+              loadPolicy: backendStatus.isConfigured
+                  ? loadAppVersionPolicyFromFirestore
+                  : null,
+              installedBuild: installedBuildNumber,
+              child: DriverPresenceScope(child: child ?? const SizedBox.shrink()),
+            ),
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),

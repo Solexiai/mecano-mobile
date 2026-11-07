@@ -27,6 +27,9 @@ Future<Map<String, dynamic>> _stripe(Map<String, dynamic> _) async => {
   'configured': true, 'environment': 'test', 'stale_drivers': [], 'open_payments_other_environment': [],
 };
 
+Future<Map<String, dynamic>> _versions(Map<String, dynamic> _) async => {'android_min_build': 0, 'note': ''};
+Future<String?> _noVersion() async => null;
+
 void main() {
   testWidgets('all closed banner, confirm dialog, then the function is called with one flag', (t) async {
     t.view.physicalSize = const Size(1200, 2000);
@@ -34,7 +37,7 @@ void main() {
     addTearDown(t.view.resetPhysicalSize);
     addTearDown(t.view.resetDevicePixelRatio);
     final api = _Api();
-    await t.pumpWidget(MaterialApp(home: Scaffold(body: RuntimeFlagsPanel(api: api, stripeApi: _stripe))));
+    await t.pumpWidget(MaterialApp(home: Scaffold(body: RuntimeFlagsPanel(api: api, stripeApi: _stripe, appVersionApi: _versions, installedVersion: _noVersion))));
     await t.pumpAndSettle();
     expect(find.byKey(const ValueKey('flags-all-closed')), findsOneWidget);
     for (final k in runtimeFlagKeys) {
@@ -63,7 +66,7 @@ void main() {
 
   testWidgets('analyst: read-only switches', (t) async {
     final api = _Api();
-    await t.pumpWidget(MaterialApp(home: Scaffold(body: RuntimeFlagsPanel(api: api, canEdit: false, stripeApi: _stripe))));
+    await t.pumpWidget(MaterialApp(home: Scaffold(body: RuntimeFlagsPanel(api: api, canEdit: false, stripeApi: _stripe, appVersionApi: _versions, installedVersion: _noVersion))));
     await t.pumpAndSettle();
     for (final k in runtimeFlagKeys) {
       expect(t.widget<SwitchListTile>(find.byKey(ValueKey('flag-$k'))).onChanged, isNull);
