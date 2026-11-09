@@ -1011,6 +1011,13 @@ class _CompletedMissionView extends StatelessWidget {
           if (!mission.isInternalTest && mission.driverId != null) ...[
             _RateDriverCard(mission: mission, t: t),
             const SizedBox(height: 16),
+            // Pourboire (2026-11-09) : proposé avec la note, 100 % au chauffeur.
+            if (mission.customerTotal > 0 &&
+                (mission.tipAmountMinor != null ||
+                    _TipDriverCard.stillOpen(mission))) ...[
+              _TipDriverCard(mission: mission, locale: locale, api: api),
+              const SizedBox(height: 16),
+            ],
           ],
           FilledButton.icon(
             key: const ValueKey('detail-rebook'),
@@ -1651,6 +1658,343 @@ class _RateDriverCardState extends State<_RateDriverCard> {
         if (existing != null) return _buildAlreadyRated(t, existing);
         return _buildForm(t);
       },
+    );
+  }
+}
+
+/// Pourboire au chauffeur (décision Daniel, 2026-11-09), proposé avec la
+/// note après la livraison : 10 %, 15 % ou 20 % du prix avant taxes, ou un
+/// montant au choix. Le serveur (`tipDriver`) recalcule le montant, débite
+/// la carte enregistrée et vire 100 % au chauffeur ; rien n'est débité ici
+/// avant la confirmation.
+class _TipDriverCard extends StatefulWidget {
+  const _TipDriverCard({
+    required this.mission,
+    required this.locale,
+    required this.api,
+  });
+  final DeliveryMission mission;
+  final String locale;
+  final BookingApi api;
+
+  static const percentages = [10, 15, 20];
+  static const minMinor = 100;
+  static const maxMinor = 10000;
+
+  /// Le pourboire reste possible 30 jours après la livraison.
+  static bool stillOpen(DeliveryMission mission, {DateTime? now}) {
+    final done = mission.completedAt;
+    if (done == null) return true;
+    return (now ?? DateTime.now()).difference(done) <= const Duration(days: 30);
+  }
+
+  /// Même arrondi que le serveur (functions/src/lib/driverTip.ts).
+  static int amountForPercent(int baseMinor, int percent) =>
+      ((baseMinor < 0 ? 0 : baseMinor) * percent / 100)
+          .round()
+          .clamp(minMinor, maxMinor);
+
+  @override
+  State<_TipDriverCard> createState() => _TipDriverCardState();
+}
+
+class _TipDriverCardState extends State<_TipDriverCard> {
+  int? _percent;
+  bool _custom = false;
+  final _amount = TextEditingController();
+  bool _busy = false;
+  int? _paidMinor;
+  String? _error;
+
+  String tr(String fr, String en, String es) => widget.locale == 'en'
+      ? en
+      : widget.locale == 'es'
+      ? es
+      : fr;
+
+  String _money(int minor) => money.formatMajorAmount(
+    minor / 100,
+    locale: widget.locale,
+    currencySymbol: r'$',
+  );
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    super.dispose();
+  }
+
+  /// Montant au choix saisi, en cents ; null s'il est illisible.
+  int? get _customMinor {
+    final text = _amount.text.trim().replaceAll(r'$', '').replaceAll(' ', '');
+    final value = double.tryParse(text.replaceAll(',', '.'));
+    if (value == null || !value.isFinite) return null;
+    return (value * 100).round();
+  }
+
+  int? get _selectedMinor {
+    if (_custom) return _customMinor;
+    final p = _percent;
+    return p == null
+        ? null
+        : _TipDriverCard.amountForPercent(widget.mission.tipBaseMinor, p);
+  }
+
+  bool get _validCustom {
+    final c = _customMinor;
+    return c != null &&
+        c >= _TipDriverCard.minMinor &&
+        c <= _TipDriverCard.maxMinor;
+  }
+
+  Future<void> _send() async {
+    final amount = _selectedMinor;
+    if (amount == null || (_custom && !_validCustom)) {
+      setState(
+        () => _error = tr(
+          'Choisissez un pourboire entre 1 \$ et 100 \$.',
+          'Choose a tip between \$1 and \$100.',
+          'Elige una propina entre 1 \$ y 100 \$.',
+        ),
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('Confirmer le pourboire', 'Confirm the tip', 'Confirmar la propina')),
+        content: Text(
+          tr(
+            '${_money(amount)} seront débités sur votre carte enregistrée et versés à 100 % à votre chauffeur.',
+            '${_money(amount)} will be charged to your saved card and paid 100% to your driver.',
+            'Se cobrarán ${_money(amount)} a tu tarjeta guardada y se pagarán al 100 % a tu conductor.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('tip-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('Annuler', 'Cancel', 'Cancelar')),
+          ),
+          FilledButton(
+            key: const ValueKey('tip-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('Confirmer', 'Confirm', 'Confirmar')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    String? error;
+    int? paid;
+    try {
+      final result = await widget.api.call('tipDriver', {
+        'missionId': widget.mission.id,
+        if (_custom) 'amountMinor': amount else 'percent': _percent,
+      });
+      paid = (result['amountMinor'] as num?)?.toInt() ?? amount;
+    } on FirebaseFunctionsException catch (e) {
+      final serverMessage = e.message;
+      error = widget.locale == 'fr' &&
+              serverMessage != null &&
+              serverMessage.isNotEmpty &&
+              (e.code == 'failed-precondition' || e.code == 'invalid-argument')
+          ? serverMessage
+          : tr(
+              'Le pourboire n’a pas pu être envoyé. Réessayez dans un instant.',
+              'The tip could not be sent. Try again in a moment.',
+              'No se pudo enviar la propina. Inténtalo de nuevo en un momento.',
+            );
+    } catch (_) {
+      error = tr(
+        'Le pourboire n’a pas pu être envoyé. Réessayez dans un instant.',
+        'The tip could not be sent. Try again in a moment.',
+        'No se pudo enviar la propina. Inténtalo de nuevo en un momento.',
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _paidMinor = paid;
+      _error = error;
+    });
+  }
+
+  BoxDecoration _decoration(BuildContext context) => BoxDecoration(
+    color: Theme.of(context).cardTheme.color,
+    borderRadius: BorderRadius.circular(14),
+    border: Border.all(color: AppColors.border),
+  );
+
+  Widget _thanks(int amountMinor) => Container(
+    key: const ValueKey('tip-thanks'),
+    padding: const EdgeInsets.all(16),
+    decoration: _decoration(context),
+    child: Row(
+      children: [
+        const Icon(Icons.volunteer_activism, color: AppColors.success, size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr(
+                  'Pourboire envoyé : ${_money(amountMinor)}',
+                  'Tip sent: ${_money(amountMinor)}',
+                  'Propina enviada: ${_money(amountMinor)}',
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                tr(
+                  'Merci ! 100 % est versé à votre chauffeur.',
+                  'Thank you! 100% goes to your driver.',
+                  '¡Gracias! El 100 % va a tu conductor.',
+                ),
+                style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = _paidMinor ?? widget.mission.tipAmountMinor;
+    if (paid != null) return _thanks(paid);
+    final driver = widget.mission.driverDisplayName?.trim() ?? '';
+    final selected = _selectedMinor;
+    final canSend = !_busy && (_custom ? _validCustom : _percent != null);
+    Widget chip({
+      required Key key,
+      required String label,
+      required bool isSelected,
+      required VoidCallback onTap,
+    }) => ChoiceChip(
+      key: key,
+      label: Text(label, textAlign: TextAlign.center),
+      selected: isSelected,
+      onSelected: _busy ? null : (_) => onTap(),
+    );
+    return Container(
+      key: const ValueKey('tip-card'),
+      padding: const EdgeInsets.all(16),
+      decoration: _decoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            driver.isEmpty
+                ? tr('Laisser un pourboire ?', 'Leave a tip?', '¿Dejar una propina?')
+                : tr(
+                    'Un pourboire pour $driver ?',
+                    'A tip for $driver?',
+                    '¿Una propina para $driver?',
+                  ),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr(
+              '100 % est versé à votre chauffeur. Facultatif.',
+              '100% goes to your driver. Optional.',
+              'El 100 % va a tu conductor. Opcional.',
+            ),
+            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final p in _TipDriverCard.percentages)
+                chip(
+                  key: ValueKey('tip-percent-$p'),
+                  label:
+                      '$p % · ${_money(_TipDriverCard.amountForPercent(widget.mission.tipBaseMinor, p))}',
+                  isSelected: !_custom && _percent == p,
+                  onTap: () => setState(() {
+                    _custom = false;
+                    _percent = p;
+                    _error = null;
+                  }),
+                ),
+              chip(
+                key: const ValueKey('tip-custom'),
+                label: tr('Autre montant', 'Other amount', 'Otro monto'),
+                isSelected: _custom,
+                onTap: () => setState(() {
+                  _custom = true;
+                  _percent = null;
+                  _error = null;
+                }),
+              ),
+            ],
+          ),
+          if (_custom) ...[
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('tip-custom-amount'),
+              controller: _amount,
+              enabled: !_busy,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => setState(() => _error = null),
+              decoration: InputDecoration(
+                labelText: tr('Montant (1 \$ à 100 \$)', 'Amount (\$1 to \$100)', 'Monto (1 \$ a 100 \$)'),
+                suffixText: r'$',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                isDense: true,
+              ),
+            ),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              key: const ValueKey('tip-error'),
+              style: const TextStyle(
+                fontSize: 12.5,
+                color: AppColors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              key: const ValueKey('tip-send'),
+              onPressed: canSend ? _send : null,
+              child: _busy
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Text(
+                      selected != null && (!_custom || _validCustom)
+                          ? tr(
+                              'Donner ${_money(selected)}',
+                              'Give ${_money(selected)}',
+                              'Dar ${_money(selected)}',
+                            )
+                          : tr('Donner un pourboire', 'Give a tip', 'Dar una propina'),
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

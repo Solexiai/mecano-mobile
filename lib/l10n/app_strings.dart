@@ -1788,6 +1788,16 @@ class AppStrings {
       'en': 'The customer’s card was declined: this delivery is cancelled. You receive 20 \$ from the deposit.',
       'es': 'La tarjeta del cliente fue rechazada: esta entrega se cancela. Usted recibe 20 \$ del depósito.',
     },
+    'notif_driver_tip_received_title': {
+      'fr': 'Pourboire reçu 🎉',
+      'en': 'Tip received 🎉',
+      'es': 'Propina recibida 🎉',
+    },
+    'notif_driver_tip_received_body': {
+      'fr': 'Un client vous a laissé un pourboire. Il est versé à 100 % sur votre compte Stripe (Revenus › Virements Stripe).',
+      'en': 'A customer left you a tip. It is paid 100% to your Stripe account (Earnings › Stripe transfers).',
+      'es': 'Un cliente le dejó una propina. Se paga al 100 % en su cuenta Stripe (Ganancias › Transferencias Stripe).',
+    },
     'notif_document_expiring_soon_title': {
       'fr': 'Document bientôt expiré',
       'en': 'Document expiring soon',
@@ -4068,6 +4078,11 @@ class AppStrings {
       'en': 'Mission fee',
       'es': 'Cargo de misión',
     },
+    'payout_transfer_tip_purpose': {
+      'fr': 'Pourboire du client 🎉',
+      'en': 'Customer tip 🎉',
+      'es': 'Propina del cliente 🎉',
+    },
     'payout_transfer_captured_at': {
       'fr': 'Encaissé le',
       'en': 'Collected on',
@@ -4307,6 +4322,16 @@ class AppStrings {
       'fr': 'Dépôt de réservation',
       'en': 'Booking deposit',
       'es': 'Depósito de reserva',
+    },
+    'admin_payments_kind_tip': {
+      'fr': 'Pourboire',
+      'en': 'Tip',
+      'es': 'Propina',
+    },
+    'admin_payments_tip_explained': {
+      'fr': 'Pourboire laissé par le client après la livraison : débité sur sa carte et viré à 100 % au chauffeur. Les frais Stripe sont payés par Movi-K.',
+      'en': 'Tip left by the customer after the delivery: charged to the card and paid 100% to the driver. Stripe fees are paid by Movi-K.',
+      'es': 'Propina dejada por el cliente después de la entrega: cobrada a la tarjeta y pagada al 100 % al conductor. Movi-K paga las comisiones de Stripe.',
     },
     'admin_payments_kind_mission_fee': {
       'fr': 'Frais d\'annulation ou de déplacement',

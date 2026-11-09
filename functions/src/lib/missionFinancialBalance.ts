@@ -22,7 +22,7 @@
 //
 // 🔒 Appelée par : captureMissionPayment (après capture), refundPayment
 // (après application du résultat), submitDriverPayout (après paiement),
-// recordTip (après ajout pourboire), createLedgerEntry (ajustement manuel).
+// recordTip / tipDriver (après ajout pourboire), createLedgerEntry (ajustement manuel).
 // Toujours HORS ou APRÈS la transaction principale — un recalcul peut lire
 // plusieurs collections, donc n'est jamais fait DANS la transaction qui
 // vient d'écrire le mouvement source (éviter tout risque de lecture

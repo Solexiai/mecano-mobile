@@ -241,7 +241,11 @@ class _PaymentSummaryCard extends StatelessWidget {
           if (view.isDeposit) ...[
             const SizedBox(height: 10),
             Text(
-              t('admin_payments_deposit_explained'),
+              t(
+                view.isTip
+                    ? 'admin_payments_tip_explained'
+                    : 'admin_payments_deposit_explained',
+              ),
               style: const TextStyle(
                 fontSize: 12.5,
                 color: AppColors.textSecondary,

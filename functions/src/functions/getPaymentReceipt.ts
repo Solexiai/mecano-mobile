@@ -46,7 +46,9 @@ export const getPaymentReceipt = onCall<GetPaymentReceiptRequest>(
       .get();
     const charged = payments.docs
       .map((d) => d.data() as PaymentDoc)
-      .filter((p) => RECEIPT_STATUSES.includes(p.status) &&
+      // Le pourboire (2026-11-09) a son propre reçu Stripe : le reçu de la
+      // livraison reste celui du paiement de la livraison.
+      .filter((p) => p.purpose !== "tip" && RECEIPT_STATUSES.includes(p.status) &&
         typeof p.provider_charge_id === "string" && p.provider_charge_id.length > 0)
       .sort((a, b) => (b.captured_at?.toMillis() ?? 0) - (a.captured_at?.toMillis() ?? 0));
     const payment = charged[0];

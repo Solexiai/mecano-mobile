@@ -23,6 +23,7 @@ PaymentInfo _payment({
   String? feeKind,
   String? environment = 'test',
   String? connectedAccount,
+  String? purpose,
 }) {
   return PaymentInfo(
     paymentId: id,
@@ -40,6 +41,7 @@ PaymentInfo _payment({
     feeKind: feeKind,
     stripeEnvironment: environment,
     connectedAccountId: connectedAccount,
+    purpose: purpose,
     provider: 'stripe',
     createdAt: DateTime(2026, 10, 23, 14, 5),
     updatedAt: DateTime(2026, 10, 23, 14, 5),
@@ -75,6 +77,25 @@ void main() {
       expect(view.releasedMinor, 0);
       expect(view.platformShareMinor, 500);
       expect(view.driverShareMinor, 2500);
+    });
+
+    test('pourboire : débité tout de suite, 100 % au chauffeur, ni frais ni livraison', () {
+      final view = AdminPaymentView(
+        _payment(
+          authorized: 0,
+          captured: 945,
+          service: 945,
+          purpose: 'tip',
+          connectedAccount: 'acct_123',
+        ),
+      );
+      expect(view.kind, AdminPaymentKind.tip);
+      expect(view.isTip, isTrue);
+      expect(view.isFee, isFalse);
+      expect(view.isDeposit, isTrue); // jamais de blocage affiché
+      expect(view.matches(AdminPaymentKindFilter.fees), isFalse);
+      expect(view.driverShareMinor, 945);
+      expect(AppStrings.t(adminPaymentKindKey(view.kind), 'fr'), 'Pourboire');
     });
 
     test('ancien paiement de frais sans fee_kind : libellé générique', () {

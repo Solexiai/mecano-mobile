@@ -35,6 +35,7 @@ export function buildDriverTransferDoc(paymentId: string, payment: PaymentDoc): 
     net_minor: share.netMinor,
     status,
     capture_purpose: payment.capture_purpose ?? null,
+    purpose: payment.purpose === "tip" ? "tip" : null,
     captured_at: payment.captured_at ?? null,
     stripe_environment: payment.stripe_environment ?? null,
     updated_at: admin.firestore.Timestamp.now(),

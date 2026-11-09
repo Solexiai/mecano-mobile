@@ -91,6 +91,20 @@ describe("StripeProvider.chargeSavedPaymentMethod (PAY-03)", () => {
       { idempotencyKey: "captureRetry:pay_1:2" }
     );
   });
+
+  it("pourboire : vers le chauffeur sans frais de plateforme (paramètre omis, Stripe refuse 0)", async () => {
+    const create = jest.fn().mockResolvedValue({ id: "pi_tip_1", status: "succeeded", amount_received: 630, latest_charge: "ch_tip_1" });
+    const provider = new StripeProvider("sk_test_unit_only", "");
+    (provider as unknown as { stripe: { paymentIntents: { create: typeof create } } }).stripe = { paymentIntents: { create } };
+    await provider.chargeSavedPaymentMethod({
+      providerCustomerId: "cus_1", providerPaymentMethodId: "pm_1", amountMinor: 630, currency: "CAD",
+      connectedAccountId: "acct_1", applicationFeeMinor: 0, idempotencyKey: "driverTip:tip_m1:1",
+      metadata: { movik_purpose: "driver_tip" },
+    });
+    const params = create.mock.calls[0][0] as Stripe.PaymentIntentCreateParams;
+    expect(params.transfer_data).toEqual({ destination: "acct_1" });
+    expect(params).not.toHaveProperty("application_fee_amount");
+  });
 });
 
 describe("StripeProvider.createDriverAccount (PAY-14)", () => {
