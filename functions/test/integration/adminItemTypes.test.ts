@@ -24,7 +24,7 @@ test('get: saved types as saved (normalized), new types as the proposal', async 
   await ref.set({ approved: true, capacities, photo_intake: { enabled: true, version: 'old',
     category_vehicle_categories: { sofa: ['pickupTruck'], materials: ['cube_truck', 'unknown'] } } });
   const result = (await adminItemTypes.run(call({ action: 'get' }))) as any;
-  expect(result).toMatchObject({ configured: true, photoIntakeEnabled: true, vehicles: ['pickup_truck', 'cargo_van', 'cube_truck'] });
+  expect(result).toMatchObject({ configured: true, photoIntakeEnabled: true, vehicles: ['pickup_truck', 'cargo_van', 'cube_truck', 'suv'] });
   const byType = Object.fromEntries(result.types.map((t: any) => [t.category, t]));
   expect(byType.sofa).toEqual({ category: 'sofa', vehicles: ['pickup_truck'], saved: true });
   expect(byType.materials).toEqual({ category: 'materials', vehicles: ['cube_truck'], saved: true });

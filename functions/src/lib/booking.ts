@@ -241,7 +241,7 @@ export function bookingHandling(load: BookingLoad, rules: BookingRules) {
 /** Eligibility to inspect a photo offer is NOT a verified vehicle fit. */
 export function eligibleForPhotoReview(load: BookingLoad, c: Capacity): boolean {
   if (load.intake_mode !== 'photo_assisted' || !validCapacity(c) ||
-    !['pickup_truck', 'cargo_van', 'cube_truck'].includes(normalizeVehicleCategory(c.category))) return false;
+    !['pickup_truck', 'cargo_van', 'cube_truck', 'suv'].includes(normalizeVehicleCategory(c.category))) return false;
   if (!load.items.length || load.items.some(i => !isCompletePhotoItem(i))) return false;
   if (load.handlers > c.handlers || load.equipment.some(e => !c.equipment.includes(e))) return false;
   if ((load.pickup.help || load.dropoff.help) && !c.services.includes('handling')) return false;
@@ -295,7 +295,7 @@ function recommendPhoto(load: BookingLoad, rules: BookingRules) {
     if (item.identification_confirmed === true && item.photos.length && !isCompletePhotoItem(item)) reasons.push('object_category_required');
     const mapped = policy?.category_vehicle_categories?.[item.category];
     if (!Array.isArray(mapped) || !mapped.length || mapped.some(x => typeof x !== 'string' ||
-      !['pickup_truck','cargo_van','cube_truck'].includes(normalizeVehicleCategory(x)))) reasons.push('photo_category_unconfigured');
+      !['pickup_truck','cargo_van','cube_truck','suv'].includes(normalizeVehicleCategory(x)))) reasons.push('photo_category_unconfigured');
   }
   const compatible = reasons.length ? [] : rules.capacities.filter(c => eligibleForPhotoReview(load,c) &&
     load.items.every(i => policy!.category_vehicle_categories[i.category].some(x => normalizeVehicleCategory(x) === normalizeVehicleCategory(c.category))))

@@ -352,7 +352,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             spacing: 8,
             runSpacing: 8,
             children:
+                // 2026-11-09 : + VUS (colis, boîtes, table, chaises,
+                // commode ; pas d'électroménager ni de sectionnel — réglé
+                // par l'admin dans Quoi ?).
                 const [
+                      VehicleCategory.suv,
                       VehicleCategory.pickupTruck,
                       VehicleCategory.cargoVan,
                       VehicleCategory.cubeTruck,
@@ -760,6 +764,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         _payloadController.text.trim().replaceAll(',', '.'),
       );
       return const [
+            VehicleCategory.suv,
             VehicleCategory.pickupTruck,
             VehicleCategory.cargoVan,
             VehicleCategory.cubeTruck,

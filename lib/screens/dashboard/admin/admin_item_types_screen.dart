@@ -24,6 +24,7 @@ const _vehicleLabels = {
   'pickup_truck': 'Pickup',
   'cargo_van': 'Fourgonnette',
   'cube_truck': 'Camion cube',
+  'suv': 'VUS',
 };
 
 class AdminItemTypesScreen extends StatelessWidget {
@@ -48,7 +49,7 @@ class _AdminItemTypesPanelState extends State<AdminItemTypesPanel> {
   ItemTypesApi get _api => widget.api ?? _firebaseItemTypesApi;
   final Map<String, Set<String>> _checked = {};
   final Set<String> _unsaved = {};
-  List<String> _vehicles = const ['pickup_truck', 'cargo_van', 'cube_truck'];
+  List<String> _vehicles = const ['pickup_truck', 'cargo_van', 'cube_truck', 'suv'];
   bool _loaded = false, _busy = true, _dirty = false;
   String? _error, _saved;
 

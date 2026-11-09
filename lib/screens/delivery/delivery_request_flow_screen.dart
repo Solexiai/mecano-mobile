@@ -2700,6 +2700,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     'pickupTruck' => tr('Camionnette', 'Pickup truck', 'Camioneta'),
     'box_truck' ||
     'boxTruck' => tr('Camion fermé', 'Box truck', 'Camión cerrado'),
+    'cube_truck' ||
+    'cubeTruck' => tr('Camion cube', 'Cube truck', 'Camión cubo'),
+    'suv' => tr('VUS', 'SUV', 'SUV'),
     _ => v.replaceAll('_', ' '),
   };
   String get _contactPhoneHint => tr(
