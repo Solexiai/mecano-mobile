@@ -93,6 +93,15 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   /// considéré comme "adresse valide" — toute divergence invalide.
   String? _lastResolvedText;
 
+  /// 2026-11-09 : la suggestion choisie était une RUE sans numéro de porte
+  /// (« Rue de Candiac, Granby ») — Google ne renvoie alors pas de code
+  /// postal et la réservation ne peut pas aller plus loin. On garde le texte,
+  /// on marque le champ en erreur et on NE transmet PAS l'adresse au parent
+  /// (il la refuserait avec un message trompeur). Effacé dès que le client
+  /// retape.
+  bool _imprecise = false;
+  String? _impreciseText;
+
   Timer? _debounceTimer;
 
   AddressAutocompleteProvider get _effectiveProvider =>
@@ -123,6 +132,9 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
 
   void _onTextChanged() {
     final text = widget.controller.text;
+    if (_imprecise && text != _impreciseText) {
+      setState(() => _imprecise = false);
+    }
 
     // Le texte correspond EXACTEMENT à la dernière adresse résolue (ex:
     // vient d'être positionné par _selectSuggestion) : rien à faire, ni
@@ -193,6 +205,18 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
       // SYNCHRONE, donc `_onTextChanged` doit déjà voir la nouvelle valeur
       // comme "résolue" pour ne pas déclencher une invalidation immédiate
       // de la résolution qu'on vient d'obtenir.
+      if (resolved.postalCode.trim().isEmpty) {
+        // Rue entière, quartier ou ville : pas assez précis pour livrer.
+        _lastResolvedText = null;
+        _impreciseText = resolved.formattedAddress;
+        widget.controller.text = resolved.formattedAddress;
+        setState(() {
+          _status = _SuggestionStatus.idle;
+          _imprecise = true;
+        });
+        widget.onInvalidated();
+        return;
+      }
       _lastResolvedText = resolved.formattedAddress;
       widget.controller.text = resolved.formattedAddress;
       setState(() => _status = _SuggestionStatus.idle);
@@ -217,10 +241,12 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           controller: widget.controller,
           decoration: InputDecoration(
             labelText: widget.label,
-            helperText: _lastResolvedText == null
+            helperText: _lastResolvedText == null && !_imprecise
                 ? t('delivery_address_guidance')
                 : null,
             helperMaxLines: 2,
+            errorText: _imprecise ? t('delivery_address_needs_number') : null,
+            errorMaxLines: 3,
             suffixIcon:
                 _status == _SuggestionStatus.loading ||
                     _status == _SuggestionStatus.resolving

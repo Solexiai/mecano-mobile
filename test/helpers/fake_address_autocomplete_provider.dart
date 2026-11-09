@@ -47,6 +47,10 @@ class FakeAddressAutocompleteProvider implements AddressAutocompleteProvider {
   /// adresse pour laquelle le fournisseur ne trouve aucune suggestion).
   bool emptySuggestions = false;
 
+  /// Si vrai, la suggestion résolue est une RUE sans numéro de porte : pas
+  /// de code postal (2026-11-09, « Rue de Candiac, Granby »).
+  bool streetOnly = false;
+
   int searchCallCount = 0;
   int resolveCallCount = 0;
 
@@ -73,7 +77,7 @@ class FakeAddressAutocompleteProvider implements AddressAutocompleteProvider {
       street: query,
       city: 'FakeVille',
       region: 'QC',
-      postalCode: 'H0H 0H0',
+      postalCode: streetOnly ? '' : 'H0H 0H0',
       country: 'Canada',
       lat: 45.0 + hash / 10000,
       lng: -73.0 - hash / 10000,

@@ -1483,9 +1483,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         key: const ValueKey('booking-next-where'),
         why: !_addressesValid
             ? tr(
-                'Choisissez les deux adresses dans les suggestions.',
-                'Choose both addresses from the suggestions.',
-                'Elige ambas direcciones en las sugerencias.',
+                'Choisissez les deux adresses dans les suggestions, avec le numéro de porte.',
+                'Choose both addresses from the suggestions, with the street number.',
+                'Elige ambas direcciones en las sugerencias, con el número de puerta.',
               )
             : tr(
                 'Répondez à la question sur les escaliers pour chaque adresse.',
