@@ -46,7 +46,8 @@ void main() {
 
     // Le client retape : l'erreur disparaît.
     await tester.enterText(find.byType(TextField), '150 Rue de Candiac');
-    await tester.pump();
+    // L'InputDecorator anime la disparition du texte d'erreur.
+    await tester.pumpAndSettle();
     expect(find.textContaining('numéro de porte'), findsNothing);
   });
 
