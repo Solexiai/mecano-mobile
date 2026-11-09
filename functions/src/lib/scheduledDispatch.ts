@@ -4,6 +4,8 @@ import { readSchedulingPolicy, missionRequestedAt, locationInDriverZone, prepare
 import { driverServesMissionCategory } from './vehicleCategory';
 import { isPilotUser, isRuntimeFlagEnabled, RuntimeFlagKeys } from './runtimeFlags';
 import { sendDeliveryOfferPush } from './pushNotifications';
+import { OfferCompensationPreview, previewOfferCompensations } from './offerCompensationPreview';
+import { DeliveryMissionDoc } from './types';
 /** Return false only when the existing dispatch path remains applicable. */
 export async function dispatchScheduledMission(missionId: string): Promise<boolean> {
     const policy = await readSchedulingPolicy();
@@ -31,6 +33,7 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
     const candidateQuery = db.collection('driver_profiles').where('status', '==', 'approved').where('online_status', '==', 'online').orderBy(admin.firestore.FieldPath.documentId()).limit(200);
     const candidates = await (typeof m.dispatch_candidate_cursor === 'string' ? candidateQuery.startAfter(m.dispatch_candidate_cursor) : candidateQuery).get();
     const ids = candidates.docs.map(d => d.id);
+    let compensations = new Map<string, OfferCompensationPreview | null>();
     const winners = await db.runTransaction(async (tx) => {
         const current = (await tx.get(ref)).data();
         const p = await readSchedulingPolicy(tx);
@@ -70,15 +73,18 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
             }
             eligible.push(uid);
         }
+        // 2026-11-09 : part du chauffeur connue dès l'offre (lectures avant écritures).
+        compensations = await previewOfferCompensations(tx, current as Pick<DeliveryMissionDoc, 'active_quote_id'>, eligible);
         const stamp = admin.firestore.Timestamp.now(), expires = admin.firestore.Timestamp.fromMillis(stamp.toMillis() + 45000);
         for (const uid of eligible) {
+            const preview = compensations.get(uid) ?? null;
             const offer = db.doc('delivery_offers/' + missionId + '_' + round + '_' + uid);
             tx.set(offer, { mission_id: missionId, driver_id: uid, offered_at: stamp, expires_at: expires, status: 'pending', round,
-                duration_status: 'driver_confirmation_required', scheduling_policy_version: policy.version });
+                duration_status: 'driver_confirmation_required', scheduling_policy_version: policy.version, ...(preview ?? {}) });
             const notification = db.doc('users/' + uid + '/notifications/delivery_offer_' + missionId);
             tx.set(notification, { id: notification.id, type: 'delivery_offer', title_key: 'notif_delivery_offer_title',
                 body_key: 'notif_delivery_offer_body', is_read: false, created_at: stamp, related_mission_id: missionId,
-                metadata: { offer_id: offer.id, expires_at: expires } });
+                metadata: { offer_id: offer.id, expires_at: expires, ...(preview ? { driver_offer_amount: preview.driver_offer_amount } : {}) } });
         }
         tx.update(ref, { status: eligible.length ? 'offered' : 'searching_driver', dispatch_round: round,
             offered_driver_ids: eligible, offered_until: expires,
@@ -88,6 +94,7 @@ export async function dispatchScheduledMission(missionId: string): Promise<boole
             dispatch_next_attempt_at: admin.firestore.Timestamp.fromMillis(stamp.toMillis() + 60000) });
         return eligible;
     });
-    await Promise.all(winners.map(driverId => sendDeliveryOfferPush({ driverId, missionId, expiresAtMillis: Date.now() + 45000 })));
+    await Promise.all(winners.map(driverId => sendDeliveryOfferPush({ driverId, missionId, expiresAtMillis: Date.now() + 45000,
+        driverOfferAmount: compensations.get(driverId)?.driver_offer_amount ?? null })));
     return true;
 }

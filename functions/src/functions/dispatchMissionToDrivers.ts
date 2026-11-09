@@ -31,6 +31,7 @@ import {
   startFinancialOperationTimer,
 } from "../lib/observability";
 import { sendDeliveryOfferPush } from "../lib/pushNotifications";
+import { OfferCompensationPreview, previewOfferCompensations } from "../lib/offerCompensationPreview";
 import { driverServesMissionCategory } from "../lib/vehicleCategory";
 import { driverWithinDispatchRadius, pickupPoint } from "../lib/dispatchDistance";
 
@@ -164,6 +165,8 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
   // Chauffeurs déjà sollicités lors d'une ronde précédente : la notification
   // in-app est simplement rafraîchie, sans nouveau push (pas de rafale).
   let alreadyNotified = new Set<string>();
+  // 2026-11-09 : part du chauffeur connue dès l'offre (carte + push).
+  let compensations = new Map<string, OfferCompensationPreview | null>();
   const dispatched = await db.runTransaction(async (tx) => {
     const current = (await tx.get(missionRef)).data();
     if (!current || current.status !== MissionStatuses.SEARCHING_DRIVER || current.driver_id) {
@@ -191,14 +194,22 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
       });
       return false;
     }
+    // Lectures AVANT la première écriture (règle des transactions Firestore).
+    compensations = await previewOfferCompensations(
+      tx,
+      current as Pick<DeliveryMissionDoc, "active_quote_id">,
+      offered.map((d) => d.id)
+    );
     for (const driverDoc of offered) {
       const offerRef = db.collection("delivery_offers").doc();
+      const preview = compensations.get(driverDoc.id) ?? null;
       tx.set(offerRef, {
         mission_id: missionId,
         driver_id: driverDoc.id,
         offered_at: now,
         expires_at: expiresAt,
         status: "pending",
+        ...(preview ? preview : {}),
       });
 
       // Notification in-app créée DANS LA MÊME transaction que l'offre : si le commit
@@ -222,6 +233,7 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
         metadata: {
           offer_id: offerRef.id,
           expires_at: expiresAt,
+          ...(preview ? { driver_offer_amount: preview.driver_offer_amount } : {}),
         },
       });
     }
@@ -262,6 +274,7 @@ export async function dispatchMission(missionId: string, mission: DeliveryMissio
         driverId: driverDoc.id,
         missionId,
         expiresAtMillis: expiresAt.toMillis(),
+        driverOfferAmount: compensations.get(driverDoc.id)?.driver_offer_amount ?? null,
       })
     )
   );

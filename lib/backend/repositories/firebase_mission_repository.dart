@@ -233,6 +233,19 @@ class FirebaseMissionRepository implements MissionRepository {
               .toSet()
               .toList();
           if (missionIds.isEmpty) return <DeliveryMission>[];
+          // 2026-11-09 : la part du chauffeur est calculée dès l'offre côté
+          // serveur (`delivery_offers.driver_offer_amount`) ; la mission, elle,
+          // garde 0 jusqu'à l'acceptation. On la reporte sur la mission
+          // affichée pour que la carte montre le montant tout de suite.
+          final offerAmounts = <String, double>{};
+          for (final d in offerSnap.docs) {
+            final data = d.data();
+            final missionId = data['mission_id'] as String?;
+            final amount = (data['driver_offer_amount'] as num?)?.toDouble();
+            if (missionId != null && amount != null && amount > 0) {
+              offerAmounts[missionId] = amount;
+            }
+          }
 
           // Firestore whereIn est limité à 30 valeurs — les lots de dispatch
           // sont bornés à MAX_CANDIDATE_DRIVERS/mission côté serveur, mais un
@@ -248,7 +261,15 @@ class FirebaseMissionRepository implements MissionRepository {
                 .where(FieldPath.documentId, whereIn: batchIds)
                 .get();
             for (final d in batchSnap.docs) {
-              final mission = DeliveryMission.fromJson(d.id, d.data());
+              final raw = d.data();
+              final offerAmount = offerAmounts[d.id];
+              final current = (raw['driver_offer_amount'] as num?)?.toDouble() ?? 0;
+              final mission = DeliveryMission.fromJson(
+                d.id,
+                offerAmount != null && current <= 0
+                    ? {...raw, 'driver_offer_amount': offerAmount}
+                    : raw,
+              );
               if (mission.isOpenForAcceptance) missions.add(mission);
             }
           }
