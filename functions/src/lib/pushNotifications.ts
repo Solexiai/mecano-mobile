@@ -390,12 +390,25 @@ export async function sendDeliveryOfferPush(params: {
             type: "delivery_offer",
             missionId,
             target: "driver_jobs",
+            offerExpiresAt: String(expiresAtMillis),
+            ...(typeof driverOfferAmount === "number" && driverOfferAmount > 0
+              ? { driverOfferAmount: driverOfferAmount.toFixed(2) }
+              : {}),
           },
           android: {
             priority: "high",
             ttl: remainingMs,
             notification: {
-              sound: "default",
+              // 2026-11-09 — offre « qui sonne » : canal Android dédié créé
+              // par l'app (MainActivity.kt) avec le son Movi-K, une vibration
+              // longue et la visibilité sur l'écran verrouillé. Une app plus
+              // ancienne sans ce canal retombe sur le canal par défaut.
+              channelId: "movik_delivery_offers",
+              sound: "movik_offer",
+              priority: "max",
+              visibility: "public",
+              defaultVibrateTimings: false,
+              vibrateTimingsMillis: [0, 600, 300, 600, 300, 900],
               tag: `delivery-offer-${missionId}`,
             },
           },

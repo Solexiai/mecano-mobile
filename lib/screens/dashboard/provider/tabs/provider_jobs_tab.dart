@@ -23,7 +23,9 @@ import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import '../../../../services/driver_live_position.dart';
+import '../../../../services/driver_offer_alerts.dart';
 import '../widgets/driver_home_hero.dart';
+import '../widgets/driver_offer_alert.dart';
 
 /// Onglet "Accueil" du chauffeur : résumé (prochaine mission, gains de la
 /// semaine) puis les demandes disponibles.
@@ -66,6 +68,12 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
   final Set<String> _accepting = {};
   final Set<String> _declining = {};
   final Set<String> _declined = {};
+
+  // Offre « qui sonne » (2026-11-09) : offres déjà annoncées en plein écran
+  // pendant cette session (une seule fois chacune), et écran ouvert ou non.
+  final Set<String> _alerted = {};
+  bool _alertOpen = false;
+  List<DeliveryMission> _lastOffers = const [];
   final Map<String, String> _acceptErrors = {};
 
   // 🔒 BUG-FIX (Phase 7, Bloc C item 3) : ne JAMAIS instancier un Stream
@@ -368,6 +376,47 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
     );
   }
 
+  /// Annonce en plein écran (son + vibration) la plus récente offre encore
+  /// jamais annoncée, si le chauffeur est en service. Appelé après chaque
+  /// mise à jour de la liste des demandes ; les choix réutilisent les
+  /// chemins d'acceptation et de refus existants.
+  Future<void> _maybeAlert(String driverId) async {
+    if (!DriverOfferAlerts.enabled || _alertOpen || !mounted) return;
+    if (widget.profile?.onlineStatus != DriverOnlineStatus.online) return;
+    final now = DateTime.now();
+    DeliveryMission? next;
+    for (final m in _lastOffers) {
+      if (_alerted.contains(m.id) || _declined.contains(m.id) || _accepting.contains(m.id)) continue;
+      final exp = m.offerExpiresAt;
+      if (exp != null && !exp.isAfter(now)) continue;
+      next = m;
+      break;
+    }
+    if (next == null) return;
+    final mission = next;
+    _alerted.add(mission.id);
+    _alertOpen = true;
+    final t = context.read<LocaleProvider>().t;
+    DriverOfferAlertChoice choice;
+    try {
+      choice = await showDriverOfferAlert(context, mission: mission, t: t);
+    } finally {
+      _alertOpen = false;
+    }
+    if (!mounted) return;
+    switch (choice) {
+      case DriverOfferAlertChoice.accept:
+        await _accept(mission, driverId);
+      case DriverOfferAlertChoice.decline:
+        await _decline(mission, driverId);
+      case DriverOfferAlertChoice.details:
+      case DriverOfferAlertChoice.expired:
+        break;
+    }
+    // Une autre offre est peut-être arrivée pendant ce temps.
+    if (mounted) unawaited(_maybeAlert(driverId));
+  }
+
   Future<void> _decline(DeliveryMission mission, String driverId) async {
     if (_accepting.contains(mission.id)) return;
     setState(() {
@@ -578,6 +627,13 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
                   final missions = (snapshot.data ?? const <DeliveryMission>[])
                       .where((m) => !_declined.contains(m.id))
                       .toList();
+                  // Offre « qui sonne » : après l'image, sans rien bloquer.
+                  _lastOffers = missions;
+                  if (DriverOfferAlerts.enabled && missions.isNotEmpty) {
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _maybeAlert(driverId),
+                    );
+                  }
                   if (missions.isEmpty) {
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),

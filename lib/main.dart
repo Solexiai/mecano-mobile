@@ -13,6 +13,7 @@ import 'seo/page_meta.dart';
 import 'seo/page_meta_sync.dart';
 import 'services/app_update/app_update_checker.dart';
 import 'services/app_update/app_version_policy.dart';
+import 'services/driver_offer_alerts.dart';
 import 'services/driver_presence.dart';
 import 'widgets/app_update_gate.dart';
 import 'core/app_theme.dart';
@@ -49,6 +50,9 @@ Future<void> main() async {
   // aucun projet réel n'est encore configuré (voir backend_bootstrap.dart).
   final backendStatus = await BackendBootstrap.initialize();
 
+  // 2026-11-09 : offre « qui sonne » (écran plein écran + sonnerie) pour les
+  // chauffeurs en service. Désactivée par défaut dans les tests.
+  DriverOfferAlerts.enabled = true;
   runApp(MovikApp(backendStatus: backendStatus));
 
   // Web only: the HTML language, title and description follow the address
