@@ -765,6 +765,11 @@ class AppStrings {
     // champ d'adresse avec suggestions. `delivery_lat`/`delivery_lng`/
     // `delivery_coordinates_note` (SUPPRIMÉS) exposaient des données
     // techniques que le client ne doit jamais voir ni saisir.
+    'delivery_address_needs_number': {
+      'fr': 'Cette adresse n’a pas de numéro de porte. Ajoutez-le (ex. 150 Rue de Candiac) et choisissez la suggestion complète.',
+      'en': 'This address has no street number. Add it (e.g. 150 Rue de Candiac) and pick the full suggestion.',
+      'es': 'Esta dirección no tiene número de puerta. Agréguelo (p. ej. 150 Rue de Candiac) y elija la sugerencia completa.',
+    },
     'delivery_address_guidance': {
       'fr':
           'Commencez à saisir une adresse et sélectionnez-la dans les suggestions.',
