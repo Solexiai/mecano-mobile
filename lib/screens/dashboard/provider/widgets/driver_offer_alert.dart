@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../backend/models/delivery_mission.dart';
 import '../../../../core/app_colors.dart';
+import '../../../../models/enums.dart';
 import '../../../../services/driver_offer_alerts.dart';
 
 enum DriverOfferAlertChoice { accept, decline, details, expired }
@@ -122,7 +123,7 @@ class _DriverOfferAlertState extends State<DriverOfferAlert> {
     final hasAmount = m.driverOfferAmount > 0;
     final left = _remaining;
     final exp = _expiresAt;
-    final total = exp == null ? null : exp.difference(_shownAt);
+    final total = exp?.difference(_shownAt);
     final progress = (left == null || total == null || total.inMilliseconds <= 0)
         ? null
         : (left.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0);
