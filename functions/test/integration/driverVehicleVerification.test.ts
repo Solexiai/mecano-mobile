@@ -52,7 +52,8 @@ test.each(['customer','driver'])('%s cannot verify its own vehicle', async role 
 test('unapproved profile cannot be verified', async () => {
   await expect(review()).rejects.toMatchObject({code:'failed-precondition'});
 });
-test.each(['car','suv','trailer'])('%s is not a pilot vehicle', async category => {
+// 2026-11-09 : le VUS est devenu un véhicule du pilote (décision Daniel).
+test.each(['car','minivan','trailer'])('%s is not a pilot vehicle', async category => {
   await approve(); await ref().update({category}); identity.category=category;
   await expect(review()).rejects.toMatchObject({code:'failed-precondition'});
 });
