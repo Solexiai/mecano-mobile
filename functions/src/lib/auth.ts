@@ -77,13 +77,21 @@ export function isSuperAdmin(ctx: AuthContext): boolean {
  * l'inscription ouverte et obtenir des missions sans paiement, hors
  * interrupteurs et hors pause. Le compte de test interne est désormais un
  * custom claim Firebase Auth (`internal_tester: true`) que seul un
- * super_admin peut poser via `setUserRole`. Un super_admin connecté reste
- * lui-même un testeur interne (comportement inchangé).
+ * super_admin peut poser via `setUserRole`. Depuis le 2026-11-09, un
+ * super_admin n'est plus testeur interne d'office : il doit porter le claim.
  */
 export const INTERNAL_TESTER_CLAIM = "internal_tester";
 
+/**
+ * 2026-11-09 (Daniel : « je suis en mode vrai, je ne veux pas voir ça ») :
+ * seul le claim `internal_tester` fait un testeur interne. Un super_admin
+ * n'en est PLUS un d'office — sinon le fondateur ne pouvait jamais faire
+ * une vraie réservation payée depuis son propre compte. Pour tester sans
+ * paiement, l'admin active « Testeur interne » sur le compte voulu (Admin ›
+ * Utilisateurs), puis se reconnecte pour rafraîchir son jeton.
+ */
 export function isInternalTester(ctx: AuthContext): boolean {
-  return ctx.internalTester === true || isSuperAdmin(ctx);
+  return ctx.internalTester === true;
 }
 
 export function requireAnalystOrAbove(ctx: AuthContext): void {

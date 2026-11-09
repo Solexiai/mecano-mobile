@@ -32,7 +32,9 @@ import { buildPricingConfig } from './fixtures';
 
 const uid = 'synthetic-price-customer';
 const driverId = 'synthetic-driver';
-const auth = (role = 'customer', user = uid) => ({ uid: user, token: { role, email_verified: true } });
+// 2026-11-09 : un super_admin n'est plus testeur interne d'office ; dans ce
+// scénario (réservations internes sans paiement) il porte le claim.
+const auth = (role = 'customer', user = uid) => ({ uid: user, token: { role, email_verified: true, ...(role === 'super_admin' ? { internal_tester: true } : {}) } });
 const stops = [
   { type: 'pickup', address: { line1: 'Synthetic pickup', city: 'Granby', postal_code: 'J2G1A1', lat: 45.4, lng: -72.7 } },
   { type: 'dropoff', address: { line1: 'Synthetic dropoff', city: 'Granby', postal_code: 'J2G1A2', lat: 45.41, lng: -72.71 } },
@@ -156,11 +158,13 @@ test('driver cannot commercialize a price-only mission with a false internal aut
   await expect(acceptDelivery.run({ auth: auth('driver', driverId), data: { missionId: created.missionId } } as any)).rejects.toMatchObject({ code: 'failed-precondition' });
   expect(createAndAuthorizeMissionPayment).not.toHaveBeenCalled();
 });
-test('internal test button capability is returned only for existing server-authorized roles', async () => {
+test('internal test button capability is returned only for the internal_tester claim (never by role alone)', async () => {
   const guest = await getBookingConfiguration.run({ data: {} } as any);
   const customer = await getBookingConfiguration.run({ auth: auth(), data: {} } as any);
-  const admin = await getBookingConfiguration.run({ auth: auth('super_admin'), data: {} } as any);
-  expect(guest.internal_test_request).toBe(false); expect(customer.internal_test_request).toBe(false); expect(admin.internal_test_request).toBe(true);
+  const tester = await getBookingConfiguration.run({ auth: auth('super_admin'), data: {} } as any);
+  const plainSuperAdmin = await getBookingConfiguration.run({ auth: { uid, token: { role: 'super_admin', email_verified: true } }, data: {} } as any);
+  expect(guest.internal_test_request).toBe(false); expect(customer.internal_test_request).toBe(false);
+  expect(tester.internal_test_request).toBe(true); expect(plainSuperAdmin.internal_test_request).toBe(false);
 });
 
 test('price-first internal requests never broadcast automatic offers on creation or reopening', async () => {

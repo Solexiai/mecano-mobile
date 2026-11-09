@@ -437,7 +437,10 @@ describe("createDeliveryRequest — démonstration interne autorisée", () => {
     ).rejects.toThrow();
   });
 
-  it("crée une mission internal_test sans carte pour un super_admin en superlogin", async () => {
+  // 2026-11-09 : un super_admin SANS claim fait une réservation réelle, comme
+  // n'importe quel client — ici refusée par l'interrupteur fermé, preuve
+  // qu'il n'est plus en mode test d'office.
+  it("un super_admin sans claim internal_tester réserve comme un vrai client (interrupteur fermé => refus)", async () => {
     await seedRuntimeFlags({
       accept_new_delivery_requests: false,
       allow_driver_acceptance: false,
@@ -445,20 +448,14 @@ describe("createDeliveryRequest — démonstration interne autorisée", () => {
     });
     await seedQuote();
 
-    const result = await createDeliveryRequest.run(
-      buildRequest(
-        CUSTOMER_ID,
-        { quoteId: QUOTE_ID, ...baseInput },
-        ["super_admin"]
+    await expect(
+      createDeliveryRequest.run(
+        buildRequest(
+          CUSTOMER_ID,
+          { quoteId: QUOTE_ID, ...baseInput },
+          ["super_admin"]
+        )
       )
-    );
-    createdMissionIds.push(result.missionId);
-
-    const mission = (
-      await db.collection("delivery_requests").doc(result.missionId).get()
-    ).data()!;
-    expect(result.internalTest).toBe(true);
-    expect(mission.assignment_mode).toBe("internal_test");
-    expect(mission.active_financial_snapshot_id).toBeNull();
+    ).rejects.toMatchObject({ code: "failed-precondition" });
   });
 });
