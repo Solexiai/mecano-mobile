@@ -61,7 +61,7 @@ export async function previewOfferCompensations(
 
   for (const driverId of driverIds) {
     try {
-      const compensation = await readDriverOfferCompensation(tx, driverId, locked);
+      const { compensation } = await readDriverOfferCompensation(tx, driverId, locked);
       const amount = compensation.driverOfferAmount;
       if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) continue;
       result.set(driverId, {
