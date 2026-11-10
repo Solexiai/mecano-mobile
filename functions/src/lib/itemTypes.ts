@@ -7,16 +7,31 @@
 // -----------------------------------------------------------------------------
 import { PHOTO_CATEGORIES, PhotoCategory } from './photoIntake';
 
-export const ITEM_VEHICLES = ['pickup_truck', 'cargo_van', 'cube_truck'] as const;
+// 2026-11-09 (Daniel) : le VUS devient un véhicule du pilote. Même prix que
+// les autres (le tarif est uniforme, voir quoteBeforeAssignment) ; il ne
+// transporte que ce que l'admin lui coche : par défaut colis/boîtes, table,
+// chaises, commode — jamais électroménager ni sectionnel (sofa).
+export const ITEM_VEHICLES = ['pickup_truck', 'cargo_van', 'cube_truck', 'suv'] as const;
 export type ItemVehicle = typeof ITEM_VEHICLES[number];
 
-const ALL: ItemVehicle[] = ['pickup_truck', 'cargo_van', 'cube_truck'];
+/** Véhicules « gros volume » : tout type, sauf matériaux pour le fourgon. */
+const TRUCKS: ItemVehicle[] = ['pickup_truck', 'cargo_van', 'cube_truck'];
 
-/** The distribution proposed on 2026-10-26: every type for every vehicle,
- * except construction materials (pickup or cube truck, not a van). Only a
+/** Ce qu'un VUS peut prendre par défaut (décision Daniel 2026-11-09). */
+export const SUV_DEFAULT_ITEMS: readonly PhotoCategory[] = ['boxes', 'table', 'chairs', 'dresser'];
+
+/** The distribution proposed on 2026-10-26 (updated 2026-11-09 with the
+ * SUV): every type for every truck, except construction materials (pickup
+ * or cube truck, not a van); the SUV only for SUV_DEFAULT_ITEMS. Only a
  * suggestion shown in the admin screen until the admin saves it. */
 export const PROPOSED_ITEM_VEHICLES: Record<PhotoCategory, ItemVehicle[]> = Object.fromEntries(
-  PHOTO_CATEGORIES.map((c) => [c, c === 'materials' ? ['pickup_truck', 'cube_truck'] : [...ALL]]),
+  PHOTO_CATEGORIES.map((c) => [
+    c,
+    [
+      ...(c === 'materials' ? ['pickup_truck', 'cube_truck'] : TRUCKS),
+      ...(SUV_DEFAULT_ITEMS.includes(c) ? ['suv'] : []),
+    ],
+  ]),
 ) as Record<PhotoCategory, ItemVehicle[]>;
 
 /** Validates an admin mapping: every catalog type present, only known

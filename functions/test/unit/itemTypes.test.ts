@@ -8,11 +8,25 @@ test('the catalog of item types (2026-10-26)', () => {
   expect([...PHOTO_CATEGORIES]).toEqual(['sofa','armchair','bed','dresser','desk','chairs','table','tv_stand','tv',
     'fridge','freezer','washer','stove','tires','yard_equipment','patio','sport','boxes','materials','other']);
 });
-test('proposal: every vehicle, except no van for construction materials', () => {
+test('proposal: every truck, except no van for construction materials; SUV only for small items (2026-11-09)', () => {
+  const suvItems = ['boxes', 'table', 'chairs', 'dresser'];
   for (const c of PHOTO_CATEGORIES) {
-    expect(PROPOSED_ITEM_VEHICLES[c]).toEqual(c === 'materials' ? ['pickup_truck','cube_truck'] : ['pickup_truck','cargo_van','cube_truck']);
+    const trucks = c === 'materials' ? ['pickup_truck','cube_truck'] : ['pickup_truck','cargo_van','cube_truck'];
+    expect(PROPOSED_ITEM_VEHICLES[c]).toEqual(suvItems.includes(c) ? [...trucks, 'suv'] : trucks);
   }
+  // Jamais de VUS pour l'électroménager ni le sofa (sectionnel).
+  for (const c of ['fridge', 'freezer', 'washer', 'stove', 'sofa']) expect(PROPOSED_ITEM_VEHICLES[c as 'sofa']).not.toContain('suv');
   expect(parseItemVehicles(PROPOSED_ITEM_VEHICLES)).toEqual(PROPOSED_ITEM_VEHICLES);
+});
+
+test('allowedVehicles: the SUV is opt-in — only when every item of the load lists it (2026-11-09)', () => {
+  const boxesOnly = { ...PROPOSED_ITEM_VEHICLES };
+  expect(allowedVehicles(two('boxes', 'chairs'), boxesOnly)).toEqual(['pickup_truck', 'cargo_van', 'cube_truck', 'suv']);
+  expect(allowedVehicles(two('boxes', 'fridge'), boxesOnly)).toEqual(['pickup_truck', 'cargo_van', 'cube_truck']);
+  // Type jamais enregistré : camions oui, VUS non.
+  expect(allowedVehicles(two('boxes', 'tires'), { boxes: ['pickup_truck', 'cargo_van', 'cube_truck', 'suv'] })).toEqual(['pickup_truck', 'cargo_van', 'cube_truck']);
+  // Un objet admis seulement en VUS => seul un VUS le prend.
+  expect(allowedVehicles(two('boxes', 'boxes'), { boxes: ['suv'] })).toEqual(['suv']);
 });
 test('admin mapping is normalized to the vehicle order and may leave a type off', () => {
   expect(parseItemVehicles({ ...PROPOSED_ITEM_VEHICLES, bed: ['cube_truck','pickup_truck'], tires: [] })!.bed).toEqual(['pickup_truck','cube_truck']);

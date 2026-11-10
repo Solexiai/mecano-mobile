@@ -6,7 +6,8 @@ import { Capacity, validCapacity } from '../lib/booking';
 import { failedPrecondition, invalidArgument, notFound } from '../lib/errors';
 import { normalizeVehicleCategory } from '../lib/vehicleCategory';
 
-const CATEGORIES = ['pickup_truck', 'cargo_van', 'cube_truck'];
+// 2026-11-09 : + VUS (rang 0 : le plus petit).
+const CATEGORIES = ['suv', 'pickup_truck', 'cargo_van', 'cube_truck'];
 const DIMENSIONS = ['length_cm', 'width_cm', 'height_cm', 'opening_width_cm', 'opening_height_cm', 'payload_kg'] as const;
 export interface ReviewDriverVehicleRequest {
   driverId: string;
@@ -70,7 +71,7 @@ export const reviewDriverVehicle = onCall<ReviewDriverVehicleRequest>(async requ
     if(input.action==='approve'){
       if(p.status!=='approved' || p.documents_all_valid!==true) throw failedPrecondition('Approuvez les documents du chauffeur avant de vérifier son véhicule.');
       const category=normalizeVehicleCategory(v.category);
-      if(!CATEGORIES.includes(category)) throw failedPrecondition('Le pilote accepte un pick-up, un fourgon cargo ou un camion cube.');
+      if(!CATEGORIES.includes(category)) throw failedPrecondition('Le pilote accepte un VUS, un pick-up, un fourgon cargo ou un camion cube.');
       const documents=await tx.get(db.collection('driver_documents').where('driver_id','==',input.driverId));
       for(const type of ['drivers_licence','vehicle_registration','insurance','identity']){
         const valid=documents.docs.some(d=>{

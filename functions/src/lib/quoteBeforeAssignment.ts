@@ -22,7 +22,13 @@ export interface PreAssignmentQuote {
   /** Calculation basis only: never displayed as a recommended or verified vehicle. */
   tariff_rule_category: string;
 }
-const PILOT_CATEGORIES = ['pickup_truck', 'cargo_van', 'cube_truck'];
+/** Véhicules dont la grille de prix fait foi (tarif uniforme exigé). */
+const PRICED_CATEGORIES = ['pickup_truck', 'cargo_van', 'cube_truck'];
+/** Véhicules pouvant recevoir une demande (2026-11-09 : + VUS, au même prix,
+ * sans ligne de tarif propre — il hérite du tarif uniforme). */
+const PILOT_CATEGORIES = [...PRICED_CATEGORIES, 'suv'];
+/** Véhicule admis seulement si l'admin l'a coché pour CHAQUE objet (jamais par défaut). */
+const OPT_IN_CATEGORIES = ['suv'];
 function refuse(reason: string): never {
   throw new HttpsError('failed-precondition', 'Les informations tarifaires de la demande doivent être précisées.', { quote_reason: reason });
 }
@@ -67,7 +73,7 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
  * If the active tariff stops being uniform, fail explicitly rather than guess a price.
  */
 export function preparePriceBeforeAssignment(load: BookingLoad, config: PricingVersionDoc) {
-  const rules = PILOT_CATEGORIES.map(category => {
+  const rules = PRICED_CATEGORIES.map(category => {
     const matches = config.vehicle_rules.filter(r => normalizeVehicleCategory(r.category) === category);
     if (matches.length !== 1) refuse('pricing_category_required');
     return matches[0];
@@ -77,7 +83,7 @@ export function preparePriceBeforeAssignment(load: BookingLoad, config: PricingV
   // A zero fee needs no physical threshold. Never silently remove a nonzero fee.
   if (config.handling_fees.bulky_item_fee !== 0) refuse('pricing_handling_required');
   const context: PreAssignmentQuote = {
-    version: 1, load, vehicle_assignment: 'pending', tariff_categories: [...PILOT_CATEGORIES], tariff_rule_category: rules[0].category,
+    version: 1, load, vehicle_assignment: 'pending', tariff_categories: [...PRICED_CATEGORIES], tariff_rule_category: rules[0].category,
   };
   return { context, vehicleCategory: rules[0].category, handling: {
     needsLoading: load.pickup.help, needsUnloading: load.dropoff.help,
@@ -114,7 +120,12 @@ export function allowedVehicles(load: BookingLoad, mapping: Record<string, unkno
   let allowed = [...PILOT_CATEGORIES];
   for (const item of load.items) {
     const listed = mapping[item.category];
-    if (!Array.isArray(listed)) continue;
+    if (!Array.isArray(listed)) {
+      // Type jamais enregistré par l'admin : tous les camions, mais pas le
+      // VUS (il doit être coché explicitement).
+      allowed = allowed.filter((v) => !OPT_IN_CATEGORIES.includes(v));
+      continue;
+    }
     const normalized = listed.filter((v): v is string => typeof v === 'string').map(normalizeVehicleCategory);
     if (!normalized.some((v) => PILOT_CATEGORIES.includes(v))) refuse('photo_category_unconfigured');
     allowed = allowed.filter((v) => normalized.includes(v));

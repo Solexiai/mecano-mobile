@@ -466,14 +466,15 @@ void main() {
     }
   }
 
-  testWidgets('pilot vehicle choices are pickup, cargo van and cube only', (
+  testWidgets('pilot vehicle choices are SUV, pickup, cargo van and cube only (SUV added 2026-11-09)', (
     tester,
   ) async {
     await tester.pumpWidget(_app(auth));
     await tester.pumpAndSettle();
     await _completeContactStep(tester);
-    expect(find.byType(ChoiceChip), findsNWidgets(3));
+    expect(find.byType(ChoiceChip), findsNWidgets(4));
     for (final category in [
+      VehicleCategory.suv,
       VehicleCategory.pickupTruck,
       VehicleCategory.cargoVan,
       VehicleCategory.cubeTruck,
