@@ -13,7 +13,7 @@ void main() {
 
   test('date d’inscription : texte ISO ou Timestamp', () {
     expect(userCreatedAt(users[0]), DateTime.utc(2026, 11, 5, 10));
-    expect(userCreatedAt(users[1]), DateTime.utc(2026, 11, 9));
+    expect(userCreatedAt(users[1])!.isAtSameMomentAs(DateTime.utc(2026, 11, 9)), isTrue);
     expect(userCreatedAt(users[2]), isNull);
   });
 
