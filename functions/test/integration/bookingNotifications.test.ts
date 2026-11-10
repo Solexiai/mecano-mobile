@@ -125,10 +125,11 @@ describe("Rappel 4 h avant le ramassage", () => {
     expect(await remindedHere()).toEqual([]);
   });
 
-  it("réservé ou accepté il y a moins de 4 h : pas de rappel (rendez-vous tout frais)", async () => {
+  it("réservé et accepté moins de 4 h avant le ramassage : pas de rappel (rendez-vous tout frais)", async () => {
+    // Ramassage dans 3 h 55 : réservé et accepté il y a 2 min, donc 3 h 57 avant.
     await seedMission({
-      created_at: admin.firestore.Timestamp.fromMillis(Date.now() - HOUR),
-      accepted_at: admin.firestore.Timestamp.fromMillis(Date.now() - 30 * 60_000),
+      created_at: admin.firestore.Timestamp.fromMillis(Date.now() - 2 * 60_000),
+      accepted_at: admin.firestore.Timestamp.fromMillis(Date.now() - 2 * 60_000),
     });
     expect(await remindedHere()).toEqual([]);
   });
