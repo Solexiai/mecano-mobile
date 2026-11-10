@@ -62,9 +62,12 @@ void main() {
         expect(rewrites[index]['destination'], page.file(locale));
       }
     }
+    // Vercel serves the root index.html before any rewrite: the root is a
+    // server redirect to /fr instead (redirects run before files).
+    final redirects = (config['redirects'] as List).cast<Map>();
     expect(
-      rewrites.firstWhere((r) => r['source'] == '/')['destination'],
-      '/seo/fr.html',
+      redirects.firstWhere((r) => r['source'] == '/'),
+      {'source': '/', 'destination': '/fr', 'permanent': false},
     );
     expect(File('web/robots.txt').readAsStringSync(), contains('Disallow: /seo/'));
   });

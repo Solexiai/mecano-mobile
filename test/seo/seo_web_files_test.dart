@@ -68,9 +68,9 @@ List<RegExp> vercelAppRoutes() {
     // Public pages are served from their search-engine copy
     // (tool/build_seo_pages.dart), which boots the same Flutter app.
     final source = rewrite['source'] as String;
-    final page = seoPageForPath(source == '/' ? '/fr' : source);
+    final page = seoPageForPath(source);
     expect(page, isNotNull, reason: source);
-    final locale = seoLocaleForPath(source == '/' ? '/fr' : source)!;
+    final locale = seoLocaleForPath(source)!;
     expect(destination, page!.file(locale), reason: source);
   }
   return rewrites.map((r) => vercelSourceRegExp(r['source'] as String)).toList();

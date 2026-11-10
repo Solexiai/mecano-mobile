@@ -9,10 +9,17 @@
   },
   "buildCommand": "bash scripts/vercel_build.sh",
   "outputDirectory": "build/web",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/fr",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
-      "destination": "/seo/fr.html"
+      "destination": "/index.html"
     },
     {
       "source": "/fr",
