@@ -61,6 +61,12 @@ export const STRIPE_PLATFORM_WEBHOOK_SECRET = defineSecret("STRIPE_PLATFORM_WEBH
  * `processStripeConnectWebhook`. */
 export const STRIPE_CONNECT_WEBHOOK_SECRET = defineSecret("STRIPE_CONNECT_WEBHOOK_SECRET");
 
+/** Clé d'API Resend (courriels Movi-K : réservation confirmée, rappels 4 h —
+ * 2026-11-10). `firebase functions:secrets:set RESEND_API_KEY`. Tant que la
+ * valeur ne commence pas par `re_`, aucun courriel n'est envoyé (les push et
+ * la cloche fonctionnent quand même) — voir lib/transactionalEmail.ts. */
+export const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+
 /**
  * Vrai si une clé Stripe est configurée dans l'environnement d'exécution
  * courant (Secret Manager en production, variable d'env en émulateur de
