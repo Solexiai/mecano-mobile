@@ -30,12 +30,12 @@ void main() {
     final api = TestBookingApi()..createError = StateError('raw-network-error');
     final store = MemoryBookingStorage(testDraft(step: 3, quote: true));
     await pumpBooking(t, storage: store, api: api);
-    await tapBooking(t, 'Confirmer ma demande de livraison');
+    await tapBooking(t, 'Confirmer et payer le dépôt');
     expect(find.textContaining('raw-network-error'), findsNothing);
     expect(store.saved!.data['missionId'], isNull);
     expect(store.saved!.quote!['quoteId'], 'test_quote');
     api.createError = null;
-    await tapBooking(t, 'Confirmer ma demande de livraison');
+    await tapBooking(t, 'Confirmer et payer le dépôt');
     expect(store.saved!.data['missionId'], 'test_mission');
     await disposeBooking(t);
   });

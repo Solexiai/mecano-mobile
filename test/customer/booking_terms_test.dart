@@ -13,7 +13,7 @@ import '../helpers/booking_test_harness.dart';
 const acceptKey = ValueKey('booking-contract-acceptance');
 final confirm = find.widgetWithText(
   FilledButton,
-  'Confirmer ma demande de livraison',
+  'Confirmer et payer le dépôt',
 );
 Future<void> accept(WidgetTester t) async {
   final f = find.byKey(acceptKey);
@@ -40,7 +40,7 @@ void main() {
       await accept(t);
       expect(t.widget<FilledButton>(confirm).onPressed, isNotNull);
       expect(storage.saved!.data['marketing'], false);
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       final payload = api.payloads[api.calls.indexOf('createDeliveryRequest')];
       expect(
         (payload['consent'] as Map)['privacy_presented_version'],
@@ -87,12 +87,12 @@ void main() {
       final storage = MemoryBookingStorage(testDraft(step: 3, quote: true));
       await pumpBooking(t, storage: storage, api: api);
       api.policy = testBookingPolicy(version: 'NEW');
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       expect(api.calls, isNot(contains('createDeliveryRequest')));
       expect(storage.saved!.quote!['quoteId'], 'test_quote');
       expect(t.widget<CheckboxListTile>(find.byKey(acceptKey)).value, false);
       await accept(t);
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       expect(
         (api.payloads[api.calls.indexOf('createDeliveryRequest')]['consent']
             as Map)['contract_hash'],
@@ -121,7 +121,7 @@ void main() {
         'quoteId': 'NEW-QUOTE',
         'customerTotal': 140.0,
       };
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       expect(api.calls, contains('calculateDeliveryQuote'));
       expect(storage.saved!.quote!['quoteId'], 'NEW-QUOTE');
       expect(storage.saved!.data['accepted'], false);
@@ -144,7 +144,7 @@ void main() {
       final storage = MemoryBookingStorage(d);
       await pumpBooking(t, storage: storage, api: api);
       api.quote = {...testQuote(), 'quoteId': 'SAME-PRICE-QUOTE'};
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       expect(api.calls, contains('calculateDeliveryQuote'));
       expect(api.calls, contains('createDeliveryRequest'));
       final created = api.payloads[api.calls.indexOf('createDeliveryRequest')];

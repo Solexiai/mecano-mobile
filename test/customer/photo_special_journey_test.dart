@@ -73,7 +73,7 @@ void main() {
       await t.tap(acceptance);
       await t.pumpAndSettle();
       expect(t.widget<CheckboxListTile>(acceptance).value, isTrue);
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       final sent = api.payloads[api.calls.indexOf('createDeliveryRequest')];
       final sentItem =
           ((sent['booking'] as Map)['items'] as List).single as Map;

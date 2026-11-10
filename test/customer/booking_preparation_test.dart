@@ -57,7 +57,7 @@ void main() {
               .widget<FilledButton>(
                 find.widgetWithText(
                   FilledButton,
-                  'Confirmer ma demande de livraison',
+                  'Confirmer et payer le dépôt',
                 ),
               )
               .onPressed,
@@ -128,7 +128,7 @@ void main() {
             .widget<FilledButton>(
               find.widgetWithText(
                 FilledButton,
-                'Confirmer ma demande de livraison',
+                'Confirmer et payer le dépôt',
               ),
             )
             .onPressed,

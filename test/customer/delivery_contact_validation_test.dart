@@ -292,7 +292,7 @@ void main() {
       final contacts = store.saved!.contacts, quote = store.saved!.quote;
       await tapBooking(t, review['fr']!);
       expect(store.saved!.quote, quote);
-      await tapBooking(t, 'Confirmer ma demande de livraison');
+      await tapBooking(t, 'Confirmer et payer le dépôt');
       final indexes = [
         for (var i = 0; i < api.calls.length; i++)
           if (api.calls[i] == 'createDeliveryRequest') i,
