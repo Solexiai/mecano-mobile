@@ -2401,12 +2401,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFFD7E1F5)),
               ),
+              // Dépôt de réservation (2026-11-06) : 25 $ à la réservation,
+              // le reste après la livraison.
               Text(
                 tr(
-                  'Payé seulement une fois livré',
-                  'Paid only once delivered',
-                  'Se paga solo una vez entregado',
+                  'Dépôt de ${_depositText()} à la réservation, le reste après la livraison',
+                  '${_depositText()} deposit when you book, the rest after delivery',
+                  'Depósito de ${_depositText()} al reservar, el resto después de la entrega',
                 ),
+                key: const ValueKey('booking-price-hero-deposit'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFFD7E1F5)),
               ),
@@ -2953,108 +2956,356 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     ];
   }
 
-  /// "Ce que vous payez, et quand", in 3 sentences (owner mockup 2026-10-23).
-  Widget _paymentTimeline() {
-    Widget line(String bold, String text, {Color dot = const Color(0xFF0F2A5C)}) =>
+  /// "Ce que vous payez, et quand" (2026-11-10) : les montants en clair —
+  /// dépôt aujourd'hui, solde après la livraison, total — puis les règles en
+  /// trois lignes. Remplace l'ancien calendrier, qui disait « Rien n'est
+  /// débité » alors que le dépôt l'est depuis le 2026-11-06.
+  Widget _paymentSummary() {
+    final total = _draft.quote?['customerTotal'];
+    if (total is! num) return const SizedBox.shrink();
+    final balance = total - _depositAmount < 0 ? 0 : total - _depositAmount;
+    Widget amount(String label, String value, {bool strong = false}) =>
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: SizedBox(
+            width: double.infinity,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 2,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: strong ? 18 : 16,
+                    color: const Color(0xFF0F2A5C),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+    Widget rule(String text, {Key? key, Color dot = const Color(0xFF0F2A5C)}) =>
+        Padding(
+          key: key,
+          padding: const EdgeInsets.symmetric(vertical: 3),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 10,
-                height: 10,
-                margin: const EdgeInsets.only(top: 6, right: 12),
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(top: 7, right: 10),
                 decoration: BoxDecoration(
                   color: dot,
-                  borderRadius: BorderRadius.circular(5),
+                  borderRadius: BorderRadius.circular(4),
                 ),
               ),
               Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '$bold ',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      TextSpan(text: text),
-                    ],
-                  ),
+                child: Text(
+                  text,
+                  style: const TextStyle(color: Color(0xFF3A4660)),
                 ),
               ),
             ],
           ),
         );
-    final low =
-        _draft.quote?['customerTotal'] is num &&
-        (_draft.quote!['customerTotal'] as num) < 30;
     return Card(
+      key: const ValueKey('booking-payment-timeline'),
       margin: const EdgeInsets.only(top: 12),
-      child: ExpansionTile(
-        key: const ValueKey('booking-payment-timeline'),
-        initiallyExpanded: true,
-        title: Text(
-          tr(
-            'Ce que vous payez, et quand',
-            'What you pay, and when',
-            'Qué pagas y cuándo',
-          ),
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        expandedCrossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          line(
-            tr('Maintenant :', 'Now:', 'Ahora:'),
-            tr(
-              'vous enregistrez votre carte chez Stripe. Rien n’est débité.',
-              'you save your card with Stripe. Nothing is charged.',
-              'guardas tu tarjeta en Stripe. No se cobra nada.',
-            ),
-          ),
-          line(
-            tr(
-              'Quand un chauffeur accepte :',
-              'When a driver accepts:',
-              'Cuando un conductor acepta:',
-            ),
-            tr(
-              'le montant est réservé sur votre carte (au moins 30 \$).',
-              'the amount is held on your card (at least 30 \$).',
-              'el monto se reserva en tu tarjeta (al menos 30 \$).',
-            ),
-          ),
-          line(
-            tr('Après la livraison :', 'After delivery:', 'Después de la entrega:'),
-            tr(
-              'seul votre prix est débité. Le reste est libéré.',
-              'only your price is charged. The rest is released.',
-              'solo se cobra tu precio. El resto se libera.',
-            ),
-          ),
-          line(
-            tr(
-              'Annulation tardive ou déplacement pour rien :',
-              'Late cancellation or wasted trip:',
-              'Cancelación tardía o viaje en vano:',
-            ),
-            '30 \$.',
-            dot: const Color(0xFFB85E10),
-          ),
-          if (low)
-            Padding(
-              key: const ValueKey('booking-minimum-hold'),
-              padding: const EdgeInsets.only(top: 6),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Semantics(
+              header: true,
               child: Text(
                 tr(
-                  'Votre prix est inférieur à 30 \$ : 30 \$ sont réservés, puis seul votre prix est prélevé à la fin.',
-                  'Your price is below 30 \$: 30 \$ is held, then only your price is charged at the end.',
-                  'Tu precio es inferior a 30 \$: se reservan 30 \$ y al final solo se cobra tu precio.',
+                  'Ce que vous payez, et quand',
+                  'What you pay, and when',
+                  'Qué pagas y cuándo',
                 ),
-                style: const TextStyle(color: Color(0xFF54607A)),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
               ),
             ),
+            const SizedBox(height: 6),
+            amount(
+              tr(
+                'Aujourd’hui (dépôt)',
+                'Today (deposit)',
+                'Hoy (depósito)',
+              ),
+              _depositText(),
+            ),
+            amount(
+              tr(
+                'Après la livraison (solde)',
+                'After delivery (balance)',
+                'Después de la entrega (saldo)',
+              ),
+              _balanceText(),
+            ),
+            const Divider(height: 14),
+            amount(
+              tr(
+                'Total, taxes comprises',
+                'Total, taxes included',
+                'Total, impuestos incluidos',
+              ),
+              _moneyText(total),
+              strong: true,
+            ),
+            const SizedBox(height: 8),
+            rule(
+              tr(
+                'Quand un chauffeur accepte, le solde est réservé sur votre carte. Il n’est prélevé qu’après la livraison.',
+                'When a driver accepts, the balance is held on your card. It is only charged after delivery.',
+                'Cuando un conductor acepta, el saldo se reserva en tu tarjeta. Solo se cobra después de la entrega.',
+              ),
+            ),
+            if (balance < 30)
+              rule(
+                tr(
+                  'Votre solde est inférieur à 30 \$ : 30 \$ sont réservés, puis seul votre solde est prélevé.',
+                  'Your balance is below 30 \$: 30 \$ is held, then only your balance is charged.',
+                  'Tu saldo es inferior a 30 \$: se reservan 30 \$ y luego solo se cobra tu saldo.',
+                ),
+                key: const ValueKey('booking-minimum-hold'),
+              ),
+            rule(
+              tr(
+                'Dépôt remboursé si aucun chauffeur n’accepte ou si vous annulez plus de 48 h avant le ramassage.',
+                'Deposit refunded if no driver accepts or if you cancel more than 48 hours before pickup.',
+                'Depósito reembolsado si ningún conductor acepta o si cancelas más de 48 h antes de la recogida.',
+              ),
+            ),
+            rule(
+              tr(
+                'Annulation à moins de 48 h, une fois un chauffeur confirmé : le dépôt est gardé. Chauffeur déplacé pour rien : 30 \$.',
+                'Cancelling less than 48 hours ahead, once a driver is confirmed: the deposit is kept. Driver comes for nothing: 30 \$.',
+                'Cancelación con menos de 48 h, con un conductor confirmado: se conserva el depósito. Conductor que viaja en vano: 30 \$.',
+              ),
+              dot: const Color(0xFFB85E10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The card, the « J'accepte » box and the confirm button, together at the
+  /// bottom of the page (Daniel 2026-11-10 : « mettre le bouton confirmation
+  /// de payer très proche de la case »). The terms must be accepted before
+  /// the card is prepared (the server records the consent), so without a
+  /// card the order is: box → card → button; with a card ready the box sits
+  /// right above the button.
+  Widget _payBlock(FirebaseAuthProvider auth) {
+    final blockers = _confirmBlockers(auth);
+    final acceptance = _policy == null
+        ? null
+        : BookingAcceptanceTile(
+            locale: widget.locale,
+            accepted: _acceptanceCurrent,
+            onChanged: _busy
+                ? null
+                : (value) {
+                    _draft.data['accepted'] = value == true;
+                    _draft.data['accepted_contract_hash'] =
+                        _policy!['contract_hash'];
+                    _draft.data['accepted_quote_id'] = _draft.quote?['quoteId'];
+                    _draft.data['accepted_locale'] = widget.locale;
+                    _changed(quote: false);
+                  },
+          );
+    final today = _draft.quote?['customerTotal'] is num
+        ? Container(
+            key: const ValueKey('booking-deposit-note'),
+            width: double.infinity,
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF3FB),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    Text(
+                      tr(
+                        'Payé aujourd’hui',
+                        'Paid today',
+                        'Pagado hoy',
+                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      _depositText(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                        color: Color(0xFF0F2A5C),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tr(
+                    'Dépôt déduit de votre prix. Le solde de ${_balanceText()} est payé après la livraison.',
+                    'Deposit deducted from your price. The ${_balanceText()} balance is paid after delivery.',
+                    'Depósito descontado de tu precio. El saldo de ${_balanceText()} se paga después de la entrega.',
+                  ),
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF54607A)),
+                ),
+              ],
+            ),
+          )
+        : null;
+    final cardReady = <Widget>[
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 1, right: 8),
+              child: Icon(
+                Icons.credit_card,
+                size: 20,
+                color: Color(0xFF2E8B57),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                tr(
+                  'Carte prête chez Stripe. Rien n’est débité avant votre confirmation.',
+                  'Card ready with Stripe. Nothing is charged until you confirm.',
+                  'Tarjeta lista en Stripe. No se cobra nada hasta que confirmes.',
+                ),
+                key: const ValueKey('booking-card-ready'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      // CLI-05 : après une carte refusée, le client peut en enregistrer une autre.
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton.icon(
+          key: const ValueKey('booking-card-replace'),
+          onPressed: _canPay && !_busy && _readyToConfirm(auth)
+              ? () => _run(() => _setupCard(replace: true))
+              : null,
+          icon: const Icon(Icons.credit_card_outlined, size: 18),
+          label: Text(
+            tr('Utiliser une autre carte', 'Use another card', 'Usar otra tarjeta'),
+          ),
+        ),
+      ),
+    ];
+    final cardSetup = <Widget>[
+      const SizedBox(height: 12),
+      Text(
+        tr(
+          'Aucune carte prête pour cette réservation.',
+          'No card ready for this booking yet.',
+          'Aún no hay tarjeta lista para esta reserva.',
+        ),
+        key: const ValueKey('booking-card-not-ready'),
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      // Never claim the card is saved: Stripe confirms it, then the server
+      // checks it again at confirmation.
+      _button(
+        tr(
+          'Enregistrer ma carte avec Stripe',
+          'Save my card with Stripe',
+          'Guardar mi tarjeta con Stripe',
+        ),
+        _readyToConfirm(auth) ? () => _run(_setupCard) : null,
+        icon: Icons.lock_outline,
+      ),
+      Text(
+        tr(
+          'Paiement sécurisé par Stripe. Movi-K ne voit jamais votre numéro de carte.',
+          'Payment secured by Stripe. Movi-K never sees your card number.',
+          'Pago protegido por Stripe. Movi-K nunca ve el número de tu tarjeta.',
+        ),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton(
+          onPressed: _canPay && !_busy ? () => _run(_refreshCard) : null,
+          child: Text(
+            tr(
+              'J’ai terminé chez Stripe : vérifier',
+              'I finished on Stripe: check status',
+              'Terminé en Stripe: verificar',
+            ),
+          ),
+        ),
+      ),
+    ];
+    return Container(
+      key: const ValueKey('booking-pay-block'),
+      margin: const EdgeInsets.only(top: 20),
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF0F2A5C), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Text(
+              tr('Confirmer et payer', 'Confirm and pay', 'Confirmar y pagar'),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                color: Color(0xFF0F2A5C),
+              ),
+            ),
+          ),
+          if (today != null) today,
+          if (_cardReady) ...cardReady,
+          if (acceptance != null) ...[const SizedBox(height: 8), acceptance],
+          if (!_cardReady) ...cardSetup,
+          if (blockers.isNotEmpty)
+            Container(
+              key: const ValueKey('booking-confirm-blockers'),
+              child: _note(
+                '${tr('Pour confirmer, il reste à :', 'To confirm, you still need to:', 'Para confirmar, falta:')}\n${blockers.map((b) => '• $b').join('\n')}',
+                warning: true,
+              ),
+            ),
+          _next(
+            tr(
+              'Confirmer et payer le dépôt',
+              'Confirm and pay the deposit',
+              'Confirmar y pagar el depósito',
+            ),
+            _cardReady && _readyToConfirm(auth) ? () => _run(_confirm) : null,
+            key: const ValueKey('booking-confirm'),
+          ),
         ],
       ),
     );
@@ -3065,9 +3316,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     BookingQuestion(
       tr('Dernière étape', 'Last step', 'Último paso'),
       hint: tr(
-        'Vérifiez, acceptez les conditions, enregistrez votre carte.',
-        'Check, accept the terms, save your card.',
-        'Verifica, acepta las condiciones y guarda tu tarjeta.',
+        'Vérifiez votre livraison, puis confirmez tout en bas.',
+        'Check your delivery, then confirm at the bottom.',
+        'Verifica tu entrega y confirma al final.',
       ),
     ),
     if (_internalTestAllowed && _assignmentPending && _draft.quoteValid) ...[
@@ -3118,28 +3369,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           await _ensureFreshQuote();
         }),
       ),
-    _paymentTimeline(),
+    _paymentSummary(),
     if (_draft.quote != null) _priceDetails(),
     // Without approved terms, the single availability banner above already
-    // explains that booking is not open; do not repeat it here.
+    // explains that booking is not open; do not repeat it here. The
+    // « J'accepte » box itself is in the pay block, next to the button.
     if (_policy != null) ...[
       BookingTermsSection(
         contract: BookingContract(_policy!),
         locale: widget.locale,
         accepted: _acceptanceCurrent,
+        showAcceptance: false,
         beforeOpen: () async {
           await _save();
         },
-        onChanged: _busy
-            ? null
-            : (value) {
-                _draft.data['accepted'] = value == true;
-                _draft.data['accepted_contract_hash'] =
-                    _policy!['contract_hash'];
-                _draft.data['accepted_quote_id'] = _draft.quote?['quoteId'];
-                _draft.data['accepted_locale'] = widget.locale;
-                _changed(quote: false);
-              },
+        onChanged: null,
       ),
       CheckboxListTile(
         contentPadding: EdgeInsets.zero,
@@ -3166,94 +3410,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         warning: true,
       ),
-    // Never claim the card is saved: Stripe confirms it, then the server
-    // authorizes only when a driver accepts.
-    if (_cardReady) ...[
-      _note(
-        tr(
-          'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
-          'Payment method ready for confirmation. This does not confirm an authorization or a payment.',
-          'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
-        ),
-        key: const ValueKey('booking-card-ready'),
-      ),
-      // CLI-05 : après une carte refusée, le client peut en enregistrer une autre.
-      TextButton.icon(
-        key: const ValueKey('booking-card-replace'),
-        onPressed: _canPay && !_busy && _readyToConfirm(auth)
-            ? () => _run(() => _setupCard(replace: true))
-            : null,
-        icon: const Icon(Icons.credit_card_outlined, size: 18),
-        label: Text(
-          tr('Utiliser une autre carte', 'Use another card', 'Usar otra tarjeta'),
-        ),
-      ),
-    ] else ...[
-      _note(
-        tr(
-          'Préparation du moyen de paiement non confirmée.',
-          'Payment method preparation is not confirmed.',
-          'La preparación del método de pago no está confirmada.',
-        ),
-      ),
-      _button(
-        tr(
-          'Enregistrer ma carte avec Stripe',
-          'Save my card with Stripe',
-          'Guardar mi tarjeta con Stripe',
-        ),
-        _readyToConfirm(auth) ? () => _run(_setupCard) : null,
-        icon: Icons.lock_outline,
-      ),
-      Text(
-        tr(
-          'Paiement sécurisé par Stripe. Movi-K ne voit jamais votre numéro de carte.',
-          'Payment secured by Stripe. Movi-K never sees your card number.',
-          'Pago protegido por Stripe. Movi-K nunca ve el número de tu tarjeta.',
-        ),
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      TextButton(
-        onPressed: _canPay && !_busy ? () => _run(_refreshCard) : null,
-        child: Text(
-          tr(
-            'J’ai terminé chez Stripe : vérifier',
-            'I finished on Stripe: check status',
-            'Terminé en Stripe: verificar',
-          ),
-        ),
-      ),
-    ],
-    // Dépôt de réservation (2026-11-06) : dit clairement ce qui est débité
-    // maintenant et ce qui le sera à la livraison.
-    if (_cardReady && _draft.quote?['customerTotal'] is num)
-      Container(
-        key: const ValueKey('booking-deposit-note'),
-        child: _note(
-          tr(
-            'En confirmant, un dépôt de ${_depositText()} est débité maintenant sur votre carte et déduit du prix. Le solde de ${_balanceText()} est débité le jour de la livraison. Dépôt remboursé si vous annulez plus de 48 h avant le ramassage, ou si aucun chauffeur n’accepte.',
-            'By confirming, a ${_depositText()} deposit is charged to your card now and deducted from the price. The ${_balanceText()} balance is charged on delivery day. The deposit is refunded if you cancel more than 48 hours before pickup, or if no driver accepts.',
-            'Al confirmar, se cobra ahora un depósito de ${_depositText()} en su tarjeta, descontado del precio. El saldo de ${_balanceText()} se cobra el día de la entrega. El depósito se reembolsa si cancela más de 48 horas antes de la recogida o si ningún conductor acepta.',
-          ),
-        ),
-      ),
-    if (_confirmBlockers(auth).isNotEmpty)
-      Container(
-        key: const ValueKey('booking-confirm-blockers'),
-        child: _note(
-          '${tr('Pour confirmer, il reste à :', 'To confirm, you still need to:', 'Para confirmar, falta:')}\n${_confirmBlockers(auth).map((b) => '• $b').join('\n')}',
-          warning: true,
-        ),
-      ),
-    _next(
-      tr(
-        'Confirmer ma demande de livraison',
-        'Confirm my delivery request',
-        'Confirmar mi solicitud de entrega',
-      ),
-      _cardReady && _readyToConfirm(auth) ? () => _run(_confirm) : null,
-      key: const ValueKey('booking-confirm'),
-    ),
+    _payBlock(auth),
   ];
   Widget _quoteLoadSummary({bool collapsible = true}) => BookingLoadSummary(
     collapsible: collapsible,

@@ -350,7 +350,7 @@ void main() {
       expect(jsonEncode(s.saved!.quote), q);
       final button = find.widgetWithText(
         FilledButton,
-        'Confirmer ma demande de livraison',
+        'Confirmer et payer le dépôt',
       );
       final callback = t.widget<FilledButton>(button).onPressed!;
       callback();

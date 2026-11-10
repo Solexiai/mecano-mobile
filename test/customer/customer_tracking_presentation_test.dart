@@ -291,10 +291,10 @@ void main() => offlineTests(() {
       (t) async {
         final h = await start(t, locale: locale, booking: true);
         final label = locale == 'fr'
-            ? 'Confirmer ma demande de livraison'
+            ? 'Confirmer et payer le dépôt'
             : locale == 'en'
-            ? 'Confirm my delivery request'
-            : 'Confirmar mi solicitud de entrega';
+            ? 'Confirm and pay the deposit'
+            : 'Confirmar y pagar el depósito';
         await tapBooking(t, label);
         expect(find.text(ref('test_mission', locale)), findsOneWidget);
         await t.ensureVisible(

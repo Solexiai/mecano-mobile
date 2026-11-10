@@ -44,22 +44,19 @@ class ConfirmationApi extends TestBookingApi {
 }
 
 const confirm = {
-  'fr': 'Confirmer ma demande de livraison',
-  'en': 'Confirm my delivery request',
-  'es': 'Confirmar mi solicitud de entrega',
+  'fr': 'Confirmer et payer le dépôt',
+  'en': 'Confirm and pay the deposit',
+  'es': 'Confirmar y pagar el depósito',
 };
 const notReady = {
-  'fr': 'Préparation du moyen de paiement non confirmée.',
-  'en': 'Payment method preparation is not confirmed.',
-  'es': 'La preparación del método de pago no está confirmada.',
+  'fr': 'Aucune carte prête pour cette réservation.',
+  'en': 'No card ready for this booking yet.',
+  'es': 'Aún no hay tarjeta lista para esta reserva.',
 };
 const ready = {
-  'fr':
-      'Moyen de paiement prêt pour la confirmation. Cela ne confirme ni une autorisation ni un paiement.',
-  'en':
-      'Payment method ready for confirmation. This does not confirm an authorization or a payment.',
-  'es':
-      'Método de pago listo para confirmar. Esto no confirma una autorización ni un pago.',
+  'fr': 'Carte prête chez Stripe. Rien n’est débité avant votre confirmation.',
+  'en': 'Card ready with Stripe. Nothing is charged until you confirm.',
+  'es': 'Tarjeta lista en Stripe. No se cobra nada hasta que confirmes.',
 };
 const unknown = {
   'fr': 'Date et heure non précisées',
@@ -187,6 +184,30 @@ void main() {
       }
     }
   }
+  testWidgets(
+    'Daniel 2026-11-10 : la case « J’accepte » est juste au-dessus du bouton de paiement',
+    (t) async {
+      await start(t, card: true);
+      final box = find.byKey(const ValueKey('booking-contract-acceptance'));
+      final button = confirmation('fr');
+      await t.ensureVisible(button);
+      await t.pumpAndSettle();
+      final gap = t.getTopLeft(button).dy - t.getBottomLeft(box).dy;
+      expect(gap, inInclusiveRange(0, 40));
+      // Le montant payé aujourd'hui est dans le même bloc que le bouton.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('booking-pay-block')),
+          matching: find.textContaining('25,00'),
+        ),
+        findsWidgets,
+      );
+      // Plus de « payé seulement une fois livré » : le dépôt est débité à la réservation.
+      expect(visibleText(t), isNot(contains('Payé seulement une fois livré')));
+      expect(visibleText(t), isNot(contains('chez Stripe. Rien n’est débité.')));
+      expect(t.takeException(), isNull);
+    },
+  );
   testWidgets(
     'N setup loading then explicit ready response; no premature success',
     (t) async {

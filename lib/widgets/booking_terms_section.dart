@@ -99,6 +99,52 @@ Future<void> showBookingDocument(
   );
 }
 
+/// The « J'accepte… » checkbox. Since 2026-11-10 the booking screen places it
+/// right above the confirm button (Daniel: « mettre le bouton confirmation de
+/// payer très proche de la case »), apart from the terms text.
+class BookingAcceptanceTile extends StatelessWidget {
+  const BookingAcceptanceTile({
+    super.key,
+    required this.locale,
+    required this.accepted,
+    required this.onChanged,
+  });
+  final String locale;
+  final bool accepted;
+  final ValueChanged<bool?>? onChanged;
+  String tr(String fr, String en, String es) => locale == 'en'
+      ? en
+      : locale == 'es'
+      ? es
+      : fr;
+  @override
+  Widget build(BuildContext context) => Material(
+    color: accepted ? const Color(0xFFEAF6EE) : const Color(0xFFF6F8FC),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(
+        color: accepted ? const Color(0xFF2E8B57) : const Color(0xFFC9D2E3),
+        width: 2,
+      ),
+    ),
+    child: CheckboxListTile(
+      key: const ValueKey('booking-contract-acceptance'),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+      value: accepted,
+      onChanged: onChanged,
+      controlAffinity: ListTileControlAffinity.leading,
+      title: Text(
+        tr(
+          'J’accepte les Conditions de réservation et les Conditions générales de Movi-K.',
+          'I accept the Booking terms and the Movi-K terms of service.',
+          'Acepto las Condiciones de reserva y las Condiciones generales de Movi-K.',
+        ),
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    ),
+  );
+}
+
 class BookingTermsSection extends StatelessWidget {
   const BookingTermsSection({
     super.key,
@@ -107,12 +153,17 @@ class BookingTermsSection extends StatelessWidget {
     required this.accepted,
     required this.onChanged,
     required this.beforeOpen,
+    this.showAcceptance = true,
   });
   final BookingContract contract;
   final String locale;
   final bool accepted;
   final ValueChanged<bool?>? onChanged;
   final Future<void> Function() beforeOpen;
+
+  /// false : the checkbox is shown elsewhere ([BookingAcceptanceTile], right
+  /// above the confirm button on the booking screen).
+  final bool showAcceptance;
   String tr(String fr, String en, String es) => locale == 'en'
       ? en
       : locale == 'es'
@@ -164,6 +215,7 @@ class BookingTermsSection extends StatelessWidget {
               'Releasing an authorization cancels a reserved amount. A refund concerns an amount already charged. Applicable terms are shown above.',
               'Liberar una autorización cancela un importe retenido. Un reembolso corresponde a un importe ya cobrado. Las condiciones aplicables figuran arriba.',
             ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
           Text(
@@ -180,20 +232,16 @@ class BookingTermsSection extends StatelessWidget {
             runSpacing: 8,
             children: [_link(context, 'booking'), _link(context, 'terms')],
           ),
-          CheckboxListTile(
-            key: const ValueKey('booking-contract-acceptance'),
-            contentPadding: EdgeInsets.zero,
-            value: accepted,
-            onChanged: onChanged,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(
-              tr(
-                'J’accepte les Conditions de réservation et les Conditions générales de Movi-K.',
-                'I accept the Booking terms and the Movi-K terms of service.',
-                'Acepto las Condiciones de reserva y las Condiciones generales de Movi-K.',
-              ),
+          if (showAcceptance) ...[
+            const SizedBox(height: 12),
+            BookingAcceptanceTile(
+              locale: locale,
+              accepted: accepted,
+              onChanged: onChanged,
             ),
-          ),
+            const SizedBox(height: 12),
+          ] else
+            const SizedBox(height: 8),
           _link(context, 'privacy'),
           Text(
             tr(
@@ -201,6 +249,7 @@ class BookingTermsSection extends StatelessWidget {
               'This document explains how your data is handled. It is presented separately from contract acceptance.',
               'Este documento explica el tratamiento de tus datos. Se presenta por separado de la aceptación del contrato.',
             ),
+            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),

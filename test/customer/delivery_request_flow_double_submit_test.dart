@@ -11,7 +11,7 @@ void main() {
       await pumpBooking(t, storage: store, api: api);
       final finder = find.widgetWithText(
         FilledButton,
-        'Confirmer ma demande de livraison',
+        'Confirmer et payer le dépôt',
       );
       await t.ensureVisible(finder);
       await t.pumpAndSettle();
@@ -39,7 +39,7 @@ void main() {
           .widget<FilledButton>(
             find.widgetWithText(
               FilledButton,
-              'Confirmer ma demande de livraison',
+              'Confirmer et payer le dépôt',
             ),
           )
           .onPressed,

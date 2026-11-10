@@ -124,7 +124,7 @@ void main() {
       );
       final confirm = find.widgetWithText(
         FilledButton,
-        'Confirmer ma demande de livraison',
+        'Confirmer et payer le dépôt',
       );
       expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
       expect(a.calls, isNot(contains('createDeliveryRequest')));
