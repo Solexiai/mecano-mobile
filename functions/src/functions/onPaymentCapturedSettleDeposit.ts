@@ -18,7 +18,7 @@ export const onPaymentCapturedSettleDeposit = onDocumentWritten(
     const before = event.data?.before.data() as PaymentDoc | undefined;
     const after = event.data?.after.data() as PaymentDoc | undefined;
     if (!after || after.status !== PaymentStatuses.CAPTURED || before?.status === PaymentStatuses.CAPTURED) return;
-    if (after.purpose === "deposit" || after.capture_purpose === "mission_fee") return;
+    if (after.purpose === "deposit" || after.purpose === "tip" || after.capture_purpose === "mission_fee") return;
     const shortfall = after.deposit_driver_shortfall_minor ?? 0;
     if (!Number.isSafeInteger(shortfall) || shortfall <= 0 || !after.mission_id) return;
     try {

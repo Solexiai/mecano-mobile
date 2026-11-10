@@ -60,6 +60,9 @@ export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 // d'intégration du registre) jusqu'à l'implémentation d'un vrai pourboire
 // Stripe. Le prochain `firebase deploy --only functions` supprimera la
 // fonction déployée (confirmer la suppression lorsque la CLI le demande).
+// 2026-11-09 — le vrai pourboire Stripe est `tipDriver` (débit de la carte
+// enregistrée, 100 % viré au chauffeur, voir payment/driverTipOrchestration.ts).
+export { tipDriver } from "./functions/tipDriver";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 // ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
 export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";

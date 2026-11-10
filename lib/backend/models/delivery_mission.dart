@@ -38,6 +38,14 @@ class DeliveryMission {
   // refund_failed / kept). Null sans dépôt (test interne, ancienne demande).
   final int? depositAmountMinor;
   final String? depositStatus;
+
+  /// Pourboire (2026-11-09) : montant versé au chauffeur (cents), null tant
+  /// qu'aucun pourboire n'a été laissé. Écrit par le serveur (tipDriver).
+  final int? tipAmountMinor;
+
+  /// Prix de la livraison avant taxes (cents), lu du devis verrouillé. Null
+  /// si la mission n'a pas de ventilation lisible : voir [tipBaseMinor].
+  final int? tipPreTaxMinor;
   // Blocage du solde posé à J-4 (lib/scheduledPaymentHold.ts) : état
   // (scheduled / failed / placed / cancelled) et échéance.
   final String? scheduledHoldStatus;
@@ -102,6 +110,8 @@ class DeliveryMission {
     this.paymentStatus,
     this.depositAmountMinor,
     this.depositStatus,
+    this.tipAmountMinor,
+    this.tipPreTaxMinor,
     this.scheduledHoldStatus,
     this.scheduledHoldDueAt,
     this.offerExpiresAt,
@@ -145,6 +155,25 @@ class DeliveryMission {
   bool get hasAssignedDriver => driverId != null && driverId!.isNotEmpty;
   bool get isInternalTest => assignmentMode == 'internal_test';
 
+  /// Base des pourcentages de pourboire (cents) : le prix avant taxes, sinon
+  /// le total. Même calcul que le serveur (functions/src/lib/driverTip.ts).
+  int get tipBaseMinor => tipPreTaxMinor ?? (customerTotal * 100).round();
+
+  /// Prix avant taxes (cents) : total payé moins les taxes du devis
+  /// verrouillé ; le total s'il n'y a pas de ventilation lisible.
+  static int tipBaseMinorFromJson(Map<String, dynamic> json) {
+    final rawTotalMinor = json['customer_total_minor'];
+    final totalMinor = rawTotalMinor is num
+        ? rawTotalMinor.round()
+        : ((json['customer_total'] as num? ?? 0) * 100).round();
+    if (totalMinor <= 0) return 0;
+    final breakdown = json['quote_breakdown'];
+    final tax = breakdown is Map ? breakdown['taxAmount'] : null;
+    if (tax is! num || tax <= 0) return totalMinor;
+    final taxMinor = (tax * 100).round();
+    return taxMinor < totalMinor ? totalMinor - taxMinor : totalMinor;
+  }
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'scheduling': scheduling,
@@ -153,6 +182,8 @@ class DeliveryMission {
     'payment_status': paymentStatus,
     if (depositAmountMinor != null)
       'deposit': {'amount_minor': depositAmountMinor, 'status': depositStatus},
+    if (tipAmountMinor != null)
+      'tip': {'amount_minor': tipAmountMinor, 'status': 'paid'},
     if (scheduledHoldStatus != null)
       'scheduled_hold': {
         'status': scheduledHoldStatus,
@@ -208,6 +239,11 @@ class DeliveryMission {
       depositStatus: json['deposit'] is Map
           ? json['deposit']['status'] as String?
           : null,
+      tipAmountMinor:
+          json['tip'] is Map && json['tip']['status'] == 'paid'
+          ? (json['tip']['amount_minor'] as num?)?.toInt()
+          : null,
+      tipPreTaxMinor: tipBaseMinorFromJson(json),
       scheduledHoldStatus: json['scheduled_hold'] is Map
           ? json['scheduled_hold']['status'] as String?
           : null,

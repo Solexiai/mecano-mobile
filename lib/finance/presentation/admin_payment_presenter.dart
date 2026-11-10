@@ -21,7 +21,7 @@ import '../models/payment_info.dart';
 /// flux.
 const int kAdminPaymentsLimit = 200;
 
-enum AdminPaymentKind { delivery, lateCancellation, failedDelivery, missionFee, deposit }
+enum AdminPaymentKind { delivery, lateCancellation, failedDelivery, missionFee, deposit, tip }
 
 /// Filtre « type » de la page Paiements.
 enum AdminPaymentKindFilter { all, deliveries, fees }
@@ -35,6 +35,8 @@ class AdminPaymentView {
     // Dépôt de réservation (2026-11-06) : encaissé à la réservation, déduit
     // du solde ; ni une livraison ni des frais.
     if (payment.purpose == 'deposit') return AdminPaymentKind.deposit;
+    // Pourboire (2026-11-09) : débité après la livraison, 100 % au chauffeur.
+    if (payment.purpose == 'tip') return AdminPaymentKind.tip;
     if (payment.capturePurpose != 'mission_fee') {
       return AdminPaymentKind.delivery;
     }
@@ -48,8 +50,16 @@ class AdminPaymentView {
     }
   }
 
-  bool get isFee => kind != AdminPaymentKind.delivery && kind != AdminPaymentKind.deposit;
-  bool get isDeposit => kind == AdminPaymentKind.deposit;
+  bool get isFee =>
+      kind != AdminPaymentKind.delivery &&
+      kind != AdminPaymentKind.deposit &&
+      kind != AdminPaymentKind.tip;
+
+  /// Débité tout de suite, jamais bloqué sur la carte : le dépôt de
+  /// réservation (2026-11-06) et le pourboire (2026-11-09).
+  bool get isDeposit =>
+      kind == AdminPaymentKind.deposit || kind == AdminPaymentKind.tip;
+  bool get isTip => kind == AdminPaymentKind.tip;
 
   bool matches(AdminPaymentKindFilter filter) {
     switch (filter) {
@@ -312,5 +322,7 @@ String adminPaymentKindKey(AdminPaymentKind kind) {
       return 'admin_payments_kind_mission_fee';
     case AdminPaymentKind.deposit:
       return 'admin_payments_kind_deposit';
+    case AdminPaymentKind.tip:
+      return 'admin_payments_kind_tip';
   }
 }

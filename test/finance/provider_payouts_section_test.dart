@@ -266,6 +266,17 @@ void main() {
             'capture_purpose': 'mission_fee',
             'captured_at': DateTime(2026, 10, 21).toIso8601String(),
           }),
+          // Pourboire du client (2026-11-09) : viré à 100 %.
+          DriverTransferInfo.fromJson('pay_tip', {
+            'mission_id': 'mission_a',
+            'driver_id': 'driver_test_001',
+            'amount_minor': 945,
+            'reversed_minor': 0,
+            'net_minor': 945,
+            'status': 'transferred',
+            'purpose': 'tip',
+            'captured_at': DateTime(2026, 10, 22).toIso8601String(),
+          }),
         ];
         await tester.pumpWidget(
           _wrap(
@@ -279,15 +290,16 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // 85,00 + 30,00 = 115,00 $ (somme des net_minor serveur).
+        // 85,00 + 30,00 + 9,45 = 124,45 $ (somme des net_minor serveur).
         final summary = find.byKey(const ValueKey('payout-summary-transferred'));
         expect(summary, findsOneWidget);
         expect(
-          find.descendant(of: summary, matching: find.textContaining('115')),
+          find.descendant(of: summary, matching: find.textContaining('124')),
           findsOneWidget,
         );
         expect(find.byKey(const ValueKey('payout-transfer-pay_a')), findsOneWidget);
-        expect(find.text(_t('payout_transfer_status_transferred')), findsOneWidget);
+        expect(find.text(_t('payout_transfer_status_transferred')), findsNWidgets(2));
+        expect(find.text(_t('payout_transfer_tip_purpose')), findsOneWidget);
         expect(
           find.text(_t('payout_transfer_status_partially_reversed')),
           findsOneWidget,

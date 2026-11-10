@@ -59,6 +59,9 @@ class DriverTransferInfo {
   /// `true` : frais de mission (annulation tardive, déplacement inutile)
   /// plutôt qu'une livraison.
   final bool isMissionFee;
+
+  /// `true` : pourboire laissé par le client (2026-11-09), viré à 100 %.
+  final bool isTip;
   final DateTime? capturedAt;
   final DateTime updatedAt;
 
@@ -72,6 +75,7 @@ class DriverTransferInfo {
     required this.netMinor,
     required this.status,
     this.isMissionFee = false,
+    this.isTip = false,
     this.capturedAt,
     required this.updatedAt,
   });
@@ -90,6 +94,7 @@ class DriverTransferInfo {
         ? 'partially_reversed'
         : status.name,
     'capture_purpose': isMissionFee ? 'mission_fee' : null,
+    'purpose': isTip ? 'tip' : null,
     'captured_at': capturedAt?.toIso8601String(),
     'updated_at': updatedAt.toIso8601String(),
   };
@@ -113,6 +118,7 @@ class DriverTransferInfo {
         json['status'] as String?,
       ),
       isMissionFee: json['capture_purpose'] == 'mission_fee',
+      isTip: json['purpose'] == 'tip',
       capturedAt: parseFirestoreDate(json['captured_at']),
       updatedAt: parseFirestoreDate(json['updated_at']) ?? DateTime.now(),
     );

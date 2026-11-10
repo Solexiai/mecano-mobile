@@ -257,7 +257,9 @@ export class StripeProvider extends PaymentProvider {
     };
     if (params.connectedAccountId) {
       createParams.transfer_data = { destination: params.connectedAccountId };
-      createParams.application_fee_amount = params.applicationFeeMinor;
+      // Pourboire (2026-11-09) : aucun frais de plateforme, tout va au
+      // chauffeur. Stripe n'accepte qu'un frais positif : 0 = paramètre omis.
+      if (params.applicationFeeMinor > 0) createParams.application_fee_amount = params.applicationFeeMinor;
     }
     try {
       const intent = await this.stripe.paymentIntents.create(createParams, {

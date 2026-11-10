@@ -627,11 +627,15 @@ class _TransferTile extends StatelessWidget {
                 connector: t('datetime_connector_at'),
               ),
             ),
-          if (transfer.isMissionFee)
+          if (transfer.isMissionFee || transfer.isTip)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Text(
-                t('payout_transfer_fee_purpose'),
+                t(
+                  transfer.isTip
+                      ? 'payout_transfer_tip_purpose'
+                      : 'payout_transfer_fee_purpose',
+                ),
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,

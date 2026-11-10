@@ -659,7 +659,12 @@ export interface PaymentDoc {
   // 25 $ débités à la réservation, AVANT la création de la mission, déduits du
   // prix total. Absent = paiement de livraison ordinaire. `quote_id` porte le
   // devis ; `mission_id` est renseigné dès que la mission est créée.
-  purpose?: "deposit";
+  // Pourboire (décision Daniel 2026-11-09, lib/driverTip.ts) : débité après
+  // la livraison, viré à 100 % au chauffeur (destination charge sans frais
+  // de plateforme).
+  purpose?: "deposit" | "tip";
+  /** Pourboire : pourcentage choisi (10, 15, 20) ou null pour un montant au choix. */
+  tip_percent?: number | null;
   /** Paiement de livraison : part du dépôt déduite du solde (cents). */
   deposit_applied_minor?: number;
   /** Part de la rémunération du chauffeur que le solde ne couvre pas, à verser depuis le dépôt (cents). */
@@ -775,6 +780,8 @@ export interface DriverTransferDoc {
   /** Frais de mission (annulation tardive, déplacement inutile) plutôt
    *  qu'une livraison. */
   capture_purpose: "mission_fee" | null;
+  /** Pourboire du client (2026-11-09) plutôt que le paiement de la livraison. */
+  purpose?: "tip" | null;
   captured_at: admin_Timestamp | null;
   stripe_environment: StripeEnvironment | null;
   updated_at: admin_Timestamp;
