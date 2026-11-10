@@ -41,9 +41,9 @@ class AboutScreen extends StatelessWidget {
         Icons.location_on_outlined,
         _tr(fr: 'Local', en: 'Local', es: 'Local'),
         _tr(
-          fr: 'Lancement prévu à Granby et dans les environs.',
-          en: 'Launch planned for Granby and surrounding areas.',
-          es: 'Lanzamiento previsto en Granby y alrededores.',
+          fr: 'Service offert à Granby et dans les environs.',
+          en: 'Serving Granby and surrounding areas.',
+          es: 'Servicio en Granby y alrededores.',
         ),
       ),
       (
@@ -251,9 +251,9 @@ class AboutScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             _tr(
-                              fr: 'Découvrez le parcours chauffeur et les conditions du lancement.',
-                              en: 'Explore the driver flow and launch conditions.',
-                              es: 'Descubre el proceso para conductores y las condiciones del lanzamiento.',
+                              fr: 'Découvrez le parcours chauffeur et les conditions pour livrer avec Movi‑K.',
+                              en: 'Explore the driver flow and the conditions to deliver with Movi‑K.',
+                              es: 'Descubre el proceso para conductores y las condiciones para entregar con Movi‑K.',
                             ),
                             style: const TextStyle(
                               color: AppColors.textSecondary,

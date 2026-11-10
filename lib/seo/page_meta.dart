@@ -1,4 +1,5 @@
 import '../l10n/app_strings.dart';
+import 'seo_pages.dart';
 
 /// Language, title and description of a web page, taken from its address
 /// (/fr, /en, /es) and never from the language of a previous visit.
@@ -34,7 +35,17 @@ class PageMeta {
   }
 
   /// Pages without a language prefix (the root '/' redirects to '/fr')
-  /// use French, the default language of the site.
-  factory PageMeta.forPath(String path) =>
-      PageMeta.forLocale(localeInPath(path) ?? 'fr');
+  /// use French, the default language of the site. A public page keeps the
+  /// title and description of its search-engine page (lib/seo/seo_pages.dart),
+  /// so the app never overwrites them with the generic ones.
+  factory PageMeta.forPath(String path) {
+    final locale = localeInPath(path) ?? 'fr';
+    final page = seoPageForPath(path);
+    if (page == null) return PageMeta.forLocale(locale);
+    return PageMeta(
+      lang: locale,
+      title: page.titles[locale] ?? page.titles['fr']!,
+      description: page.descriptions[locale] ?? page.descriptions['fr']!,
+    );
+  }
 }

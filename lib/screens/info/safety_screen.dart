@@ -55,9 +55,9 @@ class SafetyScreen extends StatelessWidget {
         Icons.lock_outline,
         tr('Paiement protégé', 'Protected payment', 'Pago protegido'),
         tr(
-          'Votre carte est enregistrée sur la page sécurisée de Stripe : Movi‑K ne voit jamais votre numéro de carte. Le montant n’est débité qu’à la livraison.',
-          'Your card is saved on Stripe’s secure page: Movi‑K never sees your card number. The amount is only charged at delivery.',
-          'Tu tarjeta se guarda en la página segura de Stripe: Movi‑K nunca ve tu número de tarjeta. El importe solo se cobra en la entrega.',
+          'Votre carte est enregistrée sur la page sécurisée de Stripe : Movi‑K ne voit jamais votre numéro de carte. Un dépôt de 25 \$ est débité à la réservation ; le solde n’est débité qu’après la livraison.',
+          'Your card is saved on Stripe’s secure page: Movi‑K never sees your card number. A \$25 deposit is charged when you book; the balance is only charged after delivery.',
+          'Tu tarjeta se guarda en la página segura de Stripe: Movi‑K nunca ve tu número de tarjeta. Al reservar se cobra un depósito de 25 \$; el saldo solo se cobra después de la entrega.',
         ),
         AppColors.primary,
       ),

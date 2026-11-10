@@ -62,9 +62,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   Text(
                     tr(
-                      'Movi‑K se prépare à servir Granby.',
-                      'Movi‑K is preparing to serve Granby.',
-                      'Movi‑K se prepara para servir Granby.',
+                      'Livraison de meubles et d’électroménagers à Granby.',
+                      'Furniture and appliance delivery in Granby.',
+                      'Entrega de muebles y electrodomésticos en Granby.',
                     ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -77,9 +77,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                   const SizedBox(height: 14),
                   Text(
                     tr(
-                      'Le lancement public est encore en préparation. Aucune réservation, disponibilité de chauffeur ou transaction réelle n’est promise par cette page.',
-                      'Public launch is still being prepared. This page does not promise a booking, driver availability or a live transaction.',
-                      'El lanzamiento público sigue en preparación. Esta página no promete una reserva, disponibilidad de conductor ni una transacción real.',
+                      'Un divan acheté sur Marketplace, un réfrigérateur, des boîtes ou des matériaux : un chauffeur de la région s’en occupe. Prenez une photo, voyez le prix exact et réservez en ligne.',
+                      'A sofa bought on Marketplace, a refrigerator, boxes or materials: a local driver takes care of it. Snap a photo, see the exact price and book online.',
+                      'Un sofá comprado en Marketplace, un refrigerador, cajas o materiales: un conductor de la zona se encarga. Toma una foto, ve el precio exacto y reserva en línea.',
                     ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -91,20 +91,20 @@ class GranbyLaunchScreen extends StatelessWidget {
                   const SizedBox(height: 30),
                   _LaunchPoint(
                     icon: Icons.location_on_outlined,
-                    title: tr('Zone prévue', 'Planned area', 'Zona prevista'),
+                    title: tr('Zone desservie', 'Service area', 'Zona de servicio'),
                     body: tr(
-                      'Granby et les environs. La prise en charge dépendra des chauffeurs actifs, de leur rayon d’action et du véhicule requis.',
-                      'Granby and surrounding areas. Service will depend on active drivers, their service areas and the required vehicle.',
-                      'Granby y alrededores. El servicio dependerá de los conductores activos, sus zonas de servicio y el vehículo necesario.',
+                      'Granby et les environs. Le parcours vous indique tout de suite si vos adresses sont dans la zone desservie.',
+                      'Granby and surrounding areas. The request flow tells you right away whether your addresses are in the service area.',
+                      'Granby y alrededores. El proceso te indica enseguida si tus direcciones están en la zona de servicio.',
                     ),
                   ),
                   const SizedBox(height: 12),
                   _LaunchPoint(
                     icon: Icons.request_quote_outlined,
                     title: tr(
-                      'Vous pouvez préparer une demande',
-                      'You can prepare a request',
-                      'Puedes preparar una solicitud',
+                      'Commencez sans compte',
+                      'Start without an account',
+                      'Empieza sin cuenta',
                     ),
                     body: HomeCopy.text('quote_note', locale),
                   ),
@@ -112,14 +112,14 @@ class GranbyLaunchScreen extends StatelessWidget {
                   _LaunchPoint(
                     icon: Icons.support_agent_outlined,
                     title: tr(
-                      'Canal de contact à venir',
-                      'Contact channel coming soon',
-                      'Canal de contacto próximamente',
+                      'Une question ?',
+                      'A question?',
+                      '¿Una pregunta?',
                     ),
                     body: tr(
-                      'Le canal officiel de contact n’est pas encore publié. La page Contact indique l’état actuel; aucun message n’y est simulé.',
-                      'The official contact channel is not yet published. The Contact page shows the current status and does not simulate message delivery.',
-                      'El canal oficial de contacto aún no está publicado. La página de Contacto muestra el estado actual y no simula el envío de mensajes.',
+                      'Écrivez-nous à infos@movi-k.com ou depuis la page Contact.',
+                      'Write to us at infos@movi-k.com or from the Contact page.',
+                      'Escríbenos a infos@movi-k.com o desde la página de Contacto.',
                     ),
                   ),
                   const SizedBox(height: 28),
@@ -146,9 +146,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                     onPressed: () => context.go('/$locale/contact'),
                     child: Text(
                       tr(
-                        'Voir l’état du contact',
-                        'View contact status',
-                        'Ver el estado del contacto',
+                        'Nous contacter',
+                        'Contact us',
+                        'Contáctanos',
                       ),
                     ),
                   ),

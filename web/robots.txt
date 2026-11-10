@@ -23,5 +23,8 @@ Disallow: /*/conductor/incorporacion/
 Disallow: /*/devenir-chauffeur/statut
 Disallow: /*/become-driver/status
 Disallow: /*/convertirse-conductor/estado
+# Copies of the public pages built for search engines (tool/build_seo_pages.dart):
+# they are served at the public addresses above, never under /seo/.
+Disallow: /seo/
 
 Sitemap: https://movi-k.com/sitemap.xml

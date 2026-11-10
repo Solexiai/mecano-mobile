@@ -70,11 +70,11 @@ class PricingScreen extends StatelessWidget {
     final payment = [
       (
         Icons.credit_card_outlined,
-        tr('1. Vous confirmez', '1. You confirm', '1. Confirmas'),
+        tr('1. Vous réservez', '1. You book', '1. Reservas'),
         tr(
-          'Vous enregistrez votre carte. Rien n’est débité.',
-          'You save your card. Nothing is charged.',
-          'Registras tu tarjeta. No se cobra nada.',
+          'Un dépôt de 25 \$ est débité. Il est déduit du prix total.',
+          'A \$25 deposit is charged. It is deducted from the total price.',
+          'Se cobra un depósito de 25 \$. Se descuenta del precio total.',
         ),
       ),
       (
@@ -85,9 +85,9 @@ class PricingScreen extends StatelessWidget {
           '2. Un conductor acepta',
         ),
         tr(
-          'Le montant est réservé sur votre carte. C’est une autorisation, pas un débit.',
-          'The amount is held on your card. It is an authorization, not a charge.',
-          'El importe se reserva en tu tarjeta. Es una autorización, no un cobro.',
+          'Le solde est réservé sur votre carte. C’est une autorisation, pas un débit.',
+          'The balance is held on your card. It is an authorization, not a charge.',
+          'El saldo se reserva en tu tarjeta. Es una autorización, no un cobro.',
         ),
       ),
       (
@@ -98,9 +98,9 @@ class PricingScreen extends StatelessWidget {
           '3. Entrega completada',
         ),
         tr(
-          'Seul le prix accepté est débité. Le reste de la réservation est libéré.',
-          'Only the accepted price is charged. The rest of the hold is released.',
-          'Solo se cobra el precio aceptado. El resto de la reserva se libera.',
+          'Seul le solde du prix accepté est débité. Le reste de la réservation est libéré.',
+          'Only the balance of the accepted price is charged. The rest of the hold is released.',
+          'Solo se cobra el saldo del precio aceptado. El resto de la reserva se libera.',
         ),
       ),
     ];
@@ -167,9 +167,9 @@ class PricingScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 tr(
-                  'Les paiements ouvriront au lancement du service à Granby.',
-                  'Payments will open when the service launches in Granby.',
-                  'Los pagos se abrirán con el lanzamiento del servicio en Granby.',
+                  'Dépôt remboursé si aucun chauffeur n’accepte, ou si vous annulez avant qu’un chauffeur accepte ou plus de 48 heures avant le ramassage.',
+                  'Deposit refunded if no driver accepts, or if you cancel before a driver accepts or more than 48 hours before pickup.',
+                  'Depósito reembolsado si ningún conductor acepta, o si cancelas antes de que un conductor acepte o más de 48 horas antes de la recogida.',
                 ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
@@ -182,9 +182,9 @@ class PricingScreen extends StatelessWidget {
                 icon: Icons.event_busy_outlined,
                 title: tr('Annulation', 'Cancellation', 'Cancelación'),
                 body: tr(
-                  'Gratuite avant qu’un chauffeur accepte, et aussi après si le ramassage est dans plus de 2 heures. Sinon, des frais de 30 \$ s’appliquent. Les mêmes frais s’appliquent si le chauffeur se déplace pour rien. Le montant est toujours affiché avant de confirmer.',
-                  'Free before a driver accepts, and also afterwards if pickup is more than 2 hours away. Otherwise, a \$30 fee applies. The same fee applies if the driver makes a wasted trip. The amount is always shown before you confirm.',
-                  'Gratuita antes de que un conductor acepte, y también después si la recogida es en más de 2 horas. Si no, se aplica un cargo de 30 \$. El mismo cargo se aplica si el conductor se desplaza en vano. El importe siempre se muestra antes de confirmar.',
+                  'Sans frais avant qu’un chauffeur accepte, ou plus de 48 heures avant le ramassage : votre dépôt est remboursé. Si un chauffeur a accepté et que le ramassage est dans moins de 48 heures, le dépôt de 25 \$ est gardé. Si le chauffeur se déplace pour rien, des frais de 30 \$ s’appliquent.',
+                  'No charge before a driver accepts, or more than 48 hours before pickup: your deposit is refunded. If a driver has accepted and pickup is less than 48 hours away, the \$25 deposit is kept. If the driver makes a wasted trip, a \$30 fee applies.',
+                  'Sin costo antes de que un conductor acepte, o más de 48 horas antes de la recogida: se reembolsa tu depósito. Si un conductor ya aceptó y la recogida es en menos de 48 horas, se conserva el depósito de 25 \$. Si el conductor se desplaza en vano, se aplica un cargo de 30 \$.',
                 ),
                 tone: AppColors.warning,
               ),
@@ -200,9 +200,9 @@ class PricingScreen extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 tr(
-                  'Lancement prévu à Granby et dans les environs. La disponibilité d’un chauffeur est confirmée dans le parcours.',
-                  'Launch planned for Granby and surrounding areas. Driver availability is confirmed in the request flow.',
-                  'Lanzamiento previsto en Granby y alrededores. La disponibilidad de un conductor se confirma en el proceso.',
+                  'Service offert à Granby et dans les environs. La disponibilité d’un chauffeur est confirmée dans le parcours.',
+                  'Serving Granby and surrounding areas. Driver availability is confirmed in the request flow.',
+                  'Servicio en Granby y alrededores. La disponibilidad de un conductor se confirma en el proceso.',
                 ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,

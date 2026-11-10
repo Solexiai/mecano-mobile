@@ -115,6 +115,10 @@ void main() {
       expect(find.textContaining('8%'), findsNothing);
       expect(
         find.textContaining('Les paiements ouvriront au lancement'),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('Dépôt remboursé si aucun chauffeur n’accepte'),
         findsOneWidget,
       );
       // Obsolete claims: measurements, vehicle category in the price.
@@ -169,7 +173,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('en quelques minutes'), findsNothing);
       expect(find.textContaining('Québec et du Canada'), findsNothing);
-      expect(find.textContaining('Lancement prévu à Granby'), findsOneWidget);
+      expect(find.textContaining('Lancement prévu à Granby'), findsNothing);
+      expect(find.textContaining('Service offert à Granby'), findsOneWidget);
 
       AppRouter.router.go('/fr/legal/cancellation');
       await tester.pumpAndSettle();

@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/router/app_router.dart';
+import 'package:movik_connect/seo/seo_pages.dart';
 
 /// Every full path declared in the router, e.g. '/fr/livraison/suivi/:missionId'.
 List<String> routerPaths() {
@@ -62,7 +63,15 @@ List<RegExp> vercelAppRoutes() {
       jsonDecode(File('vercel.json').readAsStringSync()) as Map<String, dynamic>;
   final rewrites = (config['rewrites'] as List).cast<Map<String, dynamic>>();
   for (final rewrite in rewrites) {
-    expect(rewrite['destination'], '/index.html');
+    final destination = rewrite['destination'] as String;
+    if (destination == '/index.html') continue;
+    // Public pages are served from their search-engine copy
+    // (tool/build_seo_pages.dart), which boots the same Flutter app.
+    final source = rewrite['source'] as String;
+    final page = seoPageForPath(source == '/' ? '/fr' : source);
+    expect(page, isNotNull, reason: source);
+    final locale = seoLocaleForPath(source == '/' ? '/fr' : source)!;
+    expect(destination, page!.file(locale), reason: source);
   }
   return rewrites.map((r) => vercelSourceRegExp(r['source'] as String)).toList();
 }

@@ -12,7 +12,127 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/index.html"
+      "destination": "/seo/fr.html"
+    },
+    {
+      "source": "/fr",
+      "destination": "/seo/fr.html"
+    },
+    {
+      "source": "/en",
+      "destination": "/seo/en.html"
+    },
+    {
+      "source": "/es",
+      "destination": "/seo/es.html"
+    },
+    {
+      "source": "/fr/livraison",
+      "destination": "/seo/fr/livraison.html"
+    },
+    {
+      "source": "/en/delivery",
+      "destination": "/seo/en/delivery.html"
+    },
+    {
+      "source": "/es/entrega",
+      "destination": "/seo/es/entrega.html"
+    },
+    {
+      "source": "/fr/tarifs",
+      "destination": "/seo/fr/tarifs.html"
+    },
+    {
+      "source": "/en/pricing",
+      "destination": "/seo/en/pricing.html"
+    },
+    {
+      "source": "/es/precios",
+      "destination": "/seo/es/precios.html"
+    },
+    {
+      "source": "/fr/comment-ca-marche",
+      "destination": "/seo/fr/comment-ca-marche.html"
+    },
+    {
+      "source": "/en/how-it-works",
+      "destination": "/seo/en/how-it-works.html"
+    },
+    {
+      "source": "/es/como-funciona",
+      "destination": "/seo/es/como-funciona.html"
+    },
+    {
+      "source": "/fr/securite",
+      "destination": "/seo/fr/securite.html"
+    },
+    {
+      "source": "/en/safety",
+      "destination": "/seo/en/safety.html"
+    },
+    {
+      "source": "/es/seguridad",
+      "destination": "/seo/es/seguridad.html"
+    },
+    {
+      "source": "/fr/faq",
+      "destination": "/seo/fr/faq.html"
+    },
+    {
+      "source": "/en/faq",
+      "destination": "/seo/en/faq.html"
+    },
+    {
+      "source": "/es/faq",
+      "destination": "/seo/es/faq.html"
+    },
+    {
+      "source": "/fr/granby",
+      "destination": "/seo/fr/granby.html"
+    },
+    {
+      "source": "/en/granby",
+      "destination": "/seo/en/granby.html"
+    },
+    {
+      "source": "/es/granby",
+      "destination": "/seo/es/granby.html"
+    },
+    {
+      "source": "/fr/devenir-chauffeur",
+      "destination": "/seo/fr/devenir-chauffeur.html"
+    },
+    {
+      "source": "/en/become-driver",
+      "destination": "/seo/en/become-driver.html"
+    },
+    {
+      "source": "/es/convertirse-conductor",
+      "destination": "/seo/es/convertirse-conductor.html"
+    },
+    {
+      "source": "/fr/a-propos",
+      "destination": "/seo/fr/a-propos.html"
+    },
+    {
+      "source": "/en/about",
+      "destination": "/seo/en/about.html"
+    },
+    {
+      "source": "/es/acerca-de",
+      "destination": "/seo/es/acerca-de.html"
+    },
+    {
+      "source": "/fr/contact",
+      "destination": "/seo/fr/contact.html"
+    },
+    {
+      "source": "/en/contact",
+      "destination": "/seo/en/contact.html"
+    },
+    {
+      "source": "/es/contacto",
+      "destination": "/seo/es/contacto.html"
     },
     {
       "source": "/:locale(fr|en|es)",

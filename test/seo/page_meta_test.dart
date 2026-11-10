@@ -23,13 +23,16 @@ void main() {
 
     test('each language gets its own title and description', () {
       for (final locale in ['fr', 'en', 'es']) {
-        final meta = PageMeta.forPath('/$locale/faq');
+        final meta = PageMeta.forPath('/$locale');
         expect(meta.lang, locale);
         expect(meta.title, AppStrings.t('seo_default_title', locale));
         expect(
           meta.description,
           AppStrings.t('seo_default_description', locale),
         );
+        // Private pages keep the generic title.
+        final private = PageMeta.forPath('/$locale/connexion');
+        expect(private.title, AppStrings.t('seo_default_title', locale));
       }
       expect(
         PageMeta.forPath('/en').title,
@@ -38,6 +41,22 @@ void main() {
       expect(
         PageMeta.forPath('/es').description,
         isNot(PageMeta.forPath('/fr').description),
+      );
+    });
+
+    test('public pages keep the title of their search-engine page', () {
+      expect(
+        PageMeta.forPath('/fr/tarifs').title,
+        'Tarifs : le prix exact avant de réserver | Movi-K',
+      );
+      expect(PageMeta.forPath('/en/pricing/').lang, 'en');
+      expect(
+        PageMeta.forPath('/es/faq').description,
+        contains('depósito de 25 \$'),
+      );
+      expect(
+        PageMeta.forPath('/fr/faq').title,
+        isNot(PageMeta.forPath('/fr/tarifs').title),
       );
     });
 

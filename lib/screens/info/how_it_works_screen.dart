@@ -111,9 +111,9 @@ class HowItWorksScreen extends StatelessWidget {
                   'Seguimiento de etapas y GPS',
                 ),
                 body: tr(
-                  'La progression de la mission est visible dans l’espace client. Une carte GPS en direct est prévue pendant les phases actives, mais sa validation sur appareils réels fait encore partie des vérifications de lancement.',
-                  'Mission progress is visible in the customer account. A live GPS map is designed for active phases, but real-device validation is still part of launch checks.',
-                  'El progreso de la misión es visible en la cuenta del cliente. Se prevé un mapa GPS en directo durante las fases activas, pero su validación en dispositivos reales sigue formando parte de las pruebas de lanzamiento.',
+                  'Chaque étape de votre livraison est visible dans votre espace client, avec la position de votre chauffeur sur une carte en direct pendant la livraison.',
+                  'Every step of your delivery is visible in your customer account, with your driver’s position on a live map during the delivery.',
+                  'Cada etapa de tu entrega es visible en tu cuenta de cliente, con la ubicación de tu conductor en un mapa en vivo durante la entrega.',
                 ),
               ),
               const SizedBox(height: 28),
