@@ -31,6 +31,8 @@ import 'package:movik_connect/backend/backend_locator.dart';
 import 'package:movik_connect/backend/models/delivery_mission.dart';
 import 'package:movik_connect/backend/models/delivery_offer.dart';
 import 'package:movik_connect/backend/models/delivery_quote.dart';
+import 'package:movik_connect/backend/models/driver_profile_v2.dart';
+import 'package:movik_connect/services/driver_offer_alerts.dart';
 import 'package:movik_connect/backend/repositories/mission_repository.dart';
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/models/enums.dart';
@@ -213,6 +215,55 @@ Widget _buildTestApp(FirebaseAuthProvider auth) {
   );
 }
 
+// 2026-11-09 — offre « qui sonne » : profil en service + lecteur factice.
+DriverProfileV2 _onlineProfile({DriverOnlineStatus online = DriverOnlineStatus.online}) => DriverProfileV2(
+  uid: _driverId,
+  fullName: 'Chauffeur Test',
+  city: 'Granby',
+  status: DriverStatus.approved,
+  serviceRadiusKm: 40,
+  acceptedVehicleCategories: const [VehicleCategory.cargoVan],
+  acceptedItemCategoryKeys: const ['cat_furniture'],
+  createdAt: DateTime(2026, 1, 1),
+  onlineStatus: online,
+);
+
+class _FakeAlertPlayer implements OfferAlertPlayer {
+  int starts = 0, stops = 0;
+  @override
+  Future<void> start() async => starts++;
+  @override
+  Future<void> stop() async => stops++;
+}
+
+Widget _buildOnlineApp(FirebaseAuthProvider auth, DriverProfileV2 profile) {
+  final router = GoRouter(
+    initialLocation: '/fr/provider/jobs',
+    routes: [
+      GoRoute(
+        path: '/fr/provider/jobs',
+        builder: (context, state) => Scaffold(
+          body: ProviderJobsTab(
+            profile: profile,
+            bookingApi: _OfferApi(BackendLocator.missionRepository),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/fr/provider/mission/:missionId',
+        builder: (context, state) => const Scaffold(body: Text('MISSION_STUB')),
+      ),
+    ],
+  );
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<LocaleProvider>(create: (_) => LocaleProvider()),
+      ChangeNotifierProvider<FirebaseAuthProvider>.value(value: auth),
+    ],
+    child: MaterialApp.router(routerConfig: router),
+  );
+}
+
 class _OfferApi implements BookingApi {
   static Object? acceptError;
   _OfferApi(this.repo);
@@ -274,6 +325,59 @@ void main() {
 
   tearDown(() {
     BackendLocator.missionRepositoryOverride = null;
+    DriverOfferAlerts.resetForTest();
+  });
+
+  group('offre « qui sonne » (2026-11-09)', () {
+    late _FakeAlertPlayer player;
+    setUp(() {
+      player = _FakeAlertPlayer();
+      DriverOfferAlerts.enabled = true;
+      DriverOfferAlerts.player = player;
+    });
+
+    testWidgets('en service : écran plein écran avec le montant, sonne, Accepter suit le chemin normal', (tester) async {
+      await tester.pumpWidget(_buildOnlineApp(auth, _onlineProfile()));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('driver-offer-alert')), findsOneWidget);
+      expect(find.text('80.00 \$'), findsOneWidget);
+      expect(player.starts, 1);
+
+      await tester.tap(find.byKey(const ValueKey('driver-offer-alert-accept')));
+      await tester.pump();
+      expect(player.stops, greaterThanOrEqualTo(1));
+      await _confirmDisplayedOffer(tester);
+      await tester.pumpAndSettle();
+      expect(fakeRepo.acceptMissionCallCount, 1);
+      expect(fakeRepo.acceptedMissionIds.single, 'mission_available_001');
+    });
+
+    testWidgets('« Voir les détails » ferme sans accepter ; l’offre n’est annoncée qu’une fois', (tester) async {
+      await tester.pumpWidget(_buildOnlineApp(auth, _onlineProfile()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('driver-offer-alert-details')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('driver-offer-alert')), findsNothing);
+      expect(find.byKey(const ValueKey('driver-offer-card-mission_available_001')), findsOneWidget);
+      expect(fakeRepo.acceptMissionCallCount, 0);
+      // Après fermeture, l'onglet revérifie la liste : la même offre n'est
+      // pas réannoncée.
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('driver-offer-alert')), findsNothing);
+      expect(player.starts, 1);
+    });
+
+    testWidgets('hors service ou désactivé : aucun écran, aucune sonnerie', (tester) async {
+      await tester.pumpWidget(_buildOnlineApp(auth, _onlineProfile(online: DriverOnlineStatus.offline)));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('driver-offer-alert')), findsNothing);
+      DriverOfferAlerts.enabled = false;
+      await tester.pumpWidget(_buildOnlineApp(auth, _onlineProfile()));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('driver-offer-alert')), findsNothing);
+      expect(player.starts, 0);
+    });
   });
 
   testWidgets(

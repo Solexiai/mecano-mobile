@@ -1056,6 +1056,32 @@ class AppStrings {
       'en': 'Your exact share is shown before you confirm',
       'es': 'Su parte exacta se muestra antes de confirmar',
     },
+    // Offre « qui sonne » plein écran (2026-11-09).
+    'driver_offer_alert_for_you': {
+      'fr': 'pour vous',
+      'en': 'for you',
+      'es': 'para usted',
+    },
+    'driver_offer_alert_amount_pending': {
+      'fr': 'Nouvelle livraison près de vous',
+      'en': 'New delivery near you',
+      'es': 'Nueva entrega cerca de usted',
+    },
+    'driver_offer_alert_accept': {
+      'fr': 'Accepter',
+      'en': 'Accept',
+      'es': 'Aceptar',
+    },
+    'driver_offer_alert_decline': {
+      'fr': 'Refuser',
+      'en': 'Decline',
+      'es': 'Rechazar',
+    },
+    'driver_offer_alert_details': {
+      'fr': 'Voir les détails',
+      'en': 'See details',
+      'es': 'Ver detalles',
+    },
     'driver_offer_trip': {'fr': 'Trajet', 'en': 'Trip', 'es': 'Trayecto'},
     'driver_offer_duration': {
       'fr': 'Conduite',
