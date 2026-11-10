@@ -12,6 +12,7 @@
 
 import type { DocumentReference } from "firebase-admin/firestore";
 import { admin, db } from "./admin";
+import { formatOfferAmountForPush } from "./offerCompensationPreview";
 import {
   logFinancialFailure,
   logFinancialSuccess,
@@ -279,6 +280,37 @@ export function deliveryOfferPushCopy(locale: unknown): DeliveryOfferPushCopy {
   return DELIVERY_OFFER_COPY[normalizePushLocale(locale)];
 }
 
+/**
+ * 2026-11-09 : texte de l'offre AVEC le montant que le chauffeur gagnerait
+ * (« Nouvelle livraison — 62,40 $ pour vous »). Sans montant connu, texte
+ * générique inchangé.
+ */
+export function deliveryOfferPushCopyWithAmount(
+  locale: unknown,
+  driverOfferAmount: number | null | undefined
+): DeliveryOfferPushCopy {
+  const l = normalizePushLocale(locale);
+  if (typeof driverOfferAmount !== "number" || !(driverOfferAmount > 0)) return DELIVERY_OFFER_COPY[l];
+  const amount = formatOfferAmountForPush(driverOfferAmount, l);
+  switch (l) {
+    case "en":
+      return {
+        title: `New delivery — ${amount} for you`,
+        body: "A request is available near you. Open Movi-K to accept it before it expires.",
+      };
+    case "es":
+      return {
+        title: `Nueva entrega — ${amount} para ti`,
+        body: "Hay una solicitud cerca de ti. Abre Movi-K para aceptarla antes de que expire.",
+      };
+    default:
+      return {
+        title: `Nouvelle livraison — ${amount} pour vous`,
+        body: "Une demande est disponible près de vous. Ouvrez Movi-K pour l’accepter avant qu’elle expire.",
+      };
+  }
+}
+
 export function customerMissionPushCopy(
   notificationType: CustomerMissionPushType,
   locale: unknown
@@ -300,8 +332,10 @@ export async function sendDeliveryOfferPush(params: {
   driverId: string;
   missionId: string;
   expiresAtMillis: number;
+  /** Part du chauffeur (dollars) connue au moment de l'offre ; absent = texte générique. */
+  driverOfferAmount?: number | null;
 }): Promise<{ attempted: number; sent: number }> {
-  const { driverId, missionId, expiresAtMillis } = params;
+  const { driverId, missionId, expiresAtMillis, driverOfferAmount } = params;
   const operationStartedAt = startFinancialOperationTimer();
 
   try {
@@ -340,7 +374,7 @@ export async function sendDeliveryOfferPush(params: {
     const staleRefs: DocumentReference[] = [];
 
     for (const [locale, devices] of byLocale.entries()) {
-      const copy = deliveryOfferPushCopy(locale);
+      const copy = deliveryOfferPushCopyWithAmount(locale, driverOfferAmount);
 
       // FCM limite sendEachForMulticast à 500 tokens par appel.
       for (let offset = 0; offset < devices.length; offset += 500) {

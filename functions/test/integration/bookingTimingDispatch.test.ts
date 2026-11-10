@@ -100,8 +100,14 @@ test.each(['immediate', 'scheduled'] as const)('%s quote creates mission, driver
   const offers = await db.collection('delivery_offers').where('mission_id', '==', created.missionId).get();
   expect(offers.size).toBe(1);
   expect(offers.docs[0].data()).toMatchObject({ driver_id: driver, status: 'pending' });
+  // 2026-11-09 : la part du chauffeur est connue dès l'offre (carte + push),
+  // calculée par le même code que l'acceptation.
+  const offerData = offers.docs[0].data();
+  expect(offerData.driver_offer_minor).toBeGreaterThan(0);
+  expect(offerData.driver_offer_amount).toBeCloseTo(offerData.driver_offer_minor / 100, 2);
   const notification = await db.doc('users/' + driver + '/notifications/delivery_offer_' + created.missionId).get();
   expect(notification.data()?.related_mission_id).toBe(created.missionId);
+  expect(notification.data()?.metadata?.driver_offer_amount).toBe(offerData.driver_offer_amount);
   expect(sendDeliveryOfferPush).toHaveBeenCalledTimes(1);
   expect((await createDeliveryRequest.run(confirm(quoteResult.quoteId, booking))).missionId).toBe(created.missionId);
 });
@@ -135,6 +141,9 @@ test.each(['immediate','scheduled'] as const)('%s complete local quote -> dispat
     reservation:{start:pickup,pickup_at:pickup,end,policy_version:'SCHED-TIMING-TEST',full_duration_confirmed:true}},
     auth:{uid:driver,token:{roles:['driver']}},rawRequest:{},acceptsStreaming:false} as any);
   expect(accepted.success).toBe(true);
+  // Le montant annoncé à l'offre est celui réellement attribué à l'acceptation.
+  const offerDoc=(await db.collection('delivery_offers').where('mission_id','==',created.missionId).get()).docs[0].data();
+  expect(offerDoc.driver_offer_minor).toBe(Math.round(accepted.driverOfferAmount*100));
   const after=(await ref.get()).data()!,quote=(await db.doc('delivery_quotes/'+quoteResult.quoteId).get()).data()!;
   const snapshot=(await db.doc('financial_snapshots/'+accepted.snapshotId).get()).data()!;
   expect(after.customer_total_minor).toBe(quote.customer_total_minor);
