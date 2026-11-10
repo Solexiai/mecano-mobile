@@ -149,7 +149,11 @@ class _AdminMarketBalanceScreenState extends State<AdminMarketBalanceScreen> {
     });
   }
 
-  void _reload() => setState(() => _report = _load());
+  void _reload() {
+    setState(() {
+      _report = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
