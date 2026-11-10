@@ -159,3 +159,12 @@ export {verifyDriverServiceBase} from './functions/verifyDriverServiceBase';
 export { analyzeBookingPhoto } from './functions/analyzeBookingPhoto';
 
 export { getBookingReceipt } from './functions/bookingReceipt';
+
+// Équilibre offre / demande par ville : journal des chauffeurs en ligne,
+// « aucun chauffeur », raison de refus facultative et tableau Admin.
+export {
+  recordDriverAvailabilityChange,
+  recordMissionNoDriver,
+  recordOfferDeclineReason,
+  getMarketBalance,
+} from "./functions/marketBalance";

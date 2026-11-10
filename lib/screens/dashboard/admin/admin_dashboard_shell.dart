@@ -269,6 +269,14 @@ class _DashboardBody extends StatelessWidget {
                 badge: metrics?.openDisputes ?? 0,
                 onTap: () => context.go('/$locale/admin/paiements'),
               ),
+              _ActionCard(
+                icon: Icons.insights_outlined,
+                title: isFrench ? 'Équilibre par ville' : 'Balance by city',
+                subtitle: isFrench
+                    ? 'Chauffeurs et clients, ville par ville : où il en manque et quoi faire.'
+                    : 'Drivers and customers, city by city: where they are short and what to do.',
+                onTap: () => context.go('/$locale/admin/equilibre'),
+              ),
               // ADM-07 : réglages du service, pilote et conditions réservés
               // aux administrateurs ; l'analyste ne voit que la consultation.
               if (context.watch<FirebaseAuthProvider>().isAdminOrAbove) ...[

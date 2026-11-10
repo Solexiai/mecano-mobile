@@ -38,6 +38,7 @@ import '../screens/dashboard/admin/admin_item_types_screen.dart';
 import '../screens/dashboard/admin/command_center/admin_command_center_screen.dart';
 import '../screens/dashboard/admin/admin_pilot_screen.dart';
 import '../screens/dashboard/admin/admin_booking_policy_screen.dart';
+import '../screens/dashboard/admin/balance/admin_market_balance_screen.dart';
 import '../screens/notifications/notifications_screen.dart';
 import '../providers/firebase_auth_provider.dart';
 
@@ -531,6 +532,12 @@ class AppRouter {
                     adminOnly: true,
                     child: AdminItemTypesScreen(),
                   ),
+                ),
+                // Équilibre offre / demande par ville (lecture : analyste et plus).
+                GoRoute(
+                  path: 'equilibre',
+                  builder: (c, s) =>
+                      const AdminAuthGate(child: AdminMarketBalanceScreen()),
                 ),
                 GoRoute(
                   path: 'paiements',

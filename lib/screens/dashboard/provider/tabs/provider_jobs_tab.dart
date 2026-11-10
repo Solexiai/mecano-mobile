@@ -424,6 +424,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       _declining.add(mission.id);
       _acceptErrors.remove(mission.id);
     });
+    var declined = false;
     try {
       final result = await (widget.bookingApi ?? FirebaseBookingApi(driverId))
           .call('declineDeliveryOffer', {'missionId': mission.id});
@@ -433,6 +434,7 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
       }
       if (result['declined'] != true) throw StateError('Decline not confirmed');
       setState(() => _declined.add(mission.id));
+      declined = true;
     } catch (_) {
       if (mounted &&
           context.read<FirebaseAuthProvider>().effectiveUid == driverId) {
@@ -446,6 +448,95 @@ class _ProviderJobsTabState extends State<ProviderJobsTab> {
           _declining.remove(mission.id);
         });
       }
+    }
+    if (declined && mounted) await _askDeclineReason(mission, driverId);
+  }
+
+  /// Raison FACULTATIVE après un refus déjà enregistré : elle aide Movi-K à
+  /// voir si un secteur manque de chauffeurs à cause de la distance, du prix
+  /// ou de la place. Passer ou fermer ne change rien au refus.
+  Future<void> _askDeclineReason(
+    DeliveryMission mission,
+    String driverId,
+  ) async {
+    final locale = context.read<LocaleProvider>().locale;
+    String tr(String fr, String en, String es) => locale == 'en'
+        ? en
+        : locale == 'es'
+        ? es
+        : fr;
+    final reasons = <(String, String)>[
+      ('too_far', tr('Trop loin', 'Too far', 'Demasiado lejos')),
+      (
+        'price_too_low',
+        tr('Prix trop bas', 'Price too low', 'Precio demasiado bajo'),
+      ),
+      ('no_space', tr('Pas de place', 'No room', 'Sin espacio')),
+      ('not_available', tr('Pas disponible', 'Not available', 'No disponible')),
+      ('other', tr('Autre', 'Other', 'Otro')),
+    ];
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr(
+                  'Pourquoi avez-vous refusé ?',
+                  'Why did you decline?',
+                  '¿Por qué la rechazaste?',
+                ),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tr(
+                  'Facultatif : ça nous aide à vous envoyer de meilleures demandes.',
+                  'Optional: it helps us send you better requests.',
+                  'Opcional: nos ayuda a enviarte mejores solicitudes.',
+                ),
+                style: const TextStyle(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final r in reasons)
+                    ActionChip(
+                      key: ValueKey('decline-reason-${r.$1}'),
+                      label: Text(r.$2),
+                      onPressed: () => Navigator.of(sheet).pop(r.$1),
+                    ),
+                ],
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(sheet).pop(),
+                  child: Text(tr('Passer', 'Skip', 'Omitir')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await (widget.bookingApi ?? FirebaseBookingApi(driverId)).call(
+        'recordOfferDeclineReason',
+        {'missionId': mission.id, 'reason': reason},
+      );
+    } catch (_) {
+      // Facultatif : un échec ne change rien au refus déjà enregistré.
     }
   }
 
