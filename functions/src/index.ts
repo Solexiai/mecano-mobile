@@ -73,6 +73,7 @@ export {
   setCustomerNotePinned,
   resendCustomerEmail,
 } from "./functions/adminCustomerFile";
+export { deleteCustomerAccount, getMarketingOptIns } from "./functions/adminCustomerDeletion";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 // ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
 export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";

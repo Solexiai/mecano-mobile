@@ -8,6 +8,8 @@ import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_customer_file.dart';
+import 'admin_users_list_logic.dart';
+import 'customer_deletion_card.dart';
 
 class AdminUserDetailScreen extends StatefulWidget {
   const AdminUserDetailScreen({super.key, required this.userId});
@@ -46,9 +48,27 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
               final hasDriverProfile = driverSnap.data?.exists == true;
               final name = (user['full_name'] ?? '').toString();
               final email = (user['email'] ?? '').toString();
+              final deleted = isDeletedUser(user);
+              final isSuperAdmin = context.watch<FirebaseAuthProvider>().isSuperAdmin;
               return ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
+                  if (deleted) ...[
+                    Card(
+                      key: const ValueKey('customer-deleted-banner'),
+                      color: AppColors.error.withValues(alpha: 0.08),
+                      child: ListTile(
+                        leading: const Icon(Icons.person_off_outlined, color: AppColors.error),
+                        title: Text(fr ? 'Client effacé' : 'Deleted customer'),
+                        subtitle: Text(
+                          fr
+                              ? 'Compte et données personnelles effacés. Ses livraisons et paiements restent dans les registres (preuves fiscales).'
+                              : 'Account and personal data deleted. Deliveries and payments stay in the records (tax evidence).',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Card(
                     child: ListTile(
                       leading: CircleAvatar(
@@ -103,7 +123,7 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                   // ADM-15 (2026-10-28) : rôle de personnel (analyste, admin,
                   // super-admin), réservé au super-admin — plus besoin du
                   // script bootstrap_super_admins.js pour nommer un admin.
-                  if (context.watch<FirebaseAuthProvider>().isSuperAdmin) ...[
+                  if (isSuperAdmin && !deleted) ...[
                     const SizedBox(height: 12),
                     Card(
                       child: ListTile(
@@ -189,6 +209,15 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                           ? 'Cette action ne fusionne pas deux personnes : elle synchronise les rôles du même compte.'
                           : 'This does not merge two people; it synchronizes roles on the same account.',
                       style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ],
+                  // 2026-11-10 (Daniel) : effacer un client, super-admin seulement.
+                  if (isSuperAdmin && !deleted) ...[
+                    const SizedBox(height: 24),
+                    CustomerDeletionCard(
+                      userId: widget.userId,
+                      locale: locale,
+                      onDeleted: () => context.go('/$locale/admin/utilisateurs'),
                     ),
                   ],
                 ],

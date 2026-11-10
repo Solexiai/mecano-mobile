@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/app_colors.dart';
 import '../../../../providers/locale_provider.dart';
+import 'admin_users_list_logic.dart';
 
 enum _UserFilter { all, customers, drivers, administrators }
 
@@ -18,6 +21,12 @@ class AdminUsersScreen extends StatefulWidget {
 class _AdminUsersScreenState extends State<AdminUsersScreen> {
   final _searchController = TextEditingController();
   late _UserFilter _filter;
+  // 2026-11-10 (Daniel) : trier par date, isoler les courriels, filtre
+  // « Accepte les offres » (dernière réservation, loi anti-pourriel).
+  UserSort _sort = UserSort.recent;
+  bool _offersOnly = false;
+  Set<String>? _optIns;
+  bool _loadingOptIns = false;
 
   @override
   void initState() {
@@ -64,6 +73,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             if ((data['migrated_to_uid'] ?? '').toString().isNotEmpty) {
               return false;
             }
+            if (isDeletedUser(data)) return false;
+            if (_offersOnly && !(_optIns?.contains(doc.id) ?? false)) {
+              return false;
+            }
             final roles = _roles(data);
             final matchesFilter = switch (_filter) {
               _UserFilter.all => true,
@@ -77,14 +90,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 '${data['full_name'] ?? ''} ${data['email'] ?? ''} ${doc.id}'
                     .toLowerCase();
             return matchesFilter && (query.isEmpty || haystack.contains(query));
-          }).toList();
-          users.sort((a, b) {
-            final aName = (a.data()['full_name'] ?? a.data()['email'] ?? '')
-                .toString();
-            final bName = (b.data()['full_name'] ?? b.data()['email'] ?? '')
-                .toString();
-            return aName.toLowerCase().compareTo(bName.toLowerCase());
           });
+          final sorted = sortUsers(users, (doc) => doc.data(), _sort);
+          final emails = uniqueEmails(sorted.map((doc) => doc.data()));
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -123,15 +131,78 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     fr ? 'Chauffeurs' : 'Drivers',
                   ),
                   _filterChip(_UserFilter.administrators, 'Administration'),
+                  FilterChip(
+                    key: const ValueKey('users-offers-only'),
+                    avatar: _loadingOptIns
+                        ? const SizedBox.square(
+                            dimension: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.campaign_outlined, size: 18),
+                    label: Text(fr ? 'Accepte les offres' : 'Accepts offers'),
+                    selected: _offersOnly,
+                    onSelected: _loadingOptIns ? null : (v) => _toggleOffers(v, fr),
+                  ),
                 ],
               ),
-              const SizedBox(height: 18),
-              Text(
-                fr ? '${users.length} compte(s)' : '${users.length} account(s)',
-                style: const TextStyle(color: AppColors.textSecondary),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      fr ? '${sorted.length} compte(s)' : '${sorted.length} account(s)',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                  DropdownButton<UserSort>(
+                    key: const ValueKey('users-sort'),
+                    value: _sort,
+                    underline: const SizedBox.shrink(),
+                    icon: const Icon(Icons.sort),
+                    onChanged: (v) => setState(() => _sort = v ?? _sort),
+                    items: [
+                      DropdownMenuItem(
+                        value: UserSort.recent,
+                        child: Text(fr ? 'Plus récents' : 'Newest'),
+                      ),
+                      DropdownMenuItem(
+                        value: UserSort.oldest,
+                        child: Text(fr ? 'Plus anciens' : 'Oldest'),
+                      ),
+                      DropdownMenuItem(
+                        value: UserSort.name,
+                        child: Text(fr ? 'Nom A à Z' : 'Name A–Z'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('users-copy-emails'),
+                  onPressed: emails.isEmpty ? null : () => _copyEmails(emails, fr),
+                  icon: const Icon(Icons.copy_all_outlined),
+                  label: Text(
+                    fr
+                        ? 'Copier les ${emails.length} courriel(s)'
+                        : 'Copy ${emails.length} email(s)',
+                  ),
+                ),
+              ),
+              if (!_offersOnly)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    fr
+                        ? 'Pour une promotion, cochez d’abord « Accepte les offres » (loi anti-pourriel).'
+                        : 'For a promotion, first select “Accepts offers” (anti-spam law).',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                ),
               const SizedBox(height: 10),
-              if (users.isEmpty)
+              if (sorted.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
                   child: Center(
@@ -140,7 +211,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     ),
                   ),
                 ),
-              ...users.map((doc) {
+              ...sorted.map((doc) {
                 final data = doc.data();
                 final name = (data['full_name'] ?? '').toString().trim();
                 final email = (data['email'] ?? '').toString().trim();
@@ -163,6 +234,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(email.isNotEmpty ? email : doc.id),
+                        Text(
+                          signupLabel(userCreatedAt(data), fr),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
                         const SizedBox(height: 6),
                         Wrap(
                           spacing: 6,
@@ -188,6 +266,52 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _toggleOffers(bool selected, bool fr) async {
+    if (!selected) {
+      setState(() => _offersOnly = false);
+      return;
+    }
+    setState(() => _loadingOptIns = true);
+    try {
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('getMarketingOptIns')
+          .call(<String, dynamic>{});
+      final ids = (result.data as Map)['userIds'];
+      if (!mounted) return;
+      setState(() {
+        _optIns = ids is List ? ids.whereType<String>().toSet() : <String>{};
+        _offersOnly = true;
+      });
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ??
+                (fr ? 'Liste des offres indisponible.' : 'Offers list unavailable.'),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingOptIns = false);
+    }
+  }
+
+  Future<void> _copyEmails(List<String> emails, bool fr) async {
+    await Clipboard.setData(ClipboardData(text: emails.join(', ')));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          fr
+              ? '${emails.length} courriel(s) copié(s). Collez-les dans le champ « Cci ».'
+              : '${emails.length} email(s) copied. Paste them in the “Bcc” field.',
+        ),
       ),
     );
   }
