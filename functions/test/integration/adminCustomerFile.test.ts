@@ -92,7 +92,7 @@ it("admin : fiche complète — compte, chiffres, pastilles, livraisons, paiemen
   expect(file.badges).toEqual(expect.arrayContaining(["new", "watch"]));
   expect(file.missions[0]).toMatchObject({ id: MISSION, pickup: "12 rue Principale, Granby", driverName: "Marc Caron" });
   expect(file.quotes[0]).toMatchObject({ id: "cf_quote_open", totalMinor: 9900, pickup: "1 rue A, Bromont" });
-  expect(file.payments.map((p: any) => p.kind).sort()).toEqual(["deposit", "delivery"]);
+  expect(file.payments.map((p: any) => p.kind).sort()).toEqual(["delivery", "deposit"]);
   expect(file.consents[0]).toMatchObject({ termsVersion: "V-2026-10", marketing: true });
 
   // Loi 25 : chaque consultation est journalisée.

@@ -62,7 +62,11 @@ class _AdminCustomerFileState extends State<AdminCustomerFile> {
   Future<Map<String, dynamic>> _load() =>
       _call('getAdminCustomerFile', {'userId': widget.userId});
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   void initState() {

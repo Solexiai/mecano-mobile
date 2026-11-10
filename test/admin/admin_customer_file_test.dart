@@ -163,7 +163,8 @@ void main() {
   testWidgets('en-tête, pastilles et chiffres clés', (t) async {
     final calls = _Calls(_file());
     await _pump(t, calls);
-    expect(calls.calls.first, ('getAdminCustomerFile', {'userId': 'cust_1'}));
+    expect(calls.calls.first.$1, 'getAdminCustomerFile');
+    expect(calls.calls.first.$2, {'userId': 'cust_1'});
     expect(find.byKey(const ValueKey('badge-new')), findsOneWidget);
     expect(find.byKey(const ValueKey('badge-watch')), findsOneWidget);
     expect(find.textContaining('450 555-1234'), findsOneWidget);
