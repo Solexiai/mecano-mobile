@@ -2964,35 +2964,29 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     final total = _draft.quote?['customerTotal'];
     if (total is! num) return const SizedBox.shrink();
     final balance = total - _depositAmount < 0 ? 0 : total - _depositAmount;
-    Widget amount(String label, String value, {bool strong = false}) =>
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          child: SizedBox(
-            width: double.infinity,
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 2,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: strong ? FontWeight.w800 : FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: strong ? 18 : 16,
-                    color: const Color(0xFF0F2A5C),
-                  ),
-                ),
-              ],
+    Widget amount(String label, String value) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 2,
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: Color(0xFF0F2A5C),
+              ),
             ),
-          ),
-        );
+          ],
+        ),
+      ),
+    );
     Widget rule(String text, {Key? key, Color dot = const Color(0xFF0F2A5C)}) =>
         Padding(
           key: key,
@@ -3054,17 +3048,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               ),
               _balanceText(),
             ),
+            // Le total est déjà en grand juste au-dessus (prix officiel).
             const Divider(height: 14),
-            amount(
-              tr(
-                'Total, taxes comprises',
-                'Total, taxes included',
-                'Total, impuestos incluidos',
-              ),
-              _moneyText(total),
-              strong: true,
-            ),
-            const SizedBox(height: 8),
             rule(
               tr(
                 'Quand un chauffeur accepte, le solde est réservé sur votre carte. Il n’est prélevé qu’après la livraison.',
