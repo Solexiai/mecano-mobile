@@ -53,7 +53,11 @@ void main() {
   test('vercel.json serves each public page from its generated file', () {
     final config = jsonDecode(File('vercel.json').readAsStringSync()) as Map;
     final rewrites = (config['rewrites'] as List).cast<Map>();
-    final firstGeneric = rewrites.indexWhere((r) => r['destination'] == '/index.html');
+    // First app rule with a parameter (e.g. /:locale(fr|en|es)/:page(...)).
+    final firstGeneric = rewrites.indexWhere(
+      (r) => r['destination'] == '/index.html' && (r['source'] as String).contains(':'),
+    );
+    expect(firstGeneric, greaterThan(0));
     for (final page in seoPages) {
       for (final locale in seoLocales) {
         final index = rewrites.indexWhere((r) => r['source'] == page.path(locale));
