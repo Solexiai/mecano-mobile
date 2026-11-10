@@ -50,7 +50,7 @@ function millis(value: unknown): number | null {
 }
 
 /** Courriel et langue du client, tels qu'enregistrés à la réservation. */
-async function customerContact(missionId: string, mission: Mission): Promise<{ email: string | null; locale: EmailLocale }> {
+export async function customerContact(missionId: string, mission: Mission): Promise<{ email: string | null; locale: EmailLocale }> {
   const booking = (await db.collection("delivery_requests").doc(missionId).collection("private").doc("booking").get()).data();
   const email = typeof booking?.customer_email === "string" && booking.customer_email
     ? booking.customer_email as string
@@ -64,14 +64,22 @@ async function userLocale(uid: string): Promise<EmailLocale> {
   return normalizeEmailLocale(tokens.docs[0]?.data().locale);
 }
 
-/** « Réservation confirmée » ; un seul envoi par mission. */
-export async function sendBookingConfirmation(missionId: string, given?: Mission): Promise<EmailOutcome | "skipped"> {
+/**
+ * « Réservation confirmée » ; un seul envoi automatique par mission. Le
+ * service client peut la renvoyer (`resendKey`, fiche client 2026-11-10) :
+ * chaque renvoi a sa propre clé, donc sa propre ligne de journal.
+ */
+export async function sendBookingConfirmation(
+  missionId: string,
+  given?: Mission,
+  resendKey?: string
+): Promise<EmailOutcome | "skipped"> {
   const mission = given ?? (await db.collection("delivery_requests").doc(missionId).get()).data();
   if (!mission || isInternalTest(mission) || typeof mission.customer_id !== "string") return "skipped";
   const { email, locale } = await customerContact(missionId, mission);
   return sendTransactionalEmail({
-    key: `booking_confirmed__${missionId}`,
-    kind: "booking_confirmed",
+    key: resendKey ? `booking_confirmed__${missionId}__${resendKey}` : `booking_confirmed__${missionId}`,
+    kind: resendKey ? "booking_confirmed_resend" : "booking_confirmed",
     userId: mission.customer_id,
     missionId,
     to: email,
