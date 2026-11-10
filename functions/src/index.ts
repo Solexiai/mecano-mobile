@@ -66,6 +66,13 @@ export { tipDriver } from "./functions/tipDriver";
 // 2026-11-10 — courriel « Réservation confirmée » et rappels 4 h avant le
 // ramassage (client + chauffeur). Secret requis : RESEND_API_KEY.
 export { onMissionCreatedSendConfirmation, sendPickupReminders } from "./functions/bookingNotifications";
+// 2026-11-10 — fiche client du service client (phase 1).
+export {
+  getAdminCustomerFile,
+  addCustomerNote,
+  setCustomerNotePinned,
+  resendCustomerEmail,
+} from "./functions/adminCustomerFile";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 // ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
 export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";

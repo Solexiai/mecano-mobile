@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import 'admin_customer_file.dart';
 
 class AdminUserDetailScreen extends StatefulWidget {
   const AdminUserDetailScreen({super.key, required this.userId});
@@ -61,6 +62,10 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       subtitle: Text(email.isEmpty ? widget.userId : email),
                     ),
                   ),
+                  // Fiche client du service client (2026-11-10) : livraisons,
+                  // paiements, courriels, conditions, notes internes.
+                  const SizedBox(height: 12),
+                  AdminCustomerFile(userId: widget.userId, locale: locale),
                   const SizedBox(height: 16),
                   Text(
                     fr ? 'Rôles du compte' : 'Account roles',

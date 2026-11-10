@@ -238,3 +238,39 @@ export function reminderDue(params: {
   if (committedAtMs === null) return false;
   return committedAtMs <= pickupMs - PICKUP_REMINDER_LEAD_MS;
 }
+
+/** « Votre reçu Movi-K » : renvoyé par le service client (fiche client, 2026-11-10). */
+export function paymentReceiptEmail(params: {
+  missionId: string | null;
+  amountMinor: number;
+  paidAtMs: number | null;
+  receiptUrl: string;
+  locale: EmailLocale;
+}): Omit<OutgoingEmail, "to"> {
+  const { locale } = params;
+  const rows: Array<[string, string]> = [
+    [tr(locale, "Montant", "Amount", "Monto"), formatEmailMoney(params.amountMinor, locale)],
+    ...(params.paidAtMs !== null
+      ? [[tr(locale, "Payé le", "Paid on", "Pagado el"), formatEmailDateTime(params.paidAtMs, locale)] as [string, string]]
+      : []),
+    ...(params.missionId ? [[tr(locale, "Référence", "Reference", "Referencia"), params.missionId] as [string, string]] : []),
+  ];
+  const content = {
+    title: tr(locale, "Votre reçu Movi-K", "Your Movi-K receipt", "Tu recibo de Movi-K"),
+    intro: tr(
+      locale,
+      "Comme demandé, voici le reçu officiel de votre paiement, émis par Stripe, notre processeur de paiement.",
+      "As requested, here is the official receipt for your payment, issued by Stripe, our payment processor.",
+      "Como lo pediste, aquí está el recibo oficial de tu pago, emitido por Stripe, nuestro procesador de pagos."
+    ),
+    rows,
+    button: { label: tr(locale, "Voir mon reçu", "View my receipt", "Ver mi recibo"), url: params.receiptUrl },
+    footer: footer(locale),
+  };
+  return {
+    subject: tr(locale, "Votre reçu — Movi-K", "Your receipt — Movi-K", "Tu recibo — Movi-K"),
+    html: renderEmailHtml(content),
+    text: renderEmailText(content),
+    category: "payment_receipt",
+  };
+}
