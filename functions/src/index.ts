@@ -63,6 +63,9 @@ export { recordTrackingPoint } from "./functions/recordTrackingPoint";
 // 2026-11-09 — le vrai pourboire Stripe est `tipDriver` (débit de la carte
 // enregistrée, 100 % viré au chauffeur, voir payment/driverTipOrchestration.ts).
 export { tipDriver } from "./functions/tipDriver";
+// 2026-11-10 — courriel « Réservation confirmée » et rappels 4 h avant le
+// ramassage (client + chauffeur). Secret requis : RESEND_API_KEY.
+export { onMissionCreatedSendConfirmation, sendPickupReminders } from "./functions/bookingNotifications";
 export { createFinancialSnapshot } from "./functions/createFinancialSnapshot";
 // ---- Reprise de capture après livraison (PAY-03 / PAY-11, 2026-10-27) ----
 export { retryFailedCaptures, retryFailedCapture, startPaymentRecoveryCardSetup } from "./functions/captureRecovery";

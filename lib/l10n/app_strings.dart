@@ -1824,6 +1824,27 @@ class AppStrings {
       'en': 'A customer left you a tip. It is paid 100% to your Stripe account (Earnings › Stripe transfers).',
       'es': 'Un cliente le dejó una propina. Se paga al 100 % en su cuenta Stripe (Ganancias › Transferencias Stripe).',
     },
+    // Rappels 4 h avant le ramassage (2026-11-10).
+    'notif_pickup_reminder_customer_title': {
+      'fr': 'Rappel : votre livraison dans 4 h',
+      'en': 'Reminder: your delivery in 4 hours',
+      'es': 'Recordatorio: tu entrega en 4 h',
+    },
+    'notif_pickup_reminder_customer_body': {
+      'fr': 'Votre chauffeur Movi-K passe dans environ 4 heures. Préparez vos objets et dégagez l’accès.',
+      'en': 'Your Movi-K driver arrives in about 4 hours. Get your items ready and clear the access.',
+      'es': 'Tu conductor de Movi-K llega en unas 4 horas. Prepara tus objetos y despeja el acceso.',
+    },
+    'notif_pickup_reminder_driver_title': {
+      'fr': 'Rappel : ramassage dans 4 h',
+      'en': 'Reminder: pickup in 4 hours',
+      'es': 'Recordatorio: recogida en 4 h',
+    },
+    'notif_pickup_reminder_driver_body': {
+      'fr': 'Vous avez un ramassage Movi-K dans environ 4 heures. Ouvrez la livraison pour l’adresse et l’itinéraire.',
+      'en': 'You have a Movi-K pickup in about 4 hours. Open the delivery for the address and directions.',
+      'es': 'Tienes una recogida de Movi-K en unas 4 horas. Abre la entrega para ver la dirección y la ruta.',
+    },
     'notif_document_expiring_soon_title': {
       'fr': 'Document bientôt expiré',
       'en': 'Document expiring soon',
