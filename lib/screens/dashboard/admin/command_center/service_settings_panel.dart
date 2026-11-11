@@ -191,14 +191,18 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 heading('Zone desservie'),
-                SwitchListTile(
-                  key: const ValueKey('zone-unlimited'),
-                  contentPadding: EdgeInsets.zero,
-                  value: _unlimited,
-                  onChanged: _busy ? null : (v) => _change(() => _unlimited = v),
-                  title: const Text('Pas de limite de distance'),
-                  subtitle: const Text(
-                    'Les clients réservent partout. Chaque chauffeur reçoit seulement les livraisons dans le rayon qu’il a choisi. Les villes ci-dessous sont gardées pour revenir en arrière.',
+                // Own Material: the card behind has a background color.
+                Material(
+                  type: MaterialType.transparency,
+                  child: SwitchListTile(
+                    key: const ValueKey('zone-unlimited'),
+                    contentPadding: EdgeInsets.zero,
+                    value: _unlimited,
+                    onChanged: _busy ? null : (v) => _change(() => _unlimited = v),
+                    title: const Text('Pas de limite de distance'),
+                    subtitle: const Text(
+                      'Les clients réservent partout. Chaque chauffeur reçoit seulement les livraisons dans le rayon qu’il a choisi. Les villes ci-dessous sont gardées pour revenir en arrière.',
+                    ),
                   ),
                 ),
                 if (!_zonesSaved)
