@@ -87,6 +87,7 @@ class DriverPhotoApi extends TestBookingApi {
       if (failDecline) throw StateError('SIMULATED');
       return pending == null ? {'declined': true} : pending!.future;
     }
+    if (name == 'recordOfferDeclineReason') return {'recorded': true};
     throw StateError('Unexpected call: $name');
   }
 }
@@ -252,6 +253,38 @@ void main() {
       await disposeBooking(t);
     },
   );
+  testWidgets('after a decline, the optional reason is sent once', (t) async {
+    final api = DriverPhotoApi();
+    await pump(t, api);
+    await tapBooking(t, 'Refuser cette demande');
+    expect(find.text('Pourquoi avez-vous refusé ?'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('decline-reason-too_far')));
+    await t.pumpAndSettle();
+    expect(api.calls.where((x) => x == 'declineDeliveryOffer'), hasLength(1));
+    final reasonCall = api.calls.indexOf('recordOfferDeclineReason');
+    expect(api.calls.where((x) => x == 'recordOfferDeclineReason'), hasLength(1));
+    expect(api.payloads[reasonCall], {
+      'missionId': 'photo_mission',
+      'reason': 'too_far',
+    });
+    expect(find.text('Pourquoi avez-vous refusé ?'), findsNothing);
+    expect(t.takeException(), isNull);
+    await disposeBooking(t);
+  });
+  testWidgets('skipping the reason keeps the decline as is', (t) async {
+    final api = DriverPhotoApi();
+    await pump(t, api);
+    await tapBooking(t, 'Refuser cette demande');
+    await t.tap(find.text('Passer').last);
+    await t.pumpAndSettle();
+    expect(api.calls, isNot(contains('recordOfferDeclineReason')));
+    expect(
+      find.byKey(const ValueKey('decline-offer-photo_mission')),
+      findsNothing,
+    );
+    expect(t.takeException(), isNull);
+    await disposeBooking(t);
+  });
   testWidgets('decline failure preserves offer and allows retry', (t) async {
     final api = DriverPhotoApi()..failDecline = true;
     await pump(t, api);

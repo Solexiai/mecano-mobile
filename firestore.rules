@@ -678,6 +678,14 @@ service cloud.firestore {
       allow write: if false; // Callable admin + atomic audit only.
     }
 
+    // Équilibre offre / demande (10 nov. 2026) : journal écrit seulement par
+    // les triggers (passages en ligne des chauffeurs, « aucun chauffeur »).
+    // Lu par le personnel ; le tableau Admin passe par getMarketBalance.
+    match /market_balance_events/{eventId} {
+      allow read: if isAnalystOrAbove();
+      allow write: if false;
+    }
+
     match /driver_presence/{sessionId} {
       allow read: if isAnalystOrAbove();
       allow create: if isDriver() &&
