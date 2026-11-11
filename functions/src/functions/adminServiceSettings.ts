@@ -3,8 +3,9 @@
 // owner decision 2026-10-26).
 //   - "get": the service zones and the booking hours in force (saved, or the
 //     launch defaults), each marked saved or not;
-//   - "save" { zones?, hours? }: validates and writes system_config/
-//     service_zones (circles) and/or system_config/booking_hours. Audited.
+//   - "save" { zones?, unlimited?, hours? }: validates and writes system_config/
+//     service_zones (circles; `unlimited: true` = no distance limit, Daniel
+//     2026-11-11) and/or system_config/booking_hours. Audited.
 // An address outside every zone, or a time outside the hours, is refused
 // before any price.
 // -----------------------------------------------------------------------------
@@ -54,6 +55,8 @@ export const adminServiceSettings = onCall(async (request) => {
       zones: {
         saved: zonesSnap.exists,
         enabled: zonesSnap.exists ? zonesData?.enabled === true : DEFAULT_SERVICE_ZONES.enabled,
+        // Pas de limite de distance (Daniel, 2026-11-11).
+        unlimited: zonesSnap.exists && zonesData?.unlimited === true,
         list: zonesSnap.exists
           ? (Array.isArray(zonesData?.zones) ? zonesData!.zones : []).filter((z: unknown) =>
             z && typeof z === "object" && (z as { type?: unknown }).type === "circle")
@@ -70,16 +73,36 @@ export const adminServiceSettings = onCall(async (request) => {
     const errors: string[] = [];
     const zones = data.zones === undefined ? null : parseZones(data.zones, errors);
     const hours = data.hours === undefined ? null : parseBookingHours(data.hours, errors);
-    if (!zones && !hours) errors.push("Rien à enregistrer.");
+    if (data.unlimited !== undefined && typeof data.unlimited !== "boolean") {
+      errors.push("Limite de distance : oui ou non.");
+    }
+    const unlimited = typeof data.unlimited === "boolean" ? data.unlimited : null;
+    if (!zones && !hours && unlimited === null) errors.push("Rien à enregistrer.");
     if (errors.length) throw invalidArgument(errors.join(" "));
     await db.runTransaction(async (tx) => {
       const now = admin.firestore.FieldValue.serverTimestamp();
-      if (zones) tx.set(db.doc(ZONES_DOC), { enabled: true, zones, updated_at: now, updated_by_user_id: ctx.uid });
+      if (zones || unlimited !== null) {
+        // Zones gardées même sans limite : on peut revenir aux villes en un clic.
+        const current = (await tx.get(db.doc(ZONES_DOC))).data();
+        const keptZones = zones ?? (Array.isArray(current?.zones) && current!.zones.length
+          ? current!.zones : DEFAULT_SERVICE_ZONES.zones.map((z) => ({ ...z })));
+        tx.set(db.doc(ZONES_DOC), {
+          enabled: true,
+          unlimited: unlimited ?? current?.unlimited === true,
+          zones: keptZones,
+          updated_at: now,
+          updated_by_user_id: ctx.uid,
+        });
+      }
       if (hours) tx.set(db.doc(BOOKING_HOURS_DOC), { ...hours, updated_at: now, updated_by_user_id: ctx.uid });
       writeAuditLogInTransaction(tx, {
         actorUserId: ctx.uid, actorRole: ctx.role ?? "admin", action: "service_settings_saved",
         sourceFunction: "adminServiceSettings", targetId: "service_settings",
-        metadata: { zones: zones?.map((z) => `${z.name} ${z.radius_km} km`) ?? null, hours: hours ?? null },
+        metadata: {
+          zones: zones?.map((z) => `${z.name} ${z.radius_km} km`) ?? null,
+          unlimited,
+          hours: hours ?? null,
+        },
       });
     });
     return { success: true };

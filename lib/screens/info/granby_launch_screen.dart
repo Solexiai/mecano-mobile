@@ -93,9 +93,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     title: tr('Zone desservie', 'Service area', 'Zona de servicio'),
                     body: tr(
-                      'Granby et les environs. Le parcours vous indique tout de suite si vos adresses sont dans la zone desservie.',
-                      'Granby and surrounding areas. The request flow tells you right away whether your addresses are in the service area.',
-                      'Granby y alrededores. El proceso te indica enseguida si tus direcciones están en la zona de servicio.',
+                      'Granby et partout ailleurs, sans limite de distance : il suffit qu’un chauffeur près de votre adresse de ramassage accepte la livraison.',
+                      'Granby and everywhere else, with no distance limit: a driver near your pickup address just needs to accept the delivery.',
+                      'Granby y cualquier otro lugar, sin límite de distancia: basta con que un conductor cerca de tu dirección de recogida acepte la entrega.',
                     ),
                   ),
                   const SizedBox(height: 12),

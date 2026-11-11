@@ -18,6 +18,13 @@ export interface ServiceZoneCircle {
 }
 export interface ServiceZonesConfig {
   enabled: boolean;
+  /**
+   * Daniel, 2026-11-11 : « il n'y a pas de km ». Vrai = aucune limite de
+   * distance pour réserver ; chaque chauffeur reçoit seulement les
+   * livraisons dans le rayon qu'il a choisi (driver_profiles.service_radius_km).
+   * Les zones restent enregistrées pour pouvoir revenir en arrière.
+   */
+  unlimited?: boolean;
   zones: (ServiceZoneRect | ServiceZoneCircle)[];
 }
 const CONFIG_DOC_PATH = "system_config/service_zones";
@@ -54,8 +61,24 @@ export async function getServiceZonesConfig(
   const data = snap.data() as Partial<ServiceZonesConfig> | undefined;
   return {
     enabled: data?.enabled === true,
+    ...(data?.unlimited === true ? { unlimited: true } : {}),
     zones: Array.isArray(data?.zones) ? data.zones : [],
   };
+}
+
+/**
+ * Raison de refuser un prix ou une réservation pour ces adresses, ou null.
+ * Sans limite de distance : jamais de refus pour la zone.
+ */
+export function serviceAreaRefusal(
+  stops: { address: { lat: number; lng: number } }[],
+  config: ServiceZonesConfig
+): "service_area_unconfigured" | "outside_service_area" | null {
+  if (config.unlimited === true) return null;
+  if (!config.enabled || !config.zones.length) return "service_area_unconfigured";
+  return stops.some((s) => !isWithinServiceZones(s.address.lat, s.address.lng, config))
+    ? "outside_service_area"
+    : null;
 }
 function coordinatesValid(lat: number, lng: number): boolean {
   return Number.isFinite(lat) && Number.isFinite(lng) &&
@@ -67,6 +90,7 @@ export function isWithinServiceZones(
   config: ServiceZonesConfig
 ): boolean {
   // Preserve legacy behavior. Booking additionally requires a configured zone.
+  if (config.unlimited === true) return true;
   if (!config.enabled || config.zones.length === 0) return true;
   if (!coordinatesValid(lat, lng)) return false;
   return config.zones.some((z) => {

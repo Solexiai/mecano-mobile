@@ -47,6 +47,8 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
   Set<int> _days = {};
   int _lead = 60, _ahead = 4;
   bool _loaded = false, _busy = true, _dirty = false, _zonesSaved = false, _hoursSaved = false;
+  // Daniel, 2026-11-11 : « il n'y a pas de km ».
+  bool _unlimited = false;
   String? _error, _saved;
   int _gen = 0;
 
@@ -77,6 +79,7 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
       _lead = hours['lead_minutes'] as int;
       _ahead = (hours['days_ahead'] as int).clamp(1, 30);
       _zonesSaved = zones['saved'] == true;
+      _unlimited = zones['unlimited'] == true;
       _hoursSaved = hours['saved'] == true;
       _loaded = true;
     } on FirebaseFunctionsException catch (e) {
@@ -102,6 +105,7 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
       await _api({
         'action': 'save',
         'zones': [for (final z in _zones) z.toJson()],
+        'unlimited': _unlimited,
         'hours': {
           'slot_hours': (_hours.toList()..sort()),
           'lead_minutes': _lead,
@@ -187,9 +191,20 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 heading('Zone desservie'),
+                SwitchListTile(
+                  key: const ValueKey('zone-unlimited'),
+                  contentPadding: EdgeInsets.zero,
+                  value: _unlimited,
+                  onChanged: _busy ? null : (v) => _change(() => _unlimited = v),
+                  title: const Text('Pas de limite de distance'),
+                  subtitle: const Text(
+                    'Les clients réservent partout. Chaque chauffeur reçoit seulement les livraisons dans le rayon qu’il a choisi. Les villes ci-dessous sont gardées pour revenir en arrière.',
+                  ),
+                ),
                 if (!_zonesSaved)
-                  const Text('Zone de lancement par défaut (jamais enregistrée).', style: TextStyle(color: AppColors.textSecondary)),
+                  const Text('Zone de départ par défaut (jamais enregistrée).', style: TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
+                if (!_unlimited)
                 for (var i = 0; i < _zones.length; i++)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
@@ -237,6 +252,7 @@ class _ServiceSettingsPanelState extends State<ServiceSettingsPanel> {
                       ],
                     ),
                   ),
+                if (!_unlimited)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(

@@ -41,9 +41,9 @@ class AboutScreen extends StatelessWidget {
         Icons.location_on_outlined,
         _tr(fr: 'Local', en: 'Local', es: 'Local'),
         _tr(
-          fr: 'Service offert à Granby et dans les environs.',
-          en: 'Serving Granby and surrounding areas.',
-          es: 'Servicio en Granby y alrededores.',
+          fr: 'Né à Granby, Movi‑K livre partout où un chauffeur est disponible.',
+          en: 'Born in Granby, Movi‑K delivers wherever a driver is available.',
+          es: 'Nacido en Granby, Movi‑K entrega dondequiera que haya un conductor disponible.',
         ),
       ),
       (

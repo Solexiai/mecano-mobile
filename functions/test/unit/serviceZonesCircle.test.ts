@@ -16,3 +16,18 @@ test.each([NaN,Infinity,91])('invalid latitude %s rejected',value=>expect(isWith
 test('invalid circle fails closed',()=>expect(isWithinServiceZones(lat,lng,{enabled:true,zones:[{...config.zones[0],radius_km:-1}]})).toBe(false));
 test('legacy rectangle retained',()=>expect(isWithinServiceZones(lat,lng,{enabled:true,zones:[{name:'legacy',min_lat:45,max_lat:46,min_lng:-73,max_lng:-72}]})).toBe(true));
 test('disabled legacy behavior retained',()=>expect(isWithinServiceZones(lat,lng,{enabled:false,zones:[]})).toBe(true));
+
+// Daniel, 2026-11-11 : « il n'y a pas de km ».
+import {serviceAreaRefusal} from '../../src/lib/serviceZones';
+const paris={address:{lat:48.8566,lng:2.3522}}, granby={address:{lat,lng}};
+test('no distance limit: every address is served, zones kept',()=>{
+  const open={...config,unlimited:true};
+  expect(isWithinServiceZones(48.8566,2.3522,open)).toBe(true);
+  expect(serviceAreaRefusal([granby,paris],open)).toBeNull();
+});
+test('with zones: outside refused, inside served, nothing configured refused',()=>{
+  expect(serviceAreaRefusal([granby,paris],config)).toBe('outside_service_area');
+  expect(serviceAreaRefusal([granby,granby],config)).toBeNull();
+  expect(serviceAreaRefusal([granby],{enabled:false,zones:[]})).toBe('service_area_unconfigured');
+  expect(serviceAreaRefusal([granby],{enabled:true,zones:[]})).toBe('service_area_unconfigured');
+});

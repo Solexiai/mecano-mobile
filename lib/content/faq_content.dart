@@ -8,8 +8,9 @@
 // débité après la livraison, dépôt remboursé si aucun chauffeur n'accepte ou
 // si le client annule avant l'acceptation ou plus de 48 h avant le
 // ramassage, frais de 30 $ si le chauffeur se déplace pour rien
-// (missionFees.ts). Aucun horaire, jour ou rayon de zone n'est écrit ici :
-// l'administration peut les changer.
+// (missionFees.ts). Pas de limite de distance depuis le 11 nov. 2026 :
+// chaque chauffeur reçoit les livraisons dans le rayon qu'il a choisi.
+// Aucun horaire ni jour n'est écrit ici : l'administration peut les changer.
 
 String _pick(String locale, String fr, String en, String es) =>
     locale == 'en' ? en : locale == 'es' ? es : fr;
@@ -193,9 +194,9 @@ List<(String, String)> faqItems(String locale) => <(String, String)>[
         ),
         _pick(
           locale,
-          'À Granby et dans les environs. Le parcours vous indique tout de suite si vos adresses sont dans la zone desservie.',
-          'In Granby and surrounding areas. The request flow tells you right away whether your addresses are in the service area.',
-          'En Granby y alrededores. El proceso te indica enseguida si tus direcciones están en la zona de servicio.',
+          'Partout, sans limite de distance : votre livraison a lieu dès qu’un chauffeur près de votre adresse de ramassage l’accepte. Si aucun chauffeur n’accepte, votre dépôt de 25 \$ est remboursé.',
+          'Everywhere, with no distance limit: your delivery happens as soon as a driver near your pickup address accepts it. If no driver accepts, your \$25 deposit is refunded.',
+          'En todas partes, sin límite de distancia: tu entrega se realiza en cuanto un conductor cerca de tu dirección de recogida la acepta. Si ningún conductor acepta, se reembolsa tu depósito de 25 \$.',
         ),
       ),
       (

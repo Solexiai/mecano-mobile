@@ -55,11 +55,6 @@ abstract final class HomeCopy {
       'es':
           'Prepara tu solicitud sin cuenta. Solo debes iniciar sesión al solicitar el precio oficial.',
     },
-    'pilot': {
-      'fr': 'Version pilote · disponibilité à confirmer dans votre secteur',
-      'en': 'Pilot version · availability in your area must be confirmed',
-      'es': 'Versión piloto · disponibilidad por confirmar en tu zona',
-    },
     'driver_link': {
       'fr': 'Vous avez un véhicule ? Devenir chauffeur',
       'en': 'Have a vehicle? Become a driver',
@@ -257,14 +252,6 @@ abstract final class HomeCopy {
       'en': 'How do I cancel or get help?',
       'es': '¿Cómo puedo cancelar o pedir ayuda?',
     },
-    'faq_cancel_body': {
-      'fr':
-          'Consultez les conditions d’annulation et la page Contact. Les modalités dépendent de l’état de la mission. Le canal de contact est encore en préparation pour le pilote.',
-      'en':
-          'Review the cancellation policy and Contact page. Terms depend on the mission status. The contact channel is still being prepared for the pilot.',
-      'es':
-          'Consulta la política de cancelación y la página de Contacto. Las condiciones dependen del estado de la misión. El canal de contacto sigue en preparación para la prueba piloto.',
-    },
     'driver_title': {
       'fr': 'Votre véhicule peut rendre service.',
       'en': 'Put your vehicle to good use.',
@@ -316,9 +303,9 @@ abstract final class HomeCopy {
       'es': 'Movi‑K — inicio',
     },
     'granby_launch': {
-      'fr': 'Service offert à Granby et dans les environs',
-      'en': 'Serving Granby and surrounding areas',
-      'es': 'Servicio en Granby y alrededores',
+      'fr': 'Né à Granby · livraisons partout où un chauffeur est disponible',
+      'en': 'Born in Granby · deliveries wherever a driver is available',
+      'es': 'Nacido en Granby · entregas dondequiera que haya un conductor disponible',
     },
     // Clé historique : le service est ouvert au public depuis novembre 2026.
     'prelaunch_status': {
@@ -382,14 +369,14 @@ abstract final class HomeCopy {
       'es': 'Un servicio cerca de ti',
     },
     'reassurance_local_body': {
-      'fr': 'Service offert à Granby et dans les environs',
-      'en': 'Serving Granby and surrounding areas',
-      'es': 'Servicio en Granby y alrededores',
+      'fr': 'Né à Granby · livraisons partout où un chauffeur est disponible',
+      'en': 'Born in Granby · deliveries wherever a driver is available',
+      'es': 'Nacido en Granby · entregas dondequiera que haya un conductor disponible',
     },
     'local_cta_title': {
-      'fr': 'Movi‑K livre à Granby.',
-      'en': 'Movi‑K delivers in Granby.',
-      'es': 'Movi‑K entrega en Granby.',
+      'fr': 'Prêt à faire livrer ?',
+      'en': 'Ready for a delivery?',
+      'es': '¿Listo para una entrega?',
     },
     'local_cta_body': {
       'fr':

@@ -66,9 +66,9 @@ class FaqScreen extends StatelessWidget {
                     Expanded(
                       child: Text(
                         tr(
-                          'Service offert à Granby et dans les environs. La disponibilité d’un chauffeur est confirmée quand il accepte votre demande.',
-                          'Serving Granby and surrounding areas. Driver availability is confirmed when a driver accepts your request.',
-                          'Servicio en Granby y alrededores. La disponibilidad de un conductor se confirma cuando acepta tu solicitud.',
+                          'Partout où un chauffeur Movi‑K est disponible. La disponibilité d’un chauffeur est confirmée quand il accepte votre demande.',
+                          'Wherever a Movi‑K driver is available. Driver availability is confirmed when a driver accepts your request.',
+                          'Dondequiera que haya un conductor Movi‑K disponible. La disponibilidad de un conductor se confirma cuando acepta tu solicitud.',
                         ),
                         style: const TextStyle(
                           color: AppColors.textSecondary,

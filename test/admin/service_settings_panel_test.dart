@@ -37,7 +37,7 @@ void main() {
       ),
     ));
     await t.pumpAndSettle();
-    expect(find.text('Zone de lancement par défaut (jamais enregistrée).'), findsOneWidget);
+    expect(find.text('Zone de départ par défaut (jamais enregistrée).'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('service-hour-8')));
     await t.tap(find.byKey(const ValueKey('service-day-7')));
     await t.pump();
@@ -50,10 +50,51 @@ void main() {
     expect((saved['zones'] as List).single, {
       'name': 'Granby', 'center_lat': 45.39856, 'center_lng': -72.72225, 'radius_km': 50.0,
     });
+    expect(saved['unlimited'], isFalse);
     expect((saved['hours'] as Map)['slot_hours'], [8, 9, 11, 13, 15, 17, 19]);
     expect((saved['hours'] as Map)['open_weekdays'], [1, 2, 3, 4, 5, 6]);
     expect(find.byKey(const ValueKey('service-saved')), findsOneWidget);
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('no distance limit: cities hidden but kept, saved as unlimited', (t) async {
+    t.view.physicalSize = const Size(1200, 2400);
+    t.view.devicePixelRatio = 1;
+    addTearDown(t.view.resetPhysicalSize);
+    addTearDown(t.view.resetDevicePixelRatio);
+    final calls = <Map<String, dynamic>>[];
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ServiceSettingsPanel(api: (data) async {
+          calls.add(data);
+          return data['action'] == 'get' ? _state() : {'success': true};
+        }),
+      ),
+    ));
+    await t.pumpAndSettle();
+    expect(find.byKey(const ValueKey('zone-radius-0-0')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('zone-unlimited')));
+    await t.pump();
+    expect(find.byKey(const ValueKey('zone-radius-0-0')), findsNothing);
+    expect(find.byKey(const ValueKey('zone-add')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('service-save')));
+    await t.pumpAndSettle();
+    final saved = calls.last;
+    expect(saved['unlimited'], isTrue);
+    expect((saved['zones'] as List).single, containsPair('name', 'Granby'));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('a saved unlimited setting is shown on load', (t) async {
+    final state = _state();
+    (state['zones'] as Map)['unlimited'] = true;
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(body: ServiceSettingsPanel(api: (data) async => state)),
+    ));
+    await t.pumpAndSettle();
+    final tile = t.widget<SwitchListTile>(find.byKey(const ValueKey('zone-unlimited')));
+    expect(tile.value, isTrue);
+    expect(find.byKey(const ValueKey('zone-radius-0-0')), findsNothing);
   });
 
   test('the booking app follows the saved hours', () {

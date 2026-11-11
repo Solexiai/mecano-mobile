@@ -358,9 +358,9 @@ final List<SeoPage> seoPages = [
       SeoSection(
         _l('Zone desservie', 'Service area', 'Zona de servicio'),
         _l(
-          'Granby et les environs. Le parcours vous indique tout de suite si vos adresses sont dans la zone desservie.',
-          'Granby and surrounding areas. The request flow tells you right away whether your addresses are in the service area.',
-          'Granby y alrededores. El proceso te indica enseguida si tus direcciones están en la zona de servicio.',
+          'Granby et partout ailleurs, sans limite de distance : il suffit qu’un chauffeur près de votre adresse de ramassage accepte la livraison.',
+          'Granby and everywhere else, with no distance limit: a driver near your pickup address just needs to accept the delivery.',
+          'Granby y cualquier otro lugar, sin límite de distancia: basta con que un conductor cerca de tu dirección de recogida acepte la entrega.',
         ),
       ),
       SeoSection(
@@ -434,9 +434,9 @@ final List<SeoPage> seoPages = [
       'Acerca de Movi-K | Entrega local de objetos grandes',
     ),
     descriptions: _l(
-      'Movi-K connecte les gens à des chauffeurs locaux de confiance pour transporter les objets trop gros ou difficiles à déplacer soi-même. Service offert à Granby et dans les environs.',
-      'Movi-K connects people with trusted local drivers to move items too big or hard to move yourself. Serving Granby and surrounding areas.',
-      'Movi-K conecta a las personas con conductores locales de confianza para transportar objetos demasiado grandes o difíciles de mover. Servicio en Granby y alrededores.',
+      'Movi-K connecte les gens à des chauffeurs locaux de confiance pour transporter les objets trop gros ou difficiles à déplacer soi-même. Né à Granby.',
+      'Movi-K connects people with trusted local drivers to move items too big or hard to move yourself. Born in Granby.',
+      'Movi-K conecta a las personas con conductores locales de confianza para transportar objetos demasiado grandes o difíciles de mover. Nacido en Granby.',
     ),
     headings: _l('À propos de Movi-K', 'About Movi-K', 'Acerca de Movi-K'),
     intros: _l(
@@ -447,7 +447,11 @@ final List<SeoPage> seoPages = [
     sections: [
       SeoSection(
         _l('Local', 'Local', 'Local'),
-        _l('Service offert à Granby et dans les environs.', 'Serving Granby and surrounding areas.', 'Servicio en Granby y alrededores.'),
+        _l(
+          'Né à Granby, Movi‑K livre partout où un chauffeur est disponible.',
+          'Born in Granby, Movi‑K delivers wherever a driver is available.',
+          'Nacido en Granby, Movi‑K entrega dondequiera que haya un conductor disponible.',
+        ),
       ),
       SeoSection(
         _l('Fiable', 'Reliable', 'Confiable'),

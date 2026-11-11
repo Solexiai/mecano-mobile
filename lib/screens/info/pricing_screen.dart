@@ -200,9 +200,9 @@ class PricingScreen extends StatelessWidget {
               const SizedBox(height: 18),
               Text(
                 tr(
-                  'Service offert à Granby et dans les environs. La disponibilité d’un chauffeur est confirmée dans le parcours.',
-                  'Serving Granby and surrounding areas. Driver availability is confirmed in the request flow.',
-                  'Servicio en Granby y alrededores. La disponibilidad de un conductor se confirma en el proceso.',
+                  'Partout où un chauffeur Movi‑K est disponible. La disponibilité d’un chauffeur est confirmée dans le parcours.',
+                  'Wherever a Movi‑K driver is available. Driver availability is confirmed in the request flow.',
+                  'Dondequiera que haya un conductor Movi‑K disponible. La disponibilidad de un conductor se confirma en el proceso.',
                 ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,

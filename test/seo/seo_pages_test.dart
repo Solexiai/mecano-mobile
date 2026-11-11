@@ -172,12 +172,18 @@ void main() {
       );
     });
 
-    test('text is escaped and the service area is Granby', () {
+    test('no distance limit: only the Granby page names a service area', () {
       final html = pages['/seo/fr/tarifs.html']!;
       expect(html, contains('<title>Tarifs : le prix exact avant de réserver | Movi-K</title>'));
-      final graph = (_jsonLd(html)['@graph'] as List).cast<Map>();
-      final service = graph.firstWhere((n) => n['@type'] == 'Service');
-      expect(service['areaServed'], {'@type': 'City', 'name': 'Granby'});
+      Map service(String file) => (_jsonLd(pages[file]!)['@graph'] as List)
+          .cast<Map>()
+          .firstWhere((n) => n['@type'] == 'Service');
+      expect(service('/seo/fr/tarifs.html').containsKey('areaServed'), isFalse);
+      expect(service('/seo/fr.html').containsKey('areaServed'), isFalse);
+      expect(service('/seo/fr/granby.html')['areaServed'], {'@type': 'City', 'name': 'Granby'});
+      final org = (_jsonLd(html)['@graph'] as List).cast<Map>().firstWhere((n) => n['@type'] == 'Organization');
+      expect(org.containsKey('areaServed'), isFalse);
+      expect(faqItems('fr').map((i) => i.$2).join(' '), contains('sans limite de distance'));
     });
 
     test('a changed index.html template is refused instead of half-written', () {

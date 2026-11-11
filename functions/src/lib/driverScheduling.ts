@@ -57,7 +57,11 @@ export function reservationStillActive(m: Record<string, any> | undefined, drive
 }
 export function locationInDriverZone(driver: Record<string, any>, location: Record<string, any> | undefined, pickup: Record<string, any>, zones: ServiceZonesConfig, now = Date.now()): boolean {
     const valid = (lat: unknown, lng: unknown) => typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90 && typeof lng === 'number' && Number.isFinite(lng) && Math.abs(lng) <= 180;
-    if (!zones?.enabled || !Array.isArray(zones.zones) || !zones.zones.length || !pickup || !valid(pickup.lat, pickup.lng) || !isWithinServiceZones(pickup.lat, pickup.lng, zones))
+    // Sans limite de distance (Daniel, 2026-11-11), seul le rayon du chauffeur compte.
+    const unlimited = zones?.unlimited === true;
+    if (!pickup || !valid(pickup.lat, pickup.lng))
+        return false;
+    if (!unlimited && (!zones?.enabled || !Array.isArray(zones.zones) || !zones.zones.length || !isWithinServiceZones(pickup.lat, pickup.lng, zones)))
         return false;
     // Dispatch distance only. Never replaces the route used in the official quote.
     const radius = driver.service_radius_km;

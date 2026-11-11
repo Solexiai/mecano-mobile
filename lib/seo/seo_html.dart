@@ -88,7 +88,9 @@ Map<String, Object?> seoStructuredData(SeoPage page, String locale) {
       'url': '$seoSiteUrl/',
       'logo': '$seoSiteUrl/icons/Icon-512.png',
       'email': seoContactEmail,
-      'areaServed': {'@type': 'City', 'name': 'Granby'},
+      // Pas de limite de distance depuis le 11 nov. 2026 : Granby est le
+      // lieu de naissance, pas une limite de service.
+      'foundingLocation': {'@type': 'Place', 'name': 'Granby, Québec, Canada'},
     },
     {
       '@type': 'WebSite',
@@ -123,7 +125,7 @@ Map<String, Object?> seoStructuredData(SeoPage page, String locale) {
         'name': _t(_serviceType, locale),
         'serviceType': _t(_serviceType, locale),
         'provider': {'@id': org},
-        'areaServed': {'@type': 'City', 'name': 'Granby'},
+        if (page.id == 'granby') 'areaServed': {'@type': 'City', 'name': 'Granby'},
         'url': url,
       },
     if (page.id != 'home')
@@ -273,11 +275,12 @@ String renderLlmsTxt() {
     ..writeln()
     ..writeln(
       '> Movi-K (movi-k.com) est un service de livraison de meubles, '
-      'd’électroménagers et de gros objets à Granby (Québec, Canada) et dans les '
-      'environs. Le client prend une photo, voit le prix exact (taxes et détail '
-      'inclus) avant de réserver, puis un chauffeur vérifié de la région accepte '
-      'la livraison. Movi-K (movi-k.com) is a delivery service for furniture, '
-      'appliances and large items in and around Granby, Quebec, Canada.',
+      'd’électroménagers et de gros objets, né à Granby (Québec, Canada). Pas de '
+      'limite de distance : le client prend une photo, voit le prix exact (taxes '
+      'et détail inclus) avant de réserver, puis un chauffeur vérifié proche de '
+      'l’adresse de ramassage accepte la livraison. Movi-K (movi-k.com) is a '
+      'delivery service for furniture, appliances and large items, born in '
+      'Granby, Quebec, Canada, with no distance limit.',
     )
     ..writeln()
     ..writeln('Contact : $seoContactEmail')

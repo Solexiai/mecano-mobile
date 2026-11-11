@@ -6,7 +6,7 @@ import { validateBookingPhotos } from './bookingPhotoValidation';
 import { bookingHoursReason, getSavedBookingHours } from './bookingHours';
 import { invalidArgument } from './errors';
 import { classifyPhotoIntake } from './photoIntake';
-import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
+import { getServiceZonesConfig, serviceAreaRefusal } from './serviceZones';
 import { PricingVersionDoc } from './types';
 import { normalizeVehicleCategory } from './vehicleCategory';
 
@@ -56,8 +56,8 @@ export async function validatePriceBeforeAssignment(raw: unknown, stops: unknown
       typeof a.city !== 'string' || !a.city.trim() || typeof a.postal_code !== 'string' || !a.postal_code.trim()) throw invalidArgument('Sélectionnez deux adresses complètes.');
   }
   const zones = await getServiceZonesConfig({ fallbackToLaunchZone: true });
-  if (!zones.enabled || !zones.zones.length) refuse('service_area_unconfigured');
-  if (stops.some(s => !isWithinServiceZones(s.address.lat, s.address.lng, zones))) refuse('outside_service_area');
+  const zoneRefusal = serviceAreaRefusal(stops, zones);
+  if (zoneRefusal) refuse(zoneRefusal);
   if (load.timing_mode !== 'immediate' && !load.requested_at) refuse('requested_time_missing');
   // Hours saved by the admin (Où et quand ?, 2026-10-26) also apply.
   const savedHours = await getSavedBookingHours();

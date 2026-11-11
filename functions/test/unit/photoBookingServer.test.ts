@@ -1,5 +1,11 @@
 jest.mock('../../src/lib/admin', () => ({ db: { collection: jest.fn(), doc: jest.fn() } }));
-jest.mock('../../src/lib/serviceZones', () => ({ getServiceZonesConfig: jest.fn(async () => ({enabled:true,zones:[{}]})), isWithinServiceZones: jest.fn(() => true) }));
+jest.mock('../../src/lib/serviceZones', () => {
+  const within = jest.fn((..._args: unknown[]) => true);
+  return { getServiceZonesConfig: jest.fn(async () => ({enabled:true,zones:[{}]})), isWithinServiceZones: within,
+    // Same rule as the real serviceAreaRefusal, on top of the mocked circle test.
+    serviceAreaRefusal: (stops: any[], z: any) => z.unlimited ? null : !z.enabled || !z.zones.length ? 'service_area_unconfigured' :
+      stops.some((s) => !within(s.address.lat, s.address.lng, z)) ? 'outside_service_area' : null };
+});
 jest.mock('../../src/lib/bookingPhotoValidation', () => ({ validateBookingPhotos: jest.fn(async () => {}) }));
 import { db } from '../../src/lib/admin';
 import { findCompatibleVehicle, requireCompatibleVehicle, reviewBooking } from '../../src/lib/bookingServer';

@@ -113,9 +113,9 @@ class _LegalScreenState extends State<LegalScreen> {
             es: 'Términos de servicio',
           ),
           intro: _tr(
-            fr: "Ces conditions régissent votre utilisation des services actuellement offerts par la plateforme Movi-K. Pour le lancement à Granby, le parcours public concerne la livraison avec des chauffeurs indépendants.",
-            en: 'These terms govern your use of the services currently offered through the Movi-K platform. For the Granby launch, the public flow concerns delivery with independent drivers.',
-            es: 'Estos términos rigen el uso de los servicios ofrecidos actualmente mediante la plataforma Movi-K. Para el lanzamiento en Granby, el proceso público se centra en entregas con conductores independientes.',
+            fr: "Ces conditions régissent votre utilisation des services actuellement offerts par la plateforme Movi-K. Le parcours public concerne la livraison avec des chauffeurs indépendants.",
+            en: 'These terms govern your use of the services currently offered through the Movi-K platform. The public flow concerns delivery with independent drivers.',
+            es: 'Estos términos rigen el uso de los servicios ofrecidos actualmente mediante la plataforma Movi-K. El proceso público se centra en entregas con conductores independientes.',
           ),
           sections: [
             (
@@ -188,9 +188,9 @@ class _LegalScreenState extends State<LegalScreen> {
             es: 'Acuerdo de proveedor',
           ),
           intro: _tr(
-            fr: "Cette entente décrit la relation entre Movi-K et les fournisseurs indépendants utilisant les services actuellement ouverts sur la plateforme. Le lancement public visé ici concerne les chauffeurs de livraison.",
-            en: 'This agreement describes the relationship between Movi-K and independent providers using services currently open on the platform. The public launch covered here concerns delivery drivers.',
-            es: 'Este acuerdo describe la relación entre Movi-K y los proveedores independientes que utilizan los servicios actualmente abiertos en la plataforma. El lanzamiento público tratado aquí corresponde a conductores de entrega.',
+            fr: "Cette entente décrit la relation entre Movi-K et les fournisseurs indépendants utilisant les services actuellement ouverts sur la plateforme. Elle concerne les chauffeurs de livraison.",
+            en: 'This agreement describes the relationship between Movi-K and independent providers using services currently open on the platform. It applies to delivery drivers.',
+            es: 'Este acuerdo describe la relación entre Movi-K y los proveedores independientes que utilizan los servicios actualmente abiertos en la plataforma. Se aplica a los conductores de entrega.',
           ),
           sections: [
             (
@@ -244,6 +244,9 @@ class _LegalScreenState extends State<LegalScreen> {
           ],
         );
       case 'cancellation':
+        // Résumé des règles en vigueur (bookingDeposit.ts, missionFees.ts),
+        // affiché seulement si les conditions de réservation publiées ne se
+        // chargent pas. Service ouvert depuis novembre 2026.
         return (
           title: _tr(
             fr: "Politique d'annulation",
@@ -251,21 +254,33 @@ class _LegalScreenState extends State<LegalScreen> {
             es: 'Política de cancelación',
           ),
           intro: _tr(
-            fr: "Les modalités commerciales d’annulation sont encore en révision avant le lancement public. Ce document indique l’état actuel sans inventer de délai ni de frais.",
-            en: 'Commercial cancellation terms are still under review before public launch. This document states the current status without inventing a window or fee.',
-            es: 'Las condiciones comerciales de cancelación siguen en revisión antes del lanzamiento público. Este documento indica el estado actual sin inventar plazos ni cargos.',
+            fr: "Voici les règles d’annulation en vigueur. Le texte complet figure dans les conditions de réservation que vous acceptez à chaque réservation.",
+            en: 'Here are the cancellation rules in force. The full text is in the booking terms you accept with each booking.',
+            es: 'Estas son las reglas de cancelación vigentes. El texto completo figura en las condiciones de reserva que aceptas en cada reserva.',
           ),
           sections: [
             (
               _tr(
-                fr: 'Politique en révision',
-                en: 'Policy under review',
-                es: 'Política en revisión',
+                fr: 'Votre dépôt de 25 \$',
+                en: 'Your \$25 deposit',
+                es: 'Tu depósito de 25 \$',
               ),
               _tr(
-                fr: "Les délais, frais et conditions commerciales d’annulation ne sont pas encore approuvés pour publication. Aucun délai gratuit ni frais fixe n’est annoncé à ce stade.",
-                en: 'Commercial cancellation windows, fees and conditions are not yet approved for publication. No free-cancellation window or fixed fee is advertised at this stage.',
-                es: 'Los plazos, cargos y condiciones comerciales de cancelación aún no están aprobados para publicación. No se anuncia ningún plazo gratuito ni cargo fijo en esta etapa.',
+                fr: "Votre dépôt est remboursé si aucun chauffeur n’accepte, si vous annulez avant qu’un chauffeur accepte, ou si vous annulez plus de 48 heures avant le ramassage. Si un chauffeur a accepté et que le ramassage est dans moins de 48 heures, le dépôt est gardé.",
+                en: 'Your deposit is refunded if no driver accepts, if you cancel before a driver accepts, or if you cancel more than 48 hours before pickup. If a driver has accepted and pickup is less than 48 hours away, the deposit is kept.',
+                es: 'Tu depósito se reembolsa si ningún conductor acepta, si cancelas antes de que un conductor acepte o si cancelas más de 48 horas antes de la recogida. Si un conductor ya aceptó y la recogida es en menos de 48 horas, se conserva el depósito.',
+              ),
+            ),
+            (
+              _tr(
+                fr: 'Déplacement inutile',
+                en: 'Wasted trip',
+                es: 'Desplazamiento en vano',
+              ),
+              _tr(
+                fr: "Si le chauffeur se déplace pour rien à cause du client, des frais de 30 \$ s’appliquent.",
+                en: 'If the driver makes a wasted trip because of the customer, a \$30 fee applies.',
+                es: 'Si el conductor se desplaza en vano por causa del cliente, se aplica un cargo de 30 \$.',
               ),
             ),
             (
@@ -275,14 +290,17 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Antes de confirmar una solicitud',
               ),
               _tr(
-                fr: "Les conditions applicables devront être présentées clairement dans le parcours avant qu’une réservation publique soit ouverte. Cette page ne remplace pas une politique commerciale approuvée.",
-                en: 'Applicable terms must be presented clearly in the flow before public booking opens. This page does not replace an approved commercial policy.',
-                es: 'Las condiciones aplicables deberán mostrarse claramente en el proceso antes de abrir reservas públicas. Esta página no sustituye una política comercial aprobada.',
+                fr: "Les règles de paiement et d’annulation sont affichées avant que vous confirmiez votre réservation.",
+                en: 'Payment and cancellation rules are shown before you confirm your booking.',
+                es: 'Las reglas de pago y cancelación se muestran antes de que confirmes tu reserva.',
               ),
             ),
           ],
         );
       case 'dispute':
+        // Règles décidées par Daniel le 10 nov. 2026 : signalement jusqu'à
+        // 3 jours après la livraison, version du chauffeur sous 48 h,
+        // révision à la main, Movi-K tranche.
         return (
           title: _tr(
             fr: 'Processus de litige',
@@ -290,9 +308,9 @@ class _LegalScreenState extends State<LegalScreen> {
             es: 'Proceso de disputas',
           ),
           intro: _tr(
-            fr: "Le processus commercial de traitement des litiges est encore en préparation avant l’ouverture publique. Cette page décrit uniquement les éléments à prévoir et ne constitue pas une promesse de prise en charge actuellement disponible.",
-            en: 'The commercial dispute-handling process is still being prepared before public launch. This page only describes items to be defined and does not promise a support process that is currently available.',
-            es: 'El proceso comercial de gestión de disputas sigue en preparación antes de la apertura pública. Esta página solo describe elementos que deben definirse y no promete un proceso de soporte disponible actualmente.',
+            fr: "Un problème avec une livraison ? Voici comment Movi‑K traite un litige.",
+            en: 'A problem with a delivery? Here is how Movi‑K handles a dispute.',
+            es: '¿Un problema con una entrega? Así es como Movi‑K gestiona una disputa.',
           ),
           sections: [
             (
@@ -302,9 +320,9 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Paso 1 — Reporte',
               ),
               _tr(
-                fr: "Conservez les détails de la mission et les preuves pertinentes, comme les photos ou messages. Le canal officiel de signalement doit encore être publié avant l’ouverture du service.",
-                en: 'Keep the mission details and relevant evidence, such as photos or messages. The official reporting channel still needs to be published before service opens.',
-                es: 'Conserva los detalles de la misión y las pruebas pertinentes, como fotos o mensajes. El canal oficial de reporte todavía debe publicarse antes de la apertura del servicio.',
+                fr: "Écrivez-nous à infos@movi-k.com dans les 3 jours suivant la livraison, avec la référence de la livraison, une description du problème et vos photos.",
+                en: 'Email us at infos@movi-k.com within 3 days after the delivery, with the delivery reference, a description of the problem and your photos.',
+                es: 'Escríbenos a infos@movi-k.com dentro de los 3 días posteriores a la entrega, con la referencia de la entrega, una descripción del problema y tus fotos.',
               ),
             ),
             (
@@ -314,21 +332,21 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Paso 2 — Revisión',
               ),
               _tr(
-                fr: "Les rôles, délais et critères d’examen doivent encore être approuvés. Aucun délai de traitement n’est annoncé à ce stade.",
-                en: 'Review roles, timelines and criteria still need approval. No handling time is advertised at this stage.',
-                es: 'Los roles, plazos y criterios de revisión todavía deben aprobarse. En esta etapa no se anuncia ningún plazo de gestión.',
+                fr: "Movi‑K examine le dossier à la main : photos prises au ramassage et à la livraison, échanges, et version du chauffeur, qui a 48 heures pour répondre.",
+                en: 'Movi‑K reviews the file by hand: photos taken at pickup and delivery, messages, and the driver’s account, who has 48 hours to reply.',
+                es: 'Movi‑K revisa el expediente a mano: fotos tomadas al recoger y al entregar, mensajes y la versión del conductor, que tiene 48 horas para responder.',
               ),
             ),
             (
               _tr(
-                fr: 'Étape 3 — Résolution',
-                en: 'Step 3 — Resolution',
-                es: 'Paso 3 — Resolución',
+                fr: 'Étape 3 — Décision',
+                en: 'Step 3 — Decision',
+                es: 'Paso 3 — Decisión',
               ),
               _tr(
-                fr: "Les mesures possibles et leurs critères, y compris tout remboursement ou mesure sur un compte, doivent être définis dans la politique finale et respecter les règles financières approuvées.",
-                en: 'Possible outcomes and their criteria, including any refund or account action, must be defined in the final policy and follow approved financial rules.',
-                es: 'Las medidas posibles y sus criterios, incluido cualquier reembolso o acción sobre una cuenta, deben definirse en la política final y respetar las reglas financieras aprobadas.',
+                fr: "Movi‑K tranche et vous informe de sa décision par courriel. S’il y a un remboursement, il est fait sur la carte utilisée pour la réservation.",
+                en: 'Movi‑K decides and informs you by email. If there is a refund, it is made to the card used for the booking.',
+                es: 'Movi‑K decide y te informa por correo electrónico. Si hay un reembolso, se hace en la tarjeta usada para la reserva.',
               ),
             ),
           ],
@@ -581,19 +599,6 @@ class _LegalScreenState extends State<LegalScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SectionTitle(title: content.title),
-              const SizedBox(height: 8),
-              Text(
-                _tr(
-                  fr: 'Document en révision avant lancement public',
-                  en: 'Document under review before public launch',
-                  es: 'Documento en revisión antes del lanzamiento público',
-                ),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12.5,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
               const SizedBox(height: 24),
               Text(
                 content.intro,
@@ -632,9 +637,9 @@ class _LegalScreenState extends State<LegalScreen> {
               const Divider(height: 40),
               Text(
                 _tr(
-                  fr: "Ce document est une version de travail en révision avant lancement. Les modalités commerciales et juridiques finales doivent être approuvées avant l’ouverture publique.",
-                  en: 'This document is a working draft under review before launch. Final commercial and legal terms must be approved before public opening.',
-                  es: 'Este documento es un borrador en revisión antes del lanzamiento. Las condiciones comerciales y legales finales deben aprobarse antes de la apertura pública.',
+                  fr: "Une question sur ce document ? Écrivez-nous à infos@movi-k.com.",
+                  en: 'A question about this document? Email us at infos@movi-k.com.',
+                  es: '¿Una pregunta sobre este documento? Escríbenos a infos@movi-k.com.',
                 ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
