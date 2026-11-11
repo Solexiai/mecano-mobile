@@ -32,15 +32,19 @@ String _visibleText(String html) => html
     .replaceAll(RegExp(r'<[^>]+>'), ' ');
 
 void main() {
-  test('10 public pages in 3 languages, all in the sitemap', () {
-    expect(seoPages, hasLength(10));
-    expect(seoPages.map((p) => p.id).toSet(), hasLength(10));
+  test('36 public pages in 3 languages, all in the sitemap', () {
+    // 10 pages d’origine, 13 par objet, 13 par ville (vague 1, 11 nov. 2026).
+    expect(seoPages.where((p) => p.kind == SeoPageKind.core), hasLength(10));
+    expect(seoObjectPages, hasLength(13));
+    expect(seoCityPages, hasLength(13));
+    expect(seoPages, hasLength(36));
+    expect(seoPages.map((p) => p.id).toSet(), hasLength(36));
     final sitemap = _sitemapPaths();
     final seoPaths = {
       for (final page in seoPages)
         for (final locale in seoLocales) page.path(locale),
     };
-    expect(seoPaths, hasLength(30));
+    expect(seoPaths, hasLength(108));
     for (final path in seoPaths) {
       expect(sitemap, contains(path));
     }
@@ -105,7 +109,9 @@ void main() {
     final pages = renderAllSeoPages(_template);
 
     test('one file per page and language, under /seo/', () {
-      expect(pages, hasLength(30));
+      expect(pages, hasLength(108));
+      expect(pages.keys, contains('/seo/fr/transport/refrigerateur.html'));
+      expect(pages.keys, contains('/seo/en/cities/sherbrooke.html'));
       expect(pages.keys, contains('/seo/fr.html'));
       expect(pages.keys, contains('/seo/en/pricing.html'));
       expect(pages.keys, contains('/seo/es/convertirse-conductor.html'));
@@ -172,7 +178,7 @@ void main() {
       );
     });
 
-    test('no distance limit: only the Granby page names a service area', () {
+    test('no distance limit: only city pages name a service area', () {
       final html = pages['/seo/fr/tarifs.html']!;
       expect(html, contains('<title>Tarifs : le prix exact avant de réserver | Movi-K</title>'));
       Map service(String file) => (_jsonLd(pages[file]!)['@graph'] as List)
@@ -181,6 +187,16 @@ void main() {
       expect(service('/seo/fr/tarifs.html').containsKey('areaServed'), isFalse);
       expect(service('/seo/fr.html').containsKey('areaServed'), isFalse);
       expect(service('/seo/fr/granby.html')['areaServed'], {'@type': 'City', 'name': 'Granby'});
+      expect(service('/seo/en/cities/montreal.html')['areaServed'], {'@type': 'City', 'name': 'Montréal'});
+      expect(service('/seo/fr/transport/refrigerateur.html').containsKey('areaServed'), isFalse);
+      for (final page in seoPages) {
+        final graph = (_jsonLd(pages[page.file('fr')]!)['@graph'] as List).cast<Map>();
+        expect(
+          graph.any((n) => n['@type'] == 'Service' && n.containsKey('areaServed')),
+          page.kind == SeoPageKind.city || page.id == 'granby',
+          reason: page.id,
+        );
+      }
       final org = (_jsonLd(html)['@graph'] as List).cast<Map>().firstWhere((n) => n['@type'] == 'Organization');
       expect(org.containsKey('areaServed'), isFalse);
       expect(faqItems('fr').map((i) => i.$2).join(' '), contains('sans limite de distance'));
@@ -191,6 +207,78 @@ void main() {
         () => renderSeoPage('<html><head></head><body></body></html>', seoPages.first, 'fr'),
         throwsStateError,
       );
+    });
+  });
+
+  group('pages by item and by city', () {
+    final pages = renderAllSeoPages(_template);
+
+    test('each page has its own text, not a copy with a new name', () {
+      for (final locale in seoLocales) {
+        final intros = seoGuidePages.map((p) => p.intros[locale]!).toList();
+        expect(intros.toSet(), hasLength(intros.length), reason: locale);
+        // Per item: what we move and how to get it ready are its own.
+        for (final kind in [0, 1]) {
+          final bodies = seoObjectPages
+              .map((p) => p.sections[kind].body[locale]!)
+              .toList();
+          expect(bodies.toSet(), hasLength(bodies.length), reason: '$locale/$kind');
+        }
+        // Per city: its own neighbouring areas.
+        final areas = seoCityPages.map((p) => p.sections.first.body[locale]!).toList();
+        expect(areas.toSet(), hasLength(areas.length), reason: locale);
+      }
+      for (final page in seoCityPages) {
+        expect(page.city, isNotNull, reason: page.id);
+        expect(page.sections.first.body['fr'], startsWith(page.city!));
+        expect(page.sections.first.body['fr'], contains('sans limite de distance'));
+      }
+    });
+
+    test('the delivery page and every guide page link to the others', () {
+      final delivery = seoPages.firstWhere((p) => p.id == 'delivery');
+      for (final page in [delivery, ...seoGuidePages]) {
+        for (final locale in seoLocales) {
+          final html = pages[page.file(locale)]!;
+          final groups = seoLinkGroups(page, locale);
+          expect(groups, hasLength(2), reason: page.id);
+          for (final other in [...seoGuidePages, seoPageForPath('/fr/granby')!]) {
+            if (other.id == page.id) continue;
+            expect(html, contains('href="${other.path(locale)}"'), reason: '${page.id} → ${other.id}');
+          }
+          expect(html, isNot(contains('href="${page.path(locale)}">${page.label(locale)}')));
+        }
+      }
+      for (final id in ['home', 'pricing', 'faq', 'granby']) {
+        expect(seoLinkGroups(seoPages.firstWhere((p) => p.id == id), 'fr'), isEmpty);
+      }
+    });
+
+    test('breadcrumb: Movi-K › Livraison › page', () {
+      final graph = (_jsonLd(pages['/seo/fr/transport/laveuse-secheuse.html']!)['@graph'] as List)
+          .cast<Map>();
+      final crumbs = (graph.firstWhere((n) => n['@type'] == 'BreadcrumbList')['itemListElement'] as List)
+          .cast<Map>();
+      expect(crumbs.map((c) => c['position']), [1, 2, 3]);
+      expect(crumbs[1]['item'], 'https://movi-k.com/fr/livraison');
+      expect(crumbs[2]['item'], 'https://movi-k.com/fr/transport/laveuse-secheuse');
+    });
+
+    test('rules match the FAQ: deposit, refund, stairs only if asked', () {
+      final text = seoGuidePages
+          .expand((p) => p.sections.map((s) => s.body['fr']!))
+          .join(' ');
+      expect(text, contains('dépôt de 25 \$'));
+      expect(text, contains('votre dépôt est remboursé'));
+      expect(text, contains('seulement si vous les demandez'));
+      expect(text.toLowerCase(), isNot(contains('garanti')));
+      final store = seoPageForPath('/fr/transport/achats-en-magasin')!;
+      expect(store.sections.first.body['fr'], contains('non affilié'));
+    });
+
+    test('switching language keeps the same page', () {
+      expect(seoPageForPath('/en/cities/quebec')!.path('fr'), '/fr/villes/quebec');
+      expect(seoPageForPath('/fr/transport/refrigerateur')!.path('es'), '/es/transporte/refrigerador');
     });
   });
 

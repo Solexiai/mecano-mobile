@@ -69,6 +69,7 @@ const Map<String, String> _serviceType = {
 const Map<String, String> _ogLocale = {'fr': 'fr_CA', 'en': 'en_CA', 'es': 'es_ES'};
 
 SeoPage get _homePage => seoPages.firstWhere((p) => p.id == 'home');
+SeoPage get _deliveryPage => seoPages.firstWhere((p) => p.id == 'delivery');
 
 /// Les sections affichées pour cette page (questions fréquentes comprises).
 List<(String, String)> seoSectionsFor(SeoPage page, String locale) => page.faq
@@ -118,14 +119,20 @@ Map<String, Object?> seoStructuredData(SeoPage page, String locale) {
             },
         ],
     },
-    if (const {'home', 'delivery', 'pricing', 'granby'}.contains(page.id))
+    if (page.kind != SeoPageKind.core ||
+        const {'home', 'delivery', 'pricing', 'granby'}.contains(page.id))
       {
         '@type': 'Service',
         '@id': '$url#service',
-        'name': _t(_serviceType, locale),
+        // Page par objet : le nom du service est celui de la page.
+        'name': page.kind == SeoPageKind.object
+            ? _t(page.headings, locale)
+            : _t(_serviceType, locale),
         'serviceType': _t(_serviceType, locale),
         'provider': {'@id': org},
-        if (page.id == 'granby') 'areaServed': {'@type': 'City', 'name': 'Granby'},
+        // Seules les pages de ville nomment une ville : pas de limite de
+        // distance depuis le 11 nov. 2026.
+        if (page.city != null) 'areaServed': {'@type': 'City', 'name': page.city},
         'url': url,
       },
     if (page.id != 'home')
@@ -138,9 +145,16 @@ Map<String, Object?> seoStructuredData(SeoPage page, String locale) {
             'name': 'Movi-K',
             'item': _homePage.url(locale),
           },
+          if (page.kind != SeoPageKind.core)
+            {
+              '@type': 'ListItem',
+              'position': 2,
+              'name': _t(_nav['delivery']!, locale),
+              'item': _deliveryPage.url(locale),
+            },
           {
             '@type': 'ListItem',
-            'position': 2,
+            'position': page.kind == SeoPageKind.core ? 2 : 3,
             'name': _t(page.headings, locale),
             'item': url,
           },
@@ -197,6 +211,18 @@ String _body(SeoPage page, String locale) {
       ..writeln('      <section>')
       ..writeln('        <h2>${_esc(heading)}</h2>')
       ..writeln('        <p>${_esc(body)}</p>')
+      ..writeln('      </section>');
+  }
+  for (final group in seoLinkGroups(page, locale)) {
+    b
+      ..writeln('      <section>')
+      ..writeln('        <h2>${_esc(group.heading)}</h2>')
+      ..write('        <ul>');
+    for (final (label, path) in group.links) {
+      b.write('<li><a href="$path">${_esc(label)}</a></li>');
+    }
+    b
+      ..writeln('</ul>')
       ..writeln('      </section>');
   }
   final driver = page.id == 'driver';
