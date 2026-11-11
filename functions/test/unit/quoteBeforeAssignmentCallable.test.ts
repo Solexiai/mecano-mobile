@@ -8,7 +8,13 @@ jest.mock('../../src/lib/bookingServer', () => ({
     compatible_categories: [], reasons: ['photo_policy_unconfigured','capacity_unconfigured','photo_category_unconfigured'] } })),
 }));
 jest.mock('../../src/lib/bookingPhotoValidation', () => ({ validateBookingPhotos: jest.fn(async () => {}) }));
-jest.mock('../../src/lib/serviceZones', () => ({ getServiceZonesConfig: jest.fn(async () => ({ enabled: true, zones: [{}] })), isWithinServiceZones: jest.fn(() => true) }));
+jest.mock('../../src/lib/serviceZones', () => {
+  const within = jest.fn((..._args: unknown[]) => true);
+  return { getServiceZonesConfig: jest.fn(async () => ({ enabled: true, zones: [{}] })), isWithinServiceZones: within,
+    // Same rule as the real serviceAreaRefusal, on top of the mocked circle test.
+    serviceAreaRefusal: (stops: any[], z: any) => z.unlimited ? null : !z.enabled || !z.zones.length ? 'service_area_unconfigured' :
+      stops.some((s) => !within(s.address.lat, s.address.lng, z)) ? 'outside_service_area' : null };
+});
 jest.mock('../../src/lib/routingRateLimit', () => ({ consumeRoutingBudget: jest.fn(async () => {}) }));
 jest.mock('../../src/functions/calculateRoute', () => ({ calculateAuthoritativeRoute: jest.fn(), setRouteFetcherForTesting: jest.fn() }));
 jest.mock('../../src/lib/taxEngine', () => ({ ...jest.requireActual('../../src/lib/taxEngine'), resolveAndFreezeTaxSnapshot: jest.fn(async () => null) }));

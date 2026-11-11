@@ -1,4 +1,5 @@
-// P1-COPY-001: published text contract, not operational availability.
+// P1-COPY-001: published text contract. Since Nov. 10, 2026 the service is
+// open to the public: pre-launch wording must not come back.
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +19,12 @@ void rejectHistoricClaims(WidgetTester tester) {
     RegExp(
       r'partout au québec|across quebec|throughout quebec|todo quebec|'
       r'choisissez votre chauffeur|choose your driver|elige a tu conductor|'
-      r'créneau garanti|guaranteed time slot|horario garantizado',
+      r'créneau garanti|guaranteed time slot|horario garantizado|'
+      r'ouvriront au lancement|will open when the service launches|'
+      r'se abrirán con el lanzamiento|lancement public est encore|'
+      r'public launch is still|lanzamiento público sigue|'
+      r'canal de contact à venir|contact channel coming soon|'
+      r'canal de contacto próximamente|appareils réels|real-device validation',
       caseSensitive: false,
     ).hasMatch(displayed),
     isFalse,
@@ -54,7 +60,7 @@ void main() {
     ]) {
       final (width, height, scale) = scenario;
       offlineWidgetTest(
-        'launch copy remains conditional $locale ${width}x$height text=$scale',
+        'public copy matches the open service $locale ${width}x$height text=$scale',
         (tester) async {
           await tester.binding.setSurfaceSize(Size(width, height));
           addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -96,9 +102,9 @@ void main() {
           expect(
             find.textContaining(
               tr([
-                'validation sur appareils réels',
-                'real-device validation',
-                'validación en dispositivos reales',
+                'position de votre chauffeur sur une carte en direct',
+                'driver’s position on a live map',
+                'ubicación de tu conductor en un mapa en vivo',
               ]),
             ),
             findsOneWidget,
@@ -121,9 +127,8 @@ void main() {
             await tester.pumpAndSettle();
             expect(tester.takeException(), isNull);
           }
-          // Pre-launch caution, in customer wording (FAQ 2026-10-26):
-          // nothing is confirmed before a driver accepts, payments open at
-          // launch.
+          // Customer wording (FAQ 2026-11-10): nothing is confirmed before a
+          // driver accepts; a \$25 deposit is charged at booking.
           for (final claim in [
             tr([
               'La disponibilité d’un chauffeur est confirmée quand il accepte votre demande',
@@ -136,9 +141,9 @@ void main() {
               'La hora se confirma cuando un conductor acepta',
             ]),
             tr([
-              'Les paiements ouvriront au lancement du service à Granby',
-              'Payments will open when the service launches in Granby',
-              'Los pagos se abrirán con el lanzamiento del servicio en Granby',
+              'Un dépôt de 25 \$ est débité quand vous réservez',
+              'A \$25 deposit is charged when you book',
+              'Al reservar se cobra un depósito de 25 \$',
             ]),
           ]) {
             expect(find.textContaining(claim), findsOneWidget);
@@ -148,26 +153,22 @@ void main() {
           AppRouter.router.go('/$locale/granby');
           await tester.pumpAndSettle();
           expect(
-            find.text(tr(['Zone prévue', 'Planned area', 'Zona prevista'])),
+            find.text(tr(['Zone desservie', 'Service area', 'Zona de servicio'])),
             findsOneWidget,
           );
           expect(
             find.textContaining(
               tr([
-                'Aucune réservation, disponibilité de chauffeur ou transaction réelle',
-                'does not promise a booking, driver availability or a live transaction',
-                'no promete una reserva, disponibilidad de conductor ni una transacción real',
+                'un chauffeur de la région s’en occupe',
+                'a local driver takes care of it',
+                'un conductor de la zona se encarga',
               ]),
             ),
             findsOneWidget,
           );
           expect(
             find.text(
-              tr([
-                'Canal de contact à venir',
-                'Contact channel coming soon',
-                'Canal de contacto próximamente',
-              ]),
+              tr(['Une question ?', 'A question?', '¿Una pregunta?']),
             ),
             findsOneWidget,
           );
@@ -194,9 +195,9 @@ void main() {
           expect(
             find.textContaining(
               tr([
-                'Les paiements ouvriront au lancement du service à Granby.',
-                'Payments will open when the service launches in Granby.',
-                'Los pagos se abrirán con el lanzamiento del servicio en Granby.',
+                'Dépôt remboursé si aucun chauffeur n’accepte',
+                'Deposit refunded if no driver accepts',
+                'Depósito reembolsado si ningún conductor acepta',
               ]),
             ),
             findsOneWidget,

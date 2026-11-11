@@ -115,6 +115,10 @@ void main() {
       expect(find.textContaining('8%'), findsNothing);
       expect(
         find.textContaining('Les paiements ouvriront au lancement'),
+        findsNothing,
+      );
+      expect(
+        find.textContaining('Dépôt remboursé si aucun chauffeur n’accepte'),
         findsOneWidget,
       );
       // Obsolete claims: measurements, vehicle category in the price.
@@ -169,22 +173,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('en quelques minutes'), findsNothing);
       expect(find.textContaining('Québec et du Canada'), findsNothing);
-      expect(find.textContaining('Lancement prévu à Granby'), findsOneWidget);
+      expect(find.textContaining('Lancement prévu à Granby'), findsNothing);
+      expect(find.textContaining('Service offert à Granby'), findsNothing);
+      expect(find.textContaining('Né à Granby, Movi‑K livre partout'), findsOneWidget);
 
       AppRouter.router.go('/fr/legal/cancellation');
       await tester.pumpAndSettle();
       expect(find.textContaining('2 heures'), findsNothing);
-      expect(find.textContaining('Politique en révision'), findsOneWidget);
+      expect(find.textContaining('Politique en révision'), findsNothing);
+      expect(find.textContaining('Votre dépôt de 25 \$'), findsOneWidget);
+      expect(find.textContaining('avant lancement'), findsNothing);
 
       AppRouter.router.go('/fr/legal/terms');
       await tester.pumpAndSettle();
       expect(find.textContaining('mécaniciens mobiles'), findsNothing);
-      expect(find.textContaining('lancement à Granby'), findsOneWidget);
+      expect(find.textContaining('lancement'), findsNothing);
+      expect(find.textContaining('chauffeurs indépendants'), findsWidgets);
 
       AppRouter.router.go('/fr/legal/dispute');
       await tester.pumpAndSettle();
       expect(find.textContaining('Contactez le soutien'), findsNothing);
-      expect(find.textContaining('encore en préparation'), findsOneWidget);
+      expect(find.textContaining('encore en préparation'), findsNothing);
+      expect(
+        find.textContaining('dans les 3 jours suivant la livraison'),
+        findsOneWidget,
+      );
       expect(find.textContaining('remboursement partiel'), findsNothing);
     },
   );

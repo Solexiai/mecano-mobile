@@ -52,3 +52,24 @@ test.each([
   expect((await db.doc('system_config/service_zones').get()).exists).toBe(false);
   expect((await db.doc('system_config/booking_hours').get()).exists).toBe(false);
 });
+
+test('no distance limit (Daniel, 2026-11-11): saved alone, zones kept, audited, reversible', async () => {
+  await adminServiceSettings.run(call({ action: 'save', unlimited: true }));
+  let config = await getServiceZonesConfig({ fallbackToLaunchZone: true });
+  expect(config).toMatchObject({ enabled: true, unlimited: true, zones: [{ name: 'Granby', radius_km: 40 }] });
+  let r = (await adminServiceSettings.run(call({ action: 'get' }))) as any;
+  expect(r.zones).toMatchObject({ saved: true, unlimited: true });
+
+  // Changing the cities keeps the "no limit" choice.
+  await adminServiceSettings.run(call({ action: 'save', zones: [{ name: 'Granby', center_lat: 45.39856, center_lng: -72.72225, radius_km: 60 }] }));
+  config = await getServiceZonesConfig();
+  expect(config).toMatchObject({ unlimited: true, zones: [{ radius_km: 60 }] });
+
+  await adminServiceSettings.run(call({ action: 'save', unlimited: false }));
+  r = (await adminServiceSettings.run(call({ action: 'get' }))) as any;
+  expect(r.zones).toMatchObject({ unlimited: false, list: [{ radius_km: 60 }] });
+
+  const audits = await db.collection('audit_logs').where('source_function', '==', 'adminServiceSettings').get();
+  expect(audits.docs.map((d) => d.data().metadata.unlimited).sort()).toEqual([false, null, true]);
+  await expect(adminServiceSettings.run(call({ action: 'save', unlimited: 'oui' }))).rejects.toMatchObject({ code: 'invalid-argument' });
+});

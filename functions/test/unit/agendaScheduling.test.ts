@@ -30,3 +30,13 @@ test('policy change requires another confirmation', () => expect(() => confirmed
 test('driver cannot change requested pickup silently', () => expect(() => confirmedSlot(slot, { requested_at: '2026-10-20T13:30:00Z', estimated_duration_minutes: 20 }, policy, now)).toThrow());
 test('full duration requires explicit driver confirmation', () => expect(() => confirmedSlot({ ...slot, full_duration_confirmed: false }, { estimated_duration_minutes: 20 }, policy, now)).toThrow());
 test('moving a verified base invalidates its old verification', () => expect(locationInDriverZone({ ...driver, base_lat: 45.41 }, undefined, { lat: 45.4, lng: -72.7 }, zones)).toBe(false));
+// Daniel, 2026-11-11 : sans limite de distance, seul le rayon du chauffeur compte.
+test('no distance limit: pickup far from every zone, near the driver, is offered', () => {
+    const open = { ...zones, unlimited: true };
+    const montreal = { ...driver, base_lat: 45.5, base_lng: -73.57, verified_base_lat: 45.5, verified_base_lng: -73.57 };
+    expect(locationInDriverZone(montreal, undefined, { lat: 45.51, lng: -73.56 }, zones)).toBe(false);
+    expect(locationInDriverZone(montreal, undefined, { lat: 45.51, lng: -73.56 }, open)).toBe(true);
+    expect(locationInDriverZone(montreal, undefined, { lat: 46.8, lng: -71.2 }, open)).toBe(false);
+    expect(locationInDriverZone(driver, undefined, { lat: 45.41, lng: -72.7 }, { enabled: false, zones: [], unlimited: true })).toBe(true);
+    expect(locationInDriverZone(driver, undefined, { lat: 45.41, lng: -72.7 }, { enabled: false, zones: [] })).toBe(false);
+});

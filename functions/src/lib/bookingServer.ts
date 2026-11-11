@@ -4,7 +4,7 @@ import { validateBookingPhotos } from './bookingPhotoValidation';
 import { bookingHoursReason, getSavedBookingHours } from './bookingHours';
 import { BookingLoad, BookingRules, BookingSnapshot, Capacity, eligibleForBookingSnapshot, isDriverJudgement, normalizeLoad, recommend, requestedTimeReason } from './booking';
 import { failedPrecondition, invalidArgument } from './errors';
-import { getServiceZonesConfig, isWithinServiceZones } from './serviceZones';
+import { getServiceZonesConfig, serviceAreaRefusal } from './serviceZones';
 import { normalizeVehicleCategory } from './vehicleCategory';
 
 export async function getBookingRules(): Promise<BookingRules> {
@@ -24,8 +24,7 @@ export async function reviewBooking(raw: unknown, stops: unknown, uid: string) {
       typeof a.postal_code !== 'string' || !a.postal_code.trim()) throw invalidArgument('Sélectionnez deux adresses complètes, avec ville et code postal.');
   }
   const zones = await getServiceZonesConfig({ fallbackToLaunchZone: true });
-  const zoneReason = !zones.enabled || !zones.zones.length ? 'service_area_unconfigured' :
-    stops.some(s => !isWithinServiceZones(s.address.lat,s.address.lng,zones)) ? 'outside_service_area' : null;
+  const zoneReason = serviceAreaRefusal(stops, zones);
   const savedHours = await getSavedBookingHours();
   // La fenêtre enregistrée par l'admin (jusqu'à 30 jours) remplace le défaut de 4 jours.
   const windowMs = savedHours ? savedHours.days_ahead * 24 * 60 * 60 * 1000 : undefined;

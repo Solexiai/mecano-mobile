@@ -123,3 +123,15 @@ if [ ! -f "build/web/index.html" ]; then
 fi
 
 echo "OK — build/web/index.html présent."
+
+# --- 6. Pages publiques lisibles par Google et les IA (2026-11-10) ----------
+# Une vraie page HTML par page publique (titre, texte, données structurées)
+# + /llms.txt, à partir de lib/seo/seo_pages.dart. vercel.json les sert aux
+# adresses publiques ; l'app Flutter prend le relais à l'écran.
+echo "[6/6] Pages SEO (tool/build_seo_pages.dart)..."
+"${DART_BIN}" run tool/build_seo_pages.dart build/web
+
+if [ ! -f "build/web/seo/fr/tarifs.html" ] || [ ! -f "build/web/llms.txt" ]; then
+  echo "ERREUR: pages SEO absentes après génération." >&2
+  exit 1
+fi

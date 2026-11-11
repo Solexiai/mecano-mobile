@@ -45,9 +45,9 @@ class ComingSoonScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 Text(
                   tr(
-                    'Movi-K lance d’abord la livraison d’objets à Granby. Le service de mécanique mobile viendra plus tard : rien n’est réservable pour l’instant et aucune inscription de mécanicien n’est ouverte.',
-                    'Movi-K is launching item delivery in Granby first. The mobile mechanic service will come later: nothing can be booked yet and mechanic sign-up is not open.',
-                    'Movi-K lanza primero la entrega de objetos en Granby. El servicio de mecánica móvil llegará más tarde: por ahora no se puede reservar nada y la inscripción de mecánicos no está abierta.',
+                    'Movi-K offre d’abord la livraison d’objets. Le service de mécanique mobile viendra plus tard : rien n’est réservable pour l’instant et aucune inscription de mécanicien n’est ouverte.',
+                    'Movi-K offers item delivery first. The mobile mechanic service will come later: nothing can be booked yet and mechanic sign-up is not open.',
+                    'Movi-K ofrece primero la entrega de objetos. El servicio de mecánica móvil llegará más tarde: por ahora no se puede reservar nada y la inscripción de mecánicos no está abierta.',
                   ),
                   style: const TextStyle(height: 1.6),
                 ),

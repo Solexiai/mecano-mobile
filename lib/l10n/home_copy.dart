@@ -55,11 +55,6 @@ abstract final class HomeCopy {
       'es':
           'Prepara tu solicitud sin cuenta. Solo debes iniciar sesión al solicitar el precio oficial.',
     },
-    'pilot': {
-      'fr': 'Version pilote · disponibilité à confirmer dans votre secteur',
-      'en': 'Pilot version · availability in your area must be confirmed',
-      'es': 'Versión piloto · disponibilidad por confirmar en tu zona',
-    },
     'driver_link': {
       'fr': 'Vous avez un véhicule ? Devenir chauffeur',
       'en': 'Have a vehicle? Become a driver',
@@ -83,11 +78,11 @@ abstract final class HomeCopy {
     },
     'item_note': {
       'fr':
-          'Renseignez les mesures de chaque objet emballé, le poids et les accès. Une mesure inconnue ou approximative nécessite une vérification avant le calcul du prix.',
+          'Pas besoin de mesurer : une photo suffit, on reconnaît l’objet pour vous. Votre objet n’est pas dans la liste ? Choisissez « Autre objet ».',
       'en':
-          'Enter measurements for each packaged item, weight and access details. Unknown or approximate measurements require a review before the price is calculated.',
+          'No need to measure: one photo is enough, we recognize the item for you. Item not in the list? Choose “Other item”.',
       'es':
-          'Indica las medidas de cada objeto embalado, el peso y los accesos. Las medidas desconocidas o aproximadas requieren revisión antes de calcular el precio.',
+          'No hace falta medir: basta una foto, reconocemos el objeto por ti. ¿Tu objeto no está en la lista? Elige «Otro objeto».',
     },
     'steps_title': {
       'fr': 'De votre demande à la livraison',
@@ -114,11 +109,11 @@ abstract final class HomeCopy {
     },
     'step2_body': {
       'fr':
-          'Voyez le prix exact et confirmez. Votre carte n’est pas débitée à ce moment-là.',
+          'Voyez le prix exact et réservez avec un dépôt de 25 \$, déduit du prix total.',
       'en':
-          'See the exact price and confirm. Your card is not charged at that point.',
+          'See the exact price and book with a \$25 deposit, deducted from the total.',
       'es':
-          'Ve el precio exacto y confirma. No se cobra tu tarjeta en ese momento.',
+          'Ve el precio exacto y reserva con un depósito de 25 \$, descontado del total.',
     },
     'step3': {
       'fr': 'Un chauffeur accepte',
@@ -140,11 +135,11 @@ abstract final class HomeCopy {
     },
     'step4_body': {
       'fr':
-          'Suivez-la dans votre espace, avec une photo au ramassage et à la livraison. Le paiement se fait à la livraison.',
+          'Suivez-la dans votre espace, avec une photo au ramassage et à la livraison. Le solde est débité après la livraison.',
       'en':
-          'Follow it in your account, with a photo at pickup and at delivery. Payment happens at delivery.',
+          'Follow it in your account, with a photo at pickup and at delivery. The balance is charged after delivery.',
       'es':
-          'Síguela en tu cuenta, con una foto al recoger y al entregar. El pago se hace en la entrega.',
+          'Síguela en tu cuenta, con una foto al recoger y al entregar. El saldo se cobra después de la entrega.',
     },
     'details': {
       'fr': 'Comprendre les étapes',
@@ -257,14 +252,6 @@ abstract final class HomeCopy {
       'en': 'How do I cancel or get help?',
       'es': '¿Cómo puedo cancelar o pedir ayuda?',
     },
-    'faq_cancel_body': {
-      'fr':
-          'Consultez les conditions d’annulation et la page Contact. Les modalités dépendent de l’état de la mission. Le canal de contact est encore en préparation pour le pilote.',
-      'en':
-          'Review the cancellation policy and Contact page. Terms depend on the mission status. The contact channel is still being prepared for the pilot.',
-      'es':
-          'Consulta la política de cancelación y la página de Contacto. Las condiciones dependen del estado de la misión. El canal de contacto sigue en preparación para la prueba piloto.',
-    },
     'driver_title': {
       'fr': 'Votre véhicule peut rendre service.',
       'en': 'Put your vehicle to good use.',
@@ -316,15 +303,15 @@ abstract final class HomeCopy {
       'es': 'Movi‑K — inicio',
     },
     'granby_launch': {
-      'fr': 'Lancement à Granby et dans les environs',
-      'en': 'Launching in Granby and surrounding areas',
-      'es': 'Lanzamiento en Granby y alrededores',
+      'fr': 'Né à Granby · livraisons partout où un chauffeur est disponible',
+      'en': 'Born in Granby · deliveries wherever a driver is available',
+      'es': 'Nacido en Granby · entregas dondequiera que haya un conductor disponible',
     },
+    // Clé historique : le service est ouvert au public depuis novembre 2026.
     'prelaunch_status': {
-      'fr': 'Pré-lancement · disponibilité à confirmer avant toute livraison',
-      'en': 'Pre-launch · availability must be confirmed before any delivery',
-      'es':
-          'Prelanzamiento · la disponibilidad debe confirmarse antes de cualquier entrega',
+      'fr': 'Prix exact en ligne · un chauffeur vérifié accepte votre livraison',
+      'en': 'Exact price online · a verified driver accepts your delivery',
+      'es': 'Precio exacto en línea · un conductor verificado acepta tu entrega',
     },
     'quote_card_title': {
       'fr': 'Préparez votre demande',
@@ -382,22 +369,22 @@ abstract final class HomeCopy {
       'es': 'Un servicio cerca de ti',
     },
     'reassurance_local_body': {
-      'fr': 'Lancement à Granby et dans les environs',
-      'en': 'Launching in Granby and surrounding areas',
-      'es': 'Lanzamiento en Granby y alrededores',
+      'fr': 'Né à Granby · livraisons partout où un chauffeur est disponible',
+      'en': 'Born in Granby · deliveries wherever a driver is available',
+      'es': 'Nacido en Granby · entregas dondequiera que haya un conductor disponible',
     },
     'local_cta_title': {
-      'fr': 'Movi‑K arrive à Granby.',
-      'en': 'Movi‑K is coming to Granby.',
-      'es': 'Movi‑K llega a Granby.',
+      'fr': 'Prêt à faire livrer ?',
+      'en': 'Ready for a delivery?',
+      'es': '¿Listo para una entrega?',
     },
     'local_cta_body': {
       'fr':
-          'Préparez votre demande; la disponibilité d’un chauffeur sera confirmée au moment du lancement.',
+          'Faites votre demande : vous voyez le prix exact avant de réserver, puis un chauffeur de la région accepte votre livraison.',
       'en':
-          'Prepare your request; driver availability will be confirmed when service launches.',
+          'Make your request: you see the exact price before booking, then a local driver accepts your delivery.',
       'es':
-          'Prepara tu solicitud; la disponibilidad de un conductor se confirmará cuando se lance el servicio.',
+          'Haz tu solicitud: ves el precio exacto antes de reservar y luego un conductor de la zona acepta tu entrega.',
     },
   };
   static String text(String key, String locale) =>

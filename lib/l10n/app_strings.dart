@@ -2379,11 +2379,11 @@ class AppStrings {
     },
     'driver_hero_sub': {
       'fr':
-          'Définissez votre zone et votre disponibilité. Le profil, le véhicule et les documents requis doivent être approuvés avant l’activation; le lancement est prévu à Granby et dans les environs.',
+          'Définissez votre zone et votre disponibilité. Le profil, le véhicule et les documents requis doivent être approuvés avant l’activation; vous recevez seulement les livraisons dans le rayon que vous choisissez.',
       'en':
-          'Set your service area and availability. Your profile, vehicle and required documents must be approved before activation; launch is planned for Granby and surrounding areas.',
+          'Set your service area and availability. Your profile, vehicle and required documents must be approved before activation; you only receive deliveries within the radius you choose.',
       'es':
-          'Define tu zona y disponibilidad. El perfil, el vehículo y los documentos requeridos deben aprobarse antes de la activación; el lanzamiento está previsto en Granby y alrededores.',
+          'Define tu zona y disponibilidad. El perfil, el vehículo y los documentos requeridos deben aprobarse antes de la activación; solo recibes entregas dentro del radio que elijas.',
     },
     'driver_pending_verification': {
       'fr': 'En attente de vérification',
@@ -6160,17 +6160,17 @@ class AppStrings {
     // The French values must stay identical to web/index.html
     // (checked by test/seo/seo_web_files_test.dart).
     'seo_default_title': {
-      'fr': 'Movi-K | Livraison de gros objets — lancement à Granby',
-      'en': 'Movi-K | Large-item delivery — launching in Granby',
-      'es': 'Movi-K | Entrega de artículos voluminosos — lanzamiento en Granby',
+      'fr': 'Movi-K | Livraison de meubles et électroménagers, prix en ligne',
+      'en': 'Movi-K | Furniture and appliance delivery, price online',
+      'es': 'Movi-K | Entrega de muebles y electrodomésticos, precio en línea',
     },
     'seo_default_description': {
       'fr':
-          'Movi-K prépare son lancement à Granby et dans les environs. Préparez votre demande de livraison et consultez les informations de lancement.',
+          'Livraison de meubles, électroménagers et gros objets, sans limite de distance. Une photo suffit : prix exact en ligne, chauffeur vérifié, suivi en direct.',
       'en':
-          'Movi-K is preparing its launch in Granby and surrounding areas. Prepare your delivery request and check the launch information.',
+          'Delivery of furniture, appliances and large items, with no distance limit. One photo is enough: exact price online, verified driver, live tracking.',
       'es':
-          'Movi-K prepara su lanzamiento en Granby y alrededores. Prepara tu solicitud de entrega y consulta la información del lanzamiento.',
+          'Entrega de muebles, electrodomésticos y objetos voluminosos, sin límite de distancia. Basta una foto: precio exacto en línea, conductor verificado, seguimiento en vivo.',
     },
     // Mise à jour dans l'app (2026-11-06).
     'app_update_required_title': {
