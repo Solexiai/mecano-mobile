@@ -52,6 +52,14 @@ void main() {
       '/es/ciudades/montreal',
     );
     expect(DeliveryRequestIntent.switchLocale(Uri.parse('/fr/tarifs'), 'en'), '/en/pricing');
+    // A campaign tag in the address must not lead to the 404.
+    expect(
+      DeliveryRequestIntent.switchLocale(
+        Uri.parse('/fr/transport/refrigerateur?utm_source=facebook'),
+        'en',
+      ),
+      '/en/transport/refrigerator',
+    );
     expect(
       DeliveryRequestIntent.switchLocale(Uri.parse('/fr/livraison/demande?category=cat_tv'), 'en'),
       '/en/livraison/demande?category=cat_tv',

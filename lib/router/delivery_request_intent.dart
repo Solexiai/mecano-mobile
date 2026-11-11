@@ -50,9 +50,11 @@ abstract final class DeliveryRequestIntent {
     final segments = current.pathSegments;
     if (segments.isEmpty || !locales.contains(segments.first)) { return '/$locale'; }
     // Page publique : même page dans l’autre langue (/fr/tarifs → /en/pricing,
-    // /fr/transport/refrigerateur → /en/transport/refrigerator).
+    // /fr/transport/refrigerateur → /en/transport/refrigerator), y compris
+    // avec des paramètres (?utm_source=…), qui ne sont pas repris : comme
+    // pour les autres pages, seule l’adresse change de langue.
     final seoPage = seoPageForPath(current.path);
-    if (seoPage != null && !current.hasQuery) return seoPage.path(locale);
+    if (seoPage != null) return seoPage.path(locale);
     final rest = segments.skip(1).join('/');
     if (['livraison/demande', 'delivery/request', 'entrega/solicitud'].contains(rest)) {
       return path(locale, category: current.queryParameters['category']);
