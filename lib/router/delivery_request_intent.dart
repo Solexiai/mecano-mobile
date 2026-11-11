@@ -1,3 +1,4 @@
+import '../seo/seo_pages.dart';
 import '../services/demo_data_service.dart';
 
 /// Existing request route only. Never accept an arbitrary post-login redirect.
@@ -48,6 +49,10 @@ abstract final class DeliveryRequestIntent {
     if (!locales.contains(locale)) { throw ArgumentError.value(locale, 'locale'); }
     final segments = current.pathSegments;
     if (segments.isEmpty || !locales.contains(segments.first)) { return '/$locale'; }
+    // Page publique : même page dans l’autre langue (/fr/tarifs → /en/pricing,
+    // /fr/transport/refrigerateur → /en/transport/refrigerator).
+    final seoPage = seoPageForPath(current.path);
+    if (seoPage != null && !current.hasQuery) return seoPage.path(locale);
     final rest = segments.skip(1).join('/');
     if (['livraison/demande', 'delivery/request', 'entrega/solicitud'].contains(rest)) {
       return path(locale, category: current.queryParameters['category']);

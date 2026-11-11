@@ -295,4 +295,550 @@
     <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
   </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/refrigerateur</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/refrigerateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/refrigerator"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/refrigerador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/refrigerateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/refrigerator</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/refrigerateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/refrigerator"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/refrigerador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/refrigerateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/refrigerador</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/refrigerateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/refrigerator"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/refrigerador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/refrigerateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/laveuse-secheuse</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/washer-dryer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/lavadora-secadora"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/washer-dryer</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/washer-dryer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/lavadora-secadora"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/lavadora-secadora</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/washer-dryer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/lavadora-secadora"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/laveuse-secheuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/stove-dishwasher"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/estufa-lavavajillas"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/stove-dishwasher</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/stove-dishwasher"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/estufa-lavavajillas"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/estufa-lavavajillas</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/stove-dishwasher"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/estufa-lavavajillas"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/cuisiniere-lave-vaisselle"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/congelateur</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/congelateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/freezer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/congelador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/congelateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/freezer</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/congelateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/freezer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/congelador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/congelateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/congelador</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/congelateur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/freezer"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/congelador"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/congelateur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/divan-sofa</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/divan-sofa"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/sofa"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/sofa"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/divan-sofa"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/sofa</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/divan-sofa"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/sofa"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/sofa"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/divan-sofa"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/sofa</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/divan-sofa"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/sofa"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/sofa"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/divan-sofa"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/lit-matelas</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/lit-matelas"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/bed-mattress"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/cama-colchon"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/lit-matelas"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/bed-mattress</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/lit-matelas"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/bed-mattress"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/cama-colchon"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/lit-matelas"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/cama-colchon</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/lit-matelas"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/bed-mattress"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/cama-colchon"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/lit-matelas"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/commode-armoire</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/commode-armoire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/dresser-wardrobe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/comoda-armario"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/commode-armoire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/dresser-wardrobe</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/commode-armoire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/dresser-wardrobe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/comoda-armario"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/commode-armoire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/comoda-armario</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/commode-armoire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/dresser-wardrobe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/comoda-armario"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/commode-armoire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/televiseur</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/televiseur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/tv"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/televisor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/televiseur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/tv</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/televiseur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/tv"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/televisor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/televiseur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/televisor</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/televiseur"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/tv"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/televisor"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/televiseur"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/souffleuse-tondeuse</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/snow-blower-lawn-mower"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/quitanieves-cortacesped"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/snow-blower-lawn-mower</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/snow-blower-lawn-mower"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/quitanieves-cortacesped"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/quitanieves-cortacesped</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/snow-blower-lawn-mower"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/quitanieves-cortacesped"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/souffleuse-tondeuse"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/meubles-patio-bbq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/patio-furniture-bbq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/muebles-patio-parrilla"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/patio-furniture-bbq</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/patio-furniture-bbq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/muebles-patio-parrilla"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/muebles-patio-parrilla</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/patio-furniture-bbq"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/muebles-patio-parrilla"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/meubles-patio-bbq"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/materiaux-construction</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/construction-materials"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/materiales-construccion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/construction-materials</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/construction-materials"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/materiales-construccion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/materiales-construccion</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/construction-materials"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/materiales-construccion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/materiaux-construction"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/achats-marketplace</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/marketplace-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/marketplace-purchases</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/marketplace-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/compras-marketplace</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/marketplace-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-marketplace"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-marketplace"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/achats-en-magasin</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/store-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-en-tienda"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/store-purchases</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/store-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-en-tienda"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/compras-en-tienda</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/store-purchases"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/compras-en-tienda"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/bromont</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/bromont"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/bromont"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/bromont"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/bromont"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/bromont</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/bromont"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/bromont"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/bromont"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/bromont"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/bromont</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/bromont"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/bromont"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/bromont"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/bromont"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/cowansville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/cowansville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/cowansville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/cowansville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/cowansville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/cowansville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/cowansville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/waterloo</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/waterloo"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/waterloo</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/waterloo"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/waterloo</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/waterloo"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/waterloo"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/saint-hyacinthe</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/saint-hyacinthe</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/saint-hyacinthe</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-hyacinthe"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-hyacinthe"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/saint-jean-sur-richelieu</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/saint-jean-sur-richelieu</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/saint-jean-sur-richelieu</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/saint-jean-sur-richelieu"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/saint-jean-sur-richelieu"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/sherbrooke</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/sherbrooke"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/sherbrooke</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/sherbrooke"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/sherbrooke</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/sherbrooke"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/sherbrooke"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/magog</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/magog"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/magog"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/magog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/magog"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/magog</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/magog"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/magog"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/magog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/magog"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/magog</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/magog"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/magog"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/magog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/magog"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/drummondville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/drummondville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/drummondville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/drummondville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/drummondville</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/drummondville"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/drummondville"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/longueuil</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/longueuil"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/longueuil</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/longueuil"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/longueuil</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/longueuil"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/longueuil"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/brossard</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/brossard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/brossard"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/brossard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/brossard"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/brossard</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/brossard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/brossard"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/brossard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/brossard"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/brossard</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/brossard"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/brossard"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/brossard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/brossard"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/montreal</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/montreal"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/montreal"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/montreal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/montreal"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/montreal</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/montreal"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/montreal"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/montreal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/montreal"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/montreal</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/montreal"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/montreal"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/montreal"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/montreal"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/laval</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/laval"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/laval"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/laval"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/laval"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/laval</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/laval"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/laval"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/laval"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/laval"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/laval</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/laval"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/laval"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/laval"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/laval"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/villes/quebec</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/quebec"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/quebec"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/quebec"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/quebec"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/cities/quebec</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/quebec"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/quebec"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/quebec"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/quebec"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/ciudades/quebec</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/quebec"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/quebec"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/ciudades/quebec"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/villes/quebec"/>
+  </url>
 </urlset>

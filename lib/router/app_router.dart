@@ -23,6 +23,8 @@ import '../screens/info/contact_screen.dart';
 import '../screens/info/coming_soon_screen.dart';
 import '../screens/info/not_found_screen.dart';
 import '../screens/info/granby_launch_screen.dart';
+import '../screens/info/seo_guide_screen.dart';
+import '../seo/seo_pages.dart';
 import '../screens/info/blog_screen.dart';
 import '../screens/legal/legal_screen.dart';
 import '../screens/dashboard/customer/customer_dashboard_shell.dart';
@@ -90,6 +92,13 @@ class AppRouter {
               path: 'granby',
               builder: (c, s) => GranbyLaunchScreen(locale: loc),
             ),
+            // Pages par objet et par ville (lib/seo/seo_guide_pages.dart) :
+            // une adresse fixe par page et par langue, servie par vercel.json.
+            for (final page in seoGuidePages)
+              GoRoute(
+                path: page.path(loc).substring('/$loc/'.length),
+                builder: (c, s) => SeoGuideScreen(locale: loc, page: page),
+              ),
             GoRoute(
               path: 'livraison',
               builder: (c, s) => DeliveryLandingScreen(locale: loc),

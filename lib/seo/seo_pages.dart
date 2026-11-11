@@ -16,6 +16,8 @@
 import '../l10n/app_strings.dart';
 import '../l10n/home_copy.dart';
 
+part 'seo_guide_pages.dart';
+
 const seoLocales = ['fr', 'en', 'es'];
 const seoSiteUrl = 'https://movi-k.com';
 const seoContactEmail = 'infos@movi-k.com';
@@ -33,6 +35,11 @@ class SeoSection {
   final SeoText body;
 }
 
+/// core : pages d’origine, chacune avec son propre écran dans l’app.
+/// object, city : pages par objet et par ville (seo_guide_pages.dart),
+/// affichées par SeoGuideScreen.
+enum SeoPageKind { core, object, city }
+
 class SeoPage {
   const SeoPage({
     required this.id,
@@ -43,9 +50,19 @@ class SeoPage {
     required this.intros,
     this.sections = const [],
     this.faq = false,
+    this.kind = SeoPageKind.core,
+    this.labels,
+    this.city,
   });
 
   final String id;
+  final SeoPageKind kind;
+
+  /// Nom court dans les listes de liens (« Réfrigérateur », « Sherbrooke »).
+  final SeoText? labels;
+
+  /// Ville desservie (données structurées `areaServed`).
+  final String? city;
   final SeoText paths;
   final SeoText titles;
   final SeoText descriptions;
@@ -57,13 +74,27 @@ class SeoPage {
   final bool faq;
 
   String path(String locale) => paths[locale] ?? paths['fr']!;
+  String label(String locale) {
+    final text = labels ?? headings;
+    return text[locale] ?? text['fr']!;
+  }
   String url(String locale) => '$seoSiteUrl${path(locale)}';
 
   /// Fichier généré au build, servi par vercel.json à la place de index.html.
   String file(String locale) => '/seo${path(locale)}.html';
 }
 
+/// Toutes les pages publiques lues par Google et les IA.
 final List<SeoPage> seoPages = [
+  ..._corePages,
+  ...seoObjectPages,
+  ...seoCityPages,
+];
+
+/// Pages par objet et par ville, affichées par SeoGuideScreen.
+final List<SeoPage> seoGuidePages = [...seoObjectPages, ...seoCityPages];
+
+final List<SeoPage> _corePages = [
   SeoPage(
     id: 'home',
     paths: _l('/fr', '/en', '/es'),
@@ -333,6 +364,8 @@ final List<SeoPage> seoPages = [
   ),
   SeoPage(
     id: 'granby',
+    city: 'Granby',
+    labels: _l('Granby', 'Granby', 'Granby'),
     paths: _l('/fr/granby', '/en/granby', '/es/granby'),
     titles: _l(
       'Livraison de meubles et électroménagers à Granby | Movi-K',
@@ -488,6 +521,39 @@ final List<SeoPage> seoPages = [
     ),
   ),
 ];
+
+/// Une liste de liens vers d’autres pages publiques (titre, [(nom, adresse)]).
+class SeoLinkGroup {
+  const SeoLinkGroup(this.heading, this.links);
+  final String heading;
+  final List<(String, String)> links;
+}
+
+/// Liens entre les pages par objet et par ville, et depuis la page Livraison :
+/// les mêmes dans l’app (SeoGuideScreen, DeliveryLandingScreen) et dans la
+/// page lue par Google. Les autres pages d’origine n’en ont pas.
+List<SeoLinkGroup> seoLinkGroups(SeoPage page, String locale) {
+  if (page.kind == SeoPageKind.core && page.id != 'delivery') return const [];
+  final granby = _corePages.firstWhere((p) => p.id == 'granby');
+  final objects = [
+    for (final p in seoObjectPages)
+      if (p.id != page.id) (p.label(locale), p.path(locale)),
+  ];
+  final cities = [
+    for (final p in [granby, ...seoCityPages])
+      if (p.id != page.id) (p.label(locale), p.path(locale)),
+  ];
+  return [
+    SeoLinkGroup(
+      _l('Ce qu’on transporte', 'What we move', 'Lo que transportamos')[locale]!,
+      objects,
+    ),
+    SeoLinkGroup(
+      _l('Livraison par ville', 'Delivery by city', 'Entrega por ciudad')[locale]!,
+      cities,
+    ),
+  ];
+}
 
 /// La page publique servie à cette adresse, ou null (pages privées, légales…).
 SeoPage? seoPageForPath(String path) {

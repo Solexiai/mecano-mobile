@@ -142,6 +142,318 @@
       "destination": "/seo/es/contacto.html"
     },
     {
+      "source": "/fr/transport/refrigerateur",
+      "destination": "/seo/fr/transport/refrigerateur.html"
+    },
+    {
+      "source": "/en/transport/refrigerator",
+      "destination": "/seo/en/transport/refrigerator.html"
+    },
+    {
+      "source": "/es/transporte/refrigerador",
+      "destination": "/seo/es/transporte/refrigerador.html"
+    },
+    {
+      "source": "/fr/transport/laveuse-secheuse",
+      "destination": "/seo/fr/transport/laveuse-secheuse.html"
+    },
+    {
+      "source": "/en/transport/washer-dryer",
+      "destination": "/seo/en/transport/washer-dryer.html"
+    },
+    {
+      "source": "/es/transporte/lavadora-secadora",
+      "destination": "/seo/es/transporte/lavadora-secadora.html"
+    },
+    {
+      "source": "/fr/transport/cuisiniere-lave-vaisselle",
+      "destination": "/seo/fr/transport/cuisiniere-lave-vaisselle.html"
+    },
+    {
+      "source": "/en/transport/stove-dishwasher",
+      "destination": "/seo/en/transport/stove-dishwasher.html"
+    },
+    {
+      "source": "/es/transporte/estufa-lavavajillas",
+      "destination": "/seo/es/transporte/estufa-lavavajillas.html"
+    },
+    {
+      "source": "/fr/transport/congelateur",
+      "destination": "/seo/fr/transport/congelateur.html"
+    },
+    {
+      "source": "/en/transport/freezer",
+      "destination": "/seo/en/transport/freezer.html"
+    },
+    {
+      "source": "/es/transporte/congelador",
+      "destination": "/seo/es/transporte/congelador.html"
+    },
+    {
+      "source": "/fr/transport/divan-sofa",
+      "destination": "/seo/fr/transport/divan-sofa.html"
+    },
+    {
+      "source": "/en/transport/sofa",
+      "destination": "/seo/en/transport/sofa.html"
+    },
+    {
+      "source": "/es/transporte/sofa",
+      "destination": "/seo/es/transporte/sofa.html"
+    },
+    {
+      "source": "/fr/transport/lit-matelas",
+      "destination": "/seo/fr/transport/lit-matelas.html"
+    },
+    {
+      "source": "/en/transport/bed-mattress",
+      "destination": "/seo/en/transport/bed-mattress.html"
+    },
+    {
+      "source": "/es/transporte/cama-colchon",
+      "destination": "/seo/es/transporte/cama-colchon.html"
+    },
+    {
+      "source": "/fr/transport/commode-armoire",
+      "destination": "/seo/fr/transport/commode-armoire.html"
+    },
+    {
+      "source": "/en/transport/dresser-wardrobe",
+      "destination": "/seo/en/transport/dresser-wardrobe.html"
+    },
+    {
+      "source": "/es/transporte/comoda-armario",
+      "destination": "/seo/es/transporte/comoda-armario.html"
+    },
+    {
+      "source": "/fr/transport/televiseur",
+      "destination": "/seo/fr/transport/televiseur.html"
+    },
+    {
+      "source": "/en/transport/tv",
+      "destination": "/seo/en/transport/tv.html"
+    },
+    {
+      "source": "/es/transporte/televisor",
+      "destination": "/seo/es/transporte/televisor.html"
+    },
+    {
+      "source": "/fr/transport/souffleuse-tondeuse",
+      "destination": "/seo/fr/transport/souffleuse-tondeuse.html"
+    },
+    {
+      "source": "/en/transport/snow-blower-lawn-mower",
+      "destination": "/seo/en/transport/snow-blower-lawn-mower.html"
+    },
+    {
+      "source": "/es/transporte/quitanieves-cortacesped",
+      "destination": "/seo/es/transporte/quitanieves-cortacesped.html"
+    },
+    {
+      "source": "/fr/transport/meubles-patio-bbq",
+      "destination": "/seo/fr/transport/meubles-patio-bbq.html"
+    },
+    {
+      "source": "/en/transport/patio-furniture-bbq",
+      "destination": "/seo/en/transport/patio-furniture-bbq.html"
+    },
+    {
+      "source": "/es/transporte/muebles-patio-parrilla",
+      "destination": "/seo/es/transporte/muebles-patio-parrilla.html"
+    },
+    {
+      "source": "/fr/transport/materiaux-construction",
+      "destination": "/seo/fr/transport/materiaux-construction.html"
+    },
+    {
+      "source": "/en/transport/construction-materials",
+      "destination": "/seo/en/transport/construction-materials.html"
+    },
+    {
+      "source": "/es/transporte/materiales-construccion",
+      "destination": "/seo/es/transporte/materiales-construccion.html"
+    },
+    {
+      "source": "/fr/transport/achats-marketplace",
+      "destination": "/seo/fr/transport/achats-marketplace.html"
+    },
+    {
+      "source": "/en/transport/marketplace-purchases",
+      "destination": "/seo/en/transport/marketplace-purchases.html"
+    },
+    {
+      "source": "/es/transporte/compras-marketplace",
+      "destination": "/seo/es/transporte/compras-marketplace.html"
+    },
+    {
+      "source": "/fr/transport/achats-en-magasin",
+      "destination": "/seo/fr/transport/achats-en-magasin.html"
+    },
+    {
+      "source": "/en/transport/store-purchases",
+      "destination": "/seo/en/transport/store-purchases.html"
+    },
+    {
+      "source": "/es/transporte/compras-en-tienda",
+      "destination": "/seo/es/transporte/compras-en-tienda.html"
+    },
+    {
+      "source": "/fr/villes/bromont",
+      "destination": "/seo/fr/villes/bromont.html"
+    },
+    {
+      "source": "/en/cities/bromont",
+      "destination": "/seo/en/cities/bromont.html"
+    },
+    {
+      "source": "/es/ciudades/bromont",
+      "destination": "/seo/es/ciudades/bromont.html"
+    },
+    {
+      "source": "/fr/villes/cowansville",
+      "destination": "/seo/fr/villes/cowansville.html"
+    },
+    {
+      "source": "/en/cities/cowansville",
+      "destination": "/seo/en/cities/cowansville.html"
+    },
+    {
+      "source": "/es/ciudades/cowansville",
+      "destination": "/seo/es/ciudades/cowansville.html"
+    },
+    {
+      "source": "/fr/villes/waterloo",
+      "destination": "/seo/fr/villes/waterloo.html"
+    },
+    {
+      "source": "/en/cities/waterloo",
+      "destination": "/seo/en/cities/waterloo.html"
+    },
+    {
+      "source": "/es/ciudades/waterloo",
+      "destination": "/seo/es/ciudades/waterloo.html"
+    },
+    {
+      "source": "/fr/villes/saint-hyacinthe",
+      "destination": "/seo/fr/villes/saint-hyacinthe.html"
+    },
+    {
+      "source": "/en/cities/saint-hyacinthe",
+      "destination": "/seo/en/cities/saint-hyacinthe.html"
+    },
+    {
+      "source": "/es/ciudades/saint-hyacinthe",
+      "destination": "/seo/es/ciudades/saint-hyacinthe.html"
+    },
+    {
+      "source": "/fr/villes/saint-jean-sur-richelieu",
+      "destination": "/seo/fr/villes/saint-jean-sur-richelieu.html"
+    },
+    {
+      "source": "/en/cities/saint-jean-sur-richelieu",
+      "destination": "/seo/en/cities/saint-jean-sur-richelieu.html"
+    },
+    {
+      "source": "/es/ciudades/saint-jean-sur-richelieu",
+      "destination": "/seo/es/ciudades/saint-jean-sur-richelieu.html"
+    },
+    {
+      "source": "/fr/villes/sherbrooke",
+      "destination": "/seo/fr/villes/sherbrooke.html"
+    },
+    {
+      "source": "/en/cities/sherbrooke",
+      "destination": "/seo/en/cities/sherbrooke.html"
+    },
+    {
+      "source": "/es/ciudades/sherbrooke",
+      "destination": "/seo/es/ciudades/sherbrooke.html"
+    },
+    {
+      "source": "/fr/villes/magog",
+      "destination": "/seo/fr/villes/magog.html"
+    },
+    {
+      "source": "/en/cities/magog",
+      "destination": "/seo/en/cities/magog.html"
+    },
+    {
+      "source": "/es/ciudades/magog",
+      "destination": "/seo/es/ciudades/magog.html"
+    },
+    {
+      "source": "/fr/villes/drummondville",
+      "destination": "/seo/fr/villes/drummondville.html"
+    },
+    {
+      "source": "/en/cities/drummondville",
+      "destination": "/seo/en/cities/drummondville.html"
+    },
+    {
+      "source": "/es/ciudades/drummondville",
+      "destination": "/seo/es/ciudades/drummondville.html"
+    },
+    {
+      "source": "/fr/villes/longueuil",
+      "destination": "/seo/fr/villes/longueuil.html"
+    },
+    {
+      "source": "/en/cities/longueuil",
+      "destination": "/seo/en/cities/longueuil.html"
+    },
+    {
+      "source": "/es/ciudades/longueuil",
+      "destination": "/seo/es/ciudades/longueuil.html"
+    },
+    {
+      "source": "/fr/villes/brossard",
+      "destination": "/seo/fr/villes/brossard.html"
+    },
+    {
+      "source": "/en/cities/brossard",
+      "destination": "/seo/en/cities/brossard.html"
+    },
+    {
+      "source": "/es/ciudades/brossard",
+      "destination": "/seo/es/ciudades/brossard.html"
+    },
+    {
+      "source": "/fr/villes/montreal",
+      "destination": "/seo/fr/villes/montreal.html"
+    },
+    {
+      "source": "/en/cities/montreal",
+      "destination": "/seo/en/cities/montreal.html"
+    },
+    {
+      "source": "/es/ciudades/montreal",
+      "destination": "/seo/es/ciudades/montreal.html"
+    },
+    {
+      "source": "/fr/villes/laval",
+      "destination": "/seo/fr/villes/laval.html"
+    },
+    {
+      "source": "/en/cities/laval",
+      "destination": "/seo/en/cities/laval.html"
+    },
+    {
+      "source": "/es/ciudades/laval",
+      "destination": "/seo/es/ciudades/laval.html"
+    },
+    {
+      "source": "/fr/villes/quebec",
+      "destination": "/seo/fr/villes/quebec.html"
+    },
+    {
+      "source": "/en/cities/quebec",
+      "destination": "/seo/en/cities/quebec.html"
+    },
+    {
+      "source": "/es/ciudades/quebec",
+      "destination": "/seo/es/ciudades/quebec.html"
+    },
+    {
       "source": "/:locale(fr|en|es)",
       "destination": "/index.html"
     },

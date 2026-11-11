@@ -4,9 +4,11 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_colors.dart';
 import '../../l10n/home_copy.dart';
 import '../../router/delivery_request_intent.dart';
+import '../../seo/seo_pages.dart';
 import '../../services/booking/item_types.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
+import '../../widgets/seo_link_groups.dart';
 
 class DeliveryLandingScreen extends StatelessWidget {
   final String locale;
@@ -183,6 +185,12 @@ class DeliveryLandingScreen extends StatelessWidget {
                       onPressed: () => context.go('/$locale/devenir-chauffeur'),
                       child: Text(h('driver_link')),
                     ),
+                  ),
+                  // Liens vers les pages par objet et par ville : les mêmes
+                  // que dans la page Livraison lue par Google.
+                  SeoLinkGroupsView(
+                    page: seoPages.firstWhere((p) => p.id == 'delivery'),
+                    locale: locale,
                   ),
                 ],
               ),
