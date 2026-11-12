@@ -3021,6 +3021,71 @@ class AppStrings {
       'en': 'Vehicle photo',
       'es': 'Foto del vehículo',
     },
+    // Documents chauffeur (Daniel, 2026-11-12) : permis recto/verso, plus de
+    // pièce d'identité, documents reçus par courriel ajoutés par un agent.
+    'doc_slot_licence_front': {
+      'fr': 'Permis de conduire — recto',
+      'en': "Driver's licence — front",
+      'es': 'Licencia de conducir — anverso',
+    },
+    'doc_slot_licence_back': {
+      'fr': 'Permis de conduire — verso',
+      'en': "Driver's licence — back",
+      'es': 'Licencia de conducir — reverso',
+    },
+    'admin_driver_doc_add': {
+      'fr': 'Ajouter',
+      'en': 'Add',
+      'es': 'Añadir',
+    },
+    'admin_driver_doc_add_hint': {
+      'fr':
+          'Document reçu par courriel à infos@movi-k.com ? Ajoutez-le à sa place, puis approuvez-le.',
+      'en':
+          'Document received by email at infos@movi-k.com? Add it in its place, then approve it.',
+      'es':
+          '¿Documento recibido por correo en infos@movi-k.com? Añádelo en su lugar y luego apruébalo.',
+    },
+    'admin_driver_doc_missing': {
+      'fr': 'Manquant',
+      'en': 'Missing',
+      'es': 'Falta',
+    },
+    'admin_driver_doc_required': {
+      'fr': 'Obligatoire',
+      'en': 'Required',
+      'es': 'Obligatorio',
+    },
+    'admin_driver_doc_added_by_staff': {
+      'fr': 'Ajouté par l’équipe',
+      'en': 'Added by the team',
+      'es': 'Añadido por el equipo',
+    },
+    'admin_driver_doc_add_success': {
+      'fr': 'Document ajouté. Vérifiez-le, puis approuvez-le.',
+      'en': 'Document added. Check it, then approve it.',
+      'es': 'Documento añadido. Revísalo y luego apruébalo.',
+    },
+    'admin_driver_doc_add_error': {
+      'fr': 'Impossible d’ajouter ce document.',
+      'en': 'Unable to add this document.',
+      'es': 'No se pudo añadir este documento.',
+    },
+    'admin_driver_doc_too_large': {
+      'fr': 'Fichier trop lourd : 8 Mo au maximum.',
+      'en': 'File too large: 8 MB maximum.',
+      'es': 'Archivo demasiado pesado: 8 MB como máximo.',
+    },
+    'admin_driver_doc_legacy_licence': {
+      'fr': 'Couvert par l’ancien envoi du permis (une seule image).',
+      'en': 'Covered by the earlier licence upload (single image).',
+      'es': 'Cubierto por el envío anterior de la licencia (una sola imagen).',
+    },
+    'admin_driver_doc_others': {
+      'fr': 'Autres documents',
+      'en': 'Other documents',
+      'es': 'Otros documentos',
+    },
     'admin_driver_doc_vehicle_main_photo': {
       'fr': 'Photo principale du v\u00e9hicule',
       'en': 'Main vehicle photo',

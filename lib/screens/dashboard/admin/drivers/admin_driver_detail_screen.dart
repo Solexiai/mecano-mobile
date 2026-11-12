@@ -24,6 +24,7 @@ import '../../../../models/enums.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
+import 'driver_document_checklist.dart';
 import 'driver_document_display.dart';
 import '../../../../widgets/driver_vehicle_review_card.dart';
 import '../../../../l10n/vehicle_review_copy.dart';
@@ -430,14 +431,13 @@ class _DocumentsSection extends StatelessWidget {
             );
           }
           final docs = snap.data ?? const <DriverDocument>[];
-          if (docs.isEmpty) {
-            return Text(
-              t('admin_driver_doc_no_documents'),
-              style: const TextStyle(color: AppColors.textSecondary),
-            );
-          }
-          return Column(
-            children: docs.map((doc) => _DocumentTile(doc: doc, t: t)).toList(),
+          // Une place par document, avec « Ajouter » pour les documents
+          // reçus par courriel (Daniel, 2026-11-12).
+          return DriverDocumentChecklist(
+            driverId: driverId,
+            docs: docs,
+            t: t,
+            tileFor: (doc) => _DocumentTile(key: ValueKey('doc-tile-${doc.id}'), doc: doc, t: t),
           );
         },
       ),
@@ -448,7 +448,7 @@ class _DocumentsSection extends StatelessWidget {
 class _DocumentTile extends StatefulWidget {
   final DriverDocument doc;
   final String Function(String) t;
-  const _DocumentTile({required this.doc, required this.t});
+  const _DocumentTile({super.key, required this.doc, required this.t});
 
   @override
   State<_DocumentTile> createState() => _DocumentTileState();
@@ -665,6 +665,16 @@ class _DocumentTileState extends State<_DocumentTile> {
             ],
           ),
           const SizedBox(height: 6),
+          if (doc.addedByStaff)
+            Text(
+              t('admin_driver_doc_added_by_staff'),
+              key: ValueKey('doc-staff-${doc.id}'),
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
           Text(
             '${t('admin_driver_doc_uploaded_at')}: ${formatDisplayDate(doc.uploadedAt, connector: t('datetime_connector_at'))}',
             style: const TextStyle(
@@ -690,7 +700,8 @@ class _DocumentTileState extends State<_DocumentTile> {
             ),
           // SEC-05 (2026-10-28) : chaque document est approuvé ou rejeté UN PAR
           // UN (validateDriverDocument) ; « Approuver le dossier » exige ensuite
-          // que les quatre documents obligatoires soient approuvés.
+          // que les documents obligatoires soient approuvés : permis recto et
+          // verso, immatriculation, assurance (lib/driverDocuments.ts).
           if (doc.status != DriverDocumentStatus.approved) ...[
             const SizedBox(height: 4),
             Wrap(

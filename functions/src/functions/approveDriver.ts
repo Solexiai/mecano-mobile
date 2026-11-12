@@ -12,13 +12,7 @@ import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
 import { writeAuditLog } from "../lib/audit";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 import { DriverDocumentStatuses, DriverStatuses, PlatformRoles } from "../lib/types";
-
-const REQUIRED_DOCUMENT_TYPES = [
-  "drivers_licence",
-  "vehicle_registration",
-  "insurance",
-  "identity",
-] as const;
+import { missingRequiredDocuments } from "../lib/driverDocuments";
 
 export interface ApproveDriverRequest {
   driverId: string;
@@ -60,29 +54,19 @@ export const approveDriver = onCall<ApproveDriverRequest>(async (request) => {
     // SEC-05 (2026-10-28) : « Approuver le dossier » ne valide plus en bloc
     // des documents jamais revus. Chaque document obligatoire doit avoir été
     // APPROUVÉ individuellement (validateDriverDocument, revue humaine), être
-    // non expiré, et le plus récent de son type est retenu.
+    // non expiré. 2026-11-12 : permis recto ET verso (ou ancien permis en
+    // une image), plus de pièce d'identité (lib/driverDocuments.ts).
     const now = admin.firestore.Timestamp.now();
-    const selectedDocuments = REQUIRED_DOCUMENT_TYPES.map((type) => {
-      const candidates = documentsSnap.docs
-        .filter((documentSnap) => {
-          const document = documentSnap.data();
-          if (document.type !== type) return false;
-          if (document.status !== DriverDocumentStatuses.APPROVED) return false;
-          const expiresAt = document.expires_at as admin.firestore.Timestamp | null;
-          return !expiresAt || expiresAt.toMillis() > now.toMillis();
-        })
-        .sort((a, b) => {
-          const aTime = (a.data().uploaded_at as admin.firestore.Timestamp | undefined)
-            ?.toMillis() ?? 0;
-          const bTime = (b.data().uploaded_at as admin.firestore.Timestamp | undefined)
-            ?.toMillis() ?? 0;
-          return bTime - aTime;
-        });
-      return candidates[0] ?? null;
-    });
+    const missing = missingRequiredDocuments(
+      documentsSnap.docs.map((documentSnap) => documentSnap.data()),
+      (document) => {
+        if (document.status !== DriverDocumentStatuses.APPROVED) return false;
+        const expiresAt = document.expires_at as admin.firestore.Timestamp | null;
+        return !expiresAt || expiresAt.toMillis() > now.toMillis();
+      }
+    );
 
-    if (selectedDocuments.some((documentSnap) => documentSnap === null)) {
-      const missing = REQUIRED_DOCUMENT_TYPES.filter((_, index) => selectedDocuments[index] === null);
+    if (missing.length) {
       throw failedPrecondition(
         `Chaque document obligatoire doit d'abord être approuvé individuellement (manquants ou non approuvés : ${missing.join(", ")}).`
       );

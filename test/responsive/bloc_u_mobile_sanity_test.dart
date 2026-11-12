@@ -694,7 +694,7 @@ void _registerTests() {
           // doivent être visibles et leur bouton "Sélectionner" accessible,
           // sans overflow horizontal du Row texte+bouton.
           final licenseLabel = find.text(
-            AppStrings.t('driver_onboarding_upload_license', 'fr'),
+            AppStrings.t('doc_slot_licence_front', 'fr'),
           );
           final insuranceLabel = find.text(
             AppStrings.t('driver_onboarding_upload_insurance', 'fr'),

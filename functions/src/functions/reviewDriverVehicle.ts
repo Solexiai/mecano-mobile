@@ -5,6 +5,7 @@ import { requireAnalystOrAbove, requireSignedIn } from '../lib/auth';
 import { Capacity, validCapacity } from '../lib/booking';
 import { failedPrecondition, invalidArgument, notFound } from '../lib/errors';
 import { normalizeVehicleCategory } from '../lib/vehicleCategory';
+import { missingRequiredDocuments } from '../lib/driverDocuments';
 
 // 2026-11-09 : + VUS (rang 0 : le plus petit).
 const CATEGORIES = ['suv', 'pickup_truck', 'cargo_van', 'cube_truck'];
@@ -73,14 +74,12 @@ export const reviewDriverVehicle = onCall<ReviewDriverVehicleRequest>(async requ
       const category=normalizeVehicleCategory(v.category);
       if(!CATEGORIES.includes(category)) throw failedPrecondition('Le pilote accepte un VUS, un pick-up, un fourgon cargo ou un camion cube.');
       const documents=await tx.get(db.collection('driver_documents').where('driver_id','==',input.driverId));
-      for(const type of ['drivers_licence','vehicle_registration','insurance','identity']){
-        const valid=documents.docs.some(d=>{
-          const data=d.data(),end=data.expires_at;
-          return data.type===type && data.status==='approved' &&
-            (end==null || (typeof end.toMillis==='function' && end.toMillis()>=expiry!));
-        });
-        if(!valid)throw failedPrecondition('La validité du véhicule ne peut dépasser celle des documents approuvés.');
-      }
+      // Documents obligatoires (lib/driverDocuments.ts) encore valides à la fin de la vérification.
+      const missing=missingRequiredDocuments(documents.docs.map(d=>d.data()),data=>{
+        const end=data.expires_at;
+        return data.status==='approved' && (end==null || (typeof end.toMillis==='function' && end.toMillis()>=expiry!));
+      });
+      if(missing.length)throw failedPrecondition('La validité du véhicule ne peut dépasser celle des documents approuvés.');
       const capacity=capacityInput(input.capacity,category,version);
       patch={is_verified:true,verified_capacity:capacity,capacity_valid_until:admin.firestore.Timestamp.fromMillis(expiry!),verified_identity:identity};
     }else{

@@ -242,11 +242,6 @@ class DriverOnboardingCopy {
       'en': 'Vehicle registration certificate',
       'es': 'Certificado de matrícula del vehículo',
     },
-    'identity_document': {
-      'fr': 'Pièce d’identité avec photo',
-      'en': 'Government photo ID',
-      'es': 'Documento de identidad con foto',
-    },
     'required_badge': {'fr': 'Requis', 'en': 'Required', 'es': 'Obligatorio'},
     'review_title': {
       'fr': 'Avant d’envoyer votre dossier',

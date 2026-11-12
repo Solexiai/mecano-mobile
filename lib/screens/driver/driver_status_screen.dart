@@ -29,6 +29,7 @@ import '../../backend/backend_locator.dart';
 import '../../backend/models/driver_document.dart';
 import '../../backend/models/driver_profile_v2.dart';
 import '../../core/app_colors.dart';
+import '../../models/driver_document_slots.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -49,7 +50,8 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   bool _actionInProgress = false;
   bool _pickingReplacement = false;
   String? _actionError;
-  final Map<DriverDocumentType, _SelectedReplacementDocument>
+  // Clé : place du document (permis recto/verso, immatriculation…).
+  final Map<DriverDocumentSlot, _SelectedReplacementDocument>
   _replacementDocuments = {};
 
   String? _cachedUid;
@@ -171,13 +173,9 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   }
 
   Widget _buildDocumentCorrectionCard(String uid, String Function(String) t) {
-    const types = <DriverDocumentType>[
-      DriverDocumentType.driversLicence,
-      DriverDocumentType.insurance,
-      DriverDocumentType.vehicleRegistration,
-      DriverDocumentType.identity,
-      DriverDocumentType.vehiclePhoto,
-    ];
+    // Permis recto/verso, immatriculation, assurance, photos du véhicule ;
+    // plus de pièce d'identité (Daniel, 2026-11-12).
+    const slots = driverDocumentSlots;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -199,16 +197,16 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
             style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
           ),
           const SizedBox(height: 16),
-          ...types.map(
-            (type) => Padding(
+          ...slots.map(
+            (slot) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _ReplacementDocumentRow(
-                label: t(type.key),
-                fileName: _replacementDocuments[type]?.fileName,
+                label: t(slot.labelKey),
+                fileName: _replacementDocuments[slot]?.fileName,
                 busy: _actionInProgress || _pickingReplacement,
                 selectLabel: t('driver_onboarding_document_select'),
                 editLabel: t('driver_onboarding_document_edit'),
-                onPick: () => _pickReplacementDocument(type),
+                onPick: () => _pickReplacementDocument(slot),
               ),
             ),
           ),
@@ -237,7 +235,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
     );
   }
 
-  Future<void> _pickReplacementDocument(DriverDocumentType type) async {
+  Future<void> _pickReplacementDocument(DriverDocumentSlot slot) async {
     if (_pickingReplacement || _actionInProgress) return;
     final t = context.read<LocaleProvider>().t;
     setState(() {
@@ -279,7 +277,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
       final bytes = await picked.readAsBytes();
       if (!mounted) return;
       setState(() {
-        _replacementDocuments[type] = _SelectedReplacementDocument(
+        _replacementDocuments[slot] = _SelectedReplacementDocument(
           bytes: bytes,
           fileName: picked.name,
         );
@@ -297,7 +295,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
   Future<void> _uploadReplacementDocumentsAndResubmit(String uid) async {
     if (_replacementDocuments.isEmpty || _actionInProgress) return;
     final t = context.read<LocaleProvider>().t;
-    final selected = Map<DriverDocumentType, _SelectedReplacementDocument>.from(
+    final selected = Map<DriverDocumentSlot, _SelectedReplacementDocument>.from(
       _replacementDocuments,
     );
 
@@ -311,7 +309,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
       final driverRepo = BackendLocator.driverRepository;
 
       for (final entry in selected.entries) {
-        final type = entry.key;
+        final slot = entry.key;
         final selectedFile = entry.value;
         final extension = selectedFile.fileName.contains('.')
             ? selectedFile.fileName.split('.').last.toLowerCase()
@@ -320,7 +318,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
             ? 'application/pdf'
             : 'image/jpeg';
         final fileName =
-            '${type.firestoreValue}_${DateTime.now().microsecondsSinceEpoch}.$extension';
+            '${slot.id}_${DateTime.now().microsecondsSinceEpoch}.$extension';
 
         await uploadRepo.uploadDriverDocument(
           driverId: uid,
@@ -333,7 +331,7 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
           DriverDocument(
             id: const Uuid().v4(),
             driverId: uid,
-            type: type,
+            type: slot.type,
             status: DriverDocumentStatus.uploaded,
             storageBucketPath: 'driver_documents/$uid/$fileName',
             uploadedAt: DateTime.now(),

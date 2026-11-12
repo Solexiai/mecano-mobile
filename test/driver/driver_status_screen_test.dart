@@ -485,11 +485,12 @@ void main() {
 
   String t(String key) => AppStrings.t(key, 'fr');
 
+  // Une ligne par place de document (permis recto/verso…, 2026-11-12).
   Future<void> selectReplacementDocument(
     WidgetTester tester,
-    DriverDocumentType type,
+    String labelKey,
   ) async {
-    final label = find.text(t(type.key));
+    final label = find.text(t(labelKey));
     await tester.ensureVisible(label);
     await tester.pump();
 
@@ -696,10 +697,11 @@ void main() {
           ),
         );
 
-        await selectReplacementDocument(
-          tester,
-          DriverDocumentType.driversLicence,
-        );
+        // Permis recto et verso ; plus de pièce d'identité (2026-11-12).
+        await tester.ensureVisible(find.text(t('doc_slot_licence_back')));
+        expect(find.text(t('doc_slot_licence_back')), findsOneWidget);
+        expect(find.text(t('doc_type_identity')), findsNothing);
+        await selectReplacementDocument(tester, 'doc_slot_licence_front');
 
         final resubmitButton = _elevatedButtonWithText(
           t('driver_status_resubmit'),
@@ -717,6 +719,10 @@ void main() {
 
         expect(uploadRepo.calls, 1);
         expect(fakeRepo.submittedDocuments.length, 1);
+        expect(
+          fakeRepo.submittedDocuments.single.storageBucketPath,
+          contains('/drivers_licence_front_'),
+        );
         expect(fakeRepo.submitForReviewCallCount, 1);
         expect(fakeRepo.setDriverOnlineStatusCallCount, 0);
         // Le repository fake fait avancer le profil -> l'écran doit refléter
@@ -737,7 +743,7 @@ void main() {
         );
         await selectReplacementDocument(
           tester,
-          DriverDocumentType.vehiclePhoto,
+          'admin_driver_doc_vehicle_main_photo',
         );
 
         fakeRepo.pendingSubmitForReviewCompleter = Completer<void>();
@@ -786,7 +792,7 @@ void main() {
           'PERMISSION_DENIED: dossier verrouillé côté serveur',
         );
 
-        await selectReplacementDocument(tester, DriverDocumentType.insurance);
+        await selectReplacementDocument(tester, 'doc_type_insurance');
 
         final resubmitButton = _elevatedButtonWithText(
           t('driver_status_resubmit'),

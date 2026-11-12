@@ -537,7 +537,7 @@ void main() {
   );
 
   testWidgets(
-    'redesigned onboarding uploads three vehicle photos and four verification documents',
+    'redesigned onboarding uploads three vehicle photos, licence front and back, registration and insurance',
     (tester) async {
       final uploadRepo = _UploadRepo();
       BackendLocator.driverDocumentUploadRepositoryOverride = uploadRepo;
@@ -552,10 +552,8 @@ void main() {
         findsNWidgets(4),
       );
 
-      await _tapPicker(
-        tester,
-        AppStrings.t('driver_onboarding_upload_license', 'fr'),
-      );
+      await _tapPicker(tester, AppStrings.t('doc_slot_licence_front', 'fr'));
+      await _tapPicker(tester, AppStrings.t('doc_slot_licence_back', 'fr'));
       await _tapPicker(
         tester,
         DriverOnboardingCopy.text('fr', 'vehicle_registration'),
@@ -563,10 +561,6 @@ void main() {
       await _tapPicker(
         tester,
         AppStrings.t('driver_onboarding_upload_insurance', 'fr'),
-      );
-      await _tapPicker(
-        tester,
-        DriverOnboardingCopy.text('fr', 'identity_document'),
       );
 
       await tester.tap(find.byType(CheckboxListTile).at(0));
@@ -591,10 +585,21 @@ void main() {
           DriverDocumentType.driversLicence,
           DriverDocumentType.vehicleRegistration,
           DriverDocumentType.insurance,
-          DriverDocumentType.identity,
           DriverDocumentType.vehiclePhoto,
         }),
       );
+      // Plus de pièce d'identité ; permis recto et verso (2026-11-12).
+      expect(
+        driverRepo.documents.where((d) => d.type == DriverDocumentType.identity),
+        isEmpty,
+      );
+      final licences = driverRepo.documents
+          .where((d) => d.type == DriverDocumentType.driversLicence)
+          .map((d) => d.storageBucketPath)
+          .toList();
+      expect(licences, hasLength(2));
+      expect(licences.any((p) => p.contains('/drivers_licence_front_')), isTrue);
+      expect(licences.any((p) => p.contains('/drivers_licence_back_')), isTrue);
 
       final vehiclePhotos = driverRepo.documents
           .where((d) => d.type == DriverDocumentType.vehiclePhoto)
@@ -648,10 +653,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await _goToDocuments(tester);
 
-    await _tapPicker(
-      tester,
-      AppStrings.t('driver_onboarding_upload_license', 'fr'),
-    );
+    await _tapPicker(tester, AppStrings.t('doc_slot_licence_front', 'fr'));
+    await _tapPicker(tester, AppStrings.t('doc_slot_licence_back', 'fr'));
     await _tapPicker(
       tester,
       DriverOnboardingCopy.text('fr', 'vehicle_registration'),
@@ -659,10 +662,6 @@ void main() {
     await _tapPicker(
       tester,
       AppStrings.t('driver_onboarding_upload_insurance', 'fr'),
-    );
-    await _tapPicker(
-      tester,
-      DriverOnboardingCopy.text('fr', 'identity_document'),
     );
     await tester.tap(find.byType(CheckboxListTile).at(0));
     await tester.pump();
