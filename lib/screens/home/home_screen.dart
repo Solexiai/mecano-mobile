@@ -6,6 +6,7 @@ import '../../core/app_colors.dart';
 import '../../l10n/home_copy.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
+import '../../widgets/public_price_table_card.dart';
 import '../../widgets/section_title.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -358,6 +359,12 @@ class _HeroCopy extends StatelessWidget {
               child: Text(h('driver_link')),
             ),
           ],
+        ),
+        // 2026-11-13 : un prix visible dès l'accueil, tiré de la grille
+        // active ; rien ne s'affiche si le tableau ne peut pas être chargé.
+        PublicPriceFrom(
+          locale: locale,
+          onSeePrices: () => context.go('/$locale/tarifs'),
         ),
       ],
     );

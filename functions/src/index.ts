@@ -116,6 +116,7 @@ export { applyDriverPromotion } from "./functions/applyDriverPromotion";
 export { qualifyFoundingDriver, revokeFoundingDriverStatus } from "./functions/qualifyFoundingDriver";
 export { updatePricingConfiguration } from "./functions/updatePricingConfiguration";
 export { previewPricingConfiguration } from "./functions/previewPricingConfiguration";
+export { getPublicPriceTable } from "./functions/getPublicPriceTable";
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";
