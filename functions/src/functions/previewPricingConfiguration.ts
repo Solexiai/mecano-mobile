@@ -115,7 +115,8 @@ function parseScenarios(raw: unknown): PricingPreviewScenario[] {
   });
 }
 
-async function quoteAmounts(
+/** Also used by the public price table (getPublicPriceTable). */
+export async function quoteAmounts(
   config: PricingVersionDoc,
   vehicleCategory: string,
   scenario: PricingPreviewScenario,
