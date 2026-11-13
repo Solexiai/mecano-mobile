@@ -2372,18 +2372,20 @@ class AppStrings {
     'svc_other': {'fr': 'Autre', 'en': 'Other', 'es': 'Otro'},
 
     // ---------- Driver recruitment ----------
+    // 2026-11-13 (propriétaire) : la page chauffeur s'ouvre sur le gain,
+    // avec la fourchette annoncée aux recrues, pas sur le dossier à remplir.
     'driver_hero_headline': {
-      'fr': 'Préparez votre dossier chauffeur Movi‑K.',
-      'en': 'Prepare your Movi‑K driver application.',
-      'es': 'Prepara tu expediente de conductor Movi‑K.',
+      'fr': 'Gagnez environ 80 \$ à 120 \$ par livraison avec votre pick-up ou votre fourgon.',
+      'en': 'Earn about \$80 to \$120 per delivery with your pickup or van.',
+      'es': 'Gana unos 80 \$ a 120 \$ por entrega con tu camioneta o tu furgón.',
     },
     'driver_hero_sub': {
       'fr':
-          'Définissez votre zone et votre disponibilité. Le profil, le véhicule et les documents requis doivent être approuvés avant l’activation; vous recevez seulement les livraisons dans le rayon que vous choisissez.',
+          'Pour une livraison de 2 à 4 articles, payée à la livraison et non à l’heure. Les pourboires sont à vous à 100 %. Vous choisissez vos heures, votre zone et vos livraisons.',
       'en':
-          'Set your service area and availability. Your profile, vehicle and required documents must be approved before activation; you only receive deliveries within the radius you choose.',
+          'For a delivery of 2 to 4 items, paid per delivery, not per hour. Tips are 100% yours. You choose your hours, your area and your deliveries.',
       'es':
-          'Define tu zona y disponibilidad. El perfil, el vehículo y los documentos requeridos deben aprobarse antes de la activación; solo recibes entregas dentro del radio que elijas.',
+          'Por una entrega de 2 a 4 artículos, pagada por entrega y no por hora. Las propinas son 100 % tuyas. Tú eliges tus horas, tu zona y tus entregas.',
     },
     'driver_pending_verification': {
       'fr': 'En attente de vérification',
