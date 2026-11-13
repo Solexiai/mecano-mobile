@@ -119,6 +119,73 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('no empty gap around the card when prices are missing', (
+    t,
+  ) async {
+    Widget framed(PublicPriceTableLoader loader) => PublicPriceTableCard(
+      locale: 'fr',
+      loader: loader,
+      wrap: (card) => Padding(
+        key: const ValueKey('price-gap'),
+        padding: const EdgeInsets.all(40),
+        child: card,
+      ),
+    );
+    await pump(t, framed(() async => null));
+    expect(find.byKey(const ValueKey('price-gap')), findsNothing);
+    await pump(
+      t,
+      KeyedSubtree(
+        key: const ValueKey('loaded'),
+        child: framed(() async => PublicPriceTable.fromJson(serverTable())),
+      ),
+    );
+    expect(find.byKey(const ValueKey('price-gap')), findsOneWidget);
+    expect(find.byKey(const ValueKey('public-price-table')), findsOneWidget);
+  });
+
+  testWidgets('booking hint: one line on a phone, opens the table on tap', (
+    t,
+  ) async {
+    await pump(
+      t,
+      PublicPriceHint(
+        locale: 'fr',
+        loader: () async => PublicPriceTable.fromJson(serverTable()),
+      ),
+      size: const Size(375, 812),
+    );
+    expect(
+      find.text('Une idée des prix : à partir de 52\u00A0\$'),
+      findsOneWidget,
+    );
+    expect(find.text('20 km'), findsNothing);
+    await t.tap(find.byKey(const ValueKey('public-price-hint')));
+    await t.pumpAndSettle();
+    expect(find.text('20 km'), findsOneWidget);
+    expect(find.text('Lourd'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('booking hint: already open on a wide screen', (t) async {
+    await pump(
+      t,
+      PublicPriceHint(
+        locale: 'en',
+        loader: () async => PublicPriceTable.fromJson(serverTable()),
+      ),
+      size: const Size(1440, 900),
+    );
+    expect(find.text('A price idea: from \$52'), findsOneWidget);
+    expect(find.text('20 km'), findsOneWidget);
+    expect(find.text('Heavy'), findsOneWidget);
+  });
+
+  testWidgets('no booking hint without prices', (t) async {
+    await pump(t, PublicPriceHint(locale: 'fr', loader: () async => null));
+    expect(find.byKey(const ValueKey('public-price-hint')), findsNothing);
+  });
+
   testWidgets('the home teaser shows the lowest price and opens the prices', (
     t,
   ) async {

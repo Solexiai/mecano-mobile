@@ -28,6 +28,7 @@ import '../../services/booking/booking_api.dart';
 import '../../services/booking/booking_photos.dart';
 import '../../widgets/booking_load_summary.dart';
 import '../../widgets/photo_booking_item.dart';
+import '../../widgets/public_price_table_card.dart';
 import '../../services/booking/booking_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
@@ -1358,6 +1359,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               )
             : null,
       ),
+      // 2026-11-13 (propriétaire) : une idée des prix dès le premier écran,
+      // avant de remplir la demande. Rien si le tableau n'est pas chargé.
+      PublicPriceHint(locale: widget.locale),
       if (photo && (!_photoMode || _draft.items.isEmpty)) _photoItemAction(),
       if (DemoDataService.deliveryCategories.contains(_draft.data['category']))
         _note(
@@ -2197,6 +2201,13 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'Iniciar sesión y ver mi precio',
         ),
         () => _run(_login),
+      ),
+      // 2026-11-13 : sans compte, le visiteur voit au moins les prix
+      // approximatifs en attendant son prix exact.
+      PublicPriceTableCard(
+        locale: widget.locale,
+        wrap: (card) =>
+            Padding(padding: const EdgeInsets.only(top: 16), child: card),
       ),
     ] else ...[
       if (_review != null && _review!['status'] != 'ready') _reviewFeedback(),

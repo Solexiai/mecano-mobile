@@ -27,6 +27,17 @@ class HomeScreen extends StatelessWidget {
     child: Column(
       children: [
         _Hero(quote: () => _quote(context), driver: () => _driver(context)),
+        // 2026-11-13 (propriétaire) : le tableau des prix sur le chemin du
+        // client, dès l'accueil. Aucun espace vide s'il n'est pas chargé.
+        PublicPriceTableCard(
+          locale: locale,
+          wrap: (card) => ResponsivePadding(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 28, bottom: 8),
+              child: card,
+            ),
+          ),
+        ),
         _Categories(onQuote: (category) => _quote(context, category)),
         const _Steps(),
         const _Reassurance(),
