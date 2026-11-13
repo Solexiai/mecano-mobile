@@ -15,9 +15,13 @@ void main() {
     expect(equipmentLabel(const ['dolly', 'straps'], 'fr'), 'Équipement : diable, sangles');
     expect(
       helpAndEquipmentLine({'handlers': 1, 'equipment': []}, 'fr'),
-      '1 personne pour la manutention · Aucun équipement spécial',
+      '1 personne pour la manutention',
     );
-    expect(helpAndEquipmentLine({'handlers': null, 'equipment': null}, 'fr'), 'Aucun équipement spécial');
+    expect(
+      helpAndEquipmentLine({'handlers': 1, 'equipment': ['dolly']}, 'fr'),
+      '1 personne pour la manutention · Équipement : diable',
+    );
+    expect(helpAndEquipmentLine({'handlers': null, 'equipment': null}, 'fr'), '');
   });
 
   testWidgets(
@@ -33,12 +37,12 @@ void main() {
       // Folded under « Voir le détail du prix » since 2026-10-24.
       await tapBookingKeyIfShown(t, 'booking-price-details');
       expect(find.textContaining('Rez-de-chaussée'), findsNWidgets(2));
-      expect(find.text('Sans aide Movi-K'), findsNWidgets(2));
+      expect(find.text('Sans aide du chauffeur'), findsNWidgets(2));
       expect(find.textContaining('Accès à préciser'), findsNothing);
       expect(find.textContaining('à préciser'), findsNothing);
       expect(find.textContaining('null'), findsNothing);
       expect(
-        find.text('1 personne pour la manutention · Aucun équipement spécial'),
+        find.text('1 personne pour la manutention'),
         findsOneWidget,
       );
       await disposeBooking(t);

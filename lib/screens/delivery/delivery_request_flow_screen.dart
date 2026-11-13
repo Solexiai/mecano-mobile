@@ -209,7 +209,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
             'dimension_unit': 'cm',
             'weight_unit': 'kg',
             'approximate': true,
-            'upright': true,
+            'upright': false,
             'photos': <String>[],
           });
           for (final entry in [
@@ -923,9 +923,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       ),
       Text(
         tr(
-          'Chaque photo ajoutée est analysée automatiquement par OpenAI pour proposer la catégorie et la description. Vérifiez le résultat.',
-          'Each added photo is automatically analyzed by OpenAI to suggest the category and description. Check the result.',
-          'OpenAI analiza automáticamente cada foto añadida para sugerir la categoría y la descripción. Revisa el resultado.',
+          'Chaque photo est analysée automatiquement pour reconnaître l’article. Vérifiez le résultat.',
+          'Each photo is analyzed automatically to recognize the item. Check the result.',
+          'Cada foto se analiza automáticamente para reconocer el artículo. Revisa el resultado.',
         ),
         style: Theme.of(context).textTheme.bodySmall,
       ),
@@ -1053,7 +1053,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'dimension_unit': 'cm',
       'weight_unit': 'kg',
       'approximate': false,
-      'upright': true,
+      'upright': false,
       'photos': <String>[],
       if (_photoMode) 'identification_confirmed': false,
       if (_photoMode) 'special_handling': false,
@@ -1856,136 +1856,140 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 ),
               ],
             ),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            SizedBox(
+              width: 120,
+              child: DropdownButtonFormField<int>(
+                initialValue: (item['quantity'] as num).toInt(),
+                decoration: InputDecoration(
+                  labelText: tr('Quantité', 'Quantity', 'Cantidad'),
+                ),
+                items: List.generate(
+                  20,
+                  (i) => DropdownMenuItem(
+                    value: i + 1,
+                    child: Text('${i + 1}'),
+                  ),
+                ),
+                onChanged: (v) {
+                  item['quantity'] = v;
+                  _changed();
+                },
+              ),
+            ),
+            // 2026-11-13 : « pas de mesures à prendre ». Les mesures sont
+            // facultatives et repliées ; le panneau s'ouvre seul quand le
+            // client en a déjà saisi.
+            ExpansionTile(
+              key: ValueKey('item-details-${item['id']}'),
+              initiallyExpanded:
+                  item['approximate'] == true ||
+                  ['length', 'width', 'height', 'weight'].any(
+                    (field) => item[field] != null,
+                  ),
+              tilePadding: EdgeInsets.zero,
+              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+              title: Text(
+                tr(
+                  'Ajouter des détails (facultatif)',
+                  'Add details (optional)',
+                  'Añadir detalles (opcional)',
+                ),
+              ),
               children: [
-                SizedBox(
-                  width: 120,
-                  child: DropdownButtonFormField<int>(
-                    initialValue: (item['quantity'] as num).toInt(),
-                    decoration: InputDecoration(
-                      labelText: tr('Quantité', 'Quantity', 'Cantidad'),
-                    ),
-                    items: List.generate(
-                      20,
-                      (i) => DropdownMenuItem(
-                        value: i + 1,
-                        child: Text('${i + 1}'),
-                      ),
-                    ),
-                    onChanged: (v) {
-                      item['quantity'] = v;
-                      _changed();
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: 120,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: item['dimension_unit'] as String,
-                    decoration: InputDecoration(
-                      labelText: tr('Dimensions', 'Dimensions', 'Dimensiones'),
-                    ),
-                    items: ['cm', 'in']
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != item['dimension_unit']) {
-                        for (final key in ['length', 'width', 'height']) {
-                          if (item[key] != null) {
-                            item[key] =
-                                (item[key] as num) *
-                                (v == 'in' ? 1 / 2.54 : 2.54);
-                          }
-                        }
-                        item['dimension_unit'] = v;
-                        _changed();
-                      }
-                    },
-                  ),
-                ),
-                number('length', tr('Longueur', 'Length', 'Largo')),
-                number('width', tr('Largeur', 'Width', 'Ancho')),
-                number('height', tr('Hauteur', 'Height', 'Alto')),
-                SizedBox(
-                  width: 120,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tr('Unité de poids', 'Weight unit', 'Unidad de peso'),
-                      ),
-                      const SizedBox(height: 4),
-                      DropdownButtonFormField<String>(
-                        initialValue: item['weight_unit'] as String,
-
-                        items: ['kg', 'lb']
-                            .map(
-                              (v) => DropdownMenuItem(value: v, child: Text(v)),
-                            )
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: item['dimension_unit'] as String,
+                        decoration: InputDecoration(
+                          labelText: tr('Dimensions', 'Dimensions', 'Dimensiones'),
+                        ),
+                        items: ['cm', 'in']
+                            .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                             .toList(),
                         onChanged: (v) {
-                          if (v != item['weight_unit']) {
-                            if (item['weight'] != null) {
-                              item['weight'] =
-                                  (item['weight'] as num) *
-                                  (v == 'lb' ? 1 / 0.45359237 : 0.45359237);
+                          if (v != item['dimension_unit']) {
+                            for (final key in ['length', 'width', 'height']) {
+                              if (item[key] != null) {
+                                item[key] =
+                                    (item[key] as num) *
+                                    (v == 'in' ? 1 / 2.54 : 2.54);
+                              }
                             }
-                            item['weight_unit'] = v;
+                            item['dimension_unit'] = v;
                             _changed();
                           }
                         },
                       ),
-                    ],
-                  ),
+                    ),
+                    number('length', tr('Longueur', 'Length', 'Largo')),
+                    number('width', tr('Largeur', 'Width', 'Ancho')),
+                    number('height', tr('Hauteur', 'Height', 'Alto')),
+                    SizedBox(
+                      width: 120,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr('Unité de poids', 'Weight unit', 'Unidad de peso'),
+                          ),
+                          const SizedBox(height: 4),
+                          DropdownButtonFormField<String>(
+                            initialValue: item['weight_unit'] as String,
+
+                            items: ['kg', 'lb']
+                                .map(
+                                  (v) => DropdownMenuItem(value: v, child: Text(v)),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              if (v != item['weight_unit']) {
+                                if (item['weight'] != null) {
+                                  item['weight'] =
+                                      (item['weight'] as num) *
+                                      (v == 'lb' ? 1 / 0.45359237 : 0.45359237);
+                                }
+                                item['weight_unit'] = v;
+                                _changed();
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    number(
+                      'weight',
+                      tr('Poids / pièce', 'Weight / piece', 'Peso / pieza'),
+                    ),
+                  ],
                 ),
-                number(
-                  'weight',
-                  tr('Poids / pièce', 'Weight / piece', 'Peso / pieza'),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    tr(
+                      'Mesures approximatives',
+                      'Approximate measurements',
+                      'Medidas aproximadas',
+                    ),
+                  ),
+                  value: item['approximate'] as bool,
+                  onChanged: (v) {
+                    item['approximate'] = v;
+                    _changed();
+                  },
+                ),
+                Text(
+                  tr(
+                    'Une photo aide à vérifier l’objet, sans en mesurer les dimensions ou le poids.',
+                    'A photo helps review the item; it does not measure dimensions or weight.',
+                    'Una foto ayuda a revisar el objeto; no mide dimensiones ni peso.',
+                  ),
                 ),
               ],
             ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                tr(
-                  'Mesures approximatives',
-                  'Approximate measurements',
-                  'Medidas aproximadas',
-                ),
-              ),
-              value: item['approximate'] as bool,
-              onChanged: (v) {
-                item['approximate'] = v;
-                _changed();
-              },
-            ),
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                tr(
-                  'Doit rester debout',
-                  'Must remain upright',
-                  'Debe permanecer vertical',
-                ),
-              ),
-              value: item['upright'] as bool,
-              onChanged: (v) {
-                item['upright'] = v;
-                _changed();
-              },
-            ),
-            if (item['approximate'] == true ||
-                item['length'] == null ||
-                item['weight'] == null)
-              Text(
-                tr(
-                  'Une photo aide à vérifier l’objet, sans en mesurer les dimensions ou le poids.',
-                  'A photo helps review the item; it does not measure dimensions or weight.',
-                  'Una foto ayuda a revisar el objeto; no mide dimensiones ni peso.',
-                ),
-              ),
             Wrap(
               spacing: 8,
               children: (item['photos'] as List? ?? [])
@@ -2364,6 +2368,20 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         () => _step(2),
       ),
   ];
+  /// The driver carries the item inside at delivery, at no extra line.
+  bool get _insideDeliveryIncluded {
+    final dropoff = _draft.data['dropoff_access'];
+    return dropoff is Map && dropoff['help'] == true && dropoff['inside'] == true;
+  }
+
+  /// Whole minutes left on the price guarantee; null once expired.
+  int? get _quoteMinutesLeft {
+    final expires = _draft.quote?['expiresAtMillis'];
+    if (expires is! num || !_draft.quoteValid) return null;
+    final left = expires.toInt() - DateTime.now().millisecondsSinceEpoch;
+    return left <= 0 ? null : (left / 60000).ceil();
+  }
+
   /// The price in large type (screens 5 and 7).
   Widget _priceHero({bool compact = false}) {
     final quote = _draft.quote!;
@@ -2413,6 +2431,40 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFFD7E1F5)),
               ),
+              // 2026-11-13 : l'avantage principal, visible sous le prix.
+              if (_insideDeliveryIncluded)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    tr(
+                      'Livré à l’intérieur, compris',
+                      'Delivered inside, included',
+                      'Entrega en el interior, incluida',
+                    ),
+                    key: const ValueKey('booking-price-hero-inside'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              // 2026-11-13 : compte à rebours au lieu de « Valable jusqu'à …
+              // (UTC-05:00) ». L'horloge de l'écran le rafraîchit aux 30 s.
+              if (_quoteMinutesLeft case final minutes?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    tr(
+                      'Prix garanti encore $minutes min',
+                      'Price guaranteed for $minutes more min',
+                      'Precio garantizado $minutes min más',
+                    ),
+                    key: const ValueKey('booking-price-hero-countdown'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xFFD7E1F5)),
+                  ),
+                ),
               // The reason of a conditions supplement, always visible before
               // paying (Conditions spéciales, 2026-10-26).
               if (quote['breakdown'] is Map &&
@@ -2672,9 +2724,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         if (quote['assignmentPending'] == true)
           Text(
             tr(
-              'Chauffeur à affecter après le calcul du prix',
-              'Driver assignment follows the price calculation',
-              'El conductor se asigna después del cálculo del precio',
+              'Un chauffeur de votre région accepte après votre réservation',
+              'A driver in your area accepts after you book',
+              'Un conductor de tu zona acepta después de tu reserva',
             ),
           )
         else
@@ -2683,12 +2735,6 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           ),
         Text(
           '${tr('Distance routière', 'Road distance', 'Distancia por carretera')} : ${formatDistanceKm(quote['distanceKm'] is num ? quote['distanceKm'] as num : null, locale: widget.locale)}',
-        ),
-        _localizedTime(
-          DateTime.fromMillisecondsSinceEpoch(
-            (quote['expiresAtMillis'] as num).toInt(),
-          ).toIso8601String(),
-          prefix: tr('Valable jusqu’à', 'Valid until', 'Válido hasta'),
         ),
         const SizedBox(height: 8),
         _quoteLoadSummary(collapsible: false),

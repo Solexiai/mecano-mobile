@@ -52,8 +52,14 @@ String equipmentLabel(Object? equipment, String locale) {
   return '${_tr(locale, 'Équipement', 'Equipment', 'Equipo')} : ${names.join(', ')}';
 }
 
-/// One line for the summary: "1 personne pour la manutention · Aucun équipement spécial".
-String helpAndEquipmentLine(Map load, String locale) => [
-  handlersLabel(load['handlers'], locale),
-  equipmentLabel(load['equipment'], locale),
-].whereType<String>().join(' · ');
+/// One line for the summary: "1 personne pour la manutention", followed by
+/// " · Équipement : diable, sangles" only when equipment was asked for
+/// (2026-11-13: "Aucun équipement spécial" told the customer nothing).
+String helpAndEquipmentLine(Map load, String locale) {
+  final equipment = load['equipment'];
+  return [
+    handlersLabel(load['handlers'], locale),
+    if (equipment is List && equipment.isNotEmpty)
+      equipmentLabel(equipment, locale),
+  ].whereType<String>().join(' · ');
+}

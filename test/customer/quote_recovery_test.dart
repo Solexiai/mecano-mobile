@@ -145,7 +145,7 @@ void main() {
       expect(storage.saved!.quote!['customerTotal'], 123.45);
       // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
       await tapBookingKeyIfShown(t, 'booking-price-details');
-      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
+      expect(find.text('Un chauffeur de votre région accepte après votre réservation'), findsOneWidget);
       expect(t.takeException(), isNull);
       await disposeBooking(t);
     },

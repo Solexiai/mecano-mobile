@@ -17,8 +17,7 @@ bool isEmptyPhotoBookingItem(Map item) =>
     (item['handling_notes'] as String? ?? '').isEmpty &&
     item['identification_confirmed'] != true &&
     item['special_handling'] != true &&
-    item['approximate'] != true &&
-    item['upright'] != false;
+    item['approximate'] != true;
 
 /// Photo intake only: advisory estimates never fill actual measurements.
 ///
@@ -381,21 +380,6 @@ class _PhotoBookingItemState extends State<PhotoBookingItem> {
           value: item['approximate'] == true,
           onChanged: (v) {
             item['approximate'] = v == true;
-            widget.onChanged();
-          },
-        ),
-        CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(
-            tr(
-              'Doit rester debout',
-              'Must remain upright',
-              'Debe permanecer vertical',
-            ),
-          ),
-          value: item['upright'] == true,
-          onChanged: (v) {
-            item['upright'] = v == true;
             widget.onChanged();
           },
         ),

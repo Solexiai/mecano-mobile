@@ -201,8 +201,8 @@ void main() {
         ),
       );
       await t.pumpAndSettle();
-      expect(find.text('Sans aide Movi-K'), findsOneWidget);
-      expect(find.text('Avec aide Movi-K'), findsOneWidget);
+      expect(find.text('Sans aide du chauffeur'), findsOneWidget);
+      expect(find.text('Le chauffeur aide à décharger'), findsOneWidget);
       expect(find.text('Aide pour soulever sur place : Non'), findsOneWidget);
       await t.pumpWidget(const SizedBox());
     },

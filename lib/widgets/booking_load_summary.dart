@@ -126,14 +126,6 @@ class BookingLoadSummary extends StatelessWidget {
                       'Medidas aproximadas indicadas por el cliente',
                     ),
                   ),
-                if (i['upright'] == true)
-                  Text(
-                    tr(
-                      'Transport debout uniquement',
-                      'Upright transport only',
-                      'Transporte vertical únicamente',
-                    ),
-                  ),
                 Wrap(
                   spacing: 8,
                   children: (i['photos'] as List? ?? [])
@@ -166,22 +158,30 @@ class BookingLoadSummary extends StatelessWidget {
                 children: [
                   Text(accessSummary(a, locale)),
                   Text(
+                    // 2026-11-13 : en clair, pour le client comme pour le
+                    // chauffeur (avant : « Avec aide Movi-K »).
                     a['help'] == true
-                        ? tr(
-                            'Avec aide Movi-K',
-                            'With Movi-K help',
-                            'Con ayuda Movi-K',
-                          )
+                        ? (key == 'pickup'
+                              ? tr(
+                                  'Le chauffeur aide à charger',
+                                  'The driver helps load',
+                                  'El conductor ayuda a cargar',
+                                )
+                              : tr(
+                                  'Le chauffeur aide à décharger',
+                                  'The driver helps unload',
+                                  'El conductor ayuda a descargar',
+                                ))
                         : a['help'] == false
                         ? tr(
-                            'Sans aide Movi-K',
-                            'Without Movi-K help',
-                            'Sin ayuda Movi-K',
+                            'Sans aide du chauffeur',
+                            'Without driver help',
+                            'Sin ayuda del conductor',
                           )
                         : tr(
-                            'Aide Movi-K à préciser',
-                            'Movi-K help to specify',
-                            'Ayuda Movi-K por precisar',
+                            'Aide du chauffeur à préciser',
+                            'Driver help to specify',
+                            'Ayuda del conductor por precisar',
                           ),
                   ),
                   if (a['help'] == true)
@@ -230,7 +230,7 @@ class BookingLoadSummary extends StatelessWidget {
             );
           },
         ),
-      if (load['handlers'] != null || load['equipment'] != null)
+      if (helpAndEquipmentLine(load, locale).isNotEmpty)
         Text(helpAndEquipmentLine(load, locale)),
       if (load['timing_mode'] == 'immediate')
         Text(
