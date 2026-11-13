@@ -11,9 +11,11 @@ void main() {
     t,
   ) async {
     final d = testDraft();
-    for (final field in ['length', 'width', 'height', 'weight']) {
-      d.items.single[field] = null;
-    }
+    // The harness item is a non-nullable map: rebuild it without measurements.
+    d.items[0] = <String, dynamic>{
+      ...Map<String, dynamic>.from(d.items.single as Map),
+      for (final field in ['length', 'width', 'height', 'weight']) field: null,
+    };
     await pumpBooking(t, storage: MemoryBookingStorage(d), api: TestBookingApi());
     expect(find.text('Ajouter des détails (facultatif)'), findsOneWidget);
     expect(find.text('Longueur'), findsNothing);
