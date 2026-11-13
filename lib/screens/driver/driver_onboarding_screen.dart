@@ -14,6 +14,7 @@ import '../../backend/models/driver_profile_v2.dart';
 import '../../backend/models/driver_vehicle.dart';
 import '../../core/app_colors.dart';
 import '../../l10n/driver_onboarding_copy.dart';
+import '../../models/driver_document_slots.dart';
 import '../../models/enums.dart';
 import '../../providers/firebase_auth_provider.dart';
 import '../../providers/locale_provider.dart';
@@ -74,14 +75,15 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   Uint8List? _vehiclePlatePhotoBytes;
   String? _vehiclePlatePhotoName;
 
+  // Permis recto et verso ; plus de pièce d'identité (Daniel, 2026-11-12).
   Uint8List? _licenceBytes;
   String? _licenceName;
+  Uint8List? _licenceBackBytes;
+  String? _licenceBackName;
   Uint8List? _registrationBytes;
   String? _registrationName;
   Uint8List? _insuranceBytes;
   String? _insuranceName;
-  Uint8List? _identityBytes;
-  String? _identityName;
 
   bool _consentVerification = false;
   bool _agreedTerms = false;
@@ -652,7 +654,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
           ),
           const SizedBox(height: 24),
           _DocumentPickerRow(
-            label: t('driver_onboarding_upload_license'),
+            label: t('doc_slot_licence_front'),
             icon: Icons.badge_outlined,
             fileName: _licenceName,
             busy: _pickingDocument,
@@ -661,6 +663,20 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               onPicked: (bytes, name) => setState(() {
                 _licenceBytes = bytes;
                 _licenceName = name;
+              }),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _DocumentPickerRow(
+            label: t('doc_slot_licence_back'),
+            icon: Icons.flip_outlined,
+            fileName: _licenceBackName,
+            busy: _pickingDocument,
+            isRequired: true,
+            onPick: () => _pickImage(
+              onPicked: (bytes, name) => setState(() {
+                _licenceBackBytes = bytes;
+                _licenceBackName = name;
               }),
             ),
           ),
@@ -689,20 +705,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
               onPicked: (bytes, name) => setState(() {
                 _insuranceBytes = bytes;
                 _insuranceName = name;
-              }),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _DocumentPickerRow(
-            label: _copy('identity_document'),
-            icon: Icons.account_box_outlined,
-            fileName: _identityName,
-            busy: _pickingDocument,
-            isRequired: true,
-            onPick: () => _pickImage(
-              onPicked: (bytes, name) => setState(() {
-                _identityBytes = bytes;
-                _identityName = name;
               }),
             ),
           ),
@@ -785,9 +787,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
     if (step == 2) return _acceptedItemKeys.isNotEmpty;
     if (step == 3) {
       return _licenceBytes != null &&
+          _licenceBackBytes != null &&
           _registrationBytes != null &&
           _insuranceBytes != null &&
-          _identityBytes != null &&
           _consentVerification &&
           _agreedTerms;
     }
@@ -1017,8 +1019,15 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
 
     await upload(
       _licenceBytes!,
-      _licenceName ?? 'drivers_licence.jpg',
+      _licenceName ?? 'drivers_licence_front.jpg',
       DriverDocumentType.driversLicence,
+      storagePrefix: licenceFrontSlot.id,
+    );
+    await upload(
+      _licenceBackBytes!,
+      _licenceBackName ?? 'drivers_licence_back.jpg',
+      DriverDocumentType.driversLicence,
+      storagePrefix: licenceBackSlot.id,
     );
     await upload(
       _registrationBytes!,
@@ -1029,11 +1038,6 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       _insuranceBytes!,
       _insuranceName ?? 'insurance.jpg',
       DriverDocumentType.insurance,
-    );
-    await upload(
-      _identityBytes!,
-      _identityName ?? 'identity.jpg',
-      DriverDocumentType.identity,
     );
     await upload(
       _vehiclePhotoBytes!,

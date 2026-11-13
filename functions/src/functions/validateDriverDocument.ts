@@ -14,11 +14,10 @@ import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
 import { invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { DriverDocumentStatus, DriverDocumentStatuses } from "../lib/types";
+import { missingRequiredDocuments } from "../lib/driverDocuments";
 
-// Liste des types de documents obligatoires — utilisée pour recalculer
-// documents_all_valid. Doit rester synchronisée avec DriverDocumentType côté
-// Dart (lib/models/enums.dart).
-const REQUIRED_DOCUMENT_TYPES = ["drivers_licence", "vehicle_registration", "insurance", "identity"];
+// Documents obligatoires (permis recto/verso, immatriculation, assurance ;
+// plus de pièce d'identité depuis le 12 nov. 2026) : lib/driverDocuments.ts.
 
 export interface ValidateDriverDocumentRequest {
   documentId: string;
@@ -72,12 +71,8 @@ export const validateDriverDocument = onCall<ValidateDriverDocumentRequest>(asyn
       d.id === documentId ? { ...d.data(), status: newStatus } : d.data()
     );
 
-    const approvedTypes = new Set(
-      docs
-        .filter((d) => d.status === DriverDocumentStatuses.APPROVED)
-        .map((d) => d.type as string)
-    );
-    const allValid = REQUIRED_DOCUMENT_TYPES.every((t) => approvedTypes.has(t));
+    const allValid =
+      missingRequiredDocuments(docs, (d) => d.status === DriverDocumentStatuses.APPROVED).length === 0;
 
     tx.update(db.collection("driver_profiles").doc(doc.driver_id), {
       documents_all_valid: allValid,

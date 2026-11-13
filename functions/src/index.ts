@@ -13,6 +13,7 @@ export { reviewDriverVehicle } from './functions/reviewDriverVehicle';
 export { approveDriver } from "./functions/approveDriver";
 export { rejectDriver } from "./functions/rejectDriver";
 export { validateDriverDocument } from "./functions/validateDriverDocument";
+export { adminAddDriverDocument } from "./functions/adminAddDriverDocument";
 export { requestDriverDocuments } from "./functions/requestDriverDocuments";
 export { suspendDriver } from "./functions/suspendDriver";
 export { reactivateDriver } from "./functions/reactivateDriver";

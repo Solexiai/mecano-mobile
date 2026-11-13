@@ -29,6 +29,11 @@ class DriverDocument {
   final String? rejectionReason;
   final DateTime? expiresAt; // pour permis/assurance ayant une date d'expiration
 
+  /// Ajouté par un agent Movi-K (reçu par courriel), via
+  /// adminAddDriverDocument (2026-11-12). Lu seulement : jamais écrit par
+  /// l'app (les règles Firestore n'acceptent pas ce champ du chauffeur).
+  final bool addedByStaff;
+
   const DriverDocument({
     required this.id,
     required this.driverId,
@@ -40,6 +45,7 @@ class DriverDocument {
     this.reviewedByUserId,
     this.rejectionReason,
     this.expiresAt,
+    this.addedByStaff = false,
   });
 
   bool get isApproved => status == DriverDocumentStatus.approved;
@@ -78,6 +84,7 @@ class DriverDocument {
       reviewedByUserId: json['reviewed_by_user_id'] as String?,
       rejectionReason: json['rejection_reason'] as String?,
       expiresAt: parseFirestoreDate(json['expires_at']),
+      addedByStaff: json['source'] == 'staff',
     );
   }
 }

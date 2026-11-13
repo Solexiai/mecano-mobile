@@ -151,7 +151,7 @@ class ProviderProfileTab extends StatelessWidget {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.badge_outlined),
-                    title: Text(t('provider_profile_id_document')),
+                    title: Text(t('doc_type_drivers_licence')),
                     trailing: Icon(
                       profile?.status == DriverStatus.approved
                           ? Icons.check_circle
