@@ -429,6 +429,22 @@ final List<SeoPage> _corePages = [
     intros: {for (final l in seoLocales) l: AppStrings.t('driver_hero_sub', l)},
     sections: [
       SeoSection(
+        _l('Ce que vous gagnez', 'What you earn', 'Lo que ganas'),
+        _l(
+          'Environ 80 \$ à 120 \$ par livraison de 2 à 4 articles, et 100 % des pourboires. Chaque offre affiche votre paye avant que vous acceptiez. Stripe dépose votre paye dans votre compte bancaire.',
+          'About \$80 to \$120 per delivery of 2 to 4 items, and 100% of tips. Every offer shows your pay before you accept. Stripe deposits your pay into your bank account.',
+          'Unos 80 \$ a 120 \$ por entrega de 2 a 4 artículos, y el 100 % de las propinas. Cada oferta muestra tu pago antes de que aceptes. Stripe deposita tu pago en tu cuenta bancaria.',
+        ),
+      ),
+      SeoSection(
+        _l('Comment ça marche', 'How it works', 'Cómo funciona'),
+        _l(
+          '1. Créez votre compte. 2. Ajoutez votre véhicule et vos documents : permis de conduire recto verso, immatriculation, assurance et photos du véhicule. 3. Activez vos paiements avec Stripe. 4. Movi‑K approuve votre dossier, puis vous recevez des offres.',
+          '1. Create your account. 2. Add your vehicle and your documents: driver’s licence front and back, registration, insurance and photos of the vehicle. 3. Turn on your payments with Stripe. 4. Movi‑K approves your application, then you receive offers.',
+          '1. Crea tu cuenta. 2. Añade tu vehículo y tus documentos: licencia de conducir por ambos lados, matrícula, seguro y fotos del vehículo. 3. Activa tus pagos con Stripe. 4. Movi‑K aprueba tu expediente y luego recibes ofertas.',
+        ),
+      ),
+      SeoSection(
         _l('Horaire flexible', 'Flexible schedule', 'Horario flexible'),
         _l('Passez en ligne lorsque vous êtes disponible.', 'Go online when you are available.', 'Conéctate cuando estés disponible.'),
       ),
