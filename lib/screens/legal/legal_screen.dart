@@ -505,6 +505,18 @@ class _LegalScreenState extends State<LegalScreen> {
             ),
             (
               _tr(
+                fr: 'Photos de vos objets',
+                en: 'Photos of your items',
+                es: 'Fotos de sus objetos',
+              ),
+              _tr(
+                fr: "Les photos que vous ajoutez à une demande sont analysées automatiquement par notre fournisseur OpenAI pour reconnaître l'article, puis montrées au chauffeur pour qu'il juge si tout entre dans son véhicule.",
+                en: 'Photos you add to a request are analyzed automatically by our provider OpenAI to recognize the item, then shown to the driver so they can judge whether everything fits in their vehicle.',
+                es: 'Las fotos que añade a una solicitud son analizadas automáticamente por nuestro proveedor OpenAI para reconocer el artículo, y luego se muestran al conductor para que juzgue si todo cabe en su vehículo.',
+              ),
+            ),
+            (
+              _tr(
                 fr: 'Conservation et sécurité',
                 en: 'Retention and security',
                 es: 'Retención y seguridad',

@@ -3,7 +3,7 @@ Date : 2026-10-15. Branche feature/photo-assisted-booking-20261015, base 197855b
 État actuel au 16 octobre 2026 : service réel publié et contrôlé dans Chrome. Les préparations et limites historiques ci-dessous sont conservées; voir les mises à jour datées en fin de document.
 
 ## Parcours implémenté
-Le client connecté téléverse sa photo dans le stockage privé existant. Le bouton « Analyser la photo » précise qu'elle sera transmise à OpenAI. La callable analyzeBookingPhoto vérifie le propriétaire, le brouillon actif, l'objet, la référence exacte de photo, le consentement, le format JPEG et la limite de 5 Mo.
+Le client connecté téléverse sa photo dans le stockage privé existant. L'écran précise que chaque photo est analysée automatiquement ; le fournisseur (OpenAI) est nommé dans la politique de confidentialité (depuis le 13 novembre 2026, à la demande du propriétaire). La callable analyzeBookingPhoto vérifie le propriétaire, le brouillon actif, l'objet, la référence exacte de photo, le consentement, le format JPEG et la limite de 5 Mo.
 La réponse propose une catégorie du catalogue existant, une description courte et le signalement d'un objet spécial/incertain. Le client peut appliquer la suggestion, la corriger puis confirmer l'objet. Les poids/dimensions inconnus restent inconnus, les valeurs déjà saisies restent inchangées.
 Une suggestion n'autorise aucun devis, véhicule, paiement ou mission. Aucun montant n'est calculé par l'IA.
 L'IA ne reçoit ni compte client, ni adresse du formulaire, ni coordonnées, ni montant; uniquement la photo et une instruction fixe avec la langue. Une photo peut néanmoins contenir des données visibles en arrière-plan.

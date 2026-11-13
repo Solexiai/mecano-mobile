@@ -155,7 +155,7 @@ void main() {
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
       // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
       await tapBookingKeyIfShown(tester, 'booking-price-details');
-      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
+      expect(find.text('Un chauffeur de votre région accepte après votre réservation'), findsOneWidget);
       expect(find.textContaining('Véhicule recommandé'), findsNothing);
       expect(
         find.textContaining('La réservation et le paiement ne sont pas encore ouverts'),
@@ -204,7 +204,7 @@ void main() {
       expect(find.text('Total officiel, taxes comprises'), findsOneWidget);
       // The breakdown is folded under « Voir le détail du prix » (2026-10-24).
       await tapBookingKeyIfShown(tester, 'booking-price-details');
-      expect(find.text('Chauffeur à affecter après le calcul du prix'), findsOneWidget);
+      expect(find.text('Un chauffeur de votre région accepte après votre réservation'), findsOneWidget);
       await disposeBooking(tester);
     },
   );
