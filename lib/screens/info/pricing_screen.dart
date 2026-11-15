@@ -6,7 +6,6 @@ import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
 import '../../router/delivery_request_intent.dart';
 import '../../widgets/app_shell.dart';
-import '../../widgets/public_price_table_card.dart';
 import '../../widgets/section_title.dart';
 
 class PricingScreen extends StatelessWidget {
@@ -23,9 +22,9 @@ class PricingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
 
-    // What makes the price. No amount is written here by hand (owner decision
-    // 2026-10-26); since 2026-11-13 the approximate price table above comes
-    // from the live grid, and the exact price is shown in the request flow.
+    // What makes the price. No amounts here (owner decision 2026-10-26,
+    // confirmed 2026-11-15 when the public price table was removed): the
+    // exact price is shown in the request flow, from the live grid.
     final factors = [
       (
         Icons.route_outlined,
@@ -133,8 +132,6 @@ class PricingScreen extends StatelessWidget {
                   'Toma una foto, indica tus direcciones: ves el precio exacto, con impuestos y desglose, antes de confirmar.',
                 ),
               ),
-              const SizedBox(height: 24),
-              PublicPriceTableCard(locale: locale),
               const SizedBox(height: 28),
               Text(
                 tr('Ce qui fait le prix', 'What makes the price', 'Qué forma el precio'),
