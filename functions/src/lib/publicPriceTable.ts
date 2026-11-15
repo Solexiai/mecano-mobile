@@ -1,40 +1,43 @@
 // -----------------------------------------------------------------------------
-// Tableau de prix public (décision du propriétaire, 13 novembre 2026).
+// Tableau de prix public.
 //
-// Le visiteur sans compte voit des prix approximatifs avant de commencer une
+// Le visiteur sans compte voit un tableau de prix avant de commencer une
 // demande : une ligne par classe d'objet (léger, moyen, lourd, très lourd),
-// une colonne par distance. Les montants viennent de la grille ACTIVE et du
-// même calcul que le devis officiel, donc le tableau ne peut pas contredire
-// le prix réel. Seul le total client sort d'ici : jamais la commission ni la
-// part du chauffeur.
+// une colonne par distance.
 //
-// Hypothèses d'une ligne (celles du parcours simple) : un objet, sans
-// escaliers, un chauffeur, le client donne un coup de main, chargement et
-// déchargement compris.
+// DEPUIS LE 15 NOVEMBRE 2026 (décision du propriétaire) : les montants
+// affichés sont ceux de SA FICHE (OWNER_PUBLIC_PRICES_DOLLARS), et non plus un
+// calcul à partir de la grille active. La grille de tarifs n'a PAS été changée
+// en même temps : le devis officiel peut donc différer du tableau. Pour
+// changer un montant affiché, modifier la fiche ci-dessous ; publier une
+// nouvelle grille ne change plus ce tableau.
+//
+// Les exemples d'objets de chaque ligne viennent toujours de la grille active
+// (classe de chaque type d'objet). Seul le total client sort d'ici : jamais
+// la commission ni la part du chauffeur.
 // -----------------------------------------------------------------------------
 import { ITEM_CLASSES, PROPOSED_ITEM_CLASSES } from "./itemClassFees";
 import { PHOTO_CATEGORIES } from "./photoIntake";
-import { HandlingFlagsInput } from "./pricingEngine";
 import { ItemClass, PricingVersionDoc } from "./types";
 
 export const PUBLIC_PRICE_DISTANCES_KM: readonly number[] = [5, 10, 20, 40];
 
-/** Same estimate as the admin "Essayer un prix": 2 minutes per km + 10. */
-export function publicPriceDurationMinutes(distanceKm: number): number {
-  return Math.round(distanceKm * 2 + 10);
-}
+/**
+ * Fiche du propriétaire (15 novembre 2026), en dollars, taxes comprises, une
+ * valeur par distance de PUBLIC_PRICE_DISTANCES_KM. « Très lourd » = « lourd »
+ * + 5 $ (son choix le même jour).
+ */
+export const OWNER_PUBLIC_PRICES_DOLLARS: Readonly<Record<ItemClass, readonly number[]>> = {
+  light: [39, 49, 69, 109],
+  medium: [49, 59, 79, 119],
+  heavy: [69, 79, 100, 142],
+  very_heavy: [74, 84, 105, 147],
+};
 
-/** The simple booking flow: help at both ends, no stairs, one handler. */
-export const PUBLIC_PRICE_HANDLING: HandlingFlagsInput = Object.freeze({
-  needsLoading: true,
-  needsUnloading: true,
-  isHeavyItem: false,
-  isBulkyItem: false,
-  needsStairs: false,
-  noElevator: false,
-  needsSecondHandler: false,
-  needsSpecialEquipment: false,
-});
+/** The owner's displayed prices for one item class, in cents. */
+export function ownerPublicTotalsMinor(itemClass: ItemClass): number[] {
+  return OWNER_PUBLIC_PRICES_DOLLARS[itemClass].map((dollars) => Math.round(dollars * 100));
+}
 
 export interface PublicPriceRowPlan {
   item_class: ItemClass;

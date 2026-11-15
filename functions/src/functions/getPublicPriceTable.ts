@@ -1,72 +1,50 @@
 // -----------------------------------------------------------------------------
 // getPublicPriceTable — Cloud Function callable PUBLIQUE, LECTURE SEULE.
 //
-// Sert le tableau de prix approximatifs de la page Tarifs et le « à partir
-// de » de l'accueil (décision du propriétaire, 13 novembre 2026). Aucune
-// connexion requise, aucune donnée reçue du visiteur, rien d'écrit.
+// Sert le tableau de prix de la page Tarifs, de l'accueil et de la
+// réservation. Aucune connexion requise, aucune donnée reçue du visiteur,
+// rien d'écrit.
 //
-// Le calcul est celui du simulateur admin (quoteAmounts), donc celui du devis
-// officiel, avec la grille ACTIVE. La réponse ne contient que des totaux
-// client. Le résultat est gardé 10 minutes en mémoire : un visiteur ne coûte
-// aucune lecture de plus, et une nouvelle grille publiée apparaît au plus
-// tard 10 minutes après.
+// Depuis le 15 novembre 2026, les montants sont ceux de la fiche du
+// propriétaire (lib/publicPriceTable.ts), pas un calcul de la grille. La
+// grille active ne sert plus qu'à nommer les objets de chaque ligne. Le
+// résultat est gardé 10 minutes en mémoire.
 // -----------------------------------------------------------------------------
 import { onCall } from "firebase-functions/v2/https";
-import { admin, db } from "../lib/admin";
+import { db } from "../lib/admin";
 import { failedPrecondition } from "../lib/errors";
-import { missionFeePolicyFrom } from "../lib/missionFees";
-import { PILOT_PRICING_CATEGORIES } from "../lib/pricingConfigValidation";
 import {
   assemblePublicPriceTable,
-  PUBLIC_PRICE_DISTANCES_KM,
-  PUBLIC_PRICE_HANDLING,
-  publicPriceDurationMinutes,
-  PublicPriceRow,
+  ownerPublicTotalsMinor,
   publicPriceRows,
   PublicPriceTable,
 } from "../lib/publicPriceTable";
 import { PricingVersionDoc } from "../lib/types";
-import { quoteAmounts } from "./previewPricingConfiguration";
 
 const CACHE_MS = 10 * 60 * 1000;
 let cached: { table: PublicPriceTable; expiresAtMs: number } | null = null;
 
 const UNAVAILABLE = "Les prix ne sont pas disponibles pour le moment.";
 
-async function buildTable(): Promise<PublicPriceTable> {
-  const activeSnap = await db.collection("pricing_configs").doc("active").get();
-  const rawActiveId = activeSnap.data()?.active_pricing_version;
-  const activeId = typeof rawActiveId === "string" && rawActiveId.trim() ? rawActiveId.trim() : null;
-  if (!activeId) throw failedPrecondition(UNAVAILABLE);
-  const versionSnap = await db.collection("pricing_versions").doc(activeId).get();
-  const active = versionSnap.data() as PricingVersionDoc | undefined;
-  if (!active) throw failedPrecondition(UNAVAILABLE);
-
-  const feePolicy = missionFeePolicyFrom(active.mission_fee_policy, activeId);
-  const atMillis = admin.firestore.Timestamp.now().toMillis();
-  const rows: PublicPriceRow[] = [];
-  for (const plan of publicPriceRows(active)) {
-    const totals: number[] = [];
-    for (const distanceKm of PUBLIC_PRICE_DISTANCES_KM) {
-      const amounts = await quoteAmounts(
-        active,
-        PILOT_PRICING_CATEGORIES[0],
-        {
-          id: `${plan.item_class}_${distanceKm}`,
-          distanceKm,
-          durationMinutes: publicPriceDurationMinutes(distanceKm),
-          additionalStops: 0,
-          handling: { ...PUBLIC_PRICE_HANDLING },
-          items: [{ category: plan.categories[0], quantity: 1 }],
-        },
-        feePolicy,
-        atMillis
-      );
-      if (!amounts) throw failedPrecondition(UNAVAILABLE);
-      totals.push(amounts.customer_total_minor);
-    }
-    rows.push({ ...plan, totals_minor: totals });
+/** The active grid, only for the item types of each class; an unreadable
+ * grid falls back to the proposed classes rather than hiding the prices. */
+async function activeGrid(): Promise<Pick<PricingVersionDoc, "item_class_fees">> {
+  try {
+    const activeSnap = await db.collection("pricing_configs").doc("active").get();
+    const rawActiveId = activeSnap.data()?.active_pricing_version;
+    if (typeof rawActiveId !== "string" || !rawActiveId.trim()) return {};
+    const versionSnap = await db.collection("pricing_versions").doc(rawActiveId.trim()).get();
+    return (versionSnap.data() as PricingVersionDoc | undefined) ?? {};
+  } catch {
+    return {};
   }
+}
+
+async function buildTable(): Promise<PublicPriceTable> {
+  const rows = publicPriceRows(await activeGrid()).map((plan) => ({
+    ...plan,
+    totals_minor: ownerPublicTotalsMinor(plan.item_class),
+  }));
   const table = assemblePublicPriceTable(rows);
   if (!table) throw failedPrecondition(UNAVAILABLE);
   return table;
