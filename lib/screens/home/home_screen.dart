@@ -6,7 +6,6 @@ import '../../core/app_colors.dart';
 import '../../l10n/home_copy.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
-import '../../widgets/public_price_table_card.dart';
 import '../../widgets/section_title.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -27,17 +26,6 @@ class HomeScreen extends StatelessWidget {
     child: Column(
       children: [
         _Hero(quote: () => _quote(context), driver: () => _driver(context)),
-        // 2026-11-13 (propriétaire) : le tableau des prix sur le chemin du
-        // client, dès l'accueil. Aucun espace vide s'il n'est pas chargé.
-        PublicPriceTableCard(
-          locale: locale,
-          wrap: (card) => ResponsivePadding(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 28, bottom: 8),
-              child: card,
-            ),
-          ),
-        ),
         _Categories(onQuote: (category) => _quote(context, category)),
         const _Steps(),
         const _Reassurance(),
@@ -370,12 +358,6 @@ class _HeroCopy extends StatelessWidget {
               child: Text(h('driver_link')),
             ),
           ],
-        ),
-        // 2026-11-13 : un prix visible dès l'accueil, tiré de la grille
-        // active ; rien ne s'affiche si le tableau ne peut pas être chargé.
-        PublicPriceFrom(
-          locale: locale,
-          onSeePrices: () => context.go('/$locale/tarifs'),
         ),
       ],
     );
