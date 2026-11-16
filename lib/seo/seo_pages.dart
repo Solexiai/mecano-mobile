@@ -373,7 +373,7 @@ final List<SeoPage> _corePages = [
       'Entrega de muebles y electrodomésticos en Granby | Movi-K',
     ),
     descriptions: _l(
-      'Un divan, un réfrigérateur ou des boîtes à faire livrer à Granby ou dans les environs ? Prenez une photo, voyez le prix exact et réservez avec un chauffeur de la région.',
+      'Un divan, un réfrigérateur, des boîtes ou un petit déménagement à Granby et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur de la région.',
       'A sofa, a refrigerator or boxes to deliver in or around Granby? Snap a photo, see the exact price and book with a local driver.',
       '¿Un sofá, un refrigerador o cajas para entregar en Granby o alrededores? Toma una foto, ve el precio exacto y reserva con un conductor local.',
     ),
@@ -419,9 +419,9 @@ final List<SeoPage> _corePages = [
       'Hazte conductor de entregas con tu camioneta o camión | Movi-K',
     ),
     descriptions: _l(
-      'Vous avez une camionnette, un fourgon, un camion cube ou une remorque ? Livrez avec Movi-K quand vous êtes disponible, à la mission, dans votre zone.',
-      'Have a pickup, cargo van, box truck or trailer? Deliver with Movi-K when you are available, per mission, in your area.',
-      '¿Tienes una camioneta, un furgón, un camión caja o un remolque? Entrega con Movi-K cuando estés disponible, por misión, en tu zona.',
+      'Rentabilisez votre pickup, fourgon, camion cube ou remorque : livrez avec Movi-K quand vous êtes disponible, payé à la mission, dans votre zone. Inscription en ligne.',
+      'Put your pickup, cargo van, box truck or trailer to work: deliver with Movi-K when you are available, paid per mission, in your area. Sign up online.',
+      'Saca partido a tu camioneta, furgón, camión caja o remolque: entrega con Movi-K cuando estés disponible, con pago por misión, en tu zona. Regístrate en línea.',
     ),
     headings: {
       for (final l in seoLocales) l: AppStrings.t('driver_hero_headline', l),

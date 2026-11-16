@@ -298,6 +298,78 @@
       "destination": "/seo/es/transporte/compras-en-tienda.html"
     },
     {
+      "source": "/fr/transport/petit-demenagement",
+      "destination": "/seo/fr/transport/petit-demenagement.html"
+    },
+    {
+      "source": "/en/transport/small-move",
+      "destination": "/seo/en/transport/small-move.html"
+    },
+    {
+      "source": "/es/transporte/mudanza-pequena",
+      "destination": "/seo/es/transporte/mudanza-pequena.html"
+    },
+    {
+      "source": "/fr/transport/prix-livraison-meuble",
+      "destination": "/seo/fr/transport/prix-livraison-meuble.html"
+    },
+    {
+      "source": "/en/transport/furniture-delivery-cost",
+      "destination": "/seo/en/transport/furniture-delivery-cost.html"
+    },
+    {
+      "source": "/es/transporte/precio-entrega-muebles",
+      "destination": "/seo/es/transporte/precio-entrega-muebles.html"
+    },
+    {
+      "source": "/fr/transport/livraison-ikea",
+      "destination": "/seo/fr/transport/livraison-ikea.html"
+    },
+    {
+      "source": "/en/transport/ikea-delivery",
+      "destination": "/seo/en/transport/ikea-delivery.html"
+    },
+    {
+      "source": "/es/transporte/entrega-ikea",
+      "destination": "/seo/es/transporte/entrega-ikea.html"
+    },
+    {
+      "source": "/fr/transport/livraison-costco",
+      "destination": "/seo/fr/transport/livraison-costco.html"
+    },
+    {
+      "source": "/en/transport/costco-delivery",
+      "destination": "/seo/en/transport/costco-delivery.html"
+    },
+    {
+      "source": "/es/transporte/entrega-costco",
+      "destination": "/seo/es/transporte/entrega-costco.html"
+    },
+    {
+      "source": "/fr/transport/livraison-canadian-tire",
+      "destination": "/seo/fr/transport/livraison-canadian-tire.html"
+    },
+    {
+      "source": "/en/transport/canadian-tire-delivery",
+      "destination": "/seo/en/transport/canadian-tire-delivery.html"
+    },
+    {
+      "source": "/es/transporte/entrega-canadian-tire",
+      "destination": "/seo/es/transporte/entrega-canadian-tire.html"
+    },
+    {
+      "source": "/fr/transport/livraison-quincaillerie",
+      "destination": "/seo/fr/transport/livraison-quincaillerie.html"
+    },
+    {
+      "source": "/en/transport/hardware-store-delivery",
+      "destination": "/seo/en/transport/hardware-store-delivery.html"
+    },
+    {
+      "source": "/es/transporte/entrega-ferreteria",
+      "destination": "/seo/es/transporte/entrega-ferreteria.html"
+    },
+    {
       "source": "/fr/villes/bromont",
       "destination": "/seo/fr/villes/bromont.html"
     },

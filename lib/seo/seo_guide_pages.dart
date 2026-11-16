@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // Pages par objet et par ville (Daniel, 11 nov. 2026 : « fais déborder mon
-// référencement »). Chaque page a un contenu propre (ce qu’on transporte,
+// référencement »), puis petit déménagement, prix et enseignes (16 nov.). Chaque page a un contenu propre (ce qu’on transporte,
 // comment le préparer, secteurs voisins) : pas de pages copiées où seul le
 // nom change, que Google traite comme des pages satellites.
 // Servies par SeoGuideScreen dans l’app et par tool/build_seo_pages.dart pour
@@ -70,9 +70,9 @@ final _cityAreaHeading = _l(
     );
 
 final _cityWhat = _l(
-      'Meubles, électroménagers, matelas, téléviseurs, souffleuses et tondeuses, BBQ, matériaux de construction, achats en magasin ou sur Marketplace. Prenez une photo : on reconnaît l’objet pour vous.',
-      'Furniture, appliances, mattresses, TVs, snow blowers and mowers, BBQs, construction materials, store or Marketplace purchases. Snap a photo and we recognize the item for you.',
-      'Muebles, electrodomésticos, colchones, televisores, quitanieves y cortacéspedes, parrillas, materiales de construcción, compras en tienda o en Marketplace. Toma una foto y reconocemos el objeto por ti.',
+      'Meubles, électroménagers, matelas, téléviseurs, souffleuses et tondeuses, BBQ, matériaux de construction, achats en magasin ou sur Marketplace, petits déménagements de quelques meubles. Prenez une photo : on reconnaît l’objet pour vous.',
+      'Furniture, appliances, mattresses, TVs, snow blowers and mowers, BBQs, construction materials, store or Marketplace purchases, small moves of a few pieces of furniture. Snap a photo and we recognize the item for you.',
+      'Muebles, electrodomésticos, colchones, televisores, quitanieves y cortacéspedes, parrillas, materiales de construcción, compras en tienda o en Marketplace, mudanzas pequeñas de unos pocos muebles. Toma una foto y reconocemos el objeto por ti.',
     );
 
 
@@ -600,9 +600,9 @@ final List<SeoPage> seoObjectPages = [
       'Entrega de compras de Marketplace y Kijiji | Movi-K',
     ),
     descriptions: _l(
-      'Vous avez trouvé un meuble ou un électroménager sur Marketplace mais pas de camion ? Prenez une photo, voyez le prix exact et un chauffeur va le chercher.',
-      'Found furniture or an appliance on Marketplace but have no truck? Snap a photo of the item, see the exact price and a driver picks it up for you.',
-      '¿Encontraste un mueble o un electrodoméstico en Marketplace pero no tienes camioneta? Toma una foto, ve el precio exacto y un conductor lo recoge.',
+      'Un meuble ou un électroménager trouvé sur Marketplace ou Kijiji, mais pas de camion ? Prenez une photo, voyez le prix exact et un chauffeur va le chercher chez le vendeur.',
+      'Found furniture or an appliance on Marketplace or Kijiji but have no truck? Snap a photo, see the exact price and a driver picks it up at the seller’s.',
+      '¿Encontraste un mueble o un electrodoméstico en Marketplace o Kijiji pero no tienes camioneta? Toma una foto, ve el precio exacto y un conductor lo recoge.',
     ),
     headings: _l(
       'Livraison de vos achats Marketplace',
@@ -677,6 +677,323 @@ final List<SeoPage> seoObjectPages = [
     ],
   ),
 
+  // ---------------------------------------------------------------------------
+  // Phrases que les gens tapent (Daniel, 16 nov. 2026 : « arrange-moi ça pour
+  // que ça fasse une fusée ») : petit déménagement, prix d’une livraison et
+  // achats par enseigne. Aucun montant de tarif ici : seul le dépôt de 25 $
+  // est un chiffre public. Chaque page d’enseigne dit « non affilié ».
+  // ---------------------------------------------------------------------------
+
+  SeoPage(
+    id: 'object_small_move',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/petit-demenagement', '/en/transport/small-move', '/es/transporte/mudanza-pequena'),
+    labels: _l(
+      'Petit déménagement',
+      'Small move',
+      'Mudanza pequeña',
+    ),
+    titles: _l(
+      'Petit déménagement : quelques meubles, un prix fixe | Movi-K',
+      'Small move: a few pieces of furniture, one fixed price | Movi-K',
+      'Mudanza pequeña: unos muebles, un precio fijo | Movi-K',
+    ),
+    descriptions: _l(
+      'Un lit, un divan et quelques boîtes à déménager ? Pas de tarif à l’heure ni de minimum d’heures : prenez une photo, voyez le prix exact et un chauffeur avec camion s’en charge.',
+      'A bed, a sofa and a few boxes to move? No hourly rate and no minimum hours: snap a photo, see the exact price and a driver with a truck takes care of it.',
+      '¿Una cama, un sofá y unas cajas que mudar? Sin tarifa por hora ni mínimo de horas: toma una foto, ve el precio exacto y un conductor con camioneta se encarga.',
+    ),
+    headings: _l(
+      'Petit déménagement, sans louer de camion',
+      'Small moves, without renting a truck',
+      'Mudanzas pequeñas, sin alquilar un camión',
+    ),
+    intros: _l(
+      'Une chambre à vider, un premier appartement, un proche qui part en résidence : pour quelques meubles et des boîtes, pas besoin d’une équipe de déménageurs ni d’un camion loué pour la journée. Un chauffeur de la région s’occupe du transport.',
+      'A room to clear out, a first apartment, a relative moving into a residence: for a few pieces of furniture and some boxes, you don’t need a moving crew or a truck rented for the day. A local driver handles the transport.',
+      'Un cuarto que vaciar, un primer apartamento, un familiar que se muda a una residencia: para unos muebles y unas cajas no hace falta un equipo de mudanza ni un camión alquilado por un día. Un conductor de la zona se encarga del transporte.',
+    ),
+    sections: [
+      SeoSection(_objectWhatHeading, _l(
+      'Le contenu d’une chambre ou d’un petit logement : lit et matelas, divan, commode, table et chaises, électroménagers, téléviseur, boîtes et bacs. Ajoutez tous vos objets dans la même demande : le chauffeur voit vos photos et confirme que tout entre dans son véhicule. Pour une maison complète, une entreprise de déménagement reste le bon choix.',
+      'The contents of a bedroom or a small home: bed and mattress, sofa, dresser, table and chairs, appliances, TV, boxes and bins. Add all your items to the same request: the driver sees your photos and confirms everything fits in their vehicle. For a whole house, a moving company is still the right choice.',
+      'El contenido de un cuarto o de una vivienda pequeña: cama y colchón, sofá, cómoda, mesa y sillas, electrodomésticos, televisor, cajas y contenedores. Añade todos tus objetos en la misma solicitud: el conductor ve tus fotos y confirma que todo cabe en su vehículo. Para una casa completa, una empresa de mudanzas sigue siendo la mejor opción.',
+    )),
+      SeoSection(_objectPrepareHeading, _l(
+      'Fermez et identifiez vos boîtes, videz les tiroirs, démontez le lit et la table si vous le pouvez et protégez les matelas avec une housse. Regroupez tout près de la sortie. Besoin de bras ? Demandez l’aide au chargement ou un 2e déménageur dans votre demande.',
+      'Close and label your boxes, empty the drawers, take the bed and the table apart if you can and protect mattresses with a cover. Gather everything near the exit. Need extra hands? Ask for loading help or a second mover in your request.',
+      'Cierra y rotula tus cajas, vacía los cajones, desarma la cama y la mesa si puedes y protege los colchones con una funda. Agrupa todo cerca de la salida. ¿Necesitas ayuda? Pide ayuda con la carga o un segundo mozo en tu solicitud.',
+    )),
+      SeoSection(_l(
+      'Pas de tarif à l’heure',
+      'No hourly rate',
+      'Sin tarifa por hora',
+    ), _l(
+      'Vous ne payez pas à l’heure et il n’y a pas de minimum d’heures : le prix est calculé pour votre trajet et vos objets, et celui que vous acceptez est figé.',
+      'You don’t pay by the hour and there is no minimum number of hours: the price is calculated for your route and your items, and the one you accept is locked.',
+      'No pagas por hora ni hay un mínimo de horas: el precio se calcula para tu trayecto y tus objetos, y el que aceptas queda fijado.',
+    )),
+      _objectAccess,
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
+  SeoPage(
+    id: 'object_price_guide',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/prix-livraison-meuble', '/en/transport/furniture-delivery-cost', '/es/transporte/precio-entrega-muebles'),
+    labels: _l(
+      'Prix d’une livraison',
+      'Delivery cost',
+      'Precio de una entrega',
+    ),
+    titles: _l(
+      'Combien coûte la livraison d’un meuble ou d’un frigo ? | Movi-K',
+      'How much does furniture or fridge delivery cost? | Movi-K',
+      '¿Cuánto cuesta entregar un mueble o un refrigerador? | Movi-K',
+    ),
+    descriptions: _l(
+      'Ce qui fait le prix d’une livraison de meuble ou d’électroménager : trajet, poids, escaliers, aide. Pas de tarif à l’heure : votre prix exact s’affiche avant de réserver.',
+      'What makes up the price of a furniture or appliance delivery: route, weight, stairs, help. No hourly rate: your exact price is shown before you book.',
+      'Qué determina el precio de una entrega de muebles o electrodomésticos: trayecto, peso, escaleras, ayuda. Sin tarifa por hora: tu precio exacto se muestra antes de reservar.',
+    ),
+    headings: _l(
+      'Combien coûte une livraison de meuble ou d’électroménager ?',
+      'How much does furniture or appliance delivery cost?',
+      '¿Cuánto cuesta una entrega de muebles o electrodomésticos?',
+    ),
+    intros: _l(
+      'La réponse honnête : ça dépend de votre trajet et de vos objets, et vous n’avez pas à deviner. Avec une photo et vos adresses, vous obtenez votre prix exact, taxes incluses, avant de décider.',
+      'The honest answer: it depends on your route and your items, and you don’t have to guess. With a photo and your addresses, you get your exact price, taxes included, before you decide.',
+      'La respuesta honesta: depende de tu trayecto y de tus objetos, y no tienes que adivinar. Con una foto y tus direcciones obtienes tu precio exacto, con impuestos, antes de decidir.',
+    ),
+    sections: [
+      SeoSection(_l(
+      'Ce qui fait le prix',
+      'What makes up the price',
+      'Qué determina el precio',
+    ), _l(
+      'Quatre choses : la distance et la durée du trajet, le type d’objet (un supplément de manutention peut s’ajouter pour un objet lourd comme un réfrigérateur ou un divan), les options que vous demandez (aide au chargement, escaliers, 2e déménageur) et les frais de service avec la TPS et la TVQ, affichés dans le détail.',
+      'Four things: the distance and time of the route, the type of item (a handling supplement may apply to a heavy item such as a refrigerator or a sofa), the options you ask for (loading help, stairs, a second mover) and the service fee with GST and QST, shown in the breakdown.',
+      'Cuatro cosas: la distancia y la duración del trayecto, el tipo de objeto (puede añadirse un suplemento de manipulación para un objeto pesado como un refrigerador o un sofá), las opciones que pides (ayuda con la carga, escaleras, un segundo mozo) y el cargo de servicio con la TPS y la TVQ, que se muestran en el desglose.',
+    )),
+      SeoSection(_l(
+      'À l’heure ou à prix fixe ?',
+      'Hourly or fixed price?',
+      '¿Por hora o a precio fijo?',
+    ), _l(
+      'Bien des transporteurs facturent à l’heure, avec un minimum d’heures et le carburant en plus : on connaît le total une fois le travail fini. Avec Movi-K, le prix est calculé d’avance pour votre trajet et vos objets, et celui que vous acceptez est figé. Par mauvais temps, un supplément peut s’ajouter : il est indiqué avant que vous confirmiez.',
+      'Many carriers charge by the hour, with a minimum number of hours plus fuel: you know the total once the job is done. With Movi-K, the price is calculated ahead for your route and your items, and the one you accept is locked. In bad weather, a supplement may be added: it is shown before you confirm.',
+      'Muchos transportistas cobran por hora, con un mínimo de horas y el combustible aparte: el total se conoce al terminar el trabajo. Con Movi-K, el precio se calcula por adelantado para tu trayecto y tus objetos, y el que aceptas queda fijado. Con mal tiempo puede añadirse un suplemento: se indica antes de confirmar.',
+    )),
+      SeoSection(_l(
+      'Payer seulement ce qu’il faut',
+      'Pay only for what you need',
+      'Paga solo lo necesario',
+    ), _l(
+      'L’aide au chargement, les escaliers et le 2e déménageur ne s’ajoutent au prix que si vous les demandez : choisissez seulement ce dont vous avez besoin. Plusieurs objets ? Mettez-les dans la même demande : un seul chauffeur, un seul trajet.',
+      'Loading help, stairs and a second mover are added to the price only if you ask for them: choose only what you need. Several items? Put them in the same request: one driver, one trip.',
+      'La ayuda con la carga, las escaleras y un segundo mozo solo se suman al precio si los pides: elige solo lo que necesitas. ¿Varios objetos? Ponlos en la misma solicitud: un solo conductor, un solo trayecto.',
+    )),
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
+  SeoPage(
+    id: 'object_ikea',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/livraison-ikea', '/en/transport/ikea-delivery', '/es/transporte/entrega-ikea'),
+    labels: _l(
+      'Achats IKEA',
+      'IKEA purchases',
+      'Compras en IKEA',
+    ),
+    titles: _l(
+      'Livraison de vos achats IKEA par un chauffeur local | Movi-K',
+      'Delivery for your IKEA purchases by a local driver | Movi-K',
+      'Entrega de tus compras de IKEA con un conductor local | Movi-K',
+    ),
+    descriptions: _l(
+      'Vos boîtes IKEA ne rentrent pas dans l’auto ? Un chauffeur indépendant passe au magasin de Montréal, Boucherville ou Québec et les livre chez vous. Prix exact avant de réserver.',
+      'Your IKEA boxes won’t fit in the car? An independent driver stops by the Montréal, Boucherville or Québec City store and delivers them to your home. Exact price before you book.',
+      '¿Tus cajas de IKEA no caben en el auto? Un conductor independiente pasa por la tienda de Montreal, Boucherville o Quebec y las lleva a tu casa. Precio exacto antes de reservar.',
+    ),
+    headings: _l(
+      'Livraison de vos achats IKEA',
+      'Delivery for your IKEA purchases',
+      'Entrega de tus compras de IKEA',
+    ),
+    intros: _l(
+      'Une armoire en boîtes de plus de deux mètres, un matelas roulé, une cuisine complète sur un chariot : le stationnement d’IKEA est rempli de gens qui se demandent comment tout ramener. Un chauffeur avec camion le fait pour vous.',
+      'A wardrobe in boxes over two metres long, a rolled mattress, a full kitchen on a cart: the IKEA parking lot is full of people wondering how to get it all home. A driver with a truck does it for you.',
+      'Un armario en cajas de más de dos metros, un colchón enrollado, una cocina completa en un carrito: el estacionamiento de IKEA está lleno de gente que se pregunta cómo llevarlo todo a casa. Un conductor con camioneta lo hace por ti.',
+    ),
+    sections: [
+      SeoSection(_objectWhatHeading, _l(
+      'Meubles en boîtes plates, armoires, lits et matelas, divans, bureaux, étagères, cuisines et comptoirs achetés chez IKEA, en magasin ou préparés pour la cueillette. Movi-K est un service indépendant, non affilié à IKEA : nous transportons vos achats ; le montage n’est pas inclus.',
+      'Flat-pack furniture, wardrobes, beds and mattresses, sofas, desks, shelving, kitchens and countertops bought at IKEA, in store or prepared for pickup. Movi-K is an independent service, not affiliated with IKEA: we transport your purchases; assembly is not included.',
+      'Muebles en caja plana, armarios, camas y colchones, sofás, escritorios, estanterías, cocinas y encimeras comprados en IKEA, en tienda o preparados para recoger. Movi-K es un servicio independiente, sin afiliación con IKEA: transportamos tus compras; el montaje no está incluido.',
+    )),
+      SeoSection(_objectPrepareHeading, _l(
+      'Payez vos articles et notez votre numéro de commande. Donnez l’adresse du magasin comme adresse de ramassage et précisez si le chauffeur vous rejoint à la sortie des caisses ou au comptoir de cueillette. Comptez les boîtes : un meuble IKEA en compte souvent plusieurs, et le chauffeur doit toutes les voir sur votre photo ou dans votre description.',
+      'Pay for your items and note your order number. Enter the store address as the pickup address and say whether the driver meets you past the checkouts or at the pickup counter. Count the boxes: one IKEA piece often comes in several, and the driver needs to see them all in your photo or your description.',
+      'Paga tus artículos y anota tu número de pedido. Indica la dirección de la tienda como dirección de recogida y precisa si el conductor te encuentra a la salida de las cajas o en el mostrador de recogida. Cuenta las cajas: un mueble de IKEA suele venir en varias, y el conductor debe verlas todas en tu foto o en tu descripción.',
+    )),
+      SeoSection(_l(
+      'Loin d’un magasin IKEA ?',
+      'Far from an IKEA store?',
+      '¿Lejos de una tienda IKEA?',
+    ), _l(
+      'Granby, Sherbrooke, Drummondville ou ailleurs : il n’y a pas de limite de distance. Votre demande est envoyée aux chauffeurs proches du magasin, et le prix du trajet complet s’affiche avant que vous confirmiez.',
+      'Granby, Sherbrooke, Drummondville or elsewhere: there is no distance limit. Your request goes to drivers near the store, and the price for the whole trip is shown before you confirm.',
+      'Granby, Sherbrooke, Drummondville u otro lugar: no hay límite de distancia. Tu solicitud se envía a los conductores cerca de la tienda, y el precio del trayecto completo se muestra antes de confirmar.',
+    )),
+      _objectAccess,
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
+  SeoPage(
+    id: 'object_costco',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/livraison-costco', '/en/transport/costco-delivery', '/es/transporte/entrega-costco'),
+    labels: _l(
+      'Achats Costco',
+      'Costco purchases',
+      'Compras en Costco',
+    ),
+    titles: _l(
+      'Livraison de vos gros achats Costco à domicile | Movi-K',
+      'Home delivery for your large Costco purchases | Movi-K',
+      'Entrega a domicilio de tus compras grandes de Costco | Movi-K',
+    ),
+    descriptions: _l(
+      'Téléviseur, ensemble de patio, matelas ou cabanon acheté chez Costco et trop gros pour l’auto ? Un chauffeur indépendant le prend à l’entrepôt et le livre. Prix exact avant de réserver.',
+      'A TV, patio set, mattress or shed bought at Costco that’s too big for the car? An independent driver picks it up at the warehouse and delivers it. Exact price before you book.',
+      '¿Un televisor, un juego de patio, un colchón o un cobertizo de Costco que no cabe en el auto? Un conductor independiente lo recoge en el almacén y lo entrega en tu casa.',
+    ),
+    headings: _l(
+      'Livraison de vos achats Costco',
+      'Delivery for your Costco purchases',
+      'Entrega de tus compras de Costco',
+    ),
+    intros: _l(
+      'On entre chez Costco pour du papier essuie-tout et on ressort avec un téléviseur de 85 pouces ou un ensemble de patio. Si la boîte dépasse du coffre, un chauffeur avec camion la rapporte chez vous.',
+      'You walk into Costco for paper towels and walk out with an 85-inch TV or a patio set. If the box sticks out of the trunk, a driver with a truck brings it home for you.',
+      'Entras a Costco por toallas de papel y sales con un televisor de 85 pulgadas o un juego de patio. Si la caja no cabe en el maletero, un conductor con camioneta la lleva a tu casa.',
+    ),
+    sections: [
+      SeoSection(_objectWhatHeading, _l(
+      'Téléviseurs grand format, matelas, meubles, ensembles de patio, BBQ, cabanons et abris en boîte, modules de jeux, pneus, électroménagers et grosses commandes pour un commerce ou un événement. Movi-K est un service indépendant, non affilié à Costco, et ne remplace pas la livraison d’épicerie.',
+      'Large TVs, mattresses, furniture, patio sets, BBQs, boxed sheds and shelters, play sets, tires, appliances and big orders for a business or an event. Movi-K is an independent service, not affiliated with Costco, and does not replace grocery delivery.',
+      'Televisores grandes, colchones, muebles, juegos de patio, parrillas, cobertizos y toldos en caja, juegos infantiles, neumáticos, electrodomésticos y pedidos grandes para un negocio o un evento. Movi-K es un servicio independiente, sin afiliación con Costco, y no sustituye la entrega de comestibles.',
+    )),
+      SeoSection(_objectPrepareHeading, _l(
+      'Passez à la caisse avant l’arrivée du chauffeur et gardez votre facture : elle est vérifiée à la sortie de l’entrepôt. Attendez-le avec votre chariot près de la sortie ou dans le stationnement, et indiquez dans la description où vous trouver. Le chauffeur ne magasine pas à votre place : il transporte ce que vous avez déjà payé.',
+      'Check out before the driver arrives and keep your receipt: it is checked at the warehouse exit. Wait with your cart near the exit or in the parking lot, and say in the description where to find you. The driver does not shop for you: they transport what you have already paid for.',
+      'Paga en la caja antes de que llegue el conductor y conserva tu factura: la revisan a la salida del almacén. Espéralo con tu carrito cerca de la salida o en el estacionamiento, e indica en la descripción dónde encontrarte. El conductor no compra por ti: transporta lo que ya pagaste.',
+    )),
+      _objectAccess,
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
+  SeoPage(
+    id: 'object_canadian_tire',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/livraison-canadian-tire', '/en/transport/canadian-tire-delivery', '/es/transporte/entrega-canadian-tire'),
+    labels: _l(
+      'Achats Canadian Tire',
+      'Canadian Tire purchases',
+      'Compras en Canadian Tire',
+    ),
+    titles: _l(
+      'Livraison de vos gros achats Canadian Tire | Movi-K',
+      'Delivery for your large Canadian Tire purchases | Movi-K',
+      'Entrega de tus compras grandes de Canadian Tire | Movi-K',
+    ),
+    descriptions: _l(
+      'Souffleuse, BBQ, cabanon, vélo ou jeu de pneus acheté chez Canadian Tire ? Un chauffeur indépendant avec camion passe au magasin et le livre chez vous. Prix exact avant de réserver.',
+      'A snow blower, BBQ, shed, bike or set of tires bought at Canadian Tire? An independent driver with a truck stops by the store and delivers it to your home. Exact price before you book.',
+      '¿Un quitanieves, una parrilla, un cobertizo, una bicicleta o neumáticos comprados en Canadian Tire? Un conductor independiente con camioneta pasa por la tienda y los lleva a tu casa.',
+    ),
+    headings: _l(
+      'Livraison de vos achats Canadian Tire',
+      'Delivery for your Canadian Tire purchases',
+      'Entrega de tus compras de Canadian Tire',
+    ),
+    intros: _l(
+      'La souffleuse en solde, le BBQ déjà monté ou le cabanon en boîte : chez Canadian Tire, les meilleurs achats sont souvent ceux qui n’entrent pas dans une auto. Un chauffeur de la région passe les prendre.',
+      'The snow blower on sale, the pre-assembled BBQ or the boxed shed: at Canadian Tire, the best buys are often the ones that won’t fit in a car. A local driver picks them up.',
+      'El quitanieves en oferta, la parrilla ya armada o el cobertizo en caja: en Canadian Tire, las mejores compras suelen ser las que no caben en un auto. Un conductor de la zona pasa a recogerlas.',
+    ),
+    sections: [
+      SeoSection(_objectWhatHeading, _l(
+      'Souffleuses et tondeuses, BBQ, meubles et abris de jardin, cabanons en boîte, vélos, équipement d’entraînement, coffres à outils, pneus et jantes, kayaks. Movi-K est un service indépendant, non affilié à Canadian Tire.',
+      'Snow blowers and mowers, BBQs, garden furniture and shelters, boxed sheds, bikes, fitness equipment, tool chests, tires and rims, kayaks. Movi-K is an independent service, not affiliated with Canadian Tire.',
+      'Quitanieves y cortacéspedes, parrillas, muebles y toldos de jardín, cobertizos en caja, bicicletas, equipo de ejercicio, cajas de herramientas, neumáticos y llantas, kayaks. Movi-K es un servicio independiente, sin afiliación con Canadian Tire.',
+    )),
+      SeoSection(_objectPrepareHeading, _l(
+      'Achetez en magasin ou commandez en ligne avec la cueillette, puis réservez votre chauffeur. Donnez l’adresse du magasin et précisez s’il faut passer au service à la clientèle, au comptoir de cueillette ou au centre-jardin. Gardez votre facture ou votre confirmation de commande sous la main pour le ramassage.',
+      'Buy in store or order online for pickup, then book your driver. Give the store address and say whether to go to customer service, the pickup counter or the garden centre. Keep your receipt or order confirmation handy for the pickup.',
+      'Compra en tienda o pide en línea para recoger, y luego reserva tu conductor. Da la dirección de la tienda y precisa si hay que pasar por servicio al cliente, el mostrador de recogida o el centro de jardín. Ten a mano tu factura o la confirmación del pedido para la recogida.',
+    )),
+      _objectAccess,
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
+  SeoPage(
+    id: 'object_hardware_store',
+    kind: SeoPageKind.object,
+    paths: _l('/fr/transport/livraison-quincaillerie', '/en/transport/hardware-store-delivery', '/es/transporte/entrega-ferreteria'),
+    labels: _l(
+      'Achats en quincaillerie',
+      'Hardware store purchases',
+      'Compras en ferretería',
+    ),
+    titles: _l(
+      'Livraison Rona, Home Depot, BMR, Canac et Patrick Morin | Movi-K',
+      'Rona, Home Depot, BMR, Canac and Patrick Morin delivery | Movi-K',
+      'Entrega desde Rona, Home Depot, BMR, Canac y Patrick Morin | Movi-K',
+    ),
+    descriptions: _l(
+      'Bois, gypse, portes, fenêtres ou meuble-lavabo achetés chez Rona, Home Depot, BMR, Canac ou Patrick Morin ? Un chauffeur indépendant avec camion les livre au chantier ou à la maison.',
+      'Lumber, drywall, doors, windows or a vanity bought at Rona, Home Depot, BMR, Canac or Patrick Morin? An independent driver with a truck delivers them to your job site or home.',
+      '¿Madera, yeso, puertas, ventanas o un mueble de baño comprados en Rona, Home Depot, BMR, Canac o Patrick Morin? Un conductor independiente con camioneta los lleva a tu obra o tu casa.',
+    ),
+    headings: _l(
+      'Livraison de vos achats en quincaillerie',
+      'Delivery for your hardware store purchases',
+      'Entrega de tus compras en ferretería',
+    ),
+    intros: _l(
+      'Il manque dix feuilles de gypse pour finir le sous-sol et la remorque est chez le beau-frère. Un chauffeur avec pickup ou camion cube passe à la quincaillerie et dépose le tout au chantier.',
+      'You’re ten sheets of drywall short of finishing the basement and the trailer is at your brother-in-law’s. A driver with a pickup or box truck stops at the hardware store and drops everything at the job site.',
+      'Faltan diez planchas de yeso para terminar el sótano y el remolque está en casa de tu cuñado. Un conductor con camioneta o camión caja pasa por la ferretería y deja todo en la obra.',
+    ),
+    sections: [
+      SeoSection(_objectWhatHeading, _l(
+      'Bois de charpente, contreplaqué, gypse, isolant, portes et fenêtres, meubles-lavabos, bains et douches, planchers en boîte, sacs de béton, outils et électroménagers. Rona, Home Depot, BMR, Canac, Patrick Morin ou votre quincaillerie de quartier : Movi-K est un service indépendant, non affilié à ces magasins.',
+      'Framing lumber, plywood, drywall, insulation, doors and windows, vanities, tubs and showers, boxed flooring, bags of concrete, tools and appliances. Rona, Home Depot, BMR, Canac, Patrick Morin or your neighbourhood hardware store: Movi-K is an independent service, not affiliated with these stores.',
+      'Madera de construcción, contrachapado, yeso, aislante, puertas y ventanas, muebles de baño, bañeras y duchas, pisos en caja, sacos de hormigón, herramientas y electrodomésticos. Rona, Home Depot, BMR, Canac, Patrick Morin o tu ferretería de barrio: Movi-K es un servicio independiente, sin afiliación con estas tiendas.',
+    )),
+      SeoSection(_objectPrepareHeading, _l(
+      'Faites préparer votre commande au comptoir des entrepreneurs ou à la cour à bois et notez son numéro. Indiquez les longueurs les plus longues et le nombre de feuilles ou de sacs dans votre description : le chauffeur vérifie que la charge convient à son véhicule. Prévoyez quelqu’un sur place pour recevoir les matériaux.',
+      'Have your order prepared at the contractor desk or the lumber yard and note its number. Give the longest lengths and the number of sheets or bags in your description: the driver checks that the load suits their vehicle. Have someone on site to receive the materials.',
+      'Pide que preparen tu pedido en el mostrador de contratistas o en el patio de madera y anota su número. Indica los largos máximos y la cantidad de planchas o sacos en tu descripción: el conductor verifica que la carga sea adecuada para su vehículo. Asegúrate de que haya alguien en el lugar para recibir los materiales.',
+    )),
+      _objectAccess,
+      _guidePrice,
+      _guideDriver,
+    ],
+  ),
+
 ];
 
 
@@ -694,14 +1011,14 @@ final List<SeoPage> seoCityPages = [
       'Bromont',
     ),
     titles: _l(
-      'Livraison de meubles à Bromont | Movi-K',
+      'Livraison et transport de meubles à Bromont | Movi-K',
       'Furniture delivery in Bromont | Movi-K',
       'Entrega de muebles en Bromont | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Bromont et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Bromont? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Bromont o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Bromont et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Bromont? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Bromont o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Bromont',
@@ -740,14 +1057,14 @@ final List<SeoPage> seoCityPages = [
       'Cowansville',
     ),
     titles: _l(
-      'Livraison de meubles à Cowansville | Movi-K',
+      'Livraison et transport de meubles à Cowansville | Movi-K',
       'Furniture delivery in Cowansville | Movi-K',
       'Entrega de muebles en Cowansville | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Cowansville et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Cowansville? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Cowansville o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Cowansville et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Cowansville? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Cowansville o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Cowansville',
@@ -786,14 +1103,14 @@ final List<SeoPage> seoCityPages = [
       'Waterloo',
     ),
     titles: _l(
-      'Livraison de meubles à Waterloo | Movi-K',
+      'Livraison et transport de meubles à Waterloo | Movi-K',
       'Furniture delivery in Waterloo | Movi-K',
       'Entrega de muebles en Waterloo | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Waterloo et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Waterloo? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Waterloo o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Waterloo et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Waterloo? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Waterloo o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Waterloo',
@@ -832,14 +1149,14 @@ final List<SeoPage> seoCityPages = [
       'Saint-Hyacinthe',
     ),
     titles: _l(
-      'Livraison de meubles à Saint-Hyacinthe | Movi-K',
+      'Livraison et transport de meubles à Saint-Hyacinthe | Movi-K',
       'Furniture delivery in Saint-Hyacinthe | Movi-K',
       'Entrega de muebles en Saint-Hyacinthe | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Saint-Hyacinthe et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Saint-Hyacinthe? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Saint-Hyacinthe o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Saint-Hyacinthe et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Saint-Hyacinthe? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Saint-Hyacinthe o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Saint-Hyacinthe',
@@ -878,14 +1195,14 @@ final List<SeoPage> seoCityPages = [
       'Saint-Jean-sur-Richelieu',
     ),
     titles: _l(
-      'Livraison de meubles à Saint-Jean-sur-Richelieu | Movi-K',
+      'Livraison et transport de meubles à Saint-Jean-sur-Richelieu | Movi-K',
       'Furniture delivery in Saint-Jean-sur-Richelieu | Movi-K',
       'Entrega de muebles en Saint-Jean-sur-Richelieu | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Saint-Jean-sur-Richelieu et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Saint-Jean-sur-Richelieu? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Saint-Jean-sur-Richelieu o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Saint-Jean-sur-Richelieu et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Saint-Jean-sur-Richelieu? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Saint-Jean-sur-Richelieu o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Saint-Jean-sur-Richelieu',
@@ -924,14 +1241,14 @@ final List<SeoPage> seoCityPages = [
       'Sherbrooke',
     ),
     titles: _l(
-      'Livraison de meubles à Sherbrooke | Movi-K',
+      'Livraison et transport de meubles à Sherbrooke | Movi-K',
       'Furniture delivery in Sherbrooke | Movi-K',
       'Entrega de muebles en Sherbrooke | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Sherbrooke et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Sherbrooke? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Sherbrooke o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Sherbrooke et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Sherbrooke? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Sherbrooke o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Sherbrooke',
@@ -970,14 +1287,14 @@ final List<SeoPage> seoCityPages = [
       'Magog',
     ),
     titles: _l(
-      'Livraison de meubles à Magog | Movi-K',
+      'Livraison et transport de meubles à Magog | Movi-K',
       'Furniture delivery in Magog | Movi-K',
       'Entrega de muebles en Magog | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Magog et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Magog? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Magog o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Magog et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Magog? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Magog o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Magog',
@@ -1016,14 +1333,14 @@ final List<SeoPage> seoCityPages = [
       'Drummondville',
     ),
     titles: _l(
-      'Livraison de meubles à Drummondville | Movi-K',
+      'Livraison et transport de meubles à Drummondville | Movi-K',
       'Furniture delivery in Drummondville | Movi-K',
       'Entrega de muebles en Drummondville | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Drummondville et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Drummondville? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Drummondville o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Drummondville et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Drummondville? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Drummondville o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Drummondville',
@@ -1062,14 +1379,14 @@ final List<SeoPage> seoCityPages = [
       'Longueuil',
     ),
     titles: _l(
-      'Livraison de meubles à Longueuil | Movi-K',
+      'Livraison et transport de meubles à Longueuil | Movi-K',
       'Furniture delivery in Longueuil | Movi-K',
       'Entrega de muebles en Longueuil | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Longueuil et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Longueuil? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Longueuil o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Longueuil et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Longueuil? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Longueuil o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Longueuil',
@@ -1108,14 +1425,14 @@ final List<SeoPage> seoCityPages = [
       'Brossard',
     ),
     titles: _l(
-      'Livraison de meubles à Brossard | Movi-K',
+      'Livraison et transport de meubles à Brossard | Movi-K',
       'Furniture delivery in Brossard | Movi-K',
       'Entrega de muebles en Brossard | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Brossard et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Brossard? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Brossard o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Brossard et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Brossard? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Brossard o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Brossard',
@@ -1154,14 +1471,14 @@ final List<SeoPage> seoCityPages = [
       'Montreal',
     ),
     titles: _l(
-      'Livraison de meubles à Montréal | Movi-K',
+      'Livraison et transport de meubles à Montréal | Movi-K',
       'Furniture delivery in Montreal | Movi-K',
       'Entrega de muebles en Montreal | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Montréal et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Montreal? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Montreal o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Montréal et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Montreal? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Montreal o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Montréal',
@@ -1200,14 +1517,14 @@ final List<SeoPage> seoCityPages = [
       'Laval',
     ),
     titles: _l(
-      'Livraison de meubles à Laval | Movi-K',
+      'Livraison et transport de meubles à Laval | Movi-K',
       'Furniture delivery in Laval | Movi-K',
       'Entrega de muebles en Laval | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Laval et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Laval? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Laval o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Laval et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Laval? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Laval o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Laval',
@@ -1246,14 +1563,14 @@ final List<SeoPage> seoCityPages = [
       'Quebec',
     ),
     titles: _l(
-      'Livraison de meubles à Québec | Movi-K',
+      'Livraison et transport de meubles à Québec | Movi-K',
       'Furniture delivery in Quebec City | Movi-K',
       'Entrega de muebles en Quebec | Movi-K',
     ),
     descriptions: _l(
-      'Un meuble, un électroménager ou un achat Marketplace à faire livrer à Québec et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
-      'Furniture, an appliance or a Marketplace purchase to deliver in or around Quebec City? Snap a photo, see the exact price and book a local driver.',
-      '¿Un mueble, un electrodoméstico o una compra de Marketplace que entregar en Quebec o sus alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
+      'Meuble, électroménager, achat Marketplace ou petit déménagement à Québec et dans les environs ? Prenez une photo, voyez le prix exact et réservez un chauffeur.',
+      'Furniture, an appliance, a Marketplace purchase or a small move in or around Quebec City? Snap a photo, see the exact price and book a local driver.',
+      '¿Un mueble, un electrodoméstico, una compra de Marketplace o una mudanza pequeña en Quebec o alrededores? Toma una foto, ve el precio exacto y reserva un conductor.',
     ),
     headings: _l(
       'Livraison de meubles et d’électroménagers à Québec',

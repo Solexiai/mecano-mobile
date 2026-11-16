@@ -171,14 +171,14 @@ void main() {
       }
     });
 
-    test('40 public pages in French, English and Spanish', () {
-      // 14 d’origine (dont 4 pages légales) + 13 par objet + 13 par ville.
-      expect(locs, hasLength(120));
-      expect(locs.toSet(), hasLength(120));
+    test('46 public pages in French, English and Spanish', () {
+      // 14 d’origine (dont 4 pages légales) + 19 par objet ou service + 13 par ville.
+      expect(locs, hasLength(138));
+      expect(locs.toSet(), hasLength(138));
       for (final locale in ['fr', 'en', 'es']) {
         expect(
           locs.where((l) => l.startsWith('https://movi-k.com/$locale')),
-          hasLength(40),
+          hasLength(46),
         );
       }
     });
@@ -196,7 +196,7 @@ void main() {
 
     test('every page lists its fr, en, es and x-default versions', () {
       final entries = RegExp(r'<url>([\s\S]*?)</url>').allMatches(sitemap);
-      expect(entries, hasLength(120));
+      expect(entries, hasLength(138));
       for (final entry in entries) {
         final block = entry.group(1)!;
         final alternates = {

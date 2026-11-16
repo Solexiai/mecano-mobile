@@ -32,19 +32,20 @@ String _visibleText(String html) => html
     .replaceAll(RegExp(r'<[^>]+>'), ' ');
 
 void main() {
-  test('36 public pages in 3 languages, all in the sitemap', () {
-    // 10 pages d’origine, 13 par objet, 13 par ville (vague 1, 11 nov. 2026).
+  test('42 public pages in 3 languages, all in the sitemap', () {
+    // 10 pages d’origine, 19 par objet ou service (13 du 11 nov. 2026, puis
+    // petit déménagement, prix et 4 enseignes le 16 nov.), 13 par ville.
     expect(seoPages.where((p) => p.kind == SeoPageKind.core), hasLength(10));
-    expect(seoObjectPages, hasLength(13));
+    expect(seoObjectPages, hasLength(19));
     expect(seoCityPages, hasLength(13));
-    expect(seoPages, hasLength(36));
-    expect(seoPages.map((p) => p.id).toSet(), hasLength(36));
+    expect(seoPages, hasLength(42));
+    expect(seoPages.map((p) => p.id).toSet(), hasLength(42));
     final sitemap = _sitemapPaths();
     final seoPaths = {
       for (final page in seoPages)
         for (final locale in seoLocales) page.path(locale),
     };
-    expect(seoPaths, hasLength(108));
+    expect(seoPaths, hasLength(126));
     for (final path in seoPaths) {
       expect(sitemap, contains(path));
     }
@@ -109,7 +110,7 @@ void main() {
     final pages = renderAllSeoPages(_template);
 
     test('one file per page and language, under /seo/', () {
-      expect(pages, hasLength(108));
+      expect(pages, hasLength(126));
       expect(pages.keys, contains('/seo/fr/transport/refrigerateur.html'));
       expect(pages.keys, contains('/seo/en/cities/sherbrooke.html'));
       expect(pages.keys, contains('/seo/fr.html'));
@@ -272,8 +273,44 @@ void main() {
       expect(text, contains('votre dépôt est remboursé'));
       expect(text, contains('seulement si vous les demandez'));
       expect(text.toLowerCase(), isNot(contains('garanti')));
-      final store = seoPageForPath('/fr/transport/achats-en-magasin')!;
-      expect(store.sections.first.body['fr'], contains('non affilié'));
+      // Every page that names a store says Movi-K is not affiliated with it.
+      for (final path in [
+        '/fr/transport/achats-en-magasin',
+        '/fr/transport/livraison-ikea',
+        '/fr/transport/livraison-costco',
+        '/fr/transport/livraison-canadian-tire',
+        '/fr/transport/livraison-quincaillerie',
+      ]) {
+        final store = seoPageForPath(path)!;
+        expect(store.sections.first.body['fr'], contains('non affilié'), reason: path);
+        expect(store.sections.first.body['en'], contains('not affiliated'), reason: path);
+        expect(store.sections.first.body['es'], contains('sin afiliación'), reason: path);
+      }
+    });
+
+    test('search phrases of 16 Nov: small move, price, stores', () {
+      final smallMove = seoPageForPath('/fr/transport/petit-demenagement')!;
+      expect(smallMove.titles['fr'], contains('Petit déménagement'));
+      expect(pages[smallMove.file('fr')]!, contains('pas de minimum d’heures'));
+      // No public price grid: the price guide shows no amount but the deposit.
+      final guide = seoPageForPath('/fr/transport/prix-livraison-meuble')!;
+      final amounts = RegExp(r'(\d+)\s*\$')
+          .allMatches(_visibleText(pages[guide.file('fr')]!))
+          .map((m) => m.group(1))
+          .toSet();
+      expect(amounts, {'25'});
+      final graph = (_jsonLd(pages[guide.file('fr')]!)['@graph'] as List).cast<Map>();
+      expect(graph.any((n) => n['@type'] == 'Service'), isFalse);
+      // City pages carry both phrasings people type.
+      for (final page in seoCityPages) {
+        expect(page.titles['fr'], startsWith('Livraison et transport de meubles à '), reason: page.id);
+        expect(page.descriptions['fr'], contains('petit déménagement'), reason: page.id);
+      }
+      expect(
+        seoPageForPath('/fr/transport/achats-marketplace')!.descriptions['fr'],
+        contains('Kijiji'),
+      );
+      expect(faqItems('fr').map((i) => i.$1), contains('Faites-vous les petits déménagements ?'));
     });
 
     test('switching language keeps the same page', () {
