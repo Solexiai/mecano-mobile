@@ -569,6 +569,132 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/achats-en-magasin"/>
   </url>
   <url>
+    <loc>https://movi-k.com/fr/transport/petit-demenagement</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/small-move"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/mudanza-pequena"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/small-move</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/small-move"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/mudanza-pequena"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/mudanza-pequena</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/small-move"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/mudanza-pequena"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/petit-demenagement"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/prix-livraison-meuble</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/furniture-delivery-cost"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/precio-entrega-muebles"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/furniture-delivery-cost</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/furniture-delivery-cost"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/precio-entrega-muebles"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/precio-entrega-muebles</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/furniture-delivery-cost"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/precio-entrega-muebles"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/prix-livraison-meuble"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/livraison-ikea</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/ikea-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ikea"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/ikea-delivery</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/ikea-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ikea"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/entrega-ikea</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/ikea-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ikea"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-ikea"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/livraison-costco</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-costco"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/costco-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-costco"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-costco"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/costco-delivery</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-costco"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/costco-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-costco"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-costco"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/entrega-costco</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-costco"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/costco-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-costco"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-costco"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/livraison-canadian-tire</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/canadian-tire-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/canadian-tire-delivery</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/canadian-tire-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/entrega-canadian-tire</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/canadian-tire-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-canadian-tire"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-canadian-tire"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/fr/transport/livraison-quincaillerie</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/hardware-store-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ferreteria"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/transport/hardware-store-delivery</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/hardware-store-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ferreteria"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/transporte/entrega-ferreteria</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/transport/hardware-store-delivery"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/transporte/entrega-ferreteria"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/transport/livraison-quincaillerie"/>
+  </url>
+  <url>
     <loc>https://movi-k.com/fr/villes/bromont</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/villes/bromont"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/cities/bromont"/>

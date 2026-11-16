@@ -119,7 +119,8 @@ Map<String, Object?> seoStructuredData(SeoPage page, String locale) {
             },
         ],
     },
-    if (page.kind != SeoPageKind.core ||
+    // Le guide des prix explique un prix : ce n’est pas un service en soi.
+    if ((page.kind != SeoPageKind.core && page.id != 'object_price_guide') ||
         const {'home', 'delivery', 'pricing', 'granby'}.contains(page.id))
       {
         '@type': 'Service',
@@ -301,11 +302,12 @@ String renderLlmsTxt() {
     ..writeln()
     ..writeln(
       '> Movi-K (movi-k.com) est un service de livraison de meubles, '
-      'd’électroménagers et de gros objets, né à Granby (Québec, Canada). Pas de '
+      'd’électroménagers et de gros objets, et de petits déménagements, né à '
+      'Granby (Québec, Canada). Pas de '
       'limite de distance : le client prend une photo, voit le prix exact (taxes '
       'et détail inclus) avant de réserver, puis un chauffeur vérifié proche de '
       'l’adresse de ramassage accepte la livraison. Movi-K (movi-k.com) is a '
-      'delivery service for furniture, appliances and large items, born in '
+      'delivery service for furniture, appliances, large items and small moves, born in '
       'Granby, Quebec, Canada, with no distance limit.',
     )
     ..writeln()

@@ -188,6 +188,34 @@ List<(String, String)> faqItems(String locale) => <(String, String)>[
       (
         _pick(
           locale,
+          'Faites-vous les petits déménagements ?',
+          'Do you handle small moves?',
+          '¿Hacen mudanzas pequeñas?',
+        ),
+        _pick(
+          locale,
+          'Oui, pour quelques meubles et des boîtes : le contenu d’une chambre ou d’un petit logement. Ajoutez tous vos objets dans la même demande. Vous ne payez pas à l’heure : le prix exact s’affiche avant que vous confirmiez. Pour une maison complète, une entreprise de déménagement convient mieux.',
+          'Yes, for a few pieces of furniture and some boxes: the contents of a bedroom or a small home. Add all your items to the same request. You don’t pay by the hour: the exact price is shown before you confirm. For a whole house, a moving company is a better fit.',
+          'Sí, para unos muebles y unas cajas: el contenido de un cuarto o de una vivienda pequeña. Añade todos tus objetos en la misma solicitud. No pagas por hora: el precio exacto se muestra antes de confirmar. Para una casa completa, conviene más una empresa de mudanzas.',
+        ),
+      ),
+      (
+        _pick(
+          locale,
+          'Livrez-vous les achats faits chez IKEA, Costco ou en quincaillerie ?',
+          'Do you deliver purchases from IKEA, Costco or hardware stores?',
+          '¿Entregan compras de IKEA, Costco o ferreterías?',
+        ),
+        _pick(
+          locale,
+          'Oui. Payez votre achat, donnez l’adresse du magasin comme adresse de ramassage et un chauffeur passe le prendre. Movi-K est un service indépendant, non affilié à ces magasins ; le montage n’est pas inclus.',
+          'Yes. Pay for your purchase, enter the store address as the pickup address and a driver picks it up. Movi-K is an independent service, not affiliated with these stores; assembly is not included.',
+          'Sí. Paga tu compra, indica la dirección de la tienda como dirección de recogida y un conductor pasa a buscarla. Movi-K es un servicio independiente, sin afiliación con estas tiendas; el montaje no está incluido.',
+        ),
+      ),
+      (
+        _pick(
+          locale,
           'Où le service est-il offert ?',
           'Where is the service offered?',
           '¿Dónde se ofrece el servicio?',
