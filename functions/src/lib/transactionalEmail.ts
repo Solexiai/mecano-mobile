@@ -29,6 +29,8 @@ export interface OutgoingEmail {
   text: string;
   /** Lettres, chiffres, _ et - seulement (contrainte Resend). */
   category: string;
+  /** En-têtes ajoutés au courriel (ex. List-Unsubscribe pour les relances). */
+  headers?: Record<string, string>;
 }
 
 export interface EmailSender {
@@ -60,6 +62,7 @@ class ResendSender implements EmailSender {
         html: email.html,
         text: email.text,
         tags: [{ name: "category", value: email.category }],
+        ...(email.headers ? { headers: email.headers } : {}),
       }),
     });
     const body = (await response.json().catch(() => ({}))) as { id?: string; message?: string };
@@ -213,6 +216,8 @@ export function renderEmailHtml(params: {
   paragraphs?: string[];
   button?: { label: string; url: string };
   footer: string;
+  /** Relances seulement : lien « Me désabonner » sous le pied de page. */
+  unsubscribe?: { label: string; url: string };
 }): string {
   const row = ([label, value]: [string, string], strong = false) =>
     `<tr><td style="padding:6px 0;color:#54607A;font-size:14px;vertical-align:top;width:42%">${escapeHtml(label)}</td>` +
@@ -229,7 +234,7 @@ ${params.highlight?.length ? `<table role="presentation" width="100%" cellpaddin
 ${(params.paragraphs ?? []).map((p) => `<p style="margin:14px 0 0;color:#3A4660;font-size:14px;line-height:1.5">${escapeHtml(p)}</p>`).join("")}
 ${params.button ? `<p style="margin:22px 0 4px;text-align:center"><a href="${escapeHtml(params.button.url)}" style="display:inline-block;background:#0F2A5C;color:#ffffff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px">${escapeHtml(params.button.label)}</a></p>` : ""}
 </td></tr>
-<tr><td style="padding:16px 24px;background:#F6F8FC;color:#7A859C;font-size:12px;line-height:1.5">${escapeHtml(params.footer)}</td></tr>
+<tr><td style="padding:16px 24px;background:#F6F8FC;color:#7A859C;font-size:12px;line-height:1.5">${escapeHtml(params.footer)}${params.unsubscribe ? `<br><a href="${escapeHtml(params.unsubscribe.url)}" style="color:#7A859C;text-decoration:underline">${escapeHtml(params.unsubscribe.label)}</a>` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -242,6 +247,8 @@ export function renderEmailText(params: {
   paragraphs?: string[];
   button?: { label: string; url: string };
   footer: string;
+  /** Relances seulement : lien « Me désabonner » sous le pied de page. */
+  unsubscribe?: { label: string; url: string };
 }): string {
   return [
     params.title,
@@ -255,5 +262,6 @@ export function renderEmailText(params: {
     "",
     "—",
     params.footer,
+    ...(params.unsubscribe ? [`${params.unsubscribe.label} : ${params.unsubscribe.url}`] : []),
   ].join("\n");
 }

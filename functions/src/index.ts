@@ -67,6 +67,9 @@ export { tipDriver } from "./functions/tipDriver";
 // 2026-11-10 — courriel « Réservation confirmée » et rappels 4 h avant le
 // ramassage (client + chauffeur). Secret requis : RESEND_API_KEY.
 export { onMissionCreatedSendConfirmation, sendPickupReminders } from "./functions/bookingNotifications";
+// 2026-11-17 — relances des prospects : client avec un prix sans réservation
+// (J+1, J+3), chauffeur à l'inscription inachevée ; désabonnement et réglages.
+export { sendLeadFollowUps, emailUnsubscribe, adminEmailSettings } from "./functions/leadFollowUps";
 // 2026-11-10 — fiche client du service client (phase 1).
 export {
   getAdminCustomerFile,
