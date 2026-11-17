@@ -56,7 +56,7 @@ afterEach(async () => {
 
 it("aperçu : rien n'est touché, mode et nombres affichés", async () => {
   const preview = await deleteCustomerAccount.run(call({ userId: customer, dryRun: true }));
-  expect(preview).toEqual({ mode: "anonymize", blockers: [], deliveries: 1, payments: 1 });
+  expect(preview).toEqual({ mode: "anonymize", blockers: [], deliveries: 1, payments: 1, driver: false, driverDeliveries: 0 });
   expect((await db.doc(`users/${customer}`).get()).data()?.email).toBe("del.client@example.test");
   await expect(admin.auth().getUser(customer)).resolves.toBeTruthy();
 });

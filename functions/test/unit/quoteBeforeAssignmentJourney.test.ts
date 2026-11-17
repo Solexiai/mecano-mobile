@@ -106,7 +106,8 @@ function addDriver() { store.set('driver_profiles/' + driverId, { status: 'appro
 test('customer obtains and restores exact server price before any driver exists', async () => {
   const q = await quote();
   expect(reads.some(p => /driver|booking_capacity|booking_policy/.test(p))).toBe(false);
-  expect(writes).toEqual(['delivery_quotes/' + q.quoteId]);
+  // 2026-11-17 : le prix marque aussi le compte comme client (is_customer).
+  expect(writes).toEqual(['delivery_quotes/' + q.quoteId, 'users/synthetic-price-customer']);
   const restored = await getBookingQuote.run({ auth: auth(), data: { quoteId: q.quoteId } } as any);
   expect(restored).toMatchObject({ customerTotal: 45.5, booking: null, assignmentPending: true, missionId: null });
   expect(createAndAuthorizeMissionPayment).not.toHaveBeenCalled();
