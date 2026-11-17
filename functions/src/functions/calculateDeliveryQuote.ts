@@ -59,6 +59,8 @@ export interface QuoteStopInput {
 export interface CalculateDeliveryQuoteRequest {
   vehicleCategory: string;
   quotePurpose?: 'price_before_assignment';
+  /** Langue de l'écran du client (fr, en, es) : sert seulement aux relances par courriel. */
+  locale?: string;
   booking?: unknown;
   requestedVehicleCategory?: string;
   /** Coordonnées officielles utilisées par le serveur pour calculer l'itinéraire. */
@@ -379,6 +381,8 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     created_at: now,
     expires_at: expiresAt,
     is_consumed: false,
+    // Langue du client au moment du prix (relances J+1 / J+3, 2026-11-17).
+    locale: input.locale === "en" || input.locale === "es" ? input.locale : "fr",
   });
 
   return {

@@ -634,6 +634,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'quotePurpose': 'price_before_assignment',
         'booking': _draft.load,
         'stops': _draft.stops,
+        // Follow-up emails are written in the customer's language.
+        'locale': widget.locale,
       });
     } on FirebaseFunctionsException catch (error) {
       final details = error.details;
