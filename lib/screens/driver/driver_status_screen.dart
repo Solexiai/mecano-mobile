@@ -37,6 +37,7 @@ import '../../services/driver_location_reporter.dart';
 import '../../services/push_notification_service.dart';
 import '../../widgets/app_shell.dart';
 import '../../widgets/notification_bell.dart';
+import '../dashboard/provider/tabs/provider_stripe_connect_section.dart';
 
 class DriverStatusScreen extends StatefulWidget {
   final String locale;
@@ -165,6 +166,18 @@ class _DriverStatusScreenState extends State<DriverStatusScreen> {
             if (profile.status == DriverStatus.documentsRequired) ...[
               const SizedBox(height: 16),
               _buildDocumentCorrectionCard(uid, t),
+            ],
+            // One-go registration (Daniel, 2026-11-17): payouts can be set
+            // up as soon as the file is sent, before the approval. (With a
+            // document to fix, that comes first; the card returns once the
+            // file is back under review.)
+            if (profile.status == DriverStatus.pendingReview) ...[
+              const SizedBox(height: 16),
+              ProviderStripeConnectSection(
+                key: const ValueKey('driver-status-payouts'),
+                profile: profile,
+                t: t,
+              ),
             ],
           ],
         );

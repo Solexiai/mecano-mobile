@@ -18,6 +18,13 @@ import { isDriverAccountStale, storedAccountEnvironment } from "../lib/stripeAcc
 import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from "../lib/secrets";
 import { DriverProfileDoc, DriverStatuses, PlatformRoles } from "../lib/types";
 
+/** Statuts où le chauffeur peut régler ses versements Stripe. */
+export const STRIPE_SETUP_STATUSES: string[] = [
+  DriverStatuses.PENDING_REVIEW,
+  DriverStatuses.DOCUMENTS_REQUIRED,
+  DriverStatuses.APPROVED,
+];
+
 export const createDriverStripeAccount = onCall(
   { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async (request) => {
@@ -29,10 +36,12 @@ export const createDriverStripeAccount = onCall(
     const driverRef = db.collection("driver_profiles").doc(ctx.uid);
     const driverSnap = await driverRef.get();
     const driver = driverSnap.exists ? (driverSnap.data() as DriverProfileDoc) : null;
-    // 2026-10-23: payouts are set up only after Movi-K approved the file
-    // (previously only the screen hid the button).
-    if (!driver || driver.status !== DriverStatuses.APPROVED) {
-      throw failedPrecondition("Votre dossier chauffeur doit d'abord être approuvé par Movi-K.");
+    // 2026-11-17 (Daniel) : inscription « d'un trait » — les versements se
+    // règlent dès que le dossier est envoyé, sans attendre l'approbation
+    // (2026-10-23 : seulement après). Un chauffeur non approuvé ne reçoit
+    // toujours aucune livraison (acceptDelivery exige un dossier approuvé).
+    if (!driver || !STRIPE_SETUP_STATUSES.includes(driver.status)) {
+      throw failedPrecondition("Envoyez d'abord votre dossier chauffeur à Movi-K pour activer vos versements.");
     }
     const provider = getPaymentProvider();
     // Passage au vrai argent (2026-10-30): an account of another environment

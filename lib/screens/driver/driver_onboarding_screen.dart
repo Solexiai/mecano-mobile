@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -93,6 +94,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
   // create a second vehicle on the next attempt.
   String? _vehicleId;
   bool _submitted = false;
+  // Early account creation in flight, and whether the prospect was noted.
+  Future<void>? _earlyAccount;
+  bool _leadMarked = false;
   bool _authSeeded = false;
   String? _submitError;
 
@@ -179,10 +183,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                   submitLabel: _submitting
                       ? t('driver_onboarding_submitting')
                       : t('driver_onboarding_submit'),
-                  onStepChanged: (_) {
+                  onStepChanged: (step) {
                     if (_submitError != null) {
                       setState(() => _submitError = null);
                     }
+                    if (step >= 1) _startEarlyAccount(auth, backendStatus);
                   },
                   onComplete: _submitting
                       ? () {}
@@ -201,6 +206,43 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
         ),
       ),
     );
+  }
+
+  /// One-go registration (Daniel, 2026-11-17): the account is created as
+  /// soon as the contact step is done, and the visitor is noted as a driver
+  /// prospect (`markDriverLead`), so an unfinished registration can be
+  /// followed up by email. Best-effort and silent: if it fails here, the
+  /// final submission creates the account and reports the error as before.
+  void _startEarlyAccount(
+    FirebaseAuthProvider auth,
+    BackendStatus backendStatus,
+  ) {
+    if (!backendStatus.isConfigured ||
+        _submitting ||
+        _leadMarked ||
+        _earlyAccount != null) {
+      return;
+    }
+    _earlyAccount = () async {
+      try {
+        if (!auth.isSignedIn) {
+          final ok = await auth.signUpWithEmailPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+            fullName: _nameController.text.trim(),
+          );
+          if (!ok) return;
+        }
+        await FirebaseFunctions.instance
+            .httpsCallable('markDriverLead')
+            .call();
+        _leadMarked = true;
+      } catch (_) {
+        // Retried at the next step change.
+      } finally {
+        _earlyAccount = null;
+      }
+    }();
   }
 
   void _seedAuthFields(FirebaseAuthProvider auth) {
@@ -823,6 +865,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
 
     var failedStage = DriverRegistrationStage.account;
     try {
+      // The account may be being created since the contact step.
+      final early = _earlyAccount;
+      if (early != null) await early;
       if (!auth.isSignedIn) {
         final ok = await auth.signUpWithEmailPassword(
           email: _emailController.text.trim(),
@@ -1662,11 +1707,22 @@ class _PendingVerificationView extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
+              const SizedBox(height: 18),
+              // One-go registration (2026-11-17): payouts are set up right
+              // away, without waiting for the approval.
+              Text(
+                DriverOnboardingCopy.text(locale, 'pending_payouts'),
+                key: const ValueKey('driver-pending-payouts'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700, height: 1.5),
+              ),
               const SizedBox(height: 28),
               ElevatedButton(
                 onPressed: () =>
                     context.go('/$locale/devenir-chauffeur/statut'),
-                child: Text(t('driver_status_go_to_dashboard')),
+                child: Text(
+                  DriverOnboardingCopy.text(locale, 'pending_payouts_button'),
+                ),
               ),
               const SizedBox(height: 12),
               TextButton(

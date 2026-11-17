@@ -104,14 +104,15 @@ export function bookingRequestUrl(locale: EmailLocale, campaign: string): string
   return withCampaign(`${SITE}/${locale}/${path}`, campaign);
 }
 
-export function driverStageUrl(stage: DriverFollowUpStage, locale: EmailLocale, campaign: string): string {
-  if (stage === "stripe") {
+export function driverStageUrl(stage: DriverFollowUpStage, locale: EmailLocale, campaign: string, approved = true): string {
+  // Versements : dans l'espace chauffeur une fois approuvé ; avant, sur la page du dossier.
+  if (stage === "stripe" && approved) {
     return withCampaign(
       locale === "fr" ? `${SITE}/fr/fournisseur/tableau-de-bord` : `${SITE}/${locale}/provider/dashboard`,
       campaign
     );
   }
-  if (stage === "documents") {
+  if (stage === "documents" || stage === "stripe") {
     const path = locale === "en" ? "become-driver/status" : locale === "es" ? "convertirse-conductor/estado" : "devenir-chauffeur/statut";
     return withCampaign(`${SITE}/${locale}/${path}`, campaign);
   }
@@ -256,6 +257,8 @@ export function driverFollowUpEmail(params: {
   driverName?: unknown;
   /** Motif écrit par Movi-K quand un document est demandé. */
   documentsReason?: unknown;
+  /** Étape Stripe : faux tant que Movi-K n'a pas approuvé le dossier (défaut : vrai). */
+  approved?: boolean;
   legal: FollowUpLegal;
 }): Omit<OutgoingEmail, "to"> {
   const { stage, step, locale, legal } = params;
@@ -300,34 +303,46 @@ export function driverFollowUpEmail(params: {
     if (reason) rows = [[tr(locale, "Ce qu'il manque", "What is missing", "Lo que falta"), reason]];
     buttonLabel = tr(locale, "Ajouter mon document", "Add my document", "Añadir mi documento");
   } else {
-    title = step === 0
-      ? tr(locale, "Votre dossier est approuvé 🎉", "Your file is approved 🎉", "Tu expediente está aprobado 🎉")
-      : tr(locale, "Une dernière étape pour être payé", "One last step to get paid", "Un último paso para cobrar");
-    intro = hello + cap(step === 0
+    const approved = params.approved !== false;
+    title = !approved
+      ? tr(locale, "Une dernière étape : activez vos versements", "One last step: turn on your payouts", "Un último paso: activa tus pagos")
+      : step === 0
+        ? tr(locale, "Votre dossier est approuvé 🎉", "Your file is approved 🎉", "Tu expediente está aprobado 🎉")
+        : tr(locale, "Une dernière étape pour être payé", "One last step to get paid", "Un último paso para cobrar");
+    intro = hello + cap(!approved
       ? tr(
         locale,
-        "bonne nouvelle : Movi-K a approuvé votre dossier de chauffeur. Il reste une étape pour recevoir vos paiements : activer vos versements avec Stripe.",
-        "good news: Movi-K approved your driver file. One step is left to receive your payments: turn on your payouts with Stripe.",
-        "buenas noticias: Movi-K aprobó tu expediente de conductor. Falta un paso para recibir tus pagos: activar tus pagos con Stripe."
+        "votre inscription de chauffeur est presque terminée. Pendant que Movi-K vérifie votre dossier, activez vos versements avec Stripe : vous serez prêt à être payé dès l'approbation.",
+        "your driver registration is almost finished. While Movi-K reviews your file, turn on your payouts with Stripe: you will be ready to get paid as soon as you are approved.",
+        "tu inscripción de conductor está casi terminada. Mientras Movi-K revisa tu expediente, activa tus pagos con Stripe: estarás listo para cobrar en cuanto te aprueben."
       )
-      : tr(
-        locale,
-        "votre dossier de chauffeur est approuvé, mais vos versements ne sont pas encore activés. Tant que ce n'est pas fait, vous ne pouvez pas être payé pour une livraison.",
-        "your driver file is approved, but your payouts are not turned on yet. Until this is done, you cannot be paid for a delivery.",
-        "tu expediente de conductor está aprobado, pero tus pagos aún no están activados. Hasta que lo hagas, no puedes cobrar una entrega."
-      )) + last;
+      : step === 0
+        ? tr(
+          locale,
+          "bonne nouvelle : Movi-K a approuvé votre dossier de chauffeur. Il reste une étape pour recevoir vos paiements : activer vos versements avec Stripe.",
+          "good news: Movi-K approved your driver file. One step is left to receive your payments: turn on your payouts with Stripe.",
+          "buenas noticias: Movi-K aprobó tu expediente de conductor. Falta un paso para recibir tus pagos: activar tus pagos con Stripe."
+        )
+        : tr(
+          locale,
+          "votre dossier de chauffeur est approuvé, mais vos versements ne sont pas encore activés. Tant que ce n'est pas fait, vous ne pouvez pas être payé pour une livraison.",
+          "your driver file is approved, but your payouts are not turned on yet. Until this is done, you cannot be paid for a delivery.",
+          "tu expediente de conductor está aprobado, pero tus pagos aún no están activados. Hasta que lo hagas, no puedes cobrar una entrega."
+        )) + last;
     paragraphs.push(tr(
       locale,
       "Stripe est le service de paiement sécurisé qui verse votre argent dans votre compte bancaire. Vos renseignements bancaires sont saisis directement chez Stripe. Prévoyez environ 5 minutes, avec une pièce d'identité et vos coordonnées bancaires.",
       "Stripe is the secure payment service that sends your money to your bank account. Your banking details are entered directly with Stripe. Allow about 5 minutes, with a piece of ID and your banking details.",
       "Stripe es el servicio de pago seguro que envía tu dinero a tu cuenta bancaria. Tus datos bancarios se ingresan directamente en Stripe. Calcula unos 5 minutos, con un documento de identidad y tus datos bancarios."
     ));
-    paragraphs.push(tr(
-      locale,
-      "Dans l'application : onglet Profil, puis « Configuration des versements ».",
-      "In the app: Profile tab, then “Payout setup”.",
-      "En la aplicación: pestaña Perfil, luego «Configuración de pagos»."
-    ));
+    if (approved) {
+      paragraphs.push(tr(
+        locale,
+        "Dans l'application : onglet Profil, puis « Configuration des versements ».",
+        "In the app: Profile tab, then “Payout setup”.",
+        "En la aplicación: pestaña Perfil, luego «Configuración de pagos»."
+      ));
+    }
     buttonLabel = tr(locale, "Activer mes versements", "Turn on my payouts", "Activar mis pagos");
   }
   paragraphs.push(tr(
@@ -342,7 +357,7 @@ export function driverFollowUpEmail(params: {
     intro,
     rows,
     paragraphs,
-    button: { label: buttonLabel, url: driverStageUrl(stage, locale, campaign) },
+    button: { label: buttonLabel, url: driverStageUrl(stage, locale, campaign, params.approved !== false) },
     footer: followUpFooter(locale, "driver", legal.postalAddress),
     unsubscribe: { label: unsubscribeLabel(locale), url: legal.unsubscribeUrl },
   };

@@ -1,6 +1,6 @@
 // Driver payouts setup (Stripe Connect Express), 2026-10-23:
-// - only an APPROVED driver can start it (the screen hid the button, the
-//   server did not check);
+// - a driver can start it once the file is SENT to Movi-K (2026-11-17,
+//   one-go registration; 2026-10-23: only once approved), never before;
 // - Stripe onboarding links expire and work once: every call on an
 //   unfinished account returns a NEW link, so a driver can resume;
 // - a finished account (charges + payouts enabled) gets no link.
@@ -28,12 +28,21 @@ afterEach(async () => {
   await db.recursiveDelete(db.collection('driver_profiles'));
 });
 
-test('only drivers, and only once Movi-K approved the file', async () => {
+test('only drivers, and only once the file is sent to Movi-K', async () => {
   await expect(createDriverStripeAccount.run(call(['customer']))).rejects.toMatchObject({ code: 'permission-denied' });
   await expect(createDriverStripeAccount.run(call())).rejects.toMatchObject({ code: 'failed-precondition' });
-  await profile().set({ status: 'pending_review' });
-  await expect(createDriverStripeAccount.run(call())).rejects.toMatchObject({ code: 'failed-precondition' });
+  for (const status of ['registration_incomplete', 'rejected', 'suspended', 'inactive']) {
+    await profile().set({ status });
+    await expect(createDriverStripeAccount.run(call())).rejects.toMatchObject({ code: 'failed-precondition' });
+  }
   expect(provider.onboardingLinkCount).toBe(0);
+});
+
+test.each(['pending_review', 'documents_required'])('file sent, not approved yet (%s): payouts can be set up', async (status) => {
+  await profile().set({ status });
+  const first = await createDriverStripeAccount.run(call());
+  expect(first).toMatchObject({ success: true, alreadyExisted: false, active: false, connectedAccountId: `fake_acct_${uid}` });
+  expect(provider.onboardingLinkCount).toBe(1);
 });
 
 test('an approved driver gets an account and a new link each time until the setup is finished', async () => {
