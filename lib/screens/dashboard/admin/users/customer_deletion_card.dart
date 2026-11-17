@@ -31,16 +31,26 @@ Future<Map<String, dynamic>> _defaultCall(
 
 /// Parcours complet d'effacement d'un compte (aperçu → blocages ou
 /// confirmation → effacement). Renvoie vrai si le compte a été effacé.
+///
+/// `setBusy` est appelé vrai pendant les appels serveur seulement (jamais
+/// pendant qu'une fenêtre est ouverte), pour afficher un sablier.
 Future<bool> startAccountDeletion(
   BuildContext context, {
   required String userId,
   required String locale,
   CustomerDeletionCall? call,
+  void Function(bool busy)? setBusy,
 }) async {
   final fr = locale == 'fr';
   final run = call ?? _defaultCall;
-  Future<Map<String, dynamic>> deletion(Map<String, dynamic> data) =>
-      run('deleteCustomerAccount', {'userId': userId, ...data});
+  Future<Map<String, dynamic>> deletion(Map<String, dynamic> data) async {
+    setBusy?.call(true);
+    try {
+      return await run('deleteCustomerAccount', {'userId': userId, ...data});
+    } finally {
+      setBusy?.call(false);
+    }
+  }
 
   void error(Object error) {
     if (!context.mounted) return;
@@ -129,18 +139,16 @@ class _CustomerDeletionCardState extends State<CustomerDeletionCard> {
   bool get _fr => widget.locale == 'fr';
 
   Future<void> _start() async {
-    setState(() => _busy = true);
-    try {
-      final deleted = await startAccountDeletion(
-        context,
-        userId: widget.userId,
-        locale: widget.locale,
-        call: widget.call,
-      );
-      if (deleted) widget.onDeleted();
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    final deleted = await startAccountDeletion(
+      context,
+      userId: widget.userId,
+      locale: widget.locale,
+      call: widget.call,
+      setBusy: (busy) {
+        if (mounted) setState(() => _busy = busy);
+      },
+    );
+    if (deleted) widget.onDeleted();
   }
 
   @override
