@@ -99,6 +99,7 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
     return _AdminMetrics(
       actions: AdminActionCounts.fromJson(data),
       customers: _asInt(data['customers']),
+      staff: _asInt(data['staff']),
       drivers: _asInt(data['drivers']),
       pendingDrivers: _asInt(data['pendingDrivers']),
       activeMissions: _asInt(data['activeMissions']),
@@ -151,6 +152,15 @@ class _DashboardBody extends StatelessWidget {
         Icons.local_shipping_outlined,
         AppColors.success,
         '/$locale/admin/chauffeurs?filter=all',
+      ),
+      // 2026-11-17 (Daniel) : admins et super-admins dans leur propre case,
+      // pour ne plus gonfler le nombre de clients.
+      _Metric(
+        isFrench ? 'Administrateurs' : 'Administrators',
+        metrics?.staff,
+        Icons.admin_panel_settings_outlined,
+        AppColors.textSecondary,
+        '/$locale/admin/utilisateurs?filter=administrators',
       ),
       _Metric(
         isFrench ? 'Dossiers à traiter' : 'Applications to review',
@@ -455,6 +465,7 @@ class _AdminMetrics {
   const _AdminMetrics({
     required this.actions,
     required this.customers,
+    required this.staff,
     required this.drivers,
     required this.pendingDrivers,
     required this.activeMissions,
@@ -464,6 +475,7 @@ class _AdminMetrics {
   });
   final AdminActionCounts actions;
   final int customers;
+  final int staff;
   final int drivers;
   final int pendingDrivers;
   final int activeMissions;
