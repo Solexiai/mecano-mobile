@@ -1,5 +1,5 @@
 const records: Record<string, Array<Record<string, unknown>>> = {
-  users: [{roles:['customer']}],
+  users: [{roles:['customer']}, {roles:['customer']}, {roles:['customer','driver']}, {roles:['customer','driver','super_admin']}, {roles:['analyst']}, {roles:['customer'], deleted:true}],
   driver_profiles: [{status:'pending_review'}, {status:'documents_required'}, {status:'approved'}],
   delivery_requests: [{status:'searching_driver'}, {status:'offered'}, {status:'assigned'}, {status:'completed'}],
   disputes: ['opened','under_review','won','lost','reversed','closed'].map(status=>({status})),
@@ -8,6 +8,7 @@ const records: Record<string, Array<Record<string, unknown>>> = {
 function query(name: string, match: (x: Record<string, unknown>) => boolean = () => true): any {
   return {
     where: (key: string, op: string, value: any) => query(name, x => match(x) && (op === 'in' ? value.includes(x[key]) : op === 'array-contains' ? (x[key] as any[]).includes(value) : x[key] === value)),
+    select: () => query(name, match),
     count: () => ({get: async () => ({data: () => ({count: records[name].filter(match).length})})}),
     get: async () => ({docs: records[name].filter(match).map(x => ({data: () => x}))}),
   };
@@ -25,6 +26,11 @@ test('separates driver queues and counts only missions awaiting assignment', asy
   expect(data.unassignedMissions).toBe(2);
   expect(data.pendingDrivers).toBe(2);
   expect(data.activeMissions).toBe(3);
+});
+test('clients = ni chauffeur ni personnel ; personnel compté à part (2026-11-17)', async () => {
+  const data = await invoke();
+  expect(data.customers).toBe(2);
+  expect(data.staff).toBe(2);
 });
 test('terminal disputes are excluded from the open count', async () => {
   expect((await invoke()).openDisputes).toBe(2);

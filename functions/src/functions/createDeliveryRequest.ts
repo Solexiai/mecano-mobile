@@ -16,7 +16,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { isInternalTester, requireSignedIn } from "../lib/auth";
-import { markAsCustomer } from "../lib/customerFlag";
+import { refuseDriverAsCustomer } from "../lib/userKind";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
@@ -118,6 +118,7 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
   { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
   async (request) => {
   const ctx = requireSignedIn(request);
+  refuseDriverAsCustomer(ctx.roles);
   // Seuls les super_admin et les comptes porteurs du claim
   // `internal_tester` (SEC-02, posé par setUserRole) créent une mission
   // interne sans opération Stripe. Les clients ordinaires restent protégés.
@@ -613,9 +614,6 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
     if (depositPaymentId) await refundOrphanDeposit(depositPaymentId);
     throw error;
   }
-
-  // Admin › Utilisateurs (2026-11-17) : une réservation fait un client.
-  await markAsCustomer(ctx.uid, admin.firestore.Timestamp.now());
 
   return { missionId: resolvedMissionId, internalTest: isInternalTest, depositPaymentId };
   }

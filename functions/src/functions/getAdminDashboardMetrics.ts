@@ -1,4 +1,5 @@
 import { onCall } from "firebase-functions/v2/https";
+import { userKind } from "../lib/userKind";
 import { db } from "../lib/admin";
 import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
 
@@ -26,7 +27,7 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
   requireAnalystOrAbove(ctx);
 
   const [
-    customers,
+    userDocs,
     drivers,
     pendingDrivers,
     pendingReviewDrivers,
@@ -37,7 +38,10 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
     payments,
     disputes,
   ] = await Promise.all([
-    db.collection("users").where("roles", "array-contains", "customer").count().get(),
+    // 2026-11-17 (Daniel) : « 25 clients, c'est une fausse représentation ».
+    // On compte les vrais clients (ni chauffeur ni personnel) et le personnel
+    // à part ; les comptes effacés ne comptent pas.
+    db.collection("users").select("roles", "deleted").get(),
     db.collection("driver_profiles").count().get(),
     db.collection("driver_profiles")
       .where("status", "in", PENDING_DRIVER_STATUSES)
@@ -59,10 +63,20 @@ export const getAdminDashboardMetrics = onCall(async (request) => {
   ]);
 
   const openDisputes = disputes.data().count;
+  let customers = 0;
+  let staff = 0;
+  for (const doc of userDocs.docs) {
+    const data = doc.data();
+    if (data.deleted === true) continue;
+    const kind = userKind(Array.isArray(data.roles) ? data.roles : []);
+    if (kind === "customer") customers += 1;
+    else if (kind === "staff") staff += 1;
+  }
 
   return {
     actionCountsVersion: 1,
-    customers: customers.data().count,
+    customers,
+    staff,
     drivers: drivers.data().count,
     pendingDrivers: pendingDrivers.data().count,
     pendingReviewDrivers: pendingReviewDrivers.data().count,

@@ -29,7 +29,6 @@ import {
   deletionMode,
   latestMarketingOptIns,
 } from "../lib/customerDeletion";
-import { backfillCustomerFlags as backfillCustomerFlagsLib } from "../lib/customerFlag";
 import { countActiveDriverMissions, purgeDriverProfile } from "../lib/driverProfilePurge";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 
@@ -211,24 +210,4 @@ export const getMarketingOptIns = onCall(async (request) => {
     });
   }
   return { userIds: latestMarketingOptIns(rows) };
-});
-
-/**
- * Rattrapage « qui est client ? » (super-admin) : pose `is_customer` sur tous
- * les comptes d'après leurs prix demandés et réservations. À lancer une fois
- * après la mise en ligne du 17 novembre 2026 ; sans danger si relancé.
- */
-export const backfillCustomerFlags = onCall(async (request) => {
-  const ctx = requireSignedIn(request);
-  requireSuperAdmin(ctx);
-  const result = await backfillCustomerFlagsLib();
-  await writeAuditLog({
-    actorUserId: ctx.uid,
-    actorRole: roleOf(ctx),
-    action: "customer_flags_backfilled",
-    sourceFunction: "backfillCustomerFlags",
-    targetId: "users",
-    metadata: result,
-  });
-  return result;
 });

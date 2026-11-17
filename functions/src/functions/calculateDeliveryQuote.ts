@@ -24,7 +24,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { activeConditionSurcharge, getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
-import { markAsCustomer } from "../lib/customerFlag";
+import { refuseDriverAsCustomer } from "../lib/userKind";
 import { consumeRoutingBudget } from "../lib/routingRateLimit";
 import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
@@ -116,6 +116,7 @@ async function resolvePromoDiscountAmount(
 
 export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(async (request) => {
   const ctx = requireSignedIn(request);
+  refuseDriverAsCustomer(ctx.roles);
   const input = request.data;
 
   // Special conditions (Centre de commande, 2026-10-26): a paused service
@@ -385,11 +386,6 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     // Langue du client au moment du prix (relances J+1 / J+3, 2026-11-17).
     locale: input.locale === "en" || input.locale === "es" ? input.locale : "fr",
   });
-
-  // Admin › Utilisateurs (Daniel, 2026-11-17) : dès qu'un compte demande un
-  // prix, c'est un client — même s'il est aussi chauffeur. Le drapeau sépare
-  // les vrais clients des chauffeurs qui n'ont jamais rien demandé.
-  await markAsCustomer(ctx.uid, now);
 
   return {
     vehicleCategory: input.vehicleCategory,

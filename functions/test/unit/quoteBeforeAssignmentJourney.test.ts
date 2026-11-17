@@ -103,11 +103,16 @@ function createRequest(q: any, role = 'super_admin') { return { auth: auth(role)
 function addDriver() { store.set('driver_profiles/' + driverId, { status: 'approved', documents_all_valid: true, full_name: 'Synthetic driver',
   accepted_vehicle_categories: ['cargo_van'], online_status: 'offline' }); }
 
+test('un compte chauffeur ne demande pas de prix (2026-11-17 : deux inscriptions)', async () => {
+  await expect(calculateDeliveryQuote.run({ auth: auth('driver', driverId), data: { quotePurpose: 'price_before_assignment', booking: load(), stops } } as any))
+    .rejects.toMatchObject({ code: 'failed-precondition' });
+  expect(writes).toEqual([]);
+});
+
 test('customer obtains and restores exact server price before any driver exists', async () => {
   const q = await quote();
   expect(reads.some(p => /driver|booking_capacity|booking_policy/.test(p))).toBe(false);
-  // 2026-11-17 : le prix marque aussi le compte comme client (is_customer).
-  expect(writes).toEqual(['delivery_quotes/' + q.quoteId, 'users/synthetic-price-customer']);
+  expect(writes).toEqual(['delivery_quotes/' + q.quoteId]);
   const restored = await getBookingQuote.run({ auth: auth(), data: { quoteId: q.quoteId } } as any);
   expect(restored).toMatchObject({ customerTotal: 45.5, booking: null, assignmentPending: true, missionId: null });
   expect(createAndAuthorizeMissionPayment).not.toHaveBeenCalled();

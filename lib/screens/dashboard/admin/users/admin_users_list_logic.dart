@@ -34,27 +34,14 @@ bool isDriverAccount(Map<String, dynamic> data) =>
 bool isStaffAccount(Map<String, dynamic> data) =>
     userRoles(data).any(_staffRoles.contains);
 
-/// Client (Daniel, 2026-11-17) : tout compte naît « customer », mais un
-/// chauffeur n'est un client que s'il a demandé un prix ou réservé
-/// (`is_customer`, posé par le serveur). Un compte qui n'est pas chauffeur
-/// est un client d'office (inscrit par le chemin client).
-bool isCustomerAccount(Map<String, dynamic> data) {
-  // Le drapeau serveur prime : un compte « driver » seul qui a demandé un
-  // prix est un client, même sans le rôle « customer ».
-  if (data['is_customer'] == true) return true;
-  if (!userRoles(data).contains('customer')) return false;
-  return !isDriverAccount(data);
-}
-
-/// Mention à afficher sur la carte : « Aussi chauffeur » dans la liste des
-/// clients, « Aussi client » dans celle des chauffeurs. Null si rien à dire.
-String? alsoLabel(Map<String, dynamic> data, {required bool inCustomers, required bool fr}) {
-  final driver = isDriverAccount(data);
-  final customer = isCustomerAccount(data);
-  if (inCustomers && driver) return fr ? 'Aussi chauffeur' : 'Also a driver';
-  if (!inCustomers && customer && driver) return fr ? 'Aussi client' : 'Also a customer';
-  return null;
-}
+/// Client (Daniel, 2026-11-17) : un compte est UNE chose. Tout compte naît
+/// « customer », mais dès qu'il est chauffeur ou personnel, ce n'est plus un
+/// client. Un chauffeur qui veut réserver crée un compte client à part
+/// (deux inscriptions).
+bool isCustomerAccount(Map<String, dynamic> data) =>
+    userRoles(data).contains('customer') &&
+    !isDriverAccount(data) &&
+    !isStaffAccount(data);
 
 String _nameKey(Map<String, dynamic> data) =>
     (data['full_name'] ?? data['email'] ?? '').toString().trim().toLowerCase();
