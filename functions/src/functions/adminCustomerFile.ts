@@ -43,6 +43,8 @@ import {
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { RESEND_API_KEY, STRIPE_SECRET_KEY } from "../lib/secrets";
 import { accountEmail, normalizeEmailLocale, sendTransactionalEmail } from "../lib/transactionalEmail";
+import { acquisitionLabel } from "../lib/acquisition";
+import { acquisitionOf } from "./acquisitionSources";
 import { getPaymentProvider } from "../payment/paymentProviderFactory";
 import { customerContact, sendBookingConfirmation } from "./bookingNotifications";
 
@@ -127,6 +129,7 @@ export const getAdminCustomerFile = onCall(async (request) => {
     targetId: userId,
   });
 
+  const acquisition = await acquisitionOf(userId).catch(() => null);
   return {
     generatedAt: new Date().toISOString(),
     canAct,
@@ -143,6 +146,10 @@ export const getAdminCustomerFile = onCall(async (request) => {
       phone: typeof phone === "string" && phone.trim() ? (cityOnly ? maskPhone(phone) : phone.trim()) : null,
       locale: consents[0]?.locale ?? null,
       cardOnFile: typeof profileSnap.data()?.default_payment_method_id === "string",
+      // D'où vient ce client (première visite, 2026-11-17) ; null si inconnu.
+      acquisition: acquisition
+        ? { channel: acquisition.channel, label: acquisitionLabel(acquisition), landingPath: acquisition.landing_path || null }
+        : null,
     },
     stats,
     badges: customerBadges(stats, createdAtMs),

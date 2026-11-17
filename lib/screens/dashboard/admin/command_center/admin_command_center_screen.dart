@@ -15,6 +15,7 @@ import 'price_simulator.dart';
 import 'runtime_flags_panel.dart';
 import 'service_settings_panel.dart';
 import 'stripe_environment_card.dart';
+import 'prospects_panel.dart';
 import 'share_panel.dart';
 
 /// Tab ids used in the URL: /admin/centre-commande?onglet=quoi
@@ -26,6 +27,7 @@ const commandCenterTabs = [
   'partage',
   'conditions',
   'interrupteurs',
+  'prospects',
 ];
 
 class AdminCommandCenterScreen extends StatefulWidget {
@@ -113,6 +115,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           Tab(key: ValueKey('cc-tab-partage'), text: '4 · Qui reçoit quoi ?'),
           Tab(key: ValueKey('cc-tab-conditions'), text: '5 · Conditions spéciales'),
           Tab(key: ValueKey('cc-tab-interrupteurs'), text: '6 · Interrupteurs'),
+          Tab(key: ValueKey('cc-tab-prospects'), text: '7 · Prospects'),
         ],
       ),
     ),
@@ -136,6 +139,7 @@ class _AdminCommandCenterScreenState extends State<AdminCommandCenterScreen>
           installedVersion: widget.installedVersion,
           canEdit: widget.canEditRuntimeFlags,
         ),
+        ProspectsPanel(canEdit: widget.canEditRuntimeFlags),
       ],
     ),
   );
@@ -216,6 +220,8 @@ class _Home extends StatelessWidget {
           'Supplément tempête, pause du service.'),
       tile('interrupteurs', '6 · INTERRUPTEURS', 'Urgence',
           'Couper ou rouvrir les demandes, l’acceptation et les paiements, immédiatement.'),
+      tile('prospects', '7 · PROSPECTS', 'Sources et relances',
+          'D’où viennent clients et chauffeurs, et les rappels par courriel.'),
     ];
     return ListView(
       padding: const EdgeInsets.all(20),

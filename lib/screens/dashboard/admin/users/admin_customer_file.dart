@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/app_colors.dart';
 import '../../../../finance/presentation/money_format.dart';
 import '../../../../l10n/app_strings.dart';
+import '../command_center/prospects_panel.dart' show acquisitionChannelLabel;
 
 /// Appel d'une fonction serveur (remplaçable dans les tests).
 typedef CustomerFileCall =
@@ -326,6 +327,16 @@ class _AdminCustomerFileState extends State<AdminCustomerFile> {
               tr('Carte au dossier', 'Card on file', 'Tarjeta guardada'),
               account['cardOnFile'] == true ? tr('Oui', 'Yes', 'Sí') : tr('Non', 'No', 'No'),
             ),
+            if (account['acquisition'] is Map)
+              _info(
+                Icons.travel_explore,
+                tr('Arrivé par', 'Came from', 'Llegó por'),
+                [
+                  acquisitionChannelLabel('${(account['acquisition'] as Map)['channel'] ?? ''}'),
+                  if ('${(account['acquisition'] as Map)['label'] ?? ''}'.isNotEmpty)
+                    '${(account['acquisition'] as Map)['label']}',
+                ].join(' · '),
+              ),
           ],
         ),
       ),
