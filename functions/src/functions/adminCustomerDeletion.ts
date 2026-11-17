@@ -122,6 +122,11 @@ export const deleteCustomerAccount = onCall(async (request) => {
     ...tokens.docs.map((d) => d.ref),
     ...(mode === "erase" ? quotes.docs : unusedQuotes).map((d) => d.ref),
     db.collection("booking_drafts").doc(userId),
+    // Source du prospect, relances et désabonnement (2026-11-17).
+    db.collection("user_acquisition").doc(userId),
+    db.collection("email_preferences").doc(userId),
+    db.collection("lead_followups").doc(`customer__${userId}`),
+    db.collection("driver_leads").doc(userId),
   ]);
 
   if (mode === "erase") {

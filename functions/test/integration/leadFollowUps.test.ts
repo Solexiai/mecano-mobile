@@ -3,7 +3,7 @@
 // sans réservation (J+1, J+3), chauffeur à l'inscription inachevée,
 // désabonnement et adresse postale obligatoire.
 // -----------------------------------------------------------------------------
-import { runLeadFollowUps } from "../../src/functions/leadFollowUps";
+import { markDriverLead, runLeadFollowUps } from "../../src/functions/leadFollowUps";
 import { admin, db } from "../../src/lib/admin";
 import { EMAIL_SETTINGS_DOC, emailPreference, setFollowUpSubscription } from "../../src/lib/emailPreferences";
 import { EmailSender, OutgoingEmail, setEmailSenderForTesting } from "../../src/lib/transactionalEmail";
@@ -77,6 +77,7 @@ afterEach(async () => {
   for (const id of [QUOTE, `${QUOTE}_b`]) await db.collection("delivery_quotes").doc(id).delete();
   await db.collection("delivery_requests").doc(MISSION).delete();
   await db.collection("driver_profiles").doc(driverUid).delete();
+  await db.collection("driver_leads").doc(driverUid).delete();
   for (const uid of [customerUid, driverUid]) {
     await db.collection("users").doc(uid).delete();
     await db.collection("email_preferences").doc(uid).delete();
@@ -211,8 +212,48 @@ describe("Chauffeur : inscription inachevée", () => {
     expect(sender.sent[0].email.subject).toBe("Terminez votre inscription de chauffeur — Movi-K");
   });
 
-  it("dossier en révision ou vieux de plus de 5 jours : rien", async () => {
-    await seedDriver({ status: "pending_review", created_at: ts(NOON - 30 * HOUR) });
+  it("dossier envoyé, versements pas activés : relances J+1 et J+3, puis annonce à l'approbation", async () => {
+    await seedDriver({ status: "pending_review", submitted_for_review_at: ts(NOON - 2 * HOUR) });
+    expect(await run()).toEqual([]); // il vient de voir l'écran : rien le jour même
+    expect(await run(NOON + 24 * HOUR)).toEqual([`${driverUid}__stripe__1`]);
+    expect(sender.sent[0].email.subject).toBe("Une dernière étape : activez vos versements — Movi-K");
+    expect(sender.sent[0].email.text).toContain("Pendant que Movi-K vérifie votre dossier");
+    expect(sender.sent[0].email.text).toContain("https://movi-k.com/fr/devenir-chauffeur/statut?");
+    expect(await run(NOON + 72 * HOUR)).toEqual([`${driverUid}__stripe__2`]);
+    // Approuvé ensuite, toujours sans versements : nouvelle série, annonce immédiate.
+    await seedDriver({ status: "approved", approved_at: ts(NOON + 80 * HOUR), stripe_payouts_enabled: false });
+    expect(await run(NOON + 96 * HOUR)).toEqual([`${driverUid}__stripe__0`]);
+    expect(sender.sent[2].email.subject).toBe("Votre dossier est approuvé 🎉 — Movi-K");
+  });
+
+  it("dossier envoyé avec versements activés : rien", async () => {
+    await seedDriver({ status: "pending_review", submitted_for_review_at: ts(NOON - 30 * HOUR), stripe_payouts_enabled: true });
+    expect(await run()).toEqual([]);
+  });
+
+  it("compte créé au début de l'inscription, dossier jamais enregistré : relance J+1 ; rien dès que le dossier existe", async () => {
+    await db.collection("users").doc(driverUid).set({ full_name: "Marc Caron", roles: ["customer"] });
+    await db.collection("driver_leads").doc(driverUid).set({ user_id: driverUid, started_at: ts(NOON - 26 * HOUR) });
+    expect(await run()).toEqual([`${driverUid}__profile__1`]);
+    expect(sender.sent[0].email.subject).toBe("Terminez votre inscription de chauffeur — Movi-K");
+    expect(sender.sent[0].email.text).toContain("Bonjour Marc");
+    await seedDriver({ status: "pending_review", submitted_for_review_at: ts(NOON + 40 * HOUR), stripe_payouts_enabled: true });
+    expect(await run(NOON + 48 * HOUR)).toEqual([]);
+  });
+
+  it("markDriverLead : compte connecté, noté une seule fois", async () => {
+    const call = (uid?: string) =>
+      ({ data: {}, auth: uid ? { uid, token: { roles: ["customer"], role: "customer" } } : undefined, rawRequest: {}, acceptsStreaming: false } as any);
+    await expect(markDriverLead.run(call())).rejects.toMatchObject({ code: "unauthenticated" });
+    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: true });
+    const first = (await db.collection("driver_leads").doc(driverUid).get()).data()!;
+    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: false });
+    const second = (await db.collection("driver_leads").doc(driverUid).get()).data()!;
+    expect(second.started_at.toMillis()).toBe(first.started_at.toMillis());
+  });
+
+  it("dossier vieux de plus de 5 jours ou refusé : rien", async () => {
+    await seedDriver({ status: "rejected", created_at: ts(NOON - 30 * HOUR) });
     expect(await run()).toEqual([]);
     await seedDriver({ status: "registration_incomplete", created_at: ts(NOON - 200 * HOUR) });
     expect(await run()).toEqual([]);

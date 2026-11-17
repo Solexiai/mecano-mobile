@@ -145,6 +145,19 @@ describe("courriel de relance du chauffeur", () => {
   });
 });
 
+describe("Stripe avant l'approbation (inscription d'un trait)", () => {
+  it("dossier en révision : pas d'annonce d'approbation, lien vers la page du dossier", () => {
+    const email = driverFollowUpEmail({ stage: "stripe", step: 1, locale: "fr", driverName: "Marc", approved: false, legal });
+    expect(email.subject).toBe("Une dernière étape : activez vos versements — Movi-K");
+    expect(email.text).toContain("Bonjour Marc, votre inscription de chauffeur est presque terminée");
+    expect(email.text).not.toContain("approuvé,");
+    expect(email.text).not.toContain("onglet Profil");
+    expect(email.text).toContain(driverStageUrl("stripe", "fr", "relance_chauffeur_stripe_j1", false));
+    expect(driverStageUrl("stripe", "fr", "x", false)).toContain("/fr/devenir-chauffeur/statut?");
+    expect(driverStageUrl("stripe", "fr", "x")).toContain("/fr/fournisseur/tableau-de-bord?");
+  });
+});
+
 describe("réglages des relances", () => {
   it("sans adresse postale, ou interrupteur fermé : aucune relance", () => {
     expect(followUpsReady(parseEmailSettings(undefined))).toBe(false);

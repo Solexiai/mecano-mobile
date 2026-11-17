@@ -39,6 +39,7 @@ import {
   DriverFollowUpStage,
   FOLLOW_UP_COOLDOWN_MS,
   FOLLOW_UP_END_MS,
+  FOLLOW_UP_FIRST_MS,
   FollowUpStep,
   driverFollowUpEmail,
   followUpMillis,
@@ -217,84 +218,148 @@ async function runQuoteFollowUps(settings: EmailSettings, nowMs: number, budget:
 
 // ---- Chauffeurs : inscription pas terminée -------------------------------------
 
-/** Étape où le chauffeur est arrêté, et depuis quand ; null si rien à relancer. */
-export function driverFollowUpStage(profile: Doc): { stage: DriverFollowUpStage; anchorMs: number | null } | null {
+/**
+ * Étape où le chauffeur est arrêté, et depuis quand ; null si rien à relancer.
+ * `immediate` : un premier courriel part tout de suite (annonce de l'approbation).
+ */
+export function driverFollowUpStage(
+  profile: Doc
+): { stage: DriverFollowUpStage; anchorMs: number | null; approved: boolean; immediate: boolean } | null {
   if (profile.status === DriverStatuses.REGISTRATION_INCOMPLETE) {
-    return { stage: "profile", anchorMs: followUpMillis(profile.created_at) };
+    return { stage: "profile", anchorMs: followUpMillis(profile.created_at), approved: false, immediate: false };
   }
   if (profile.status === DriverStatuses.DOCUMENTS_REQUIRED) {
-    return { stage: "documents", anchorMs: followUpMillis(profile.documents_required_at) };
+    return { stage: "documents", anchorMs: followUpMillis(profile.documents_required_at), approved: false, immediate: false };
   }
-  if (profile.status === DriverStatuses.APPROVED && profile.stripe_payouts_enabled !== true) {
-    return { stage: "stripe", anchorMs: followUpMillis(profile.approved_at) };
+  if (profile.stripe_payouts_enabled === true) return null;
+  if (profile.status === DriverStatuses.APPROVED) {
+    return { stage: "stripe", anchorMs: followUpMillis(profile.approved_at), approved: true, immediate: true };
+  }
+  // Dossier envoyé, en révision : les versements peuvent déjà être activés (2026-11-17).
+  if (profile.status === DriverStatuses.PENDING_REVIEW) {
+    return { stage: "stripe", anchorMs: followUpMillis(profile.submitted_for_review_at), approved: false, immediate: false };
   }
   return null;
+}
+
+/**
+ * Relance d'un chauffeur à l'étape `stage` (série commencée à `anchorMs`).
+ * Renvoie la clé de la relance envoyée, ou null.
+ */
+async function followUpDriver(params: {
+  uid: string; stage: DriverFollowUpStage; anchorMs: number; approved: boolean; immediate: boolean;
+  profile: Doc; settings: EmailSettings; nowMs: number;
+}): Promise<string | null> {
+  const { uid, stage, anchorMs, nowMs } = params;
+  // Trop tôt ou trop tard : aucune lecture de plus.
+  if (nowMs - anchorMs >= FOLLOW_UP_END_MS || nowMs < anchorMs) return null;
+  const stateId = `driver_${stage}__${uid}`;
+  const base = { kind: `driver_${stage}`, user_id: uid };
+  const state = (await db.collection("lead_followups").doc(stateId).get()).data();
+  const sameSeries = state?.anchor_at_ms === anchorMs;
+  const series: Series = {
+    anchorId: `${stage}_${anchorMs}`,
+    anchorMs,
+    sent: sameSeries ? readSent(state?.sent) : {},
+    stopped: sameSeries && !!state?.stopped_reason,
+  };
+  if (series.stopped) return null;
+  const step = followUpStepDue({ anchorMs, nowMs, sent: series.sent, immediate: params.immediate });
+  if (step === null) return null;
+
+  const preference = await emailPreference(uid);
+  if (preference.unsubscribed) {
+    await stopSeries(stateId, base, series, "unsubscribed", nowMs);
+    return null;
+  }
+  const to = await accountEmail(uid);
+  if (!to) return null;
+  if (!(await claimStep(stateId, base, series, step, nowMs))) return null;
+
+  const locale = await deviceLocale(uid);
+  const outcome = await sendTransactionalEmail({
+    key: `driver_followup_${stage}_${step}__${uid}__${anchorMs}`,
+    kind: `driver_followup_${stage}_${step}`,
+    userId: uid,
+    missionId: null,
+    to,
+    build: () => driverFollowUpEmail({
+      stage,
+      step,
+      locale,
+      driverName: params.profile.full_name,
+      documentsReason: params.profile.documents_required_reason,
+      approved: params.approved,
+      legal: { postalAddress: params.settings.postalAddress, unsubscribeUrl: unsubscribeUrl(uid, preference.token) },
+    }),
+  });
+  return outcome === "sent" ? `${uid}__${stage}__${step}` : null;
 }
 
 async function runDriverFollowUps(settings: EmailSettings, nowMs: number, budget: { left: number }): Promise<string[]> {
   const done: string[] = [];
   const snap = await db.collection("driver_profiles")
-    .where("status", "in", [DriverStatuses.REGISTRATION_INCOMPLETE, DriverStatuses.DOCUMENTS_REQUIRED, DriverStatuses.APPROVED])
+    .where("status", "in", [
+      DriverStatuses.REGISTRATION_INCOMPLETE, DriverStatuses.DOCUMENTS_REQUIRED,
+      DriverStatuses.PENDING_REVIEW, DriverStatuses.APPROVED,
+    ])
     .get();
   for (const doc of snap.docs) {
     if (budget.left <= 0) break;
-    const uid = doc.id;
     try {
       const profile = doc.data();
       const found = driverFollowUpStage(profile);
       if (!found || found.anchorMs === null) continue;
-      const { stage, anchorMs } = found;
-      // Trop tôt ou trop tard : aucune lecture de plus.
-      if (nowMs - anchorMs >= FOLLOW_UP_END_MS || nowMs < anchorMs) continue;
-      const stateId = `driver_${stage}__${uid}`;
-      const base = { kind: `driver_${stage}`, user_id: uid };
-      const state = (await db.collection("lead_followups").doc(stateId).get()).data();
-      const sameSeries = state?.anchor_at_ms === anchorMs;
-      const series: Series = {
-        anchorId: `${stage}_${anchorMs}`,
-        anchorMs,
-        sent: sameSeries ? readSent(state?.sent) : {},
-        stopped: sameSeries && !!state?.stopped_reason,
-      };
-      if (series.stopped) continue;
-      const step = followUpStepDue({ anchorMs, nowMs, sent: series.sent, immediate: stage === "stripe" });
-      if (step === null) continue;
-
-      const preference = await emailPreference(uid);
-      if (preference.unsubscribed) {
-        await stopSeries(stateId, base, series, "unsubscribed", nowMs);
-        continue;
-      }
-      const to = await accountEmail(uid);
-      if (!to) continue;
-      if (!(await claimStep(stateId, base, series, step, nowMs))) continue;
-
-      const locale = await deviceLocale(uid);
-      const outcome = await sendTransactionalEmail({
-        key: `driver_followup_${stage}_${step}__${uid}__${anchorMs}`,
-        kind: `driver_followup_${stage}_${step}`,
-        userId: uid,
-        missionId: null,
-        to,
-        build: () => driverFollowUpEmail({
-          stage,
-          step,
-          locale,
-          driverName: profile.full_name,
-          documentsReason: profile.documents_required_reason,
-          legal: { postalAddress: settings.postalAddress, unsubscribeUrl: unsubscribeUrl(uid, preference.token) },
-        }),
-      });
-      if (outcome === "sent") {
+      const key = await followUpDriver({ uid: doc.id, ...found, anchorMs: found.anchorMs, profile, settings, nowMs });
+      if (key) {
         budget.left -= 1;
-        done.push(`${uid}__${stage}__${step}`);
+        done.push(key);
       }
     } catch (error) {
-      console.error("[relance] chauffeur ignoré", uid, error instanceof Error ? error.message : error);
+      console.error("[relance] chauffeur ignoré", doc.id, error instanceof Error ? error.message : error);
+    }
+  }
+
+  // Compte créé au début de l'inscription, dossier jamais enregistré
+  // (`driver_leads`, 2026-11-17) : relance « Terminez votre inscription ».
+  const since = admin.firestore.Timestamp.fromMillis(nowMs - FOLLOW_UP_END_MS);
+  const leads = await db.collection("driver_leads").where("started_at", ">=", since).get();
+  for (const doc of leads.docs) {
+    if (budget.left <= 0) break;
+    try {
+      const anchorMs = followUpMillis(doc.data().started_at);
+      if (anchorMs === null || nowMs - anchorMs < FOLLOW_UP_FIRST_MS) continue;
+      if ((await db.collection("driver_profiles").doc(doc.id).get()).exists) continue;
+      const user = (await db.collection("users").doc(doc.id).get()).data();
+      const key = await followUpDriver({
+        uid: doc.id, stage: "profile", anchorMs, approved: false, immediate: false,
+        profile: { full_name: user?.full_name }, settings, nowMs,
+      });
+      if (key) {
+        budget.left -= 1;
+        done.push(key);
+      }
+    } catch (error) {
+      console.error("[relance] prospect chauffeur ignoré", doc.id, error instanceof Error ? error.message : error);
     }
   }
   return done;
 }
+
+/**
+ * Le visiteur vient de créer son compte au début de l'inscription chauffeur
+ * (2026-11-17). Noté une seule fois ; sert uniquement aux relances.
+ */
+export const markDriverLead = onCall(async (request) => {
+  const ctx = requireSignedIn(request);
+  const ref = db.collection("driver_leads").doc(ctx.uid);
+  const created = await db.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).exists) return false;
+    tx.set(ref, { user_id: ctx.uid, started_at: admin.firestore.Timestamp.now() });
+    return true;
+  });
+  return { created };
+});
 
 /** Un passage des relances (appelé par le cron et par les tests). */
 export async function runLeadFollowUps(

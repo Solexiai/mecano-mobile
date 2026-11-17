@@ -261,6 +261,19 @@ class DriverOnboardingCopy {
       'en': 'Complete the required fields to continue.',
       'es': 'Completa los campos obligatorios para continuar.',
     },
+    'pending_payouts': {
+      'fr':
+          'Dernière étape, environ 5 minutes : activez vos versements avec Stripe, le service de paiement sécurisé qui dépose votre argent dans votre compte bancaire. Vous serez prêt à être payé dès que Movi-K approuve votre dossier.',
+      'en':
+          'Last step, about 5 minutes: turn on your payouts with Stripe, the secure payment service that deposits your money in your bank account. You will be ready to get paid as soon as Movi-K approves your file.',
+      'es':
+          'Último paso, unos 5 minutos: activa tus pagos con Stripe, el servicio de pago seguro que deposita tu dinero en tu cuenta bancaria. Estarás listo para cobrar en cuanto Movi-K apruebe tu expediente.',
+    },
+    'pending_payouts_button': {
+      'fr': 'Activer mes versements',
+      'en': 'Turn on my payouts',
+      'es': 'Activar mis pagos',
+    },
   };
 
   static String text(String locale, String key) {
