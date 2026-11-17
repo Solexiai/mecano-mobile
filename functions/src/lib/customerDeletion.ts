@@ -66,6 +66,9 @@ export interface DeletionInput {
   payments: Doc[];
   /** Livraisons où ce compte est le CHAUFFEUR (vide pour un simple client). */
   driverMissions?: Doc[];
+  /** Nombre de livraisons en cours comme chauffeur, compté à part (requête
+   *  filtrée) ; s'il est absent, on le déduit de `driverMissions`. */
+  activeDriverMissions?: number;
 }
 
 /** Raisons qui empêchent d'effacer ce client (vide = on peut). */
@@ -81,9 +84,9 @@ export function deletionBlockers(input: DeletionInput): string[] {
   if (active > 0) {
     reasons.push(`${active} livraison(s) en cours : terminez-les ou annulez-les d'abord.`);
   }
-  const driving = (input.driverMissions ?? []).filter((m) =>
-    DRIVER_ACTIVE_MISSION_STATUSES.has(String(m.status))
-  ).length;
+  const driving =
+    input.activeDriverMissions ??
+    (input.driverMissions ?? []).filter((m) => DRIVER_ACTIVE_MISSION_STATUSES.has(String(m.status))).length;
   if (driving > 0) {
     reasons.push(`Chauffeur sur ${driving} livraison(s) en cours : terminez-les ou annulez-les d'abord.`);
   }

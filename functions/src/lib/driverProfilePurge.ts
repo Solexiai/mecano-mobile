@@ -31,12 +31,15 @@ export interface DriverPurgeResult {
 
 /** Nombre de livraisons en cours où ce compte est le chauffeur. */
 export async function countActiveDriverMissions(driverId: string): Promise<number> {
+  // Filtré côté serveur (index driver_id + status) : un chauffeur avec un
+  // long historique n'échappe pas au contrôle.
   const missions = await db
     .collection("delivery_requests")
     .where("driver_id", "==", driverId)
+    .where("status", "in", [...DRIVER_ACTIVE_MISSION_STATUSES])
     .limit(100)
     .get();
-  return missions.docs.filter((doc) => DRIVER_ACTIVE_MISSION_STATUSES.has(String(doc.data().status))).length;
+  return missions.size;
 }
 
 /**

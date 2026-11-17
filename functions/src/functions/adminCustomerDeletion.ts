@@ -30,7 +30,7 @@ import {
   latestMarketingOptIns,
 } from "../lib/customerDeletion";
 import { backfillCustomerFlags as backfillCustomerFlagsLib } from "../lib/customerFlag";
-import { purgeDriverProfile } from "../lib/driverProfilePurge";
+import { countActiveDriverMissions, purgeDriverProfile } from "../lib/driverProfilePurge";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 
 type Doc = Record<string, any>;
@@ -66,13 +66,14 @@ export const deleteCustomerAccount = onCall(async (request) => {
   const dryRun = request.data?.dryRun === true;
 
   const userRef = db.collection("users").doc(userId);
-  const [authUser, userSnap, driverSnap, missionsSnap, paymentsSnap, drivenSnap] = await Promise.all([
+  const [authUser, userSnap, driverSnap, missionsSnap, paymentsSnap, drivenSnap, activeDriverMissions] = await Promise.all([
     admin.auth().getUser(userId).catch(() => null),
     userRef.get(),
     db.collection("driver_profiles").doc(userId).get(),
     db.collection("delivery_requests").where("customer_id", "==", userId).limit(500).get(),
     db.collection("payments").where("customer_id", "==", userId).limit(1000).get(),
     db.collection("delivery_requests").where("driver_id", "==", userId).limit(500).get(),
+    countActiveDriverMissions(userId),
   ]);
   const user = userSnap.data() ?? {};
   if (!authUser && !userSnap.exists) throw notFound("Compte introuvable.");
@@ -90,6 +91,7 @@ export const deleteCustomerAccount = onCall(async (request) => {
     missions,
     payments,
     driverMissions,
+    activeDriverMissions,
   });
   const mode = deletionMode(missions, payments, driverMissions);
   const preview = {

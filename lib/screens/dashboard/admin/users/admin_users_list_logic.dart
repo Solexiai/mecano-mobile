@@ -39,9 +39,11 @@ bool isStaffAccount(Map<String, dynamic> data) =>
 /// (`is_customer`, posé par le serveur). Un compte qui n'est pas chauffeur
 /// est un client d'office (inscrit par le chemin client).
 bool isCustomerAccount(Map<String, dynamic> data) {
+  // Le drapeau serveur prime : un compte « driver » seul qui a demandé un
+  // prix est un client, même sans le rôle « customer ».
+  if (data['is_customer'] == true) return true;
   if (!userRoles(data).contains('customer')) return false;
-  if (!isDriverAccount(data)) return true;
-  return data['is_customer'] == true;
+  return !isDriverAccount(data);
 }
 
 /// Mention à afficher sur la carte : « Aussi chauffeur » dans la liste des

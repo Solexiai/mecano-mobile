@@ -37,6 +37,9 @@ describe("customerDeletion", () => {
       .toEqual(["Chauffeur sur 1 livraison(s) en cours : terminez-les ou annulez-les d'abord."]);
     expect(deletionBlockers({ ...driver, driverMissions: [{ status: "completed" }, { status: "cancelled" }] }))
       .toEqual([]);
+    // Compte à part (requête filtrée) : prime sur la liste tronquée.
+    expect(deletionBlockers({ ...driver, driverMissions: [{ status: "completed" }], activeDriverMissions: 2 })[0])
+      .toMatch(/Chauffeur sur 2 livraison/);
     expect(deletionMode([], [], [{ status: "completed" }])).toBe("anonymize");
     expect(deletionMode([], [], [])).toBe("erase");
   });

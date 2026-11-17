@@ -49,6 +49,7 @@ void main() {
     expect(isCustomerAccount(chauffeurClient), isTrue);
     expect(isDriverAccount(chauffeurClient), isTrue);
     expect(isCustomerAccount(ancien), isFalse);
+    expect(isCustomerAccount({'roles': ['driver'], 'is_customer': true}), isTrue);
     expect(isStaffAccount({'roles': ['customer', 'super_admin']}), isTrue);
   });
 
