@@ -22,6 +22,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
+import '../services/acquisition/acquisition_tracker.dart';
 
 class FirebaseAuthProvider extends ChangeNotifier {
   final bool _backendConfigured;
@@ -146,6 +147,8 @@ class FirebaseAuthProvider extends ChangeNotifier {
       _claimsLoaded = true;
     } else {
       await _refreshClaims(force: true);
+      // Where this account came from (first visit), filed once.
+      unawaited(AcquisitionTracker.reportFor(user.uid));
     }
     notifyListeners();
   }

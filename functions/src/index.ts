@@ -70,6 +70,8 @@ export { onMissionCreatedSendConfirmation, sendPickupReminders } from "./functio
 // 2026-11-17 — relances des prospects : client avec un prix sans réservation
 // (J+1, J+3), chauffeur à l'inscription inachevée ; désabonnement et réglages.
 export { sendLeadFollowUps, emailUnsubscribe, adminEmailSettings } from "./functions/leadFollowUps";
+// 2026-11-17 — source de chaque prospect (publicité, recherche, direct…) et tableau Admin.
+export { recordAcquisitionSource, getAcquisitionReport } from "./functions/acquisitionSources";
 // 2026-11-10 — fiche client du service client (phase 1).
 export {
   getAdminCustomerFile,

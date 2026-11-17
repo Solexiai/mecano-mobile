@@ -25,6 +25,7 @@ import 'providers/delivery_provider.dart';
 import 'providers/mechanic_provider.dart';
 import 'providers/review_provider.dart';
 import 'router/app_router.dart';
+import 'services/acquisition/acquisition_tracker.dart';
 import 'services/storage_service.dart';
 import 'services/push_notification_service.dart';
 import 'backend/backend_bootstrap.dart';
@@ -49,6 +50,10 @@ Future<void> main() async {
   // Tentative d'initialisation Firebase, sans jamais faire crasher l'app si
   // aucun projet réel n'est encore configuré (voir backend_bootstrap.dart).
   final backendStatus = await BackendBootstrap.initialize();
+
+  // 2026-11-17 : first visit (ad, search, direct…) noted on this device; it is
+  // filed under the account once the visitor signs up. Never blocks startup.
+  unawaited(AcquisitionTracker.captureFirstTouch());
 
   // 2026-11-09 : offre « qui sonne » (écran plein écran + sonnerie) pour les
   // chauffeurs en service. Désactivée par défaut dans les tests.
