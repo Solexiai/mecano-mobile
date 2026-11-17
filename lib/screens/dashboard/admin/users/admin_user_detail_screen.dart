@@ -211,12 +211,15 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
                       style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ],
-                  // 2026-11-10 (Daniel) : effacer un client, super-admin seulement.
+                  // 2026-11-10 (Daniel) : effacer un compte, super-admin
+                  // seulement ; depuis le 2026-11-17, un chauffeur aussi
+                  // (son dossier chauffeur part avec le compte).
                   if (isSuperAdmin && !deleted) ...[
                     const SizedBox(height: 24),
                     CustomerDeletionCard(
                       userId: widget.userId,
                       locale: locale,
+                      driver: hasDriverProfile || roles.contains('driver'),
                       onDeleted: () => context.go('/$locale/admin/utilisateurs'),
                     ),
                   ],

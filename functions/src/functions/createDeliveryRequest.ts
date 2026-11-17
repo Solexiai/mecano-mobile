@@ -16,6 +16,7 @@ import { onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { isInternalTester, requireSignedIn } from "../lib/auth";
+import { markAsCustomer } from "../lib/customerFlag";
 import { failedPrecondition, invalidArgument, notFound, permissionDenied } from "../lib/errors";
 import { encodeGeohash } from "../lib/geohash";
 import { MissionAssignmentModes, MissionStatuses } from "../lib/types";
@@ -612,6 +613,9 @@ export const createDeliveryRequest = onCall<CreateDeliveryRequestRequest>(
     if (depositPaymentId) await refundOrphanDeposit(depositPaymentId);
     throw error;
   }
+
+  // Admin › Utilisateurs (2026-11-17) : une réservation fait un client.
+  await markAsCustomer(ctx.uid, admin.firestore.Timestamp.now());
 
   return { missionId: resolvedMissionId, internalTest: isInternalTest, depositPaymentId };
   }

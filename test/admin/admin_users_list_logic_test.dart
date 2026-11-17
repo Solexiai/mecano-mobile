@@ -35,4 +35,30 @@ void main() {
     expect(signupLabel(DateTime(2026, 11, 10), false), 'Joined Nov 10, 2026');
     expect(signupLabel(null, true), 'Date d’inscription inconnue');
   });
+
+  // 2026-11-17 (Daniel) : séparer les clients des chauffeurs.
+  test('client / chauffeur : un chauffeur n’est client que s’il a demandé un prix', () {
+    final client = {'roles': ['customer']};
+    final chauffeur = {'roles': ['customer', 'driver']};
+    final chauffeurClient = {'roles': ['customer', 'driver'], 'is_customer': true};
+    final ancien = {'role': 'driver'};
+    expect(isCustomerAccount(client), isTrue);
+    expect(isDriverAccount(client), isFalse);
+    expect(isCustomerAccount(chauffeur), isFalse);
+    expect(isDriverAccount(chauffeur), isTrue);
+    expect(isCustomerAccount(chauffeurClient), isTrue);
+    expect(isDriverAccount(chauffeurClient), isTrue);
+    expect(isCustomerAccount(ancien), isFalse);
+    expect(isCustomerAccount({'roles': ['driver'], 'is_customer': true}), isTrue);
+    expect(isStaffAccount({'roles': ['customer', 'super_admin']}), isTrue);
+  });
+
+  test('mentions « Aussi chauffeur » / « Aussi client »', () {
+    final chauffeurClient = {'roles': ['customer', 'driver'], 'is_customer': true};
+    final chauffeur = {'roles': ['customer', 'driver']};
+    expect(alsoLabel(chauffeurClient, inCustomers: true, fr: true), 'Aussi chauffeur');
+    expect(alsoLabel(chauffeurClient, inCustomers: false, fr: true), 'Aussi client');
+    expect(alsoLabel(chauffeur, inCustomers: false, fr: true), isNull);
+    expect(alsoLabel({'roles': ['customer']}, inCustomers: true, fr: false), isNull);
+  });
 }

@@ -10,6 +10,9 @@
 //     ni paiement est effacé au complet.
 //   - Super-admin seulement.
 //   - Bloqué s'il a une livraison en cours, un solde dû ou un litige ouvert.
+//   - 2026-11-17 : un chauffeur s'efface aussi par ici (dossier chauffeur
+//     d'abord, puis le compte). Bloqué seulement s'il est en route sur une
+//     livraison. Ses livraisons comme chauffeur restent (anonymisé).
 // -----------------------------------------------------------------------------
 
 import { millisOf } from "./customerFile";
@@ -37,6 +40,16 @@ export const OPEN_PAYMENT_STATUSES = new Set<string>([
   "capture_failed",
 ]);
 
+/** Chauffeur en route : on n'efface pas son compte pendant une livraison. */
+export const DRIVER_ACTIVE_MISSION_STATUSES = new Set<string>([
+  "assigned",
+  "driver_to_pickup",
+  "arrived_at_pickup",
+  "picked_up",
+  "in_transit",
+  "arrived_at_dropoff",
+]);
+
 /** Contestation de paiement (Stripe) ou litige Movi-K. */
 export const DISPUTE_STATUSES = new Set<string>(["disputed", "chargeback"]);
 
@@ -51,6 +64,11 @@ export interface DeletionInput {
   hasDriverProfile: boolean;
   missions: Doc[];
   payments: Doc[];
+  /** Livraisons où ce compte est le CHAUFFEUR (vide pour un simple client). */
+  driverMissions?: Doc[];
+  /** Nombre de livraisons en cours comme chauffeur, compté à part (requête
+   *  filtrée) ; s'il est absent, on le déduit de `driverMissions`. */
+  activeDriverMissions?: number;
 }
 
 /** Raisons qui empêchent d'effacer ce client (vide = on peut). */
@@ -62,12 +80,15 @@ export function deletionBlockers(input: DeletionInput): string[] {
   if (input.roles.some((r) => STAFF_ROLES.includes(r))) {
     reasons.push("Ce compte a un rôle de personnel : retirez-le d'abord.");
   }
-  if (input.hasDriverProfile || input.roles.includes("driver")) {
-    reasons.push("C'est aussi un chauffeur : supprimez d'abord son dossier chauffeur.");
-  }
   const active = input.missions.filter((m) => ACTIVE_MISSION_STATUSES.has(String(m.status))).length;
   if (active > 0) {
     reasons.push(`${active} livraison(s) en cours : terminez-les ou annulez-les d'abord.`);
+  }
+  const driving =
+    input.activeDriverMissions ??
+    (input.driverMissions ?? []).filter((m) => DRIVER_ACTIVE_MISSION_STATUSES.has(String(m.status))).length;
+  if (driving > 0) {
+    reasons.push(`Chauffeur sur ${driving} livraison(s) en cours : terminez-les ou annulez-les d'abord.`);
   }
   const owing = input.payments.filter((p) =>
     OPEN_PAYMENT_STATUSES.has(String(p.status)) ||
@@ -89,9 +110,9 @@ export function deletionBlockers(input: DeletionInput): string[] {
  * Un client qui a déjà réservé ou payé garde son historique (anonymisé) ;
  * un compte sans livraison ni paiement est effacé au complet.
  */
-export function deletionMode(missions: Doc[], payments: Doc[]): DeletionMode {
+export function deletionMode(missions: Doc[], payments: Doc[], driverMissions: Doc[] = []): DeletionMode {
   const booked = missions.some((m) => m.status !== "draft" && m.status !== "quoted");
-  return booked || payments.length > 0 ? "anonymize" : "erase";
+  return booked || payments.length > 0 || driverMissions.length > 0 ? "anonymize" : "erase";
 }
 
 /**

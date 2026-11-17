@@ -487,7 +487,7 @@ class AppRouter {
                   path: 'utilisateurs',
                   builder: (c, s) => AdminAuthGate(
                     child: AdminUsersScreen(
-                      initialFilter: s.uri.queryParameters['filter'] ?? 'all',
+                      initialFilter: s.uri.queryParameters['filter'] ?? 'customers',
                     ),
                   ),
                   routes: [

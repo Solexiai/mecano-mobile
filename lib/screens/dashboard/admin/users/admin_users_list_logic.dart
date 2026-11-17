@@ -17,6 +17,45 @@ DateTime? userCreatedAt(Map<String, dynamic> data) {
 /// Profil d'un client effacé (anonymisé) : il ne s'affiche plus dans la liste.
 bool isDeletedUser(Map<String, dynamic> data) => data['deleted'] == true;
 
+/// Rôles du compte (`roles`, sinon l'ancien champ `role`, sinon client).
+List<String> userRoles(Map<String, dynamic> data) {
+  final raw = data['roles'];
+  if (raw is List) return raw.whereType<String>().toList();
+  final role = data['role'];
+  return role is String && role.isNotEmpty ? [role] : const ['customer'];
+}
+
+const _staffRoles = {'analyst', 'admin', 'super_admin'};
+
+/// Chauffeur = a (ou a eu) un dossier chauffeur, quel que soit son statut.
+bool isDriverAccount(Map<String, dynamic> data) =>
+    userRoles(data).contains('driver');
+
+bool isStaffAccount(Map<String, dynamic> data) =>
+    userRoles(data).any(_staffRoles.contains);
+
+/// Client (Daniel, 2026-11-17) : tout compte naît « customer », mais un
+/// chauffeur n'est un client que s'il a demandé un prix ou réservé
+/// (`is_customer`, posé par le serveur). Un compte qui n'est pas chauffeur
+/// est un client d'office (inscrit par le chemin client).
+bool isCustomerAccount(Map<String, dynamic> data) {
+  // Le drapeau serveur prime : un compte « driver » seul qui a demandé un
+  // prix est un client, même sans le rôle « customer ».
+  if (data['is_customer'] == true) return true;
+  if (!userRoles(data).contains('customer')) return false;
+  return !isDriverAccount(data);
+}
+
+/// Mention à afficher sur la carte : « Aussi chauffeur » dans la liste des
+/// clients, « Aussi client » dans celle des chauffeurs. Null si rien à dire.
+String? alsoLabel(Map<String, dynamic> data, {required bool inCustomers, required bool fr}) {
+  final driver = isDriverAccount(data);
+  final customer = isCustomerAccount(data);
+  if (inCustomers && driver) return fr ? 'Aussi chauffeur' : 'Also a driver';
+  if (!inCustomers && customer && driver) return fr ? 'Aussi client' : 'Also a customer';
+  return null;
+}
+
 String _nameKey(Map<String, dynamic> data) =>
     (data['full_name'] ?? data['email'] ?? '').toString().trim().toLowerCase();
 
