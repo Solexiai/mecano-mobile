@@ -82,7 +82,7 @@ void main() {
     await t.pumpAndSettle();
     expect(calls.calls.last, {'userId': 'cust_1', 'reason': 'Demande du client'});
     expect(deleted, 1);
-    expect(find.text('Client effacé.'), findsOneWidget);
+    expect(find.text('Compte effacé.'), findsOneWidget);
   });
 
   testWidgets('sans historique : « tout sera effacé » ; annuler ne fait rien', (t) async {
@@ -95,5 +95,24 @@ void main() {
     await t.pumpAndSettle();
     expect(calls.calls.length, 1);
     expect(deleted, 0);
+  });
+
+  testWidgets('chauffeur : le dossier chauffeur et ses livraisons sont annoncés', (t) async {
+    final calls = _Calls({
+      'mode': 'anonymize', 'blockers': [], 'deliveries': 0, 'payments': 0,
+      'driver': true, 'driverDeliveries': 4,
+    });
+    await t.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CustomerDeletionCard(userId: 'drv_1', locale: 'fr', driver: true, call: calls.call, onDeleted: () {}),
+        ),
+      ),
+    );
+    expect(find.textContaining('dossier chauffeur'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('delete-customer')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('4 livraison(s) comme chauffeur'), findsOneWidget);
+    expect(find.textContaining('C’est aussi un chauffeur'), findsOneWidget);
   });
 }

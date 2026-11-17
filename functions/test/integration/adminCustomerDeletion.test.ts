@@ -45,11 +45,12 @@ afterEach(async () => {
     await db.recursiveDelete(db.doc(`users/${uid}`));
     await db.doc(`booking_drafts/${uid}`).delete();
     await db.doc(`payment_profiles/${uid}`).delete();
+    await db.doc(`driver_profiles/${uid}`).delete();
   }
   for (const id of [MISSION, LATER]) await db.recursiveDelete(db.doc(`delivery_requests/${id}`));
   for (const path of [
     "payments/del_pay_1", "payments/del_pay_2", "customer_notes/del_note_1", "push_tokens/del_token_1",
-    "delivery_quotes/del_quote_open", "delivery_quotes/del_quote_used", "driver_profiles/del_driver",
+    "delivery_quotes/del_quote_open", "delivery_quotes/del_quote_used", "driver_profiles/del_driver", "driver_documents/del_driver_doc",
   ]) await db.doc(path).delete();
 });
 
@@ -100,7 +101,28 @@ it("client sans livraison ni paiement : tout est effacé", async () => {
   await expect(admin.auth().getUser(fresh)).rejects.toMatchObject({ code: "auth/user-not-found" });
 });
 
-it("bloqué : livraison en cours, chauffeur, raison manquante ; admin refusé", async () => {
+it("chauffeur : dossier chauffeur effacé avec le compte ; bloqué s'il est en route", async () => {
+  const driver = await newCustomer(`del.driver.${Date.now()}@example.test`);
+  await db.doc(`users/${driver}`).set({ uid: driver, email: "d@example.test", full_name: "Chauffeur", roles: ["customer", "driver"] });
+  await db.doc(`driver_profiles/${driver}`).set({ uid: driver, status: "approved" });
+  await db.doc("driver_documents/del_driver_doc").set({ driver_id: driver, type: "licence" });
+  await db.doc(`delivery_requests/${LATER}`).set({ customer_id: "someone", driver_id: driver, status: "in_transit" });
+
+  const blocked = await deleteCustomerAccount.run(call({ userId: driver, dryRun: true }));
+  expect(blocked).toMatchObject({ driver: true, driverDeliveries: 1 });
+  expect(blocked.blockers[0]).toMatch(/Chauffeur sur 1 livraison/);
+
+  await db.doc(`delivery_requests/${LATER}`).set({ customer_id: "someone", driver_id: driver, status: "completed" });
+  const result = await deleteCustomerAccount.run(call({ userId: driver, reason: "Demande du chauffeur" }));
+  expect(result).toMatchObject({ mode: "anonymize", driver: true, deleted: true });
+  expect((await db.doc(`driver_profiles/${driver}`).get()).exists).toBe(false);
+  expect((await db.doc("driver_documents/del_driver_doc").get()).exists).toBe(false);
+  expect((await db.doc(`delivery_requests/${LATER}`).get()).exists).toBe(true);
+  expect((await db.doc(`users/${driver}`).get()).data()).toMatchObject({ deleted: true, roles: ["customer"] });
+  await expect(admin.auth().getUser(driver)).rejects.toMatchObject({ code: "auth/user-not-found" });
+});
+
+it("bloqué : livraison en cours, raison manquante ; admin refusé", async () => {
   await db.doc(`delivery_requests/${LATER}`).set({ customer_id: customer, status: "in_transit" });
   const preview = await deleteCustomerAccount.run(call({ userId: customer, dryRun: true }));
   expect(preview.blockers).toEqual(["1 livraison(s) en cours : terminez-les ou annulez-les d'abord."]);

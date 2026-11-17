@@ -24,11 +24,21 @@ describe("customerDeletion", () => {
     })).toEqual([]);
   });
 
-  it("bloque : soi-même, personnel, chauffeur", () => {
+  it("bloque : soi-même, personnel ; un chauffeur passe (2026-11-17)", () => {
     expect(deletionBlockers({ ...base, targetUid: "boss" })[0]).toMatch(/propre compte/);
     expect(deletionBlockers({ ...base, roles: ["customer", "admin"] })[0]).toMatch(/personnel/);
-    expect(deletionBlockers({ ...base, hasDriverProfile: true })[0]).toMatch(/chauffeur/);
-    expect(deletionBlockers({ ...base, roles: ["customer", "driver"] })[0]).toMatch(/chauffeur/);
+    expect(deletionBlockers({ ...base, hasDriverProfile: true })).toEqual([]);
+    expect(deletionBlockers({ ...base, roles: ["customer", "driver"] })).toEqual([]);
+  });
+
+  it("bloque un chauffeur en route ; ses livraisons terminées → anonymiser", () => {
+    const driver = { ...base, roles: ["customer", "driver"], hasDriverProfile: true };
+    expect(deletionBlockers({ ...driver, driverMissions: [{ status: "in_transit" }] }))
+      .toEqual(["Chauffeur sur 1 livraison(s) en cours : terminez-les ou annulez-les d'abord."]);
+    expect(deletionBlockers({ ...driver, driverMissions: [{ status: "completed" }, { status: "cancelled" }] }))
+      .toEqual([]);
+    expect(deletionMode([], [], [{ status: "completed" }])).toBe("anonymize");
+    expect(deletionMode([], [], [])).toBe("erase");
   });
 
   it("bloque : livraison en cours, solde dû, litige", () => {

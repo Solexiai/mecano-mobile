@@ -9,6 +9,9 @@
 //     écritures comptables gardés tels quels (preuves fiscales, 6 ans, visibles
 //     par l'administration seulement). Client sans livraison ni paiement →
 //     tout est effacé, photos de brouillon comprises.
+//     2026-11-17 (Daniel) : marche aussi pour un CHAUFFEUR — son dossier
+//     chauffeur (documents, offres, notes, fichiers) part en premier, puis le
+//     compte suit les mêmes règles. Bloqué s'il est en route sur une livraison.
 //   - getMarketingOptIns (analyste et plus) : clients dont la dernière
 //     réservation accepte « recevoir des offres ».
 //
@@ -26,6 +29,8 @@ import {
   deletionMode,
   latestMarketingOptIns,
 } from "../lib/customerDeletion";
+import { backfillCustomerFlags as backfillCustomerFlagsLib } from "../lib/customerFlag";
+import { purgeDriverProfile } from "../lib/driverProfilePurge";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 
 type Doc = Record<string, any>;
@@ -61,12 +66,13 @@ export const deleteCustomerAccount = onCall(async (request) => {
   const dryRun = request.data?.dryRun === true;
 
   const userRef = db.collection("users").doc(userId);
-  const [authUser, userSnap, driverSnap, missionsSnap, paymentsSnap] = await Promise.all([
+  const [authUser, userSnap, driverSnap, missionsSnap, paymentsSnap, drivenSnap] = await Promise.all([
     admin.auth().getUser(userId).catch(() => null),
     userRef.get(),
     db.collection("driver_profiles").doc(userId).get(),
     db.collection("delivery_requests").where("customer_id", "==", userId).limit(500).get(),
     db.collection("payments").where("customer_id", "==", userId).limit(1000).get(),
+    db.collection("delivery_requests").where("driver_id", "==", userId).limit(500).get(),
   ]);
   const user = userSnap.data() ?? {};
   if (!authUser && !userSnap.exists) throw notFound("Compte introuvable.");
@@ -74,6 +80,8 @@ export const deleteCustomerAccount = onCall(async (request) => {
 
   const missions = missionsSnap.docs.map((d) => d.data());
   const payments = paymentsSnap.docs.map((d) => d.data());
+  const driverMissions = drivenSnap.docs.map((d) => d.data());
+  const isDriver = driverSnap.exists || rolesOf(user).includes("driver");
   const blockers = deletionBlockers({
     actorUid: ctx.uid,
     targetUid: userId,
@@ -81,13 +89,16 @@ export const deleteCustomerAccount = onCall(async (request) => {
     hasDriverProfile: driverSnap.exists,
     missions,
     payments,
+    driverMissions,
   });
-  const mode = deletionMode(missions, payments);
+  const mode = deletionMode(missions, payments, driverMissions);
   const preview = {
     mode,
     blockers,
     deliveries: missions.filter((m) => m.status !== "draft" && m.status !== "quoted").length,
     payments: payments.length,
+    driver: isDriver,
+    driverDeliveries: driverMissions.length,
   };
   if (dryRun) return preview;
   if (blockers.length) throw failedPrecondition(blockers.join(" "));
@@ -105,6 +116,9 @@ export const deleteCustomerAccount = onCall(async (request) => {
       if (error?.code !== "auth/user-not-found") throw error;
     });
   }
+
+  // Dossier chauffeur (documents, offres, notes, fichiers) : parti aussi.
+  const driverPurge = isDriver ? await purgeDriverProfile(userId, { keepAuth: false }) : null;
 
   // Données personnelles rattachées au client, dans les deux cas.
   const [notifications, notes, tokens, quotes] = await Promise.all([
@@ -154,6 +168,15 @@ export const deleteCustomerAccount = onCall(async (request) => {
       notesDeleted: notes.size,
       notificationsDeleted: notifications.size,
       quotesDeleted: mode === "erase" ? quotes.size : unusedQuotes.length,
+      ...(driverPurge
+        ? {
+            driverProfileDeleted: true,
+            driverDeliveriesKept: driverMissions.length,
+            driverDocumentsDeleted: driverPurge.documentsDeleted,
+            driverOffersDeleted: driverPurge.offersDeleted,
+            driverNotesDeleted: driverPurge.notesDeleted,
+          }
+        : {}),
     },
   });
 
@@ -181,4 +204,24 @@ export const getMarketingOptIns = onCall(async (request) => {
     });
   }
   return { userIds: latestMarketingOptIns(rows) };
+});
+
+/**
+ * Rattrapage « qui est client ? » (super-admin) : pose `is_customer` sur tous
+ * les comptes d'après leurs prix demandés et réservations. À lancer une fois
+ * après la mise en ligne du 17 novembre 2026 ; sans danger si relancé.
+ */
+export const backfillCustomerFlags = onCall(async (request) => {
+  const ctx = requireSignedIn(request);
+  requireSuperAdmin(ctx);
+  const result = await backfillCustomerFlagsLib();
+  await writeAuditLog({
+    actorUserId: ctx.uid,
+    actorRole: roleOf(ctx),
+    action: "customer_flags_backfilled",
+    sourceFunction: "backfillCustomerFlags",
+    targetId: "users",
+    metadata: result,
+  });
+  return result;
 });

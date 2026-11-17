@@ -19,6 +19,7 @@ import '../../../../models/enums.dart';
 import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_driver_detail_screen.dart';
+import '../users/customer_deletion_card.dart';
 import '../../../../services/driver_presence.dart';
 import 'admin_driver_activity_summary.dart';
 import 'driver_payout_status.dart';
@@ -411,7 +412,11 @@ class _DriverRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = context.read<LocaleProvider>().locale;
-    final canDelete = context.watch<FirebaseAuthProvider>().isAdminOrAbove;
+    final auth = context.watch<FirebaseAuthProvider>();
+    final canDelete = auth.isAdminOrAbove;
+    // 2026-11-17 (Daniel) : le super-admin peut effacer le compte au complet
+    // (dossier chauffeur + compte client), pas seulement le dossier.
+    final canDeleteAccount = auth.isSuperAdmin;
     String copy(String fr, String en, String es) => switch (locale) {
       'fr' => fr,
       'es' => es,
@@ -456,17 +461,42 @@ class _DriverRow extends StatelessWidget {
                 ),
                 if (canDelete)
                   PopupMenuButton<String>(
+                    key: ValueKey('driver-menu-${driver.uid}'),
                     tooltip: 'Actions',
                     onSelected: (value) {
                       if (value == 'delete') {
                         _confirmDeleteDriver(context, driver);
+                      } else if (value == 'delete_account') {
+                        startAccountDeletion(
+                          context,
+                          userId: driver.uid,
+                          locale: locale,
+                        );
                       }
                     },
-                    itemBuilder: (_) => const [
+                    itemBuilder: (_) => [
                       PopupMenuItem(
                         value: 'delete',
-                        child: Text('Supprimer le dossier chauffeur'),
+                        child: Text(
+                          copy(
+                            'Retirer le dossier chauffeur (le compte client reste)',
+                            'Remove driver file (customer account stays)',
+                            'Quitar el expediente de conductor (la cuenta de cliente queda)',
+                          ),
+                        ),
                       ),
+                      if (canDeleteAccount)
+                        PopupMenuItem(
+                          value: 'delete_account',
+                          child: Text(
+                            copy(
+                              'Effacer le compte au complet…',
+                              'Delete the whole account…',
+                              'Borrar la cuenta completa…',
+                            ),
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
                     ],
                   )
                 else
@@ -549,11 +579,12 @@ Future<void> _confirmDeleteDriver(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('Supprimer le dossier chauffeur?'),
+      title: const Text('Retirer le dossier chauffeur?'),
       content: Text(
         'Le dossier chauffeur de ${driver.fullName} ainsi que ses documents '
         'seront supprimés. Son compte client et son historique de livraisons '
-        'seront conservés.',
+        'seront conservés. Pour tout effacer, utilisez « Effacer le compte au '
+        'complet » (super-admin).',
       ),
       actions: [
         TextButton(

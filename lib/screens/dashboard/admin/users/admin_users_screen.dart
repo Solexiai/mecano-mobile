@@ -6,13 +6,20 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/app_colors.dart';
+import '../../../../providers/firebase_auth_provider.dart';
 import '../../../../providers/locale_provider.dart';
 import 'admin_users_list_logic.dart';
+import 'customer_deletion_card.dart';
 
-enum _UserFilter { all, customers, drivers, administrators }
+// 2026-11-17 (Daniel) : « séparer les clients des chauffeurs ». La liste
+// s'ouvre sur les clients ; un chauffeur n'y figure que s'il a demandé un
+// prix ou réservé (mention « Aussi chauffeur »), et un client-chauffeur porte
+// « Aussi client » dans l'onglet Chauffeurs. Le super-admin peut effacer un
+// compte depuis le menu « ⋮ » de chaque carte.
+enum _UserFilter { customers, drivers, administrators, all }
 
 class AdminUsersScreen extends StatefulWidget {
-  const AdminUsersScreen({super.key, this.initialFilter = 'all'});
+  const AdminUsersScreen({super.key, this.initialFilter = 'customers'});
   final String initialFilter;
   @override
   State<AdminUsersScreen> createState() => _AdminUsersScreenState();
@@ -25,8 +32,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   // « Accepte les offres » (dernière réservation, loi anti-pourriel).
   UserSort _sort = UserSort.recent;
   bool _offersOnly = false;
+  /// Onglet Clients : cacher ceux qui sont aussi chauffeurs.
+  bool _hideDrivers = false;
   Set<String>? _optIns;
   bool _loadingOptIns = false;
+  bool _recomputing = false;
 
   @override
   void initState() {
@@ -35,7 +45,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       'customers' => _UserFilter.customers,
       'drivers' => _UserFilter.drivers,
       'administrators' => _UserFilter.administrators,
-      _ => _UserFilter.all,
+      'all' => _UserFilter.all,
+      _ => _UserFilter.customers,
     };
   }
 
@@ -49,6 +60,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale;
     final fr = locale == 'fr';
+    final isSuperAdmin = context.watch<FirebaseAuthProvider>().isSuperAdmin;
     return Scaffold(
       appBar: AppBar(title: Text(fr ? 'Utilisateurs' : 'Users')),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -68,23 +80,30 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           }
 
           final query = _searchController.text.trim().toLowerCase();
-          final users = snapshot.data!.docs.where((doc) {
+          final live = snapshot.data!.docs.where((doc) {
             final data = doc.data();
             if ((data['migrated_to_uid'] ?? '').toString().isNotEmpty) {
               return false;
             }
-            if (isDeletedUser(data)) return false;
+            return !isDeletedUser(data);
+          }).toList();
+          final counts = {
+            _UserFilter.customers: live.where((d) => isCustomerAccount(d.data())).length,
+            _UserFilter.drivers: live.where((d) => isDriverAccount(d.data())).length,
+            _UserFilter.administrators: live.where((d) => isStaffAccount(d.data())).length,
+            _UserFilter.all: live.length,
+          };
+          final users = live.where((doc) {
+            final data = doc.data();
             if (_offersOnly && !(_optIns?.contains(doc.id) ?? false)) {
               return false;
             }
-            final roles = _roles(data);
             final matchesFilter = switch (_filter) {
               _UserFilter.all => true,
-              _UserFilter.customers => roles.contains('customer'),
-              _UserFilter.drivers => roles.contains('driver'),
-              _UserFilter.administrators => roles.any(
-                (r) => r == 'analyst' || r == 'admin' || r == 'super_admin',
-              ),
+              _UserFilter.customers =>
+                isCustomerAccount(data) && !(_hideDrivers && isDriverAccount(data)),
+              _UserFilter.drivers => isDriverAccount(data),
+              _UserFilter.administrators => isStaffAccount(data),
             };
             final haystack =
                 '${data['full_name'] ?? ''} ${data['email'] ?? ''} ${doc.id}'
@@ -121,16 +140,30 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  _filterChip(_UserFilter.all, fr ? 'Tous' : 'All'),
                   _filterChip(
                     _UserFilter.customers,
-                    fr ? 'Clients' : 'Customers',
+                    '${fr ? 'Clients' : 'Customers'} · ${counts[_UserFilter.customers]}',
                   ),
                   _filterChip(
                     _UserFilter.drivers,
-                    fr ? 'Chauffeurs' : 'Drivers',
+                    '${fr ? 'Chauffeurs' : 'Drivers'} · ${counts[_UserFilter.drivers]}',
                   ),
-                  _filterChip(_UserFilter.administrators, 'Administration'),
+                  _filterChip(
+                    _UserFilter.administrators,
+                    '${fr ? 'Personnel' : 'Staff'} · ${counts[_UserFilter.administrators]}',
+                  ),
+                  _filterChip(
+                    _UserFilter.all,
+                    '${fr ? 'Tous' : 'All'} · ${counts[_UserFilter.all]}',
+                  ),
+                  if (_filter == _UserFilter.customers)
+                    FilterChip(
+                      key: const ValueKey('users-hide-drivers'),
+                      avatar: const Icon(Icons.person_off_outlined, size: 18),
+                      label: Text(fr ? 'Masquer les chauffeurs' : 'Hide drivers'),
+                      selected: _hideDrivers,
+                      onSelected: (v) => setState(() => _hideDrivers = v),
+                    ),
                   FilterChip(
                     key: const ValueKey('users-offers-only'),
                     avatar: _loadingOptIns
@@ -201,6 +234,33 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ),
+              if (_filter == _UserFilter.customers)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    fr
+                        ? 'Un chauffeur apparaît ici seulement s’il a demandé un prix ou réservé (« Aussi chauffeur »).'
+                        : 'A driver appears here only after requesting a price or booking (“Also a driver”).',
+                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  ),
+                ),
+              if (isSuperAdmin)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const ValueKey('users-recompute-flags'),
+                    onPressed: _recomputing ? null : () => _recomputeFlags(fr),
+                    icon: _recomputing
+                        ? const SizedBox.square(
+                            dimension: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.sync_outlined, size: 18),
+                    label: Text(
+                      fr ? 'Recalculer qui est client' : 'Recompute who is a customer',
+                    ),
+                  ),
+                ),
               const SizedBox(height: 10),
               if (sorted.isEmpty)
                 Padding(
@@ -215,7 +275,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 final data = doc.data();
                 final name = (data['full_name'] ?? '').toString().trim();
                 final email = (data['email'] ?? '').toString().trim();
-                final roles = _roles(data);
+                final roles = _cardRoles(data, _filter);
+                final also = alsoLabel(
+                  data,
+                  inCustomers: _filter == _UserFilter.customers,
+                  fr: fr,
+                );
                 final display = name.isNotEmpty ? name : email;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -245,19 +310,50 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: roles
-                              .map(
-                                (role) => Chip(
-                                  visualDensity: VisualDensity.compact,
-                                  label: Text(_roleLabel(role, fr)),
-                                ),
-                              )
-                              .toList(),
+                          children: [
+                            for (final role in roles)
+                              Chip(
+                                visualDensity: VisualDensity.compact,
+                                label: Text(_roleLabel(role, fr)),
+                              ),
+                            if (also != null)
+                              Chip(
+                                key: ValueKey('also-${doc.id}'),
+                                visualDensity: VisualDensity.compact,
+                                avatar: const Icon(Icons.swap_horiz, size: 16),
+                                label: Text(also),
+                              ),
+                          ],
                         ),
                       ],
                     ),
                     isThreeLine: true,
-                    trailing: const Icon(Icons.chevron_right),
+                    trailing: isSuperAdmin
+                        ? PopupMenuButton<String>(
+                            key: ValueKey('user-menu-${doc.id}'),
+                            tooltip: 'Actions',
+                            onSelected: (value) {
+                              if (value == 'open') {
+                                context.push('/$locale/admin/utilisateurs/${doc.id}');
+                              } else if (value == 'delete') {
+                                startAccountDeletion(context, userId: doc.id, locale: locale);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: 'open',
+                                child: Text(fr ? 'Ouvrir la fiche' : 'Open file'),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(
+                                  fr ? 'Effacer le compte…' : 'Delete account…',
+                                  style: const TextStyle(color: AppColors.error),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Icon(Icons.chevron_right),
                     onTap: () =>
                         context.push('/$locale/admin/utilisateurs/${doc.id}'),
                   ),
@@ -302,6 +398,36 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     }
   }
 
+  Future<void> _recomputeFlags(bool fr) async {
+    setState(() => _recomputing = true);
+    try {
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('backfillCustomerFlags')
+          .call(<String, dynamic>{});
+      final data = Map<String, dynamic>.from(result.data as Map);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fr
+                ? '${data['customers']} client(s), ${data['driversOnly']} chauffeur(s) seulement, sur ${data['total']} compte(s).'
+                : '${data['customers']} customer(s), ${data['driversOnly']} driver(s) only, out of ${data['total']} account(s).',
+          ),
+        ),
+      );
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? (fr ? 'Recalcul impossible.' : 'Unable to recompute.')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _recomputing = false);
+    }
+  }
+
   Future<void> _copyEmails(List<String> emails, bool fr) async {
     await Clipboard.setData(ClipboardData(text: emails.join(', ')));
     if (!mounted) return;
@@ -322,12 +448,16 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     onSelected: (_) => setState(() => _filter = value),
   );
 
-  static List<String> _roles(Map<String, dynamic> data) {
-    final raw = data['roles'];
-    if (raw is List) return raw.whereType<String>().toList();
-    final role = data['role'];
-    return role is String && role.isNotEmpty ? [role] : const ['customer'];
-  }
+  /// Pastilles de rôle : « Client » seulement si c'en est vraiment un ; le
+  /// rôle de l'onglet courant est sous-entendu (la mention « Aussi… » dit
+  /// le reste).
+  static List<String> _cardRoles(Map<String, dynamic> data, _UserFilter filter) => [
+    for (final role in userRoles(data))
+      if ((role != 'customer' || isCustomerAccount(data)) &&
+          !(filter == _UserFilter.customers && (role == 'customer' || role == 'driver')) &&
+          !(filter == _UserFilter.drivers && (role == 'driver' || role == 'customer')))
+        role,
+  ];
 
   static String _roleLabel(String role, bool fr) => switch (role) {
     'customer' => fr ? 'Client' : 'Customer',

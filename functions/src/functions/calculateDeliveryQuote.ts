@@ -24,6 +24,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { activeConditionSurcharge, getSpecialConditions, pauseMessage } from "../lib/specialConditions";
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
+import { markAsCustomer } from "../lib/customerFlag";
 import { consumeRoutingBudget } from "../lib/routingRateLimit";
 import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
@@ -380,6 +381,11 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
     expires_at: expiresAt,
     is_consumed: false,
   });
+
+  // Admin › Utilisateurs (Daniel, 2026-11-17) : dès qu'un compte demande un
+  // prix, c'est un client — même s'il est aussi chauffeur. Le drapeau sépare
+  // les vrais clients des chauffeurs qui n'ont jamais rien demandé.
+  await markAsCustomer(ctx.uid, now);
 
   return {
     vehicleCategory: input.vehicleCategory,
