@@ -1413,6 +1413,17 @@ class AppStrings {
       'en': 'Traveled route',
       'es': 'Ruta recorrida',
     },
+    // 2026-11-18 : l'itinéraire prévu suit les routes (plus de ligne droite).
+    'tracking_planned_route_legend': {
+      'fr': 'Itinéraire par la route',
+      'en': 'Route by road',
+      'es': 'Itinerario por carretera',
+    },
+    'tracking_map_fix_link': {
+      'fr': 'Signaler une erreur de carte',
+      'en': 'Report a map error',
+      'es': 'Informar de un error del mapa',
+    },
 
     // ---------- Timeline client (Phase 5, partie 3) ----------
     'tracking_timeline_title': {

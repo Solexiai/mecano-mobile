@@ -289,10 +289,12 @@ void main() => offlineTests(() {
     await mount(tester, repo);
     await emit(tester, repo, location());
     final now = DateTime.now();
+    // Positions rapprochées (10 s) : au-delà de 30 s d'écart, le tracé est
+    // coupé plutôt que relié à vol d'oiseau (live_tracking_road_route_test).
     repo.points('sim-driver', 'sim-A').add([
-      point('sim-A', 45.2, time: now.subtract(const Duration(minutes: 1))),
+      point('sim-A', 45.2, time: now.subtract(const Duration(seconds: 10))),
       point('sim-B', 10),
-      point('sim-A', 45.1, time: now.subtract(const Duration(minutes: 2))),
+      point('sim-A', 45.1, time: now.subtract(const Duration(seconds: 20))),
     ]);
     await tester.pumpAndSettle();
     final points = tester
@@ -411,7 +413,7 @@ void main() => offlineTests(() {
       await emit(tester, repo, location());
       final now = DateTime.now();
       repo.points('sim-driver', 'sim-A').add([
-        point('sim-A', 45.1, time: now.subtract(const Duration(minutes: 2))),
+        point('sim-A', 45.1, time: now.subtract(const Duration(seconds: 20))),
         DriverLocationHistoryPoint.fromJson({
           'delivery_id': 'sim-A',
           'latitude': 10,
@@ -419,7 +421,7 @@ void main() => offlineTests(() {
           'recorded_at': 'invalid',
         }),
         point('sim-A', 20, time: now.add(const Duration(days: 1))),
-        point('sim-A', 45.2, time: now.subtract(const Duration(minutes: 1))),
+        point('sim-A', 45.2, time: now.subtract(const Duration(seconds: 10))),
       ]);
       await tester.pumpAndSettle();
       final line = tester
