@@ -11,6 +11,19 @@ void main() {
     expect(adminDriverInitialFilter('connected'), isNull);
     expect(adminDriverInitialFilter('offline'), isNull);
   });
+  // 2026-11-18 (Daniel) : « je reste toujours en ligne » — son onglet admin
+  // (même compte) émettait une présence. Seules les pages chauffeur comptent.
+  test('la présence n’est émise que sur les pages chauffeur', () {
+    expect(isDriverSurfacePath('/fr/fournisseur/tableau-de-bord'), isTrue);
+    expect(isDriverSurfacePath('/en/provider/mission/abc'), isTrue);
+    expect(isDriverSurfacePath('/es/proveedor/panel'), isTrue);
+    expect(isDriverSurfacePath('/fr/admin/chauffeurs?filter=connected'), isFalse);
+    expect(isDriverSurfacePath('/fr/admin'), isFalse);
+    expect(isDriverSurfacePath('/fr/tableau-de-bord'), isFalse);
+    expect(isDriverSurfacePath('/fr/devenir-chauffeur/statut'), isFalse);
+    expect(isDriverSurfacePath('/fr'), isFalse);
+    expect(isDriverSurfacePath('/'), isFalse);
+  });
   final now = DateTime.utc(2026, 10, 19);
   test('presence deduplicates tabs and expires without new snapshots', () {
     final sessions = [

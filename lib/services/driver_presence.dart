@@ -22,11 +22,30 @@ Set<String> connectedDriverIds(
     .map((s) => s.driverId)
     .toSet();
 
+/// Pages où l'on est « dans l'application chauffeur » : tableau de bord
+/// chauffeur et mission en cours. L'admin, le site et l'espace client n'en
+/// font pas partie (2026-11-18 : Daniel restait « Connecté » parce que son
+/// onglet admin, ouvert avec le même compte, émettait une présence).
+bool isDriverSurfacePath(String path) {
+  final segments = Uri.parse(path).pathSegments.where((s) => s.isNotEmpty).toList();
+  if (segments.length < 2) return false;
+  return const {'fournisseur', 'provider', 'proveedor'}.contains(segments[1]);
+}
+
 /// Presence measures foreground connectivity, never dispatch availability.
 /// One document per session prevents one tab closing another tab's presence.
 class DriverPresenceScope extends StatefulWidget {
-  const DriverPresenceScope({super.key, required this.child});
+  const DriverPresenceScope({
+    super.key,
+    required this.child,
+    required this.location,
+    required this.currentPath,
+  });
   final Widget child;
+  /// Prévient quand la page change (le délégué du routeur).
+  final Listenable location;
+  /// Chemin courant, ex. `/fr/admin/chauffeurs`.
+  final String Function() currentPath;
   @override
   State<DriverPresenceScope> createState() => _DriverPresenceScopeState();
 }
@@ -38,6 +57,7 @@ class _DriverPresenceScopeState extends State<DriverPresenceScope>
   DocumentReference<Map<String, dynamic>>? _session;
   Future<void>? _pending;
   bool _foreground = true;
+  bool _driverSurface = false;
 
   @override
   void initState() {
@@ -46,6 +66,28 @@ class _DriverPresenceScopeState extends State<DriverPresenceScope>
     _foreground =
         WidgetsBinding.instance.lifecycleState == null ||
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    _driverSurface = isDriverSurfacePath(widget.currentPath());
+    widget.location.addListener(_onLocationChanged);
+  }
+
+  @override
+  void didUpdateWidget(DriverPresenceScope oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.location, widget.location)) {
+      oldWidget.location.removeListener(_onLocationChanged);
+      widget.location.addListener(_onLocationChanged);
+    }
+  }
+
+  void _onLocationChanged() {
+    final onDriverSurface = isDriverSurfacePath(widget.currentPath());
+    if (onDriverSurface == _driverSurface) return;
+    _driverSurface = onDriverSurface;
+    if (_driverSurface) {
+      _start();
+    } else {
+      _stop();
+    }
   }
 
   @override
@@ -65,7 +107,9 @@ class _DriverPresenceScopeState extends State<DriverPresenceScope>
   }
 
   void _start() {
-    if (!_foreground || _uid == null || _session != null) return;
+    if (!_foreground || !_driverSurface || _uid == null || _session != null) {
+      return;
+    }
     _session = FirebaseFirestore.instance
         .collection('driver_presence')
         .doc(const Uuid().v4());
@@ -116,6 +160,7 @@ class _DriverPresenceScopeState extends State<DriverPresenceScope>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.location.removeListener(_onLocationChanged);
     _stop();
     super.dispose();
   }
