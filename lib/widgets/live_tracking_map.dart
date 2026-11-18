@@ -7,6 +7,14 @@
 // Dernière position connue : identité, mission et date sont contrôlées.
 // Un flux Firestore peut restituer un cache ; sa réception ne prouve pas
 // la fraîcheur GPS. La date connue est affichée sans promettre du temps réel.
+//
+// PAR LA ROUTE, JAMAIS À VOL D'OISEAU (2026-11-18, Daniel) :
+// - l'itinéraire prévu (ramassage → livraison) suit les routes ; son tracé
+//   vient de `MissionRoutePathService` et la carte se cadre dessus ;
+// - le trajet parcouru ne relie deux positions GPS que si elles se suivent
+//   de près dans le temps. Quand l'app est en arrière-plan (Google Maps
+//   ouvert), les positions s'espacent : les relier traçait une ligne droite
+//   à travers champs. Un trou coupe désormais le tracé.
 // ---------------------------------------------------------------------------
 
 import 'dart:async';
@@ -15,12 +23,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' as ll;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../backend/backend_locator.dart';
 import '../backend/models/driver_location.dart';
 import '../backend/models/driver_location_history_point.dart';
 import '../backend/models/mission_address.dart';
 import '../core/app_colors.dart';
+import '../services/mission_route_path_service.dart';
 
 class LiveTrackingMap extends StatefulWidget {
   final String driverId;
@@ -63,6 +73,17 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   final MapController _mapController = MapController();
   bool _initialCentered = false;
   static const _freshness = Duration(seconds: 60);
+
+  /// Écart maximal entre deux positions pour les relier d'un trait. L'écran
+  /// de mission envoie une position toutes les 8 s : 30 s tolère quelques
+  /// envois manqués. Au-delà, le chauffeur a roulé sans être suivi et une
+  /// ligne droite entre les deux points ne dirait pas par où il est passé.
+  static const _maxTraceGap = Duration(seconds: 30);
+
+  /// Itinéraire prévu par la route ; vide tant qu'il n'est pas connu.
+  List<ll.LatLng> _plannedRoute = const [];
+  bool _routeFramed = false;
+  bool _routeFramedWithDriver = false;
   Timer? _expiryTimer;
   DateTime _now() => widget.now?.call() ?? DateTime.now();
   late Stream<DriverLocation?> _locationStream;
@@ -99,6 +120,53 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             widget.driverId,
             missionId: widget.missionId!,
           );
+    _loadPlannedRoute();
+  }
+
+  void _loadPlannedRoute() {
+    _plannedRoute = const [];
+    _routeFramed = false;
+    _routeFramedWithDriver = false;
+    final missionId = widget.missionId;
+    if (missionId == null || missionId.isEmpty) return;
+    final scope = _scope;
+    MissionRoutePathService.load(missionId).then((points) {
+      if (!mounted || scope != _scope || points.length < 2) return;
+      setState(() => _plannedRoute = points);
+    });
+  }
+
+  /// Cadre la carte sur l'itinéraire prévu (et le chauffeur s'il est connu) :
+  /// une fois à l'arrivée du tracé, une fois encore à la première position.
+  /// Ensuite la carte reste là où l'utilisateur l'a placée.
+  bool _frameRouteIfNeeded(ll.LatLng? driverPoint) {
+    if (_plannedRoute.length < 2) return false;
+    final needed =
+        !_routeFramed || (driverPoint != null && !_routeFramedWithDriver);
+    if (!needed) return true;
+    _routeFramed = true;
+    if (driverPoint != null) _routeFramedWithDriver = true;
+    final scope = _scope;
+    final points = <ll.LatLng>[
+      ..._plannedRoute,
+      if (driverPoint != null) driverPoint,
+    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || scope != _scope) return;
+      try {
+        _mapController.fitCamera(
+          CameraFit.bounds(
+            bounds: LatLngBounds.fromPoints(points),
+            padding: const EdgeInsets.fromLTRB(28, 44, 28, 52),
+            // Un trajet de quelques rues ne doit pas zoomer au-delà des rues.
+            maxZoom: 16,
+          ),
+        );
+      } catch (_) {
+        // Carte pas encore rendue : elle garde son centrage initial.
+      }
+    });
+    return true;
   }
 
   bool _usableDate(DateTime? date, DateTime now) =>
@@ -184,22 +252,43 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
   /// que ceux de la mission active courante (`widget.missionId`) — voir
   /// documentation du champ `missionId` ci-dessus. Tri en mémoire par
   /// `recordedAt` (convention du projet, évite un index composite dédié).
-  List<ll.LatLng> _routePoints(
+  List<DriverLocationHistoryPoint> _tracePoints(
     List<DriverLocationHistoryPoint> history,
     DateTime now,
   ) {
     if (widget.missionId == null) return const [];
-    final filtered =
-        history
-            .where(
-              (p) =>
-                  p.deliveryId == widget.missionId &&
-                  _usableDate(p.recordedAt, now) &&
-                  _coordinate(p.latitude, p.longitude) != null,
-            )
-            .toList()
-          ..sort((a, b) => a.recordedAt!.compareTo(b.recordedAt!));
-    return filtered.map((p) => ll.LatLng(p.latitude, p.longitude)).toList();
+    return history
+        .where(
+          (p) =>
+              p.deliveryId == widget.missionId &&
+              _usableDate(p.recordedAt, now) &&
+              _coordinate(p.latitude, p.longitude) != null,
+        )
+        .toList()
+      ..sort((a, b) => a.recordedAt!.compareTo(b.recordedAt!));
+  }
+
+  /// Découpe le trajet parcouru en tronçons continus : deux positions ne
+  /// sont reliées que si elles se suivent à `_maxTraceGap` au plus. Une
+  /// position isolée ne trace rien — jamais de ligne droite à vol d'oiseau
+  /// par-dessus un trou de suivi.
+  List<List<ll.LatLng>> _traveledSegments(
+    List<DriverLocationHistoryPoint> trace,
+  ) {
+    final segments = <List<ll.LatLng>>[];
+    var current = <ll.LatLng>[];
+    DateTime? previous;
+    for (final p in trace) {
+      final recordedAt = p.recordedAt!;
+      if (previous != null && recordedAt.difference(previous) > _maxTraceGap) {
+        if (current.length >= 2) segments.add(current);
+        current = <ll.LatLng>[];
+      }
+      current.add(ll.LatLng(p.latitude, p.longitude));
+      previous = recordedAt;
+    }
+    if (current.length >= 2) segments.add(current);
+    return segments;
   }
 
   @override
@@ -227,7 +316,8 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
             ? null
             : _coordinate(widget.dropoff!.lat, widget.dropoff!.lng);
 
-        if (driverPoint != null && !_initialCentered) {
+        final framedOnRoute = _frameRouteIfNeeded(driverPoint);
+        if (!framedOnRoute && driverPoint != null && !_initialCentered) {
           _initialCentered = true;
           final scope = _scope;
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -241,10 +331,13 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
           key: ValueKey(_scope),
           stream: _historyStream,
           builder: (context, historySnap) {
-            final routePoints = _routePoints(
+            final trace = _tracePoints(
               historySnap.hasError ? const [] : historySnap.data ?? const [],
               _now(),
             );
+            final traveled = _traveledSegments(trace);
+            final planned = _plannedRoute;
+            final hasPlanned = planned.length >= 2;
 
             final center =
                 driverPoint ??
@@ -253,7 +346,10 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                 (location == null
                     ? null
                     : _coordinate(location.latitude, location.longitude)) ??
-                (routePoints.isEmpty ? null : routePoints.last);
+                (trace.isEmpty
+                    ? null
+                    : ll.LatLng(trace.last.latitude, trace.last.longitude)) ??
+                (hasPlanned ? planned.first : null);
 
             return Column(
               mainAxisSize: MainAxisSize.min,
@@ -284,16 +380,28 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                                     userAgentPackageName:
                                         'com.movik.movik_connect',
                                   ),
-                                  if (routePoints.length >= 2)
+                                  if (hasPlanned || traveled.isNotEmpty)
                                     PolylineLayer(
                                       polylines: [
-                                        Polyline(
-                                          points: routePoints,
-                                          strokeWidth: 4,
-                                          color: AppColors.primary.withValues(
-                                            alpha: 0.85,
+                                        // Dessous : l'itinéraire prévu, par
+                                        // la route. Dessus : le trajet
+                                        // réellement parcouru.
+                                        if (hasPlanned)
+                                          Polyline(
+                                            points: planned,
+                                            strokeWidth: 5,
+                                            color: AppColors.info.withValues(
+                                              alpha: 0.9,
+                                            ),
                                           ),
-                                        ),
+                                        for (final segment in traveled)
+                                          Polyline(
+                                            points: segment,
+                                            strokeWidth: 4,
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.85,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   MarkerLayer(
@@ -333,12 +441,23 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                                 ],
                               ),
                       ),
-                      if (routePoints.length >= 2)
+                      if (hasPlanned || traveled.isNotEmpty)
                         Positioned(
                           left: 10,
                           top: 10,
                           child: _RouteLegend(
-                            label: widget.t('tracking_route_legend'),
+                            entries: [
+                              if (hasPlanned)
+                                (
+                                  widget.t('tracking_planned_route_legend'),
+                                  AppColors.info,
+                                ),
+                              if (traveled.isNotEmpty)
+                                (
+                                  widget.t('tracking_route_legend'),
+                                  AppColors.primary,
+                                ),
+                            ],
                           ),
                         ),
                       if (location != null)
@@ -394,6 +513,13 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
                     ],
                   ),
                 ),
+                if (center != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+                    child: _MapAttribution(
+                      fixLabel: widget.t('tracking_map_fix_link'),
+                    ),
+                  ),
                 if (historySnap.hasError)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
@@ -421,8 +547,9 @@ class _LiveTrackingMapState extends State<LiveTrackingMap> {
 }
 
 class _RouteLegend extends StatelessWidget {
-  final String label;
-  const _RouteLegend({required this.label});
+  /// (libellé, couleur du trait) — une ligne par tracé affiché sur la carte.
+  final List<(String, Color)> entries;
+  const _RouteLegend({required this.entries});
 
   @override
   Widget build(BuildContext context) {
@@ -432,21 +559,79 @@ class _RouteLegend extends StatelessWidget {
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(width: 16, height: 3, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+          for (final (label, color) in entries)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Liseré clair : le trait reste lisible sur le fond sombre.
+                Container(
+                  width: 16,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: color,
+                    border: Border.all(color: Colors.white70, width: 0.5),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+/// Mention exigée par OpenStreetMap (fond de carte et calcul d'itinéraire) :
+/// crédit des contributeurs et lien pour signaler une erreur de carte.
+class _MapAttribution extends StatelessWidget {
+  final String fixLabel;
+  const _MapAttribution({required this.fixLabel});
+
+  static Future<void> _open(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      // Lien d'information seulement : un échec d'ouverture reste silencieux.
+    }
+  }
+
+  Widget _link(String label, String url) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: () => _open(url),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: 11,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 14,
+      children: [
+        _link('© OpenStreetMap', 'https://www.openstreetmap.org/copyright'),
+        _link(fixLabel, 'https://www.openstreetmap.org/fixthemap'),
+      ],
     );
   }
 }

@@ -23,6 +23,7 @@ export { logDriverReviewOpened } from "./functions/logDriverReviewOpened";
 // ---- Devis, missions, dispatch, acceptation ----
 export { calculateDeliveryQuote } from "./functions/calculateDeliveryQuote";
 export { calculateRoute } from "./functions/calculateRoute";
+export { getMissionRoutePath } from "./functions/getMissionRoutePath";
 export { createDeliveryRequest } from "./functions/createDeliveryRequest";
 export { acceptDelivery } from "./functions/acceptDelivery";
 export { adminAssignDelivery } from "./functions/adminAssignDelivery";
