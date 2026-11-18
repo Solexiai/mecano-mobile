@@ -132,7 +132,14 @@ class MovikApp extends StatelessWidget {
                   ? loadAppVersionPolicyFromFirestore
                   : null,
               installedBuild: installedBuildNumber,
-              child: DriverPresenceScope(child: child ?? const SizedBox.shrink()),
+              // Présence chauffeur : seulement sur les pages chauffeur
+              // (pas depuis l'admin ni le site, même compte ou non).
+              child: DriverPresenceScope(
+                location: AppRouter.router.routerDelegate,
+                currentPath: () =>
+                    AppRouter.router.routerDelegate.currentConfiguration.uri.path,
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(),

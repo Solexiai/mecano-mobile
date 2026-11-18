@@ -228,9 +228,9 @@ class _AdminDriversListScreenState extends State<AdminDriversListScreen> {
                       'Presencia no disponible: estado sin confirmar.',
                     )
                   : _copy(
-                      'Connecté = application au premier plan, signal reçu depuis moins de 90 s. Ce statut ne signifie pas disponible pour une mission.',
-                      'Connected = app in foreground, signal received within 90 s. This does not mean available for a job.',
-                      'Conectado = aplicación en primer plano, señal de menos de 90 s. No significa disponible para un servicio.',
+                      'Connecté = espace chauffeur ouvert au premier plan, signal reçu depuis moins de 90 s (l’admin et le site ne comptent pas). Ce statut ne signifie pas disponible pour une mission.',
+                      'Connected = driver area open in the foreground, signal received within 90 s (admin and website do not count). This does not mean available for a job.',
+                      'Conectado = espacio del conductor abierto en primer plano, señal de menos de 90 s (el admin y el sitio no cuentan). No significa disponible para un servicio.',
                     ),
             ),
             const SizedBox(height: 20),
