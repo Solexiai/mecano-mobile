@@ -123,7 +123,7 @@ export async function chargeDriverTip(input: ChargeDriverTipInput): Promise<Char
       if (!existing || existing.status !== PaymentStatuses.FAILED) break;
     }
     if (sequence > MAX_TIP_SEQUENCE) {
-      throw failedPrecondition("Trop d'essais refusés. Mettez votre carte à jour ou écrivez à infos@movi-k.com.");
+      throw failedPrecondition("Trop d'essais refusés. Mettez votre carte à jour ou écrivez à info@movi-k.com.");
     }
     if (existing?.status === PaymentStatuses.CAPTURED) {
       return { kind: "done" as const, amountMinor: existing.amount_captured_minor };
@@ -139,7 +139,7 @@ export async function chargeDriverTip(input: ChargeDriverTipInput): Promise<Char
         connectedAccountId: existing.connected_account_id as string,
       };
     }
-    if (existing) throw failedPrecondition("Le pourboire de cette livraison est dans un état inattendu. Écrivez à infos@movi-k.com.");
+    if (existing) throw failedPrecondition("Le pourboire de cette livraison est dans un état inattendu. Écrivez à info@movi-k.com.");
 
     const amountMinor = tipAmountMinor(input.choice, tipBaseMinor(mission!));
     const percent = input.choice.kind === "percent" ? input.choice.percent : null;

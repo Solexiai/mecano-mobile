@@ -203,7 +203,7 @@ class ProviderProfileTab extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               // 2026-11-06 : plus de « Bientôt disponible » — le support
-              // existe (infos@movi-k.com).
+              // existe (info@movi-k.com).
               Text(
                 t('provider_profile_support'),
                 style: const TextStyle(fontWeight: FontWeight.w700),

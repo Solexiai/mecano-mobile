@@ -415,8 +415,8 @@ export const emailUnsubscribe = onRequest(async (req, res) => {
   const token = typeof req.query.t === "string" ? req.query.t : "";
   const invalid = () => res.status(400).type("html").send(page(
     "Lien invalide",
-    "<h1 style=\"font-size:20px\">Lien invalide</h1><p>Ce lien de désabonnement n'est plus valide. Écrivez à infos@movi-k.com et nous nous en occupons.</p>" +
-    "<p style=\"color:#54607A\">This unsubscribe link is no longer valid. Write to infos@movi-k.com and we will take care of it.</p>"
+    "<h1 style=\"font-size:20px\">Lien invalide</h1><p>Ce lien de désabonnement n'est plus valide. Écrivez à info@movi-k.com et nous nous en occupons.</p>" +
+    "<p style=\"color:#54607A\">This unsubscribe link is no longer valid. Write to info@movi-k.com and we will take care of it.</p>"
   ));
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(uid) || !/^[A-Za-z0-9_-]{20,128}$/.test(token)) {
     invalid();
@@ -448,7 +448,7 @@ export const emailUnsubscribe = onRequest(async (req, res) => {
     ));
   } catch (error) {
     console.error("[désabonnement] échec", error instanceof Error ? error.message : error);
-    res.status(500).type("html").send(page("Erreur", "<p>Une erreur est survenue. Réessayez ou écrivez à infos@movi-k.com.</p>"));
+    res.status(500).type("html").send(page("Erreur", "<p>Une erreur est survenue. Réessayez ou écrivez à info@movi-k.com.</p>"));
   }
 });
 

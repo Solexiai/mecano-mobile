@@ -16,7 +16,7 @@
 import { admin, db } from "./admin";
 
 export const EMAIL_FROM = "Movi-K <reservations@movi-k.com>";
-export const EMAIL_REPLY_TO = "infos@movi-k.com";
+export const EMAIL_REPLY_TO = "info@movi-k.com";
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 const MAX_ATTEMPTS = 3;
 

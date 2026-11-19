@@ -132,7 +132,7 @@ void main() {
           expect(html, contains('<h1>'));
           expect(html, contains('flutter_bootstrap.js'));
           expect(html, contains('flutter-first-frame'));
-          expect(html, contains('href="mailto:infos@movi-k.com"'));
+          expect(html, contains('href="mailto:info@movi-k.com"'));
 
           final data = _jsonLd(html);
           expect(data['@context'], 'https://schema.org');
@@ -322,7 +322,7 @@ void main() {
   test('llms.txt describes Movi-K for AI assistants', () {
     final llms = renderLlmsTxt();
     expect(llms, startsWith('# Movi-K\n'));
-    expect(llms, contains('infos@movi-k.com'));
+    expect(llms, contains('info@movi-k.com'));
     expect(llms, contains('Granby'));
     for (final page in seoPages) {
       expect(llms, contains(page.url('fr')));

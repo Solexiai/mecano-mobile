@@ -42,7 +42,7 @@ export interface MissionRoutePathResponse {
 
 type RouteGeometryFetcher = (url: string) => Promise<unknown>;
 
-const USER_AGENT = "Movi-K/1.0 (+https://movi-k.com; infos@movi-k.com)";
+const USER_AGENT = "Movi-K/1.0 (+https://movi-k.com; info@movi-k.com)";
 const PROVIDER_TIMEOUT_MS = 8000;
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 200;

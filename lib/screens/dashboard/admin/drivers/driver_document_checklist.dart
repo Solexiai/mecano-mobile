@@ -1,7 +1,7 @@
 // Fiche chauffeur › Documents (Daniel, 2026-11-12) : une place par document
 // (permis recto, permis verso, immatriculation, assurance, photos du
 // véhicule, autres). Pour chaque place, un agent peut ajouter le document
-// reçu par courriel à infos@movi-k.com (adminAddDriverDocument) ; il se
+// reçu par courriel à info@movi-k.com (adminAddDriverDocument) ; il se
 // vérifie et s'approuve ensuite comme un envoi du chauffeur.
 import 'dart:convert';
 

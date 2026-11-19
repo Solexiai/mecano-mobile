@@ -2959,9 +2959,9 @@ class AppStrings {
       'es': 'Soporte técnico',
     },
     'provider_profile_support_hint': {
-      'fr': 'Une question ? Écrivez-nous à infos@movi-k.com',
-      'en': 'A question? Write to us at infos@movi-k.com',
-      'es': '¿Una pregunta? Escríbanos a infos@movi-k.com',
+      'fr': 'Une question ? Écrivez-nous à info@movi-k.com',
+      'en': 'A question? Write to us at info@movi-k.com',
+      'es': '¿Una pregunta? Escríbanos a info@movi-k.com',
     },
 
     // ---------- Messagerie client (CustomerMessagesTab, Bloc K) ----------
@@ -3053,11 +3053,11 @@ class AppStrings {
     },
     'admin_driver_doc_add_hint': {
       'fr':
-          'Document reçu par courriel à infos@movi-k.com ? Ajoutez-le à sa place, puis approuvez-le.',
+          'Document reçu par courriel à info@movi-k.com ? Ajoutez-le à sa place, puis approuvez-le.',
       'en':
-          'Document received by email at infos@movi-k.com? Add it in its place, then approve it.',
+          'Document received by email at info@movi-k.com? Add it in its place, then approve it.',
       'es':
-          '¿Documento recibido por correo en infos@movi-k.com? Añádelo en su lugar y luego apruébalo.',
+          '¿Documento recibido por correo en info@movi-k.com? Añádelo en su lugar y luego apruébalo.',
     },
     'admin_driver_doc_missing': {
       'fr': 'Manquant',

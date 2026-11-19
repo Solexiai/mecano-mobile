@@ -320,9 +320,9 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Paso 1 — Reporte',
               ),
               _tr(
-                fr: "Écrivez-nous à infos@movi-k.com dans les 3 jours suivant la livraison, avec la référence de la livraison, une description du problème et vos photos.",
-                en: 'Email us at infos@movi-k.com within 3 days after the delivery, with the delivery reference, a description of the problem and your photos.',
-                es: 'Escríbenos a infos@movi-k.com dentro de los 3 días posteriores a la entrega, con la referencia de la entrega, una descripción del problema y tus fotos.',
+                fr: "Écrivez-nous à info@movi-k.com dans les 3 jours suivant la livraison, avec la référence de la livraison, une description du problème et vos photos.",
+                en: 'Email us at info@movi-k.com within 3 days after the delivery, with the delivery reference, a description of the problem and your photos.',
+                es: 'Escríbenos a info@movi-k.com dentro de los 3 días posteriores a la entrega, con la referencia de la entrega, una descripción del problema y tus fotos.',
               ),
             ),
             (
@@ -649,9 +649,9 @@ class _LegalScreenState extends State<LegalScreen> {
               const Divider(height: 40),
               Text(
                 _tr(
-                  fr: "Une question sur ce document ? Écrivez-nous à infos@movi-k.com.",
-                  en: 'A question about this document? Email us at infos@movi-k.com.',
-                  es: '¿Una pregunta sobre este documento? Escríbenos a infos@movi-k.com.',
+                  fr: "Une question sur ce document ? Écrivez-nous à info@movi-k.com.",
+                  en: 'A question about this document? Email us at info@movi-k.com.',
+                  es: '¿Una pregunta sobre este documento? Escríbenos a info@movi-k.com.',
                 ),
                 style: const TextStyle(
                   color: AppColors.textSecondary,
