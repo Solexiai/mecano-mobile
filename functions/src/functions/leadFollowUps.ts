@@ -34,6 +34,7 @@ import {
   setFollowUpSubscription,
   unsubscribeUrl,
 } from "../lib/emailPreferences";
+import { grantDriverRole } from "../lib/driverRole";
 import { invalidArgument } from "../lib/errors";
 import {
   DriverFollowUpStage,
@@ -331,6 +332,10 @@ async function runDriverFollowUps(settings: EmailSettings, nowMs: number, budget
       if (anchorMs === null || nowMs - anchorMs < FOLLOW_UP_FIRST_MS) continue;
       if ((await db.collection("driver_profiles").doc(doc.id).get()).exists) continue;
       const user = (await db.collection("users").doc(doc.id).get()).data();
+      // Rattrapage (2026-11-19) : les prospects notés avant que le rôle soit
+      // posé dès les coordonnées sortent des clients au prochain passage.
+      const roles: string[] = Array.isArray(user?.roles) ? user!.roles : [];
+      if (!roles.includes("driver")) await grantDriverRole(doc.id, roles, "started");
       const key = await followUpDriver({
         uid: doc.id, stage: "profile", anchorMs, approved: false, immediate: false,
         profile: { full_name: user?.full_name }, settings, nowMs,
@@ -358,7 +363,11 @@ export const markDriverLead = onCall(async (request) => {
     tx.set(ref, { user_id: ctx.uid, started_at: admin.firestore.Timestamp.now() });
     return true;
   });
-  return { created };
+  // Chauffeur dès les coordonnées (Daniel, 2026-11-19) : plus jamais dans
+  // les clients, et pas de prix possible avec ce compte. L'app doit
+  // rafraîchir son jeton (getIdTokenResult(forceRefresh: true)).
+  const roles = await grantDriverRole(ctx.uid, ctx.roles, "started");
+  return { created, roles };
 });
 
 /** Un passage des relances (appelé par le cron et par les tests). */

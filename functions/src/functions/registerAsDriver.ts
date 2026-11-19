@@ -22,9 +22,9 @@
 // -----------------------------------------------------------------------------
 
 import { onCall } from "firebase-functions/v2/https";
-import { admin, authAdmin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { writeAuditLog } from "../lib/audit";
+import { grantDriverRole } from "../lib/driverRole";
 import { PlatformRole, PlatformRoles } from "../lib/types";
 
 export const registerAsDriver = onCall(async (request) => {
@@ -33,31 +33,12 @@ export const registerAsDriver = onCall(async (request) => {
   const currentRoles: PlatformRole[] =
     ctx.roles.length > 0 ? ctx.roles : [PlatformRoles.CUSTOMER];
 
+  // Dossier envoyé : le rôle est souvent déjà là depuis les coordonnées
+  // (`markDriverLead`, 2026-11-19) ; on note surtout l'étape « submitted ».
+  const newRoles = await grantDriverRole(ctx.uid, currentRoles, "submitted");
   if (currentRoles.includes(PlatformRoles.DRIVER)) {
-    await db.collection("users").doc(ctx.uid).set(
-      {
-        roles: currentRoles,
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-    return { success: true, roles: currentRoles, note: "Le rôle driver est déjà présent." };
+    return { success: true, roles: newRoles, note: "Le rôle driver est déjà présent." };
   }
-
-  const newRoles = [...currentRoles, PlatformRoles.DRIVER];
-
-  await authAdmin.setCustomUserClaims(ctx.uid, {
-    role: currentRoles[0] ?? PlatformRoles.CUSTOMER,
-    roles: newRoles,
-  });
-
-  await db.collection("users").doc(ctx.uid).set(
-    {
-      roles: newRoles,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
 
   await writeAuditLog({
     actorUserId: ctx.uid,

@@ -31,6 +31,11 @@ const _staffRoles = {'analyst', 'admin', 'super_admin'};
 bool isDriverAccount(Map<String, dynamic> data) =>
     userRoles(data).contains('driver');
 
+/// Chauffeur qui a donné ses coordonnées mais n'a pas envoyé son dossier
+/// (`driver_signup == 'started'`, posé par le serveur).
+bool isUnfinishedDriverSignup(Map<String, dynamic> data) =>
+    isDriverAccount(data) && data['driver_signup'] == 'started';
+
 bool isStaffAccount(Map<String, dynamic> data) =>
     userRoles(data).any(_staffRoles.contains);
 

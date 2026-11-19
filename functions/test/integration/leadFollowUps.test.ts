@@ -245,9 +245,14 @@ describe("Chauffeur : inscription inachevée", () => {
     const call = (uid?: string) =>
       ({ data: {}, auth: uid ? { uid, token: { roles: ["customer"], role: "customer" } } : undefined, rawRequest: {}, acceptsStreaming: false } as any);
     await expect(markDriverLead.run(call())).rejects.toMatchObject({ code: "unauthenticated" });
-    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: true });
+    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: true, roles: ["customer", "driver"] });
+    // Chauffeur dès les coordonnées (2026-11-19).
+    expect((await db.collection("users").doc(driverUid).get()).data()).toMatchObject({
+      roles: ["customer", "driver"],
+      driver_signup: "started",
+    });
     const first = (await db.collection("driver_leads").doc(driverUid).get()).data()!;
-    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: false });
+    expect(await markDriverLead.run(call(driverUid))).toEqual({ created: false, roles: ["customer", "driver"] });
     const second = (await db.collection("driver_leads").doc(driverUid).get()).data()!;
     expect(second.started_at.toMillis()).toBe(first.started_at.toMillis());
   });

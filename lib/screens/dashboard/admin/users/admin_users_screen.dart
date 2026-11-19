@@ -226,8 +226,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     fr
-                        ? 'Les chauffeurs et le personnel ne sont pas des clients : un chauffeur qui veut réserver crée un compte client à part.'
-                        : 'Drivers and staff are not customers: a driver who wants to book creates a separate customer account.',
+                        ? 'Les chauffeurs (dès leurs coordonnées) et le personnel ne sont pas des clients : un chauffeur qui veut réserver crée un compte client à part.'
+                        : 'Drivers (from their contact details on) and staff are not customers: a driver who wants to book creates a separate customer account.',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ),
@@ -280,6 +280,15 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                               Chip(
                                 visualDensity: VisualDensity.compact,
                                 label: Text(_roleLabel(role, fr)),
+                              ),
+                            if (isUnfinishedDriverSignup(data))
+                              Chip(
+                                key: ValueKey('unfinished-${doc.id}'),
+                                visualDensity: VisualDensity.compact,
+                                avatar: const Icon(Icons.hourglass_bottom, size: 16),
+                                label: Text(
+                                  fr ? 'Inscription inachevée' : 'Unfinished registration',
+                                ),
                               ),
                           ],
                         ),
