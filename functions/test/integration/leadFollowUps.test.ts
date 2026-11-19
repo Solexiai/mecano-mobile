@@ -4,6 +4,8 @@
 // désabonnement et adresse postale obligatoire.
 // -----------------------------------------------------------------------------
 import { markDriverLead, runLeadFollowUps } from "../../src/functions/leadFollowUps";
+import { validateDriverDocument } from "../../src/functions/validateDriverDocument";
+import { requestDriverDocuments } from "../../src/functions/requestDriverDocuments";
 import { admin, db } from "../../src/lib/admin";
 import { EMAIL_SETTINGS_DOC, emailPreference, setFollowUpSubscription } from "../../src/lib/emailPreferences";
 import { EmailSender, OutgoingEmail, setEmailSenderForTesting } from "../../src/lib/transactionalEmail";
@@ -78,7 +80,10 @@ afterEach(async () => {
   await db.collection("delivery_requests").doc(MISSION).delete();
   await db.collection("driver_profiles").doc(driverUid).delete();
   await db.collection("driver_leads").doc(driverUid).delete();
+  for (const id of ["lf_doc_front", "lf_doc_insurance"]) await db.collection("driver_documents").doc(id).delete();
   for (const uid of [customerUid, driverUid]) {
+    const bell = await db.collection("users").doc(uid).collection("notifications").get();
+    for (const n of bell.docs) await n.ref.delete();
     await db.collection("users").doc(uid).delete();
     await db.collection("email_preferences").doc(uid).delete();
     for (const name of ["email_log", "lead_followups"]) {
@@ -194,6 +199,58 @@ describe("Chauffeur : inscription inachevée", () => {
   it("versements activés : aucune relance", async () => {
     await seedDriver({ status: "approved", approved_at: ts(NOON - 30 * HOUR), stripe_payouts_enabled: true });
     expect(await run()).toEqual([]);
+  });
+
+  // 2026-11-19 (Daniel) : refuser un document met le dossier en suspens, prévient
+  // le chauffeur (cloche) et envoie le courriel tout de suite.
+  it("document refusé : dossier en suspens, cloche, courriel immédiat ; 2e refus dans l'heure = motif cumulé sans 2e courriel", async () => {
+    const adminCall = (data: Record<string, unknown>) =>
+      ({ data, auth: { uid: "admin_lf", token: { roles: ["admin"], role: "admin" } }, rawRequest: {}, acceptsStreaming: false } as any);
+    await seedDriver({ status: "pending_review", submitted_for_review_at: ts(NOON - HOUR) });
+    await db.collection("driver_documents").doc("lf_doc_front").set({
+      driver_id: driverUid, type: "drivers_licence", status: "uploaded",
+      storage_bucket_path: `driver_documents/${driverUid}/drivers_licence_front_1.jpg`,
+    });
+    await db.collection("driver_documents").doc("lf_doc_insurance").set({
+      driver_id: driverUid, type: "insurance", status: "uploaded",
+      storage_bucket_path: `driver_documents/${driverUid}/insurance_1.pdf`,
+    });
+
+    const first = await validateDriverDocument.run(adminCall({ documentId: "lf_doc_front", newStatus: "rejected", rejectionReason: "photo floue" }));
+    expect(first).toMatchObject({ success: true, driverOnHold: true, emailSent: true });
+    const profile = (await db.collection("driver_profiles").doc(driverUid).get()).data()!;
+    expect(profile.status).toBe("documents_required");
+    expect(profile.documents_required_reason).toBe("Permis de conduire (recto) : photo floue");
+    expect(sender.sent).toHaveLength(1);
+    expect(sender.sent[0].email.subject).toBe("Votre dossier est en suspens : document à fournir — Movi-K");
+    expect(sender.sent[0].email.text).toContain("en suspens");
+    expect(sender.sent[0].email.text).toContain("Permis de conduire (recto) : photo floue");
+    const bell = await db.collection("users").doc(driverUid).collection("notifications").get();
+    expect(bell.docs.map((d) => d.data().type)).toEqual(["driver_documents_required"]);
+
+    const second = await validateDriverDocument.run(adminCall({ documentId: "lf_doc_insurance", newStatus: "replacement_required" }));
+    expect(second).toMatchObject({ driverOnHold: true, emailSent: false });
+    const merged = (await db.collection("driver_profiles").doc(driverUid).get()).data()!;
+    expect(merged.documents_required_reason).toBe("Permis de conduire (recto) : photo floue\nPreuve d'assurance : à remplacer");
+    expect(sender.sent).toHaveLength(1);
+
+    // Le cron ne renvoie pas l'étape 0 (la demande date de l'instant même) ;
+    // la relance J+1 part le lendemain avec les deux motifs (demande vieillie à la main).
+    expect(await run(Date.now() + 60_000)).toEqual([]);
+    await db.collection("driver_profiles").doc(driverUid).update({ documents_required_at: ts(NOON - 26 * HOUR) });
+    expect(await run()).toEqual([`${driverUid}__documents__1`]);
+    expect(sender.sent[1].email.text).toContain("Preuve d'assurance : à remplacer");
+  });
+
+  it("documents demandés à la main : courriel immédiat et cloche", async () => {
+    const adminCall = (data: Record<string, unknown>) =>
+      ({ data, auth: { uid: "admin_lf", token: { roles: ["admin"], role: "admin" } }, rawRequest: {}, acceptsStreaming: false } as any);
+    await seedDriver({ status: "approved", approved_at: ts(NOON - 48 * HOUR), stripe_payouts_enabled: true });
+    expect(await requestDriverDocuments.run(adminCall({ driverId: driverUid, reason: "Immatriculation expirée" })))
+      .toMatchObject({ success: true, emailSent: true });
+    expect(sender.sent).toHaveLength(1);
+    expect(sender.sent[0].email.text).toContain("Immatriculation expirée");
+    expect((await db.collection("users").doc(driverUid).collection("notifications").get()).size).toBe(1);
   });
 
   it("document demandé : relance J+1 avec le motif ; une nouvelle demande repart à zéro", async () => {

@@ -19,6 +19,8 @@ import { requireAnalystOrAbove, requireSignedIn } from "../lib/auth";
 import { writeAuditLog } from "../lib/audit";
 import { failedPrecondition, invalidArgument, notFound } from "../lib/errors";
 import { DriverStatuses } from "../lib/types";
+import { notifyDriverDocumentsRequired } from "../lib/driverDocumentsHold";
+import { sendDriverDocumentsEmailNow } from "./leadFollowUps";
 
 // Statuts depuis lesquels une demande de correction de documents est
 // sensée : un dossier en cours de revue, déjà en correction (nouveau motif),
@@ -80,5 +82,15 @@ export const requestDriverDocuments = onCall<RequestDriverDocumentsRequest>(asyn
     });
   });
 
-  return { success: true, driverId };
+  // Le chauffeur est prévenu tout de suite : cloche + courriel « Votre
+  // dossier est en suspens » (Daniel, 2026-11-19) ; rappels J+1 / J+3 ensuite.
+  let emailSent = false;
+  try {
+    await notifyDriverDocumentsRequired(driverId, reason.trim());
+    emailSent = await sendDriverDocumentsEmailNow(driverId);
+  } catch (error) {
+    console.error("[documents] avis au chauffeur échoué", driverId, error instanceof Error ? error.message : error);
+  }
+
+  return { success: true, driverId, emailSent };
 });

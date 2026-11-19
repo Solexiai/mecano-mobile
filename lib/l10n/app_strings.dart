@@ -1825,6 +1825,17 @@ class AppStrings {
       'en': 'The customer’s card was declined: this delivery is cancelled. You receive 20 \$ from the deposit.',
       'es': 'La tarjeta del cliente fue rechazada: esta entrega se cancela. Usted recibe 20 \$ del depósito.',
     },
+    // 2026-11-19 (Daniel) : document refusé → dossier en suspens.
+    'notif_driver_documents_required_title': {
+      'fr': 'Dossier en suspens : documents à fournir',
+      'en': 'File on hold: documents needed',
+      'es': 'Expediente en suspenso: documentos requeridos',
+    },
+    'notif_driver_documents_required_body': {
+      'fr': 'Movi-K a besoin de pièces pour continuer la vérification de votre dossier. Ouvrez votre dossier pour voir lesquelles.',
+      'en': 'Movi-K needs documents to continue reviewing your file. Open your file to see which ones.',
+      'es': 'Movi-K necesita documentos para continuar la verificación de tu expediente. Abre tu expediente para ver cuáles.',
+    },
     'notif_driver_tip_received_title': {
       'fr': 'Pourboire reçu 🎉',
       'en': 'Tip received 🎉',
