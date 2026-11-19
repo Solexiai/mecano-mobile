@@ -255,7 +255,7 @@ export function renderEmailText(params: {
     "",
     params.intro,
     "",
-    ...params.rows.map(([l, v]) => `${l} : ${v}`),
+    ...params.rows.map(([l, v]) => (l ? `${l} : ${v}` : `  ${v}`)),
     ...(params.highlight?.length ? ["", ...params.highlight.map(([l, v]) => `${l} : ${v}`)] : []),
     ...(params.paragraphs ?? []).flatMap((p) => ["", p]),
     ...(params.button ? ["", `${params.button.label} : ${params.button.url}`] : []),

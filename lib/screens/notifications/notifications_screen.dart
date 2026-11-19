@@ -181,6 +181,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             context.go('/$locale/fournisseur/tableau-de-bord');
                             return;
                           }
+                          // Dossier en suspens pour documents (2026-11-19) :
+                          // la page du dossier montre quoi fournir.
+                          if (n.type == 'driver_documents_required') {
+                            context.go('/$locale/devenir-chauffeur/statut');
+                            return;
+                          }
 
                           final missionId = n.missionId;
                           if (missionId == null || missionId.isEmpty) return;

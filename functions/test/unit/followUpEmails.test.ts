@@ -130,7 +130,14 @@ describe("courriel de relance du chauffeur", () => {
       stage: "documents", step: 2, locale: "fr", documentsReason: "Permis : verso illisible", legal,
     });
     expect(email.text).toContain("Ce qu'il manque : Permis : verso illisible");
+    expect(email.text).toContain("toujours en suspens");
     expect(email.text).toContain("C'est notre dernier rappel.");
+    const now = driverFollowUpEmail({
+      stage: "documents", step: 0, locale: "fr", documentsReason: "Permis (recto) : flou\nAssurance : expirée", legal,
+    });
+    expect(now.subject).toBe("Votre dossier est en suspens : document à fournir — Movi-K");
+    expect(now.text).toContain("Ce qu'il manque : Permis (recto) : flou");
+    expect(now.text).toContain("  Assurance : expirée");
     expect(email.text).toContain("https://movi-k.com/fr/devenir-chauffeur/statut?");
   });
 

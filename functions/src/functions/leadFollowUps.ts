@@ -230,7 +230,8 @@ export function driverFollowUpStage(
     return { stage: "profile", anchorMs: followUpMillis(profile.created_at), approved: false, immediate: false };
   }
   if (profile.status === DriverStatuses.DOCUMENTS_REQUIRED) {
-    return { stage: "documents", anchorMs: followUpMillis(profile.documents_required_at), approved: false, immediate: false };
+    // Courriel tout de suite (« votre dossier est en suspens »), puis J+1, J+3.
+    return { stage: "documents", anchorMs: followUpMillis(profile.documents_required_at), approved: false, immediate: true };
   }
   if (profile.stripe_payouts_enabled === true) return null;
   if (profile.status === DriverStatuses.APPROVED) {
@@ -369,6 +370,23 @@ export const markDriverLead = onCall(async (request) => {
   const roles = await grantDriverRole(ctx.uid, ctx.roles, "started");
   return { created, roles };
 });
+
+/**
+ * Document refusé ou demandé (2026-11-19) : le courriel « Votre dossier est
+ * en suspens » part sans attendre le cron. Même série que les relances, donc
+ * jamais en double ; silencieux si l'adresse postale n'est pas réglée (le
+ * cron enverra dès qu'elle le sera). Renvoie vrai si un courriel est parti.
+ */
+export async function sendDriverDocumentsEmailNow(driverId: string, nowMs = Date.now()): Promise<boolean> {
+  const settings = await getEmailSettings();
+  if (!followUpsReady(settings)) return false;
+  const profile = (await db.collection("driver_profiles").doc(driverId).get()).data();
+  if (!profile) return false;
+  const found = driverFollowUpStage(profile);
+  if (!found || found.stage !== "documents" || found.anchorMs === null) return false;
+  const key = await followUpDriver({ uid: driverId, ...found, anchorMs: found.anchorMs, profile, settings, nowMs });
+  return key !== null;
+}
 
 /** Un passage des relances (appelé par le cron et par les tests). */
 export async function runLeadFollowUps(

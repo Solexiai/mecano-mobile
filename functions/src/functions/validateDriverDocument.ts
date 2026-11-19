@@ -15,6 +15,12 @@ import { invalidArgument, notFound } from "../lib/errors";
 import { writeAuditLogInTransaction } from "../lib/audit";
 import { DriverDocumentStatus, DriverDocumentStatuses } from "../lib/types";
 import { missingRequiredDocuments } from "../lib/driverDocuments";
+import {
+  holdDriverForDocumentsInTransaction,
+  notifyDriverDocumentsRequired,
+  rejectedDocumentReason,
+} from "../lib/driverDocumentsHold";
+import { sendDriverDocumentsEmailNow } from "./leadFollowUps";
 
 // Documents obligatoires (permis recto/verso, immatriculation, assurance ;
 // plus de pièce d'identité depuis le 12 nov. 2026) : lib/driverDocuments.ts.
@@ -45,6 +51,10 @@ export const validateDriverDocument = onCall<ValidateDriverDocumentRequest>(asyn
   }
 
   const docRef = db.collection("driver_documents").doc(documentId);
+  // Document refusé / à remplacer / expiré : le dossier passe en suspens et
+  // le chauffeur est prévenu (Daniel, 2026-11-19).
+  const needsHold = newStatus !== DriverDocumentStatuses.APPROVED;
+  let hold: { driverId: string; reason: string; newRequest: boolean } | null = null;
 
   await db.runTransaction(async (tx) => {
     // ---- Tous les reads d'abord (contrainte des transactions Firestore) ----
@@ -57,9 +67,22 @@ export const validateDriverDocument = onCall<ValidateDriverDocumentRequest>(asyn
     // `tx.get()` accepte directement une Query (SDK Admin >= 9).
     const allDocsQuery = db.collection("driver_documents").where("driver_id", "==", doc.driver_id);
     const allDocsSnap = await tx.get(allDocsQuery);
+    const driverRef = db.collection("driver_profiles").doc(doc.driver_id);
+    const profile = needsHold ? (await tx.get(driverRef)).data() : undefined;
 
     // ---- Puis tous les writes ----
     const now = admin.firestore.Timestamp.now();
+    hold = null;
+    if (needsHold && profile) {
+      const outcome = holdDriverForDocumentsInTransaction(tx, {
+        driverRef,
+        profile,
+        reason: rejectedDocumentReason(doc, rejectionReason, newStatus),
+        actorUid: ctx.uid,
+        nowMs: now.toMillis(),
+      });
+      if (outcome.applied) hold = { driverId: doc.driver_id, reason: outcome.reason, newRequest: outcome.newRequest };
+    }
     tx.update(docRef, {
       status: newStatus,
       reviewed_at: now,
@@ -84,9 +107,22 @@ export const validateDriverDocument = onCall<ValidateDriverDocumentRequest>(asyn
       action: "validateDriverDocument",
       sourceFunction: "validateDriverDocument",
       targetId: documentId,
-      metadata: { newStatus, driverId: doc.driver_id, documentsAllValid: allValid },
+      metadata: { newStatus, driverId: doc.driver_id, documentsAllValid: allValid, documentsHold: hold !== null },
     });
   });
 
-  return { success: true, documentId, newStatus };
+  // Hors transaction : cloche + courriel immédiat (les relances J+1 / J+3
+  // suivent toutes seules). Un échec ici n'annule pas le refus.
+  const applied = hold as { driverId: string; reason: string; newRequest: boolean } | null;
+  let emailSent = false;
+  if (applied) {
+    try {
+      await notifyDriverDocumentsRequired(applied.driverId, applied.reason);
+      if (applied.newRequest) emailSent = await sendDriverDocumentsEmailNow(applied.driverId);
+    } catch (error) {
+      console.error("[documents] avis au chauffeur échoué", applied.driverId, error instanceof Error ? error.message : error);
+    }
+  }
+
+  return { success: true, documentId, newStatus, driverOnHold: applied !== null, emailSent };
 });

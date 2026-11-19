@@ -293,15 +293,28 @@ export function driverFollowUpEmail(params: {
     ));
     buttonLabel = tr(locale, "Terminer mon inscription", "Finish my registration", "Terminar mi inscripción");
   } else if (stage === "documents") {
-    title = tr(locale, "Il manque un document à votre dossier", "A document is missing from your file", "Falta un documento en tu expediente");
-    intro = hello + cap(tr(
-      locale,
-      "il manque un document pour que Movi-K puisse approuver votre dossier de chauffeur. Ajoutez-le en quelques minutes et nous reprenons la vérification.",
-      "a document is missing before Movi-K can approve your driver file. Add it in a few minutes and we resume the review.",
-      "falta un documento para que Movi-K pueda aprobar tu expediente de conductor. Añádelo en unos minutos y retomamos la verificación."
-    )) + last;
-    if (reason) rows = [[tr(locale, "Ce qu'il manque", "What is missing", "Lo que falta"), reason]];
-    buttonLabel = tr(locale, "Ajouter mon document", "Add my document", "Añadir mi documento");
+    // 2026-11-19 (Daniel) : « le compte est en suspens, nous avons besoin
+    // des pièces demandées ». Étape 0 = tout de suite après le refus.
+    title = step === 0
+      ? tr(locale, "Votre dossier est en suspens : document à fournir", "Your file is on hold: document needed", "Tu expediente está en suspenso: documento requerido")
+      : tr(locale, "Rappel : document à fournir pour votre dossier", "Reminder: document needed for your file", "Recordatorio: documento requerido para tu expediente");
+    intro = hello + cap(step === 0
+      ? tr(
+        locale,
+        "Movi-K a mis votre dossier de chauffeur en suspens : nous avons besoin des pièces ci-dessous. Tant qu'elles ne sont pas fournies, vous ne pouvez pas recevoir de livraisons. Ajoutez-les en quelques minutes et nous reprenons la vérification.",
+        "Movi-K has put your driver file on hold: we need the documents below. Until they are provided, you cannot receive deliveries. Add them in a few minutes and we resume the review.",
+        "Movi-K ha puesto tu expediente de conductor en suspenso: necesitamos los documentos de abajo. Hasta que los entregues, no puedes recibir entregas. Añádelos en unos minutos y retomamos la verificación."
+      )
+      : tr(
+        locale,
+        "votre dossier de chauffeur est toujours en suspens : il nous manque les pièces ci-dessous. Tant qu'elles ne sont pas fournies, vous ne pouvez pas recevoir de livraisons.",
+        "your driver file is still on hold: we are missing the documents below. Until they are provided, you cannot receive deliveries.",
+        "tu expediente de conductor sigue en suspenso: nos faltan los documentos de abajo. Hasta que los entregues, no puedes recibir entregas."
+      )) + last;
+    // Plusieurs documents refusés = une ligne par document.
+    const missing = tr(locale, "Ce qu'il manque", "What is missing", "Lo que falta");
+    rows = reason.split("\n").map((l) => l.trim()).filter(Boolean).map((line, i) => [i === 0 ? missing : "", line]);
+    buttonLabel = tr(locale, "Fournir mes documents", "Provide my documents", "Entregar mis documentos");
   } else {
     const approved = params.approved !== false;
     title = !approved
