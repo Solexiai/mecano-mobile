@@ -51,5 +51,11 @@ void main() {
     expect(isStaffAccount(patron), isTrue);
     expect(isCustomerAccount(ancien), isFalse);
     expect(isStaffAccount({'roles': ['customer', 'super_admin']}), isTrue);
+    // 2026-11-19 : chauffeur dès les coordonnées, dossier pas envoyé.
+    final inachevee = {'roles': ['customer', 'driver'], 'driver_signup': 'started'};
+    expect(isCustomerAccount(inachevee), isFalse);
+    expect(isUnfinishedDriverSignup(inachevee), isTrue);
+    expect(isUnfinishedDriverSignup({'roles': ['customer', 'driver'], 'driver_signup': 'submitted'}), isFalse);
+    expect(isUnfinishedDriverSignup({'roles': ['customer'], 'driver_signup': 'started'}), isFalse);
   });
 }

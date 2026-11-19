@@ -237,6 +237,9 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             .httpsCallable('markDriverLead')
             .call();
         _leadMarked = true;
+        // Chauffeur dès les coordonnées (2026-11-19) : le serveur vient de
+        // poser le rôle ; on relit les claims pour que l'app le sache.
+        await auth.refreshClaims();
       } catch (_) {
         // Retried at the next step change.
       } finally {
