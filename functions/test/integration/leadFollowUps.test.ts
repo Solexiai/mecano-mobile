@@ -234,9 +234,11 @@ describe("Chauffeur : inscription inachevée", () => {
     expect(merged.documents_required_reason).toBe("Permis de conduire (recto) : photo floue\nPreuve d'assurance : à remplacer");
     expect(sender.sent).toHaveLength(1);
 
-    // Le cron ne renvoie pas l'étape 0 ; la relance J+1 part le lendemain avec les deux motifs.
-    expect(await run(NOON + HOUR)).toEqual([]);
-    expect(await run(NOON + 26 * HOUR)).toEqual([`${driverUid}__documents__1`]);
+    // Le cron ne renvoie pas l'étape 0 (la demande date de l'instant même) ;
+    // la relance J+1 part le lendemain avec les deux motifs (demande vieillie à la main).
+    expect(await run(Date.now() + 60_000)).toEqual([]);
+    await db.collection("driver_profiles").doc(driverUid).update({ documents_required_at: ts(NOON - 26 * HOUR) });
+    expect(await run()).toEqual([`${driverUid}__documents__1`]);
     expect(sender.sent[1].email.text).toContain("Preuve d'assurance : à remplacer");
   });
 
