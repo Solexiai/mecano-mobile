@@ -68,9 +68,9 @@ function firstName(name: unknown): string {
 function footer(locale: EmailLocale): string {
   return tr(
     locale,
-    "Movi-K — transport de meubles, électroménagers et colis. Une question ? Répondez à ce courriel ou écrivez à infos@movi-k.com.",
-    "Movi-K — moving furniture, appliances and parcels. A question? Reply to this email or write to infos@movi-k.com.",
-    "Movi-K — transporte de muebles, electrodomésticos y paquetes. ¿Una pregunta? Responde a este correo o escribe a infos@movi-k.com."
+    "Movi-K — transport de meubles, électroménagers et colis. Une question ? Répondez à ce courriel ou écrivez à info@movi-k.com.",
+    "Movi-K — moving furniture, appliances and parcels. A question? Reply to this email or write to info@movi-k.com.",
+    "Movi-K — transporte de muebles, electrodomésticos y paquetes. ¿Una pregunta? Responde a este correo o escribe a info@movi-k.com."
   );
 }
 

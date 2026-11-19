@@ -1,6 +1,6 @@
 // -----------------------------------------------------------------------------
 // adminAddDriverDocument — un agent Movi-K ajoute au dossier d'un chauffeur un
-// document reçu par courriel à infos@movi-k.com (Daniel, 2026-11-12).
+// document reçu par courriel à info@movi-k.com (Daniel, 2026-11-12).
 //
 // Analyste et plus. Le fichier (image ou PDF, 8 Mo max) est écrit par le
 // serveur sous driver_documents/{chauffeur}/{place}_{horodatage}.{ext}, comme

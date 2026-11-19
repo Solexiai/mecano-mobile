@@ -20,7 +20,7 @@ part 'seo_guide_pages.dart';
 
 const seoLocales = ['fr', 'en', 'es'];
 const seoSiteUrl = 'https://movi-k.com';
-const seoContactEmail = 'infos@movi-k.com';
+const seoContactEmail = 'info@movi-k.com';
 
 typedef SeoText = Map<String, String>;
 
@@ -403,9 +403,9 @@ final List<SeoPage> _corePages = [
       SeoSection(
         _l('Une question ?', 'A question?', '¿Una pregunta?'),
         _l(
-          'Écrivez-nous à infos@movi-k.com ou depuis la page Contact.',
-          'Write to us at infos@movi-k.com or from the Contact page.',
-          'Escríbenos a infos@movi-k.com o desde la página de Contacto.',
+          'Écrivez-nous à info@movi-k.com ou depuis la page Contact.',
+          'Write to us at info@movi-k.com or from the Contact page.',
+          'Escríbenos a info@movi-k.com o desde la página de Contacto.',
         ),
       ),
     ],
@@ -525,15 +525,15 @@ final List<SeoPage> _corePages = [
     paths: _l('/fr/contact', '/en/contact', '/es/contacto'),
     titles: _l('Contact | Movi-K', 'Contact | Movi-K', 'Contacto | Movi-K'),
     descriptions: _l(
-      'Une question sur votre livraison ou le service Movi-K ? Écrivez-nous à infos@movi-k.com.',
-      'A question about your delivery or the Movi-K service? Email us at infos@movi-k.com.',
-      '¿Una pregunta sobre tu entrega o el servicio Movi-K? Escríbenos a infos@movi-k.com.',
+      'Une question sur votre livraison ou le service Movi-K ? Écrivez-nous à info@movi-k.com.',
+      'A question about your delivery or the Movi-K service? Email us at info@movi-k.com.',
+      '¿Una pregunta sobre tu entrega o el servicio Movi-K? Escríbenos a info@movi-k.com.',
     ),
     headings: _l('Contactez Movi-K', 'Contact Movi-K', 'Contacta con Movi-K'),
     intros: _l(
-      'Pour une question sur votre demande ou le service, écrivez-nous à infos@movi-k.com. Si vous avez une référence de demande, indiquez-la dans votre message.',
-      'For questions about your request or the service, email us at infos@movi-k.com. If you have a request reference, include it in your message.',
-      'Si tienes preguntas sobre tu solicitud o el servicio, escríbenos a infos@movi-k.com. Si tienes una referencia de solicitud, inclúyela en tu mensaje.',
+      'Pour une question sur votre demande ou le service, écrivez-nous à info@movi-k.com. Si vous avez une référence de demande, indiquez-la dans votre message.',
+      'For questions about your request or the service, email us at info@movi-k.com. If you have a request reference, include it in your message.',
+      'Si tienes preguntas sobre tu solicitud o el servicio, escríbenos a info@movi-k.com. Si tienes una referencia de solicitud, inclúyela en tu mensaje.',
     ),
   ),
 ];

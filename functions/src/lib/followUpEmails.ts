@@ -138,7 +138,7 @@ export function followUpFooter(locale: EmailLocale, audience: "customer" | "driv
       "You are receiving this email because you started a driver registration on movi-k.com.",
       "Recibes este correo porque empezaste una inscripción de conductor en movi-k.com."
     );
-  return `Movi-K · ${postalAddress.trim()} · infos@movi-k.com. ${why}`;
+  return `Movi-K · ${postalAddress.trim()} · info@movi-k.com. ${why}`;
 }
 
 function unsubscribeLabel(locale: EmailLocale): string {

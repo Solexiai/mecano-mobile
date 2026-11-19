@@ -117,9 +117,9 @@ class GranbyLaunchScreen extends StatelessWidget {
                       '¿Una pregunta?',
                     ),
                     body: tr(
-                      'Écrivez-nous à infos@movi-k.com ou depuis la page Contact.',
-                      'Write to us at infos@movi-k.com or from the Contact page.',
-                      'Escríbenos a infos@movi-k.com o desde la página de Contacto.',
+                      'Écrivez-nous à info@movi-k.com ou depuis la page Contact.',
+                      'Write to us at info@movi-k.com or from the Contact page.',
+                      'Escríbenos a info@movi-k.com o desde la página de Contacto.',
                     ),
                   ),
                   const SizedBox(height: 28),
