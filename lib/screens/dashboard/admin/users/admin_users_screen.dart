@@ -33,6 +33,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   bool _offersOnly = false;
   Set<String>? _optIns;
   bool _loadingOptIns = false;
+  bool _repairing = false;
 
   @override
   void initState() {
@@ -231,6 +232,28 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   ),
                 ),
+              // 2026-11-21 (Daniel) : un compte peut exister dans Firebase
+              // Auth sans fiche ici (écriture ratée à l'inscription). Le
+              // serveur le rattrape chaque heure ; ce bouton le fait tout de suite.
+              if (isSuperAdmin)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const ValueKey('users-repair-accounts'),
+                    onPressed: _repairing ? null : () => _repairAccounts(fr),
+                    icon: _repairing
+                        ? const SizedBox.square(
+                            dimension: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.person_search_outlined, size: 18),
+                    label: Text(
+                      fr
+                          ? 'Vérifier les comptes sans fiche'
+                          : 'Check accounts without a profile',
+                    ),
+                  ),
+                ),
               const SizedBox(height: 10),
               if (sorted.isEmpty)
                 Padding(
@@ -362,6 +385,37 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       );
     } finally {
       if (mounted) setState(() => _loadingOptIns = false);
+    }
+  }
+
+  Future<void> _repairAccounts(bool fr) async {
+    setState(() => _repairing = true);
+    try {
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('repairOrphanAccountsNow')
+          .call(<String, dynamic>{});
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final repaired = (data['repaired'] as List?)?.length ?? 0;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fr
+                ? '${data['scanned']} compte(s) vérifié(s) · $repaired fiche(s) recréée(s).'
+                : '${data['scanned']} account(s) checked · $repaired profile(s) recreated.',
+          ),
+        ),
+      );
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? (fr ? 'Vérification impossible.' : 'Unable to check.')),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _repairing = false);
     }
   }
 
