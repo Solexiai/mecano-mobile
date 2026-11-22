@@ -11,10 +11,14 @@ void main() {
     FunnelAnalytics.bookingStep(101);
     FunnelAnalytics.bookingStep(102);
     FunnelAnalytics.event('price_shown');
-    expect(FunnelAnalytics.sentForTest, [
-      ('booking_step', {'step': 101}),
-      ('booking_step', {'step': 102}),
-      ('price_shown', <String, Object>{}),
+    expect(
+      FunnelAnalytics.sentForTest.map((e) => e.$1),
+      ['booking_step', 'booking_step', 'price_shown'],
+    );
+    expect(FunnelAnalytics.sentForTest.map((e) => e.$2), [
+      {'step': 101},
+      {'step': 102},
+      <String, Object>{},
     ]);
   });
 }
