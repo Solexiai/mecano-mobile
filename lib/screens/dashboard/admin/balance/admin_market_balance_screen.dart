@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/app_colors.dart';
 import '../../../../providers/locale_provider.dart';
+import '../../../auth/admin_login_screen.dart';
 
 /// Charge l'équilibre d'une période (callable `getMarketBalance`).
 typedef MarketBalanceLoader =
@@ -175,6 +176,7 @@ class _AdminMarketBalanceScreenState extends State<AdminMarketBalanceScreen> {
             onPressed: _reload,
             icon: const Icon(Icons.refresh),
           ),
+          const SizedBox(width: adminSignOutButtonSpace),
         ],
       ),
       body: ListView(

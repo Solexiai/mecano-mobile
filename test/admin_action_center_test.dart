@@ -136,6 +136,18 @@ void main() {
       expect(find.text(entry.value), findsOneWidget);
     });
   }
+  // 2026-11-22 (Daniel) : « pourquoi j'ai un double déconnecter ? » Le
+  // tableau de bord avait son bouton, et AdminAuthGate en pose un autre
+  // par-dessus tous les écrans d'administration. Il n'en reste qu'un (celui
+  // de la porte) ; la barre garde Actualiser et lui laisse sa place.
+  testWidgets('one sign-out button only: the dashboard bar has none', (
+    tester,
+  ) async {
+    await tester.pumpWidget(shell(() async => data));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.logout), findsNothing);
+    expect(find.byIcon(Icons.refresh), findsOneWidget);
+  });
   testWidgets('loading keeps actions available and no invented counts', (
     tester,
   ) async {
