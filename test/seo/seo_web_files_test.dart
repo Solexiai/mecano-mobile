@@ -230,4 +230,19 @@ void main() {
       ),
     );
   });
+
+  // 2026-11-22 : les pages de l'application (demande, connexion, inscription)
+  // montrent un écran de chargement au lieu d'une page blanche.
+  test('web/index.html shows a loading screen until the first frame', () {
+    final html = File('web/index.html').readAsStringSync();
+    expect(html, contains('id="movik-loading"'));
+    expect(html, contains('<!-- mk-loading:start -->'));
+    expect(html, contains('<!-- mk-loading:end -->'));
+    expect(html, contains('flutter-first-frame'));
+    expect(RegExp('<body>').allMatches(html), hasLength(1));
+    expect(
+      html.indexOf('id="movik-loading"'),
+      lessThan(html.indexOf('flutter_bootstrap.js')),
+    );
+  });
 }

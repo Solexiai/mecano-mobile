@@ -36,6 +36,32 @@ bool isDriverAccount(Map<String, dynamic> data) =>
 bool isUnfinishedDriverSignup(Map<String, dynamic> data) =>
     isDriverAccount(data) && data['driver_signup'] == 'started';
 
+/// La catégorie d'un compte, une seule : personnel > chauffeur > client.
+/// Sert à dire où se trouve une personne quand la recherche fouille tous
+/// les comptes (2026-11-22).
+enum AccountKind { staff, driver, customer }
+
+AccountKind accountKind(Map<String, dynamic> data) => isStaffAccount(data)
+    ? AccountKind.staff
+    : isDriverAccount(data)
+    ? AccountKind.driver
+    : AccountKind.customer;
+
+String accountKindLabel(AccountKind kind, bool fr) => switch (kind) {
+  AccountKind.staff => fr ? 'Personnel' : 'Staff',
+  AccountKind.driver => fr ? 'Chauffeur' : 'Driver',
+  AccountKind.customer => fr ? 'Client' : 'Customer',
+};
+
+/// Vrai si le compte correspond à la recherche (nom, courriel ou identifiant).
+bool userMatchesSearch(Map<String, dynamic> data, String id, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  return '${data['full_name'] ?? ''} ${data['email'] ?? ''} $id'
+      .toLowerCase()
+      .contains(q);
+}
+
 bool isStaffAccount(Map<String, dynamic> data) =>
     userRoles(data).any(_staffRoles.contains);
 

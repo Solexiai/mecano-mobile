@@ -46,6 +46,19 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _submitting = false;
   String? _error;
 
+  /// 2026-11-22 (Daniel) : la personne arrive du parcours de réservation
+  /// pour voir son prix. C'est presque toujours un nouveau client : on lui
+  /// présente d'emblée « Créer un compte », sans le choix client/chauffeur
+  /// (avant, l'écran s'ouvrait sur « Se connecter » et demandait un rôle).
+  bool get _fromBooking =>
+      DeliveryRequestIntent.isBookingReturn(widget.returnTo, widget.locale);
+
+  @override
+  void initState() {
+    super.initState();
+    if (_fromBooking) _mode = _AuthMode.signUp;
+  }
+
   void _goToSignedInHome(FirebaseAuthProvider auth) {
     final destination = DeliveryRequestIntent.safeReturnPath(widget.returnTo, widget.locale);
     if (destination != null) {
@@ -116,16 +129,21 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  t('auth_welcome'),
+                  t(_fromBooking ? 'auth_booking_title' : 'auth_welcome'),
+                  key: const ValueKey('auth-title'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  t('auth_intro_subtitle'),
+                  t(_fromBooking ? 'auth_booking_subtitle' : 'auth_intro_subtitle'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 28),
+                if (_fromBooking)
+                  _buildCustomerForm(t)
+                else ...[
                 Text(
                   t('auth_choose_role'),
                   style: const TextStyle(fontWeight: FontWeight.w700),
@@ -158,6 +176,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   _buildCustomerForm(t)
                 else
                   _buildDriverForm(t),
+                ],
               ],
             ),
           ),

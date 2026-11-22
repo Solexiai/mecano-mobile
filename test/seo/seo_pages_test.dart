@@ -132,6 +132,15 @@ void main() {
           expect(html, contains('<h1>'));
           expect(html, contains('flutter_bootstrap.js'));
           expect(html, contains('flutter-first-frame'));
+          // 2026-11-22 : le bouton est en haut, avant le premier bloc de
+          // texte, et l'écran de chargement de l'app n'est pas repris.
+          final top = html.indexOf('class="mk-top"');
+          expect(top, greaterThan(0));
+          expect(top, lessThan(html.lastIndexOf('class="mk-cta"')));
+          final firstSection = html.indexOf('<section>');
+          if (firstSection >= 0) expect(top, lessThan(firstSection));
+          expect(RegExp('class="mk-cta"').allMatches(html), hasLength(2));
+          expect(html, isNot(contains('movik-loading')));
           expect(html, contains('href="mailto:info@movi-k.com"'));
 
           final data = _jsonLd(html);

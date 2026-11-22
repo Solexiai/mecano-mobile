@@ -58,4 +58,26 @@ void main() {
     expect(isUnfinishedDriverSignup({'roles': ['customer', 'driver'], 'driver_signup': 'submitted'}), isFalse);
     expect(isUnfinishedDriverSignup({'roles': ['customer'], 'driver_signup': 'started'}), isFalse);
   });
+
+  // 2026-11-22 (Daniel) : un chauffeur cherché depuis l'onglet Clients
+  // restait introuvable. La recherche fouille tous les comptes et chaque
+  // résultat dit sa catégorie.
+  test('recherche : nom, courriel ou identifiant, sans égard à l’onglet', () {
+    final sylvain = {
+      'full_name': 'Sylvain Dupont',
+      'email': 'dupontsylvainsd@gmail.com',
+      'roles': ['customer', 'driver'],
+      'driver_signup': 'started',
+    };
+    expect(userMatchesSearch(sylvain, 'w489', 'dupont'), isTrue);
+    expect(userMatchesSearch(sylvain, 'w489', '  SYLVAIN '), isTrue);
+    expect(userMatchesSearch(sylvain, 'w489', 'w48'), isTrue);
+    expect(userMatchesSearch(sylvain, 'w489', 'tremblay'), isFalse);
+    expect(userMatchesSearch(sylvain, 'w489', ''), isTrue);
+    expect(accountKind(sylvain), AccountKind.driver);
+    expect(accountKindLabel(accountKind(sylvain), true), 'Chauffeur');
+    expect(accountKind({'roles': ['customer']}), AccountKind.customer);
+    expect(accountKind({'roles': ['customer', 'driver', 'admin']}), AccountKind.staff);
+    expect(accountKindLabel(AccountKind.staff, false), 'Staff');
+  });
 }

@@ -25,6 +25,7 @@ import '../../widgets/app_shell.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/step_progress_form.dart';
 import 'driver_registration_failure.dart';
+import '../../services/funnel/funnel_analytics.dart';
 
 /// Driver registration in four coherent sections:
 /// 1) contact + verified service-base address,
@@ -237,6 +238,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
             .httpsCallable('markDriverLead')
             .call();
         _leadMarked = true;
+        FunnelAnalytics.event('driver_signup_started');
         // Chauffeur dès les coordonnées (2026-11-19) : le serveur vient de
         // poser le rôle ; on relit les claims pour que l'app le sache.
         await auth.refreshClaims();
@@ -951,6 +953,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       await _uploadDocuments(uid);
       failedStage = DriverRegistrationStage.review;
       await BackendLocator.driverRepository.submitForReview();
+      FunnelAnalytics.event('driver_signup_submitted');
 
       if (!mounted) return;
       setState(() {

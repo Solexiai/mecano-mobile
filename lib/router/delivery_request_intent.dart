@@ -10,6 +10,12 @@ abstract final class DeliveryRequestIntent {
     return Uri(path: '/$locale/livraison/demande',
       queryParameters: selected == null ? null : {'category': selected}).toString();
   }
+  /// Vrai si [returnTo] ramène à la demande de livraison : la personne
+  /// vient du parcours de réservation pour voir son prix (2026-11-22).
+  static bool isBookingReturn(String? returnTo, String locale) {
+    final safe = safeReturnPath(returnTo, locale);
+    return safe != null && Uri.parse(safe).path == '/$locale/livraison/demande';
+  }
   /// CLI-08 (2026-10-28) : en plus de la demande, le suivi d'une livraison
   /// et l'espace client peuvent être repris après connexion. Toujours une
   /// liste blanche de chemins locaux, jamais une redirection arbitraire.
