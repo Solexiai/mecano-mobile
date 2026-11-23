@@ -8,6 +8,7 @@ import 'admin_action_center.dart';
 import 'drivers/admin_driver_presence_card.dart';
 import '../../../providers/firebase_auth_provider.dart';
 import '../../../providers/locale_provider.dart';
+import '../../auth/admin_login_screen.dart';
 
 class AdminDashboardShell extends StatefulWidget {
   const AdminDashboardShell({super.key, this.metricsLoader});
@@ -41,7 +42,6 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale;
-    final auth = context.watch<FirebaseAuthProvider>();
     final isFrench = locale == 'fr';
 
     return Scaffold(
@@ -57,14 +57,10 @@ class _AdminDashboardShellState extends State<AdminDashboardShell> {
             onPressed: _refresh,
             icon: const Icon(Icons.refresh),
           ),
-          IconButton(
-            tooltip: isFrench ? 'Déconnexion' : 'Sign out',
-            onPressed: () async {
-              await auth.signOut();
-              if (context.mounted) context.go('/$locale');
-            },
-            icon: const Icon(Icons.logout),
-          ),
+          // Un seul bouton de déconnexion : celui de AdminAuthGate, posé en
+          // haut à droite de tous les écrans d'administration. Celui qui
+          // était ici se dessinait en dessous, d'où deux icônes superposées.
+          const SizedBox(width: adminSignOutButtonSpace),
         ],
       ),
       body: RefreshIndicator(

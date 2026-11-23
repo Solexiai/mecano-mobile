@@ -338,6 +338,13 @@ class AdminAuthGate extends StatelessWidget {
   }
 }
 
+/// Largeur à réserver à droite de la barre d'un écran d'administration qui a
+/// ses propres boutons : le bouton de déconnexion ci-dessous est posé
+/// par-dessus chaque écran, en haut à droite. Sans cet espace, il recouvre
+/// le dernier bouton de la barre (2026-11-22 : « double déconnecter » sur le
+/// tableau de bord, bouton Actualiser caché sur Équilibre par ville).
+const double adminSignOutButtonSpace = 48;
+
 class _AdminShellWithSignOut extends StatelessWidget {
   final Widget child;
   const _AdminShellWithSignOut({required this.child});
