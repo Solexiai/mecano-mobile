@@ -9,6 +9,7 @@ import '../../router/delivery_request_intent.dart';
 import '../../seo/seo_html.dart';
 import '../../seo/seo_pages.dart';
 import '../../widgets/app_shell.dart';
+import '../../widgets/estimate_card.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/seo_link_groups.dart';
 
@@ -59,6 +60,21 @@ class SeoGuideScreen extends StatelessWidget {
                       color: AppColors.textSecondary,
                       fontSize: 16,
                       height: 1.55,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  // 2026-11-26 (Daniel) : le visiteur venu de Google avec
+                  // « combien ça coûte ? » estime son prix sur place.
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 460),
+                      child: EstimateCard(
+                        locale: locale,
+                        keyPrefix: 'seo-guide-estimate',
+                        onPhoto: () =>
+                            context.go(DeliveryRequestIntent.path(locale)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 22),

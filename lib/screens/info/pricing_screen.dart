@@ -6,6 +6,7 @@ import '../../core/app_colors.dart';
 import '../../providers/locale_provider.dart';
 import '../../router/delivery_request_intent.dart';
 import '../../widgets/app_shell.dart';
+import '../../widgets/estimate_card.dart';
 import '../../widgets/section_title.dart';
 
 class PricingScreen extends StatelessWidget {
@@ -22,9 +23,11 @@ class PricingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     context.watch<LocaleProvider>();
 
-    // What makes the price. No amounts here (owner decision 2026-10-26,
-    // confirmed 2026-11-15 when the public price table was removed): the
-    // exact price is shown in the request flow, from the live grid.
+    // What makes the price. No amounts written here (owner decision
+    // 2026-10-26, confirmed 2026-11-15 when the public price table was
+    // removed): the estimate card opens the estimate page, which computes a
+    // range from the live grid (2026-11-26), and the exact price is shown in
+    // the request flow.
     final factors = [
       (
         Icons.route_outlined,
@@ -130,6 +133,17 @@ class PricingScreen extends StatelessWidget {
                   'Prenez une photo, entrez vos adresses : vous voyez le prix exact, taxes et détail inclus, avant de confirmer.',
                   'Snap a photo, enter your addresses: you see the exact price, taxes and breakdown included, before you confirm.',
                   'Toma una foto, indica tus direcciones: ves el precio exacto, con impuestos y desglose, antes de confirmar.',
+                ),
+              ),
+              const SizedBox(height: 24),
+              // 2026-11-26 (Daniel) : la page Tarifs répond à « combien ça
+              // coûte ? » avec l'estimation par codes postaux.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: EstimateCard(
+                  locale: locale,
+                  keyPrefix: 'pricing-estimate',
+                  onPhoto: () => context.go(DeliveryRequestIntent.path(locale)),
                 ),
               ),
               const SizedBox(height: 28),
