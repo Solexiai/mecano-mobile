@@ -8,6 +8,7 @@
 // vercel.json sert chaque fichier /seo/... à l'adresse publique de la page.
 import 'dart:io';
 
+import 'package:movik_connect/seo/estimate_page.dart';
 import 'package:movik_connect/seo/seo_html.dart';
 
 void main(List<String> args) {
@@ -17,7 +18,9 @@ void main(List<String> args) {
     stderr.writeln('ERREUR : ${index.path} introuvable (lancer flutter build web avant).');
     exit(1);
   }
-  final pages = renderAllSeoPages(index.readAsStringSync());
+  final indexHtml = index.readAsStringSync();
+  // Pages publiques, puis les pages d'estimation légères (2026-11-26).
+  final pages = {...renderAllSeoPages(indexHtml), ...renderAllEstimatePages(indexHtml)};
   for (final entry in pages.entries) {
     final file = File('${out.path}${entry.key}');
     file.parent.createSync(recursive: true);

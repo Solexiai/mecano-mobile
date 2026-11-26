@@ -84,3 +84,52 @@ export async function consumeRoutingBudget(uid: string): Promise<void> {
     throw new HttpsError("resource-exhausted", "Trop de demandes rapprochées. Réessayez dans un moment.", { retryAfterSeconds: decision.retryAfterSeconds });
   }
 }
+
+// -----------------------------------------------------------------------------
+// Estimation publique par codes postaux (2026-11-26) : aucun compte, donc le
+// plafond est par adresse IP, plus un plafond global par jour qui borne la
+// facture Google Routes même si quelqu'un change d'adresse IP sans arrêt.
+// -----------------------------------------------------------------------------
+export const PUBLIC_ESTIMATE_LIMITS = Object.freeze({
+  perIpRequests: 10,
+  perIpWindowMs: 10 * 60 * 1000,
+  perIpPerDay: 40,
+  globalPerDay: 3000,
+});
+
+export async function consumePublicEstimateBudget(ip: string): Promise<void> {
+  const ipRef = db.collection("routing_request_limits")
+    .doc(createHash("sha256").update(`public_estimate:${ip}`).digest("hex"));
+  const globalRef = db.collection("routing_request_limits").doc("public_estimate_global");
+  let decision: BudgetDecision;
+  try {
+    decision = await db.runTransaction(async (tx) => {
+      const [ipSnap, globalSnap] = await Promise.all([tx.get(ipRef), tx.get(globalRef)]);
+      const data = ipSnap.exists ? ipSnap.data() as RoutingBudget & { daily?: RoutingBudget } : undefined;
+      const now = Date.now();
+      const result = nextRoutingBudget(
+        data ? { startedAtMs: data.startedAtMs, count: data.count } : undefined,
+        now, PUBLIC_ESTIMATE_LIMITS.perIpRequests, PUBLIC_ESTIMATE_LIMITS.perIpWindowMs
+      );
+      if (!result.allowed) return result;
+      const daily = nextDailyRoutingBudget(data?.daily, now, PUBLIC_ESTIMATE_LIMITS.perIpPerDay);
+      if (!daily.allowed) return daily;
+      const global = nextDailyRoutingBudget(
+        globalSnap.exists ? (globalSnap.data() as { daily?: RoutingBudget }).daily : undefined,
+        now, PUBLIC_ESTIMATE_LIMITS.globalPerDay
+      );
+      if (!global.allowed) return global;
+      tx.set(ipRef, { ...result.next, daily: daily.next });
+      tx.set(globalRef, { daily: global.next });
+      return result;
+    });
+  } catch (error) {
+    warn("routing_budget_check_failed", { operation: "public_estimate" });
+    if (error instanceof HttpsError) throw error;
+    throw new HttpsError("unavailable", "Vérification temporairement indisponible.");
+  }
+  if (!decision.allowed) {
+    warn("routing_budget_exhausted", { operation: "public_estimate", retryAfterSeconds: decision.retryAfterSeconds });
+    throw new HttpsError("resource-exhausted", "Trop de demandes rapprochées. Réessayez dans un moment.", { retryAfterSeconds: decision.retryAfterSeconds });
+  }
+}

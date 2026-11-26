@@ -131,6 +131,82 @@ export function setRouteFetcherForTesting(fetcher: RouteFetcher | null): void {
   routeFetcher = fetcher ?? fetchGoogleRoute;
 }
 
+// -----------------------------------------------------------------------------
+// Trajet entre deux codes postaux (estimation publique, 2026-11-26).
+// Google Routes accepte une adresse comme point de départ ou d'arrivée : le
+// code postal suffit, aucune clé de géocodage n'est nécessaire. Sert
+// seulement à estimer un prix ; le devis officiel garde les coordonnées de
+// l'adresse choisie par le client.
+// -----------------------------------------------------------------------------
+export interface PostalRouteRequest {
+  fromPostalCode: string;
+  toPostalCode: string;
+}
+type PostalRouteFetcher = (input: PostalRouteRequest) => Promise<RouteEstimate>;
+
+async function fetchGooglePostalRoute(input: PostalRouteRequest): Promise<RouteEstimate> {
+  const projectId =
+    process.env.GCLOUD_PROJECT ??
+    process.env.GOOGLE_CLOUD_PROJECT ??
+    "movik-connect-prod";
+  const client = await googleAuth.getClient();
+  const response = await client.request<GoogleRoutesResponse>({
+    url: "https://routes.googleapis.com/directions/v2:computeRoutes",
+    method: "POST",
+    headers: {
+      "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
+      "X-Goog-User-Project": projectId,
+    },
+    data: {
+      origin: { address: `${input.fromPostalCode}, Canada` },
+      destination: { address: `${input.toPostalCode}, Canada` },
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_UNAWARE",
+      languageCode: "fr-CA",
+      regionCode: "CA",
+      units: "METRIC",
+    },
+  });
+  const route = response.data.routes?.[0];
+  const distanceMeters = route?.distanceMeters;
+  const durationSeconds = Number(route?.duration?.replace(/s$/, ""));
+  if (
+    typeof distanceMeters !== "number" ||
+    !Number.isFinite(distanceMeters) ||
+    distanceMeters <= 0 ||
+    !Number.isFinite(durationSeconds) ||
+    durationSeconds <= 0
+  ) {
+    throw new Error("Google Routes n'a retourné aucun itinéraire exploitable.");
+  }
+  return {
+    distanceKm: Number((distanceMeters / 1000).toFixed(2)),
+    estimatedDurationMinutes: Number((durationSeconds / 60).toFixed(1)),
+    isApproximate: false,
+  };
+}
+
+let postalRouteFetcher: PostalRouteFetcher = fetchGooglePostalRoute;
+
+export function setPostalRouteFetcherForTesting(fetcher: PostalRouteFetcher | null): void {
+  postalRouteFetcher = fetcher ?? fetchGooglePostalRoute;
+}
+
+/** Null quand aucun trajet n'est trouvé (code postal inconnu, fournisseur en panne). */
+export async function calculatePostalCodeRoute(
+  input: PostalRouteRequest
+): Promise<RouteEstimate | null> {
+  try {
+    return await postalRouteFetcher(input);
+  } catch (error) {
+    console.error(
+      "[calculateRoute] postal route request failed",
+      error instanceof Error ? error.message : "unknown_error"
+    );
+    return null;
+  }
+}
+
 /** Route autoritaire réutilisable par le devis, toujours calculée serveur. */
 export async function calculateAuthoritativeRoute(
   input: CalculateRouteRequest

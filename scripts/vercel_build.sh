@@ -131,7 +131,7 @@ echo "OK — build/web/index.html présent."
 echo "[6/6] Pages SEO (tool/build_seo_pages.dart)..."
 "${DART_BIN}" run tool/build_seo_pages.dart build/web
 
-if [ ! -f "build/web/seo/fr/tarifs.html" ] || [ ! -f "build/web/llms.txt" ]; then
+if [ ! -f "build/web/seo/fr/tarifs.html" ] || [ ! -f "build/web/seo/fr/estimation.html" ] || [ ! -f "build/web/llms.txt" ]; then
   echo "ERREUR: pages SEO absentes après génération." >&2
   exit 1
 fi

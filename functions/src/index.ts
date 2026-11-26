@@ -123,6 +123,7 @@ export { qualifyFoundingDriver, revokeFoundingDriverStatus } from "./functions/q
 export { updatePricingConfiguration } from "./functions/updatePricingConfiguration";
 export { previewPricingConfiguration } from "./functions/previewPricingConfiguration";
 export { getPublicPriceTable } from "./functions/getPublicPriceTable";
+export { estimateDeliveryPrice } from "./functions/estimateDeliveryPrice";
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";
