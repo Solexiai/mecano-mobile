@@ -19,7 +19,7 @@
   'use strict';
 
   // ↓↓↓ Identifiant du pixel Meta (15 ou 16 chiffres). Vide = désactivé. ↓↓↓
-  var PIXEL_ID = '';
+  var PIXEL_ID = '2371136040298221';
   // ↑↑↑ ------------------------------------------------------------- ↑↑↑
 
   var STORAGE_KEY = 'movik_ads_consent';

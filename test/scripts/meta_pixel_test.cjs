@@ -9,7 +9,8 @@ const test = require('node:test');
 
 const file = path.resolve(__dirname, '../../web/meta_pixel.js');
 const source = fs.readFileSync(file, 'utf8');
-const withId = source.replace("var PIXEL_ID = '';", "var PIXEL_ID = '123456789012345';");
+// Un identifiant de test, quel que soit celui réglé dans le fichier.
+const withId = source.replace(/var PIXEL_ID = '[^']*';/, "var PIXEL_ID = '123456789012345';");
 
 function element(tag) {
   return {
