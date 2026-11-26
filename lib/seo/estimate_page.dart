@@ -316,6 +316,8 @@ const _script = r'''
   }
   function track(name, params) {
     try { if (window.gtag) window.gtag('event', name, params || {}); } catch (e) { /* mesure seulement */ }
+    // Pixel Meta : une estimation affichée (inactif sans identifiant ni accord).
+    try { if (name === 'estimate_shown' && window.movikMeta) window.movikMeta.track('EstimateShown'); } catch (e) { /* idem */ }
   }
   function say(text) {
     msg.textContent = text || '';

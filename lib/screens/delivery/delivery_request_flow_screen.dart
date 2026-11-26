@@ -667,7 +667,10 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _acceptanceCurrent &&
         previous != null &&
         previous['customerTotal'] == quote['customerTotal'];
-    FunnelAnalytics.event('price_shown');
+    FunnelAnalytics.event(
+      'price_shown',
+      FunnelAnalytics.priceParams(quote['customerTotal']),
+    );
     setState(() {
       _review = null;
       _draft.data['quote'] = quote;
@@ -839,7 +842,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'itemCategoryKey': '',
       'customerDisplayName': '',
     });
-    FunnelAnalytics.event('booking_created');
+    final createdId = result['missionId'];
+    FunnelAnalytics.event(
+      'booking_created',
+      FunnelAnalytics.priceParams(q['customerTotal']),
+      createdId is String ? 'booking_$createdId' : null,
+    );
     if (!mounted || epoch != _epoch) return;
     setState(() {
       _draft.data['missionId'] = result['missionId'];
