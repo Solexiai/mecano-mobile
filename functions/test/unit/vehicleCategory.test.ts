@@ -1,4 +1,6 @@
 import {
+  dispatchCategory,
+  driverServesMissionCategory,
   normalizeVehicleCategory,
   resolveConfiguredVehicleCategory,
   supportsVehicleCategory,
@@ -31,5 +33,41 @@ describe("vehicle category compatibility", () => {
   it("préserve l'éligibilité des anciens profils chauffeur camelCase", () => {
     expect(supportsVehicleCategory(["cargoVan"], "cargo_van")).toBe(true);
     expect(supportsVehicleCategory(["sedan"], "cargo_van")).toBe(false);
+  });
+
+  // Décision de Daniel, 2026-11-26.
+  it("traite un VUS avec remorque comme un pick-up pour le jumelage", () => {
+    expect(dispatchCategory("suvWithTrailer")).toBe("pickup_truck");
+    expect(dispatchCategory("suv_with_trailer")).toBe("pickup_truck");
+    expect(supportsVehicleCategory(["suv_with_trailer"], "pickup_truck")).toBe(true);
+    expect(supportsVehicleCategory(["suvWithTrailer"], "pickupTruck")).toBe(true);
+  });
+
+  it("ne donne pas au VUS avec remorque les demandes réservées au fourgon ou au camion cube", () => {
+    expect(supportsVehicleCategory(["suv_with_trailer"], "cargo_van")).toBe(false);
+    expect(supportsVehicleCategory(["suv_with_trailer"], "cube_truck")).toBe(false);
+  });
+
+  it("laisse le VUS seul limité aux demandes ouvertes au VUS", () => {
+    expect(dispatchCategory("suv")).toBe("suv");
+    expect(supportsVehicleCategory(["suv"], "pickup_truck")).toBe(false);
+    const sofa = {
+      booking_snapshot: {
+        vehicle_assessment: "driver_judgement",
+        eligible_categories: ["pickup_truck", "cargo_van", "cube_truck"],
+      },
+    };
+    expect(driverServesMissionCategory(["suv"], sofa)).toBe(false);
+    expect(driverServesMissionCategory(["suv_with_trailer"], sofa)).toBe(true);
+  });
+
+  it("garde le VUS avec remorque sur une demande ouverte seulement au pick-up et au camion cube", () => {
+    const materials = {
+      booking_snapshot: {
+        vehicle_assessment: "driver_judgement",
+        eligible_categories: ["pickup_truck", "cube_truck"],
+      },
+    };
+    expect(driverServesMissionCategory(["suv_with_trailer"], materials)).toBe(true);
   });
 });

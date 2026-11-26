@@ -177,9 +177,16 @@ class _AssignmentDialogState extends State<_AssignmentDialog> {
   static String _normalizeCategory(String raw) =>
       raw.toLowerCase().replaceAll('_', '').replaceAll('-', '').trim();
 
+  /// 2026-11-26 : un VUS avec remorque reçoit les demandes d'un pick-up
+  /// (même règle que `dispatchCategory` côté serveur).
+  static String _dispatchCategory(String raw) {
+    final normalized = _normalizeCategory(raw);
+    return normalized == 'suvwithtrailer' ? 'pickuptruck' : normalized;
+  }
+
   bool _servesMission(DriverProfileV2 driver) {
     final accepted = driver.acceptedVehicleCategories
-        .map((c) => _normalizeCategory(c.firestoreValue))
+        .map((c) => _dispatchCategory(c.firestoreValue))
         .toSet();
     final snapshot = widget.mission.bookingSnapshot;
     final eligible = snapshot?['eligible_categories'];

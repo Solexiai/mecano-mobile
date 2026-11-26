@@ -146,12 +146,13 @@ class DriverLandingScreen extends StatelessWidget {
       tr('Camionnette', 'Pickup truck', 'Camioneta'),
       tr('Fourgon cargo', 'Cargo van', 'Furgón de carga'),
       tr('Camion cube', 'Box truck', 'Camión caja'),
-      tr('Remorque', 'Trailer', 'Remolque'),
       tr('VUS avec remorque', 'SUV with trailer', 'SUV con remolque'),
+      // 2026-11-26 : même liste que l'inscription. Le VUS seul est accepté,
+      // pour les petits articles seulement.
       tr(
-        'Véhicule commercial léger',
-        'Light commercial vehicle',
-        'Vehículo comercial ligero',
+        'VUS sans remorque (petits articles)',
+        'SUV without trailer (small items)',
+        'SUV sin remolque (artículos pequeños)',
       ),
     ];
 

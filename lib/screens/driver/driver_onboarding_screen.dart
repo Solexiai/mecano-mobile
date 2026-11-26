@@ -404,8 +404,11 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                 // 2026-11-09 : + VUS (colis, boîtes, table, chaises,
                 // commode ; pas d'électroménager ni de sectionnel — réglé
                 // par l'admin dans Quoi ?).
+                // 2026-11-26 : + VUS avec remorque, qui reçoit les mêmes
+                // demandes qu'un pick-up (lib/vehicleCategory.ts, serveur).
                 const [
                       VehicleCategory.suv,
+                      VehicleCategory.suvWithTrailer,
                       VehicleCategory.pickupTruck,
                       VehicleCategory.cargoVan,
                       VehicleCategory.cubeTruck,
@@ -420,6 +423,14 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
                     )
                     .toList(),
           ),
+          if (_vehicleCategory == VehicleCategory.suv) ...[
+            const SizedBox(height: 10),
+            Text(
+              t('driver_onboarding_suv_note'),
+              key: const ValueKey('driver-onboarding-suv-note'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 22),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -814,6 +825,7 @@ class _DriverOnboardingScreenState extends State<DriverOnboardingScreen> {
       );
       return const [
             VehicleCategory.suv,
+            VehicleCategory.suvWithTrailer,
             VehicleCategory.pickupTruck,
             VehicleCategory.cargoVan,
             VehicleCategory.cubeTruck,

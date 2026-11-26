@@ -51,8 +51,25 @@ export function supportsVehicleCategory(
   if (!required) return false;
 
   return acceptedCategories.some(
-    (accepted) => normalizeVehicleCategory(accepted) === required
+    (accepted) => dispatchCategory(accepted) === required
   );
+}
+
+/**
+ * Décision de Daniel, 2026-11-26 : un VUS avec remorque reçoit exactement les
+ * demandes d'un pick-up. Il garde sa propre valeur dans le profil du chauffeur
+ * (affichage, tri), mais il compte comme un pick-up pour le jumelage,
+ * l'acceptation et l'assignation manuelle. Le VUS seul reste limité aux objets
+ * cochés « VUS » par l'admin (lib/itemTypes.ts).
+ */
+const DISPATCH_ALIASES: Record<string, string> = {
+  suv_with_trailer: "pickup_truck",
+};
+
+/** Catégorie utilisée pour le jumelage, après normalisation. */
+export function dispatchCategory(value: string): string {
+  const normalized = normalizeVehicleCategory(value);
+  return DISPATCH_ALIASES[normalized] ?? normalized;
 }
 
 /**
