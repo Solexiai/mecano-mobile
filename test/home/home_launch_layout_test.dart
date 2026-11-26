@@ -72,7 +72,10 @@ void main() {
             of: hero,
             matching: find.byKey(const Key('home-driver-link')),
           );
-          final headerHasButton = width >= 1200 && scale == 1.0;
+          // The page lays itself out from the width it is told, which the
+          // test surface does not change.
+          final logicalWidth = MediaQuery.sizeOf(tester.element(hero)).width;
+          final headerHasButton = logicalWidth >= 1200 && scale == 1.0;
           expect(headerDriver, headerHasButton ? findsOneWidget : findsNothing);
           expect(driverLink, headerHasButton ? findsNothing : findsOneWidget);
           final driverAction = headerHasButton ? headerDriver : driverLink;
@@ -88,7 +91,7 @@ void main() {
             find.byKey(const Key('home-estimate-from')),
           );
           final to = tester.getRect(find.byKey(const Key('home-estimate-to')));
-          if (width >= 1200) {
+          if (logicalWidth >= 1200) {
             expect(from.top, to.top);
             expect(from.right, lessThan(to.left));
             final scene = tester.getRect(component('_HeroScene'));
@@ -164,14 +167,41 @@ void main() {
     offlineWidgetTest('header invites drivers on a computer in $locale', (
       tester,
     ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1440, 900);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final (router, _) = await mountHome(
         tester,
         locale: locale,
         width: 1440,
         height: 900,
       );
+      final hero = find.byKey(const Key('home-hero'));
+      expect(MediaQuery.sizeOf(tester.element(hero)).width, 1440);
       final action = find.byKey(const Key('public-header-driver'));
       expect(action, findsOneWidget);
+      // The header carries the invitation: no second one in the hero.
+      expect(find.byKey(const Key('home-driver-link')), findsNothing);
+      expect(
+        find.descendant(of: hero, matching: find.byType(Positioned)),
+        findsNothing,
+      );
+      // Title, one line, then the card; postal codes side by side; the
+      // photo as tall as the title and the card together.
+      final copy = tester.getRect(component('_HeroCopy'));
+      final card = tester.getRect(component('_QuoteCard'));
+      final scene = tester.getRect(component('_HeroScene'));
+      final from = tester.getRect(find.byKey(const Key('home-estimate-from')));
+      final to = tester.getRect(find.byKey(const Key('home-estimate-to')));
+      expect(copy.bottom, lessThan(card.top));
+      expect(from.top, to.top);
+      expect(from.right, lessThan(to.left));
+      expect(card.right, lessThan(scene.left));
+      expect(scene.top, closeTo(copy.top, 0.01));
+      expect(scene.bottom, closeTo(card.bottom, 0.01));
+      expect(scene.bottom, lessThan(tester.getRect(component('_Trust')).top));
+      expect(tester.takeException(), isNull);
       await tester.tap(action);
       await tester.pumpAndSettle();
       expect(
