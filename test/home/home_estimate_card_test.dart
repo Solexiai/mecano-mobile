@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movik_connect/l10n/home_copy.dart';
-import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
 
 import '../helpers/gps_offline_transport.dart';
 import 'home_screen_test.dart' show mountHome;
@@ -107,19 +106,31 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  offlineWidgetTest('"not sure" opens the delivery request, which takes a photo', (
+  offlineWidgetTest('"not sure" opens the estimate page that reads a photo', (
     tester,
   ) async {
-    final (router, _) = await mountHome(
-      tester,
-      openEstimate: (_) async => fail('the estimate page must not open'),
-    );
+    final opened = <String>[];
+    await mountHome(tester, openEstimate: (path) async => opened.add(path));
     await tapVisible(tester, find.byKey(const Key('home-estimate-photo')));
-    expect(
-      router.routeInformationProvider.value.uri.path,
-      '/fr/livraison/demande',
+    expect(opened, hasLength(1));
+    var uri = Uri.parse(opened.single);
+    expect(uri.path, '/fr/estimation');
+    expect(uri.queryParameters, {'photo': '1', 'poids': 'medium'});
+
+    // What is already typed follows the visitor.
+    await tester.enterText(
+      find.byKey(const Key('home-estimate-from')),
+      'j2g3v5',
     );
-    expect(find.byType(DeliveryRequestFlowScreen), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('home-estimate-to')), 'oups');
+    await tapVisible(tester, find.byKey(const Key('home-estimate-photo')));
+    uri = Uri.parse(opened.last);
+    expect(uri.queryParameters, {
+      'photo': '1',
+      'de': 'J2G 3V5',
+      'poids': 'medium',
+    });
+    expect(find.byKey(const Key('home-estimate-invalid')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

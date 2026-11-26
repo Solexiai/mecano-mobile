@@ -20,9 +20,6 @@ typedef EstimateOpener = Future<void> Function(String path);
 /// with no account. On the home page, the pricing page and the pages by
 /// item, store and city.
 class EstimateCard extends StatefulWidget {
-  /// "Not sure? Add a photo": the delivery request, which reads a photo.
-  final VoidCallback onPhoto;
-
   /// Tests inject a recorder; the app opens the lightweight estimate page.
   final EstimateOpener? onEstimate;
 
@@ -31,12 +28,18 @@ class EstimateCard extends StatefulWidget {
 
   /// Language of the page; the language of the app when absent.
   final String? locale;
+
+  /// Wide layout (home page on a computer): the two postal codes side by
+  /// side, the photo link beside the button. The caller decides from the
+  /// screen width: the card sits inside an IntrinsicHeight there, which a
+  /// LayoutBuilder would not allow.
+  final bool wide;
   const EstimateCard({
     super.key,
-    required this.onPhoto,
     this.onEstimate,
     this.keyPrefix = 'estimate',
     this.locale,
+    this.wide = false,
   });
 
   /// The estimate page is plain HTML served next to the app: same tab on
@@ -77,6 +80,20 @@ class _EstimateCardState extends State<EstimateCard> {
     setState(() => _invalid = false);
     (widget.onEstimate ?? EstimateCard.openPage)(
       estimateLink(locale, from: from, to: to, weight: _weight),
+    );
+  }
+
+  /// "Not sure? Add a photo": the estimate page, where an AI recognizes the
+  /// item on the photo and picks the weight (2026-11-26). What is already
+  /// typed follows.
+  void _photo(String locale) {
+    (widget.onEstimate ?? EstimateCard.openPage)(
+      estimatePhotoLink(
+        locale,
+        from: normalizePostalCode(_from.text),
+        to: normalizePostalCode(_to.text),
+        weight: _weight,
+      ),
     );
   }
 
@@ -132,6 +149,37 @@ class _EstimateCardState extends State<EstimateCard> {
   Widget build(BuildContext context) {
     final locale = widget.locale ?? context.watch<LocaleProvider>().locale;
     String h(String key) => HomeCopy.text(key, locale);
+    final fromField = _field(
+      h('estimate_from'),
+      _from,
+      Key('${widget.keyPrefix}-from'),
+    );
+    final toField = _field(
+      h('estimate_to'),
+      _to,
+      Key('${widget.keyPrefix}-to'),
+    );
+    final photoButton = TextButton.icon(
+      key: Key('${widget.keyPrefix}-photo'),
+      onPressed: () => _photo(locale),
+      icon: const Icon(Icons.photo_camera_outlined, size: 20),
+      label: Text(h('estimate_photo')),
+      style: TextButton.styleFrom(
+        foregroundColor: const Color(0xFF075FC4),
+        minimumSize: const Size.fromHeight(52),
+      ),
+    );
+    final submitButton = ElevatedButton(
+      key: Key('${widget.keyPrefix}-submit'),
+      onPressed: () => _submit(locale),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryDark,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(52),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      child: Text(h('estimate_button')),
+    );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -161,13 +209,20 @@ class _EstimateCardState extends State<EstimateCard> {
               ),
             ),
             const SizedBox(height: 14),
-            _field(
-              h('estimate_from'),
-              _from,
-              Key('${widget.keyPrefix}-from'),
-            ),
-            const SizedBox(height: 12),
-            _field(h('estimate_to'), _to, Key('${widget.keyPrefix}-to')),
+            if (widget.wide)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: fromField),
+                  const SizedBox(width: 12),
+                  Expanded(child: toField),
+                ],
+              )
+            else ...[
+              fromField,
+              const SizedBox(height: 12),
+              toField,
+            ],
             const SizedBox(height: 12),
             Text(
               h('estimate_what'),
@@ -195,19 +250,8 @@ class _EstimateCardState extends State<EstimateCard> {
                 ],
               ],
             ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              key: Key('${widget.keyPrefix}-photo'),
-              onPressed: widget.onPhoto,
-              icon: const Icon(Icons.photo_camera_outlined, size: 20),
-              label: Text(h('estimate_photo')),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF075FC4),
-                minimumSize: const Size.fromHeight(48),
-              ),
-            ),
             if (_invalid) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
                 h('estimate_invalid'),
                 key: Key('${widget.keyPrefix}-invalid'),
@@ -219,17 +263,19 @@ class _EstimateCardState extends State<EstimateCard> {
               ),
             ],
             const SizedBox(height: 8),
-            ElevatedButton(
-              key: Key('${widget.keyPrefix}-submit'),
-              onPressed: () => _submit(locale),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryDark,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(52),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(h('estimate_button')),
-            ),
+            if (widget.wide)
+              Row(
+                children: [
+                  Expanded(child: photoButton),
+                  const SizedBox(width: 12),
+                  Expanded(child: submitButton),
+                ],
+              )
+            else ...[
+              photoButton,
+              const SizedBox(height: 8),
+              submitButton,
+            ],
             const SizedBox(height: 10),
             Text(
               h('estimate_card_note'),

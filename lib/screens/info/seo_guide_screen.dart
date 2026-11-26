@@ -72,8 +72,6 @@ class SeoGuideScreen extends StatelessWidget {
                       child: EstimateCard(
                         locale: locale,
                         keyPrefix: 'seo-guide-estimate',
-                        onPhoto: () =>
-                            context.go(DeliveryRequestIntent.path(locale)),
                       ),
                     ),
                   ),

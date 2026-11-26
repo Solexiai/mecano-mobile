@@ -63,12 +63,44 @@ void main() {
             component('_LocalCta'),
           );
 
-          final quoteAction = find.byKey(const Key('home-primary-quote'));
-          final driverAction = find.descendant(
+          // 2026-11-26 : the estimate card is the action of the hero. The
+          // invitation to drivers is the button of the header when it has
+          // room for one, otherwise a link under the card.
+          final quoteAction = find.byKey(const Key('home-estimate-submit'));
+          final headerDriver = find.byKey(const Key('public-header-driver'));
+          final driverLink = find.descendant(
             of: hero,
-            matching: find.byType(OutlinedButton),
+            matching: find.byKey(const Key('home-driver-link')),
           );
-          expect(driverAction, findsOneWidget);
+          // The page lays itself out from the width it is told, which the
+          // test surface does not change.
+          final logicalWidth = MediaQuery.sizeOf(tester.element(hero)).width;
+          final headerHasButton = logicalWidth >= 1200 && scale == 1.0;
+          expect(headerDriver, headerHasButton ? findsOneWidget : findsNothing);
+          expect(driverLink, headerHasButton ? findsNothing : findsOneWidget);
+          final driverAction = headerHasButton ? headerDriver : driverLink;
+          expect(
+            find.descendant(of: hero, matching: find.byType(OutlinedButton)),
+            findsNothing,
+          );
+          expect(find.byKey(const Key('home-primary-quote')), findsNothing);
+          expectOrdered(tester, heroCopy, quote);
+          // On a computer the two postal codes sit side by side and the
+          // photo is as tall as the column of the card.
+          final from = tester.getRect(
+            find.byKey(const Key('home-estimate-from')),
+          );
+          final to = tester.getRect(find.byKey(const Key('home-estimate-to')));
+          if (logicalWidth >= 1200) {
+            expect(from.top, to.top);
+            expect(from.right, lessThan(to.left));
+            final scene = tester.getRect(component('_HeroScene'));
+            expect(scene.top, closeTo(tester.getRect(heroCopy).top, 0.01));
+            expect(scene.bottom, closeTo(tester.getRect(quote).bottom, 0.01));
+          } else {
+            expect(from.bottom, lessThan(to.top));
+            expectOrdered(tester, quote, component('_HeroScene'));
+          }
           expect(
             tester.getRect(quoteAction).overlaps(tester.getRect(driverAction)),
             isFalse,
@@ -132,6 +164,56 @@ void main() {
       );
     }
 
+    offlineWidgetTest('header invites drivers on a computer in $locale', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1440, 900);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final (router, _) = await mountHome(
+        tester,
+        locale: locale,
+        width: 1440,
+        height: 900,
+      );
+      final hero = find.byKey(const Key('home-hero'));
+      expect(MediaQuery.sizeOf(tester.element(hero)).width, 1440);
+      final action = find.byKey(const Key('public-header-driver'));
+      expect(action, findsOneWidget);
+      // The header carries the invitation: no second one in the hero.
+      expect(find.byKey(const Key('home-driver-link')), findsNothing);
+      expect(
+        find.descendant(of: hero, matching: find.byType(Positioned)),
+        findsNothing,
+      );
+      // Title, one line, then the card; postal codes side by side; the
+      // photo as tall as the title and the card together.
+      final copy = tester.getRect(component('_HeroCopy'));
+      final card = tester.getRect(component('_QuoteCard'));
+      final scene = tester.getRect(component('_HeroScene'));
+      final from = tester.getRect(find.byKey(const Key('home-estimate-from')));
+      final to = tester.getRect(find.byKey(const Key('home-estimate-to')));
+      expect(copy.bottom, lessThan(card.top));
+      expect(from.top, to.top);
+      expect(from.right, lessThan(to.left));
+      expect(card.right, lessThan(scene.left));
+      expect(scene.top, closeTo(copy.top, 0.01));
+      expect(scene.bottom, closeTo(card.bottom, 0.01));
+      expect(scene.bottom, lessThan(tester.getRect(component('_Trust')).top));
+      expect(tester.takeException(), isNull);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/$locale/devenir-chauffeur',
+      );
+      expect(tester.takeException(), isNull);
+      expect(Firebase.apps, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
     offlineWidgetTest('driver action preserves the existing $locale route', (
       tester,
     ) async {
@@ -143,7 +225,7 @@ void main() {
       );
       final action = find.descendant(
         of: find.byKey(const Key('home-hero')),
-        matching: find.byType(OutlinedButton),
+        matching: find.byKey(const Key('home-driver-link')),
       );
       expect(
         find.descendant(

@@ -62,10 +62,23 @@ void main() {
     expect(uri.queryParameters, {'de': 'J2G 3V5', 'a': 'J2L', 'poids': 'heavy'});
   });
 
-  test('the function address is the one of the app project', () {
+  test('the function addresses are the ones of the app project', () {
     expect(
       estimateFunctionUrl,
       'https://us-central1-${DefaultFirebaseOptions.projectId}.cloudfunctions.net/estimateDeliveryPrice',
+    );
+    expect(
+      estimatePhotoFunctionUrl,
+      'https://us-central1-${DefaultFirebaseOptions.projectId}.cloudfunctions.net/estimateItemFromPhoto',
+    );
+  });
+
+  test('the photo link keeps what is already typed', () {
+    expect(Uri.parse(estimatePhotoLink('en')).path, '/en/estimate');
+    expect(Uri.parse(estimatePhotoLink('en')).queryParameters, {'photo': '1'});
+    expect(
+      Uri.parse(estimatePhotoLink('fr', from: 'J2G 3V5', to: 'J2L', weight: 'light')).queryParameters,
+      {'photo': '1', 'de': 'J2G 3V5', 'a': 'J2L', 'poids': 'light'},
     );
   });
 
@@ -104,7 +117,27 @@ void main() {
       expect(RegExp('type="radio" name="poids"').allMatches(html), hasLength(3));
       expect(html, contains('value="medium" checked'));
       expect(html, contains(HomeCopy.text('estimate_button', locale)));
-      expect(html, contains('class="mk-est-photo" href="/$locale/livraison/demande"'));
+      // "Not sure? Add a photo": a link to this page that the script turns
+      // into the camera, with the recognition function and its notice.
+      expect(
+        html,
+        contains('class="mk-est-photo" id="mk-est-photo" href="${estimatePath(locale)}?photo=1"'),
+      );
+      expect(RegExp('<input type="file" id="mk-est-file" accept="image/\\*" hidden>').allMatches(html), hasLength(1));
+      expect(html, contains('id="mk-est-photo-msg" role="status" hidden'));
+      expect(html, contains(HomeCopy.text('estimate_photo_note', locale)));
+      expect(html, contains(estimatePhotoFunctionUrl));
+      for (final event in ['estimate_photo_requested', 'estimate_photo_recognized', 'estimate_photo_error']) {
+        expect(html, contains("'$event'"));
+      }
+      // The Meta pixel of the site, loaded by the page itself.
+      expect(RegExp('<script src="/meta_pixel.js" defer></script>').allMatches(html), hasLength(1));
+      expect(File('web/meta_pixel.js').existsSync(), isTrue);
+      // Links to the rest of the site.
+      for (final id in ['home', 'delivery', 'pricing', 'how', 'faq', 'driver']) {
+        final target = seoPages.firstWhere((p) => p.id == id);
+        expect(html, contains('href="${target.path(locale)}"'), reason: id);
+      }
 
       // The result is hidden until the function answers; the page's own
       // display rule must not show it earlier.
@@ -152,6 +185,17 @@ void main() {
         expect(RegExp('id="mk-est-form"').allMatches(html), hasLength(1), reason: page.id);
         expect(html, contains('action="${estimatePath(locale)}" method="get"'));
         expect(html, contains('.mk-est-form{'));
+        // The photo is read on the estimate page only.
+        expect(html, contains('id="mk-est-photo" href="${estimatePath(locale)}?photo=1"'));
+        expect(html, isNot(contains('mk-est-file')), reason: page.id);
+      }
+      // Every public page links to the estimate page.
+      for (final page in seoPages) {
+        expect(
+          renderSeoPage(_template, page, locale),
+          contains('<a href="${estimatePath(locale)}">${HomeCopy.text('estimate_button', locale)}</a>'),
+          reason: page.id,
+        );
       }
       for (final id in ['faq', 'driver', 'contact']) {
         expect(seoPageHasEstimate(seoPages.firstWhere((p) => p.id == id)), isFalse);

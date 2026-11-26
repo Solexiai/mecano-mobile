@@ -183,10 +183,21 @@ void main() {
       });
     }
     offlineWidgetTest(
-      'primary action $locale goes directly to existing request',
+      'bottom action $locale goes directly to existing request',
       (tester) async {
         final (router, _) = await mountHome(tester, locale: locale);
-        await tester.tap(find.byKey(const Key('home-primary-quote')));
+        // 2026-11-26 : the hero carries the estimate card; the request
+        // button stays in the block at the bottom of the page.
+        final action = find.descendant(
+          of: find.byWidgetPredicate(
+            (widget) => widget.runtimeType.toString() == '_LocalCta',
+          ),
+          matching: find.byType(ElevatedButton),
+        );
+        expect(action, findsOneWidget);
+        await tester.ensureVisible(action);
+        await tester.pumpAndSettle();
+        await tester.tap(action);
         await tester.pumpAndSettle();
         expect(
           router.routeInformationProvider.value.uri.path,

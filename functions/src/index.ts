@@ -124,6 +124,7 @@ export { updatePricingConfiguration } from "./functions/updatePricingConfigurati
 export { previewPricingConfiguration } from "./functions/previewPricingConfiguration";
 export { getPublicPriceTable } from "./functions/getPublicPriceTable";
 export { estimateDeliveryPrice } from "./functions/estimateDeliveryPrice";
+export { estimateItemFromPhoto } from "./functions/estimateItemFromPhoto";
 
 // ---- Rôles (Custom Claims) ----
 export { setUserRole } from "./functions/setUserRole";

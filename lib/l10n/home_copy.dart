@@ -335,6 +335,17 @@ abstract final class HomeCopy {
     },
     // Estimation par codes postaux (Daniel, 2026-11-26) : carte de
     // l'accueil, accueil léger et page d'estimation.
+    // Haut de l'accueil du 26 nov. 2026 : une ligne, puis la carte.
+    'intro_short': {
+      'fr': 'Meubles, électroménagers, achats Marketplace : voyez votre prix tout de suite.',
+      'en': 'Furniture, appliances, Marketplace purchases: see your price right away.',
+      'es': 'Muebles, electrodomésticos, compras de Marketplace: ve tu precio de inmediato.',
+    },
+    'estimate_photo_note': {
+      'fr': 'Une IA reconnaît l’objet sur la photo. Movi-K ne conserve pas la photo.',
+      'en': 'An AI recognizes the item in the photo. Movi-K does not keep the photo.',
+      'es': 'Una IA reconoce el objeto en la foto. Movi-K no conserva la foto.',
+    },
     'estimate_title': {
       'fr': 'Estimez votre prix en 10 secondes',
       'en': 'Estimate your price in 10 seconds',

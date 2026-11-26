@@ -20,6 +20,7 @@
 import 'dart:convert';
 
 import '../content/faq_content.dart';
+import '../l10n/home_copy.dart';
 import 'estimate_page.dart';
 import 'seo_pages.dart';
 
@@ -215,6 +216,10 @@ String _body(SeoPage page, String locale) {
     final target = seoPages.firstWhere((p) => p.id == entry.key);
     b.write('<a href="${target.path(locale)}">${_esc(_t(entry.value, locale))}</a>');
   }
+  // 2026-11-26 : la page d'estimation est reliée depuis chaque page publique.
+  b.write(
+    '<a href="${estimatePath(locale)}">${_esc(HomeCopy.text('estimate_button', locale))}</a>',
+  );
   b
     ..writeln('</nav>')
     ..writeln('    </header>')
