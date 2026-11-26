@@ -29,6 +29,9 @@ class _RefusingLeadApi extends TestBookingApi {
 Finder _key(String key) => find.byKey(ValueKey(key));
 
 Future<void> _tapKey(WidgetTester t, String key) async {
+  // A field that just received text scrolls itself into view on the next
+  // frame; let that finish before bringing the button on screen.
+  await t.pumpAndSettle();
   await t.ensureVisible(_key(key));
   await t.pumpAndSettle();
   await t.tap(_key(key));

@@ -91,8 +91,9 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// Le compte connecté. Une session invitée (voir [isGuest]) n'est PAS un
   /// compte : partout dans l'app, sauf dans la demande de livraison, elle se
   /// comporte comme un visiteur non connecté.
-  fb.User? get user => (_user?.isAnonymous ?? false) ? null : _user;
-  bool get isSignedIn => user != null || debugForceSignedIn;
+  fb.User? get user => _account;
+  fb.User? get _account => (_user?.isAnonymous ?? false) ? null : _user;
+  bool get isSignedIn => _account != null || debugForceSignedIn;
 
   /// Prix avec le courriel seulement (2026-11-26) : session Firebase anonyme
   /// ouverte en arrière-plan par la demande de livraison. Elle permet de
@@ -118,10 +119,10 @@ class FirebaseAuthProvider extends ChangeNotifier {
   /// ce getter plutôt que `user!.uid` directement, pour rester testables
   /// sans dépendance à un vrai utilisateur Firebase.
   String? get effectiveUid =>
-      user?.uid ?? (debugForceGuest ? null : debugForceUid);
+      _account?.uid ?? (debugForceGuest ? null : debugForceUid);
   String? get effectiveDisplayName =>
-      user?.displayName ?? debugForceDisplayName;
-  String? get effectiveEmail => user?.email ?? debugForceEmail;
+      _account?.displayName ?? debugForceDisplayName;
+  String? get effectiveEmail => _account?.email ?? debugForceEmail;
   List<PlatformRole> get roles => debugForceRoles ?? _roles;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
