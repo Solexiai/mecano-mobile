@@ -54,7 +54,8 @@ export function clearEstimateCachesForTesting(): void {
   cachedConfig = null;
 }
 
-async function activeGrid(now: number): Promise<{ id: string; config: PricingVersionDoc }> {
+/** The active grid, kept 10 minutes; also used by estimateItemFromPhoto. */
+export async function activeGrid(now: number): Promise<{ id: string; config: PricingVersionDoc }> {
   if (cachedConfig && cachedConfig.expiresAtMs > now) return cachedConfig;
   const activeSnap = await db.collection("pricing_configs").doc("active").get();
   const rawActiveId = activeSnap.data()?.active_pricing_version;

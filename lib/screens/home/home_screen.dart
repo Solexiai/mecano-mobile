@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/responsive.dart';
 import '../../l10n/home_copy.dart';
 import '../../providers/locale_provider.dart';
 import '../../widgets/app_shell.dart';
@@ -31,10 +32,10 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) => AppShell(
     locale: locale,
     showFooter: true,
+    headerDriverAction: true,
     child: Column(
       children: [
         _Hero(
-          quote: () => _quote(context),
           driver: () => _driver(context),
           estimate: openEstimate ?? EstimateCard.openPage,
         ),
@@ -60,16 +61,25 @@ const _heroAsset = 'assets/home/hero_neutral.webp';
 class _HeroScene extends StatelessWidget {
   final double radius;
   final FilterQuality quality;
-  const _HeroScene({required this.radius, required this.quality});
+
+  /// Fills the height it is given (computer: as tall as the estimate card)
+  /// instead of keeping the proportions of the photo.
+  final bool fill;
+  const _HeroScene({
+    required this.radius,
+    required this.quality,
+    this.fill = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>().locale;
+    Widget framed(Widget child) =>
+        fill ? child : AspectRatio(aspectRatio: 524 / 350, child: child);
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: AspectRatio(
-        aspectRatio: 524 / 350,
-        child: Stack(
+      child: framed(
+        Stack(
           fit: StackFit.expand,
           children: [
             Image.asset(
@@ -190,18 +200,34 @@ class _SignArrowPainter extends CustomPainter {
 }
 
 class _Hero extends StatelessWidget {
-  final VoidCallback quote, driver;
+  final VoidCallback driver;
   final EstimateOpener estimate;
-  const _Hero({
-    required this.quote,
-    required this.driver,
-    required this.estimate,
-  });
+  const _Hero({required this.driver, required this.estimate});
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final desktop = width >= 980;
+    final locale = context.watch<LocaleProvider>().locale;
+    // The header of the home page invites drivers when it has room for a
+    // button; otherwise the link sits under the card.
+    final headerInvitesDrivers = AppShell.headerHasAction(context);
+    Widget driverLink() => Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        key: const Key('home-driver-link'),
+        onPressed: driver,
+        style: TextButton.styleFrom(
+          foregroundColor: const Color(0xFF075FC4),
+          minimumSize: const Size(48, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        ),
+        child: Text(HomeCopy.text('driver_link', locale)),
+      ),
+    );
 
+    // 2026-11-26 (Daniel, sketch approved): title, one line, then the
+    // estimate card; the photo is as tall as the card on a computer.
     if (!desktop) {
       return Container(
         key: const Key('home-hero'),
@@ -215,12 +241,17 @@ class _Hero extends StatelessWidget {
         ),
         child: ResponsivePadding(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 34),
+            padding: const EdgeInsets.symmetric(vertical: 26),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _HeroCopy(quote: quote, driver: driver),
-                const SizedBox(height: 28),
-                _HeroRight(quote: quote, estimate: estimate),
+                const _HeroCopy(),
+                const SizedBox(height: 18),
+                _QuoteCard(onEstimate: estimate),
+                const SizedBox(height: 4),
+                driverLink(),
+                const SizedBox(height: 14),
+                const _HeroScene(radius: 30, quality: FilterQuality.medium),
                 const SizedBox(height: 28),
                 const _Trust(),
               ],
@@ -240,43 +271,44 @@ class _Hero extends StatelessWidget {
           colors: [Color(0xFFEAF6FF), Colors.white],
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(34, 34, 34, 28),
+      padding: const EdgeInsets.fromLTRB(34, 30, 34, 26),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1320),
           child: Column(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // The quote card sits under the CTA buttons so the left
-                  // column does not leave an empty area beside the card.
-                  Expanded(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _HeroCopy(quote: quote, driver: driver),
-                        const SizedBox(height: 24),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 430),
-                          child: _QuoteCard(
-                            onPhoto: quote,
+              // Laid out with Row/Column and no Positioned (P1-HOME-001).
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const _HeroCopy(),
+                          const SizedBox(height: 18),
+                          _QuoteCard(
                             onEstimate: estimate,
+                            wide: width >= AppBreakpoints.wide,
                           ),
-                        ),
-                      ],
+                          if (!headerInvitesDrivers) ...[
+                            const SizedBox(height: 4),
+                            driverLink(),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 32),
-                  const Expanded(
-                    flex: 6,
-                    child: _HeroScene(
-                      radius: 28,
-                      quality: FilterQuality.high,
+                    const SizedBox(width: 32),
+                    const Expanded(
+                      child: _HeroScene(
+                        radius: 28,
+                        quality: FilterQuality.high,
+                        fill: true,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 22),
               const _Trust(),
@@ -289,8 +321,7 @@ class _Hero extends StatelessWidget {
 }
 
 class _HeroCopy extends StatelessWidget {
-  final VoidCallback quote, driver;
-  const _HeroCopy({required this.quote, required this.driver});
+  const _HeroCopy();
 
   @override
   Widget build(BuildContext context) {
@@ -301,105 +332,26 @@ class _HeroCopy extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .88),
-            borderRadius: BorderRadius.circular(99),
-            border: Border.all(color: const Color(0xFFDCEBFA)),
-          ),
-          child: Text(
-            h('granby_launch'),
-            style: const TextStyle(
-              color: Color(0xFF0879E8),
-              fontWeight: FontWeight.w800,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
         Text(
           h('title'),
           style: TextStyle(
             color: AppColors.primaryDark,
-            fontSize: desktop ? 48 : 36,
+            fontSize: desktop ? 44 : 34,
             fontWeight: FontWeight.w900,
-            height: 1.04,
-            letterSpacing: -1.2,
+            height: 1.05,
+            letterSpacing: -1.1,
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         Text(
-          h('intro'),
+          h('intro_short'),
           style: TextStyle(
             color: const Color(0xFF21436F),
             fontSize: desktop ? 17 : 16,
-            height: 1.5,
+            height: 1.4,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 16),
-        Text(
-          h('prelaunch_status'),
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            ElevatedButton(
-              key: const Key('home-primary-quote'),
-              onPressed: quote,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0879E8),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 18,
-                ),
-              ),
-              child: Text(h('quote')),
-            ),
-            OutlinedButton(
-              onPressed: driver,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF075FC4),
-                side: const BorderSide(color: Color(0xFF0879E8)),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 18,
-                ),
-              ),
-              child: Text(h('driver_link')),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// Mobile hero scene and quote card. The desktop hero (width >= 980) is laid
-/// out directly in [_Hero] with Row/Column and no Positioned (P1-HOME-001).
-class _HeroRight extends StatelessWidget {
-  final VoidCallback quote;
-  final EstimateOpener estimate;
-  const _HeroRight({required this.quote, required this.estimate});
-
-  @override
-  Widget build(BuildContext context) {
-    // 2026-11-26 : the estimate card comes before the photo, so a phone
-    // shows the two postal codes without scrolling past the picture.
-    return Column(
-      children: [
-        _QuoteCard(onPhoto: quote, onEstimate: estimate),
-        const SizedBox(height: 14),
-        const _HeroScene(radius: 30, quality: FilterQuality.medium),
       ],
     );
   }
@@ -408,15 +360,15 @@ class _HeroRight extends StatelessWidget {
 /// The estimate card of the home page (lib/widgets/estimate_card.dart).
 /// The class keeps its name: the layout tests find it.
 class _QuoteCard extends StatelessWidget {
-  final VoidCallback onPhoto;
   final EstimateOpener onEstimate;
-  const _QuoteCard({required this.onPhoto, required this.onEstimate});
+  final bool wide;
+  const _QuoteCard({required this.onEstimate, this.wide = false});
 
   @override
   Widget build(BuildContext context) => EstimateCard(
-    onPhoto: onPhoto,
     onEstimate: onEstimate,
     keyPrefix: 'home-estimate',
+    wide: wide,
   );
 }
 

@@ -143,7 +143,6 @@ class PricingScreen extends StatelessWidget {
                 child: EstimateCard(
                   locale: locale,
                   keyPrefix: 'pricing-estimate',
-                  onPhoto: () => context.go(DeliveryRequestIntent.path(locale)),
                 ),
               ),
               const SizedBox(height: 28),

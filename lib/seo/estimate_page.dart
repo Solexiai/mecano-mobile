@@ -29,6 +29,11 @@ import 'seo_pages.dart';
 const estimateFunctionUrl =
     'https://us-central1-movik-connect-prod.cloudfunctions.net/estimateDeliveryPrice';
 
+/// Fonction publique de reconnaissance d'objet sur photo
+/// (functions/src/functions/estimateItemFromPhoto.ts).
+const estimatePhotoFunctionUrl =
+    'https://us-central1-movik-connect-prod.cloudfunctions.net/estimateItemFromPhoto';
+
 const Map<String, String> estimateSlugs = {
   'fr': 'estimation',
   'en': 'estimate',
@@ -78,6 +83,19 @@ String estimateLink(
 }) => Uri(
   path: estimatePath(locale),
   queryParameters: {'de': from, 'a': to, 'poids': weight},
+).toString();
+
+/// L'adresse de la page d'estimation qui invite à ajouter une photo
+/// (« Pas certain ? Ajoutez une photo »). Les codes postaux déjà saisis
+/// suivent ; sans eux, la page s'ouvre vide.
+String estimatePhotoLink(String locale, {String? from, String? to, String? weight}) => Uri(
+  path: estimatePath(locale),
+  queryParameters: {
+    'photo': '1',
+    if (from != null) 'de': from,
+    if (to != null) 'a': to,
+    if (weight != null) 'poids': weight,
+  },
 ).toString();
 
 String _esc(String value) => value
@@ -158,6 +176,36 @@ const Map<String, Map<String, String>> _copy = {
     'es':
         'El precio estimado no está disponible por ahora. Puedes obtener tu precio exacto de inmediato.',
   },
+  'photo_prompt': {
+    'fr': 'Touchez « Ajoutez une photo » pour prendre ou choisir la photo de votre objet.',
+    'en': 'Tap “Add a photo” to take or choose a photo of your item.',
+    'es': 'Toca «Añade una foto» para tomar o elegir la foto de tu objeto.',
+  },
+  'photo_loading': {
+    'fr': 'Analyse de la photo…',
+    'en': 'Analyzing the photo…',
+    'es': 'Analizando la foto…',
+  },
+  'photo_found': {
+    'fr': 'Reconnu : {label}. Poids choisi : {weight}.',
+    'en': 'Recognized: {label}. Weight selected: {weight}.',
+    'es': 'Reconocido: {label}. Peso elegido: {weight}.',
+  },
+  'photo_unsure': {
+    'fr': 'On n’est pas certain de l’objet sur la photo. Choisissez le poids ci-dessus.',
+    'en': 'We are not sure about the item in the photo. Choose the weight above.',
+    'es': 'No estamos seguros del objeto de la foto. Elige el peso arriba.',
+  },
+  'photo_error': {
+    'fr': 'La photo n’a pas pu être analysée. Choisissez le poids ci-dessus.',
+    'en': 'The photo could not be analyzed. Choose the weight above.',
+    'es': 'No se pudo analizar la foto. Elige el peso arriba.',
+  },
+  'nav_home': {'fr': 'Accueil', 'en': 'Home', 'es': 'Inicio'},
+  'nav_delivery': {'fr': 'Livraison', 'en': 'Delivery', 'es': 'Entrega'},
+  'nav_pricing': {'fr': 'Tarifs', 'en': 'Pricing', 'es': 'Precios'},
+  'nav_how': {'fr': 'Comment ça marche', 'en': 'How it works', 'es': 'Cómo funciona'},
+  'nav_faq': {'fr': 'FAQ', 'en': 'FAQ', 'es': 'Preguntas'},
   'km': {'fr': 'environ {km} km', 'en': 'about {km} km', 'es': 'unos {km} km'},
   'range': {'fr': '{low} \$ à {high} \$', 'en': '\${low} to \${high}', 'es': '{low} \$ a {high} \$'},
   'single': {'fr': 'environ {low} \$', 'en': 'about \${low}', 'es': 'unos {low} \$'},
@@ -212,6 +260,9 @@ const estimateFormCss =
     '.mk-est-photo{display:flex;align-items:center;justify-content:center;gap:10px;min-height:48px;'
     'box-sizing:border-box;border:1.5px dashed #0F2A5C;border-radius:10px;padding:6px 10px;'
     'font-size:14px;font-weight:600;color:#0F2A5C!important;text-decoration:none;background:#fff}'
+    '.mk-est-photo-msg{margin:0;font-size:14px;font-weight:600;color:#1F6B3A}'
+    '.mk-est-photo-msg.mk-est-plain{color:#3D4A66}'
+    '.mk-est-photo-note{margin:0;font-size:12px;color:#54607A;text-align:center}'
     '.mk-est-btn{display:flex;align-items:center;justify-content:center;min-height:54px;width:100%;'
     'box-sizing:border-box;border:0;border-radius:12px;background:#0F2A5C;color:#fff!important;'
     'font:700 17px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;text-decoration:none;cursor:pointer}'
@@ -225,7 +276,11 @@ const _cameraIcon =
 
 /// Le formulaire d'estimation. Sans JavaScript, il ouvre la page
 /// d'estimation avec ses champs dans l'adresse (`?de=…&a=…&poids=…`).
-String renderEstimateForm(String locale) {
+///
+/// « Pas certain ? Ajoutez une photo » mène à la page d'estimation. Sur
+/// cette page ([photoUpload]), le même bouton ouvre l'appareil photo : une
+/// IA reconnaît l'objet et choisit le poids (Daniel, 2026-11-26).
+String renderEstimateForm(String locale, {bool photoUpload = false}) {
   const postalPattern = r'[A-Za-z]\d[A-Za-z][ \-]?(\d[A-Za-z]\d)?';
   final b = StringBuffer()
     ..writeln(
@@ -259,9 +314,20 @@ String renderEstimateForm(String locale) {
     ..writeln('    </div>')
     ..writeln('  </fieldset>')
     ..writeln(
-      '  <a class="mk-est-photo" href="/$locale/livraison/demande">$_cameraIcon'
+      '  <a class="mk-est-photo" id="mk-est-photo" href="${estimatePath(locale)}?photo=1">$_cameraIcon'
       '<span>${_esc(_h('estimate_photo', locale))}</span></a>',
-    )
+    );
+  if (photoUpload) {
+    b
+      ..writeln('  <input type="file" id="mk-est-file" accept="image/*" hidden>')
+      ..writeln(
+        '  <p class="mk-est-photo-msg" id="mk-est-photo-msg" role="status" hidden></p>',
+      )
+      ..writeln(
+        '  <p class="mk-est-photo-note">${_esc(_h('estimate_photo_note', locale))}</p>',
+      );
+  }
+  b
     ..writeln(
       '  <button class="mk-est-btn" type="submit">${_esc(_h('estimate_button', locale))}</button>',
     )
@@ -291,7 +357,7 @@ const _pageCss =
     '.mk-est-checks{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:10px;font-size:14px;color:#3D4A66}'
     '.mk-est-checks li{display:flex;gap:10px;align-items:center}'
     '.mk-est-foot{margin-top:28px;font-size:13px;color:#3D4A66}'
-    '.mk-est-foot a{margin-right:10px}';
+    '.mk-est-foot a{margin-right:12px;display:inline-block;padding:6px 0}';
 
 const _checkIcon =
     '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" '
@@ -398,6 +464,95 @@ const _script = r'''
     estimate();
   });
 
+  // « Pas certain ? Ajoutez une photo » : la photo est réduite sur
+  // l'appareil, envoyée à la fonction de reconnaissance, puis oubliée.
+  var photoLink = document.getElementById('mk-est-photo');
+  var fileInput = document.getElementById('mk-est-file');
+  var photoMsg = document.getElementById('mk-est-photo-msg');
+  var photoBusy = false;
+  function sayPhoto(text, plain) {
+    if (!photoMsg) return;
+    photoMsg.textContent = text || '';
+    photoMsg.hidden = !text;
+    photoMsg.className = 'mk-est-photo-msg' + (plain ? ' mk-est-plain' : '');
+  }
+  function toJpeg(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file);
+      var image = new Image();
+      image.onload = function () {
+        var w = image.naturalWidth, h = image.naturalHeight;
+        if (!w || !h) { URL.revokeObjectURL(url); reject(new Error('empty')); return; }
+        var scale = Math.min(1, 1280 / Math.max(w, h));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        var context = canvas.getContext('2d');
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        var data = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(data.slice(data.indexOf(',') + 1));
+      };
+      image.onerror = function () { URL.revokeObjectURL(url); reject(new Error('format')); };
+      image.src = url;
+    });
+  }
+  function recognize(file) {
+    if (photoBusy) return;
+    photoBusy = true;
+    sayPhoto(C.photoLoading, true);
+    track('estimate_photo_requested');
+    toJpeg(file).then(function (base64) {
+      return fetch(C.photoUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { imageBase64: base64, locale: C.locale, consent: true } })
+      });
+    }).then(function (response) {
+      return response.json().then(function (body) { return body; }, function () { return {}; });
+    }).then(function (body) {
+      var r = body && body.result;
+      if (!r || typeof r.label !== 'string') {
+        var status = body && body.error && body.error.status;
+        sayPhoto(status === 'RESOURCE_EXHAUSTED' ? C.errorBusy : C.photoError, true);
+        track('estimate_photo_error', { reason: status || 'unknown' });
+        return;
+      }
+      if (C.weights.indexOf(r.weight) < 0) {
+        sayPhoto(C.photoUnsure, true);
+        track('estimate_photo_unsure');
+        return;
+      }
+      var radio = form.querySelector('input[name="poids"][value="' + r.weight + '"]');
+      if (radio) radio.checked = true;
+      sayPhoto(fill(C.photoFound, { label: r.label, weight: C.weightNames[r.weight] }));
+      track('estimate_photo_recognized', { weight: r.weight });
+      if (norm(form.elements['de'].value) && norm(form.elements['a'].value)) estimate();
+    }).catch(function () {
+      sayPhoto(C.photoError, true);
+      track('estimate_photo_error', { reason: 'client' });
+    }).then(function () { photoBusy = false; });
+  }
+  if (photoLink && fileInput) {
+    photoLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      fileInput.click();
+    });
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (file) recognize(file);
+    });
+    // Arrivée depuis une autre page par « Ajoutez une photo » : le navigateur
+    // n'ouvre l'appareil photo que sur un geste, donc on montre où toucher.
+    if (query.get('photo') === '1') {
+      sayPhoto(C.photoPrompt, true);
+      if (photoLink.focus) photoLink.focus();
+    }
+  }
+
   // Arrivée depuis l'accueil : le formulaire est déjà rempli dans l'adresse.
   var from = norm(query.get('de'));
   var to = norm(query.get('a'));
@@ -436,6 +591,16 @@ String renderEstimatePage(String indexHtml, String locale) {
     'errorRoute': _c('error_route', locale),
     'errorBusy': _c('error_busy', locale),
     'errorOther': _c('error_other', locale),
+    'photoUrl': estimatePhotoFunctionUrl,
+    'locale': locale,
+    'weightNames': {
+      for (final weight in estimateWeights) weight: _h('estimate_$weight', locale),
+    },
+    'photoPrompt': _c('photo_prompt', locale),
+    'photoLoading': _c('photo_loading', locale),
+    'photoFound': _c('photo_found', locale),
+    'photoUnsure': _c('photo_unsure', locale),
+    'photoError': _c('photo_error', locale),
     'km': _c('km', locale),
     'range': _c('range', locale),
     'single': _c('single', locale),
@@ -464,6 +629,10 @@ String renderEstimatePage(String indexHtml, String locale) {
     ..writeln('  <meta property="og:url" content="${estimateUrl(locale)}">')
     ..writeln('  <meta property="og:image" content="$seoSiteUrl/icons/Icon-512.png">')
     ..write(_analytics(indexHtml))
+    // Pixel Meta (web/meta_pixel.js) : la page d'arrivée des publicités doit
+    // le charger elle-même, puisqu'elle ne charge pas l'application. Rien
+    // n'est envoyé sans l'accord du visiteur.
+    ..writeln('  <script src="/meta_pixel.js" defer></script>')
     ..writeln('  <style>$_pageCss$estimateFormCss</style>')
     ..writeln('</head>')
     ..writeln('<body>')
@@ -476,7 +645,7 @@ String renderEstimatePage(String indexHtml, String locale) {
     ..writeln('  </div>')
     ..writeln('  <h1>${_esc(_c('heading', locale))}</h1>')
     ..writeln('  <p class="mk-est-lead">${_esc(_h('estimate_note', locale))}</p>')
-    ..write(renderEstimateForm(locale))
+    ..write(renderEstimateForm(locale, photoUpload: true))
     ..writeln('  <section class="mk-est-result" id="mk-est-result" aria-live="polite" hidden>')
     ..writeln(
       '    <p class="mk-est-route"><span id="mk-est-from"></span> → '
@@ -497,8 +666,22 @@ String renderEstimatePage(String indexHtml, String locale) {
   for (final key in ['check_1', 'check_2', 'check_3']) {
     b.writeln('    <li>$_checkIcon<span>${_esc(_c(key, locale))}</span></li>');
   }
+  b.writeln('  </ul>');
+  // Liens vers le reste du site : la page ne charge pas le menu de l'application.
+  b.write('  <nav class="mk-est-foot">');
+  b.write('<a href="${home.path(locale)}">${_esc(_c('nav_home', locale))}</a>');
+  for (final (id, key) in [
+    ('delivery', 'nav_delivery'),
+    ('pricing', 'nav_pricing'),
+    ('how', 'nav_how'),
+    ('faq', 'nav_faq'),
+    ('driver', 'driver'),
+  ]) {
+    final target = seoPages.firstWhere((p) => p.id == id);
+    b.write('<a href="${target.path(locale)}">${_esc(_c(key, locale))}</a>');
+  }
   b
-    ..writeln('  </ul>')
+    ..writeln('</nav>')
     ..writeln('  <p class="mk-est-foot">Movi-K · <a href="mailto:$seoContactEmail">$seoContactEmail</a></p>')
     ..write('  <p class="mk-est-foot">');
   for (final l in seoLocales) {

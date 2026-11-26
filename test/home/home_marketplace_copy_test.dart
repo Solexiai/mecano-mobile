@@ -83,7 +83,7 @@ void main() {
             findsWidgets,
           );
           expect(
-            find.text(HomeCopy.text('prelaunch_status', locale)),
+            find.text(HomeCopy.text('intro_short', locale)),
             findsWidgets,
           );
           final paragraphs = find.descendant(

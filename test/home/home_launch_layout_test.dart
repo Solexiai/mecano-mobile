@@ -63,12 +63,41 @@ void main() {
             component('_LocalCta'),
           );
 
-          final quoteAction = find.byKey(const Key('home-primary-quote'));
-          final driverAction = find.descendant(
+          // 2026-11-26 : the estimate card is the action of the hero. The
+          // invitation to drivers is the button of the header when it has
+          // room for one, otherwise a link under the card.
+          final quoteAction = find.byKey(const Key('home-estimate-submit'));
+          final headerDriver = find.byKey(const Key('public-header-driver'));
+          final driverLink = find.descendant(
             of: hero,
-            matching: find.byType(OutlinedButton),
+            matching: find.byKey(const Key('home-driver-link')),
           );
-          expect(driverAction, findsOneWidget);
+          final headerHasButton = width >= 1200 && scale == 1.0;
+          expect(headerDriver, headerHasButton ? findsOneWidget : findsNothing);
+          expect(driverLink, headerHasButton ? findsNothing : findsOneWidget);
+          final driverAction = headerHasButton ? headerDriver : driverLink;
+          expect(
+            find.descendant(of: hero, matching: find.byType(OutlinedButton)),
+            findsNothing,
+          );
+          expect(find.byKey(const Key('home-primary-quote')), findsNothing);
+          expectOrdered(tester, heroCopy, quote);
+          // On a computer the two postal codes sit side by side and the
+          // photo is as tall as the column of the card.
+          final from = tester.getRect(
+            find.byKey(const Key('home-estimate-from')),
+          );
+          final to = tester.getRect(find.byKey(const Key('home-estimate-to')));
+          if (width >= 1200) {
+            expect(from.top, to.top);
+            expect(from.right, lessThan(to.left));
+            final scene = tester.getRect(component('_HeroScene'));
+            expect(scene.top, closeTo(tester.getRect(heroCopy).top, 0.01));
+            expect(scene.bottom, closeTo(tester.getRect(quote).bottom, 0.01));
+          } else {
+            expect(from.bottom, lessThan(to.top));
+            expectOrdered(tester, quote, component('_HeroScene'));
+          }
           expect(
             tester.getRect(quoteAction).overlaps(tester.getRect(driverAction)),
             isFalse,
@@ -132,6 +161,29 @@ void main() {
       );
     }
 
+    offlineWidgetTest('header invites drivers on a computer in $locale', (
+      tester,
+    ) async {
+      final (router, _) = await mountHome(
+        tester,
+        locale: locale,
+        width: 1440,
+        height: 900,
+      );
+      final action = find.byKey(const Key('public-header-driver'));
+      expect(action, findsOneWidget);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/$locale/devenir-chauffeur',
+      );
+      expect(tester.takeException(), isNull);
+      expect(Firebase.apps, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+
     offlineWidgetTest('driver action preserves the existing $locale route', (
       tester,
     ) async {
@@ -143,7 +195,7 @@ void main() {
       );
       final action = find.descendant(
         of: find.byKey(const Key('home-hero')),
-        matching: find.byType(OutlinedButton),
+        matching: find.byKey(const Key('home-driver-link')),
       );
       expect(
         find.descendant(

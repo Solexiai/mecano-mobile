@@ -46,12 +46,23 @@ class AppShell extends StatefulWidget {
   final Widget child;
   final bool showFooter;
 
+  /// Home page (Daniel, 2026-11-26): the estimate card already answers
+  /// "get my price", so the button of the header invites drivers instead.
+  final bool headerDriverAction;
+
   const AppShell({
     super.key,
     required this.locale,
     required this.child,
     this.showFooter = true,
+    this.headerDriverAction = false,
   });
+
+  /// True when the header shows its button (wide screen, ordinary text
+  /// size). Elsewhere the page offers the same action itself.
+  static bool headerHasAction(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= AppBreakpoints.wide &&
+      MediaQuery.textScalerOf(context).scale(16) <= 18;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -80,14 +91,15 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isDesktop =
-        width >= AppBreakpoints.wide &&
-        MediaQuery.textScalerOf(context).scale(16) <= 18;
+    final isDesktop = AppShell.headerHasAction(context);
 
     return Scaffold(
       drawer: isDesktop ? null : _MobileDrawer(locale: widget.locale),
-      appBar: _MovikAppBar(locale: widget.locale, isDesktop: isDesktop),
+      appBar: _MovikAppBar(
+        locale: widget.locale,
+        isDesktop: isDesktop,
+        driverAction: widget.headerDriverAction,
+      ),
       body: SingleChildScrollView(
         key: const Key('public-scroll'),
         child: Column(
@@ -104,8 +116,13 @@ class _AppShellState extends State<AppShell> {
 class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String locale;
   final bool isDesktop;
+  final bool driverAction;
 
-  const _MovikAppBar({required this.locale, required this.isDesktop});
+  const _MovikAppBar({
+    required this.locale,
+    required this.isDesktop,
+    this.driverAction = false,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(72);
@@ -165,10 +182,17 @@ class _MovikAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (isDesktop)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ElevatedButton(
-              onPressed: () => context.go(DeliveryRequestIntent.path(locale)),
-              child: Text(HomeCopy.text('quote', locale)),
-            ),
+            child: driverAction
+                ? ElevatedButton(
+                    key: const Key('public-header-driver'),
+                    onPressed: () => context.go('/$locale/devenir-chauffeur'),
+                    child: Text(t('nav_become_driver')),
+                  )
+                : ElevatedButton(
+                    onPressed: () =>
+                        context.go(DeliveryRequestIntent.path(locale)),
+                    child: Text(HomeCopy.text('quote', locale)),
+                  ),
           ),
         if (!isDesktop) const SizedBox(width: 4),
       ],
