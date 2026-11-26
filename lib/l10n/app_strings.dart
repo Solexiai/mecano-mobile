@@ -2500,6 +2500,14 @@ class AppStrings {
       'en': 'Vehicle type',
       'es': 'Tipo de vehículo',
     },
+    'driver_onboarding_suv_note': {
+      'fr':
+          'VUS sans remorque : petits articles seulement (par exemple boîtes, table, chaises, commode). Vous recevrez moins d’offres qu’avec une remorque ou un camion.',
+      'en':
+          'SUV without a trailer: small items only (for example boxes, table, chairs, dresser). You will receive fewer offers than with a trailer or a truck.',
+      'es':
+          'SUV sin remolque: solo artículos pequeños (por ejemplo cajas, mesa, sillas, cómoda). Recibirás menos ofertas que con un remolque o un camión.',
+    },
     'driver_onboarding_make_model': {
       'fr': 'Marque et modèle',
       'en': 'Make and model',
@@ -2881,9 +2889,9 @@ class AppStrings {
       'es': 'Remolque',
     },
     'vehicle_cat_suv_with_trailer': {
-      'fr': 'VUS + remorque',
-      'en': 'SUV + Trailer',
-      'es': 'SUV + remolque',
+      'fr': 'VUS avec remorque',
+      'en': 'SUV with trailer',
+      'es': 'SUV con remolque',
     },
     'vehicle_cat_small_commercial': {
       'fr': 'Véhicule commercial léger',

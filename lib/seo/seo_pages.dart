@@ -459,9 +459,9 @@ final List<SeoPage> _corePages = [
       SeoSection(
         _l('Véhicules admissibles', 'Eligible vehicles', 'Vehículos admisibles'),
         _l(
-          'Camionnette, fourgon cargo, camion cube, remorque, VUS avec remorque, véhicule commercial léger.',
-          'Pickup truck, cargo van, box truck, trailer, SUV with trailer, light commercial vehicle.',
-          'Camioneta, furgón de carga, camión caja, remolque, SUV con remolque, vehículo comercial ligero.',
+          'Camionnette, fourgon cargo, camion cube, VUS avec remorque. Un VUS sans remorque est accepté pour les petits articles seulement (boîtes, table, chaises, commode).',
+          'Pickup truck, cargo van, box truck, SUV with trailer. An SUV without a trailer is accepted for small items only (boxes, table, chairs, dresser).',
+          'Camioneta, furgón de carga, camión caja, SUV con remolque. Un SUV sin remolque se acepta solo para artículos pequeños (cajas, mesa, sillas, cómoda).',
         ),
       ),
       SeoSection(

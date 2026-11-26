@@ -466,15 +466,16 @@ void main() {
     }
   }
 
-  testWidgets('pilot vehicle choices are SUV, pickup, cargo van and cube only (SUV added 2026-11-09)', (
+  testWidgets('pilot vehicle choices are SUV, SUV with trailer, pickup, cargo van and cube only (SUV with trailer added 2026-11-26)', (
     tester,
   ) async {
     await tester.pumpWidget(_app(auth));
     await tester.pumpAndSettle();
     await _completeContactStep(tester);
-    expect(find.byType(ChoiceChip), findsNWidgets(4));
+    expect(find.byType(ChoiceChip), findsNWidgets(5));
     for (final category in [
       VehicleCategory.suv,
+      VehicleCategory.suvWithTrailer,
       VehicleCategory.pickupTruck,
       VehicleCategory.cargoVan,
       VehicleCategory.cubeTruck,
