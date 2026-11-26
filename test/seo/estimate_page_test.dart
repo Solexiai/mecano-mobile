@@ -88,6 +88,10 @@ void main() {
       }
       // The site's Google Analytics tag, so the funnel is measured.
       expect(html, contains('G-M8GKQGV3CN'));
+      // The Meta pixel file too: this is the landing page of the ads, and
+      // it does not inherit the <head> of index.html (2026-11-26).
+      expect(html, contains('<script src="/meta_pixel.js" defer></script>'));
+      expect(html, contains("window.movikMeta.track('EstimateShown')"));
       for (final event in [
         'estimate_requested',
         'estimate_shown',

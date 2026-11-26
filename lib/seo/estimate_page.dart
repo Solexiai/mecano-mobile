@@ -464,6 +464,10 @@ String renderEstimatePage(String indexHtml, String locale) {
     ..writeln('  <meta property="og:url" content="${estimateUrl(locale)}">')
     ..writeln('  <meta property="og:image" content="$seoSiteUrl/icons/Icon-512.png">')
     ..write(_analytics(indexHtml))
+    // Pixel Meta (2026-11-26) : cette page est la page d'arrivée des
+    // publicités ; elle ne reprend pas le <head> de index.html, il faut donc
+    // charger le fichier ici aussi. Adresse absolue : la page n'a pas de <base>.
+    ..writeln('  <script src="/meta_pixel.js" defer></script>')
     ..writeln('  <style>$_pageCss$estimateFormCss</style>')
     ..writeln('</head>')
     ..writeln('<body>')
