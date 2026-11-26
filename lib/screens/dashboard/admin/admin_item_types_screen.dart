@@ -21,10 +21,12 @@ Future<Map<String, dynamic>> _firebaseItemTypesApi(
 }
 
 const _vehicleLabels = {
-  'pickup_truck': 'Pickup',
+  // 2026-11-26 : un VUS avec remorque reçoit les demandes d'un pick-up
+  // (functions/src/lib/vehicleCategory.ts) : la colonne vaut pour les deux.
+  'pickup_truck': 'Pickup et VUS avec remorque',
   'cargo_van': 'Fourgonnette',
   'cube_truck': 'Camion cube',
-  'suv': 'VUS',
+  'suv': 'VUS sans remorque',
 };
 
 class AdminItemTypesScreen extends StatelessWidget {
@@ -125,7 +127,7 @@ class _AdminItemTypesPanelState extends State<AdminItemTypesPanel> {
         padding: const EdgeInsets.all(20),
         children: [
           const Text(
-            'Cochez les véhicules qui peuvent prendre chaque type d’objet. Seuls les chauffeurs avec un de ces véhicules voient la demande. Le prix ne change pas selon le véhicule.',
+            'Cochez les véhicules qui peuvent prendre chaque type d’objet. Seuls les chauffeurs avec un de ces véhicules voient la demande. Le prix ne change pas selon le véhicule. Un VUS avec remorque suit la colonne Pickup ; la colonne « VUS sans remorque » ne vaut que pour le VUS seul.',
           ),
           const SizedBox(height: 12),
           if (_busy) const LinearProgressIndicator(),
