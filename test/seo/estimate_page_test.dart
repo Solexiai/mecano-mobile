@@ -133,10 +133,29 @@ void main() {
       expect(form, lessThan(html.indexOf('class="mk-top"')));
       expect(html, contains('action="${estimatePath(locale)}" method="get"'));
       expect(html, contains('.mk-est-form{'));
-      // The other public pages keep their single button at the top.
-      final pricing = seoPages.firstWhere((p) => p.id == 'pricing');
-      final other = renderSeoPage(_template, pricing, locale);
-      expect(other, isNot(contains('mk-est-form')));
+    });
+
+    test('light pages $locale: pricing, items, stores and cities carry the form', () {
+      for (final page in seoPages) {
+        final html = renderSeoPage(_template, page, locale);
+        final expected =
+            page.id == 'home' || page.id == 'pricing' || page.kind != SeoPageKind.core;
+        expect(seoPageHasEstimate(page), expected, reason: page.id);
+        if (!expected) {
+          // The other public pages keep their single button at the top.
+          expect(html, isNot(contains('mk-est-form')), reason: page.id);
+          continue;
+        }
+        final form = html.indexOf('id="mk-est-form"');
+        expect(form, greaterThan(html.indexOf('<h1>')), reason: page.id);
+        expect(form, lessThan(html.indexOf('class="mk-top"')), reason: page.id);
+        expect(RegExp('id="mk-est-form"').allMatches(html), hasLength(1), reason: page.id);
+        expect(html, contains('action="${estimatePath(locale)}" method="get"'));
+        expect(html, contains('.mk-est-form{'));
+      }
+      for (final id in ['faq', 'driver', 'contact']) {
+        expect(seoPageHasEstimate(seoPages.firstWhere((p) => p.id == id)), isFalse);
+      }
     });
   }
 

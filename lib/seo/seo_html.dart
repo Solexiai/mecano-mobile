@@ -72,6 +72,12 @@ const Map<String, String> _ogLocale = {'fr': 'fr_CA', 'en': 'en_CA', 'es': 'es_E
 SeoPage get _homePage => seoPages.firstWhere((p) => p.id == 'home');
 SeoPage get _deliveryPage => seoPages.firstWhere((p) => p.id == 'delivery');
 
+/// Les pages qui portent le formulaire d'estimation par codes postaux
+/// (Daniel, 2026-11-26) : l'accueil, la page Tarifs et les pages par objet,
+/// enseigne et ville. Les mêmes pages portent la carte dans l'application.
+bool seoPageHasEstimate(SeoPage page) =>
+    page.id == 'home' || page.id == 'pricing' || page.kind != SeoPageKind.core;
+
 /// Les sections affichées pour cette page (questions fréquentes comprises).
 List<(String, String)> seoSectionsFor(SeoPage page, String locale) => page.faq
     ? faqItems(locale)
@@ -190,8 +196,8 @@ String _headTags(SeoPage page, String locale) {
       '@media(max-width:600px){.mk-top .mk-cta{display:block;text-align:center}}'
       '.mk-static--hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;'
       'clip:rect(0 0 0 0);white-space:nowrap}'
-      // 2026-11-26 : formulaire d'estimation en haut de l'accueil.
-      '${page.id == 'home' ? estimateFormCss : ''}</style>',
+      // 2026-11-26 : formulaire d'estimation en haut de la page.
+      '${seoPageHasEstimate(page) ? estimateFormCss : ''}</style>',
     );
   return buffer.toString();
 }
@@ -215,10 +221,10 @@ String _body(SeoPage page, String locale) {
     ..writeln('    <main>')
     ..writeln('      <h1>${_esc(_t(page.headings, locale))}</h1>')
     ..writeln('      <p>${_esc(_t(page.intros, locale))}</p>');
-  // 2026-11-26 (Daniel) : sur l'accueil, le visiteur peut entrer ses deux
-  // codes postaux dès la première seconde, pendant que l'application
-  // charge. Le formulaire ouvre la page d'estimation légère.
-  if (page.id == 'home') b.write(renderEstimateForm(locale));
+  // 2026-11-26 (Daniel) : le visiteur peut entrer ses deux codes postaux
+  // dès la première seconde, pendant que l'application charge. Le
+  // formulaire ouvre la page d'estimation légère.
+  if (seoPageHasEstimate(page)) b.write(renderEstimateForm(locale));
   // 2026-11-22 (Daniel) : le bouton est en haut, sous le titre. Un
   // visiteur venu d'une publicité sur son téléphone voit cette page
   // pendant que l'application charge ; avant, le seul bouton était tout
