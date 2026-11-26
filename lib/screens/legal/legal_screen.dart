@@ -439,6 +439,19 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Se usan para comprender el uso general de la plataforma y mejorarla.',
               ),
             ),
+            // Pixel Meta (2026-11-26) : voir web/meta_pixel.js.
+            (
+              _tr(
+                fr: 'Cookies publicitaires',
+                en: 'Advertising cookies',
+                es: 'Cookies publicitarias',
+              ),
+              _tr(
+                fr: "Avec votre accord seulement, Movi-k utilise le pixel de Meta (Facebook et Instagram) pour mesurer ses publicités : pages vues, demande commencée, prix affiché, réservation et son montant. Un bandeau vous demande votre choix à votre première visite. Si vous refusez, rien n'est envoyé à Meta.",
+                en: 'Only with your consent, Movi-k uses the Meta pixel (Facebook and Instagram) to measure its ads: pages viewed, request started, price shown, booking and its amount. A banner asks for your choice on your first visit. If you decline, nothing is sent to Meta.',
+                es: 'Solo con su consentimiento, Movi-k usa el píxel de Meta (Facebook e Instagram) para medir sus anuncios: páginas vistas, solicitud iniciada, precio mostrado, reserva y su importe. Un aviso le pide su elección en su primera visita. Si rechaza, no se envía nada a Meta.',
+              ),
+            ),
             (
               _tr(
                 fr: 'Gestion des préférences',
@@ -446,9 +459,9 @@ class _LegalScreenState extends State<LegalScreen> {
                 es: 'Gestión de preferencias',
               ),
               _tr(
-                fr: "Vous pouvez gérer les cookies via les paramètres de votre navigateur.",
-                en: 'You can manage cookies via your browser settings.',
-                es: 'Puede gestionar las cookies mediante la configuración de su navegador.',
+                fr: "Vous pouvez gérer les cookies via les paramètres de votre navigateur. Pour changer votre choix sur les cookies publicitaires, effacez les données du site movi-k.com dans votre navigateur : le bandeau s'affichera de nouveau.",
+                en: 'You can manage cookies via your browser settings. To change your choice about advertising cookies, clear the movi-k.com site data in your browser: the banner will show again.',
+                es: 'Puede gestionar las cookies mediante la configuración de su navegador. Para cambiar su elección sobre las cookies publicitarias, borre los datos del sitio movi-k.com en su navegador: el aviso volverá a mostrarse.',
               ),
             ),
           ],
