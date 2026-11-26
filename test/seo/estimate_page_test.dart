@@ -141,7 +141,7 @@ void main() {
   test('config sent to the page script is valid JSON in every language', () {
     for (final locale in seoLocales) {
       final html = renderEstimatePage(_template, locale);
-      final match = RegExp(r'var C = (\{.*?\});\n', dotAll: true).firstMatch(html);
+      final match = RegExp(r'var C = (\{[^\n]*\});\(function', dotAll: true).firstMatch(html);
       expect(match, isNotNull, reason: locale);
       final config = jsonDecode(match!.group(1)!) as Map<String, dynamic>;
       expect(config['url'], estimateFunctionUrl);

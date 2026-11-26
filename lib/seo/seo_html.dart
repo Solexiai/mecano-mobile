@@ -219,14 +219,13 @@ String _body(SeoPage page, String locale) {
   // codes postaux dès la première seconde, pendant que l'application
   // charge. Le formulaire ouvre la page d'estimation légère.
   if (page.id == 'home') b.write(renderEstimateForm(locale));
-  b
-    // 2026-11-22 (Daniel) : le bouton est en haut, sous le titre. Un
-    // visiteur venu d'une publicité sur son téléphone voit cette page
-    // pendant que l'application charge ; avant, le seul bouton était tout
-    // en bas, après tout le texte.
-    ..writeln(
-      '      <p class="mk-top"><a class="mk-cta" href="$cta">${_esc(ctaLabel)}</a></p>',
-    );
+  // 2026-11-22 (Daniel) : le bouton est en haut, sous le titre. Un
+  // visiteur venu d'une publicité sur son téléphone voit cette page
+  // pendant que l'application charge ; avant, le seul bouton était tout
+  // en bas, après tout le texte.
+  b.writeln(
+    '      <p class="mk-top"><a class="mk-cta" href="$cta">${_esc(ctaLabel)}</a></p>',
+  );
   for (final (heading, body) in seoSectionsFor(page, locale)) {
     b
       ..writeln('      <section>')

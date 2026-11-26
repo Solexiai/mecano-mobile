@@ -1,7 +1,9 @@
 // Carte d'estimation de l'accueil (Daniel, 2026-11-26) : deux codes postaux
 // et un poids ouvrent la page d'estimation légère.
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:movik_connect/l10n/home_copy.dart';
 import 'package:movik_connect/screens/delivery/delivery_request_flow_screen.dart';
 
@@ -17,6 +19,12 @@ Future<void> tapVisible(WidgetTester tester, Finder finder) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // Same isolation as the other home tests: empty device storage, no Firebase.
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    expect(Firebase.apps, isEmpty);
+  });
+  tearDown(() => expect(Firebase.apps, isEmpty));
 
   for (final locale in ['fr', 'en', 'es']) {
     offlineWidgetTest('estimate card $locale opens the estimate page', (
