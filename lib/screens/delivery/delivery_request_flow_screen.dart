@@ -32,6 +32,7 @@ import '../../services/booking/booking_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
 import '../../services/funnel/funnel_analytics.dart';
+import '../../services/acquisition/acquisition_tracker.dart';
 
 /// Four-step booking. Amounts/recommendations are exclusively server responses.
 /// No mission is created until the user explicitly confirms the current quote.
@@ -73,6 +74,12 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Timer? _clock;
   Future<void> _saveQueue = Future.value();
   String? _uid;
+
+  /// Prix avec le courriel seulement (2026-11-26) : `_uid` est celui d'une
+  /// session invitée, ouverte en arrière-plan, pas d'un compte.
+  bool _isGuest = false, _guestRequested = false;
+  final _guestEmail = TextEditingController();
+  final _guestPassword = TextEditingController();
   bool _identityKnown = false,
       _loaded = false,
       _busy = false,
@@ -136,8 +143,21 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final uid = context.watch<FirebaseAuthProvider>().effectiveUid;
+    final auth = context.watch<FirebaseAuthProvider>();
+    final uid = auth.bookingUid;
+    if (!_guestRequested && auth.authResolved && uid == null) {
+      // Personne n'est connecté : session invitée, pour que le prix ne
+      // demande que le courriel. Si elle est refusée, rien ne change.
+      _guestRequested = true;
+      unawaited(auth.ensureGuestSession());
+    }
     if (!_identityKnown || uid != _uid) {
+      if (_identityKnown && _uid == null && uid != null && auth.isGuest) {
+        // Ce que le visiteur a déjà rempli le suit dans sa session invitée.
+        if (_loaded) unawaited(_storage.save(_draft, null));
+        unawaited(_storage.handoff());
+      }
+      _isGuest = auth.isGuest;
       _identityKnown = true;
       _uid = uid;
       _epoch++;
@@ -146,6 +166,9 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       _loaded = false;
       _debounce?.cancel();
       _restore(_epoch);
+    } else if (_isGuest != auth.isGuest) {
+      // Le compte vient d'être créé : même identifiant, plus un invité.
+      _isGuest = auth.isGuest;
     }
   }
 
@@ -265,7 +288,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       }
     }
     if (!mounted || epoch != _epoch) return;
+    if (restored != null &&
+        _uid != null &&
+        !_isGuest &&
+        restored.data['guest_email'] != null) {
+      _dropForeignPhotos(restored, _uid!);
+    }
     _draft = restored ?? BookingDraft(category: widget.initialCategory);
+    _guestEmail.text = _draft.data['guest_email'] as String? ?? '';
     if (restored == null &&
         _catalog.any((entry) => entry.$1 == widget.initialCategory)) {
       _addItem(widget.initialCategory!, notify: false);
@@ -302,8 +332,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         if ((values['pickup_name'] as String? ?? '').isEmpty) {
           values['pickup_name'] = auth.effectiveDisplayName ?? '';
         }
+        // A returning guest already left an email: not asked a second time.
+        final knownEmail = profile?['guest_email'];
         setState(() {
           _draft.data['contacts'] = values;
+          if (_needsEmail && knownEmail is String && knownEmail.isNotEmpty) {
+            _draft.data['guest_email'] = knownEmail;
+            _guestEmail.text = knownEmail;
+          }
         });
       } catch (_) {
         /* Manual entry is always available. */
@@ -332,6 +368,29 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           }
         }
       }
+    }
+  }
+
+  /// A draft started as a guest and resumed under an existing account still
+  /// names the guest's photo files, which this account may neither show nor
+  /// price. The items stay; the photos are asked again.
+  static void _dropForeignPhotos(BookingDraft draft, String uid) {
+    final own = 'booking_photos/$uid/';
+    var dropped = false;
+    for (final item in draft.items) {
+      if (item is! Map || item['photos'] is! List) continue;
+      final photos = item['photos'] as List;
+      final kept = photos
+          .where((path) => path is String && path.startsWith(own))
+          .toList();
+      if (kept.length == photos.length) continue;
+      item['photos'] = kept;
+      if (kept.isEmpty) item['identification_confirmed'] = false;
+      dropped = true;
+    }
+    if (dropped) {
+      draft.data['quote'] = null;
+      draft.data['accepted'] = false;
     }
   }
 
@@ -534,6 +593,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   Future<void> _login() async {
     FunnelAnalytics.event('price_wall');
     await _save();
+    // The account's sign-in claims the copy kept for a visitor.
+    if (_isGuest) await _storage.save(_draft, null);
     await _storage.handoff();
     if (mounted) {
       context.go(
@@ -597,6 +658,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       await _login();
       return;
     }
+    // A guest leaves an email first; the price screen asks for it.
+    if (_needsEmail) return;
     if (_photoConfirmationNeeded) {
       setState(() {
         _review = {
@@ -641,6 +704,15 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       });
     } on FirebaseFunctionsException catch (error) {
       final details = error.details;
+      if (details is Map && details['quote_reason'] == 'guest_email_required') {
+        // The server has no email for this session: ask for it again.
+        if (mounted && epoch == _epoch) {
+          setState(() {
+            _draft.data.remove('guest_email');
+          });
+        }
+        return;
+      }
       if (details is Map && details['quote_reason'] is String) {
         if (mounted && epoch == _epoch && revision == _draft.revision) {
           setState(() {
@@ -683,6 +755,114 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     await _save();
     await _refreshCard();
   }
+
+  bool get _needsEmail =>
+      _isGuest && (_draft.data['guest_email'] as String? ?? '').isEmpty;
+
+  static final _emailShape = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@.]+$');
+
+  /// Step 5 for a guest: the email, then the price. No password yet.
+  Future<void> _submitGuestEmail() async {
+    final email = _guestEmail.text.trim().toLowerCase();
+    if (email.length > 254 || !_emailShape.hasMatch(email)) {
+      setState(() {
+        _message = tr(
+          'Entrez une adresse courriel valide, par exemple nom@exemple.com.',
+          'Enter a valid email address, for example name@example.com.',
+          'Introduce un correo válido, por ejemplo nombre@ejemplo.com.',
+        );
+      });
+      return;
+    }
+    final epoch = _epoch;
+    try {
+      await _api.call('registerQuoteLead', {
+        'email': email,
+        'locale': widget.locale,
+      });
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted || epoch != _epoch) return;
+      if (error.code != 'invalid-argument' &&
+          error.code != 'resource-exhausted' &&
+          error.code != 'failed-precondition') {
+        rethrow;
+      }
+      setState(() {
+        _message = error.code == 'invalid-argument'
+            ? tr(
+                'Cette adresse courriel n’est pas acceptée. Vérifiez-la.',
+                'This email address is not accepted. Please check it.',
+                'Este correo no se acepta. Verifícalo.',
+              )
+            : tr(
+                'Nous ne pouvons pas enregistrer ce courriel pour l’instant. Connectez-vous ou créez un compte pour voir votre prix.',
+                'We cannot save this email right now. Sign in or create an account to see your price.',
+                'No podemos guardar este correo por ahora. Inicia sesión o crea una cuenta para ver tu precio.',
+              );
+      });
+      return;
+    }
+    if (!mounted || epoch != _epoch) return;
+    FunnelAnalytics.event('lead_email');
+    // Where this visitor came from (first visit), filed with the email.
+    final uid = _uid;
+    if (uid != null) unawaited(AcquisitionTracker.reportFor(uid));
+    setState(() {
+      _draft.data['guest_email'] = email;
+    });
+    await _save();
+    await _quote();
+  }
+
+  /// Step 6 for a guest: the password turns the session into an account
+  /// (same identifier), then the request moves on to the confirmation.
+  Future<void> _createGuestAccount(FirebaseAuthProvider auth) async {
+    final contacts = _draft.contacts;
+    final failure = await auth.upgradeGuestAccount(
+      email: _draft.data['guest_email'] as String? ?? '',
+      password: _guestPassword.text,
+      fullName: contacts['pickup_name'] as String? ?? '',
+      locale: widget.locale,
+    );
+    if (!mounted) return;
+    if (failure == null) {
+      _guestPassword.clear();
+      _step(3);
+      return;
+    }
+    setState(() {
+      _guestEmailTaken = failure == 'email-in-use';
+      _message = switch (failure) {
+        'email-in-use' => tr(
+          'Un compte existe déjà avec ce courriel. Connectez-vous pour réserver : votre demande est conservée.',
+          'An account already exists with this email. Sign in to book: your request is kept.',
+          'Ya existe una cuenta con este correo. Inicia sesión para reservar: tu solicitud se conserva.',
+        ),
+        'weak-password' => tr(
+          'Ce mot de passe est trop simple. Choisissez-en un d’au moins 8 caractères.',
+          'This password is too simple. Choose one with at least 8 characters.',
+          'Esta contraseña es demasiado simple. Elige una de al menos 8 caracteres.',
+        ),
+        'invalid-email' => tr(
+          'Cette adresse courriel n’est pas acceptée. Revenez à l’étape 5 pour la corriger.',
+          'This email address is not accepted. Go back to step 5 to correct it.',
+          'Este correo no se acepta. Vuelve al paso 5 para corregirlo.',
+        ),
+        'network' => tr(
+          'Erreur réseau. Vérifiez votre connexion et réessayez.',
+          'Network error. Check your connection and try again.',
+          'Error de red. Verifica tu conexión e inténtalo de nuevo.',
+        ),
+        _ => tr(
+          'Le compte n’a pas pu être créé. Réessayez ; votre demande est conservée.',
+          'The account could not be created. Try again; your request is kept.',
+          'No se pudo crear la cuenta. Inténtalo de nuevo; tu solicitud se conserva.',
+        ),
+      };
+    });
+  }
+
+  bool _guestEmailTaken = false;
 
   String _moneyText(dynamic n) => formatMajorAmount(
     n is num ? n : null,
@@ -867,6 +1047,8 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     _clock?.cancel();
     _pickup.dispose();
     _dropoff.dispose();
+    _guestEmail.dispose();
+    _guestPassword.dispose();
     super.dispose();
   }
 
@@ -2217,6 +2399,55 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         ),
         () => _run(_login),
       ),
+    ] else if (_needsEmail) ...[
+      _note(
+        tr(
+          'Entrez votre courriel pour voir votre prix exact. Aucun mot de passe pour l’instant.',
+          'Enter your email to see your exact price. No password for now.',
+          'Introduce tu correo para ver tu precio exacto. Sin contraseña por ahora.',
+        ),
+        key: const ValueKey('booking-guest-email-note'),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TextField(
+          key: const ValueKey('booking-guest-email'),
+          controller: _guestEmail,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [AutofillHints.email],
+          autocorrect: false,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _run(_submitGuestEmail),
+          decoration: InputDecoration(
+            labelText: tr('Votre courriel', 'Your email', 'Tu correo'),
+            hintText: tr('nom@exemple.com', 'name@example.com', 'nombre@ejemplo.com'),
+          ),
+        ),
+      ),
+      _next(
+        tr('Voir mon prix', 'See my price', 'Ver mi precio'),
+        () => _run(_submitGuestEmail),
+        key: const ValueKey('booking-guest-email-submit'),
+      ),
+      Text(
+        tr(
+          'Si vous ne réservez pas, nous vous rappelons votre prix par courriel : deux messages au plus, désabonnement en un clic.',
+          'If you do not book, we remind you of your price by email: two messages at most, one-click unsubscribe.',
+          'Si no reservas, te recordamos tu precio por correo: dos mensajes como máximo, baja con un clic.',
+        ),
+        style: const TextStyle(color: Color(0xFF3A4660), fontSize: 13),
+      ),
+      TextButton(
+        key: const ValueKey('booking-guest-sign-in'),
+        onPressed: _busy ? null : () => _run(_login),
+        child: Text(
+          tr(
+            'Déjà client ? Se connecter',
+            'Already a customer? Sign in',
+            '¿Ya eres cliente? Inicia sesión',
+          ),
+        ),
+      ),
     ] else ...[
       if (_review != null && _review!['status'] != 'ready') _reviewFeedback(),
       if (_photoConfirmationNeeded) ...[
@@ -2782,15 +3013,18 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   /// Email verification reminder, shown from step 1 so the customer is not
   /// stopped at step 3 after filling the whole request (2026-10-23). The
   /// verification email itself is sent at sign-up.
-  List<Widget> _emailVerification(FirebaseAuthProvider auth) => [
-    if (_uid != null && auth.user?.emailVerified != true) ...[
+  List<Widget> _emailVerification(
+    FirebaseAuthProvider auth, {
+    bool confirming = false,
+  }) => [
+    if (_uid != null && !_isGuest && auth.user?.emailVerified != true) ...[
       Container(
         key: const ValueKey('booking-email-verification'),
         child: _note(
           tr(
-            'Vérifiez votre adresse courriel pour pouvoir réserver. Nous avons envoyé un lien à ${auth.effectiveEmail ?? 'votre adresse'} (regardez aussi dans les courriels indésirables ou promotions). Cliquez sur le lien, puis sur « J’ai vérifié mon courriel ». Vous pouvez déjà préparer votre demande et obtenir votre prix.',
-            'Verify your email address to be able to book. We sent a link to ${auth.effectiveEmail ?? 'your address'} (also check spam or promotions). Click the link, then “I verified my email”. You can already prepare your request and get your price.',
-            'Verifica tu correo para poder reservar. Enviamos un enlace a ${auth.effectiveEmail ?? 'tu dirección'} (revisa también spam o promociones). Haz clic en el enlace y luego en «Ya verifiqué mi correo». Ya puedes preparar tu solicitud y obtener tu precio.',
+            'Vérifiez votre adresse courriel pour pouvoir réserver. Nous avons envoyé un lien à ${auth.effectiveEmail ?? 'votre adresse'} (regardez aussi dans les courriels indésirables ou promotions). Cliquez sur le lien, puis sur « J’ai vérifié mon courriel ».${confirming ? '' : ' Vous pouvez déjà préparer votre demande et obtenir votre prix.'}',
+            'Verify your email address to be able to book. We sent a link to ${auth.effectiveEmail ?? 'your address'} (also check spam or promotions). Click the link, then “I verified my email”.${confirming ? '' : ' You can already prepare your request and get your price.'}',
+            'Verifica tu correo para poder reservar. Enviamos un enlace a ${auth.effectiveEmail ?? 'tu dirección'} (revisa también spam o promociones). Haz clic en el enlace y luego en «Ya verifiqué mi correo».${confirming ? '' : ' Ya puedes preparar tu solicitud y obtener tu precio.'}',
           ),
           warning: true,
         ),
@@ -2930,13 +3164,19 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           'Who does the driver call?',
           '¿A quién llama el conductor?',
         ),
-        hint: tr(
-          'Déjà rempli avec votre compte. Vérifiez, c’est tout.',
-          'Already filled in from your account. Just check it.',
-          'Ya completado con tu cuenta. Solo verifícalo.',
-        ),
+        hint: _isGuest
+            ? tr(
+                'Votre nom, votre téléphone et un mot de passe pour suivre votre livraison.',
+                'Your name, your phone and a password to follow your delivery.',
+                'Tu nombre, tu teléfono y una contraseña para seguir tu entrega.',
+              )
+            : tr(
+                'Déjà rempli avec votre compte. Vérifiez, c’est tout.',
+                'Already filled in from your account. Just check it.',
+                'Ya completado con tu cuenta. Solo verifícalo.',
+              ),
       ),
-      ..._emailVerification(auth),
+      if (!_isGuest) ..._emailVerification(auth),
       Form(
         key: _contactsForm,
         child: Column(
@@ -2947,6 +3187,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
               'pickup_phone',
               tr('Votre téléphone', 'Your phone', 'Tu teléfono'),
             ),
+            if (_isGuest) ..._guestPasswordField(),
             Material(
               color: Colors.white,
               shape: RoundedRectangleBorder(
@@ -3007,16 +3248,86 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
           ],
         ),
       ),
+      if (_isGuest && _guestEmailTaken)
+        _button(
+          tr(
+            'Me connecter pour réserver',
+            'Sign in to book',
+            'Iniciar sesión para reservar',
+          ),
+          () => _run(_login),
+        ),
       _next(
-        _nextLabel,
+        _isGuest
+            ? tr(
+                'Créer mon compte et continuer',
+                'Create my account and continue',
+                'Crear mi cuenta y continuar',
+              )
+            : _nextLabel,
         () {
           if (_sameRecipient) {
             _copyRecipient();
             _changed(quote: false);
           }
-          if (_contactsForm.currentState?.validate() == true) _step(3);
+          if (_contactsForm.currentState?.validate() != true) return;
+          if (_isGuest) {
+            _run(() => _createGuestAccount(auth));
+          } else {
+            _step(3);
+          }
         },
         key: const ValueKey('booking-next-details'),
+      ),
+    ];
+  }
+
+  /// The only password asked of a guest, at the moment of booking.
+  List<Widget> _guestPasswordField() {
+    final label = tr(
+      'Choisissez un mot de passe',
+      'Choose a password',
+      'Elige una contraseña',
+    );
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Semantics(
+              label: label,
+              child: TextFormField(
+                key: const ValueKey('booking-guest-password'),
+                controller: _guestPassword,
+                obscureText: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                autofillHints: const [AutofillHints.newPassword],
+                decoration: InputDecoration(
+                  helperMaxLines: 3,
+                  helperText: tr(
+                    '8 caractères ou plus. Votre compte : ${_draft.data['guest_email'] ?? ''}. Nous vous envoyons un lien pour confirmer ce courriel.',
+                    '8 characters or more. Your account: ${_draft.data['guest_email'] ?? ''}. We send you a link to confirm this email.',
+                    '8 caracteres o más. Tu cuenta: ${_draft.data['guest_email'] ?? ''}. Te enviamos un enlace para confirmar este correo.',
+                  ),
+                ),
+                validator: (value) => (value ?? '').length >= 8
+                    ? null
+                    : tr(
+                        'Au moins 8 caractères.',
+                        'At least 8 characters.',
+                        'Al menos 8 caracteres.',
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     ];
   }
@@ -3451,15 +3762,20 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         },
       ),
     ],
-    if (auth.user?.emailVerified != true)
+    // The link to click and « J’ai vérifié mon courriel » are offered right
+    // here: a customer who just created the account at step 6 arrives on
+    // this screen before opening the email (2026-11-26).
+    if (_isGuest)
       _note(
         tr(
-          'Votre courriel doit être vérifié à l’étape 6.',
-          'Verify your email in step 6.',
-          'Verifica tu correo en el paso 6.',
+          'Créez votre compte à l’étape 6 pour réserver.',
+          'Create your account in step 6 to book.',
+          'Crea tu cuenta en el paso 6 para reservar.',
         ),
         warning: true,
-      ),
+      )
+    else
+      ..._emailVerification(auth, confirming: true),
     _payBlock(auth),
   ];
   Widget _quoteLoadSummary({bool collapsible = true}) => BookingLoadSummary(
@@ -3503,11 +3819,17 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         'calcular tu precio (paso 5).',
       ),
     if (auth.user?.emailVerified != true)
-      tr(
-        'vérifier votre adresse courriel (étape 6).',
-        'verify your email address (step 6).',
-        'verificar tu correo (paso 6).',
-      ),
+      _isGuest
+          ? tr(
+              'créer votre compte (étape 6).',
+              'create your account (step 6).',
+              'crear tu cuenta (paso 6).',
+            )
+          : tr(
+              'vérifier votre adresse courriel (étape 6).',
+              'verify your email address (step 6).',
+              'verificar tu correo (paso 6).',
+            ),
     if (_policy != null && !_acceptanceCurrent)
       tr(
         'lire les conditions et cocher « J’accepte… » ci-dessus.',

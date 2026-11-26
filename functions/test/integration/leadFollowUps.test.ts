@@ -9,6 +9,7 @@ import { requestDriverDocuments } from "../../src/functions/requestDriverDocumen
 import { admin, db } from "../../src/lib/admin";
 import { EMAIL_SETTINGS_DOC, emailPreference, setFollowUpSubscription } from "../../src/lib/emailPreferences";
 import { EmailSender, OutgoingEmail, setEmailSenderForTesting } from "../../src/lib/transactionalEmail";
+import { leadEmailKey } from "../../src/lib/guestLead";
 
 class FakeSender implements EmailSender {
   sent: Array<{ email: OutgoingEmail; key: string }> = [];
@@ -175,6 +176,83 @@ describe("Client : prix obtenu, pas de réservation", () => {
     expect((await runLeadFollowUps(NOON)).status).toBe("not_ready");
     await db.doc(EMAIL_SETTINGS_DOC).set({ postal_address: POSTAL });
     expect((await runLeadFollowUps(NOON + 12 * HOUR)).status).toBe("outside_hours"); // minuit
+    expect(sender.sent).toHaveLength(0);
+  });
+});
+
+describe("Visiteur sans mot de passe : prix obtenu avec le courriel seulement (2026-11-26)", () => {
+  const guests: string[] = [];
+  const TYPED = "lf.invite@example.test";
+
+  /** Session anonyme (aucun courriel de connexion) qui a tapé `email` pour voir son prix. */
+  async function seedGuest(email: string, quoteId: string, ageHours: number): Promise<string> {
+    const uid = (await admin.auth().createUser({})).uid;
+    guests.push(uid);
+    await db.collection("users").doc(uid).set({ uid, email, roles: ["customer"], guest: true });
+    await seedQuote(ageHours, { customer_id: uid }, quoteId);
+    return uid;
+  }
+  const runGuests = async (nowMs = NOON) =>
+    (await runLeadFollowUps(nowMs)).customers.filter((k) => guests.some((g) => k.startsWith(g))).sort();
+
+  afterEach(async () => {
+    for (const uid of guests.splice(0)) {
+      await admin.auth().deleteUser(uid).catch(() => undefined);
+      await db.collection("users").doc(uid).delete();
+      await db.collection("email_preferences").doc(uid).delete();
+      for (const name of ["email_log", "lead_followups", "lead_emails"]) {
+        const rows = await db.collection(name).where("user_id", "==", uid).get();
+        for (const r of rows.docs) await r.ref.delete();
+      }
+    }
+    for (const id of ["lf_guest_q1", "lf_guest_q2", "lf_guest_q3"]) await db.collection("delivery_quotes").doc(id).delete();
+    await db.collection("lead_emails").doc(leadEmailKey(TYPED)).delete();
+  });
+
+  it("J+1 puis J+3 à l'adresse tapée, avec le lien de désabonnement", async () => {
+    const uid = await seedGuest(TYPED, "lf_guest_q1", 26);
+    expect(await runGuests()).toEqual([`${uid}__1`]);
+    expect(await runGuests()).toEqual([]);
+    expect(sender.sent).toHaveLength(1);
+    expect(sender.sent[0].email.to).toBe(TYPED);
+    expect(sender.sent[0].email.subject).toBe("Votre prix Movi-K : 72,43 $");
+    const preference = await emailPreference(uid);
+    expect(sender.sent[0].email.text).toContain(preference.token);
+
+    expect(await runGuests(NOON + 49 * HOUR)).toEqual([`${uid}__2`]);
+    expect(await runGuests(NOON + 72 * HOUR)).toEqual([]);
+    expect(sender.sent).toHaveLength(2);
+  });
+
+  it("la même adresse tapée dans deux sessions : une seule série en 14 jours", async () => {
+    const first = await seedGuest(TYPED, "lf_guest_q1", 26);
+    const second = await seedGuest(TYPED, "lf_guest_q2", 25);
+    const done = await runGuests();
+    expect(done).toHaveLength(1);
+    expect([`${first}__1`, `${second}__1`]).toContain(done[0]);
+    expect(await runGuests(NOON + 49 * HOUR)).toHaveLength(1);
+    expect(sender.sent).toHaveLength(2);
+    expect(new Set(sender.sent.map((s) => s.key.split("__")[1])).size).toBe(1);
+  });
+
+  it("l'adresse tapée est celle d'un vrai compte : ce visiteur n'est pas relancé", async () => {
+    const uid = await seedGuest("lf.client@example.test", "lf_guest_q1", 26);
+    expect(await runGuests()).toEqual([]);
+    expect(sender.sent.filter((s) => s.key.includes(uid))).toHaveLength(0);
+  });
+
+  it("désabonné, ou fiche sans courriel : rien ne part", async () => {
+    const uid = await seedGuest(TYPED, "lf_guest_q1", 26);
+    const preference = await emailPreference(uid);
+    expect(await setFollowUpSubscription(uid, preference.token, true)).toBe(true);
+    expect(await runGuests()).toEqual([]);
+    // Le désabonnement vaut pour l'adresse : une autre session qui la tape n'est pas relancée.
+    await seedGuest(TYPED, "lf_guest_q3", 26);
+    expect(await runGuests()).toEqual([]);
+    const silent = (await admin.auth().createUser({})).uid;
+    guests.push(silent);
+    await seedQuote(26, { customer_id: silent }, "lf_guest_q2");
+    expect(await runGuests()).toEqual([]);
     expect(sender.sent).toHaveLength(0);
   });
 });

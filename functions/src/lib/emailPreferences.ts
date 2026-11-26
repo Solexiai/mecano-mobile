@@ -15,6 +15,7 @@
 
 import { randomBytes, timingSafeEqual } from "crypto";
 import { admin, db } from "./admin";
+import { leadEmailKey, normalizeLeadEmail } from "./guestLead";
 
 export const EMAIL_SETTINGS_DOC = "system_config/email_settings";
 export const POSTAL_ADDRESS_MAX_LENGTH = 200;
@@ -79,5 +80,13 @@ export async function setFollowUpSubscription(uid: string, token: string, unsubs
     updated_at: admin.firestore.Timestamp.now(),
     ...(unsubscribed ? { unsubscribed_at: admin.firestore.Timestamp.now() } : {}),
   });
+  // Visiteur sans mot de passe (2026-11-26) : le désabonnement vaut pour
+  // l'ADRESSE, pas seulement pour cette session. Sinon la même adresse,
+  // tapée plus tard dans une autre session, serait relancée de nouveau.
+  const profile = (await db.collection("users").doc(uid).get()).data();
+  const typed = profile?.guest === true ? normalizeLeadEmail(profile.email) : null;
+  if (typed) {
+    await db.collection("lead_emails").doc(leadEmailKey(typed)).set({ unsubscribed }, { merge: true });
+  }
   return true;
 }

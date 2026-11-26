@@ -25,6 +25,7 @@ import { activeConditionSurcharge, getSpecialConditions, pauseMessage } from "..
 import { admin, db } from "../lib/admin";
 import { requireSignedIn } from "../lib/auth";
 import { refuseDriverAsCustomer } from "../lib/userKind";
+import { GUEST_EMAIL_REQUIRED, guestMayGetPrice, isAnonymousToken } from "../lib/guestLead";
 import { consumeRoutingBudget } from "../lib/routingRateLimit";
 import { invalidArgument, failedPrecondition } from "../lib/errors";
 import { calculateCustomerQuote } from "../lib/pricingEngine";
@@ -118,6 +119,15 @@ export const calculateDeliveryQuote = onCall<CalculateDeliveryQuoteRequest>(asyn
   const ctx = requireSignedIn(request);
   refuseDriverAsCustomer(ctx.roles);
   const input = request.data;
+
+  // Prix avec le courriel seulement (2026-11-26) : une session sans compte
+  // doit d'abord avoir laissé son courriel (registerQuoteLead).
+  if (isAnonymousToken(request.auth?.token as Record<string, unknown> | undefined)) {
+    const profile = (await db.collection("users").doc(ctx.uid).get()).data();
+    if (!guestMayGetPrice(profile)) {
+      throw new HttpsError("failed-precondition", GUEST_EMAIL_REQUIRED, { quote_reason: "guest_email_required" });
+    }
+  }
 
   // Special conditions (Centre de commande, 2026-10-26): a paused service
   // gives no new price; a storm supplement is added and locked in the quote.

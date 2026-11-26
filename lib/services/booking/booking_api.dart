@@ -28,6 +28,13 @@ class FirebaseBookingApi implements BookingApi {
     if (uid == null) return null;
     final data = (await FirebaseFirestore.instance.doc('users/$uid').get())
         .data();
-    return data == null ? null : {'contacts': data['booking_contacts']};
+    return data == null
+        ? null
+        : {
+            'contacts': data['booking_contacts'],
+            // Visitor who already left an email for a price (2026-11-26).
+            if (data['guest'] == true && data['email'] is String)
+              'guest_email': data['email'],
+          };
   }
 }
