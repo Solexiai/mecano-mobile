@@ -106,7 +106,9 @@ void main() {
       expect(html, contains(HomeCopy.text('estimate_button', locale)));
       expect(html, contains('class="mk-est-photo" href="/$locale/livraison/demande"'));
 
-      // The result is hidden until the function answers.
+      // The result is hidden until the function answers; the page's own
+      // display rule must not show it earlier.
+      expect(html, contains('[hidden]{display:none!important}'));
       expect(html, contains('id="mk-est-result" aria-live="polite" hidden'));
       expect(html, contains('id="mk-est-next" href="/$locale/livraison/demande"'));
       expect(html, contains(estimateFunctionUrl));

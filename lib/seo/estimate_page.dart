@@ -189,6 +189,8 @@ const Map<String, String> _languageNames = {
 
 /// Styles du formulaire, communs à la page d'estimation et à l'accueil léger.
 const estimateFormCss =
+    // Un bloc masqué le reste, même s'il a sa propre règle d'affichage.
+    '.mk-est-form [hidden],.mk-est-page [hidden]{display:none!important}'
     '.mk-est-form{background:#fff;border-radius:16px;padding:18px;margin:18px 0;'
     'box-shadow:0 2px 10px rgba(15,42,92,.10);display:grid;gap:14px;max-width:460px}'
     '.mk-est-form h2{margin:0;font-size:18px;line-height:1.25}'
@@ -230,15 +232,15 @@ String renderEstimateForm(String locale) {
       '<form class="mk-est-form" id="mk-est-form" action="${estimatePath(locale)}" method="get">',
     )
     ..writeln('  <h2>${_esc(_h('estimate_title', locale))}</h2>');
-  for (final (name, key, autocomplete) in [
-    ('de', 'estimate_from', 'postal-code'),
-    ('a', 'estimate_to', 'off'),
+  for (final (name, key, autocomplete, example) in [
+    ('de', 'estimate_from', 'postal-code', 'J2G 3V5'),
+    ('a', 'estimate_to', 'off', 'J2L 1A1'),
   ]) {
     b.writeln(
       '  <label class="mk-est-field">${_esc(_h(key, locale))}'
       '<input name="$name" type="text" required maxlength="7" inputmode="text" '
       'autocapitalize="characters" autocomplete="$autocomplete" spellcheck="false" '
-      'pattern="$postalPattern" placeholder="J2G 3V5"></label>',
+      'pattern="$postalPattern" placeholder="$example"></label>',
     );
   }
   b
