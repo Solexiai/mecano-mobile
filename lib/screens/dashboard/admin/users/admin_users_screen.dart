@@ -298,6 +298,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 visualDensity: VisualDensity.compact,
                                 label: Text(_roleLabel(role, fr)),
                               ),
+                            if (isGuestLead(data))
+                              Chip(
+                                key: ValueKey('guest-${doc.id}'),
+                                visualDensity: VisualDensity.compact,
+                                avatar: const Icon(Icons.mail_outline, size: 16),
+                                label: Text(
+                                  fr
+                                      ? 'Courriel seulement (prix vu)'
+                                      : 'Email only (price seen)',
+                                ),
+                              ),
                             if (isUnfinishedDriverSignup(data))
                               Chip(
                                 key: ValueKey('unfinished-${doc.id}'),

@@ -39,8 +39,9 @@ function request() { return { auth: { uid, token: { role: 'customer', email_veri
 let config = buildPricingConfig();
 let written: Record<string, any>;
 let reads: string[];
+let guestProfile: Record<string, unknown> | undefined;
 beforeEach(() => {
-  jest.clearAllMocks(); written = {}; reads = [];
+  jest.clearAllMocks(); written = {}; reads = []; guestProfile = undefined;
   config = buildPricingConfig();
   config.vehicle_rules = ['pickupTruck','cargoVan','cubeTruck'].map(category => ({ ...config.vehicle_rules[0], category }));
   (calculateAuthoritativeRoute as jest.Mock).mockResolvedValue({ distanceKm: 12, estimatedDurationMinutes: 25, isApproximate: false });
@@ -56,6 +57,8 @@ beforeEach(() => {
       if (path === 'system_config/booking_hours') return { exists: false, data: () => undefined };
       // Special conditions (2026-10-26): none saved here.
       if (path === 'system_config/special_conditions') return { exists: false, data: () => undefined };
+      // Price with the email only (2026-11-26): read for anonymous sessions only.
+      if (path === `users/${uid}`) return { exists: guestProfile !== undefined, data: () => guestProfile };
       throw new Error(`UNEXPECTED_DEPENDENCY:${path}`);
     },
     set: async (value: any) => { if (!path.startsWith('delivery_quotes/')) throw new Error('UNEXPECTED_WRITE'); written[path] = value; },
@@ -77,6 +80,17 @@ test('price is issued with no capacity, photo policy, driver, booking policy or 
   expect(resolveLockedQuote('quote-first-test', saved).customerTotalMinor).toBe(4550);
   expect(saved.pricing_snapshot.pre_assignment.vehicle_assignment).toBe('pending');
   expect(saved.pricing_snapshot.booking).toBeUndefined();
+});
+test('a session without account gets the price only after leaving its email', async () => {
+  const r: any = request(); r.auth.token = { firebase: { sign_in_provider: 'anonymous' } };
+  await expect(run(r)).rejects.toMatchObject({ code: 'failed-precondition', details: { quote_reason: 'guest_email_required' } });
+  guestProfile = { uid, roles: ['customer'], email: 'marie@exemple.com' };
+  await expect(run(r)).rejects.toMatchObject({ details: { quote_reason: 'guest_email_required' } });
+  expect(calculateAuthoritativeRoute).not.toHaveBeenCalled();
+  expect(Object.keys(written)).toHaveLength(0);
+  guestProfile = { uid, roles: ['customer'], guest: true, email: 'marie@exemple.com' };
+  expect(await run(r)).toMatchObject({ quoteId: 'quote-first-test', customerTotal: 45.5 });
+  expect(written['delivery_quotes/quote-first-test'].customer_id).toBe(uid);
 });
 test('untrusted client amount, route, category and heavy flag cannot change the official price', async () => {
   const r: any = request(); Object.assign(r.data, { customerTotal: 0.01, distanceKm: 0.01, estimatedDurationMinutes: 0.01, vehicleCategory: 'car', handling: { isHeavyItem: true } });

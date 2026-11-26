@@ -111,7 +111,12 @@ service cloud.firestore {
       allow create: if isSignedIn() && uid() == userId &&
         request.resource.data.uid == userId &&
         request.resource.data.roles == ['customer'] &&
-        !('internal_tester' in request.resource.data);
+        !('internal_tester' in request.resource.data) &&
+        // 2026-11-26 : la fiche d'un visiteur sans mot de passe (`guest`)
+        // n'est posée que par registerQuoteLead ; une session anonyme ne
+        // crée aucune fiche elle-même.
+        !('guest' in request.resource.data) &&
+        request.auth.token.firebase.sign_in_provider != 'anonymous';
 
       // 🔒 roles: Cloud Functions only (setUserRole). Aucune règle 'update'
       // ci-dessus n'autorise un changement de roles — la contrainte

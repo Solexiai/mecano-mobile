@@ -346,6 +346,26 @@ describe("Security Rules — SEC-09 : listes blanches (users, delivery_requests)
     await assertFails(updateDoc(doc(me.firestore(), "users/sec09_user"), { full_name: "x".repeat(121) }));
   });
 
+  it("users : la fiche d'un visiteur sans mot de passe n'est posée que par le serveur (2026-11-26)", async () => {
+    const profile = { uid: "sec09_new", roles: ["customer"], email: "nouveau@example.invalid" };
+    // Inscription ordinaire (courriel + mot de passe) : inchangée.
+    const signedUp = testEnv.authenticatedContext("sec09_new", { firebase: { sign_in_provider: "password" } });
+    await assertFails(setDoc(doc(signedUp.firestore(), "users/sec09_new"), { ...profile, guest: true }));
+    await assertFails(setDoc(doc(signedUp.firestore(), "users/sec09_new"), { ...profile, guest: false }));
+    await assertSucceeds(setDoc(doc(signedUp.firestore(), "users/sec09_new"), profile));
+    // Session anonyme : aucune fiche créée par le navigateur, même sans marqueur.
+    const anonymous = testEnv.authenticatedContext("sec09_anon", { firebase: { sign_in_provider: "anonymous" } });
+    await assertFails(setDoc(doc(anonymous.firestore(), "users/sec09_anon"), { uid: "sec09_anon", roles: ["customer"] }));
+    // La fiche posée par registerQuoteLead : l'invité la lit, complète son nom, mais ne retire pas le marqueur.
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), "users/sec09_anon"), { uid: "sec09_anon", roles: ["customer"], guest: true, email: "tape@example.invalid" });
+    });
+    await assertSucceeds(getDoc(doc(anonymous.firestore(), "users/sec09_anon")));
+    await assertSucceeds(updateDoc(doc(anonymous.firestore(), "users/sec09_anon"), { full_name: "Marie T.", phone: "450 555 0100" }));
+    await assertFails(updateDoc(doc(anonymous.firestore(), "users/sec09_anon"), { guest: false }));
+    await assertFails(updateDoc(doc(anonymous.firestore(), "users/sec09_anon"), { email: "autre@example.invalid" }));
+  });
+
   it("delivery_requests : avant acceptation, seule la description est retouchable ; jamais l'adresse, le client ou le prix", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), "delivery_requests/sec09_m1"), {

@@ -147,7 +147,12 @@ export async function sendTransactionalEmail(params: {
 export async function accountEmail(uid: string): Promise<string | null> {
   try {
     const user = await admin.auth().getUser(uid);
-    return user.email ?? null;
+    if (user.email) return user.email;
+    // Prospect invité (2026-11-26) : pas de courriel de connexion, mais
+    // l'adresse tapée pour voir le prix, rangée par registerQuoteLead.
+    const profile = (await db.collection("users").doc(uid).get()).data();
+    const typed = profile?.guest === true ? profile.email : null;
+    return typeof typed === "string" && typed.includes("@") ? typed : null;
   } catch {
     return null;
   }

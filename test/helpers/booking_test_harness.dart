@@ -28,16 +28,67 @@ class TestUser extends Fake implements fb.User {
 }
 
 class BookingTestAuth extends FirebaseAuthProvider {
-  BookingTestAuth({bool signed = true, this.verified = true})
-    : super(backendConfigured: false) {
-    debugForceSignedIn = signed;
-    debugForceUid = signed ? 'booking_test' : null;
+  /// [guest]: a guest session is already open (price with the email only,
+  /// 2026-11-26). [guestSessionOpens]: a signed-out visitor is given one
+  /// when the booking flow asks; false = the provider refuses, as when
+  /// anonymous sign-in is not enabled.
+  BookingTestAuth({
+    bool signed = true,
+    this.verified = true,
+    bool guest = false,
+    this.guestSessionOpens = false,
+    this.upgradeFailure,
+  }) : super(backendConfigured: false) {
+    debugForceSignedIn = signed && !guest;
+    debugForceGuest = guest;
+    debugForceUid = guest
+        ? 'booking_guest'
+        : signed
+        ? 'booking_test'
+        : null;
     debugForceDisplayName = 'Test Client';
     debugForceEmail = 'test@example.invalid';
   }
   final bool verified;
+  final bool guestSessionOpens;
+  String? upgradeFailure;
+  final List<Map<String, String>> upgrades = [];
   @override
   fb.User? get user => debugForceSignedIn ? TestUser(verified) : null;
+
+  @override
+  Future<bool> ensureGuestSession() async {
+    // Asked during a build: never notify synchronously.
+    await Future<void>.value();
+    if (debugForceUid != null) return true;
+    if (!guestSessionOpens) return false;
+    debugForceGuest = true;
+    debugForceUid = 'booking_guest';
+    notifyListeners();
+    return true;
+  }
+
+  @override
+  Future<String?> upgradeGuestAccount({
+    required String email,
+    required String password,
+    required String fullName,
+    String locale = 'fr',
+  }) async {
+    upgrades.add({
+      'email': email,
+      'password': password,
+      'fullName': fullName,
+      'locale': locale,
+    });
+    if (upgradeFailure != null) return upgradeFailure;
+    // Same identifier, now an account whose email is still to be verified.
+    debugForceGuest = false;
+    debugForceSignedIn = true;
+    debugForceEmail = email;
+    notifyListeners();
+    return null;
+  }
 }
 
 class MemoryBookingStorage extends BookingDraftStorage {

@@ -122,11 +122,13 @@ export const deleteCustomerAccount = onCall(async (request) => {
   const driverPurge = isDriver ? await purgeDriverProfile(userId, { keepAuth: false }) : null;
 
   // Données personnelles rattachées au client, dans les deux cas.
-  const [notifications, notes, tokens, quotes] = await Promise.all([
+  const [notifications, notes, tokens, quotes, leadEmails] = await Promise.all([
     userRef.collection("notifications").get(),
     db.collection("customer_notes").where("user_id", "==", userId).get(),
     db.collection("push_tokens").where("user_id", "==", userId).get(),
     db.collection("delivery_quotes").where("customer_id", "==", userId).get(),
+    // Courriel tapé pour voir un prix sans mot de passe (2026-11-26).
+    db.collection("lead_emails").where("user_id", "==", userId).get(),
   ]);
   // Un prix qui a servi à une réservation reste avec la livraison (preuve du
   // prix) ; les prix calculés sans réservation partent.
@@ -135,6 +137,7 @@ export const deleteCustomerAccount = onCall(async (request) => {
     ...notifications.docs.map((d) => d.ref),
     ...notes.docs.map((d) => d.ref),
     ...tokens.docs.map((d) => d.ref),
+    ...leadEmails.docs.map((d) => d.ref),
     ...(mode === "erase" ? quotes.docs : unusedQuotes).map((d) => d.ref),
     db.collection("booking_drafts").doc(userId),
     // Source du prospect, relances et désabonnement (2026-11-17).

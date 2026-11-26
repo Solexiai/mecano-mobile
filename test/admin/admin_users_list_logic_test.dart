@@ -59,6 +59,17 @@ void main() {
     expect(isUnfinishedDriverSignup({'roles': ['customer'], 'driver_signup': 'started'}), isFalse);
   });
 
+  // 2026-11-26 : prix avec le courriel seulement.
+  test('visiteur qui a laissé son courriel : client, marqué « courriel seulement »', () {
+    final invite = {'roles': ['customer'], 'guest': true, 'email': 'marie@exemple.com'};
+    expect(isCustomerAccount(invite), isTrue);
+    expect(isGuestLead(invite), isTrue);
+    // Il a choisi son mot de passe : client ordinaire.
+    expect(isGuestLead({...invite, 'guest': false}), isFalse);
+    expect(isGuestLead({'roles': ['customer']}), isFalse);
+    expect(isGuestLead({'roles': ['customer', 'driver'], 'guest': true}), isFalse);
+  });
+
   // 2026-11-22 (Daniel) : un chauffeur cherché depuis l'onglet Clients
   // restait introuvable. La recherche fouille tous les comptes et chaque
   // résultat dit sa catégorie.

@@ -47,7 +47,8 @@ class PushNotificationService {
       );
       _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
         (token) {
-          if (FirebaseAuth.instance.currentUser != null) {
+          final current = FirebaseAuth.instance.currentUser;
+          if (current != null && !current.isAnonymous) {
             unawaited(_registerToken(token));
           }
         },
@@ -114,6 +115,8 @@ class PushNotificationService {
     if (Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null) {
       return;
     }
+    // Session invitée de la demande de livraison : pas un compte, pas de push.
+    if (FirebaseAuth.instance.currentUser!.isAnonymous) return;
     if (kIsWeb && _webVapidKey.isEmpty) return;
 
     try {

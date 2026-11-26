@@ -18,6 +18,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/material.dart';
 
@@ -87,18 +88,40 @@ class FirebaseAuthProvider extends ChangeNotifier {
   @visibleForTesting
   bool? debugForceClaimsFetchFailed;
 
-  fb.User? get user => _user;
-  bool get isSignedIn => _user != null || debugForceSignedIn;
+  /// Le compte connecté. Une session invitée (voir [isGuest]) n'est PAS un
+  /// compte : partout dans l'app, sauf dans la demande de livraison, elle se
+  /// comporte comme un visiteur non connecté.
+  fb.User? get user => (_user?.isAnonymous ?? false) ? null : _user;
+  bool get isSignedIn => user != null || debugForceSignedIn;
+
+  /// Prix avec le courriel seulement (2026-11-26) : session Firebase anonyme
+  /// ouverte en arrière-plan par la demande de livraison. Elle permet de
+  /// calculer un prix et d'envoyer des photos sans mot de passe ; elle ne
+  /// donne accès à aucun espace client. Elle devient un vrai compte, avec le
+  /// même identifiant, quand le client choisit son mot de passe
+  /// ([upgradeGuestAccount]).
+  bool get isGuest => (_user?.isAnonymous ?? false) || debugForceGuest;
+
+  /// Seam de test : simule une session invitée dont l'identifiant est
+  /// `debugForceUid` (avec `debugForceSignedIn == false`).
+  @visibleForTesting
+  bool debugForceGuest = false;
+
+  /// Identifiant utilisé par la demande de livraison : le compte connecté,
+  /// sinon la session invitée. Ne jamais s'en servir pour ouvrir un espace
+  /// client : utiliser [effectiveUid].
+  String? get bookingUid => _user?.uid ?? debugForceUid;
 
   /// Identifiant client effectif : l'uid Firebase réel si connecté, sinon
   /// (uniquement en test, `debugForceSignedIn == true`) l'uid simulé. Les
   /// écrans qui ont besoin de l'identité du client courant doivent utiliser
   /// ce getter plutôt que `user!.uid` directement, pour rester testables
   /// sans dépendance à un vrai utilisateur Firebase.
-  String? get effectiveUid => _user?.uid ?? debugForceUid;
+  String? get effectiveUid =>
+      user?.uid ?? (debugForceGuest ? null : debugForceUid);
   String? get effectiveDisplayName =>
-      _user?.displayName ?? debugForceDisplayName;
-  String? get effectiveEmail => _user?.email ?? debugForceEmail;
+      user?.displayName ?? debugForceDisplayName;
+  String? get effectiveEmail => user?.email ?? debugForceEmail;
   List<PlatformRole> get roles => debugForceRoles ?? _roles;
   bool get isLoading => _isLoading;
   String? get lastError => _lastError;
@@ -142,7 +165,9 @@ class FirebaseAuthProvider extends ChangeNotifier {
     _authResolved = true;
     _user = user;
     _claimsLoaded = false;
-    if (user == null) {
+    if (user == null || user.isAnonymous) {
+      // Visiteur ou session invitée : aucun rôle, aucune source à classer
+      // (la source est classée quand l'invité laisse son courriel).
       _roles = [];
       _claimsFetchFailed = false;
       _claimsLoaded = true;
@@ -209,6 +234,108 @@ class FirebaseAuthProvider extends ChangeNotifier {
     _user = fb.FirebaseAuth.instance.currentUser;
     await _refreshClaims(force: true);
     notifyListeners();
+  }
+
+  bool _guestSessionRefused = false;
+  Future<bool>? _guestSessionPending;
+
+  /// Ouvre une session invitée si personne n'est connecté. Retourne `false`
+  /// quand ce n'est pas possible (pas de backend, connexion anonyme non
+  /// activée dans Firebase, réseau) : la demande de livraison garde alors
+  /// son bouton « Se connecter ».
+  Future<bool> ensureGuestSession() {
+    if (_user != null) return Future.value(true);
+    // Jamais avant le premier état de connexion : une session invitée
+    // ouverte trop tôt remplacerait le compte d'un client déjà connecté.
+    if (!_backendConfigured || !_authResolved || _guestSessionRefused) {
+      return Future.value(false);
+    }
+    return _guestSessionPending ??= _openGuestSession().whenComplete(
+      () => _guestSessionPending = null,
+    );
+  }
+
+  Future<bool> _openGuestSession() async {
+    try {
+      final current = fb.FirebaseAuth.instance.currentUser;
+      if (current != null) return true;
+      await fb.FirebaseAuth.instance.signInAnonymously();
+      return true;
+    } on fb.FirebaseAuthException catch (e) {
+      // Fournisseur désactivé : inutile de réessayer à chaque écran.
+      if (e.code == 'operation-not-allowed' ||
+          e.code == 'admin-restricted-operation') {
+        _guestSessionRefused = true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Transforme la session invitée en vrai compte (même identifiant, donc
+  /// le prix, les photos et le brouillon suivent) : courriel + mot de passe,
+  /// courriel de vérification, puis fiche client complétée par le serveur.
+  /// Retourne `null` si tout va bien, sinon un code : `email-in-use`,
+  /// `weak-password`, `invalid-email`, `network`, `other`.
+  Future<String?> upgradeGuestAccount({
+    required String email,
+    required String password,
+    required String fullName,
+    String locale = 'fr',
+  }) async {
+    final guest = _user;
+    if (!_backendConfigured || guest == null || !guest.isAnonymous) {
+      return 'other';
+    }
+    try {
+      final linked = await guest.linkWithCredential(
+        fb.EmailAuthProvider.credential(email: email.trim(), password: password),
+      );
+      final account = linked.user ?? guest;
+      if (fullName.trim().isNotEmpty) {
+        try {
+          await account.updateDisplayName(fullName.trim());
+        } catch (_) {}
+      }
+      try {
+        await fb.FirebaseAuth.instance.setLanguageCode(locale);
+        await account.sendEmailVerification();
+      } catch (_) {
+        // « Renvoyer le courriel » reste offert à l'étape suivante.
+      }
+      // Le jeton doit porter le courriel avant l'appel au serveur.
+      await account.getIdToken(true);
+      try {
+        await FirebaseFunctions.instance
+            .httpsCallable('completeGuestAccount')
+            .call({'fullName': fullName.trim()});
+      } catch (_) {
+        // La fiche reste « invité » ; le compte, lui, est créé. Le serveur
+        // la complète au prochain essai ; rien ne bloque la réservation.
+      }
+      await account.reload();
+      _user = fb.FirebaseAuth.instance.currentUser;
+      _claimsLoaded = false;
+      await _refreshClaims(force: true);
+      FunnelAnalytics.event('sign_up');
+      notifyListeners();
+      return null;
+    } on fb.FirebaseAuthException catch (e) {
+      FunnelAnalytics.event('sign_up_error', {'reason': e.code});
+      return switch (e.code) {
+        'email-already-in-use' ||
+        'credential-already-in-use' ||
+        'provider-already-linked' => 'email-in-use',
+        'weak-password' => 'weak-password',
+        'invalid-email' => 'invalid-email',
+        'network-request-failed' => 'network',
+        _ => 'other',
+      };
+    } catch (_) {
+      FunnelAnalytics.event('sign_up_error', {'reason': 'unexpected'});
+      return 'other';
+    }
   }
 
   Future<void> refreshClaims() async {

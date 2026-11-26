@@ -36,6 +36,7 @@ import {
 } from "../lib/emailPreferences";
 import { grantDriverRole } from "../lib/driverRole";
 import { invalidArgument } from "../lib/errors";
+import { guestSeriesAllowed, leadEmailKey } from "../lib/guestLead";
 import {
   DriverFollowUpStage,
   FOLLOW_UP_COOLDOWN_MS,
@@ -135,6 +136,23 @@ async function lastBookingSince(uid: string, quotes: Array<{ data: Doc; ms: numb
   return times.length ? Math.max(...times) : null;
 }
 
+/**
+ * Réserve la série de relances de cette adresse d'invité pour la session
+ * `uid`. Refusée si l'adresse est celle d'un vrai compte : ce compte a ses
+ * propres relances, et la personne a peut-être déjà réservé avec lui.
+ */
+async function claimGuestEmailSeries(email: string, uid: string, nowMs: number): Promise<boolean> {
+  const owner = await admin.auth().getUserByEmail(email).catch(() => null);
+  if (owner && owner.uid !== uid) return false;
+  const ref = db.collection("lead_emails").doc(leadEmailKey(email));
+  return db.runTransaction(async (tx) => {
+    const state = (await tx.get(ref)).data();
+    if (!guestSeriesAllowed(state, uid, nowMs, FOLLOW_UP_COOLDOWN_MS)) return false;
+    if (state?.user_id !== uid) tx.set(ref, { user_id: uid, started_at_ms: nowMs });
+    return true;
+  });
+}
+
 async function runQuoteFollowUps(settings: EmailSettings, nowMs: number, budget: { left: number }): Promise<string[]> {
   const done: string[] = [];
   const since = admin.firestore.Timestamp.fromMillis(nowMs - FOLLOW_UP_END_MS);
@@ -189,6 +207,9 @@ async function runQuoteFollowUps(settings: EmailSettings, nowMs: number, budget:
       }
       const to = await accountEmail(uid);
       if (!to) continue;
+      // Adresse tapée par un visiteur sans mot de passe : une seule série
+      // par adresse par 14 jours, quel que soit le nombre de sessions.
+      if (user?.guest === true && !(await claimGuestEmailSeries(to, uid, nowMs))) continue;
       if (!(await claimStep(stateId, base, series, step, nowMs))) continue;
 
       const latest = quotes[quotes.length - 1]; // le prix le plus récent

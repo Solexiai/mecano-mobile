@@ -36,6 +36,12 @@ bool isDriverAccount(Map<String, dynamic> data) =>
 bool isUnfinishedDriverSignup(Map<String, dynamic> data) =>
     isDriverAccount(data) && data['driver_signup'] == 'started';
 
+/// Visiteur qui a laissé son courriel pour voir son prix, sans mot de passe
+/// (`guest: true`, posé par le serveur — 2026-11-26). Il devient un client
+/// ordinaire quand il choisit son mot de passe pour réserver.
+bool isGuestLead(Map<String, dynamic> data) =>
+    data['guest'] == true && !isDriverAccount(data) && !isStaffAccount(data);
+
 /// La catégorie d'un compte, une seule : personnel > chauffeur > client.
 /// Sert à dire où se trouve une personne quand la recherche fouille tous
 /// les comptes (2026-11-22).
