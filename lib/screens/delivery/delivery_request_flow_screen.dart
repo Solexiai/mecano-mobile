@@ -31,6 +31,7 @@ import '../../widgets/photo_booking_item.dart';
 import '../../services/booking/booking_draft.dart';
 import '../../widgets/address_autocomplete_field.dart';
 import '../../widgets/app_shell.dart';
+import '../../services/funnel/funnel_analytics.dart';
 
 /// Four-step booking. Amounts/recommendations are exclusively server responses.
 /// No mission is created until the user explicitly confirms the current quote.
@@ -531,6 +532,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
   }
 
   Future<void> _login() async {
+    FunnelAnalytics.event('price_wall');
     await _save();
     await _storage.handoff();
     if (mounted) {
@@ -665,6 +667,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         _acceptanceCurrent &&
         previous != null &&
         previous['customerTotal'] == quote['customerTotal'];
+    FunnelAnalytics.event('price_shown');
     setState(() {
       _review = null;
       _draft.data['quote'] = quote;
@@ -769,6 +772,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
     if (uri.scheme != 'https' || uri.host != 'checkout.stripe.com') {
       throw StateError('Invalid checkout origin');
     }
+    FunnelAnalytics.event('deposit_checkout');
     if (!await launchUrl(
       uri,
       webOnlyWindowName: '_self',
@@ -835,6 +839,7 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
       'itemCategoryKey': '',
       'customerDisplayName': '',
     });
+    FunnelAnalytics.event('booking_created');
     if (!mounted || epoch != _epoch) return;
     setState(() {
       _draft.data['missionId'] = result['missionId'];
@@ -1116,7 +1121,11 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
 
   /// Shown as "Étape N sur 7": 4 delivery questions, then price, details
   /// and confirmation.
-  int get _screenNumber => _draft.step == 0 ? _draft.part + 1 : _draft.step + 4;
+  int get _screenNumber {
+    final number = _draft.step == 0 ? _draft.part + 1 : _draft.step + 4;
+    FunnelAnalytics.bookingStep(number);
+    return number;
+  }
   static const _screenCount = 7;
 
   /// The screen's main action: a full-width button. When it is disabled, the

@@ -23,6 +23,7 @@ import 'package:flutter/material.dart';
 
 import '../models/enums.dart';
 import '../services/acquisition/acquisition_tracker.dart';
+import '../services/funnel/funnel_analytics.dart';
 
 class FirebaseAuthProvider extends ChangeNotifier {
   final bool _backendConfigured;
@@ -305,14 +306,19 @@ class FirebaseAuthProvider extends ChangeNotifier {
       _claimsLoaded = false;
       await _refreshClaims(force: true);
       _isLoading = false;
+      FunnelAnalytics.event('sign_up');
       notifyListeners();
       return true;
     } on fb.FirebaseAuthException catch (e) {
       _lastError = _mapErrorMessage(e.code);
       _isLoading = false;
+      // Inscription refusée (courriel déjà utilisé, mot de passe trop
+      // court…) : comptée, pour voir combien de personnes butent ici.
+      FunnelAnalytics.event('sign_up_error', {'reason': e.code});
       notifyListeners();
       return false;
     } catch (_) {
+      FunnelAnalytics.event('sign_up_error', {'reason': 'unexpected'});
       _lastError = 'Une erreur inattendue est survenue. Réessayez.';
       _isLoading = false;
       notifyListeners();

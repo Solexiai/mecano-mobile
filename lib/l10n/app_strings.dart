@@ -387,6 +387,17 @@ class AppStrings {
       'en': 'Cancel',
       'es': 'Cancelar',
     },
+    // 2026-11-22 : arrivée depuis la demande de livraison (prix à voir).
+    'auth_booking_title': {
+      'fr': 'Créez votre compte pour voir votre prix',
+      'en': 'Create your account to see your price',
+      'es': 'Crea tu cuenta para ver tu precio',
+    },
+    'auth_booking_subtitle': {
+      'fr': 'Votre demande est conservée. Il ne reste que votre nom, votre courriel et un mot de passe : le prix s’affiche tout de suite après.',
+      'en': 'Your request is saved. Just your name, email and a password: your price shows right after.',
+      'es': 'Tu solicitud está guardada. Solo tu nombre, correo y una contraseña: el precio aparece enseguida.',
+    },
     'auth_intro_subtitle': {
       'fr': 'Connectez-vous ou créez un compte Movi-K pour continuer.',
       'en': 'Sign in or create a Movi-K account to continue.',

@@ -76,6 +76,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           }
 
           final query = _searchController.text.trim().toLowerCase();
+          final searching = query.isNotEmpty;
           final live = snapshot.data!.docs.where((doc) {
             final data = doc.data();
             if ((data['migrated_to_uid'] ?? '').toString().isNotEmpty) {
@@ -94,16 +95,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             if (_offersOnly && !(_optIns?.contains(doc.id) ?? false)) {
               return false;
             }
-            final matchesFilter = switch (_filter) {
+            // 2026-11-22 (Daniel) : une recherche fouille TOUS les comptes,
+            // pas seulement l'onglet affiché — un chauffeur cherché depuis
+            // l'onglet Clients restait introuvable. Chaque carte dit alors
+            // si c'est un client, un chauffeur ou du personnel.
+            if (searching) return userMatchesSearch(data, doc.id, query);
+            return switch (_filter) {
               _UserFilter.all => true,
               _UserFilter.customers => isCustomerAccount(data),
               _UserFilter.drivers => isDriverAccount(data),
               _UserFilter.administrators => isStaffAccount(data),
             };
-            final haystack =
-                '${data['full_name'] ?? ''} ${data['email'] ?? ''} ${doc.id}'
-                    .toLowerCase();
-            return matchesFilter && (query.isEmpty || haystack.contains(query));
           });
           final sorted = sortUsers(users, (doc) => doc.data(), _sort);
           final emails = uniqueEmails(sorted.map((doc) => doc.data()));
@@ -170,7 +172,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 children: [
                   Expanded(
                     child: Text(
-                      fr ? '${sorted.length} compte(s)' : '${sorted.length} account(s)',
+                      searching
+                          ? (fr
+                                ? '${sorted.length} compte(s) trouvé(s) dans tous les comptes (clients, chauffeurs, personnel)'
+                                : '${sorted.length} account(s) found across all accounts (customers, drivers, staff)')
+                          : (fr ? '${sorted.length} compte(s)' : '${sorted.length} account(s)'),
+                      key: const ValueKey('users-count'),
                       style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
@@ -245,7 +252,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 final data = doc.data();
                 final name = (data['full_name'] ?? '').toString().trim();
                 final email = (data['email'] ?? '').toString().trim();
-                final roles = _cardRoles(data, _filter);
+                final roles = searching
+                    ? const <String>[]
+                    : _cardRoles(data, _filter);
                 final display = name.isNotEmpty ? name : email;
                 return Card(
                   margin: const EdgeInsets.only(bottom: 10),
@@ -276,6 +285,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
+                            if (searching)
+                              Chip(
+                                key: ValueKey('kind-${doc.id}'),
+                                visualDensity: VisualDensity.compact,
+                                label: Text(
+                                  accountKindLabel(accountKind(data), fr),
+                                ),
+                              ),
                             for (final role in roles)
                               Chip(
                                 visualDensity: VisualDensity.compact,

@@ -183,8 +183,10 @@ String _headTags(SeoPage page, String locale) {
       'color:#0F2A5C;max-width:760px;margin:0 auto;padding:24px 16px;line-height:1.55}'
       '.mk-static a{color:#0879E8}.mk-static nav a{margin-right:12px;display:inline-block}'
       '.mk-static h1{font-size:30px;line-height:1.15}.mk-static h2{font-size:19px;margin-top:22px}'
-      '.mk-cta{display:inline-block;background:#0879E8;color:#fff!important;padding:12px 20px;'
-      'border-radius:10px;text-decoration:none;font-weight:700}'
+      '.mk-cta{display:inline-block;background:#0879E8;color:#fff!important;padding:14px 22px;'
+      'border-radius:10px;text-decoration:none;font-weight:700;font-size:17px}'
+      '.mk-top{margin:18px 0 6px}'
+      '@media(max-width:600px){.mk-top .mk-cta{display:block;text-align:center}}'
       '.mk-static--hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;'
       'clip:rect(0 0 0 0);white-space:nowrap}</style>',
     );
@@ -192,6 +194,9 @@ String _headTags(SeoPage page, String locale) {
 }
 
 String _body(SeoPage page, String locale) {
+  final driver = page.id == 'driver';
+  final cta = driver ? '/$locale/devenir-chauffeur/inscription' : '/$locale/livraison/demande';
+  final ctaLabel = _t(driver ? _driverLabel : _quoteLabel, locale);
   final b = StringBuffer()
     ..writeln('  <div id="movik-static" class="mk-static">')
     ..writeln('    <header>')
@@ -206,7 +211,14 @@ String _body(SeoPage page, String locale) {
     ..writeln('    </header>')
     ..writeln('    <main>')
     ..writeln('      <h1>${_esc(_t(page.headings, locale))}</h1>')
-    ..writeln('      <p>${_esc(_t(page.intros, locale))}</p>');
+    ..writeln('      <p>${_esc(_t(page.intros, locale))}</p>')
+    // 2026-11-22 (Daniel) : le bouton est en haut, sous le titre. Un
+    // visiteur venu d'une publicité sur son téléphone voit cette page
+    // pendant que l'application charge ; avant, le seul bouton était tout
+    // en bas, après tout le texte.
+    ..writeln(
+      '      <p class="mk-top"><a class="mk-cta" href="$cta">${_esc(ctaLabel)}</a></p>',
+    );
   for (final (heading, body) in seoSectionsFor(page, locale)) {
     b
       ..writeln('      <section>')
@@ -226,11 +238,9 @@ String _body(SeoPage page, String locale) {
       ..writeln('</ul>')
       ..writeln('      </section>');
   }
-  final driver = page.id == 'driver';
-  final cta = driver ? '/$locale/devenir-chauffeur/inscription' : '/$locale/livraison/demande';
   b
     ..writeln(
-      '      <p><a class="mk-cta" href="$cta">${_esc(_t(driver ? _driverLabel : _quoteLabel, locale))}</a></p>',
+      '      <p><a class="mk-cta" href="$cta">${_esc(ctaLabel)}</a></p>',
     )
     ..writeln('    </main>')
     ..writeln('    <footer>')
@@ -263,7 +273,12 @@ String _replaceOnce(String html, RegExp pattern, String replacement, String what
 String renderSeoPage(String indexHtml, SeoPage page, String locale) {
   final title = _esc(_t(page.titles, locale));
   final description = _esc(_t(page.descriptions, locale));
-  var html = indexHtml;
+  // L'écran de chargement de index.html ne sert qu'aux pages sans texte :
+  // ici, le texte de la page s'affiche tout de suite.
+  var html = indexHtml.replaceFirst(
+    RegExp(r'[ \t]*<!-- mk-loading:start -->[\s\S]*?<!-- mk-loading:end -->\n?'),
+    '',
+  );
   html = _replaceOnce(html, RegExp(r'<html lang="[^"]*">'), '<html lang="$locale">', '<html lang>');
   html = _replaceOnce(html, RegExp(r'<title>[^<]*</title>'), '<title>$title</title>', '<title>');
   html = _replaceOnce(
