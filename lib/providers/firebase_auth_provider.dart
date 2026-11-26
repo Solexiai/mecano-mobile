@@ -150,9 +150,43 @@ class FirebaseAuthProvider extends ChangeNotifier {
       await _refreshClaims(force: true);
       // Where this account came from (first visit), filed once.
       unawaited(AcquisitionTracker.reportFor(user.uid));
+      // 2026-11-21 : compte de connexion sans fiche (écriture ratée à
+      // l'inscription) → on la recrée à la connexion suivante.
+      unawaited(_ensureProfileDocument(user));
     }
     notifyListeners();
   }
+
+  /// Fiche `users/{uid}` manquante → recréée (client ; la règle `create`
+  /// n'autorise que `roles: ['customer']`, le serveur ajuste ensuite).
+  /// Silencieux : une connexion ne doit jamais échouer pour ça.
+  Future<void> _ensureProfileDocument(fb.User user) async {
+    try {
+      final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      if ((await ref.get()).exists) return;
+      await ref.set(_initialProfile(
+        uid: user.uid,
+        email: user.email ?? '',
+        fullName: user.displayName ?? '',
+        emailVerified: user.emailVerified,
+      ));
+    } catch (_) {}
+  }
+
+  static Map<String, dynamic> _initialProfile({
+    required String uid,
+    required String email,
+    required String fullName,
+    bool emailVerified = false,
+  }) => {
+    'uid': uid,
+    'email': email.trim(),
+    'full_name': fullName.trim(),
+    'roles': ['customer'],
+    'created_at': DateTime.now().toIso8601String(),
+    'is_disabled': false,
+    'email_verified': emailVerified,
+  };
 
   /// Lit les custom claims via getIdTokenResult(), avec retries courts pour
   /// absorber les erreurs transitoires (réseau, interop JS juste après un
@@ -289,18 +323,24 @@ class FirebaseAuthProvider extends ChangeNotifier {
         await cred.user?.sendEmailVerification();
       } catch (_) {}
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(cred.user!.uid)
-          .set({
-            'uid': cred.user!.uid,
-            'email': email.trim(),
-            'full_name': fullName.trim(),
-            'roles': ['customer'],
-            'created_at': DateTime.now().toIso8601String(),
-            'is_disabled': false,
-            'email_verified': false,
-          });
+      // La fiche est ce qui rend le compte visible (admin, relances) : on
+      // réessaie une fois, et si ça échoue quand même, le compte reste
+      // utilisable — la fiche sera recréée à la prochaine connexion
+      // (_ensureProfileDocument) ou par le rattrapage horaire du serveur.
+      final profile = _initialProfile(
+        uid: cred.user!.uid,
+        email: email,
+        fullName: fullName,
+      );
+      final ref = FirebaseFirestore.instance.collection('users').doc(cred.user!.uid);
+      try {
+        await ref.set(profile);
+      } catch (_) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        try {
+          await ref.set(profile);
+        } catch (_) {}
+      }
 
       _user = cred.user;
       _claimsLoaded = false;
