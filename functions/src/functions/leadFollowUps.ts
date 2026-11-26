@@ -148,7 +148,7 @@ async function claimGuestEmailSeries(email: string, uid: string, nowMs: number):
   return db.runTransaction(async (tx) => {
     const state = (await tx.get(ref)).data();
     if (!guestSeriesAllowed(state, uid, nowMs, FOLLOW_UP_COOLDOWN_MS)) return false;
-    if (state?.user_id !== uid) tx.set(ref, { user_id: uid, started_at_ms: nowMs });
+    if (state?.user_id !== uid) tx.set(ref, { user_id: uid, started_at_ms: nowMs, unsubscribed: false });
     return true;
   });
 }

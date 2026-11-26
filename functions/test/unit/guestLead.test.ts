@@ -59,4 +59,7 @@ test('one follow-up series per typed address per cooldown, whatever the session'
   expect(guestSeriesAllowed({ user_id: 'a', started_at_ms: now - 2 * DAY }, 'b', now, 14 * DAY)).toBe(false);
   expect(guestSeriesAllowed({ user_id: 'a', started_at_ms: now - 14 * DAY }, 'b', now, 14 * DAY)).toBe(true);
   expect(guestSeriesAllowed({ user_id: 'a' }, 'b', now, 14 * DAY)).toBe(true);
+  // An address that unsubscribed is never followed up again, by any session.
+  expect(guestSeriesAllowed({ user_id: 'a', started_at_ms: now - 30 * DAY, unsubscribed: true }, 'b', now, 14 * DAY)).toBe(false);
+  expect(guestSeriesAllowed({ unsubscribed: true }, 'a', now, 14 * DAY)).toBe(false);
 });

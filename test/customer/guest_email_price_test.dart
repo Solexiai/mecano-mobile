@@ -168,6 +168,24 @@ void main() {
     await disposeBooking(t);
   });
 
+  testWidgets('a returning guest is not asked for the email again', (t) async {
+    final api = TestBookingApi()
+      ..profileData = {'contacts': null, 'guest_email': 'marie@exemple.com'};
+    final store = MemoryBookingStorage(testDraft(step: 1));
+    await pumpBooking(
+      t,
+      storage: store,
+      api: api,
+      auth: BookingTestAuth(guest: true),
+    );
+    expect(_key('booking-guest-email'), findsNothing);
+    await tapBooking(t, 'Calculer mon prix officiel');
+    expect(api.calls, isNot(contains('registerQuoteLead')));
+    expect(api.calls, contains('calculateDeliveryQuote'));
+    expect(_key('booking-price-hero'), findsOneWidget);
+    await disposeBooking(t);
+  });
+
   testWidgets('a guest is never told to verify an email before booking', (
     t,
   ) async {

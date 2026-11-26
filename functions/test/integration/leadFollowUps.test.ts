@@ -9,6 +9,7 @@ import { requestDriverDocuments } from "../../src/functions/requestDriverDocumen
 import { admin, db } from "../../src/lib/admin";
 import { EMAIL_SETTINGS_DOC, emailPreference, setFollowUpSubscription } from "../../src/lib/emailPreferences";
 import { EmailSender, OutgoingEmail, setEmailSenderForTesting } from "../../src/lib/transactionalEmail";
+import { leadEmailKey } from "../../src/lib/guestLead";
 
 class FakeSender implements EmailSender {
   sent: Array<{ email: OutgoingEmail; key: string }> = [];
@@ -204,7 +205,8 @@ describe("Visiteur sans mot de passe : prix obtenu avec le courriel seulement (2
         for (const r of rows.docs) await r.ref.delete();
       }
     }
-    for (const id of ["lf_guest_q1", "lf_guest_q2"]) await db.collection("delivery_quotes").doc(id).delete();
+    for (const id of ["lf_guest_q1", "lf_guest_q2", "lf_guest_q3"]) await db.collection("delivery_quotes").doc(id).delete();
+    await db.collection("lead_emails").doc(leadEmailKey(TYPED)).delete();
   });
 
   it("J+1 puis J+3 à l'adresse tapée, avec le lien de désabonnement", async () => {
@@ -243,6 +245,9 @@ describe("Visiteur sans mot de passe : prix obtenu avec le courriel seulement (2
     const uid = await seedGuest(TYPED, "lf_guest_q1", 26);
     const preference = await emailPreference(uid);
     expect(await setFollowUpSubscription(uid, preference.token, true)).toBe(true);
+    expect(await runGuests()).toEqual([]);
+    // Le désabonnement vaut pour l'adresse : une autre session qui la tape n'est pas relancée.
+    await seedGuest(TYPED, "lf_guest_q3", 26);
     expect(await runGuests()).toEqual([]);
     const silent = (await admin.auth().createUser({})).uid;
     guests.push(silent);

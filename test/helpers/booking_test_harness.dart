@@ -244,8 +244,9 @@ class TestBookingApi implements BookingApi {
   Map<String, dynamic> policy = testBookingPolicy();
   List<String> reasons = [];
   Map<String, dynamic> quote = testQuote();
+  Map<String, dynamic>? profileData;
   @override
-  Future<Map<String, dynamic>?> profile() async => null;
+  Future<Map<String, dynamic>?> profile() async => profileData;
   @override
   Future<Map<String, dynamic>> call(
     String name, [

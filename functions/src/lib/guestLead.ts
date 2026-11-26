@@ -44,16 +44,19 @@ export function isAnonymousToken(token: Record<string, unknown> | undefined): bo
 export interface GuestSeriesState {
   user_id?: unknown;
   started_at_ms?: unknown;
+  /** L'adresse s'est désabonnée (lien d'une relance) : plus aucune relance d'invité. */
+  unsubscribed?: unknown;
 }
 
 /**
  * Une adresse d'invité reçoit une seule série de relances par période de
  * `cooldownMs`, quel que soit le nombre de sessions qui l'ont tapée. Vrai si
- * la session `uid` peut envoyer maintenant.
+ * la session `uid` peut envoyer maintenant. Jamais à une adresse désabonnée.
  */
 export function guestSeriesAllowed(
   state: GuestSeriesState | undefined, uid: string, nowMs: number, cooldownMs: number
 ): boolean {
+  if (state?.unsubscribed === true) return false;
   if (!state || state.user_id === uid) return true;
   return typeof state.started_at_ms !== "number" || nowMs - state.started_at_ms >= cooldownMs;
 }

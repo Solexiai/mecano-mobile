@@ -332,8 +332,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         if ((values['pickup_name'] as String? ?? '').isEmpty) {
           values['pickup_name'] = auth.effectiveDisplayName ?? '';
         }
+        // A returning guest already left an email: not asked a second time.
+        final knownEmail = profile?['guest_email'];
         setState(() {
           _draft.data['contacts'] = values;
+          if (_needsEmail && knownEmail is String && knownEmail.isNotEmpty) {
+            _draft.data['guest_email'] = knownEmail;
+            _guestEmail.text = knownEmail;
+          }
         });
       } catch (_) {
         /* Manual entry is always available. */
