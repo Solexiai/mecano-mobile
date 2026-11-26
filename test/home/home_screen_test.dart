@@ -37,6 +37,7 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
   double scale = 1,
   bool dark = false,
   List<PlatformRole>? roles,
+  EstimateOpener? openEstimate,
 }) async {
   await tester.binding.setSurfaceSize(Size(width, height));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -52,7 +53,8 @@ Future<(GoRouter, HomeTestAuth)> mountHome(
       for (final loc in ['fr', 'en', 'es']) ...[
         GoRoute(
           path: '/$loc',
-          builder: (_, _) => HomeScreen(locale: loc),
+          builder: (_, _) =>
+              HomeScreen(locale: loc, openEstimate: openEstimate),
         ),
         GoRoute(
           path: '/$loc/livraison/demande',

@@ -34,6 +34,18 @@
       "destination": "/seo/es.html"
     },
     {
+      "source": "/fr/estimation",
+      "destination": "/seo/fr/estimation.html"
+    },
+    {
+      "source": "/en/estimate",
+      "destination": "/seo/en/estimate.html"
+    },
+    {
+      "source": "/es/estimacion",
+      "destination": "/seo/es/estimacion.html"
+    },
+    {
       "source": "/fr/livraison",
       "destination": "/seo/fr/livraison.html"
     },

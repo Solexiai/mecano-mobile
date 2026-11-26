@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:movik_connect/l10n/app_strings.dart';
 import 'package:movik_connect/router/app_router.dart';
+import 'package:movik_connect/seo/estimate_page.dart';
 import 'package:movik_connect/seo/seo_pages.dart';
 
 /// Every full path declared in the router, e.g. '/fr/livraison/suivi/:missionId'.
@@ -68,6 +69,12 @@ List<RegExp> vercelAppRoutes() {
     // Public pages are served from their search-engine copy
     // (tool/build_seo_pages.dart), which boots the same Flutter app.
     final source = rewrite['source'] as String;
+    // The estimate pages are plain HTML, without the app (2026-11-26).
+    final estimateLocale = estimateLocaleForPath(source);
+    if (estimateLocale != null) {
+      expect(destination, estimateFile(estimateLocale), reason: source);
+      continue;
+    }
     final page = seoPageForPath(source);
     expect(page, isNotNull, reason: source);
     final locale = seoLocaleForPath(source)!;

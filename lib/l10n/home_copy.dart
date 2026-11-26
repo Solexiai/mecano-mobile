@@ -333,6 +333,71 @@ abstract final class HomeCopy {
       'en': 'An eligible driver may accept your request',
       'es': 'Un conductor elegible puede aceptar tu solicitud',
     },
+    // Estimation par codes postaux (Daniel, 2026-11-26) : carte de
+    // l'accueil, accueil léger et page d'estimation.
+    'estimate_title': {
+      'fr': 'Estimez votre prix en 10 secondes',
+      'en': 'Estimate your price in 10 seconds',
+      'es': 'Calcula tu precio en 10 segundos',
+    },
+    'estimate_from': {
+      'fr': 'Code postal de départ',
+      'en': 'Pickup postal code',
+      'es': 'Código postal de recogida',
+    },
+    'estimate_to': {
+      'fr': 'Code postal d’arrivée',
+      'en': 'Delivery postal code',
+      'es': 'Código postal de entrega',
+    },
+    'estimate_what': {
+      'fr': 'Quoi faire livrer ?',
+      'en': 'What needs delivering?',
+      'es': '¿Qué hay que entregar?',
+    },
+    'estimate_light': {'fr': 'Léger', 'en': 'Light', 'es': 'Ligero'},
+    'estimate_light_sub': {
+      'fr': '100 lb et moins',
+      'en': '100 lb or less',
+      'es': '100 lb o menos',
+    },
+    'estimate_medium': {'fr': 'Moyen', 'en': 'Medium', 'es': 'Medio'},
+    'estimate_medium_sub': {
+      'fr': '100 à 250 lb',
+      'en': '100 to 250 lb',
+      'es': '100 a 250 lb',
+    },
+    'estimate_heavy': {'fr': 'Lourd', 'en': 'Heavy', 'es': 'Pesado'},
+    'estimate_heavy_sub': {
+      'fr': '250 lb et plus',
+      'en': '250 lb or more',
+      'es': '250 lb o más',
+    },
+    'estimate_photo': {
+      'fr': 'Pas certain ? Ajoutez une photo',
+      'en': 'Not sure? Add a photo',
+      'es': '¿No estás seguro? Añade una foto',
+    },
+    'estimate_button': {
+      'fr': 'Estimer mon prix',
+      'en': 'Estimate my price',
+      'es': 'Calcular mi precio',
+    },
+    'estimate_note': {
+      'fr': 'Estimez votre prix en 10 secondes. Sans compte.',
+      'en': 'Estimate your price in 10 seconds. No account.',
+      'es': 'Calcula tu precio en 10 segundos. Sin cuenta.',
+    },
+    'estimate_card_note': {
+      'fr': 'Sans compte. Le prix exact vient à l’étape suivante.',
+      'en': 'No account. The exact price comes at the next step.',
+      'es': 'Sin cuenta. El precio exacto llega en el siguiente paso.',
+    },
+    'estimate_invalid': {
+      'fr': 'Entrez deux codes postaux canadiens, par exemple J2G 3V5.',
+      'en': 'Enter two Canadian postal codes, for example J2G 3V5.',
+      'es': 'Introduce dos códigos postales canadienses, por ejemplo J2G 3V5.',
+    },
     'quote_start': {
       'fr': 'Commencer ma demande',
       'en': 'Start my request',

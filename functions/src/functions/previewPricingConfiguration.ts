@@ -115,7 +115,8 @@ function parseScenarios(raw: unknown): PricingPreviewScenario[] {
   });
 }
 
-async function quoteAmounts(
+/** Also used by estimateDeliveryPrice (public estimate, 2026-11-26). */
+export async function quoteAmounts(
   config: PricingVersionDoc,
   vehicleCategory: string,
   scenario: PricingPreviewScenario,
