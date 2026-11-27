@@ -334,6 +334,14 @@ class _DeliveryRequestFlowScreenState extends State<DeliveryRequestFlowScreen>
         }
         // A returning guest already left an email: not asked a second time.
         final knownEmail = profile?['guest_email'];
+        // A real account whose profile still says "guest": the call that
+        // completes it was lost when the password was chosen. Sent again;
+        // the server ignores it when the profile is already ordinary.
+        if (!_isGuest && knownEmail is String && knownEmail.isNotEmpty) {
+          api.call('completeGuestAccount', {
+            'fullName': auth.effectiveDisplayName ?? '',
+          }).ignore();
+        }
         setState(() {
           _draft.data['contacts'] = values;
           if (_needsEmail && knownEmail is String && knownEmail.isNotEmpty) {

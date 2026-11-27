@@ -6,6 +6,9 @@ import { requireSignedIn } from '../lib/auth';
 import { analyzeWithOpenAi } from '../lib/openAiPhotoAnalyzer';
 import { assertPhotoBytes, assertPhotoDraft, checkPhotoQuota, MAX_PHOTO_BYTES,
   parsePhotoRequest, photoAnalysisConfig, PhotoAnalysisError, PHOTO_ANALYSIS_VERSION } from '../lib/photoAnalysis';
+import { isAnonymousToken } from '../lib/guestLead';
+import { GUEST_BOOKING_PHOTO_LIMITS, nextPhotoIpUsage } from '../lib/photoIpUsage';
+import { visitorIp } from '../lib/visitorIp';
 
 const OPENAI_API_KEY = defineSecret('OPENAI_API_KEY');
 export async function handleAnalyzeBookingPhoto(request: CallableRequest): Promise<Record<string, unknown>> {
@@ -13,6 +16,11 @@ export async function handleAnalyzeBookingPhoto(request: CallableRequest): Promi
   const now = Date.now(), day = new Date(now).toISOString().slice(0,10);
   const userRef = db.doc(`photo_analysis_usage/${createHash('sha256').update(uid).digest('hex')}`);
   const globalRef = db.doc(`photo_analysis_usage/global_${day}`);
+  // Visiteur sans compte (session invitée) : le plafond par compte ne le borne
+  // pas, une nouvelle session repart à zéro. Plafond par adresse IP en plus.
+  const guestIpRef = isAnonymousToken(request.auth?.token as Record<string, unknown> | undefined)
+    ? db.doc(`photo_analysis_usage/guest_${createHash('sha256').update(`guest_photo:${visitorIp(request)}`).digest('hex')}`)
+    : null;
   const token = randomUUID();
   let claimed = false;
   try {
@@ -34,10 +42,16 @@ export async function handleAnalyzeBookingPhoto(request: CallableRequest): Promi
     assertPhotoBytes(bytes);
     await db.runTransaction(async tx => {
       const [draft, user, global] = await Promise.all([tx.get(draftRef),tx.get(userRef),tx.get(globalRef)]);
+      const guestIp = guestIpRef ? await tx.get(guestIpRef) : null;
       assertPhotoDraft(uid, input, draft.data(), Date.now());
       const u = user.data() ?? {}, g = global.data() ?? {};
       const today = {...u,count:u.day === day ? u.count : 0};
       checkPhotoQuota(today, g, config, Date.now());
+      if (guestIpRef) {
+        const nextIp = nextPhotoIpUsage(guestIp?.data(), day, Date.now(), GUEST_BOOKING_PHOTO_LIMITS);
+        if (!nextIp) throw new PhotoAnalysisError('resource-exhausted');
+        tx.set(guestIpRef, nextIp);
+      }
       tx.set(userRef, {day,count:(today.count ?? 0)+1,busyUntil:Date.now()+90000,token});
       tx.set(globalRef, {day,count:(g.count ?? 0)+1});
     });

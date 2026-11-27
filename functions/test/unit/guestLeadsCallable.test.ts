@@ -8,6 +8,7 @@ jest.mock('../../src/lib/admin', () => {
 import { db } from '../../src/lib/admin';
 import { handleCompleteGuestAccount, handleRegisterQuoteLead } from '../../src/functions/guestLeads';
 import { GUEST_EMAIL_MAX_CHANGES, GUEST_LEADS_PER_IP_PER_DAY } from '../../src/lib/guestLead';
+import { settleGuestProfileIfNeeded } from '../../src/lib/guestProfile';
 
 let data: Record<string, any>;
 const guest = (uid = 'guest-1', email: unknown = 'Marie@Exemple.com', ip = '198.51.100.7', extra: Record<string, unknown> = {}) => ({
@@ -24,7 +25,9 @@ const account = (uid = 'guest-1', email = 'marie@exemple.com', extra: Record<str
 beforeEach(() => {
   jest.clearAllMocks();
   data = {};
-  (db.collection as jest.Mock).mockImplementation((name: string) => ({ doc: (id: string) => ({ path: `${name}/${id}` }) }));
+  (db.collection as jest.Mock).mockImplementation((name: string) => ({
+    doc: (id: string) => ({ path: `${name}/${id}`, get: async () => ({ data: () => data[`${name}/${id}`] }) }),
+  }));
   (db.runTransaction as jest.Mock).mockImplementation(async (fn) => {
     let wrote = false;
     return fn({
@@ -107,4 +110,47 @@ test('completing needs a real sign-in and never touches an ordinary profile', as
   // No profile at all (the email step was skipped somehow): an ordinary customer profile is created.
   await expect(handleCompleteGuestAccount(account('guest-2', 'neuf@exemple.com'))).resolves.toEqual({ completed: true });
   expect(data['users/guest-2']).toMatchObject({ uid: 'guest-2', email: 'neuf@exemple.com', roles: ['customer'], guest: false });
+});
+
+// 2026-11-27 — the browser's completeGuestAccount call can be lost right after
+// the password is chosen; the card step repairs the profile on the server.
+test('a real account whose profile stayed guest is completed at the card step', async () => {
+  await handleRegisterQuoteLead(guest('guest-1', 'marie@exemple.com'));
+  const created = data['users/guest-1'].created_at;
+  // Still a session without a password: nothing to complete.
+  await expect(settleGuestProfileIfNeeded(guest())).resolves.toBe(false);
+  expect(data['users/guest-1'].guest).toBe(true);
+
+  const real = account('guest-1', 'Marie@Exemple.com');
+  real.auth.token.name = '  Marie Tremblay ';
+  real.auth.token.email_verified = true; // the card step only runs with a verified email
+  await expect(settleGuestProfileIfNeeded(real)).resolves.toBe(true);
+  expect(data['users/guest-1']).toMatchObject({
+    uid: 'guest-1', email: 'marie@exemple.com', roles: ['customer'], guest: false,
+    full_name: 'Marie Tremblay', created_at: created, email_verified: true,
+  });
+  // Done once: the second pass reads the profile and writes nothing.
+  const writes = (db.runTransaction as jest.Mock).mock.calls.length;
+  await expect(settleGuestProfileIfNeeded(real)).resolves.toBe(false);
+  expect(db.runTransaction).toHaveBeenCalledTimes(writes);
+});
+
+test('the card step never touches an ordinary profile, creates none, and never blocks', async () => {
+  data['users/client-1'] = { uid: 'client-1', email: 'vrai@exemple.com', roles: ['customer'], full_name: 'Marc' };
+  await expect(settleGuestProfileIfNeeded(account('client-1', 'autre@exemple.com'))).resolves.toBe(false);
+  expect(data['users/client-1']).toEqual({ uid: 'client-1', email: 'vrai@exemple.com', roles: ['customer'], full_name: 'Marc' });
+  // An account with no profile at all is left as it is.
+  await expect(settleGuestProfileIfNeeded(account('client-2', 'neuf@exemple.com'))).resolves.toBe(false);
+  expect(data['users/client-2']).toBeUndefined();
+  expect(db.runTransaction).not.toHaveBeenCalled();
+  await expect(settleGuestProfileIfNeeded({ data: {} } as any)).resolves.toBe(false);
+
+  // A database failure is logged, never thrown: the card step goes on.
+  data['users/guest-9'] = { uid: 'guest-9', email: 'tape@exemple.com', roles: ['customer'], guest: true };
+  const logged = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  (db.runTransaction as jest.Mock).mockRejectedValueOnce(new Error('panne'));
+  await expect(settleGuestProfileIfNeeded(account('guest-9', 'tape@exemple.com'))).resolves.toBe(false);
+  expect(logged).toHaveBeenCalledTimes(1);
+  expect(data['users/guest-9'].guest).toBe(true);
+  logged.mockRestore();
 });

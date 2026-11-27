@@ -23,6 +23,27 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr"/>
   </url>
   <url>
+    <loc>https://movi-k.com/fr/estimation</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/estimation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/estimate"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/estimacion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/estimation"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/en/estimate</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/estimation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/estimate"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/estimacion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/estimation"/>
+  </url>
+  <url>
+    <loc>https://movi-k.com/es/estimacion</loc>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/estimation"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/estimate"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/estimacion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/estimation"/>
+  </url>
+  <url>
     <loc>https://movi-k.com/fr/livraison</loc>
     <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/livraison"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/delivery"/>
@@ -210,90 +231,6 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/contact"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/contacto"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/contact"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/fr/legal/privacy</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/en/legal/privacy</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/es/legal/privacy</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/privacy"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/privacy"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/fr/legal/terms</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/en/legal/terms</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/es/legal/terms</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/terms"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/terms"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/fr/legal/cancellation</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/en/legal/cancellation</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/es/legal/cancellation</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/cancellation"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/cancellation"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/fr/legal/dispute</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/en/legal/dispute</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
-  </url>
-  <url>
-    <loc>https://movi-k.com/es/legal/dispute</loc>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://movi-k.com/fr/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://movi-k.com/en/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://movi-k.com/es/legal/dispute"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://movi-k.com/fr/legal/dispute"/>
   </url>
   <url>
     <loc>https://movi-k.com/fr/transport/refrigerateur</loc>

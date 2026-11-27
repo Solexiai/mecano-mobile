@@ -307,13 +307,22 @@ class FirebaseAuthProvider extends ChangeNotifier {
       }
       // Le jeton doit porter le courriel avant l'appel au serveur.
       await account.getIdToken(true);
-      try {
-        await FirebaseFunctions.instance
-            .httpsCallable('completeGuestAccount')
-            .call({'fullName': fullName.trim()});
-      } catch (_) {
-        // La fiche reste « invité » ; le compte, lui, est créé. Le serveur
-        // la complète au prochain essai ; rien ne bloque la réservation.
+      // Trois essais : un seul appel perdu laissait la fiche « invité »
+      // alors que le compte existe (revue du 2026-11-27). Si les trois
+      // échouent, rien ne bloque la réservation : la demande de livraison
+      // refait l'appel à sa prochaine ouverture, et le serveur complète la
+      // fiche lui-même à l'étape de la carte.
+      for (var attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await FirebaseFunctions.instance
+              .httpsCallable('completeGuestAccount')
+              .call({'fullName': fullName.trim()});
+          break;
+        } catch (_) {
+          if (attempt < 3) {
+            await Future.delayed(Duration(milliseconds: 400 * attempt));
+          }
+        }
       }
       await account.reload();
       _user = fb.FirebaseAuth.instance.currentUser;

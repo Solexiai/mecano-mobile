@@ -19,13 +19,14 @@
 // -----------------------------------------------------------------------------
 import { PROPOSED_ITEM_CLASSES } from "./itemClassFees";
 import { assertPhotoBytes, PhotoAnalysisError } from "./photoAnalysis";
+import { nextPhotoIpUsage, PhotoIpLimits, PhotoIpUsage } from "./photoIpUsage";
 import { EstimateWeight } from "./publicEstimate";
 import { ItemClass, PricingVersionDoc } from "./types";
 
 export const MAX_PUBLIC_PHOTO_BYTES = 1536 * 1024;
 const MAX_BASE64_LENGTH = Math.ceil(MAX_PUBLIC_PHOTO_BYTES / 3) * 4;
 
-export const PUBLIC_PHOTO_LIMITS = Object.freeze({
+export const PUBLIC_PHOTO_LIMITS: Readonly<PhotoIpLimits> = Object.freeze({
   perIpWindow: 3,
   windowMs: 10 * 60 * 1000,
   perIpPerDay: 6,
@@ -67,13 +68,7 @@ export function publicPhotoConfig(raw: Record<string, unknown> | undefined): Pub
   return { model: raw.model, globalDailyLimit: raw.globalDailyLimit as number };
 }
 
-// A type alias (not an interface) so a stored counter can be passed back in.
-export type PublicPhotoUsage = {
-  day: string;
-  count: number;
-  windowStartMs: number;
-  windowCount: number;
-};
+export type PublicPhotoUsage = PhotoIpUsage;
 
 /**
  * Le compteur de l'adresse IP après une photo de plus, ou null si un plafond
@@ -84,20 +79,7 @@ export function nextPublicPhotoUsage(
   day: string,
   now: number
 ): PublicPhotoUsage | null {
-  const s = stored ?? {};
-  const valid = (n: unknown) => n === undefined || (Number.isSafeInteger(n) && (n as number) >= 0);
-  if (!valid(s.count) || !valid(s.windowCount) || !valid(s.windowStartMs)) return null;
-  const dayCount = s.day === day ? ((s.count as number | undefined) ?? 0) : 0;
-  const windowStart = (s.windowStartMs as number | undefined) ?? 0;
-  const inWindow = windowStart <= now && now - windowStart < PUBLIC_PHOTO_LIMITS.windowMs;
-  const windowCount = inWindow ? ((s.windowCount as number | undefined) ?? 0) : 0;
-  if (dayCount >= PUBLIC_PHOTO_LIMITS.perIpPerDay || windowCount >= PUBLIC_PHOTO_LIMITS.perIpWindow) return null;
-  return {
-    day,
-    count: dayCount + 1,
-    windowStartMs: inWindow ? windowStart : now,
-    windowCount: windowCount + 1,
-  };
+  return nextPhotoIpUsage(stored, day, now, PUBLIC_PHOTO_LIMITS);
 }
 
 /**

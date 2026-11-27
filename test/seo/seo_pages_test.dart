@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:movik_connect/content/faq_content.dart';
+import 'package:movik_connect/seo/estimate_page.dart';
 import 'package:movik_connect/seo/seo_html.dart';
 import 'package:movik_connect/seo/seo_pages.dart';
 
@@ -49,9 +50,13 @@ void main() {
     for (final path in seoPaths) {
       expect(sitemap, contains(path));
     }
-    // Every other sitemap page is a legal page (served by the app as before).
-    for (final path in sitemap.where((p) => !seoPaths.contains(p))) {
-      expect(path, contains('/legal/'));
+    // Every other sitemap page is the estimate page (plain HTML). The legal
+    // pages left the sitemap on 2026-11-27: the app displays them, so a
+    // crawler finds no text in them.
+    final others = sitemap.where((p) => !seoPaths.contains(p)).toList();
+    expect(others, hasLength(3));
+    for (final path in others) {
+      expect(estimateLocaleForPath(path), isNotNull, reason: path);
     }
   });
 

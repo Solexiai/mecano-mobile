@@ -319,7 +319,13 @@ String renderEstimateForm(String locale, {bool photoUpload = false}) {
     );
   if (photoUpload) {
     b
-      ..writeln('  <input type="file" id="mk-est-file" accept="image/*" hidden>')
+      // Pas d'attribut `hidden` : un champ en `display:none` n'ouvre pas
+      // toujours l'appareil photo sur iPhone. Il est rendu invisible par
+      // son propre style (les autres pages ne portent pas ce champ).
+      ..writeln(
+        '  <input type="file" id="mk-est-file" accept="image/*" tabindex="-1" aria-hidden="true" '
+        'style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none">',
+      )
       ..writeln(
         '  <p class="mk-est-photo-msg" id="mk-est-photo-msg" role="status" hidden></p>',
       )
@@ -538,11 +544,16 @@ const _script = r'''
   if (photoLink && fileInput) {
     photoLink.addEventListener('click', function (event) {
       event.preventDefault();
+      if (photoBusy) return;
+      // Le champ est vidé ici, avant d'ouvrir l'appareil photo, et jamais
+      // juste après le choix : sur iPhone, vider le champ pendant que la
+      // photo est encore lue la rend illisible. Vidé, il accepte aussi la
+      // même photo une deuxième fois.
+      try { fileInput.value = ''; } catch (e) {}
       fileInput.click();
     });
     fileInput.addEventListener('change', function () {
       var file = fileInput.files && fileInput.files[0];
-      fileInput.value = '';
       if (file) recognize(file);
     });
     // Arrivée depuis une autre page par « Ajoutez une photo » : le navigateur
