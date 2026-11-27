@@ -178,16 +178,20 @@ void main() {
       }
     });
 
-    test('46 public pages in French, English and Spanish', () {
-      // 14 d’origine (dont 4 pages légales) + 19 par objet ou service + 13 par ville.
-      expect(locs, hasLength(138));
-      expect(locs.toSet(), hasLength(138));
+    test('43 public pages in French, English and Spanish', () {
+      // 10 d’origine + 19 par objet ou service + 13 par ville + la page
+      // d’estimation (2026-11-27). Les 4 pages légales n’y sont plus : elles
+      // sont affichées par l’application, sans texte lisible par un robot.
+      expect(locs, hasLength(129));
+      expect(locs.toSet(), hasLength(129));
       for (final locale in ['fr', 'en', 'es']) {
         expect(
           locs.where((l) => l.startsWith('https://movi-k.com/$locale')),
-          hasLength(46),
+          hasLength(43),
         );
+        expect(locs, contains(estimateUrl(locale)));
       }
+      expect(locs.where((l) => l.contains('/legal/')), isEmpty);
     });
 
     test('every sitemap address is a real, open page', () {
@@ -195,7 +199,10 @@ void main() {
       for (final loc in locs) {
         expect(loc, startsWith('https://movi-k.com/'));
         final path = Uri.parse(loc).path;
-        expect(routes.any((r) => r.hasMatch(path)), isTrue, reason: loc);
+        // The estimate page is plain HTML: it is not a route of the app.
+        if (estimateLocaleForPath(path) == null) {
+          expect(routes.any((r) => r.hasMatch(path)), isTrue, reason: loc);
+        }
         expect(servedByApp(path), isTrue, reason: loc);
         expect(blockedByRobots(path), isFalse, reason: loc);
       }
@@ -203,7 +210,7 @@ void main() {
 
     test('every page lists its fr, en, es and x-default versions', () {
       final entries = RegExp(r'<url>([\s\S]*?)</url>').allMatches(sitemap);
-      expect(entries, hasLength(138));
+      expect(entries, hasLength(129));
       for (final entry in entries) {
         final block = entry.group(1)!;
         final alternates = {

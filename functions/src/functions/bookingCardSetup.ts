@@ -9,6 +9,7 @@ import { APP_PUBLIC_BASE_URL } from '../lib/appConfig';
 import { getBookingPolicy } from '../lib/bookingServer';
 import { verifyCardSetup } from '../lib/bookingPayment';
 import { resolveLockedQuote } from '../lib/quoteIntegrity';
+import { settleGuestProfileIfNeeded } from '../lib/guestProfile';
 
 const options = { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] };
 function quoteId(value: unknown): string {
@@ -49,6 +50,8 @@ export const startBookingCardSetup = onCall(options, async request => {
   requireBookingConsent(policy, request.data.consent);
   if (!policy.setup_enabled) throw failedPrecondition('Acceptez les conditions applicables avant l’enregistrement de la carte.');
   if (request.auth?.token.email_verified !== true) throw failedPrecondition('Vérifiez votre adresse courriel.');
+  // Compte créé à la réservation dont la fiche serait restée « invité ».
+  await settleGuestProfileIfNeeded(request);
   const quote = (await db.doc(`delivery_quotes/${id}`).get()).data();
   if (!quote || quote.customer_id !== ctx.uid) throw permissionDenied('Devis inaccessible.');
   const locked = resolveLockedQuote(id, quote);

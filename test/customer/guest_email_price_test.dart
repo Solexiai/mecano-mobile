@@ -183,6 +183,29 @@ void main() {
     expect(api.calls, isNot(contains('registerQuoteLead')));
     expect(api.calls, contains('calculateDeliveryQuote'));
     expect(_key('booking-price-hero'), findsOneWidget);
+    // Still a guest: there is no account to complete yet.
+    expect(api.calls, isNot(contains('completeGuestAccount')));
+    await disposeBooking(t);
+  });
+
+  // 2026-11-27: the call that turns the guest profile into a customer
+  // profile can be lost when the password is chosen. The booking flow sends
+  // it again the next time the account opens it.
+  testWidgets('an account whose profile stayed guest is completed again', (
+    t,
+  ) async {
+    final api = TestBookingApi()
+      ..profileData = {'contacts': null, 'guest_email': 'marie@exemple.com'};
+    await pumpBooking(
+      t,
+      storage: MemoryBookingStorage(testDraft(step: 1)),
+      api: api,
+      auth: BookingTestAuth(),
+    );
+    final at = api.calls.indexOf('completeGuestAccount');
+    expect(at, isNot(-1));
+    expect(api.payloads[at], {'fullName': 'Test Client'});
+    expect(_key('booking-guest-email'), findsNothing);
     await disposeBooking(t);
   });
 

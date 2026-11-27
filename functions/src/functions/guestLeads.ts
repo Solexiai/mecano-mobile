@@ -6,6 +6,8 @@
 //   - completeGuestAccount (compte avec courriel) : après le choix du mot de
 //     passe, la fiche devient celle d'un client ordinaire. Le courriel vient
 //     du jeton de connexion, jamais du client.
+//     Si cet appel se perd, le serveur refait le passage à l'étape de la
+//     carte (lib/guestProfile.ts).
 // -----------------------------------------------------------------------------
 import { createHash } from "crypto";
 import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
@@ -18,6 +20,7 @@ import {
   isAnonymousToken,
   normalizeLeadEmail,
 } from "../lib/guestLead";
+import { cleanFullName, settleGuestProfile } from "../lib/guestProfile";
 import { nextDailyRoutingBudget, RoutingBudget } from "../lib/routingRateLimit";
 import { refuseDriverAsCustomer } from "../lib/userKind";
 import { visitorIp } from "./estimateDeliveryPrice";
@@ -75,28 +78,7 @@ export async function handleCompleteGuestAccount(request: CallableRequest<any>):
   if (isAnonymousToken(request.auth?.token as Record<string, unknown> | undefined) || !ctx.email) {
     throw failedPrecondition("Choisissez d'abord votre mot de passe.");
   }
-  const rawName = request.data?.fullName;
-  const fullName = typeof rawName === "string" ? rawName.trim().slice(0, 120) : "";
-  const ref = db.collection("users").doc(ctx.uid);
-  const completed = await db.runTransaction(async (tx) => {
-    const existing = (await tx.get(ref)).data();
-    // Une fiche ordinaire existe déjà : on n'y touche pas.
-    if (existing && existing.guest !== true) return false;
-    const now = Date.now();
-    tx.set(ref, {
-      uid: ctx.uid,
-      email: ctx.email,
-      roles: Array.isArray(existing?.roles) && existing!.roles.length ? existing!.roles : ["customer"],
-      guest: false,
-      ...(fullName ? { full_name: fullName } : {}),
-      created_at: existing?.created_at ?? new Date(now).toISOString(),
-      is_disabled: false,
-      email_verified: false,
-      account_completed_at: admin.firestore.Timestamp.fromMillis(now),
-      updated_at: admin.firestore.Timestamp.fromMillis(now),
-    }, { merge: true });
-    return true;
-  });
+  const completed = await settleGuestProfile(ctx.uid, ctx.email, cleanFullName(request.data?.fullName));
   return { completed };
 }
 

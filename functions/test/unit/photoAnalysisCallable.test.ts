@@ -4,6 +4,7 @@ jest.mock('firebase-functions/params',()=>({defineSecret:()=>({value:()=> 'FAKE-
 import {db,admin} from '../../src/lib/admin';
 import {analyzeWithOpenAi} from '../../src/lib/openAiPhotoAnalyzer';
 import {handleAnalyzeBookingPhoto} from '../../src/functions/analyzeBookingPhoto';
+import {GUEST_BOOKING_PHOTO_LIMITS} from '../../src/lib/photoIpUsage';
 const path='booking_photos/fake/draft-fictitious/item/0.jpg';
 let data:Record<string,any>, tx:any, file:any;
 const request=()=>({auth:{uid:'fake',token:{}},data:{draftId:'draft-fictitious',itemId:'item',photoPath:path,locale:'fr',consent:true}} as any);
@@ -69,4 +70,28 @@ test('concurrent second request refused while first awaits provider',async()=>{
  expect(finish).toBeDefined();
  await expect(handleAnalyzeBookingPhoto(request())).rejects.toMatchObject({code:'resource-exhausted'});
  finish({category:'sofa'});await first;expect(analyzeWithOpenAi).toHaveBeenCalledTimes(1);
+});
+// 2026-11-27 — a visitor without an account gets a new guest session, hence a
+// fresh per-account counter, at will: guest sessions are also capped per address.
+const guestRequest=(uid:string,ip='198.51.100.20')=>{
+ const photo=`booking_photos/${uid}/draft-fictitious/item/0.jpg`;
+ data[`booking_drafts/${uid}`]={owner_uid:uid,draft_id:'draft-fictitious',expires_at:{toMillis:()=>Date.now()+60000},draft:{intake_mode:'photo_assisted',items:[{id:'item',photos:[photo]}]}};
+ return {auth:{uid,token:{firebase:{sign_in_provider:'anonymous'}}},rawRequest:{headers:{'x-forwarded-for':ip}},
+  data:{draftId:'draft-fictitious',itemId:'item',photoPath:photo,locale:'fr',consent:true}} as any;
+};
+test('guest sessions share one cap per address; another address and a real account are not affected',async()=>{
+ Object.assign(data['system_config/photo_analysis'],{allowAuthenticatedUsers:true,userDailyLimit:100,globalDailyLimit:1000});
+ for(let i=0;i<GUEST_BOOKING_PHOTO_LIMITS.perIpWindow;i++){
+  await expect(handleAnalyzeBookingPhoto(guestRequest(`guest-${i}`))).resolves.toMatchObject({requiresConfirmation:true});
+ }
+ // A brand-new session from the same address: refused before the provider.
+ await expect(handleAnalyzeBookingPhoto(guestRequest('guest-new'))).rejects.toMatchObject({code:'resource-exhausted'});
+ expect(analyzeWithOpenAi).toHaveBeenCalledTimes(GUEST_BOOKING_PHOTO_LIMITS.perIpWindow);
+ await expect(handleAnalyzeBookingPhoto(guestRequest('guest-elsewhere','203.0.113.9'))).resolves.toMatchObject({requiresConfirmation:true});
+ const signed=guestRequest('client-1');signed.auth.token={email:'client@example.invalid',firebase:{sign_in_provider:'password'}};
+ await expect(handleAnalyzeBookingPhoto(signed)).resolves.toMatchObject({requiresConfirmation:true});
+ expect(analyzeWithOpenAi).toHaveBeenCalledTimes(GUEST_BOOKING_PHOTO_LIMITS.perIpWindow+2);
+ // Two address counters, stored hashed, never as written.
+ expect(Object.keys(data).filter(k=>k.startsWith('photo_analysis_usage/guest_'))).toHaveLength(2);
+ expect(Object.keys(data).some(k=>k.includes('198.51.100.20')||k.includes('203.0.113.9'))).toBe(false);
 });

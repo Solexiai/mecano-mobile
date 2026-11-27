@@ -11,7 +11,10 @@ Future<Uint8List> encodeBookingPhoto(Uint8List bytes, String mimeType) async {
   try {
     await image.decode().toDart.timeout(const Duration(seconds: 20));
     final width = image.naturalWidth, height = image.naturalHeight;
-    if (width < 1 || height < 1 || width * height > 48000000) {
+    // 64 Mpx : la photo « 48 Mpx » d'un iPhone récent fait 8064 × 6048,
+    // soit 48,8 millions de points, juste au-dessus de l'ancien plafond de
+    // 48 millions ; elle était refusée (2026-11-27).
+    if (width < 1 || height < 1 || width * height > 64000000) {
       throw const FormatException('Image dimensions');
     }
     final scale = math.min(1.0, 1600 / math.max(width, height));

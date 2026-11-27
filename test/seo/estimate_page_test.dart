@@ -123,7 +123,18 @@ void main() {
         html,
         contains('class="mk-est-photo" id="mk-est-photo" href="${estimatePath(locale)}?photo=1"'),
       );
-      expect(RegExp('<input type="file" id="mk-est-file" accept="image/\\*" hidden>').allMatches(html), hasLength(1));
+      // The file field is invisible but never `display:none` (iPhone), and it
+      // is emptied before the camera opens, never while the photo is read.
+      final field = RegExp('<input type="file" id="mk-est-file"[^>]*>').allMatches(html).toList();
+      expect(field, hasLength(1));
+      expect(field.single.group(0), contains('accept="image/*"'));
+      expect(field.single.group(0), contains('position:absolute;width:1px;height:1px;opacity:0'));
+      expect(field.single.group(0), isNot(contains(' hidden')));
+      expect(RegExp(r"fileInput\.value = ''").allMatches(html), hasLength(1));
+      expect(
+        html.indexOf("fileInput.value = ''"),
+        lessThan(html.indexOf('fileInput.click()')),
+      );
       expect(html, contains('id="mk-est-photo-msg" role="status" hidden'));
       expect(html, contains(HomeCopy.text('estimate_photo_note', locale)));
       expect(html, contains(estimatePhotoFunctionUrl));

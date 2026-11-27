@@ -14,7 +14,7 @@
 //     coûte qu'un appel Google Routes ;
 //   - la réponse ne contient que deux dollars entiers et une distance.
 // -----------------------------------------------------------------------------
-import { CallableRequest, HttpsError, onCall } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { admin, db } from "../lib/admin";
 import { failedPrecondition, invalidArgument } from "../lib/errors";
 import { missionFeePolicyFrom } from "../lib/missionFees";
@@ -30,6 +30,7 @@ import {
 } from "../lib/publicEstimate";
 import { consumePublicEstimateBudget } from "../lib/routingRateLimit";
 import { PricingVersionDoc } from "../lib/types";
+import { visitorIp } from "../lib/visitorIp";
 import { calculatePostalCodeRoute, RouteEstimate } from "./calculateRoute";
 import { quoteAmounts } from "./previewPricingConfiguration";
 
@@ -67,19 +68,8 @@ export async function activeGrid(now: number): Promise<{ id: string; config: Pri
   return cachedConfig;
 }
 
-/**
- * Adresse IP du visiteur. Derrière Google, la dernière valeur de
- * `x-forwarded-for` est celle que Google a vue ; les précédentes sont
- * écrites par le visiteur et ne comptent pas.
- */
-export function visitorIp(request: Pick<CallableRequest<unknown>, "rawRequest">): string {
-  const raw = request.rawRequest as unknown as { headers?: Record<string, unknown>; ip?: unknown } | undefined;
-  const header = raw?.headers?.["x-forwarded-for"];
-  const forwarded = (Array.isArray(header) ? header.join(",") : typeof header === "string" ? header : "")
-    .split(",").map((part) => part.trim()).filter(Boolean);
-  const ip = forwarded.length ? forwarded[forwarded.length - 1] : typeof raw?.ip === "string" ? raw.ip : "";
-  return ip && ip.length <= 64 ? ip : "unknown";
-}
+// Déplacée dans lib/visitorIp.ts (2026-11-27) ; réexportée ici pour ses appelants.
+export { visitorIp };
 
 export const estimateDeliveryPrice = onCall<EstimateDeliveryPriceRequest>(
   async (request): Promise<PublicEstimate> => {
